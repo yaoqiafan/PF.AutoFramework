@@ -56,11 +56,6 @@ namespace PF.Core.Interfaces.Logging
 
         // 事件
         event Action<LogEntry> OnLogAdded;
-
-        // UI集合访问
-        ObservableCollection<LogEntry> LogEntries { get; }
-        ObservableCollection<ChatInfoModel> ChatEntries { get; }
-
         // 清空
         void Clear();
         void ClearCategory(string category);
