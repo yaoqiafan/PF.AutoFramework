@@ -1,10 +1,6 @@
-﻿using PF.Common.Interface.Param;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿
+using PF.Core.Interfaces.Configuration;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PF.UI.Infrastructure.Mappers
 {

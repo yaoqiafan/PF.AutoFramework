@@ -1,14 +1,8 @@
-﻿using PF.Common.Core.Param.Entity.Category;
-using PF.Common.Core.Param.Entity.Category.Default;
-using PF.Common.Data.Admin;
-using PF.Common.Interface.Param;
-using PF.UI.Shared.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using PF.Core.Entities.Identity;
+using PF.Core.Enums;
+using PF.Data.Entity.Category;
+using PF.Data.Params;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {

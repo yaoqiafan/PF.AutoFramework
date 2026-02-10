@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Infrastructure.Data.Context
+namespace PF.Data.Context
 {
     /// <summary>
     /// 通用数据库上下文工厂

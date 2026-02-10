@@ -43,4 +43,25 @@ namespace PF.Core.Entities.Configuration
         /// </summary>
         public RollingMode RollingMode { get; set; } = RollingMode.Date;
     }
+
+    /// <summary>
+    /// 文件滚动方式
+    /// </summary>
+    public enum RollingMode
+    {
+        /// <summary>
+        /// 按日期滚动
+        /// </summary>
+        Date,
+
+        /// <summary>
+        /// 按文件大小滚动
+        /// </summary>
+        Size,
+
+        /// <summary>
+        /// 按日期和文件大小滚动
+        /// </summary>
+        Composite
+    }
 }

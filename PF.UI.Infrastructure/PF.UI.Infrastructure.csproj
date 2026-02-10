@@ -4,5 +4,8 @@
 	<ItemGroup>
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
+	</ItemGroup>
 
 </Project>

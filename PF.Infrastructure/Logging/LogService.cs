@@ -3,20 +3,15 @@ using log4net.Appender;
 using log4net.Core;
 using log4net.Layout;
 using log4net.Repository.Hierarchy;
-
 using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Logging;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 
 namespace PF.Infrastructure.Logging

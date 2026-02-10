@@ -35,4 +35,8 @@
 		</XAMLCombineItems>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\PF.UI.Controls\PF.UI.Controls.csproj" />
+	</ItemGroup>
+
 </Project>

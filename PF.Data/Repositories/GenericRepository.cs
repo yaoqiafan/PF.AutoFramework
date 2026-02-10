@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Infrastructure.Data.Repositories
+namespace PF.Data.Repositories
 {
     /// <summary>
     /// 通用仓库类

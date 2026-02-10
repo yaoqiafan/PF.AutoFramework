@@ -10,6 +10,7 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting" />
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\PF.Data\PF.Data.csproj" />
 	  <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
 	</ItemGroup>
 </Project>
