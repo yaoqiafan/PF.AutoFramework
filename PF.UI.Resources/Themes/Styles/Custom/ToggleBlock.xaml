@@ -1,0 +1,38 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+    
+    <Style BasedOn="{StaticResource ToggleBlockBaseStyle}" TargetType="pfcontrol:ToggleBlock" />
+
+    <Style
+        x:Key="ToggleBlockIcon"
+        BasedOn="{StaticResource ToggleBlockBaseStyle}"
+        TargetType="pfcontrol:ToggleBlock">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:ToggleBlock">
+                    <ContentControl Margin="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                        <Path
+                            x:Name="PathIcon"
+                            Width="{TemplateBinding pfcontrol:IconElement.Width}"
+                            Height="{TemplateBinding pfcontrol:IconElement.Height}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            Data="{TemplateBinding pfcontrol:IconSwitchElement.Geometry}"
+                            Fill="{TemplateBinding Foreground}"
+                            SnapsToDevicePixels="True"
+                            Stretch="Uniform" />
+                    </ContentControl>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="PathIcon" Property="Data" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(pfcontrol:IconSwitchElement.GeometrySelected)}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,10 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+    
+    <Style BasedOn="{StaticResource ToolBarTrayBaseStyle}" TargetType="ToolBarTray" />
+
+    <Style BasedOn="{StaticResource ToolBarBaseStyle}" TargetType="ToolBar" />
+
+</ResourceDictionary>

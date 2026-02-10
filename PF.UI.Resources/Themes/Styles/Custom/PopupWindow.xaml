@@ -1,0 +1,122 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+    
+    <Style TargetType="pfcontrol:PopupWindow">
+        <Setter Property="WindowStyle" Value="None" />
+        <Setter Property="MinHeight" Value="220" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="BorderThickness" Value="20" />
+        <Setter Property="ShowInTaskbar" Value="False" />
+        <Setter Property="MinWidth" Value="300" />
+        <Setter Property="ResizeMode" Value="NoResize" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="SizeToContent" Value="WidthAndHeight" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect
+                    BlurRadius="15"
+                    Opacity=".6"
+                    ShadowDepth="0" />
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:PopupWindow">
+                    <Border Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid
+                                Name="TitleGrid"
+                                Height="30"
+                                Background="{DynamicResource TitleBrush}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Name="PART_TitleBlock"
+                                    Padding="{StaticResource DefaultControlPadding}"
+                                    VerticalAlignment="Center"
+                                    Background="Transparent"
+                                    Foreground="White"
+                                    Text="{TemplateBinding Title}"
+                                    TextTrimming="WordEllipsis"
+                                    TextWrapping="Wrap" />
+                                <Button
+                                    Name="CloseButton"
+                                    Grid.Column="1"
+                                    Width="44"
+                                    Height="28"
+                                    Margin="0,0,1,0"
+                                    Padding="9"
+                                    pfcontrol:BackgroundSwitchElement.MouseDownBackground="Red"
+                                    pfcontrol:BackgroundSwitchElement.MouseHoverBackground="Red"
+                                    Background="Transparent"
+                                    Command="pfcontrol:ControlCommands.Close"
+                                    Foreground="White"
+                                    IsCancel="True"
+                                    Style="{StaticResource ButtonCustom}">
+                                    <Path Fill="{Binding ElementName=CloseButton, Path=Foreground}" Style="{StaticResource ClosePathStyle}" />
+                                </Button>
+                            </Grid>
+                            <Border
+                                Name="PART_MainBorder"
+                                Grid.Row="1"
+                                BorderBrush="{DynamicResource TitleBrush}">
+                                <StackPanel>
+                                    <TextBlock
+                                        Name="MyTextBlock"
+                                        MinHeight="110"
+                                        MaxWidth="300"
+                                        Padding="32"
+                                        Background="{TemplateBinding Background}"
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Text="{TemplateBinding ContentStr}"
+                                        TextAlignment="Center"
+                                        TextTrimming="CharacterEllipsis"
+                                        TextWrapping="Wrap" />
+                                    <StackPanel
+                                        Margin="0,0,0,32"
+                                        HorizontalAlignment="Center"
+                                        Background="{DynamicResource RegionBrush}"
+                                        Orientation="Horizontal">
+                                        <Button
+                                            MinWidth="80"
+                                            Margin="0,0,16,0"
+                                            Command="pfcontrol:ControlCommands.Cancel"
+                                            Content="取消"
+                                            IsCancel="True"
+                                            Visibility="{TemplateBinding ShowCancel,
+                                                                         Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                        <Button
+                                            MinWidth="80"
+                                            Command="pfcontrol:ControlCommands.Confirm"
+                                            Content="确认"
+                                            IsDefault="True"
+                                            Style="{StaticResource ButtonPrimary}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="ShowBorder" Value="True">
+                            <Setter TargetName="PART_MainBorder" Property="BorderThickness" Value="1,0,1,1" />
+                        </Trigger>
+                        <Trigger Property="ShowTitle" Value="False">
+                            <Setter TargetName="TitleGrid" Property="Visibility" Value="Collapsed" />
+                            <Setter Property="Background" Value="Transparent" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

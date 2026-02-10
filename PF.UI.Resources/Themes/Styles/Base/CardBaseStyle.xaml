@@ -1,0 +1,61 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+ 
+    <Style
+        x:Key="CardBaseStyle"
+        BasedOn="{StaticResource BaseStyle}"
+        TargetType="pfcontrol:Card">
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:Card">
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Border
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Visibility="{TemplateBinding Header,
+                                                             Converter={StaticResource Object2VisibilityConverter}}">
+                                <ContentPresenter
+                                    ContentSource="Header"
+                                    ContentStringFormat="{TemplateBinding HeaderStringFormat}"
+                                    ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" />
+                            </Border>
+                            <ContentPresenter Grid.Row="1" />
+                            <Border
+                                Grid.Row="2"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Visibility="{TemplateBinding Footer,
+                                                             Converter={StaticResource Object2VisibilityConverter}}">
+                                <ContentPresenter
+                                    ContentSource="Footer"
+                                    ContentStringFormat="{TemplateBinding FooterStringFormat}"
+                                    ContentTemplate="{TemplateBinding FooterTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding FooterTemplateSelector}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

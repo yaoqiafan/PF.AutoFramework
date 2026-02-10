@@ -1,0 +1,17 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+   
+
+    <Style TargetType="pfcontrol:BlendEffectBox">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:BlendEffectBox">
+                    <ContentPresenter ContentSource="ActualContent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

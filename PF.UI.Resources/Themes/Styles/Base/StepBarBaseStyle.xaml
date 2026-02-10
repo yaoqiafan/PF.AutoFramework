@@ -1,0 +1,198 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+   
+    <Style x:Key="StepBarItemBaseStyle" TargetType="pfcontrol:StepBarItem">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Foreground" Value="{DynamicResource ThirdlyTextBrush}" />
+        <Style.Triggers>
+            <Trigger Property="Status" Value="Complete">
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            </Trigger>
+            <Trigger Property="Status" Value="UnderWay">
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+            </Trigger>
+            <Trigger Property="Status" Value="Waiting">
+                <Setter Property="Foreground" Value="{DynamicResource ThirdlyTextBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style
+        x:Key="StepBarItemHorizontalTop"
+        BasedOn="{StaticResource StepBarItemBaseStyle}"
+        TargetType="pfcontrol:StepBarItem">
+        <Setter Property="Margin" Value="10,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:StepBarItem">
+                    <Border Background="Transparent">
+                        <StackPanel>
+                            <Border
+                                Height="24"
+                                MinWidth="24"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource RegionBrush}"
+                                BorderBrush="{TemplateBinding Foreground}"
+                                BorderThickness="2"
+                                CornerRadius="12">
+                                <TextBlock
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Style="{StaticResource TextBlockDefaultThiLight}"
+                                    Text="{Binding Index, RelativeSource={RelativeSource TemplatedParent}}" />
+                            </Border>
+                            <ContentPresenter
+                                Margin="0,4,0,0"
+                                HorizontalAlignment="Center"
+                                ContentTemplate="{Binding ItemTemplate, RelativeSource={RelativeSource AncestorType=pfcontrol:StepBar}}"
+                                TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style
+        x:Key="StepBarItemHorizontalBottom"
+        BasedOn="{StaticResource StepBarItemBaseStyle}"
+        TargetType="pfcontrol:StepBarItem">
+        <Setter Property="Margin" Value="10,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:StepBarItem">
+                    <StackPanel>
+                        <ContentPresenter
+                            Margin="0,0,0,4"
+                            HorizontalAlignment="Center"
+                            ContentTemplate="{Binding ItemTemplate, RelativeSource={RelativeSource AncestorType=pfcontrol:StepBar}}"
+                            TextElement.Foreground="{TemplateBinding Foreground}" />
+                        <Border
+                            Height="24"
+                            MinWidth="24"
+                            HorizontalAlignment="Center"
+                            Background="{DynamicResource RegionBrush}"
+                            BorderBrush="{TemplateBinding Foreground}"
+                            BorderThickness="2"
+                            CornerRadius="12">
+                            <TextBlock
+                                Foreground="{TemplateBinding Foreground}"
+                                Style="{StaticResource TextBlockDefaultThiLight}"
+                                Text="{Binding Index, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Border>
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style
+        x:Key="StepBarItemVertical"
+        BasedOn="{StaticResource StepBarItemBaseStyle}"
+        TargetType="pfcontrol:StepBarItem">
+        <Setter Property="Margin" Value="0,10" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:StepBarItem">
+                    <StackPanel Orientation="Horizontal">
+                        <Border
+                            Height="24"
+                            MinWidth="24"
+                            HorizontalAlignment="Center"
+                            Background="{DynamicResource RegionBrush}"
+                            BorderBrush="{TemplateBinding Foreground}"
+                            BorderThickness="2"
+                            CornerRadius="12">
+                            <TextBlock
+                                Foreground="{TemplateBinding Foreground}"
+                                Style="{StaticResource TextBlockDefaultThiLight}"
+                                Text="{Binding Index, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Border>
+                        <ContentPresenter
+                            Margin="10,4,0,0"
+                            HorizontalAlignment="Left"
+                            ContentTemplate="{Binding ItemTemplate, RelativeSource={RelativeSource AncestorType=pfcontrol:StepBar}}"
+                            TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <ControlTemplate x:Key="StepBarHorizontalTopControlTemplate" TargetType="pfcontrol:StepBar">
+        <pfcontrol:SimplePanel>
+            <ProgressBar
+                Name="PART_ProgressBarBack"
+                Margin="0,10,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Background="{DynamicResource ThirdlyTextBrush}"
+                Style="{StaticResource ProgressBarFlat}" />
+            <ItemsPresenter />
+        </pfcontrol:SimplePanel>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="StepBarHorizontalBottomControlTemplate" TargetType="pfcontrol:StepBar">
+        <pfcontrol:SimplePanel>
+            <ProgressBar
+                Name="PART_ProgressBarBack"
+                Margin="0,0,0,10"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Background="{DynamicResource ThirdlyTextBrush}"
+                Style="{StaticResource ProgressBarFlat}" />
+            <ItemsPresenter VerticalAlignment="Bottom" />
+        </pfcontrol:SimplePanel>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="StepBarVerticalControlTemplate" TargetType="pfcontrol:StepBar">
+        <pfcontrol:SimplePanel>
+            <ProgressBar
+                Name="PART_ProgressBarBack"
+                Width="4"
+                Margin="10,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Background="{DynamicResource ThirdlyTextBrush}"
+                Orientation="Vertical"
+                RenderTransformOrigin="0.5,0.5"
+                Style="{StaticResource ProgressBarFlat}">
+                <ProgressBar.RenderTransform>
+                    <TransformGroup>
+                        <RotateTransform Angle="180" />
+                    </TransformGroup>
+                </ProgressBar.RenderTransform>
+            </ProgressBar>
+            <ItemsPresenter />
+        </pfcontrol:SimplePanel>
+    </ControlTemplate>
+
+    <Style x:Key="StepBarBaseStyle" TargetType="pfcontrol:StepBar">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource StepBarItemHorizontalTop}" />
+        <Setter Property="Template" Value="{StaticResource StepBarHorizontalTopControlTemplate}" />
+        <Setter Property="ItemsPanel" Value="{StaticResource UniformHorizontalItemsPanelTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="Dock" Value="Left">
+                <Setter Property="ItemContainerStyle" Value="{StaticResource StepBarItemVertical}" />
+                <Setter Property="Template" Value="{StaticResource StepBarVerticalControlTemplate}" />
+                <Setter Property="ItemsPanel" Value="{StaticResource UniformVerticalItemsPanelTemplate}" />
+            </Trigger>
+            <Trigger Property="Dock" Value="Bottom">
+                <Setter Property="ItemContainerStyle" Value="{StaticResource StepBarItemHorizontalBottom}" />
+                <Setter Property="Template" Value="{StaticResource StepBarHorizontalBottomControlTemplate}" />
+                <Setter Property="ItemsPanel" Value="{StaticResource UniformHorizontalItemsPanelTemplate}" />
+            </Trigger>
+            <Trigger Property="Dock" Value="Right">
+                <Setter Property="FlowDirection" Value="RightToLeft" />
+                <Setter Property="ItemContainerStyle" Value="{StaticResource StepBarItemVertical}" />
+                <Setter Property="Template" Value="{StaticResource StepBarVerticalControlTemplate}" />
+                <Setter Property="ItemsPanel" Value="{StaticResource UniformVerticalItemsPanelTemplate}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+
+</ResourceDictionary>

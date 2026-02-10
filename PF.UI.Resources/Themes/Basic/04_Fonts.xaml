@@ -1,0 +1,38 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <FontFamily x:Key="Source_Han_Sans_SC_Bold">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Bold
+    </FontFamily>
+
+    <FontFamily x:Key="Source_Han_Sans_SC_ExtraLight_ExtraLight">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_ExtraLight_ExtraLight
+    </FontFamily>
+
+    <FontFamily x:Key="Source_Han_Sans_SC_Heavy_Heavy">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Heavy_Heavy
+    </FontFamily>
+
+    <FontFamily x:Key="Source_Han_Sans_SC_Light_Light">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Light_Light
+    </FontFamily>
+
+    <FontFamily x:Key="Source_Han_Sans_SC_Medium_Medium">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Medium_Medium
+    </FontFamily>
+
+    <FontFamily x:Key="Source_Han_Sans_SC_Normal_Normal">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Normal_Normal
+    </FontFamily>
+
+    <FontFamily x:Key="Source_Han_Sans_SC_Regular">
+        /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Regular
+    </FontFamily>
+    <system:Double x:Key="LargeFontSize">24</system:Double>
+    <system:Double x:Key="HeadFontSize">20</system:Double>
+    <system:Double x:Key="SubHeadFontSize">16</system:Double>
+    <system:Double x:Key="TextFontSize">12</system:Double>
+
+</ResourceDictionary>

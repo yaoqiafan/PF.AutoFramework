@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+  <ItemGroup>
+    <PackageReference Include="Prism.Wpf" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="DryIoc.Microsoft.DependencyInjection" Version="6.2.0" />
+    <PackageVersion Include="log4net" Version="3.2.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.2" />
+    <PackageVersion Include="Prism.Core" Version="9.0.537" />
+    <PackageVersion Include="Prism.DryIoc" Version="9.0.537" />
+    <PackageVersion Include="Prism.Wpf" Version="9.0.537" />
+    <PackageVersion Include="NPOI" Version="2.7.5" />
+    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.2" />
+    <PackageVersion Include="XAMLTools.MSBuild" Version="1.0.0-alpha0178" />
+  </ItemGroup>
+</Project>

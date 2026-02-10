@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Prism.DryIoc" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
+	</ItemGroup>
+</Project>

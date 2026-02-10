@@ -1,0 +1,8 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+    
+    <Style BasedOn="{StaticResource WatermarkBaseStyle}" TargetType="pfcontrol:Watermark" />
+
+</ResourceDictionary>

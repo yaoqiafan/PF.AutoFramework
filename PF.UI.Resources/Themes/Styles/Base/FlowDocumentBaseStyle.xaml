@@ -1,0 +1,416 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+  
+    <Style x:Key="FlowDocumentScrollViewerBaseStyle" TargetType="FlowDocumentScrollViewer">
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Local" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="FlowDocumentScrollViewer">
+                    <DockPanel Background="{TemplateBinding Background}" LastChildFill="True">
+                        <Grid
+                            x:Name="PART_ToolBarHost"
+                            Margin="0,6"
+                            Panel.ZIndex="1"
+                            DockPanel.Dock="Bottom">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border
+                                x:Name="PART_FindToolBarHost"
+                                Grid.Column="0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed" />
+                            <Grid
+                                Grid.Column="1"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <RepeatButton
+                                    Grid.Column="0"
+                                    Width="20"
+                                    Height="20"
+                                    Padding="5,8"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource SubGeometry}"
+                                    Command="NavigationCommands.DecreaseZoom"
+                                    IsEnabled="{TemplateBinding CanDecreaseZoom}"
+                                    ToolTip="放大" />
+                                <Slider
+                                    Grid.Column="1"
+                                    Width="180"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    pfcontrol:TipElement.Placement="Top"
+                                    pfcontrol:TipElement.Visibility="Visible"
+                                    LargeChange="{TemplateBinding ZoomIncrement}"
+                                    Maximum="{TemplateBinding MaxZoom}"
+                                    Minimum="{TemplateBinding MinZoom}"
+                                    SmallChange="{TemplateBinding ZoomIncrement}"
+                                    TickFrequency="{TemplateBinding ZoomIncrement}"
+                                    Value="{Binding Zoom, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                                <RepeatButton
+                                    Grid.Column="2"
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource AddGeometry}"
+                                    Command="NavigationCommands.IncreaseZoom"
+                                    IsEnabled="{TemplateBinding CanIncreaseZoom}"
+                                    ToolTip="缩小" />
+                            </Grid>
+                        </Grid>
+                        <Border
+                            Margin="{TemplateBinding Padding}"
+                            Panel.ZIndex="0"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                            <ScrollViewer
+                                x:Name="PART_ContentHost"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                CanContentScroll="True" />
+                        </Border>
+                    </DockPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FlowDocumentPageViewerBaseStyle" TargetType="FlowDocumentPageViewer">
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Local" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="FlowDocumentPageViewer">
+                    <DockPanel Background="{TemplateBinding Background}" LastChildFill="True">
+                        <Grid
+                            Margin="0,6"
+                            HorizontalAlignment="Stretch"
+                            Panel.ZIndex="1"
+                            DockPanel.Dock="Bottom">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border
+                                x:Name="PART_FindToolBarHost"
+                                Grid.Column="0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed" />
+                            <StackPanel
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                                <RepeatButton
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource LeftGeometry}"
+                                    Command="NavigationCommands.PreviousPage"
+                                    IsEnabled="{TemplateBinding CanGoToPreviousPage}"
+                                    ToolTip="上一页" />
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Run Text=" " />
+                                    <InlineUIContainer>
+                                        <TextBlock Text="{Binding MasterPageNumber, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    </InlineUIContainer>
+                                    <Run Text=" " />
+                                    <Run Text="/" />
+                                    <Run Text=" " />
+                                    <InlineUIContainer>
+                                        <TextBlock Text="{Binding PageCount, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    </InlineUIContainer>
+                                    <Run Text=" " />
+                                </TextBlock>
+                                <RepeatButton
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource RightGeometry}"
+                                    Command="NavigationCommands.NextPage"
+                                    IsEnabled="{TemplateBinding CanGoToNextPage}"
+                                    ToolTip="下一页" />
+                            </StackPanel>
+                            <Grid
+                                Grid.Column="2"
+                                Margin="32,0,0,0"
+                                VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <RepeatButton
+                                    Grid.Column="0"
+                                    Width="20"
+                                    Height="20"
+                                    Padding="5,8"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource SubGeometry}"
+                                    Command="NavigationCommands.DecreaseZoom"
+                                    IsEnabled="{TemplateBinding CanDecreaseZoom}"
+                                    ToolTip="缩小" />
+                                <Slider
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    pfcontrol:TipElement.Placement="Top"
+                                    pfcontrol:TipElement.Visibility="Visible"
+                                    LargeChange="{TemplateBinding ZoomIncrement}"
+                                    Maximum="{TemplateBinding MaxZoom}"
+                                    Minimum="{TemplateBinding MinZoom}"
+                                    SmallChange="{TemplateBinding ZoomIncrement}"
+                                    TickFrequency="{TemplateBinding ZoomIncrement}"
+                                    Value="{Binding Zoom, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                                <RepeatButton
+                                    Grid.Column="2"
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource AddGeometry}"
+                                    Command="NavigationCommands.IncreaseZoom"
+                                    IsEnabled="{TemplateBinding CanIncreaseZoom}"
+                                    ToolTip="放大" />
+                            </Grid>
+                        </Grid>
+                        <Border
+                            Margin="{TemplateBinding Padding}"
+                            Panel.ZIndex="0"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                            <AdornerDecorator>
+                                <DocumentPageView
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    DocumentPaginator="{x:Null}"
+                                    DocumentViewerBase.IsMasterPage="True"
+                                    KeyboardNavigation.IsTabStop="False"
+                                    KeyboardNavigation.TabIndex="1"
+                                    KeyboardNavigation.TabNavigation="Local"
+                                    PageNumber="0" />
+                            </AdornerDecorator>
+                        </Border>
+                    </DockPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FlowDocumentReaderBaseStyle" TargetType="FlowDocumentReader">
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Local" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="FlowDocumentReader">
+                    <DockPanel Background="{TemplateBinding Background}" LastChildFill="True">
+                        <Grid
+                            Margin="0,6"
+                            HorizontalAlignment="Stretch"
+                            Panel.ZIndex="1"
+                            DockPanel.Dock="Bottom">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton
+                                    x:Name="FindButton"
+                                    Width="24"
+                                    Height="24"
+                                    Margin="0,0,10,0"
+                                    Padding="5"
+                                    pfcontrol:IconElement.Geometry="{StaticResource SearchGeometry}"
+                                    Command="ApplicationCommands.Find"
+                                    ToolTip="查找" />
+                                <Border
+                                    x:Name="PART_FindToolBarHost"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Visibility="Collapsed" />
+                            </StackPanel>
+                            <StackPanel
+                                x:Name="PageCountAndButtons"
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                                <RepeatButton
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource LeftGeometry}"
+                                    Command="NavigationCommands.PreviousPage"
+                                    IsEnabled="{TemplateBinding CanGoToPreviousPage}"
+                                    ToolTip="上一页" />
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Run Text=" " />
+                                    <InlineUIContainer>
+                                        <TextBlock Text="{Binding PageNumber, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    </InlineUIContainer>
+                                    <Run Text=" " />
+                                    <Run Text="/" />
+                                    <Run Text=" " />
+                                    <InlineUIContainer>
+                                        <TextBlock Text="{Binding PageCount, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    </InlineUIContainer>
+                                    <Run Text=" " />
+                                </TextBlock>
+                                <RepeatButton
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource RightGeometry}"
+                                    Command="NavigationCommands.NextPage"
+                                    IsEnabled="{TemplateBinding CanGoToNextPage}"
+                                    ToolTip="下一页" />
+                            </StackPanel>
+                            <Grid
+                                Grid.Column="2"
+                                Margin="32,0,0,0"
+                                VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <pfcontrol:ButtonGroup Width="90">
+                                    <RadioButton
+                                        x:Name="PageViewButton"
+                                        Padding="0"
+                                        pfcontrol:IconElement.Geometry="{StaticResource PageModeGeometry}"
+                                        Command="FlowDocumentReader.SwitchViewingModeCommand"
+                                        CommandParameter="Page"
+                                        GroupName="ViewingMode"
+                                        IsEnabled="{TemplateBinding IsPageViewEnabled}"
+                                        ToolTip="页面模式" />
+                                    <RadioButton
+                                        x:Name="TwoPageViewButton"
+                                        Padding="0"
+                                        pfcontrol:IconElement.Geometry="{StaticResource TwoPageModeGeometry}"
+                                        Command="FlowDocumentReader.SwitchViewingModeCommand"
+                                        CommandParameter="TwoPage"
+                                        GroupName="ViewingMode"
+                                        IsEnabled="{TemplateBinding IsTwoPageViewEnabled}"
+                                        ToolTip="双页模式" />
+                                    <RadioButton
+                                        x:Name="ScrollViewButton"
+                                        Padding="0"
+                                        pfcontrol:IconElement.Geometry="{StaticResource ScrollModeGeometry}"
+                                        Command="FlowDocumentReader.SwitchViewingModeCommand"
+                                        CommandParameter="Scroll"
+                                        GroupName="ViewingMode"
+                                        IsEnabled="{TemplateBinding IsScrollViewEnabled}"
+                                        ToolTip="滚动模式" />
+                                </pfcontrol:ButtonGroup>
+                                <RepeatButton
+                                    Grid.Column="1"
+                                    Width="20"
+                                    Height="20"
+                                    Margin="32,0,0,0"
+                                    Padding="5,8"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource SubGeometry}"
+                                    Command="NavigationCommands.DecreaseZoom"
+                                    IsEnabled="{TemplateBinding CanDecreaseZoom}"
+                                    ToolTip="缩小" />
+                                <Slider
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    pfcontrol:TipElement.Placement="Top"
+                                    pfcontrol:TipElement.Visibility="Visible"
+                                    LargeChange="{TemplateBinding ZoomIncrement}"
+                                    Maximum="{TemplateBinding MaxZoom}"
+                                    Minimum="{TemplateBinding MinZoom}"
+                                    SmallChange="{TemplateBinding ZoomIncrement}"
+                                    TickFrequency="{TemplateBinding ZoomIncrement}"
+                                    Value="{Binding Zoom, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                                <RepeatButton
+                                    Grid.Column="3"
+                                    Width="20"
+                                    Height="20"
+                                    Padding="4"
+                                    pfcontrol:BorderElement.CornerRadius="10"
+                                    pfcontrol:IconElement.Geometry="{StaticResource AddGeometry}"
+                                    Command="NavigationCommands.IncreaseZoom"
+                                    IsEnabled="{TemplateBinding CanIncreaseZoom}"
+                                    ToolTip="放大" />
+                            </Grid>
+                        </Grid>
+                        <Border
+                            x:Name="PART_ContentHost"
+                            Margin="{TemplateBinding Padding}"
+                            Panel.ZIndex="0"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                            KeyboardNavigation.IsTabStop="False"
+                            KeyboardNavigation.TabIndex="1"
+                            KeyboardNavigation.TabNavigation="Local" />
+                    </DockPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="ViewingMode" Value="Page">
+                            <Setter TargetName="PageViewButton" Property="IsChecked" Value="True" />
+                        </Trigger>
+                        <Trigger Property="ViewingMode" Value="TwoPage">
+                            <Setter TargetName="TwoPageViewButton" Property="IsChecked" Value="True" />
+                            <Setter Property="BorderThickness" Value="0" />
+                        </Trigger>
+                        <Trigger Property="ViewingMode" Value="Scroll">
+                            <Setter TargetName="ScrollViewButton" Property="IsChecked" Value="True" />
+                            <Setter TargetName="PageCountAndButtons" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="Document" Value="{x:Null}">
+                            <Setter TargetName="FindButton" Property="IsEnabled" Value="False" />
+                        </Trigger>
+                        <Trigger Property="IsFindEnabled" Value="False">
+                            <Setter TargetName="FindButton" Property="IsEnabled" Value="False" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,19 @@
+﻿<pf:Window
+    x:Class="PF.Common.Core.PrismBase.PFDialogBaseWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PF.Common.Core.PrismBase"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.Controls;assembly=PF.Controls"
+    Title="{Binding Title}"
+    MaxWidth="1080"
+    Background="Transparent"
+    MouseLeftButtonDown="Grid_MouseLeftButtonDown"
+    ResizeMode="NoResize"
+    SizeToContent="WidthAndHeight"
+    Style="{StaticResource WindowWin10}"
+    WindowStyle="ToolWindow"
+    mc:Ignorable="d">
+    <Grid />
+</pf:Window>

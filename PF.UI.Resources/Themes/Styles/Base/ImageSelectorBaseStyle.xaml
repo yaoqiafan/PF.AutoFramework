@@ -1,0 +1,70 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+   
+    <Style x:Key="ImageSelectorBaseStyle" TargetType="pfcontrol:ImageSelector">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Stretch" Value="UniformToFill" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="StrokeDashArray" Value="2,2" />
+        <Setter Property="pfcontrol:IconSwitchElement.Geometry" Value="{StaticResource AddGeometry}" />
+        <Setter Property="pfcontrol:IconSwitchElement.GeometrySelected" Value="{StaticResource RemoveGeometry}" />
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:ImageSelector">
+                    <Button
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        Command="pfcontrol:ControlCommands.Switch"
+                        Style="{StaticResource ButtonCustom}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                            <pfcontrol:DashedBorder
+                                Background="{TemplateBinding PreviewBrush}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderDashArray="{TemplateBinding StrokeDashArray}"
+                                BorderDashThickness="{TemplateBinding StrokeThickness}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border
+                                    Width="30"
+                                    Height="30"
+                                    Background="{TemplateBinding Background}"
+                                    Style="{StaticResource BorderCircular}">
+                                    <pfcontrol:ToggleBlock IsChecked="{TemplateBinding HasValue}">
+                                        <pfcontrol:ToggleBlock.CheckedContent>
+                                            <Path
+                                                Width="12"
+                                                Height="12"
+                                                Data="{TemplateBinding pfcontrol:IconSwitchElement.GeometrySelected}"
+                                                Fill="{DynamicResource PrimaryBrush}" />
+                                        </pfcontrol:ToggleBlock.CheckedContent>
+                                        <pfcontrol:ToggleBlock.UnCheckedContent>
+                                            <Path
+                                                Width="16"
+                                                Height="16"
+                                                Data="{TemplateBinding pfcontrol:IconSwitchElement.Geometry}"
+                                                Fill="{DynamicResource PrimaryBrush}" />
+                                        </pfcontrol:ToggleBlock.UnCheckedContent>
+                                    </pfcontrol:ToggleBlock>
+                                </Border>
+                            </pfcontrol:DashedBorder>
+                        </Border>
+                    </Button>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

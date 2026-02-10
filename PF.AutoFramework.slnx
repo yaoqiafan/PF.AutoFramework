@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/00.GlobalConfiguration(公共包文件管理)/">
+    <File Path="Common.Desktop.props" />
+    <File Path="Common.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/01.Foundation (基础层)/">
+    <Project Path="PF.Core/PF.Core.csproj" Id="70a66b73-fddb-4dd6-b879-ed06e0997f35" />
+    <Project Path="PF.Infrastructure/PF.Infrastructure.csproj" Id="6e222cb2-93b2-4f49-86db-cb55748986dd" />
+  </Folder>
+  <Folder Name="/02.UI (UI 组件层)/">
+    <Project Path="PF.UI.Controls/PF.UI.Controls.csproj" Id="4c6c2036-2c0b-4942-8e68-b98681bbb924" />
+    <Project Path="PF.UI.Infrastructure/PF.UI.Infrastructure.csproj" Id="c8569ae9-5c28-441c-94f7-956ba84d9517" />
+    <Project Path="PF.UI.Resources/PF.UI.Resources.csproj" Id="c4402f06-7589-400a-a676-154b76014f58" />
+  </Folder>
+  <Folder Name="/03.Modules (业务模块层)/">
+    <Project Path="PF.Modules.Logging/PF.Modules.Logging.csproj" Id="20bfc342-f6c7-4186-b145-8abb66d44edc" />
+    <Project Path="PF.Modules.Parameter/PF.Modules.Parameter.csproj" Id="56c7fb2a-6687-4f13-9ea9-092bdc4bf4bb" />
+    <Project Path="PF.Modules.SecsGem/PF.Modules.SecsGem.csproj" Id="4ae20dfc-9f32-4a78-a29e-e910f7304a26" />
+  </Folder>
+  <Folder Name="/04.Data(数据定义层)/" />
+  <Folder Name="/05.Tools(工具层)/" />
+  <Folder Name="/06.Application (应用入口)/">
+    <Project Path="PF.Application.Shell/PF.Application.Shell.csproj" />
+  </Folder>
+  <Folder Name="/07.External Services(外部服务)/" />
+</Solution>

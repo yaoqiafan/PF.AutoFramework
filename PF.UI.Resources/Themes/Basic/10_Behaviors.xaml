@@ -1,0 +1,73 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+
+    <pfcontrol:FluidMoveBehavior
+        x:Key="BehaviorXY200"
+        x:Shared="False"
+        AppliesTo="Children"
+        Duration="0:0:.2">
+        <pfcontrol:FluidMoveBehavior.EaseX>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseX>
+        <pfcontrol:FluidMoveBehavior.EaseY>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseY>
+    </pfcontrol:FluidMoveBehavior>
+
+    <pfcontrol:FluidMoveBehavior
+        x:Key="BehaviorX200"
+        x:Shared="False"
+        AppliesTo="Children"
+        Duration="0:0:.2">
+        <pfcontrol:FluidMoveBehavior.EaseX>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseX>
+    </pfcontrol:FluidMoveBehavior>
+
+    <pfcontrol:FluidMoveBehavior
+        x:Key="BehaviorY200"
+        x:Shared="False"
+        AppliesTo="Children"
+        Duration="0:0:.2">
+        <pfcontrol:FluidMoveBehavior.EaseY>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseY>
+    </pfcontrol:FluidMoveBehavior>
+
+    <pfcontrol:FluidMoveBehavior
+        x:Key="BehaviorXY400"
+        x:Shared="False"
+        AppliesTo="Children"
+        Duration="0:0:.4">
+        <pfcontrol:FluidMoveBehavior.EaseX>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseX>
+        <pfcontrol:FluidMoveBehavior.EaseY>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseY>
+    </pfcontrol:FluidMoveBehavior>
+
+    <pfcontrol:FluidMoveBehavior
+        x:Key="BehaviorX400"
+        x:Shared="False"
+        AppliesTo="Children"
+        Duration="0:0:.4">
+        <pfcontrol:FluidMoveBehavior.EaseX>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseX>
+    </pfcontrol:FluidMoveBehavior>
+
+    <pfcontrol:FluidMoveBehavior
+        x:Key="BehaviorY400"
+        x:Shared="False"
+        AppliesTo="Children"
+        Duration="0:0:.4">
+        <pfcontrol:FluidMoveBehavior.EaseY>
+            <PowerEase />
+        </pfcontrol:FluidMoveBehavior.EaseY>
+    </pfcontrol:FluidMoveBehavior>
+
+</ResourceDictionary>

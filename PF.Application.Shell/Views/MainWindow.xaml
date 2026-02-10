@@ -1,0 +1,558 @@
+﻿<pf:Window
+    x:Class="PF.Application.Shell.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:pf="clr-namespace:PF.Controls;assembly=PF.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    Width="1900"
+    Height="1000"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    Closing="Window_Closing"
+    Icon="/PF.Resources;component/Images/ICO/-pfico.ico"
+    Style="{StaticResource WindowWin10}"
+    WindowStartupLocation="CenterScreen"
+    WindowState="Maximized"
+    xmlns:tokens="clr-namespace:PF.Common.Data.Constant;assembly=PF.Common.Data">
+
+    <pf:Window.Resources>
+        <Style x:Key="TitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18px" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{DynamicResource TitleBrush}" />
+        </Style>
+
+        <Style x:Key="MainBodyStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12px" />
+            <Setter Property="FontWeight" Value="Regular" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        </Style>
+
+
+        <Style x:Key="NotesStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10px" />
+            <Setter Property="FontWeight" Value="Regular" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        </Style>
+
+        <Style
+            x:Key="CustomToolbar"
+            BasedOn="{StaticResource ToolBarBaseStyle}"
+            TargetType="{x:Type ToolBar}">
+            <Setter Property="Background" Value="Pink" />
+            <Setter Property="FontSize" Value="28" />
+        </Style>
+
+        <Style
+            x:Key="CustomToolbarToggleButton"
+            BasedOn="{StaticResource ToggleButtonBaseStyle}"
+            TargetType="{x:Type ToggleButton}">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Content">
+                <Setter.Value>
+                    <Grid>
+                        <Line
+                            Stroke="{DynamicResource PrimaryBrush}"
+                            StrokeThickness="2"
+                            X1="0"
+                            X2="200"
+                            Y1="1"
+                            Y2="1" />
+                        <Line
+                            Stroke="{DynamicResource PrimaryBrush}"
+                            StrokeThickness="2"
+                            X1="0"
+                            X2="200"
+                            Y1="9"
+                            Y2="9" />
+                        <Line
+                            Stroke="{DynamicResource PrimaryBrush}"
+                            StrokeThickness="2"
+                            X1="0"
+                            X2="200"
+                            Y1="17"
+                            Y2="17" />
+                    </Grid>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border
+                            x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Content="{TemplateBinding Content}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource BorderBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="5" Color="LightGray" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+        <Style x:Key="ListViewItemStyle" TargetType="{x:Type ListViewItem}">
+            <Style.Setters>
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ListViewItem}">
+                            <Border
+                                Name="Bd"
+                                Height="50"
+                                Padding="{TemplateBinding Control.Padding}"
+                                Background="{TemplateBinding Panel.Background}"
+                                CornerRadius="5"
+                                SnapsToDevicePixels="True">
+                                <GridViewRowPresenter
+                                    Margin="3"
+                                    HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}"
+                                    VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}"
+                                    SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Trigger.Setters>
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DarkPrimaryBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextIconBrush}" />
+                                    </Trigger.Setters>
+                                </Trigger>
+
+
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Trigger.Setters>
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BorderBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                    </Trigger.Setters>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style.Setters>
+        </Style>
+
+    </pf:Window.Resources>
+    <pf:Window.NonClientAreaContent>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                Grid.Column="1"
+                Margin="5,0,0,0"
+                Padding="10,4"
+                VerticalAlignment="Center"
+                Background="{DynamicResource SecondaryRegionBrush}"
+                CornerRadius="2">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
+                    Text="{Binding SoftWareName}" />
+            </Border>
+
+
+            <Button
+                Name="ButtonConfig"
+                Grid.Column="6"
+                VerticalAlignment="Top"
+                pf:IconElement.Geometry="{StaticResource SettingIcon}"
+                BorderBrush="Transparent"
+                Click="ButtonConfig_OnClick"
+                IsEnabled="True">
+                <Button.ToolTip>
+                    <ToolTip>参数设置</ToolTip>
+                </Button.ToolTip>
+            </Button>
+            <Popup
+                Name="PopupConfig"
+                Grid.Column="1"
+                AllowsTransparency="True"
+                Placement="Center"
+                PlacementTarget="{Binding ElementName=ButtonConfig}"
+                StaysOpen="False"
+                VerticalOffset="50">
+                <Border
+                    Margin="16"
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    CornerRadius="4"
+                    Effect="{StaticResource EffectShadow2}">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Margin="10,10,10,10" Button.Click="ButtonSkins_OnClick">
+                            <Button Style="{StaticResource ButtonCustom}" Tag="Default">
+                                <Border
+                                    Width="32"
+                                    Height="21"
+                                    Background="White"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="2" />
+                            </Button>
+                            <Button
+                                Margin="0,10,0,0"
+                                Style="{StaticResource ButtonCustom}"
+                                Tag="Dark">
+                                <Border
+                                    Width="32"
+                                    Height="21"
+                                    Background="Black"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="2" />
+                            </Button>
+
+
+                        </StackPanel>
+                        <pf:Divider
+                            Margin="0,20"
+                            LineStrokeDashArray="2,2"
+                            LineStrokeThickness="1"
+                            Orientation="Vertical" />
+
+                        <pf:UniformSpacingPanel
+                            MaxHeight="134"
+                            Margin="10"
+                            ChildWrapping="Wrap"
+                            Orientation="Vertical"
+                            Spacing="10">
+                            <Button
+                                Command="{Binding ShowParamDialogCommand}"
+                                Content="基础参数"
+                                Style="{StaticResource ButtonCustom}" />
+                            <Button
+                                Command="{Binding ShowParamDialogCommand}"
+                                Content="运行参数"
+                                Style="{StaticResource ButtonCustom}" />
+
+                        </pf:UniformSpacingPanel>
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </Grid>
+    </pf:Window.NonClientAreaContent>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="30" />
+        </Grid.RowDefinitions>
+
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" Background="{DynamicResource RegionBrush}">
+                <Grid
+                    x:Name="nav_pnl"
+                    Width="65"
+                    HorizontalAlignment="Left"
+                    Background="{DynamicResource RegionBrush}">
+
+
+                    <Grid.Triggers>
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard x:Name="ShowStackPanel">
+                                    <DoubleAnimation
+                                        BeginTime="0:0:0"
+                                        Storyboard.TargetName="nav_pnl"
+                                        Storyboard.TargetProperty="Width"
+                                        From="65"
+                                        To="230"
+                                        Duration="0:0:0.3" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard x:Name="HideStackPanel">
+                                    <DoubleAnimation
+                                        BeginTime="0:0:0"
+                                        Storyboard.TargetName="nav_pnl"
+                                        Storyboard.TargetProperty="Width"
+                                        From="230"
+                                        To="65"
+                                        Duration="0:0:0.2" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Grid.Triggers>
+
+
+
+                    <ListView
+                        Grid.Row="1"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        Style="{StaticResource ListViewBaseStyle}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="230" Header="选择" />
+                            </GridView>
+                        </ListView.View>
+
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource HomeIcon}"
+                                    Fill="{Binding ElementName=Home, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="Home"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="主显界面" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Home" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="主显界面" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource SettingIcon}"
+                                    Fill="{Binding ElementName=Params, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="Params"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="参数设置" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="{x:Static tokens:NavigationConstants+Views.ParameterView}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="参数设置" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource CalibrationIcon}"
+                                    Fill="{Binding ElementName=Calibration, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="Calibration"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="光谱校准" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Calibration" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="光谱校准" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource CurveIcon}"
+                                    Fill="{Binding ElementName=Formula, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="Formula"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="方案配置" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Formula" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="方案配置" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource CalendarGeometry}"
+                                    Fill="{Binding ElementName=Datas, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="Datas"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="数据统计" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Datas" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="数据统计" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource LoginInIcon}"
+                                    Fill="{Binding ElementName=Login, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="Login"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="权限获取" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenNewWindowCommand}" CommandParameter="Login" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="权限获取" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                        <ListViewItem
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource ListViewItemStyle}">
+                            <StackPanel Width="230" Orientation="Horizontal">
+                                <Path
+                                    Width="20"
+                                    Height="20"
+                                    Data="{StaticResource AboutIcon}"
+                                    Fill="{Binding ElementName=About, Path=Foreground}"
+                                    Stretch="Fill" />
+                                <TextBlock
+                                    x:Name="About"
+                                    Margin="25,0,0,0"
+                                    FontSize="20"
+                                    Text="关于" />
+                            </StackPanel>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseUp">
+                                    <i:InvokeCommandAction Command="{Binding OpenNewWindowCommand}" CommandParameter="About" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListViewItem.ToolTip>
+                                <ToolTip Content="关于和帮助" />
+                            </ListViewItem.ToolTip>
+                        </ListViewItem>
+                    </ListView>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="300" />
+                </Grid.RowDefinitions>
+                <ContentControl Grid.Row="0" prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.SoftwareViewRegion}" />
+                <ContentControl
+                    Grid.Row="1"
+                    Margin="5"
+                    prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.LoggingListRegion}" />
+            </Grid>
+
+
+        </Grid>
+
+
+
+        <StatusBar
+            Grid.Row="1"
+            Background="{DynamicResource RegionBrush}"
+            BorderThickness="0">
+            <StatusBarItem>
+                <TextBlock Text="{Binding CoName}" />
+            </StatusBarItem>
+
+            <StatusBarItem HorizontalAlignment="Right">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock HorizontalAlignment="Right" Text="系统时间：" />
+                        <TextBlock
+                            Margin="10,0,10,0"
+                            HorizontalAlignment="Right"
+                            Text="{Binding SysTime}" />
+                    </StackPanel>
+                </Grid>
+            </StatusBarItem>
+
+        </StatusBar>
+    </Grid>
+
+
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadCommand}" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+</pf:Window>

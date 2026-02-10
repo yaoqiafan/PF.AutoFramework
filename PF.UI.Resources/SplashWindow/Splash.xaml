@@ -1,0 +1,41 @@
+﻿<pf:PFWindow
+    x:Class="PF.UI.Resources.Splash"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    Title="Splash"
+    Width="900"
+    Height="500"
+    DataContext="{Binding RelativeSource={RelativeSource Mode=Self}}"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="None"
+    mc:Ignorable="d"
+    Loaded="Window_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="148*" />
+            <RowDefinition Height="20*" />
+            <RowDefinition Height="17*" />
+        </Grid.RowDefinitions>
+        <Grid >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="147*" />
+                <RowDefinition Height="60*" />
+                <RowDefinition Height="128*" />
+                <RowDefinition Height="65*" />
+            </Grid.RowDefinitions>
+            <Image HorizontalAlignment="Center" VerticalAlignment="Top" Source="/PF.UI.Resources;component/Images/PNG/聚力LOGO.png" Height="115" Width="900"/>
+            <TextBlock Grid.Row="2" Foreground="{DynamicResource PrimaryBrush}"  HorizontalAlignment="Center" VerticalAlignment="Top" Height="15" Margin="0,5,0,0" Width="0"   ></TextBlock>
+            <TextBlock Grid.Row="2"   HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" Foreground="White" FontSize="30" Height="38" Margin="0,9,0,0" Width="900"  Text="{Binding WelcomeText}"></TextBlock>
+            <TextBlock Grid.Row="2"   HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" Foreground="White" FontSize="30" Height="38" Margin="0,45,0,0" Width="900"  Text="{Binding VersionNumber}"></TextBlock>
+            <TextBlock Grid.Row="2"   HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" Foreground="White" Height="14" Width="900" Margin="0,80,0,0"  Text="{Binding WelcomeText_small}"></TextBlock>
+        </Grid>
+
+        <TextBlock x:Name="showInfo"   Grid.Row="1" Foreground="{Binding TextBrush}"  FontSize="20" VerticalAlignment="Bottom"  HorizontalAlignment="Center" Margin="3" Text="{Binding  Messageinfo}" />
+        <pf:LoadingLine Grid.Row="2"  Foreground="OliveDrab" Style="{StaticResource LoadingLineLarge}" DotSpeed="2" DotCount="8" DotDiameter="12" />
+    </Grid>
+
+</pf:PFWindow>

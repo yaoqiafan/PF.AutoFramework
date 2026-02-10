@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+
+	<ItemGroup>
+		<None Remove="Images\ICO\-pfico.ico" />
+		<None Remove="Images\JPG\Loading_Default.jpg" />
+		<None Remove="Images\PNG\聚力LOGO.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="XAMLTools.MSBuild">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Images\ICO\-pfico.ico" />
+		<Resource Include="Images\JPG\Loading_Default.jpg" />
+		<Resource Include="Images\PNG\聚力LOGO.png" />
+	</ItemGroup>
+
+	<ItemDefinitionGroup>
+		<XamlFile>
+			<Priority>999</Priority>
+			<!-- 默认优先级 -->
+		</XamlFile>
+	</ItemDefinitionGroup>
+
+	<ItemGroup>
+		<XAMLCombineItems Include="Themes/**/**/*.xaml">
+			<TargetFile>Themes/Default.xaml</TargetFile>
+			<Visible>True</Visible>
+		</XAMLCombineItems>
+	</ItemGroup>
+
+</Project>

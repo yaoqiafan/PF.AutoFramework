@@ -1,0 +1,275 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+   
+    <ControlTemplate x:Key="ExpanderLeftTemplate" TargetType="Expander">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ToggleButton
+                x:Name="ToggleButton"
+                Grid.Column="1"
+                MinWidth="{TemplateBinding MinWidth}"
+                Padding="0,0,0,10"
+                VerticalAlignment="Stretch"
+                VerticalContentAlignment="Stretch"
+                pfcontrol:BorderElement.CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Focusable="False"
+                Foreground="{TemplateBinding Foreground}"
+                IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                Style="{StaticResource ToggleButtonCustom}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <RotateTransform Angle="-90" />
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <ContentPresenter
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        ContentSource="Header" />
+                    <Path
+                        Name="PathArrow"
+                        Grid.Column="1"
+                        Width="12"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        Data="{StaticResource UpGeometry}"
+                        Fill="{TemplateBinding Foreground}"
+                        IsHitTestVisible="False"
+                        Stretch="Uniform" />
+                </Grid>
+            </ToggleButton>
+            <ContentPresenter
+                Name="ExpandSite"
+                Grid.Column="0"
+                Visibility="Collapsed" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsExpanded" Value="true">
+                <Setter TargetName="ToggleButton" Property="pfcontrol:BorderElement.CornerRadius" Value="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter}, ConverterParameter='0,1,1,0'}" />
+                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                <Setter TargetName="PathArrow" Property="Data" Value="{StaticResource DownGeometry}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter Property="Opacity" Value=".4" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="ExpanderUpTemplate" TargetType="Expander">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ToggleButton
+                x:Name="ToggleButton"
+                Grid.Row="1"
+                MinHeight="{TemplateBinding MinHeight}"
+                Padding="10,0,0,0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                pfcontrol:BorderElement.CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Focusable="False"
+                Foreground="{TemplateBinding Foreground}"
+                IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                Style="{StaticResource ToggleButtonCustom}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <ContentPresenter
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        ContentSource="Header" />
+                    <Path
+                        Name="PathArrow"
+                        Grid.Column="1"
+                        Width="12"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        Data="{StaticResource UpGeometry}"
+                        Fill="{TemplateBinding Foreground}"
+                        IsHitTestVisible="False"
+                        Stretch="Uniform" />
+                </Grid>
+            </ToggleButton>
+            <ContentPresenter
+                Name="ExpandSite"
+                Grid.Row="0"
+                Visibility="Collapsed" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsExpanded" Value="true">
+                <Setter TargetName="ToggleButton" Property="pfcontrol:BorderElement.CornerRadius" Value="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter}, ConverterParameter='0,0,1,1'}" />
+                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                <Setter TargetName="PathArrow" Property="Data" Value="{StaticResource DownGeometry}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter Property="Opacity" Value=".4" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="ExpanderRightTemplate" TargetType="Expander">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <ToggleButton
+                x:Name="ToggleButton"
+                MinWidth="{TemplateBinding MinWidth}"
+                Padding="0,0,0,10"
+                VerticalAlignment="Stretch"
+                VerticalContentAlignment="Stretch"
+                pfcontrol:BorderElement.CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Focusable="False"
+                Foreground="{TemplateBinding Foreground}"
+                IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                Style="{StaticResource ToggleButtonCustom}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <RotateTransform Angle="-90" />
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <ContentPresenter
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        ContentSource="Header" />
+                    <Path
+                        Name="PathArrow"
+                        Grid.Column="1"
+                        Width="12"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        Data="{StaticResource DownGeometry}"
+                        Fill="{TemplateBinding Foreground}"
+                        IsHitTestVisible="False"
+                        Stretch="Uniform" />
+                </Grid>
+            </ToggleButton>
+            <ContentPresenter
+                Name="ExpandSite"
+                Grid.Column="1"
+                Visibility="Collapsed" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsExpanded" Value="true">
+                <Setter TargetName="ToggleButton" Property="pfcontrol:BorderElement.CornerRadius" Value="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter}, ConverterParameter='1,0,0,1'}" />
+                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                <Setter TargetName="PathArrow" Property="Data" Value="{StaticResource UpGeometry}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter Property="Opacity" Value=".4" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="ExpanderDownTemplate" TargetType="Expander">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <ToggleButton
+                x:Name="ToggleButton"
+                MinHeight="{TemplateBinding MinHeight}"
+                Padding="10,0,0,0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                pfcontrol:BorderElement.CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Focusable="False"
+                Foreground="{TemplateBinding Foreground}"
+                IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                Style="{StaticResource ToggleButtonCustom}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <ContentPresenter
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        ContentSource="Header" />
+                    <Path
+                        Name="PathArrow"
+                        Grid.Column="1"
+                        Width="12"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        Data="{StaticResource DownGeometry}"
+                        Fill="{TemplateBinding Foreground}"
+                        IsHitTestVisible="False"
+                        Stretch="Uniform" />
+                </Grid>
+            </ToggleButton>
+            <ContentPresenter
+                Name="ExpandSite"
+                Grid.Row="1"
+                Visibility="Collapsed" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsExpanded" Value="true">
+                <Setter TargetName="ToggleButton" Property="pfcontrol:BorderElement.CornerRadius" Value="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter}, ConverterParameter='1,1,0,0'}" />
+                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                <Setter TargetName="PathArrow" Property="Data" Value="{StaticResource UpGeometry}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter Property="Opacity" Value=".4" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="ExpanderBaseStyle" TargetType="Expander">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="MinHeight" Value="{StaticResource DefaultControlHeight}" />
+        <Setter Property="MinWidth" Value="{StaticResource DefaultControlHeight}" />
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="Template" Value="{StaticResource ExpanderDownTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="ExpandDirection" Value="Left">
+                <Setter Property="Template" Value="{StaticResource ExpanderLeftTemplate}" />
+            </Trigger>
+            <Trigger Property="ExpandDirection" Value="Up">
+                <Setter Property="Template" Value="{StaticResource ExpanderUpTemplate}" />
+            </Trigger>
+            <Trigger Property="ExpandDirection" Value="Right">
+                <Setter Property="Template" Value="{StaticResource ExpanderRightTemplate}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

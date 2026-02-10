@@ -1,0 +1,167 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+    
+   
+    <SineEase x:Key="SineEaseOut" EasingMode="EaseOut" />
+
+    <ControlTemplate x:Key="BadgeTextTemplate" TargetType="pfcontrol:Badge">
+        <pfcontrol:SimplePanel>
+            <ContentPresenter />
+            <Border
+                x:Name="Border"
+                Margin="{TemplateBinding BadgeMargin}"
+                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                RenderTransformOrigin="0.5 0.5"
+                Style="{StaticResource BorderCircular}"
+                Visibility="{TemplateBinding ShowBadge,
+                                             Converter={StaticResource Boolean2VisibilityConverter}}">
+                <Border.RenderTransform>
+                    <ScaleTransform />
+                </Border.RenderTransform>
+                <ContentPresenter Margin="{TemplateBinding Padding}" ContentSource="Text" />
+            </Border>
+        </pfcontrol:SimplePanel>
+        <ControlTemplate.Triggers>
+            <EventTrigger RoutedEvent="pfcontrol:Badge.ValueChanged">
+                <BeginStoryboard>
+                    <Storyboard AutoReverse="True">
+                        <DoubleAnimation
+                            BeginTime="0"
+                            EasingFunction="{StaticResource SineEaseOut}"
+                            Storyboard.TargetName="Border"
+                            Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                            From="1"
+                            To="1.2"
+                            Duration="0:0:.1" />
+                        <DoubleAnimation
+                            BeginTime="0"
+                            EasingFunction="{StaticResource SineEaseOut}"
+                            Storyboard.TargetName="Border"
+                            Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                            From="1"
+                            To="1.2"
+                            Duration="0:0:.1" />
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="BadgeDotTemplate" TargetType="pfcontrol:Badge">
+        <pfcontrol:SimplePanel>
+            <ContentPresenter />
+            <Border
+                Width="10"
+                Height="10"
+                Margin="{TemplateBinding BadgeMargin}"
+                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="5"
+                Visibility="{TemplateBinding ShowBadge,
+                                             Converter={StaticResource Boolean2VisibilityConverter}}" />
+        </pfcontrol:SimplePanel>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="BadgeProcessingTemplate" TargetType="pfcontrol:Badge">
+        <pfcontrol:SimplePanel>
+            <ContentPresenter />
+            <Ellipse
+                Width="10"
+                Height="10"
+                Margin="{TemplateBinding BadgeMargin}"
+                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                Fill="{TemplateBinding Background}"
+                RenderTransformOrigin="0.5 0.5"
+                Visibility="{TemplateBinding ShowBadge,
+                                             Converter={StaticResource Boolean2VisibilityConverter}}">
+                <Ellipse.OpacityMask>
+                    <RadialGradientBrush>
+                        <GradientStop Offset="0" Color="Transparent" />
+                        <GradientStop Offset="1" Color="Black" />
+                    </RadialGradientBrush>
+                </Ellipse.OpacityMask>
+                <Ellipse.RenderTransform>
+                    <ScaleTransform />
+                </Ellipse.RenderTransform>
+                <Ellipse.Triggers>
+                    <EventTrigger RoutedEvent="Loaded">
+                        <BeginStoryboard>
+                            <Storyboard DesiredFrameRate="20" RepeatBehavior="Forever">
+                                <DoubleAnimation
+                                    BeginTime="0"
+                                    EasingFunction="{StaticResource SineEaseOut}"
+                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                    From="1"
+                                    To="2"
+                                    Duration="0:0:1" />
+                                <DoubleAnimation
+                                    BeginTime="0"
+                                    EasingFunction="{StaticResource SineEaseOut}"
+                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                    From="1"
+                                    To="2"
+                                    Duration="0:0:1" />
+                                <DoubleAnimation
+                                    BeginTime="0"
+                                    EasingFunction="{StaticResource SineEaseOut}"
+                                    Storyboard.TargetProperty="Opacity"
+                                    From="1"
+                                    To="0"
+                                    Duration="0:0:1" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Ellipse.Triggers>
+            </Ellipse>
+            <Border
+                Width="10"
+                Height="10"
+                Margin="{TemplateBinding BadgeMargin}"
+                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="5"
+                Visibility="{TemplateBinding ShowBadge,
+                                             Converter={StaticResource Boolean2VisibilityConverter}}" />
+        </pfcontrol:SimplePanel>
+    </ControlTemplate>
+
+    <Style x:Key="BadgeBaseStyle" TargetType="pfcontrol:Badge">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextIconBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="Template" Value="{StaticResource BadgeTextTemplate}" />
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="BadgeMargin" Value="0,-10,-10,0" />
+        <Style.Triggers>
+            <Trigger Property="Status" Value="Dot">
+                <Setter Property="Template" Value="{StaticResource BadgeDotTemplate}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BadgeMargin" Value="0,-5,-5,0" />
+            </Trigger>
+            <Trigger Property="Status" Value="Processing">
+                <Setter Property="Template" Value="{StaticResource BadgeProcessingTemplate}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BadgeMargin" Value="0,-5,-5,0" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

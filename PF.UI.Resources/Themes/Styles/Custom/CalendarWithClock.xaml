@@ -1,0 +1,80 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+    
+    <Style x:Key="CalendarWithClockBaseStyle" TargetType="pfcontrol:CalendarWithClock">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="pfcontrol:TitleElement.Background" Value="{DynamicResource TitleBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Margin" Value="8,0" />
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:CalendarWithClock">
+                    <pfcontrol:SimplePanel
+                        Margin="0,4,0,8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                            Effect="{StaticResource EffectShadow2}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Border
+                                Grid.ColumnSpan="2"
+                                Height="42"
+                                Margin="4"
+                                VerticalAlignment="Top"
+                                Background="{Binding Path=(pfcontrol:TitleElement.Background), RelativeSource={RelativeSource TemplatedParent}}"
+                                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+                            <ContentPresenter
+                                x:Name="PART_CalendarPresenter"
+                                Grid.Row="0"
+                                Grid.RowSpan="2"
+                                Grid.Column="0"
+                                Margin="-8,-4,-8,-8" />
+                            <ContentPresenter
+                                x:Name="PART_ClockPresenter"
+                                Grid.Row="0"
+                                Grid.RowSpan="2"
+                                Grid.Column="1"
+                                Margin="-8,-4,-8,-8" />
+                            <Button
+                                Name="PART_ButtonConfirm"
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Width="180"
+                                Margin="0,0,0,19"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Content="确认"
+                                Style="{StaticResource ButtonPrimary}"
+                                Visibility="{TemplateBinding ShowConfirmButton,
+                                                             Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        </Grid>
+                    </pfcontrol:SimplePanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style BasedOn="{StaticResource CalendarWithClockBaseStyle}" TargetType="pfcontrol:CalendarWithClock" />
+
+</ResourceDictionary>

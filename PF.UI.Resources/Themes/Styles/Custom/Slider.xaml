@@ -1,0 +1,14 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+  
+    <Style BasedOn="{StaticResource CompareSliderBaseStyle}" TargetType="pfcontrol:CompareSlider" />
+
+    <Style BasedOn="{StaticResource PreviewSliderBaseStyle}" TargetType="pfcontrol:PreviewSlider" />
+
+    <Style BasedOn="{StaticResource RangeSliderBaseStyle}" TargetType="pfcontrol:RangeSlider" />
+
+    <Style BasedOn="{StaticResource SliderBaseStyle}" TargetType="Slider" />
+
+</ResourceDictionary>

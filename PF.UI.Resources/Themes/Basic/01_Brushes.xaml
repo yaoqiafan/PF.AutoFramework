@@ -1,0 +1,217 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:o="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+    xmlns:local="clr-namespace:PF.UI.Resources">
+    <!--#region 颜色及画刷资源-->
+
+    <SolidColorBrush
+        x:Key="LightPrimaryBrush"
+        o:Freeze="True"
+        Color="{DynamicResource LightPrimaryColor}" />
+    <SolidColorBrush
+        x:Key="DeepDarkPrimaryBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DeepDarkPrimaryColor}" />
+
+    <LinearGradientBrush x:Key="PrimaryBrush" o:Freeze="True" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource PrimaryColor}" />
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource DarkPrimaryColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="LightLightPrimaryBrush" o:Freeze="True" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource LightPrimaryColor}" />
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource PrimaryColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="ControlDefultBrush" StartPoint="0,1" EndPoint="0,0">
+        <GradientStop Offset="1" Color="#778EB1" />
+        <GradientStop Offset="0" Color="#07254A" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="NomalPrimaryBrush"
+        o:Freeze="True"
+        Color="{DynamicResource PrimaryColor}" />
+    <SolidColorBrush
+        x:Key="DarkPrimaryBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkPrimaryColor}" />
+    <SolidColorBrush
+        x:Key="PrimaryTextBrush"
+        o:Freeze="True"
+        Color="{DynamicResource PrimaryTextColor}" />
+    <SolidColorBrush
+        x:Key="SecondaryTextBrush"
+        o:Freeze="True"
+        Color="{DynamicResource SecondaryTextColor}" />
+    <SolidColorBrush
+        x:Key="ThirdlyTextBrush"
+        o:Freeze="True"
+        Color="{DynamicResource ThirdlyTextColor}" />
+    <SolidColorBrush
+        x:Key="ReverseTextBrush"
+        o:Freeze="True"
+        Color="{DynamicResource ReverseTextColor}" />
+    <SolidColorBrush
+        x:Key="TextIconBrush"
+        o:Freeze="True"
+        Color="{DynamicResource TextIconColor}" />
+    <SolidColorBrush
+        x:Key="BorderBrush"
+        o:Freeze="True"
+        Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush
+        x:Key="SecondaryBorderBrush"
+        o:Freeze="True"
+        Color="{DynamicResource SecondaryBorderColor}" />
+    <SolidColorBrush
+        x:Key="BackgroundBrush"
+        o:Freeze="True"
+        Color="{DynamicResource BackgroundColor}" />
+    <SolidColorBrush
+        x:Key="RegionBrush"
+        o:Freeze="True"
+        Color="{DynamicResource RegionColor}" />
+    <SolidColorBrush
+        x:Key="SecondaryRegionBrush"
+        o:Freeze="True"
+        Color="{DynamicResource SecondaryRegionColor}" />
+    <SolidColorBrush
+        x:Key="ThirdlyRegionBrush"
+        o:Freeze="True"
+        Color="{DynamicResource ThirdlyRegionColor}" />
+    <LinearGradientBrush x:Key="TitleBrush" o:Freeze="True" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource TitleColor}" />
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource SecondaryTitleColor}" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="DefaultBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DefaultColor}" />
+    <SolidColorBrush
+        x:Key="DarkDefaultBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkDefaultColor}" />
+    <SolidColorBrush
+        x:Key="LightDangerBrush"
+        o:Freeze="True"
+        Color="{DynamicResource LightDangerColor}" />
+    <LinearGradientBrush x:Key="DangerBrush" o:Freeze="True" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource DangerColor}" />
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource DarkDangerColor}" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="DarkDangerBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkDangerColor}" />
+    <SolidColorBrush
+        x:Key="LightWarningBrush"
+        o:Freeze="True"
+        Color="{DynamicResource LightWarningColor}" />
+    <LinearGradientBrush x:Key="WarningBrush" o:Freeze="True" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource WarningColor}" />
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource DarkWarningColor}" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="DarkWarningBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkWarningColor}" />
+    <SolidColorBrush
+        x:Key="LightInfoBrush"
+        o:Freeze="True"
+        Color="{DynamicResource LightInfoColor}" />
+    <SolidColorBrush
+        x:Key="NomalInfoBrush"
+        o:Freeze="True"
+        Color="#11E3E8" />
+    <LinearGradientBrush x:Key="InfoBrush" o:Freeze="True" StartPoint="0,1" EndPoint="0,0">
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource InfoColor}" />
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource DarkInfoColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="LightLinearGradientInfoBrush" o:Freeze="True" StartPoint="0,1" EndPoint="0,0">
+        <GradientStop o:Freeze="True" Offset="1" Color="#3BACF4" />
+        <GradientStop o:Freeze="True" Offset="0" Color="#158AE0" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="DarkInfoBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkInfoColor}" />
+    <SolidColorBrush
+        x:Key="LightSuccessBrush"
+        o:Freeze="True"
+        Color="{DynamicResource LightSuccessColor}" />
+    <SolidColorBrush
+        x:Key="NomalSuccessBrush"
+        o:Freeze="True"
+        Color="{DynamicResource SuccessColor}" />
+    <LinearGradientBrush x:Key="SuccessBrush" o:Freeze="True" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop o:Freeze="True" Offset="0" Color="{DynamicResource SuccessColor}" />
+        <GradientStop o:Freeze="True" Offset="1" Color="{DynamicResource DarkSuccessColor}" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="DarkSuccessBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkSuccessColor}" />
+    <SolidColorBrush
+        x:Key="AccentBrush"
+        o:Freeze="True"
+        Color="{DynamicResource AccentColor}" />
+    <SolidColorBrush
+        x:Key="DarkAccentBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkAccentColor}" />
+    <SolidColorBrush
+        x:Key="DarkMaskBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkMaskColor}" />
+    <SolidColorBrush
+        x:Key="DarkOpacityBrush"
+        o:Freeze="True"
+        Color="{DynamicResource DarkOpacityColor}" />
+    <Color x:Key="EffectShadowColor">#88000000</Color>
+    <DropShadowEffect
+        x:Key="EffectShadow1"
+        o:Freeze="True"
+        BlurRadius="5"
+        Direction="270"
+        Opacity=".2"
+        RenderingBias="Performance"
+        ShadowDepth="1"
+        Color="{StaticResource EffectShadowColor}" />
+    <DropShadowEffect
+        x:Key="EffectShadow2"
+        o:Freeze="True"
+        BlurRadius="8"
+        Direction="270"
+        Opacity=".2"
+        RenderingBias="Performance"
+        ShadowDepth="1.5"
+        Color="{StaticResource EffectShadowColor}" />
+    <DropShadowEffect
+        x:Key="EffectShadow3"
+        o:Freeze="True"
+        BlurRadius="14"
+        Direction="270"
+        Opacity=".2"
+        RenderingBias="Performance"
+        ShadowDepth="4.5"
+        Color="{StaticResource EffectShadowColor}" />
+    <DropShadowEffect
+        x:Key="EffectShadow4"
+        o:Freeze="True"
+        BlurRadius="25"
+        Direction="270"
+        Opacity=".2"
+        RenderingBias="Performance"
+        ShadowDepth="8"
+        Color="{StaticResource EffectShadowColor}" />
+    <DropShadowEffect
+        x:Key="EffectShadow5"
+        o:Freeze="True"
+        BlurRadius="35"
+        Direction="270"
+        Opacity=".2"
+        RenderingBias="Performance"
+        ShadowDepth="13"
+        Color="{StaticResource EffectShadowColor}" />
+
+    <!--#endregion-->
+</ResourceDictionary>

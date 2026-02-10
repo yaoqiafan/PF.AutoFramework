@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+
+	<ItemGroup>
+		<PackageReference Include="log4net" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+		<PackageReference Include="System.ServiceProcess.ServiceController" />
+	</ItemGroup>
+	
+	
+	<ItemGroup>
+	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
+	</ItemGroup>
+
+	
+
+</Project>

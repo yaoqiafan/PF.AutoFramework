@@ -1,0 +1,76 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+
+
+
+
+
+    <Style x:Key="CalendarWithListClockBaseStyle" TargetType="pf:CalendarWithListClock">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="pf:TitleElement.Background" Value="{DynamicResource PrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Margin" Value="8,0" />
+        <Setter Property="pf:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pf:CalendarWithListClock">
+                    <Grid
+                        Margin="0,4,0,8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding Path=(pf:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                            Effect="{StaticResource EffectShadow2}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="250" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Border
+                                Grid.ColumnSpan="2"
+                                Height="42"
+                                Margin="4"
+                                VerticalAlignment="Top"
+                                Background="{Binding Path=(pf:TitleElement.Background), RelativeSource={RelativeSource TemplatedParent}}"
+                                CornerRadius="{Binding Path=(pf:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+                            <ContentPresenter
+                                x:Name="PART_CalendarPresenter"
+                                Grid.Row="0"
+                                Grid.RowSpan="2"
+                                Grid.Column="0"
+                                Margin="-8,-4,-8,-8" />
+
+                            <GroupBox
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="4"
+                                pf:TitleElement.Foreground="{TemplateBinding Foreground}"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource SecondaryBorderBrush}"
+                                Foreground="{TemplateBinding Foreground}"
+                                Header="时间选择">
+                                <ContentPresenter x:Name="PART_ClockPresenter" />
+                            </GroupBox>
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style BasedOn="{StaticResource CalendarWithListClockBaseStyle}" TargetType="pf:CalendarWithListClock" />
+
+</ResourceDictionary>

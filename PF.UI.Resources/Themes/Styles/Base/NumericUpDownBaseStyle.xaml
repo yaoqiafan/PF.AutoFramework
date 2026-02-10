@@ -1,0 +1,637 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:system="clr-namespace:System;assembly=mscorlib">
+
+    <Style
+        x:Key="NumericUpDownBaseStyle"
+        BasedOn="{StaticResource InputElementBaseStyle}"
+        TargetType="pfcontrol:NumericUpDown">
+        <Setter Property="CaretBrush" Value="{DynamicResource PrimaryTextBrush}" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="AllowDrop" Value="true" />
+        <Setter Property="ScrollViewer.PanningMode" Value="VerticalFirst" />
+        <Setter Property="Stylus.IsFlicksEnabled" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:NumericUpDown">
+                    <pfcontrol:SimplePanel x:Name="root">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <pfcontrol:WatermarkTextBox
+                                x:Name="PART_TextBox"
+                                Grid.RowSpan="2"
+                                Padding="{TemplateBinding Padding}"
+                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                CaretBrush="{TemplateBinding CaretBrush}"
+                                Focusable="True"
+                                Foreground="{TemplateBinding Foreground}"
+                                IsReadOnly="{TemplateBinding IsReadOnly}"
+                                Watermark="{Binding Path=(pfcontrol:InfoElement.Placeholder), RelativeSource={RelativeSource TemplatedParent}}" />
+                            <Button
+                                x:Name="UpButton"
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Width="Auto"
+                                Height="Auto"
+                                Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Bottom"
+                                pfcontrol:IconElement.Geometry="{StaticResource UpGeometry}"
+                                pfcontrol:IconElement.Height="6"
+                                pfcontrol:IconElement.Width="14"
+                                Command="pfcontrol:ControlCommands.Prev"
+                                Foreground="{TemplateBinding BorderBrush}"
+                                IsEnabled="{TemplateBinding IsReadOnly,
+                                                            Converter={StaticResource Boolean2BooleanReConverter}}"
+                                Style="{StaticResource ButtonIcon}"
+                                Visibility="{TemplateBinding ShowUpDownButton,
+                                                             Converter={StaticResource Boolean2VisibilityConverter}}" />
+                            <Button
+                                x:Name="DownButton"
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Width="Auto"
+                                Height="Auto"
+                                Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                VerticalContentAlignment="Top"
+                                pfcontrol:IconElement.Geometry="{StaticResource DownGeometry}"
+                                pfcontrol:IconElement.Height="6"
+                                pfcontrol:IconElement.Width="14"
+                                Command="pfcontrol:ControlCommands.Next"
+                                Foreground="{TemplateBinding BorderBrush}"
+                                IsEnabled="{TemplateBinding IsReadOnly,
+                                                            Converter={StaticResource Boolean2BooleanReConverter}}"
+                                Style="{StaticResource ButtonIcon}"
+                                Visibility="{TemplateBinding ShowUpDownButton,
+                                                             Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        </Grid>
+                    </pfcontrol:SimplePanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter TargetName="root" Property="Opacity" Value="0.4" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBorderBrush}" />
+                        </Trigger>
+                        <Trigger SourceName="PART_TextBox" Property="IsFocused" Value="true">
+                            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <ControlTemplate x:Key="NumericUpDownExtendTopTemplate" TargetType="pfcontrol:NumericUpDown">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{Binding Path=(pfcontrol:InfoElement.ContentHeight), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Double2GridLengthConverter}}" MinHeight="{Binding Path=(pfcontrol:InfoElement.MinContentHeight), RelativeSource={RelativeSource TemplatedParent}}" />
+            </Grid.RowDefinitions>
+            <DockPanel
+                Margin="{Binding Path=(pfcontrol:TitleElement.MarginOnTheTop), RelativeSource={RelativeSource TemplatedParent}}"
+                HorizontalAlignment="{Binding Path=(pfcontrol:TitleElement.HorizontalAlignment), RelativeSource={RelativeSource TemplatedParent}}"
+                LastChildFill="True"
+                Visibility="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource String2VisibilityConverter}}">
+                <ContentPresenter
+                    Margin="4,0,0,0"
+                    Content="{Binding Path=(pfcontrol:InfoElement.Symbol), RelativeSource={RelativeSource TemplatedParent}}"
+                    DockPanel.Dock="Right"
+                    TextElement.Foreground="{DynamicResource DangerBrush}"
+                    Visibility="{Binding Path=(pfcontrol:InfoElement.Necessary), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <TextBlock
+                    pfcontrol:TextBlockAttach.AutoTooltip="True"
+                    Text="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+            </DockPanel>
+            <Border
+                x:Name="border"
+                Grid.Row="1"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                SnapsToDevicePixels="True" />
+            <Grid
+                x:Name="root"
+                Grid.Row="1"
+                SnapsToDevicePixels="true">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <pfcontrol:WatermarkTextBox
+                    x:Name="PART_TextBox"
+                    Grid.RowSpan="2"
+                    Padding="{TemplateBinding Padding}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                    CaretBrush="{TemplateBinding CaretBrush}"
+                    Focusable="True"
+                    Foreground="{TemplateBinding Foreground}"
+                    IsReadOnly="{TemplateBinding IsReadOnly}"
+                    Watermark="{Binding Path=(pfcontrol:InfoElement.Placeholder), RelativeSource={RelativeSource TemplatedParent}}" />
+                <Button
+                    x:Name="UpButton"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    VerticalContentAlignment="Bottom"
+                    pfcontrol:IconElement.Geometry="{StaticResource UpGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Prev"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <Button
+                    x:Name="DownButton"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    VerticalContentAlignment="Top"
+                    pfcontrol:IconElement.Geometry="{StaticResource DownGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Next"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+            </Grid>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                <Setter TargetName="root" Property="Opacity" Value="0.4" />
+            </Trigger>
+            <Trigger SourceName="root" Property="IsMouseOver" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBorderBrush}" />
+            </Trigger>
+            <Trigger SourceName="PART_TextBox" Property="IsFocused" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            </Trigger>
+            <Trigger Property="IsReadOnly" Value="True">
+                <Setter TargetName="UpButton" Property="IsEnabled" Value="False" />
+                <Setter TargetName="DownButton" Property="IsEnabled" Value="False" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="NumericUpDownExtendLeftTemplate" TargetType="pfcontrol:NumericUpDown">
+        <Grid Height="{Binding Path=(pfcontrol:InfoElement.ContentHeight), RelativeSource={RelativeSource TemplatedParent}}" MinHeight="{Binding Path=(pfcontrol:InfoElement.MinContentHeight), RelativeSource={RelativeSource TemplatedParent}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{Binding Path=(pfcontrol:InfoElement.TitleWidth), RelativeSource={RelativeSource TemplatedParent}}" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <DockPanel
+                Margin="{Binding Path=(pfcontrol:TitleElement.MarginOnTheLeft), RelativeSource={RelativeSource TemplatedParent}}"
+                HorizontalAlignment="{Binding Path=(pfcontrol:TitleElement.HorizontalAlignment), RelativeSource={RelativeSource TemplatedParent}}"
+                VerticalAlignment="{Binding Path=(pfcontrol:TitleElement.VerticalAlignment), RelativeSource={RelativeSource TemplatedParent}}"
+                LastChildFill="True"
+                Visibility="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource String2VisibilityConverter}}">
+                <ContentPresenter
+                    Margin="4,0,0,0"
+                    Content="{Binding Path=(pfcontrol:InfoElement.Symbol), RelativeSource={RelativeSource TemplatedParent}}"
+                    DockPanel.Dock="Right"
+                    TextElement.Foreground="{DynamicResource DangerBrush}"
+                    Visibility="{Binding Path=(pfcontrol:InfoElement.Necessary), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <TextBlock
+                    pfcontrol:TextBlockAttach.AutoTooltip="True"
+                    Text="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+            </DockPanel>
+            <Border
+                x:Name="border"
+                Grid.Column="1"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                SnapsToDevicePixels="True" />
+            <Grid
+                x:Name="root"
+                Grid.Column="1"
+                SnapsToDevicePixels="true">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <pfcontrol:WatermarkTextBox
+                    x:Name="PART_TextBox"
+                    Grid.RowSpan="2"
+                    Padding="{TemplateBinding Padding}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                    CaretBrush="{TemplateBinding CaretBrush}"
+                    Focusable="True"
+                    Foreground="{TemplateBinding Foreground}"
+                    IsReadOnly="{TemplateBinding IsReadOnly}"
+                    Watermark="{Binding Path=(pfcontrol:InfoElement.Placeholder), RelativeSource={RelativeSource TemplatedParent}}" />
+                <Button
+                    x:Name="UpButton"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    VerticalContentAlignment="Bottom"
+                    pfcontrol:IconElement.Geometry="{StaticResource UpGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Prev"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <Button
+                    x:Name="DownButton"
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    VerticalContentAlignment="Top"
+                    pfcontrol:IconElement.Geometry="{StaticResource DownGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Next"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+            </Grid>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                <Setter TargetName="root" Property="Opacity" Value="0.4" />
+            </Trigger>
+            <Trigger SourceName="root" Property="IsMouseOver" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBorderBrush}" />
+            </Trigger>
+            <Trigger SourceName="PART_TextBox" Property="IsFocused" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style
+        x:Key="NumericUpDownExtendBaseStyle"
+        BasedOn="{StaticResource NumericUpDownBaseStyle}"
+        TargetType="pfcontrol:NumericUpDown">
+        <Setter Property="pfcontrol:InfoElement.Symbol" Value="●" />
+        <Setter Property="pfcontrol:InfoElement.ContentHeight" Value="{x:Static system:Double.NaN}" />
+        <Setter Property="pfcontrol:InfoElement.MinContentHeight" Value="{StaticResource DefaultControlHeight}" />
+        <Setter Property="Height" Value="Auto" />
+        <Setter Property="Template" Value="{StaticResource NumericUpDownExtendTopTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="pfcontrol:InfoElement.TitlePlacement" Value="Left">
+                <Setter Property="Template" Value="{StaticResource NumericUpDownExtendLeftTemplate}" />
+                <Setter Property="Width" Value="Auto" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <ControlTemplate x:Key="NumericUpDownPlusTopTemplate" TargetType="pfcontrol:NumericUpDown">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{Binding Path=(pfcontrol:InfoElement.ContentHeight), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Double2GridLengthConverter}}" MinHeight="{Binding Path=(pfcontrol:InfoElement.MinContentHeight), RelativeSource={RelativeSource TemplatedParent}}" />
+            </Grid.RowDefinitions>
+            <DockPanel
+                Grid.ColumnSpan="2"
+                Margin="{Binding Path=(pfcontrol:TitleElement.MarginOnTheTop), RelativeSource={RelativeSource TemplatedParent}}"
+                HorizontalAlignment="{Binding Path=(pfcontrol:TitleElement.HorizontalAlignment), RelativeSource={RelativeSource TemplatedParent}}"
+                LastChildFill="True"
+                Visibility="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource String2VisibilityConverter}}">
+                <ContentPresenter
+                    Margin="4,0,0,0"
+                    Content="{Binding Path=(pfcontrol:InfoElement.Symbol), RelativeSource={RelativeSource TemplatedParent}}"
+                    DockPanel.Dock="Right"
+                    TextElement.Foreground="{DynamicResource DangerBrush}"
+                    Visibility="{Binding Path=(pfcontrol:InfoElement.Necessary), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <TextBlock
+                    pfcontrol:TextBlockAttach.AutoTooltip="True"
+                    Text="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+            </DockPanel>
+            <Border
+                x:Name="border"
+                Grid.Row="1"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+            <Grid
+                x:Name="root"
+                Grid.Row="1"
+                SnapsToDevicePixels="true">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <pfcontrol:WatermarkTextBox
+                    x:Name="PART_TextBox"
+                    Grid.RowSpan="2"
+                    Padding="{TemplateBinding Padding}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                    CaretBrush="{TemplateBinding CaretBrush}"
+                    Focusable="True"
+                    Foreground="{TemplateBinding Foreground}"
+                    IsReadOnly="{TemplateBinding IsReadOnly}"
+                    Watermark="{Binding Path=(pfcontrol:InfoElement.Placeholder), RelativeSource={RelativeSource TemplatedParent}}" />
+                <Button
+                    Name="ButtonClear"
+                    Grid.RowSpan="2"
+                    Grid.Column="1"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="0,0,2,0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    pfcontrol:IconElement.Geometry="{StaticResource DeleteFillCircleGeometry}"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Clear"
+                    Focusable="False"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="Collapsed" />
+                <Button
+                    x:Name="UpButton"
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    VerticalContentAlignment="Bottom"
+                    pfcontrol:IconElement.Geometry="{StaticResource UpGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Prev"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <Button
+                    x:Name="DownButton"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    VerticalContentAlignment="Top"
+                    pfcontrol:IconElement.Geometry="{StaticResource DownGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Next"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+            </Grid>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                <Setter TargetName="root" Property="Opacity" Value="0.4" />
+            </Trigger>
+            <Trigger SourceName="root" Property="IsMouseOver" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBorderBrush}" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsMouseOver" Value="true" />
+                    <Condition Property="pfcontrol:InfoElement.ShowClearButton" Value="True" />
+                    <Condition Property="IsReadOnly" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter TargetName="ButtonClear" Property="Visibility" Value="Visible" />
+            </MultiTrigger>
+            <Trigger SourceName="PART_TextBox" Property="IsFocused" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="NumericUpDownPlusLeftTemplate" TargetType="pfcontrol:NumericUpDown">
+        <Grid Height="{Binding Path=(pfcontrol:InfoElement.ContentHeight), RelativeSource={RelativeSource TemplatedParent}}" MinHeight="{Binding Path=(pfcontrol:InfoElement.MinContentHeight), RelativeSource={RelativeSource TemplatedParent}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{Binding Path=(pfcontrol:InfoElement.TitleWidth), RelativeSource={RelativeSource TemplatedParent}}" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <DockPanel
+                Grid.Column="0"
+                Margin="{Binding Path=(pfcontrol:TitleElement.MarginOnTheLeft), RelativeSource={RelativeSource TemplatedParent}}"
+                HorizontalAlignment="{Binding Path=(pfcontrol:TitleElement.HorizontalAlignment), RelativeSource={RelativeSource TemplatedParent}}"
+                VerticalAlignment="{Binding Path=(pfcontrol:TitleElement.VerticalAlignment), RelativeSource={RelativeSource TemplatedParent}}"
+                LastChildFill="True"
+                Visibility="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource String2VisibilityConverter}}">
+                <ContentPresenter
+                    Margin="4,0,0,0"
+                    Content="{Binding Path=(pfcontrol:InfoElement.Symbol), RelativeSource={RelativeSource TemplatedParent}}"
+                    DockPanel.Dock="Right"
+                    TextElement.Foreground="{DynamicResource DangerBrush}"
+                    Visibility="{Binding Path=(pfcontrol:InfoElement.Necessary), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <TextBlock
+                    pfcontrol:TextBlockAttach.AutoTooltip="True"
+                    Text="{Binding Path=(pfcontrol:InfoElement.Title), RelativeSource={RelativeSource TemplatedParent}}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+            </DockPanel>
+            <Border
+                x:Name="border"
+                Grid.Column="1"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+            <Grid
+                x:Name="root"
+                Grid.Column="1"
+                SnapsToDevicePixels="true">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <pfcontrol:WatermarkTextBox
+                    x:Name="PART_TextBox"
+                    Grid.RowSpan="2"
+                    Padding="{TemplateBinding Padding}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                    CaretBrush="{TemplateBinding CaretBrush}"
+                    Focusable="True"
+                    Foreground="{TemplateBinding Foreground}"
+                    IsReadOnly="{TemplateBinding IsReadOnly}"
+                    Watermark="{Binding Path=(pfcontrol:InfoElement.Placeholder), RelativeSource={RelativeSource TemplatedParent}}" />
+                <Button
+                    Name="ButtonClear"
+                    Grid.RowSpan="2"
+                    Grid.Column="1"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="0,0,2,0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    pfcontrol:IconElement.Geometry="{StaticResource DeleteFillCircleGeometry}"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Clear"
+                    Focusable="False"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="Collapsed" />
+                <Button
+                    x:Name="UpButton"
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    VerticalContentAlignment="Bottom"
+                    pfcontrol:IconElement.Geometry="{StaticResource UpGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Prev"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <Button
+                    x:Name="DownButton"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Width="Auto"
+                    Height="Auto"
+                    Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='0,0,1,0'}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    VerticalContentAlignment="Top"
+                    pfcontrol:IconElement.Geometry="{StaticResource DownGeometry}"
+                    pfcontrol:IconElement.Height="6"
+                    pfcontrol:IconElement.Width="14"
+                    Command="pfcontrol:ControlCommands.Next"
+                    Foreground="{TemplateBinding BorderBrush}"
+                    IsEnabled="{TemplateBinding IsReadOnly,
+                                                Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="{TemplateBinding ShowUpDownButton,
+                                                 Converter={StaticResource Boolean2VisibilityConverter}}" />
+            </Grid>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                <Setter TargetName="root" Property="Opacity" Value="0.4" />
+            </Trigger>
+            <Trigger SourceName="root" Property="IsMouseOver" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBorderBrush}" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsMouseOver" Value="true" />
+                    <Condition Property="pfcontrol:InfoElement.ShowClearButton" Value="True" />
+                    <Condition Property="IsReadOnly" Value="False" />
+                </MultiTrigger.Conditions>
+                <Setter TargetName="ButtonClear" Property="Visibility" Value="Visible" />
+            </MultiTrigger>
+            <Trigger SourceName="PART_TextBox" Property="IsFocused" Value="true">
+                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style
+        x:Key="NumericUpDownPlusBaseStyle"
+        BasedOn="{StaticResource NumericUpDownExtendBaseStyle}"
+        TargetType="pfcontrol:NumericUpDown">
+        <Setter Property="Template" Value="{StaticResource NumericUpDownPlusTopTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="pfcontrol:InfoElement.TitlePlacement" Value="Left">
+                <Setter Property="Template" Value="{StaticResource NumericUpDownPlusLeftTemplate}" />
+                <Setter Property="Width" Value="Auto" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

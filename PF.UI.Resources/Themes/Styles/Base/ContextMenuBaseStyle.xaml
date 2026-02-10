@@ -1,0 +1,35 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
+  
+    <Style x:Key="ContextMenuBaseStyle" TargetType="ContextMenu">
+        <Setter Property="pfcontrol:MenuAttach.ItemPadding" Value="{StaticResource DefaultControlPadding}" />
+        <Setter Property="pfcontrol:MenuAttach.PopupVerticalOffset" Value="-9" />
+        <Setter Property="pfcontrol:MenuAttach.PopupHorizontalOffset" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
+        <Setter Property="Padding" Value="2,2,2,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border
+                        MaxHeight="{TemplateBinding MaxHeight}"
+                        Margin="8"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                        Effect="{StaticResource EffectShadow2}">
+                        <ScrollViewer Margin="{TemplateBinding Padding}" Style="{StaticResource ScrollViewerUpDown}">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
