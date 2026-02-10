@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 namespace PF.Controls;
 

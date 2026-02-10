@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 [TypeConverter(typeof(GeometryEffectConverter))]
 public abstract class GeometryEffect : Freezable

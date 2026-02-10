@@ -1,4 +1,4 @@
-﻿using PF.UI.Shared.Data;
+﻿using PF.UI.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Windows;

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Data;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools;
 
 namespace PF.Controls;
 

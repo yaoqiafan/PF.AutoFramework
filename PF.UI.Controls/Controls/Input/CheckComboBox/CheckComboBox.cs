@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 
 namespace PF.Controls;

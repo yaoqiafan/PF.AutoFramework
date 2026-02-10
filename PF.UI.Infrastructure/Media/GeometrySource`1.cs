@@ -1,8 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Media;
-using PF.UI.Shared.Drawing;
+using PF.UI.Infrastructure.Drawing;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 public abstract class GeometrySource<TParameters> : IGeometrySource
     where TParameters : IGeometrySourceParameters

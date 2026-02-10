@@ -1,8 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Shapes;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Shapes;
 
 
 namespace PF.Controls;

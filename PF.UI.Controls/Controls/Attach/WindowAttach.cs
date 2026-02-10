@@ -3,8 +3,8 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools.Interop;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools.Interop;
 
 namespace PF.Controls;
 

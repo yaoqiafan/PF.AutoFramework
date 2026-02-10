@@ -3,8 +3,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools.Extension;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools.Extension;
 
 namespace PF.Controls;
 

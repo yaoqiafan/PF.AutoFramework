@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Windows;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 namespace PF.Controls;
 

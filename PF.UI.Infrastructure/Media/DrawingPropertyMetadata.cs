@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 public class DrawingPropertyMetadata : FrameworkPropertyMetadata
 {

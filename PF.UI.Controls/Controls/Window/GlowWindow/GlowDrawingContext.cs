@@ -1,7 +1,7 @@
 ﻿using System;
-using PF.UI.Shared.Tools.Interop;
+using PF.UI.Infrastructure.Tools.Interop;
 
-namespace PF.UI.Shared.Data;
+namespace PF.UI.Infrastructure.Data;
 
 public class GlowDrawingContext : DisposableObject
 {

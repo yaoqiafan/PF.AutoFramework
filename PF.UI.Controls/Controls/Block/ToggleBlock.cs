@@ -4,9 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Markup;
-using PF.UI.Shared.Data;
-
-using PF.UI.Shared;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools.Interop;
 
 namespace PF.Controls;
 

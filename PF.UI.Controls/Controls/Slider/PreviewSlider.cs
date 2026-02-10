@@ -6,7 +6,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 
 

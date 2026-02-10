@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Media;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 namespace PF.Controls;
 

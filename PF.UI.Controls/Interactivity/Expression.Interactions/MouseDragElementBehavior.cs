@@ -1,4 +1,4 @@
-﻿using PF.UI.Shared.Data;
+﻿using PF.UI.Infrastructure.Data;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;

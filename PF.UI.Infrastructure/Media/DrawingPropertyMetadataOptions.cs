@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 [Flags]
 public enum DrawingPropertyMetadataOptions

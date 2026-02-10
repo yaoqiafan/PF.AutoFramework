@@ -2,8 +2,8 @@
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Data.Enum;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Data.Enum;
 
 namespace PF.Controls;
 

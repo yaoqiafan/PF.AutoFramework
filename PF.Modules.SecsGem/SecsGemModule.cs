@@ -1,7 +1,7 @@
 ﻿using PF.Modules.SecsGem.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.Regions;
+
 
 namespace PF.Modules.SecsGem
 {

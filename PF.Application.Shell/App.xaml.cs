@@ -91,7 +91,7 @@ namespace PF.Application.Shell
         /// <param name="str"></param>
         internal void UpdateSkin(string str = "Default")
         {
-            if (Enum.TryParse<PF.UI.Shared.Data.SkinType>(str, out PF.UI.Shared.Data.SkinType skin))
+            if (Enum.TryParse<PF.UI.Infrastructure.Data.SkinType>(str, out PF.UI.Infrastructure.Data.SkinType skin))
             {
                 var skins0 = Resources.MergedDictionaries[0];
                 skins0.MergedDictionaries.Clear();

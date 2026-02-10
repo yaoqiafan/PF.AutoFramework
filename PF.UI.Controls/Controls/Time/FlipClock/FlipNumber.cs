@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Media3D;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 namespace PF.Controls;
 

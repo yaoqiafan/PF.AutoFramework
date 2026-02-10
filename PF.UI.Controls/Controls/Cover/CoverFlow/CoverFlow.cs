@@ -7,8 +7,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools.Extension;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools.Extension;
 
 namespace PF.Controls;
 

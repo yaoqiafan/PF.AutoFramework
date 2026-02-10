@@ -9,7 +9,7 @@ using System.Windows.Media;
 #if NET40
 using System.Windows.Threading;
 #endif
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 
 namespace PF.Controls;

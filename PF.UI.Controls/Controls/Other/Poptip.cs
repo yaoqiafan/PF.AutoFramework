@@ -5,10 +5,10 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Data.Enum;
-using PF.UI.Shared.Drawing;
-using PF.UI.Shared.Tools;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Data.Enum;
+using PF.UI.Infrastructure.Drawing;
+using PF.UI.Infrastructure.Tools;
 
 namespace PF.Controls;
 

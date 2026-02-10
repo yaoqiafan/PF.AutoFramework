@@ -4,9 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
-using PF.UI.Shared.Drawing;
+using PF.UI.Infrastructure.Drawing;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 public sealed class SketchGeometryEffect : GeometryEffect
 {

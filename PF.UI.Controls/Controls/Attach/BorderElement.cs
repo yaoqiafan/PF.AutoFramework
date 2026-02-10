@@ -1,8 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools.Converter;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools.Converter;
 
 
 namespace PF.Controls;

@@ -1,11 +1,12 @@
 ﻿
+using PF.Infrastructure.Logging;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.ServiceProcess;
 
-namespace PF.Infrastructure.Utilities.ServeTool
+namespace PF.CommonTools.ServeTool
 {
     public class ServerMangerTool
     {

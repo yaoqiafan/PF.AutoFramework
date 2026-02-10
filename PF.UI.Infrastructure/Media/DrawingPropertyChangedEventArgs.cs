@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 public class DrawingPropertyChangedEventArgs : EventArgs
 {

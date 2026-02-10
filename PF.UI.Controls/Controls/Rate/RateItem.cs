@@ -2,8 +2,8 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools.Extension;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools.Extension;
 
 namespace PF.Controls;
 

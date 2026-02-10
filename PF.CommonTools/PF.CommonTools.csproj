@@ -1,9 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+	
+	<ItemGroup>
+		<PackageReference Include="System.ServiceProcess.ServiceController" />
+	</ItemGroup>
+
+	<ItemGroup>
+    <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
+  </ItemGroup>
 
 </Project>

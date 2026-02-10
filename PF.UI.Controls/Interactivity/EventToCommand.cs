@@ -1,5 +1,5 @@
 ﻿
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 using System;
 using System.Windows;
 using System.Windows.Input;

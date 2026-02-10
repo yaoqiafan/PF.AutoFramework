@@ -4,9 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using PF.Controls;
-using PF.UI.Shared.Tools.Interop;
+using PF.UI.Infrastructure.Tools.Interop;
 
-namespace PF.UI.Shared.Data;
+namespace PF.UI.Infrastructure.Data;
 
 public class GlowEdge : HwndWrapper
 {

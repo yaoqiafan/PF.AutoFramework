@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using PF.UI.Shared.Data;
-using PF.UI.Shared.Tools;
-using PF.UI.Shared.Tools.Helper;
-using PF.UI.Shared.Tools.Interop;
+using PF.UI.Infrastructure.Data;
+using PF.UI.Infrastructure.Tools;
+using PF.UI.Infrastructure.Tools.Helper;
+using PF.UI.Infrastructure.Tools.Interop;
 
 namespace PF.Controls;
 

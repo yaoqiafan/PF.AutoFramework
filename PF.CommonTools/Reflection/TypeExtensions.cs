@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Infrastructure.Utilities.Reflection
+namespace PF.CommonTools.Reflection
 {
     public static class TypeClassExtensions
     {

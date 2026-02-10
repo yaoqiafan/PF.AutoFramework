@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace PF.Infrastructure.Utilities.Reflection
+namespace PF.CommonTools.Reflection
 {
   
 

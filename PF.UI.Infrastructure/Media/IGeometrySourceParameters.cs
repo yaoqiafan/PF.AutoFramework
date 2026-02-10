@@ -1,6 +1,6 @@
 ﻿using System.Windows.Media;
 
-namespace PF.UI.Shared.Media;
+namespace PF.UI.Infrastructure.Media;
 
 public interface IGeometrySourceParameters
 {

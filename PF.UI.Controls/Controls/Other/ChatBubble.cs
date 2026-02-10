@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Windows;
-using PF.UI.Shared.Data;
+using PF.UI.Infrastructure.Data;
 
 namespace PF.Controls;
 

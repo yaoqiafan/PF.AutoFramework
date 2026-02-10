@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using PF.UI.Shared.Tools;
+using PF.UI.Infrastructure.Tools;
 
 namespace PF.Controls;
 

@@ -1,4 +1,4 @@
-﻿namespace PF.UI.Shared.Media;
+﻿namespace PF.UI.Infrastructure.Media;
 
 public enum UnitType
 {
