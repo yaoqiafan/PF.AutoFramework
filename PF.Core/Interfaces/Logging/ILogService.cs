@@ -3,10 +3,6 @@ using PF.Core.Entities.Logging;
 using PF.Core.Enums;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Logging
 {
@@ -31,6 +27,10 @@ namespace PF.Core.Interfaces.Logging
         // 配置
         void Configure(LogConfiguration configuration);
         LogConfiguration GetConfiguration();
+
+        // 内存日志属性 (新增)
+        IEnumerable<LogEntry> LogEntries { get; }
+        IEnumerable<ChatInfoModel> ChatEntries { get; }
 
         // 内存日志查询功能
         List<LogEntry> QueryLogs(DateTime start, DateTime end, LogLevel? level = null, string category = null);

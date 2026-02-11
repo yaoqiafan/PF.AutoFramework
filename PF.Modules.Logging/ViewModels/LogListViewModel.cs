@@ -1,13 +1,15 @@
-﻿
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using PF.Common.Core.PrismBase;
 using PF.Core.Entities.Logging;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Data;
@@ -30,6 +32,17 @@ namespace PF.Modules.Logging.ViewModels
         public LogListViewModel()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
+
+            // 初始化日志集合 - 从服务中加载现有日志
+            // LogService 内部是 List，0 是最新的，这里我们直接加载
+            if (_logService.LogEntries != null)
+            {
+                LogEntries = new ObservableCollection<LogEntry>(_logService.LogEntries);
+            }
+            else
+            {
+                LogEntries = new ObservableCollection<LogEntry>();
+            }
 
             // 初始化命令
             ClearLogsCommand = new DelegateCommand(ClearLogs);
@@ -55,7 +68,7 @@ namespace PF.Modules.Logging.ViewModels
                 LogLevels.Add(level);
             }
 
-            SelectedLogLevel= LogLevel.All;
+            SelectedLogLevel = LogLevel.All;
             // 初始化日期范围
             DateRanges = new List<DateRangeOption>
             {
@@ -74,9 +87,8 @@ namespace PF.Modules.Logging.ViewModels
 
         public ICollectionView LogEntriesView => _logEntriesView;
 
-        public ObservableCollection<LogEntry> LogEntries { get; set; } = new ObservableCollection<LogEntry>();
+        public ObservableCollection<LogEntry> LogEntries { get; set; }
 
-        // 在 LogListViewModel.cs 中
         private LogEntry _selectedLogEntry;
 
         // 选中项属性
@@ -95,15 +107,7 @@ namespace PF.Modules.Logging.ViewModels
 
         private void OnSelectedLogEntryChanged()
         {
-            if (SelectedLogEntry != null)
-            {
-                // 记录选中日志（可选）
-                _logService.Debug($"选中日志: {SelectedLogEntry.Message}", "UI");
-            }
-            else
-            {
-                SelectedLogEntry = null;
-            }
+            // 可以在这里处理选中逻辑，但不要再写 Debug 日志，否则可能导致死循环或刷屏
         }
 
         public string SearchText
@@ -228,10 +232,9 @@ namespace PF.Modules.Logging.ViewModels
             }
 
             // 2. 按级别筛选
-
-            if (SelectedLogLevel != LogLevel.All && logEntry.Level != SelectedLogLevel) 
+            if (SelectedLogLevel != LogLevel.All && logEntry.Level != SelectedLogLevel)
                 return false;
-           
+
             // 3. 按搜索文本筛选
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
@@ -250,8 +253,20 @@ namespace PF.Modules.Logging.ViewModels
 
         private void OnLogAdded(LogEntry logEntry)
         {
+            // 确保在UI线程执行
             Application.Current?.Dispatcher.InvokeAsync(() =>
             {
+                // [关键修复] 将新日志添加到 ObservableCollection
+                // LogService 是插入到开头(0)，我们也插入到开头保持一致性
+                // 虽然 View 有 SortDescription，但保持源数据顺序也是好的
+                LogEntries.Insert(0, logEntry);
+
+                // 限制 UI 列表大小，防止内存溢出 (例如限制显示最近 2000 条)
+                if (LogEntries.Count > 2000)
+                {
+                    LogEntries.RemoveAt(LogEntries.Count - 1);
+                }
+
                 UpdateStatistics();
             });
         }
@@ -259,7 +274,8 @@ namespace PF.Modules.Logging.ViewModels
         private void UpdateStatistics()
         {
             TotalLogCount = LogEntries.Count;
-            FilteredLogCount = _logEntriesView.Cast<object>().Count();
+            // 注意：_logEntriesView.Cast<object>().Count() 在数据量大时可能较慢，可以考虑优化
+            FilteredLogCount = _logEntriesView?.Cast<object>().Count() ?? 0;
         }
 
         private void ClearLogs()
@@ -272,8 +288,13 @@ namespace PF.Modules.Logging.ViewModels
 
             if (result == MessageBoxResult.Yes)
             {
+                // 清空 Service 中的内存缓存
                 _logService.Clear();
+                // 清空 ViewModel 中的集合
+                LogEntries.Clear();
                 UpdateStatistics();
+
+                // 记录一条新日志
                 _logService.Info("日志已清空", "UI");
             }
         }
@@ -438,8 +459,8 @@ namespace PF.Modules.Logging.ViewModels
             {
                 ShowOnlyCurrentDay = false;
                 SelectedDate = null;
-                // 这里可以添加逻辑来查询指定日期范围内的日志
-                // 需要调用_logService.QueryLogs方法
+                // 注意：如果需要从文件加载更多历史日志，需要调用 _logService.QueryHistoricalLogs
+                // 现在的 LogEntries 只有内存中的日志
             }
         }
 
