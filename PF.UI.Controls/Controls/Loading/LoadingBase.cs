@@ -4,10 +4,10 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class LoadingBase : ContentControl
 {

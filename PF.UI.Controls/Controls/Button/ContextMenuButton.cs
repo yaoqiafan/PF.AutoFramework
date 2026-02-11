@@ -1,7 +1,7 @@
 ﻿using System.Windows.Controls;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     带上下文菜单的按钮

@@ -13,7 +13,7 @@ namespace PF.Core.Entities.Logging
 
         public string SenderId { get; set; }
 
-        public ChatRoleType Role { get; set; }
+        public string Role { get; set; }
 
         public object Enclosure { get; set; }
     }

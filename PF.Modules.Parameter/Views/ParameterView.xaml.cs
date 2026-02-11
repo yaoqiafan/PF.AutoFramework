@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace PF.Common.Param.Views
+namespace PF.Modules.Parameter.Views
 {
     /// <summary>
     /// ParameterView.xaml 的交互逻辑

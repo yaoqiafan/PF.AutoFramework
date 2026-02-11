@@ -5,7 +5,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class LoadingLine : LoadingBase
 {

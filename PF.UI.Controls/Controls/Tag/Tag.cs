@@ -3,10 +3,10 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class Tag : ContentControl
 {

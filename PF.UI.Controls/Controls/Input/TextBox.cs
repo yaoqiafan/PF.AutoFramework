@@ -1,7 +1,7 @@
 ﻿using System.Windows.Input;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class TextBox : System.Windows.Controls.TextBox
 {

@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public sealed class Sprite : System.Windows.Window
 {

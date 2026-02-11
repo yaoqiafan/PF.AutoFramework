@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementHourList, Type = typeof(ListBox))]
 [TemplatePart(Name = ElementMinuteList, Type = typeof(ListBox))]

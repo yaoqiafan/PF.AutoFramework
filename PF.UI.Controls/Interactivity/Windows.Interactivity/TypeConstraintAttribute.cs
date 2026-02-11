@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class TypeConstraintAttribute : Attribute

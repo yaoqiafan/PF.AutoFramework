@@ -1,6 +1,6 @@
 ﻿using System.Windows.Documents;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class DrawerContainer : AdornerDecorator
 {

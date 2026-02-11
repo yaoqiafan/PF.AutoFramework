@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class WatermarkTextBox : TextBox
 {

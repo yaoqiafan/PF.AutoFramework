@@ -4,8 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using PF.UI.Controls;
-using PF.UI.Controls.Data;
-using PF.UI.Controls.Tools;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools;
 
 
 namespace PF.UI.Resources;

@@ -1,8 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Controls.Primitives;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class ProgressButton : ToggleButton
 {

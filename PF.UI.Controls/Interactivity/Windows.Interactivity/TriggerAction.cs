@@ -1,4 +1,4 @@
-﻿using PF.UI.Infrastructure.Data;
+﻿using PF.UI.Shared.Data;
 using System;
 using System.Globalization;
 using System.Windows;
@@ -6,7 +6,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [DefaultTrigger(typeof(UIElement), typeof(EventTrigger), "MouseLeftButtonDown")]
 [DefaultTrigger(typeof(ButtonBase), typeof(EventTrigger), "Click")]

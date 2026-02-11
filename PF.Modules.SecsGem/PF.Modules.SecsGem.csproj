@@ -3,4 +3,7 @@
 	<ItemGroup>
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+	</ItemGroup>
 </Project>

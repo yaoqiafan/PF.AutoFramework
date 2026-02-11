@@ -1,11 +1,11 @@
 ﻿using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Drawing;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Drawing;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     波浪进度条

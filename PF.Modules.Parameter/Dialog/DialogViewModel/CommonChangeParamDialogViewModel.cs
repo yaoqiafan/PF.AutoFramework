@@ -1,9 +1,8 @@
 ﻿using PF.Common.Core.PrismBase;
-using PF.Common.Param.Dialog.Base;
-using PF.Common.Param.ViewModels;
-using PF.Common.Tools.Reflection;
+using PF.CommonTools.Reflection;
+using PF.Modules.Parameter.Dialog.Base;
+using PF.Modules.Parameter.ViewModels;
 using System.Text.Json;
-using System.Xml;
 
 namespace PF.Modules.Parameter.Dialog.DialogViewModel
 {

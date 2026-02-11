@@ -2,11 +2,11 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Drawing;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Drawing;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class UniformSpacingPanel : Panel
 {

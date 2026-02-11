@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class HoneycombPanel : Panel
 {

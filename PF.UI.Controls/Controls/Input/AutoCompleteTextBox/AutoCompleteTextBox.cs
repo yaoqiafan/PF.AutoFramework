@@ -1,10 +1,10 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Helper;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools.Helper;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = SearchTextBox, Type = typeof(System.Windows.Controls.TextBox))]
 public class AutoCompleteTextBox : ComboBox

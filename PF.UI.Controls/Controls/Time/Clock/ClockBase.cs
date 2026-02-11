@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementButtonConfirm, Type = typeof(Button))]
 public abstract class ClockBase : Control

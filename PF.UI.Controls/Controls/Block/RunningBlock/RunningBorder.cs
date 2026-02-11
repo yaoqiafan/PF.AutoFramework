@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
-using PF.UI.Infrastructure.Tools;
+using PF.UI.Shared.Tools;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class RunningBorder : Border
 {

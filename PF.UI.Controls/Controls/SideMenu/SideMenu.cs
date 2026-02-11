@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Windows;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class SideMenu : HeaderedSimpleItemsControl
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class PreviewInvokeEventArgs : EventArgs
 {

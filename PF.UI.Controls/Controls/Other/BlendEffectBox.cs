@@ -7,7 +7,7 @@ using System.Windows.Data;
 using System.Windows.Markup;
 using System.Windows.Media.Effects;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [DefaultProperty("Content")]
 [ContentProperty("Content")]

@@ -1,11 +1,8 @@
-﻿using PF.Common.Param.Dialog;
-using PF.Common.Param.ViewModels;
-using PF.Common.Param.Views;
-using PF.Modules.Parameter.Dialog.DialogViewModel;
+﻿using PF.Modules.Parameter.Dialog;
+using PF.Modules.Parameter.ViewModels;
 using PF.Modules.Parameter.Views;
-using Prism.Ioc;
-using Prism.Modularity;
-using Prism.Regions;
+using PF.Core.Constants;
+using PF.Modules.Parameter.Dialog.DialogViewModel;
 
 namespace PF.Modules.Parameter
 {

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+
+</Project>

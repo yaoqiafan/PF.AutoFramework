@@ -5,9 +5,9 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Markup;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     ItemsControl的轻量级版本

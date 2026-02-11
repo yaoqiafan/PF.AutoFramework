@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class PropertyEditorBase : DependencyObject
 {

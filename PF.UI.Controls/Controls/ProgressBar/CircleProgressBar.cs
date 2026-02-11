@@ -1,11 +1,11 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Shapes;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Shapes;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = IndicatorTemplateName, Type = typeof(Arc))]
 public class CircleProgressBar : RangeBase

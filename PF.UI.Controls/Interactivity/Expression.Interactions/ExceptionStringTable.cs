@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Resources;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 internal class ExceptionStringTable
 {

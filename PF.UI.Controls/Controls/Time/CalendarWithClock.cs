@@ -4,9 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementButtonConfirm, Type = typeof(Button))]
 [TemplatePart(Name = ElementClockPresenter, Type = typeof(ContentPresenter))]

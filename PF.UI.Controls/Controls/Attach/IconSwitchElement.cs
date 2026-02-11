@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Media;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class IconSwitchElement : IconElement
 {

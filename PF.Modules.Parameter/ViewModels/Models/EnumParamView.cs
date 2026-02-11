@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Configuration;
 
-namespace PF.Common.Param.ViewModels.Models
+namespace PF.Modules.Parameter.ViewModels.Models
 {
     public class EnumParamView<T>: BindableBase where T : struct, Enum
     {

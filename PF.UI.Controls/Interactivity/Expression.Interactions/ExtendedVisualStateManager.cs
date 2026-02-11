@@ -1,4 +1,4 @@
-﻿using PF.UI.Infrastructure.Data;
+﻿using PF.UI.Shared.Data;
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -11,7 +11,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class ExtendedVisualStateManager : VisualStateManager
 {

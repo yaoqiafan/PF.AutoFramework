@@ -3,9 +3,9 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementRoot, Type = typeof(Border))]
 [ContentProperty(nameof(Content))]

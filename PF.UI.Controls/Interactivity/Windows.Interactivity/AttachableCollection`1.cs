@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class AttachableCollection<T> : FreezableCollection<T>, IAttachedObject
     where T : DependencyObject, IAttachedObject

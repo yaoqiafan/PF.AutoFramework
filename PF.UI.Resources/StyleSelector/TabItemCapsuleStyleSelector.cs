@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using PF.UI.Controls.Data;
-using PF.UI.Controls.Tools;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools;
 
 namespace PF.UI.Resources;
 

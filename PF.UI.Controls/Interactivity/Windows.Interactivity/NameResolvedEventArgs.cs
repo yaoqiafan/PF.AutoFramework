@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 internal sealed class NameResolvedEventArgs : EventArgs
 {

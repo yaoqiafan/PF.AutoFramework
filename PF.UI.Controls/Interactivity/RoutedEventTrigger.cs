@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class RoutedEventTrigger : EventTriggerBase<DependencyObject>
 {

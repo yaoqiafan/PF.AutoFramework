@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     控件库使用的所有命令（为了统一，不使用wpf自带的命令）

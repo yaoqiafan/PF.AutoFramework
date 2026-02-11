@@ -4,10 +4,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Markup;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Interop;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+using PF.UI.Shared;
+
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     切换块

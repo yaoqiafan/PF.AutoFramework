@@ -1,10 +1,10 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Extension;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools.Extension;
 
-namespace PF.Controls
+namespace PF.UI.Controls
 {
     [TemplatePart(Name = RootContainer, Type = typeof(UIElement))]
     public class RibbonTab : HeaderedItemsControl

@@ -1,19 +1,10 @@
-﻿// LoggingModule.cs
+﻿using PF.Modules.Logging.ViewModels;
+using PF.Modules.Logging.Views;
+using PF.Core.Constants;
+using PF.Core.Interfaces.Logging;
 using log4net;
-using PF.Common.Core.Logging;
-using PF.Common.Data.Constant;
-using PF.Common.Data.Logging;
-using PF.Common.Data.Param;
-using PF.Common.Interface;
-using PF.Common.Interface.Loging;
-using PF.Common.Logging.ViewModels;
-using PF.Common.Logging.Views;
-using Prism.Ioc;
-using Prism.Modularity;
-using System;
-using System.IO;
 
-namespace PF.Common.Logging
+namespace PF.Modules.Logging
 {
     /// <summary>
     /// 日志模块 - Prism模块实现

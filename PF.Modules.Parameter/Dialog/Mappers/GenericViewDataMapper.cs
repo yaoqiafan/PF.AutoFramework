@@ -1,13 +1,8 @@
-﻿using PF.Common.Core.Param.Base;
-using System;
+﻿using PF.UI.Infrastructure.Mappers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PF.Common.Param.Dialog.Mappers
+namespace PF.Modules.Parameter.Dialog.Mappers
 {
     /// <summary>
     /// 通用视图数据映射器

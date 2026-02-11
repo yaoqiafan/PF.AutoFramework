@@ -1,4 +1,4 @@
-﻿namespace PF.Controls;
+﻿namespace PF.UI.Controls;
 
 public enum TagType
 {

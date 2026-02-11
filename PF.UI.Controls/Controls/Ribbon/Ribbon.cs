@@ -7,11 +7,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-using PF.UI.Infrastructure.Tools.Extension;
+using PF.UI.Shared.Tools.Extension;
 
-namespace PF.Controls
+namespace PF.UI.Controls
 {
     // TODO: this control is a work-in-progress, it needs to support things like automatic resizing.
     [TemplatePart(Name = TabHeaderItemsControl, Type = typeof(ItemsControl))]

@@ -3,17 +3,17 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-    xmlns:pf="clr-namespace:PF.Controls;assembly=PF.Controls"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     Width="1900"
     Height="1000"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Closing="Window_Closing"
-    Icon="/PF.Resources;component/Images/ICO/-pfico.ico"
+    Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
     WindowState="Maximized"
-    xmlns:tokens="clr-namespace:PF.Common.Data.Constant;assembly=PF.Common.Data">
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core">
 
     <pf:Window.Resources>
         <Style x:Key="TitleStyle" TargetType="TextBlock">

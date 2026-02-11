@@ -1,10 +1,10 @@
 ﻿using System.Windows;
 using System.Windows.Data;
 using System.Windows.Shapes;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Converter;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools.Converter;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class RectangleAttach
 {

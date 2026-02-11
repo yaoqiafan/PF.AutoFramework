@@ -2,7 +2,7 @@
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class TransitionEffect : ShaderEffect
 {

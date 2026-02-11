@@ -1,13 +1,8 @@
-﻿using PF.Common.Data.Admin;
-using System;
-using System.Collections.Generic;
+﻿using PF.Core.Enums;
 using System.ComponentModel;
 using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PF.Common.Param.ViewModels.Models
+namespace PF.Modules.Parameter.ViewModels.Models
 {
     public class UserParamView :BindableBase
     {

@@ -17,7 +17,7 @@ namespace PF.Common.Core.PrismBase
     /// <summary>
     /// PFDialogBase.xaml 的交互逻辑
     /// </summary>
-    public partial class PFDialogBaseWindow : PF.Controls.Window, IDialogWindow
+    public partial class PFDialogBaseWindow : PF.UI.Controls.Window, IDialogWindow
     {
         public PFDialogBaseWindow()
         {

@@ -1,15 +1,12 @@
-﻿using PF.Common.Data.Logging;
-using PF.Common.Interface.Loging;
-using PF.Common.Logging.ViewModels;
-using Prism.Ioc;
-using System.Globalization;
+﻿using PF.Core.Entities.Logging;
+using PF.Core.Interfaces.Logging;
+using PF.Modules.Logging.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace PF.Common.Logging.Views
+namespace PF.Modules.Logging.Views
 {
     public partial class LogListView : UserControl
     {

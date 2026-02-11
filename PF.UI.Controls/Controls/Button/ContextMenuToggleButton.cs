@@ -2,7 +2,7 @@
 using System.Windows.Controls.Primitives;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     带上下文菜单的切换按钮

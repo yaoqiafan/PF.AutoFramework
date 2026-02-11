@@ -8,7 +8,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class HighlightTextBlock : TextBlock
 {

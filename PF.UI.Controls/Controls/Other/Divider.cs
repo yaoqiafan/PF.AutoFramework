@@ -2,9 +2,9 @@
 using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [ContentProperty(nameof(Content))]
 public class Divider : Control

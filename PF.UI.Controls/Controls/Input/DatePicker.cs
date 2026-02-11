@@ -5,7 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementTextBox, Type = typeof(DatePickerTextBox))]
 public class DatePicker : System.Windows.Controls.DatePicker

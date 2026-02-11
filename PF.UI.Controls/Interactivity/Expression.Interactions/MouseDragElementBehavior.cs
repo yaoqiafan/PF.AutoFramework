@@ -1,9 +1,9 @@
-﻿using PF.UI.Infrastructure.Data;
+﻿using PF.UI.Shared.Data;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class MouseDragElementBehavior : Behavior<FrameworkElement>
 {

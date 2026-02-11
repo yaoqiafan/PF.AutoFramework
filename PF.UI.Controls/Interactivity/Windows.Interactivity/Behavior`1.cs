@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class Behavior<T> : Behavior where T : DependencyObject
 {

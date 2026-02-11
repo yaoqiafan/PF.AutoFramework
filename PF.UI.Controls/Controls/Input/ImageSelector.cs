@@ -4,11 +4,11 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
 using Microsoft.Win32;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class ImageSelector : Control
 {

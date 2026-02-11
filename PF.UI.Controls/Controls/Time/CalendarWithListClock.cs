@@ -1,4 +1,4 @@
-﻿using PF.UI.Infrastructure.Data;
+﻿using PF.UI.Shared.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace PF.Controls
+namespace PF.UI.Controls
 {
     [TemplatePart(Name = ElementClockPresenter, Type = typeof(ContentPresenter))]
     [TemplatePart(Name = ElementCalendarPresenter, Type = typeof(ContentPresenter))]

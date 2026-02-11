@@ -5,7 +5,7 @@ namespace PF.Application.Shell.Views
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : PF.Controls.Window
+    public partial class MainWindow : PF.UI.Controls.Window
     {
 
         public MainWindow()

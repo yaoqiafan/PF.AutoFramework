@@ -1,17 +1,17 @@
-﻿using PF.Common.Core.Param.Entity;
-using PF.Common.Core.Param.Entity.Category.Default;
-using PF.Common.Core.PrismBase;
-using PF.Common.Data.Admin;
-using PF.Common.Data.Constant;
-using PF.Common.Interface.Param;
-using PF.Common.Tools.Reflection;
+﻿using PF.Common.Core.PrismBase;
+using PF.CommonTools.Reflection;
+using PF.Core.Constants;
+using PF.Core.Entities.Identity;
+using PF.Core.Events;
+using PF.Core.Interfaces.Configuration;
+using PF.Data.Entity;
+using PF.Data.Params;
 using System.Collections.ObjectModel;
-using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 
-namespace PF.Common.Param.ViewModels
+namespace PF.Modules.Parameter.ViewModels
 {
     public class ParameterViewModel : RegionViewModelBase
     {

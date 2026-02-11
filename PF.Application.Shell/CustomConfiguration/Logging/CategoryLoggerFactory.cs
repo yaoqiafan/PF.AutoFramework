@@ -1,10 +1,5 @@
-﻿using PF.Common.Core.Logging;
-using PF.Common.Interface.Loging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 
 namespace PF.Application.Shell.CustomConfiguration.Logging
 {

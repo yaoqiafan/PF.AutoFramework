@@ -1,13 +1,8 @@
-﻿using PF.Common.Core.Param.Base;
-using PF.Common.Data.Admin;
-using PF.Common.Param.ViewModels.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PF.Core.Entities.Identity;
+using PF.Modules.Parameter.ViewModels.Models;
+using PF.UI.Infrastructure.Mappers;
 
-namespace PF.Common.Param.Dialog.Mappers
+namespace PF.Modules.Parameter.Dialog.Mappers
 {
     /// <summary>
     /// UserParamView 数据映射器

@@ -2,7 +2,7 @@
 using System.Configuration;
 using System.Numerics;
 
-namespace PF.Common.Param.ViewModels.Models
+namespace PF.Modules.Parameter.ViewModels.Models
 {
     public class NumericParamView<T> : BindableBase
     where T : struct, INumber<T>

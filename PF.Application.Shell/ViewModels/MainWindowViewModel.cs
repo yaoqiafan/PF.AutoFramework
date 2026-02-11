@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PF.Application.Shell.CustomConfiguration.Logging;
-using PF.Common.Core.Logging;
 using PF.Common.Core.PrismBase;
-using PF.Common.Data.Constant;
-using PF.Common.Interface;
-using PF.Common.Interface.Loging;
-using PF.Common.Interface.Param;
+using PF.Core.Constants;
+using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using System.Reflection;
 using System.Windows.Input;
 

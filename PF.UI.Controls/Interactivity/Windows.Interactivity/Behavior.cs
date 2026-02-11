@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Media.Animation;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class Behavior : Animatable, IAttachedObject
 {

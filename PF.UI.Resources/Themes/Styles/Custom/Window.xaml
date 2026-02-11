@@ -55,7 +55,7 @@
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
         <Setter Property="UseLayoutRounding" Value="True" />
     </Style>
-    <ControlTemplate x:Key="WindowWin10Template" TargetType="pfcontrol:PFWindow">
+    <ControlTemplate x:Key="WindowWin10Template" TargetType="pfcontrol:Window">
         <Border
             Background="{TemplateBinding Background}"
             BorderBrush="{TemplateBinding BorderBrush}"
@@ -252,7 +252,7 @@
             </MultiTrigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
-    <ControlTemplate x:Key="WindowWin10ExtendContentToNonClientTemplate" TargetType="pfcontrol:PFWindow">
+    <ControlTemplate x:Key="WindowWin10ExtendContentToNonClientTemplate" TargetType="pfcontrol:Window">
         <Border
             Background="{TemplateBinding Background}"
             BorderBrush="{TemplateBinding BorderBrush}"
@@ -447,7 +447,7 @@
             </MultiTrigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
-    <Style x:Key="WindowWin10" TargetType="pfcontrol:PFWindow">
+    <Style x:Key="WindowWin10" TargetType="pfcontrol:Window">
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="BorderBrush" Value="#262e2f" />
         <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />

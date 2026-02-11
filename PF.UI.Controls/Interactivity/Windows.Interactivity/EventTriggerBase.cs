@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class EventTriggerBase : TriggerBase
 {

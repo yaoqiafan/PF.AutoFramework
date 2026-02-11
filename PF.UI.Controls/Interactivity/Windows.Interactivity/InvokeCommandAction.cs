@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public sealed class InvokeCommandAction : TriggerAction<DependencyObject>
 {

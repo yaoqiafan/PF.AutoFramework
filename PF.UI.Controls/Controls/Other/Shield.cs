@@ -3,7 +3,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Markup;
 using System.Windows.Media;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [ContentProperty(nameof(Status))]
 public class Shield : ButtonBase

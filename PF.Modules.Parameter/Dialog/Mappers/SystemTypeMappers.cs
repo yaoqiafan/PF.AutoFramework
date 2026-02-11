@@ -1,13 +1,8 @@
-﻿using PF.Common.Core.Param.Base;
-using PF.Common.Param.ViewModels.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using PF.Modules.Parameter.ViewModels.Models;
+using PF.UI.Infrastructure.Mappers;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PF.Common.Param.Dialog.Mappers
+namespace PF.Modules.Parameter.Dialog.Mappers
 {
     /// <summary>
     /// 字符串参数视图映射器

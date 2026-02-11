@@ -5,10 +5,10 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class HorizontalAlignmentPropertyEditor : PropertyEditorBase
 {

@@ -6,11 +6,11 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = TrackKey, Type = typeof(Track))]
 [TemplatePart(Name = ThumbKey, Type = typeof(FrameworkElement))]

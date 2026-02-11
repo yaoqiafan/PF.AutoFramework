@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Windows;
 using System.Windows.Controls;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Extension;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools.Extension;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class TagContainer : ItemsControl
 {
@@ -14,7 +14,7 @@ public class TagContainer : ItemsControl
 
     public TagContainer()
     {
-        AddHandler(PF.Controls.Tag.ClosedEvent, new RoutedEventHandler(Tag_OnClosed));
+        AddHandler(PF.UI.Controls.Tag.ClosedEvent, new RoutedEventHandler(Tag_OnClosed));
     }
 
     public static void SetShowCloseButton(DependencyObject element, bool value)

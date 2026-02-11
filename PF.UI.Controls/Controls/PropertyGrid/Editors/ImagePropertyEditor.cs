@@ -4,7 +4,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class ImagePropertyEditor : PropertyEditorBase
 {

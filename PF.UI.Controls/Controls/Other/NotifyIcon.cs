@@ -10,11 +10,11 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools;
-using PF.UI.Infrastructure.Tools.Interop;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools;
+using PF.UI.Shared.Tools.Interop;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class NotifyIcon : FrameworkElement, IDisposable
 {
@@ -548,7 +548,7 @@ public class NotifyIcon : FrameworkElement, IDisposable
 
     private void RegisterClass()
     {
-        _windowClassName = $"PF.Controls.NotifyIcon{Guid.NewGuid()}";
+        _windowClassName = $"PF.UI.Controls.NotifyIcon{Guid.NewGuid()}";
         var wndclass = new InteropValues.WNDCLASS4ICON
         {
             style = 0,

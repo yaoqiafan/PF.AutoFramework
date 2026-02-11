@@ -2,11 +2,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Drawing;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Drawing;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementContent, Type = typeof(FrameworkElement))]
 [TemplatePart(Name = ElementPanel, Type = typeof(Panel))]

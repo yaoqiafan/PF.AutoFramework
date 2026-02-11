@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace PF.Common.Param.Dialog
+namespace PF.Modules.Parameter.Dialog
 {
     /// <summary>
     /// ParamChangeDialog_Common.xaml 的交互逻辑

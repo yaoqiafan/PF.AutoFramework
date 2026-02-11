@@ -2,10 +2,10 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Helper;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools.Helper;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class TextBlockAttach
 {

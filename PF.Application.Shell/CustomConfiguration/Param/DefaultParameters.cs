@@ -2,6 +2,7 @@
 using PF.Core.Enums;
 using PF.Data.Entity.Category;
 using PF.Data.Params;
+using PF.UI.Shared.Data;
 using System.Text.Json;
 
 namespace PF.Application.Shell.CustomConfiguration.Param

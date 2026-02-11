@@ -7,7 +7,7 @@
 		<None Remove="Images\JPG\Loading_Default.jpg" />
 		<None Remove="Images\PNG\聚力LOGO.png" />
 	</ItemGroup>
-
+	
 	<ItemGroup>
 		<PackageReference Include="XAMLTools.MSBuild">
 			<PrivateAssets>all</PrivateAssets>

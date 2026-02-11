@@ -2,5 +2,10 @@
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
   <ItemGroup>
     <PackageReference Include="Prism.Wpf" />
+	  <PackageReference Include="log4net" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PF.Data\PF.Data.csproj" />
+    <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

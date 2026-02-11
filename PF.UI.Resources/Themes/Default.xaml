@@ -168,7 +168,7 @@ Themes\Styles\Custom\TreeView.xaml
 Themes\Styles\Custom\Watermark.xaml
 Themes\Styles\Custom\Window.xaml
 -->
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options" xmlns:local="clr-namespace:PF.UI.Resources" xmlns:converter="clr-namespace:PF.UI.Controls.Tools.Converter;assembly=PF.UI.Controls" xmlns:system="clr-namespace:System;assembly=mscorlib" xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls" xmlns:interactivity="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls" xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls" xmlns:shapes="clr-namespace:PF.UI.Controls.Shapes;assembly=PF.UI.Controls">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:o="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options" xmlns:local="clr-namespace:PF.UI.Resources" xmlns:converter="clr-namespace:PF.UI.Shared.Tools.Converter;assembly=PF.UI.Shared" xmlns:system="clr-namespace:System;assembly=mscorlib" xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls" xmlns:interactivity="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls" xmlns:shapes="clr-namespace:PF.UI.Shared.Shapes;assembly=PF.UI.Shared" xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
   <LinearGradientBrush x:Key="ControlDefultBrush" StartPoint="0,1" EndPoint="0,0">
     <GradientStop Offset="1" Color="#778EB1" />
     <GradientStop Offset="0" Color="#07254A" />
@@ -914,7 +914,7 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="RepeatButton">
-          <Rectangle Width="{TemplateBinding Width}" Height="{TemplateBinding Height}" Fill="{TemplateBinding Background}" />
+          <Rectangle Fill="{TemplateBinding Background}" Height="{TemplateBinding Height}" Width="{TemplateBinding Width}" />
         </ControlTemplate>
       </Setter.Value>
     </Setter>
@@ -3230,36 +3230,36 @@ Themes\Styles\Custom\Window.xaml
         <ControlTemplate TargetType="Thumb">
           <ControlTemplate.Resources>
             <Storyboard x:Key="StoryboardMouseEnter">
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="Width">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Width" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="8" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusX)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusX)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="4" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusY)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusY)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="4" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.X)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.X)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="0" />
               </DoubleAnimationUsingKeyFrames>
             </Storyboard>
             <Storyboard x:Key="StoryboardMouseLeave">
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="Width">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Width" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="2" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusX)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusX)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="1" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusY)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusY)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="1" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.X)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.X)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="-2" />
               </DoubleAnimationUsingKeyFrames>
             </Storyboard>
           </ControlTemplate.Resources>
           <Border Width="{TemplateBinding Width}" Background="Transparent">
-            <Rectangle x:Name="rectangle" Width="2" Height="{TemplateBinding Height}" HorizontalAlignment="Right" Fill="{TemplateBinding Background}" RadiusX="1" RadiusY="1" SnapsToDevicePixels="True">
+            <Rectangle x:Name="rectangle" RadiusX="1" RadiusY="1" HorizontalAlignment="Right" Height="{TemplateBinding Height}" SnapsToDevicePixels="True" Width="2" Fill="{TemplateBinding Background}">
               <Rectangle.RenderTransform>
                 <TransformGroup>
                   <TranslateTransform X="-2" />
@@ -3269,10 +3269,10 @@ Themes\Styles\Custom\Window.xaml
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="true">
-              <Setter TargetName="rectangle" Property="Fill" Value="{DynamicResource SecondaryTextBrush}" />
+              <Setter Property="Fill" TargetName="rectangle" Value="{DynamicResource SecondaryTextBrush}" />
             </Trigger>
             <Trigger Property="IsDragging" Value="true">
-              <Setter TargetName="rectangle" Property="Fill" Value="{DynamicResource PrimaryTextBrush}" />
+              <Setter Property="Fill" TargetName="rectangle" Value="{DynamicResource PrimaryTextBrush}" />
             </Trigger>
             <EventTrigger RoutedEvent="MouseEnter">
               <BeginStoryboard Storyboard="{StaticResource StoryboardMouseEnter}" />
@@ -3293,36 +3293,36 @@ Themes\Styles\Custom\Window.xaml
         <ControlTemplate TargetType="Thumb">
           <ControlTemplate.Resources>
             <Storyboard x:Key="StoryboardMouseEnter">
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="Height">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Height" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="8" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusX)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusX)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="4" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusY)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusY)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="4" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.1" Value="0" />
               </DoubleAnimationUsingKeyFrames>
             </Storyboard>
             <Storyboard x:Key="StoryboardMouseLeave">
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="Height">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Height" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="2" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusX)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusX)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="1" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(Rectangle.RadiusY)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Rectangle.RadiusY)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="1" />
               </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="rectangle" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)">
+              <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" Storyboard.TargetName="rectangle">
                 <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="-2" />
               </DoubleAnimationUsingKeyFrames>
             </Storyboard>
           </ControlTemplate.Resources>
           <Border Height="{TemplateBinding Height}" Background="Transparent">
-            <Rectangle x:Name="rectangle" Width="{TemplateBinding Width}" Height="2" VerticalAlignment="Bottom" Fill="{TemplateBinding Background}" RadiusX="1" RadiusY="1" SnapsToDevicePixels="True">
+            <Rectangle x:Name="rectangle" RadiusX="1" RadiusY="1" VerticalAlignment="Bottom" Height="2" SnapsToDevicePixels="True" Width="{TemplateBinding Width}" Fill="{TemplateBinding Background}">
               <Rectangle.RenderTransform>
                 <TransformGroup>
                   <TranslateTransform Y="-2" />
@@ -3332,10 +3332,10 @@ Themes\Styles\Custom\Window.xaml
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="true">
-              <Setter TargetName="rectangle" Property="Fill" Value="{DynamicResource SecondaryTextBrush}" />
+              <Setter Property="Fill" TargetName="rectangle" Value="{DynamicResource SecondaryTextBrush}" />
             </Trigger>
             <Trigger Property="IsDragging" Value="true">
-              <Setter TargetName="rectangle" Property="Fill" Value="{DynamicResource PrimaryTextBrush}" />
+              <Setter Property="Fill" TargetName="rectangle" Value="{DynamicResource PrimaryTextBrush}" />
             </Trigger>
             <EventTrigger RoutedEvent="MouseEnter">
               <BeginStoryboard Storyboard="{StaticResource StoryboardMouseEnter}" />
@@ -3410,18 +3410,18 @@ Themes\Styles\Custom\Window.xaml
   <ControlTemplate x:Key="ScrollViewerNativeBaseControlTemplate" TargetType="ScrollViewer">
     <ControlTemplate.Resources>
       <Storyboard x:Key="StoryboardMouseOver">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
       <Storyboard x:Key="StoryboardCommon">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value=".3" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value=".3" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
@@ -3435,9 +3435,9 @@ Themes\Styles\Custom\Window.xaml
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="{TemplateBinding Padding}" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
-      <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Opacity=".3" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
-      <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Opacity=".3" Orientation="Horizontal" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
+      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.RowSpan="2" Grid.ColumnSpan="2" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Grid.Column="0" Margin="{TemplateBinding Padding}" Grid.Row="0" />
+      <ScrollBar x:Name="PART_VerticalScrollBar" Opacity=".3" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Grid.Column="1" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Grid.Row="0" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" />
+      <ScrollBar x:Name="PART_HorizontalScrollBar" Opacity=".3" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Grid.Column="0" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Grid.Row="1" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportWidth}" />
     </Grid>
     <ControlTemplate.Triggers>
       <Trigger Property="IsMouseOver" Value="True">
@@ -3453,18 +3453,18 @@ Themes\Styles\Custom\Window.xaml
   <ControlTemplate x:Key="ScrollViewerNativeAutoHideBaseControlTemplate" TargetType="ScrollViewer">
     <ControlTemplate.Resources>
       <Storyboard x:Key="StoryboardMouseOver">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
       <Storyboard x:Key="StoryboardCommon">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="0" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="0" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
@@ -3478,9 +3478,9 @@ Themes\Styles\Custom\Window.xaml
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="{TemplateBinding Padding}" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
-      <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Opacity="0" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
-      <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Opacity="0" Orientation="Horizontal" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
+      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.RowSpan="2" Grid.ColumnSpan="2" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Grid.Column="0" Margin="{TemplateBinding Padding}" Grid.Row="0" />
+      <ScrollBar x:Name="PART_VerticalScrollBar" Opacity="0" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Grid.Column="1" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Grid.Row="0" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" />
+      <ScrollBar x:Name="PART_HorizontalScrollBar" Opacity="0" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Grid.Column="0" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Grid.Row="1" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportWidth}" />
     </Grid>
     <ControlTemplate.Triggers>
       <Trigger Property="IsMouseOver" Value="True">
@@ -3494,7 +3494,7 @@ Themes\Styles\Custom\Window.xaml
     </ControlTemplate.Triggers>
   </ControlTemplate>
   <Style x:Key="ScrollViewerNativeBaseStyle" TargetType="ScrollViewer">
-    <Setter Property="VerticalScrollBarVisibility" Value="{Binding Path=(pfcontrol:ScrollViewer.VerticalScrollBarVisibility), RelativeSource={RelativeSource TemplatedParent}}" />
+    <Setter Property="VerticalScrollBarVisibility" Value="{Binding Path=(pfcontrol:ScrollViewer.VerticalScrollBarVisibility),RelativeSource={RelativeSource TemplatedParent}}" />
     <Setter Property="Focusable" Value="False" />
     <Setter Property="Template" Value="{StaticResource ScrollViewerNativeAutoHideBaseControlTemplate}" />
     <Style.Triggers>
@@ -3506,18 +3506,18 @@ Themes\Styles\Custom\Window.xaml
   <ControlTemplate x:Key="ScrollViewerBaseControlTemplate" TargetType="pfcontrol:ScrollViewer">
     <ControlTemplate.Resources>
       <Storyboard x:Key="StoryboardMouseOver">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
       <Storyboard x:Key="StoryboardCommon">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value=".3" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value=".3" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
@@ -3531,9 +3531,9 @@ Themes\Styles\Custom\Window.xaml
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="{TemplateBinding Padding}" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
-      <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
-      <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
+      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.RowSpan="2" Grid.ColumnSpan="2" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Grid.Column="0" Margin="{TemplateBinding Padding}" Grid.Row="0" />
+      <ScrollBar x:Name="PART_VerticalScrollBar" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Grid.Column="1" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Grid.Row="0" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" />
+      <ScrollBar x:Name="PART_HorizontalScrollBar" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Grid.Column="0" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Grid.Row="1" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportWidth}" />
     </Grid>
     <ControlTemplate.Triggers>
       <Trigger Property="IsMouseOver" Value="True">
@@ -3549,18 +3549,18 @@ Themes\Styles\Custom\Window.xaml
   <ControlTemplate x:Key="ScrollViewerAutoHideBaseControlTemplate" TargetType="pfcontrol:ScrollViewer">
     <ControlTemplate.Resources>
       <Storyboard x:Key="StoryboardMouseOver">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.1" Value=".8" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
       <Storyboard x:Key="StoryboardCommon">
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="0" />
         </DoubleAnimationUsingKeyFrames>
-        <DoubleAnimationUsingKeyFrames Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar">
           <EasingDoubleKeyFrame KeyTime="0:0:.2" Value="0" />
         </DoubleAnimationUsingKeyFrames>
       </Storyboard>
@@ -3574,9 +3574,9 @@ Themes\Styles\Custom\Window.xaml
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="{TemplateBinding Padding}" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
-      <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Opacity="0" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
-      <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Opacity="0" Orientation="Horizontal" Style="{StaticResource ScrollBarBaseStyle}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" />
+      <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.RowSpan="2" Grid.ColumnSpan="2" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Grid.Column="0" Margin="{TemplateBinding Padding}" Grid.Row="0" />
+      <ScrollBar x:Name="PART_VerticalScrollBar" Opacity="0" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Grid.Column="1" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Grid.Row="0" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" />
+      <ScrollBar x:Name="PART_HorizontalScrollBar" Opacity="0" Style="{StaticResource ScrollBarBaseStyle}" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Grid.Column="0" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Grid.Row="1" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportWidth}" />
     </Grid>
     <ControlTemplate.Triggers>
       <Trigger Property="IsMouseOver" Value="True">
@@ -3590,7 +3590,7 @@ Themes\Styles\Custom\Window.xaml
     </ControlTemplate.Triggers>
   </ControlTemplate>
   <Style x:Key="ScrollViewerBaseStyle" TargetType="pfcontrol:ScrollViewer">
-    <Setter Property="VerticalScrollBarVisibility" Value="{Binding Path=(pfcontrol:ScrollViewer.VerticalScrollBarVisibility), RelativeSource={RelativeSource TemplatedParent}}" />
+    <Setter Property="VerticalScrollBarVisibility" Value="{Binding Path=(pfcontrol:ScrollViewer.VerticalScrollBarVisibility),RelativeSource={RelativeSource TemplatedParent}}" />
     <Setter Property="Focusable" Value="False" />
     <Setter Property="Template" Value="{StaticResource ScrollViewerAutoHideBaseControlTemplate}" />
     <Style.Triggers>
@@ -3973,15 +3973,15 @@ Themes\Styles\Custom\Window.xaml
       <Setter.Value>
         <ControlTemplate TargetType="TabItem">
           <pf:SimplePanel x:Name="templateRoot" SnapsToDevicePixels="true">
-            <Border x:Name="mainBorder" Margin="0" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0" />
-            <ContentPresenter x:Name="contentPresenter" Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" Focusable="False" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" TextElement.Foreground="{DynamicResource PrimaryTextBrush}" />
+            <Border x:Name="mainBorder" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0" Background="{TemplateBinding Background}" Margin="0" />
+            <ContentPresenter x:Name="contentPresenter" TextElement.Foreground="{DynamicResource PrimaryTextBrush}" ContentSource="Header" Focusable="False" HorizontalAlignment="Center" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="Center" />
           </pf:SimplePanel>
           <ControlTemplate.Triggers>
             <Trigger Property="IsSelected" Value="False">
-              <Setter TargetName="mainBorder" Property="BorderThickness" Value="0,0,0,0" />
+              <Setter Property="BorderThickness" TargetName="mainBorder" Value="0,0,0,0" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter TargetName="contentPresenter" Property="Opacity" Value="0.4" />
+              <Setter Property="Opacity" Value="0.4" TargetName="contentPresenter" />
             </Trigger>
             <MultiDataTrigger>
               <MultiDataTrigger.Conditions>
@@ -3989,8 +3989,8 @@ Themes\Styles\Custom\Window.xaml
                 <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType=TabControl}}" Value="Top" />
               </MultiDataTrigger.Conditions>
               <Setter Property="Panel.ZIndex" Value="1" />
-              <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" />
-              <Setter TargetName="mainBorder" Property="BorderThickness" Value="0,0,0,2" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" TargetName="contentPresenter" />
+              <Setter Property="BorderThickness" TargetName="mainBorder" Value="0,0,0,2" />
             </MultiDataTrigger>
             <MultiDataTrigger>
               <MultiDataTrigger.Conditions>
@@ -3998,8 +3998,8 @@ Themes\Styles\Custom\Window.xaml
                 <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType=TabControl}}" Value="Left" />
               </MultiDataTrigger.Conditions>
               <Setter Property="Panel.ZIndex" Value="1" />
-              <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" />
-              <Setter TargetName="mainBorder" Property="BorderThickness" Value="0,0,2,0" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" TargetName="contentPresenter" />
+              <Setter Property="BorderThickness" TargetName="mainBorder" Value="0,0,2,0" />
             </MultiDataTrigger>
             <MultiDataTrigger>
               <MultiDataTrigger.Conditions>
@@ -4007,8 +4007,8 @@ Themes\Styles\Custom\Window.xaml
                 <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType=TabControl}}" Value="Bottom" />
               </MultiDataTrigger.Conditions>
               <Setter Property="Panel.ZIndex" Value="1" />
-              <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" />
-              <Setter TargetName="mainBorder" Property="BorderThickness" Value="0,2,0,0" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" TargetName="contentPresenter" />
+              <Setter Property="BorderThickness" TargetName="mainBorder" Value="0,2,0,0" />
             </MultiDataTrigger>
             <MultiDataTrigger>
               <MultiDataTrigger.Conditions>
@@ -4016,8 +4016,8 @@ Themes\Styles\Custom\Window.xaml
                 <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType=TabControl}}" Value="Right" />
               </MultiDataTrigger.Conditions>
               <Setter Property="Panel.ZIndex" Value="1" />
-              <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" />
-              <Setter TargetName="mainBorder" Property="BorderThickness" Value="2,0,0,0" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" TargetName="contentPresenter" />
+              <Setter Property="BorderThickness" TargetName="mainBorder" Value="2,0,0,0" />
             </MultiDataTrigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -4042,9 +4042,9 @@ Themes\Styles\Custom\Window.xaml
               <RowDefinition x:Name="RowDefinition0" Height="Auto" />
               <RowDefinition x:Name="RowDefinition1" Height="*" />
             </Grid.RowDefinitions>
-            <TabPanel x:Name="headerPanel" Grid.Row="0" Grid.Column="0" Margin="0" Background="Transparent" IsItemsHost="true" />
-            <Border x:Name="contentPanel" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-              <ContentPresenter x:Name="PART_SelectedContentHost" Margin="0" ContentSource="SelectedContent" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+            <TabPanel x:Name="headerPanel" Background="Transparent" Grid.Column="0" IsItemsHost="true" Margin="0" Grid.Row="0" />
+            <Border x:Name="contentPanel" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{DynamicResource BorderBrush}" Background="{TemplateBinding Background}" Grid.Column="0" Grid.Row="1">
+              <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" Margin="0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
             </Border>
           </Grid>
           <ControlTemplate.Triggers>
@@ -4093,18 +4093,18 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TabItem">
-          <Border x:Name="BorderRoot" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
-            <ContentPresenter x:Name="contentPresenter" Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" Focusable="False" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" TextElement.Foreground="{TemplateBinding Foreground}" />
+          <Border x:Name="BorderRoot" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}" Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+            <ContentPresenter x:Name="contentPresenter" ContentSource="Header" TextElement.Foreground="{TemplateBinding Foreground}" Focusable="False" HorizontalAlignment="Center" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="Center" />
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="BorderRoot" Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
-              <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" />
+              <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" TargetName="BorderRoot" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" TargetName="contentPresenter" />
             </Trigger>
             <Trigger Property="IsSelected" Value="true">
-              <Setter TargetName="BorderRoot" Property="BorderBrush" Value="{Binding Path=(pfcontrol:TitleElement.BorderBrush), RelativeSource={RelativeSource TemplatedParent}}" />
-              <Setter TargetName="BorderRoot" Property="Background" Value="{Binding Path=(pfcontrol:TitleElement.Background), RelativeSource={RelativeSource TemplatedParent}}" />
-              <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{Binding Path=(pfcontrol:TitleElement.Foreground), RelativeSource={RelativeSource TemplatedParent}}" />
+              <Setter Property="BorderBrush" Value="{Binding Path=(pfcontrol:TitleElement.BorderBrush),RelativeSource={RelativeSource TemplatedParent}}" TargetName="BorderRoot" />
+              <Setter Property="Background" Value="{Binding Path=(pfcontrol:TitleElement.Background),RelativeSource={RelativeSource TemplatedParent}}" TargetName="BorderRoot" />
+              <Setter Property="TextElement.Foreground" Value="{Binding Path=(pfcontrol:TitleElement.Foreground),RelativeSource={RelativeSource TemplatedParent}}" TargetName="contentPresenter" />
             </Trigger>
             <DataTrigger Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType=TabControl}}" Value="Left">
               <Setter Property="Margin" Value="0,-1,0,0" />
@@ -4113,7 +4113,7 @@ Themes\Styles\Custom\Window.xaml
               <Setter Property="Margin" Value="0,-1,0,0" />
             </DataTrigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter TargetName="contentPresenter" Property="Opacity" Value="0.4" />
+              <Setter Property="Opacity" Value="0.4" TargetName="contentPresenter" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -4134,9 +4134,9 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pfcontrol:SlidingTabContainer">
-          <Border Padding="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{TemplateBinding Background}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+          <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}">
             <pf:SimplePanel>
-              <Border x:Name="PART_Sliding" Width="0" Height="0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{Binding Path=(pfcontrol:TitleElement.Background), RelativeSource={RelativeSource TemplatedParent}}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" Effect="{StaticResource EffectShadow1}">
+              <Border x:Name="PART_Sliding" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}" Width="0" Height="0" Effect="{StaticResource EffectShadow1}" Background="{Binding Path=(pfcontrol:TitleElement.Background),RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Border.RenderTransform>
                   <TranslateTransform />
                 </Border.RenderTransform>
@@ -4560,12 +4560,12 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="Padding" Value="7,0" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Margin" Value="8,0" />
+    <Setter Property="Margin" Value="8 0" />
     <Setter Property="pf:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pf:DateTimeSelector">
-          <Border x:Name="boder" Margin="{TemplateBinding Margin}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding Path=(pf:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+          <Border x:Name="boder" CornerRadius="{Binding Path=(pf:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" Margin="{TemplateBinding Margin}">
             <Grid MinHeight="100" Margin="{TemplateBinding Padding}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -4577,8 +4577,8 @@ Themes\Styles\Custom\Window.xaml
                 <RowDefinition />
                 <RowDefinition />
               </Grid.RowDefinitions>
-              <Grid x:Name="PART_CheckBox" Grid.RowSpan="2">
-                <CheckBox x:Name="checkbox" Height="{TemplateBinding CheckBoxHeight}" Margin="0,0,20,0" HorizontalAlignment="Left" VerticalAlignment="Center" Panel.ZIndex="1" Background="{StaticResource ControlDefultBrush}" Foreground="{DynamicResource TextIconBrush}" IsChecked="{TemplateBinding IsChecked}">
+              <Grid Grid.RowSpan="2" x:Name="PART_CheckBox">
+                <CheckBox x:Name="checkbox" VerticalAlignment="Center" HorizontalAlignment="Left" Panel.ZIndex="1" Height="{TemplateBinding CheckBoxHeight}" IsChecked="{TemplateBinding IsChecked}" Foreground="{DynamicResource TextIconBrush}" Margin="0,0,20,0" Background="{StaticResource ControlDefultBrush}">
                   <CheckBox.Style>
                     <Style TargetType="CheckBox">
                       <Setter Property="FocusVisualStyle">
@@ -4587,7 +4587,7 @@ Themes\Styles\Custom\Window.xaml
                             <Setter Property="Control.Template">
                               <Setter.Value>
                                 <ControlTemplate>
-                                  <Rectangle Margin="-4" Opacity="1" RadiusX="5" RadiusY="5" SnapsToDevicePixels="true" Stroke="{DynamicResource SecondaryBorderBrush}" StrokeDashArray="1 1" StrokeThickness="2" />
+                                  <Rectangle Margin="-4" Opacity="1" SnapsToDevicePixels="true" Stroke="{DynamicResource SecondaryBorderBrush}" StrokeThickness="2" StrokeDashArray="1 1" RadiusX="5" RadiusY="5" />
                                 </ControlTemplate>
                               </Setter.Value>
                             </Setter>
@@ -4605,18 +4605,18 @@ Themes\Styles\Custom\Window.xaml
                           <ControlTemplate TargetType="CheckBox">
                             <ControlTemplate.Resources>
                               <Storyboard x:Key="StoryboardCheckedTrue">
-                                <DoubleAnimationUsingKeyFrames Storyboard.TargetName="path" Storyboard.TargetProperty="(Shape.StrokeDashOffset)">
+                                <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Shape.StrokeDashOffset)" Storyboard.TargetName="path">
                                   <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="0" />
                                 </DoubleAnimationUsingKeyFrames>
-                                <!--  添加Fill属性动画 - 变为背景色  -->
-                                <ColorAnimation BeginTime="0:0:0.2" Storyboard.TargetName="pathFill" Storyboard.TargetProperty="Color" To="White" Duration="0:0:0.2" />
+                                <!-- 添加Fill属性动画 - 变为背景色 -->
+                                <ColorAnimation Storyboard.TargetName="pathFill" Storyboard.TargetProperty="Color" To="White" BeginTime="0:0:0.2" Duration="0:0:0.2" />
                               </Storyboard>
                               <Storyboard x:Key="StoryboardCheckedFalse">
                                 <ColorAnimation Storyboard.TargetName="pathFill" Storyboard.TargetProperty="Color" To="Transparent" Duration="0:0:0.1" />
-                                <DoubleAnimationUsingKeyFrames BeginTime="0:0:0.2" Storyboard.TargetName="path" Storyboard.TargetProperty="(Shape.StrokeDashOffset)">
+                                <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(Shape.StrokeDashOffset)" Storyboard.TargetName="path" BeginTime="0:0:0.2">
                                   <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="80" />
                                 </DoubleAnimationUsingKeyFrames>
-                                <!--  添加Fill属性动画 - 变为透明  -->
+                                <!-- 添加Fill属性动画 - 变为透明 -->
                               </Storyboard>
                             </ControlTemplate.Resources>
                             <Grid x:Name="templateRoot" Background="Transparent" SnapsToDevicePixels="True">
@@ -4624,22 +4624,22 @@ Themes\Styles\Custom\Window.xaml
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                               </Grid.ColumnDefinitions>
-                              <Border Width="{TemplateBinding Height}" Height="{TemplateBinding Height}" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding pf:BorderElement.CornerRadius}" />
-                              <Grid x:Name="markGrid" Grid.Column="0" Width="{TemplateBinding Height}" Height="{TemplateBinding Height}">
-                                <Path x:Name="path" Width="30" Height="30" Data="{StaticResource CheckedIcon}" FlowDirection="LeftToRight" Stretch="Uniform" Stroke="{DynamicResource TextIconBrush}" StrokeDashArray="80,80" StrokeDashOffset="0" StrokeThickness="1" UseLayoutRounding="True">
-                                  <!--  添加Fill属性，初始为透明  -->
+                              <Border Height="{TemplateBinding Height}" Width="{TemplateBinding Height}" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding pf:BorderElement.CornerRadius}" />
+                              <Grid Grid.Column="0" Height="{TemplateBinding Height}" Width="{TemplateBinding Height}" x:Name="markGrid">
+                                <Path FlowDirection="LeftToRight" UseLayoutRounding="True" x:Name="path" StrokeDashOffset="0" StrokeDashArray="80,80" Width="30" Height="30" Data="{StaticResource CheckedIcon}" StrokeThickness="1" Stretch="Uniform" Stroke="{DynamicResource TextIconBrush}">
+                                  <!-- 添加Fill属性，初始为透明 -->
                                   <Path.Fill>
                                     <SolidColorBrush x:Name="pathFill" Color="Transparent" />
                                   </Path.Fill>
                                 </Path>
-                                <Rectangle x:Name="indeterminateMark" Margin="2" Fill="{DynamicResource DeepDarkPrimaryBrush}" Opacity="0" RadiusX="5" RadiusY="5" />
+                                <Rectangle x:Name="indeterminateMark" RadiusX="5" RadiusY="5" Fill="{DynamicResource DeepDarkPrimaryBrush}" Margin="2" Opacity="0" />
                               </Grid>
-                              <Border x:Name="border" Width="{TemplateBinding Height}" Height="{TemplateBinding Height}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding pf:BorderElement.CornerRadius}" />
-                              <ContentPresenter x:Name="contentPresenter" Grid.Column="1" Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Focusable="False" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" Visibility="Collapsed" />
+                              <Border Height="{TemplateBinding Height}" Width="{TemplateBinding Height}" x:Name="border" CornerRadius="{TemplateBinding pf:BorderElement.CornerRadius}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
+                              <ContentPresenter x:Name="contentPresenter" Visibility="Collapsed" Grid.Column="1" Focusable="False" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                             </Grid>
                             <ControlTemplate.Triggers>
                               <Trigger Property="HasContent" Value="true">
-                                <Setter TargetName="contentPresenter" Property="Visibility" Value="Visible" />
+                                <Setter Property="Visibility" TargetName="contentPresenter" Value="Visible" />
                               </Trigger>
                               <Trigger Property="IsMouseOver" Value="true">
                                 <Setter Property="BorderBrush" Value="{DynamicResource DarkPrimaryBrush}" />
@@ -4665,16 +4665,16 @@ Themes\Styles\Custom\Window.xaml
                                 <Trigger.ExitActions>
                                   <BeginStoryboard Storyboard="{StaticResource StoryboardCheckedFalse}" />
                                 </Trigger.ExitActions>
-                                <Setter TargetName="indeterminateMark" Property="Opacity" Value="0" />
+                                <Setter Property="Opacity" TargetName="indeterminateMark" Value="0" />
                                 <Setter Property="Background" Value="{DynamicResource DeepDarkPrimaryBrush}" />
                                 <Setter Property="BorderBrush" Value="{DynamicResource DarkPrimaryBrush}" />
                                 <Setter TargetName="border" Property="Visibility" Value="Collapsed" />
                               </Trigger>
                               <Trigger Property="IsChecked" Value="false">
-                                <Setter TargetName="path" Property="Stroke" Value="{DynamicResource DeepDarkPrimaryBrush}" />
+                                <Setter Property="Stroke" Value="{DynamicResource DeepDarkPrimaryBrush}" TargetName="path" />
                               </Trigger>
                               <Trigger Property="IsChecked" Value="{x:Null}">
-                                <Setter TargetName="indeterminateMark" Property="Opacity" Value="1" />
+                                <Setter Property="Opacity" TargetName="indeterminateMark" Value="1" />
                               </Trigger>
                               <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4" />
@@ -4687,23 +4687,23 @@ Themes\Styles\Custom\Window.xaml
                   </CheckBox.Style>
                 </CheckBox>
               </Grid>
-              <TextBlock Grid.Column="1" Margin="0,10,0,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" Text="开始时间：" />
-              <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" Text="结束时间：" />
-              <Border Grid.Column="2" Margin="0,10,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="{StaticResource BorderBrush}" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1" CornerRadius="5">
-                <TextBlock x:Name="PART_TextBlockStart" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border}, Path=ActualWidth}" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="{StaticResource SecondTitleFontSize}" Foreground="{TemplateBinding Foreground}" Text="{TemplateBinding StartTime,                                                            Converter={StaticResource DateTimeToStringConverter},                                                            ConverterParameter='yyyy-MM-dd HH:mm:ss'}" TextAlignment="Left" />
+              <TextBlock Grid.Column="1" Margin="0,10,0,0" Text="开始时间：" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" />
+              <TextBlock Grid.Column="1" Grid.Row="1" Text="结束时间：" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" />
+              <Border Grid.Column="2" VerticalAlignment="Center" Margin="0,10,0,0" CornerRadius="5" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" BorderThickness="1" BorderBrush="{StaticResource PrimaryBrush}">
+                <TextBlock x:Name="PART_TextBlockStart" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" Foreground="{TemplateBinding Foreground}" FontSize="{StaticResource SecondTitleFontSize}" HorizontalAlignment="Left" VerticalAlignment="Center" TextAlignment="Left" Margin="10,0,0,0" Text="{TemplateBinding StartTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
               </Border>
-              <Border Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="{StaticResource BorderBrush}" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="1" CornerRadius="5">
-                <TextBlock x:Name="PART_TextBlockEnd" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border}, Path=ActualWidth}" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="{StaticResource SecondTitleFontSize}" Foreground="{TemplateBinding Foreground}" Text="{TemplateBinding EndTime,                                                            Converter={StaticResource DateTimeToStringConverter},                                                            ConverterParameter='yyyy-MM-dd HH:mm:ss'}" TextAlignment="Left" />
+              <Border Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" CornerRadius="5" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" BorderThickness="1" BorderBrush="{StaticResource PrimaryBrush}">
+                <TextBlock x:Name="PART_TextBlockEnd" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" Foreground="{TemplateBinding Foreground}" FontSize="{StaticResource SecondTitleFontSize}" HorizontalAlignment="Left" VerticalAlignment="Center" TextAlignment="Left" Margin="10,0,0,0" Text="{TemplateBinding EndTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
               </Border>
-              <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" HorizontalAlignment="Stretch">
+              <Grid Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition />
                   <ColumnDefinition />
                   <ColumnDefinition />
                 </Grid.ColumnDefinitions>
-                <RadioButton x:Name="RadioButton1" Grid.Column="0" Margin="5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{TemplateBinding Background}" Content="当天" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" Tag="DAY" />
-                <RadioButton x:Name="RadioButton2" Grid.Column="1" Margin="10,0" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{TemplateBinding Background}" Content="近一周" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" Tag="WEEK" />
-                <RadioButton x:Name="RadioButton3" Grid.Column="2" Margin="0,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{TemplateBinding Background}" Content="近一月" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" Tag="MONTH" />
+                <RadioButton Grid.Column="0" x:Name="RadioButton1" Tag="DAY" HorizontalAlignment="Left" VerticalAlignment="Center" Content="当天" Margin="5,0,0,0" Foreground="{TemplateBinding Foreground}" Background="{TemplateBinding Background}" FontSize="{TemplateBinding FontSize}" />
+                <RadioButton Grid.Column="1" x:Name="RadioButton2" Tag="WEEK" HorizontalAlignment="Center" VerticalAlignment="Center" Content="近一周" Margin="10,0" Foreground="{TemplateBinding Foreground}" Background="{TemplateBinding Background}" FontSize="{TemplateBinding FontSize}" />
+                <RadioButton Grid.Column="2" x:Name="RadioButton3" Tag="MONTH" HorizontalAlignment="Right" VerticalAlignment="Center" Content="近一月" Margin="0,0,0,0" Foreground="{TemplateBinding Foreground}" Background="{TemplateBinding Background}" FontSize="{TemplateBinding FontSize}" />
               </Grid>
               <Popup x:Name="PART_PopStart" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding ElementName=PART_TextBlockStart}" StaysOpen="False">
                 <Border Background="{StaticResource SecondaryBorderBrush}" CornerRadius="10">
@@ -4722,31 +4722,31 @@ Themes\Styles\Custom\Window.xaml
             </Grid>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger SourceName="PART_PopStart" Property="IsOpen" Value="true">
-              <Setter TargetName="RadioButton1" Property="IsChecked" Value="{x:Null}" />
-              <Setter TargetName="RadioButton2" Property="IsChecked" Value="{x:Null}" />
-              <Setter TargetName="RadioButton3" Property="IsChecked" Value="{x:Null}" />
+            <Trigger Property="IsOpen" SourceName="PART_PopStart" Value="true">
+              <Setter Property="IsChecked" TargetName="RadioButton1" Value="{x:Null}" />
+              <Setter Property="IsChecked" TargetName="RadioButton2" Value="{x:Null}" />
+              <Setter Property="IsChecked" TargetName="RadioButton3" Value="{x:Null}" />
             </Trigger>
-            <Trigger SourceName="PART_PopEnd" Property="IsOpen" Value="true">
-              <Setter TargetName="RadioButton1" Property="IsChecked" Value="{x:Null}" />
-              <Setter TargetName="RadioButton2" Property="IsChecked" Value="{x:Null}" />
-              <Setter TargetName="RadioButton3" Property="IsChecked" Value="{x:Null}" />
+            <Trigger Property="IsOpen" SourceName="PART_PopEnd" Value="true">
+              <Setter Property="IsChecked" TargetName="RadioButton1" Value="{x:Null}" />
+              <Setter Property="IsChecked" TargetName="RadioButton2" Value="{x:Null}" />
+              <Setter Property="IsChecked" TargetName="RadioButton3" Value="{x:Null}" />
             </Trigger>
             <Trigger Property="ShowCheckBox" Value="True">
-              <Setter TargetName="PART_CheckBox" Property="Visibility" Value="Visible" />
+              <Setter Property="Visibility" TargetName="PART_CheckBox" Value="Visible" />
             </Trigger>
             <Trigger Property="ShowCheckBox" Value="False">
-              <Setter TargetName="PART_CheckBox" Property="Visibility" Value="Collapsed" />
+              <Setter Property="Visibility" TargetName="PART_CheckBox" Value="Collapsed" />
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="boder" Property="BorderBrush" Value="{StaticResource DarkPrimaryBrush}" />
+              <Setter Property="BorderBrush" TargetName="boder" Value="{StaticResource DarkPrimaryBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
   </Style>
-  <Style BasedOn="{StaticResource DateTimeSelectorBaseStyle}" TargetType="pf:DateTimeSelector" />
+  <Style TargetType="pf:DateTimeSelector" BasedOn="{StaticResource DateTimeSelectorBaseStyle}" />
   <Style BasedOn="{StaticResource DividerBaseStyle}" TargetType="pfcontrol:Divider" />
   <Style BasedOn="{StaticResource DrawerBaseStyle}" TargetType="pfcontrol:Drawer" />
   <Style BasedOn="{StaticResource ElementGroupBaseStyle}" TargetType="pfcontrol:ElementGroup" />
@@ -7818,21 +7818,21 @@ Themes\Styles\Custom\Window.xaml
       <Setter.Value>
         <ControlTemplate TargetType="RepeatButton">
           <pf:SimplePanel>
-            <Border Background="{TemplateBinding Background}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
-            <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
-              <StackPanel Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Orientation="Horizontal">
-                <Path x:Name="PathMain" Width="{TemplateBinding pfcontrol:IconElement.Width}" Height="{TemplateBinding pfcontrol:IconElement.Height}" Data="{TemplateBinding pfcontrol:IconElement.Geometry}" Fill="{TemplateBinding Foreground}" SnapsToDevicePixels="True" Stretch="Uniform" />
-                <ContentPresenter x:Name="ContentPresenterMain" Margin="6,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+            <Border Background="{TemplateBinding Background}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}" />
+            <Border BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Margin="{TemplateBinding Padding}">
+                <Path x:Name="PathMain" Width="{TemplateBinding pfcontrol:IconElement.Width}" Height="{TemplateBinding pfcontrol:IconElement.Height}" Fill="{TemplateBinding Foreground}" SnapsToDevicePixels="True" Stretch="Uniform" Data="{TemplateBinding pfcontrol:IconElement.Geometry}" />
+                <ContentPresenter x:Name="ContentPresenterMain" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="6,0,0,0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
               </StackPanel>
             </Border>
           </pf:SimplePanel>
           <ControlTemplate.Triggers>
             <Trigger Property="Content" Value="{x:Null}">
-              <Setter TargetName="ContentPresenterMain" Property="Visibility" Value="Collapsed" />
+              <Setter Property="Visibility" Value="Collapsed" TargetName="ContentPresenterMain" />
             </Trigger>
             <Trigger Property="pfcontrol:IconElement.Geometry" Value="{x:Null}">
-              <Setter TargetName="PathMain" Property="Visibility" Value="Collapsed" />
-              <Setter TargetName="ContentPresenterMain" Property="Margin" Value="0" />
+              <Setter Property="Visibility" Value="Collapsed" TargetName="PathMain" />
+              <Setter Property="Margin" Value="0" TargetName="ContentPresenterMain" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -7856,19 +7856,19 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="RepeatButton">
-          <pf:DashedBorder Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderDashArray="3,2" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
-            <StackPanel Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Orientation="Horizontal">
-              <Path x:Name="PathMain" Width="{TemplateBinding pfcontrol:IconElement.Width}" Height="{TemplateBinding pfcontrol:IconElement.Height}" Data="{TemplateBinding pfcontrol:IconElement.Geometry}" Fill="{TemplateBinding Foreground}" SnapsToDevicePixels="True" Stretch="Uniform" />
-              <ContentPresenter x:Name="ContentPresenterMain" Margin="6,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+          <pf:DashedBorder BorderDashArray="3,2" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" Background="Transparent" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Margin="{TemplateBinding Padding}">
+              <Path x:Name="PathMain" Width="{TemplateBinding pfcontrol:IconElement.Width}" Height="{TemplateBinding pfcontrol:IconElement.Height}" Fill="{TemplateBinding Foreground}" SnapsToDevicePixels="True" Stretch="Uniform" Data="{TemplateBinding pfcontrol:IconElement.Geometry}" />
+              <ContentPresenter x:Name="ContentPresenterMain" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="6,0,0,0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
             </StackPanel>
           </pf:DashedBorder>
           <ControlTemplate.Triggers>
             <Trigger Property="Content" Value="{x:Null}">
-              <Setter TargetName="ContentPresenterMain" Property="Visibility" Value="Collapsed" />
+              <Setter Property="Visibility" Value="Collapsed" TargetName="ContentPresenterMain" />
             </Trigger>
             <Trigger Property="pfcontrol:IconElement.Geometry" Value="{x:Null}">
-              <Setter TargetName="PathMain" Property="Visibility" Value="Collapsed" />
-              <Setter TargetName="ContentPresenterMain" Property="Margin" Value="0" />
+              <Setter Property="Visibility" Value="Collapsed" TargetName="PathMain" />
+              <Setter Property="Margin" Value="0" TargetName="ContentPresenterMain" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -7920,11 +7920,11 @@ Themes\Styles\Custom\Window.xaml
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Background="#555" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter}, ConverterParameter='1,0,0,1'}">
-              <TextBlock Margin="4,0" VerticalAlignment="Center" Text="{TemplateBinding Subject}" />
+            <Border Grid.Column="0" Background="#555" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter},ConverterParameter='1,0,0,1'}">
+              <TextBlock Text="{TemplateBinding Subject}" VerticalAlignment="Center" Margin="4,0" />
             </Border>
-            <Border Grid.Column="1" Background="{TemplateBinding Color}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter}, ConverterParameter='0,1,1,0'}">
-              <ContentPresenter Margin="4,0" VerticalAlignment="Center" ContentSource="Status" ContentStringFormat="{TemplateBinding ContentStringFormat}" TextElement.Foreground="{TemplateBinding Foreground}" />
+            <Border Grid.Column="1" Background="{TemplateBinding Color}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource CornerRadiusSplitConverter},ConverterParameter='0,1,1,0'}">
+              <ContentPresenter ContentSource="Status" VerticalAlignment="Center" Margin="4,0" TextElement.Foreground="{TemplateBinding Foreground}" ContentStringFormat="{TemplateBinding ContentStringFormat}" />
             </Border>
           </Grid>
         </ControlTemplate>
@@ -10222,7 +10222,7 @@ Themes\Styles\Custom\Window.xaml
   <Style x:Key="TreeView.Small" BasedOn="{StaticResource TreeViewBaseStyle}" TargetType="TreeView">
     <Setter Property="ItemContainerStyle" Value="{StaticResource TreeViewItemBaseStyle.Small}" />
   </Style>
-  <ControlTemplate x:Key="WindowWin10Template" TargetType="pfcontrol:PFWindow">
+  <ControlTemplate x:Key="WindowWin10Template" TargetType="pfcontrol:Window">
     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
       <Grid Margin="0">
         <Grid.RowDefinitions>
@@ -10323,7 +10323,7 @@ Themes\Styles\Custom\Window.xaml
       </MultiTrigger>
     </ControlTemplate.Triggers>
   </ControlTemplate>
-  <ControlTemplate x:Key="WindowWin10ExtendContentToNonClientTemplate" TargetType="pfcontrol:PFWindow">
+  <ControlTemplate x:Key="WindowWin10ExtendContentToNonClientTemplate" TargetType="pfcontrol:Window">
     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
       <pf:SimplePanel Margin="{TemplateBinding Padding}">
         <AdornerDecorator>
@@ -10421,7 +10421,7 @@ Themes\Styles\Custom\Window.xaml
       </MultiTrigger>
     </ControlTemplate.Triggers>
   </ControlTemplate>
-  <Style x:Key="WindowWin10" TargetType="pfcontrol:PFWindow">
+  <Style x:Key="WindowWin10" TargetType="pfcontrol:Window">
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="BorderBrush" Value="#262e2f" />
     <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
@@ -13359,43 +13359,43 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pfcontrol:TabItem">
-          <Grid x:Name="templateRoot" ContextMenu="{TemplateBinding Menu}" SnapsToDevicePixels="true">
+          <Grid x:Name="templateRoot" SnapsToDevicePixels="true" ContextMenu="{TemplateBinding Menu}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Border x:Name="mainBorder" Grid.ColumnSpan="3" Margin="0" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-              <Border x:Name="innerBorder" Margin="0,0,0,-1" Background="{DynamicResource RegionBrush}" Visibility="Collapsed" />
+            <Border Grid.ColumnSpan="3" BorderThickness="{TemplateBinding BorderThickness}" x:Name="mainBorder" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" Margin="0">
+              <Border Margin="0,0,0,-1" x:Name="innerBorder" Background="{DynamicResource RegionBrush}" Visibility="Collapsed" />
             </Border>
-            <Path x:Name="PathMain" Grid.Column="0" Width="{TemplateBinding pfcontrol:IconElement.Width}" Height="{TemplateBinding pfcontrol:IconElement.Height}" Margin="10,0,0,0" Data="{TemplateBinding pfcontrol:IconElement.Geometry}" Fill="{TemplateBinding Foreground}" SnapsToDevicePixels="True" Stretch="Uniform" />
-            <ContentPresenter x:Name="contentPresenter" Grid.Column="1" Margin="{TemplateBinding Padding}" HorizontalAlignment="Stretch" VerticalAlignment="Center" ContentSource="Header" Focusable="False" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-            <Border Name="BorderMask" Grid.Column="1" Width="20" Margin="0,0,1,1" HorizontalAlignment="Right" Background="{TemplateBinding Background}">
+            <Path x:Name="PathMain" Margin="10,0,0,0" Grid.Column="0" Width="{TemplateBinding pfcontrol:IconElement.Width}" Height="{TemplateBinding pfcontrol:IconElement.Height}" Fill="{TemplateBinding Foreground}" SnapsToDevicePixels="True" Stretch="Uniform" Data="{TemplateBinding pfcontrol:IconElement.Geometry}" />
+            <ContentPresenter Grid.Column="1" x:Name="contentPresenter" ContentSource="Header" Focusable="False" HorizontalAlignment="Stretch" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="Center" />
+            <Border Name="BorderMask" Grid.Column="1" HorizontalAlignment="Right" Width="20" Background="{TemplateBinding Background}" Margin="0,0,1,1">
               <Border.OpacityMask>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                  <GradientStop Offset="1" Color="White" />
+                <LinearGradientBrush EndPoint="1,0" StartPoint="0,0">
+                  <GradientStop Color="White" Offset="1" />
                   <GradientStop Offset="0" />
                 </LinearGradientBrush>
               </Border.OpacityMask>
             </Border>
-            <Button Grid.Column="2" Width="28" Background="Transparent" Command="pfcontrol:ControlCommands.Close" Focusable="False" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding ShowCloseButton,                                                          Converter={StaticResource Boolean2VisibilityConverter}}">
-              <Path Width="8" Height="8" Fill="{DynamicResource PrimaryTextBrush}" Style="{StaticResource ClosePathStyle}" />
+            <Button Grid.Column="2" Focusable="False" Command="pfcontrol:ControlCommands.Close" Visibility="{TemplateBinding ShowCloseButton,Converter={StaticResource Boolean2VisibilityConverter}}" Background="Transparent" Style="{StaticResource ButtonCustom}" Width="28">
+              <Path Fill="{DynamicResource PrimaryTextBrush}" Width="8" Height="8" Style="{StaticResource ClosePathStyle}" />
             </Button>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsSelected" Value="true">
               <Setter Property="Panel.ZIndex" Value="1" />
-              <Setter TargetName="innerBorder" Property="Visibility" Value="Visible" />
-              <Setter TargetName="BorderMask" Property="Background" Value="{DynamicResource RegionBrush}" />
+              <Setter Property="Visibility" TargetName="innerBorder" Value="Visible" />
+              <Setter Property="Background" TargetName="BorderMask" Value="{DynamicResource RegionBrush}" />
             </Trigger>
             <Trigger Property="pfcontrol:IconElement.Geometry" Value="{x:Null}">
-              <Setter TargetName="PathMain" Property="Visibility" Value="Collapsed" />
+              <Setter Property="Visibility" Value="Collapsed" TargetName="PathMain" />
             </Trigger>
             <Trigger Property="ShowCloseButton" Value="True">
-              <Setter TargetName="BorderMask" Property="Margin" Value="0,0,0,1" />
+              <Setter Property="Margin" Value="0,0,0,1" TargetName="BorderMask" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter TargetName="contentPresenter" Property="Opacity" Value="0.4" />
+              <Setter Property="Opacity" Value="0.4" TargetName="contentPresenter" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -13403,7 +13403,7 @@ Themes\Styles\Custom\Window.xaml
     </Setter>
   </Style>
   <ControlTemplate x:Key="TabControlPlusTemplate" TargetType="pfcontrol:TabControl">
-    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+    <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
       <Grid x:Name="templateRoot" ClipToBounds="true" SnapsToDevicePixels="true">
         <Grid.ColumnDefinitions>
           <ColumnDefinition x:Name="ColumnDefinition0" />
@@ -13413,10 +13413,10 @@ Themes\Styles\Custom\Window.xaml
           <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-          <pf:TabPanel x:Name="PART_HeaderPanel" MinHeight="{TemplateBinding TabItemHeight}" Margin="0,0,-1,-1" HorizontalAlignment="Left" Background="{DynamicResource SecondaryTextBrush}" IsItemsHost="true" IsTabFillEnabled="{TemplateBinding IsTabFillEnabled}" TabItemHeight="{TemplateBinding TabItemHeight}" TabItemWidth="{TemplateBinding TabItemWidth}">
+        <Border Background="{TemplateBinding Background}" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}">
+          <pf:TabPanel MinHeight="{TemplateBinding TabItemHeight}" TabItemHeight="{TemplateBinding TabItemHeight}" TabItemWidth="{TemplateBinding TabItemWidth}" IsTabFillEnabled="{TemplateBinding IsTabFillEnabled}" Margin="0,0,-1,-1" x:Name="PART_HeaderPanel" HorizontalAlignment="Left" Background="{DynamicResource SecondaryTextBrush}" IsItemsHost="true">
             <pf:Interaction.Behaviors>
-              <pf:FluidMoveBehavior AppliesTo="Children" Duration="{Binding FluidMoveDuration, ElementName=PART_HeaderPanel}">
+              <pf:FluidMoveBehavior AppliesTo="Children" Duration="{Binding FluidMoveDuration,ElementName=PART_HeaderPanel}">
                 <pf:FluidMoveBehavior.EaseX>
                   <CubicEase EasingMode="EaseOut" />
                 </pf:FluidMoveBehavior.EaseX>
@@ -13424,17 +13424,17 @@ Themes\Styles\Custom\Window.xaml
             </pf:Interaction.Behaviors>
           </pf:TabPanel>
         </Border>
-        <Border x:Name="contentPanel" Grid.Row="1" Grid.Column="0" Background="{DynamicResource SecondaryRegionBrush}">
-          <ContentPresenter x:Name="PART_SelectedContentHost" Margin="{TemplateBinding Padding}" ContentSource="SelectedContent" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+        <Border x:Name="contentPanel" Background="{DynamicResource SecondaryRegionBrush}" Grid.Column="0" Grid.Row="1">
+          <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" Margin="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
         </Border>
-        <Border Grid.Row="0" Grid.Column="0" Margin="0,-1,0,0" HorizontalAlignment="Right" Background="{DynamicResource RegionBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,1" Visibility="{Binding Visibility, ElementName=PART_OverflowButton}">
-          <pf:ContextMenuToggleButton x:Name="PART_OverflowButton" Height="Auto" Padding="0" pf:IconElement.Width="14" pf:IconSwitchElement.Geometry="{StaticResource DownGeometry}" pf:IconSwitchElement.GeometrySelected="{StaticResource UpGeometry}" Background="{DynamicResource SecondaryRegionBrush}" BorderThickness="0" Style="{StaticResource ToggleButtonIconTransparent}" Visibility="Collapsed" />
+        <Border Visibility="{Binding Visibility,ElementName=PART_OverflowButton}" Margin="0,-1,0,0" Grid.Row="0" Grid.Column="0" BorderThickness="1,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource RegionBrush}" HorizontalAlignment="Right">
+          <pf:ContextMenuToggleButton x:Name="PART_OverflowButton" Visibility="Collapsed" Padding="0" pf:IconElement.Width="14" Height="Auto" BorderThickness="0" Background="{DynamicResource SecondaryRegionBrush}" Style="{StaticResource ToggleButtonIconTransparent}" pf:IconSwitchElement.Geometry="{StaticResource DownGeometry}" pf:IconSwitchElement.GeometrySelected="{StaticResource UpGeometry}" />
         </Border>
       </Grid>
     </Border>
   </ControlTemplate>
   <ControlTemplate x:Key="TabControlPlusScrollableTemplate" TargetType="pfcontrol:TabControl">
-    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+    <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
       <Grid x:Name="templateRoot" ClipToBounds="true" SnapsToDevicePixels="true">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
@@ -13445,17 +13445,17 @@ Themes\Styles\Custom\Window.xaml
           <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Border Grid.Row="0" Grid.Column="0" Margin="0,-1,0,0" HorizontalAlignment="Left" Panel.ZIndex="2" Background="{DynamicResource RegionBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Visibility="{TemplateBinding ShowScrollButton,                                                  Converter={StaticResource Boolean2VisibilityConverter}}">
+        <Border Visibility="{TemplateBinding ShowScrollButton,Converter={StaticResource Boolean2VisibilityConverter}}" Margin="0,-1,0,0" Grid.Row="0" Grid.Column="0" BorderThickness="0,0,1,1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource RegionBrush}" HorizontalAlignment="Left" Panel.ZIndex="2">
           <Border.CacheMode>
             <BitmapCache SnapsToDevicePixels="True" />
           </Border.CacheMode>
-          <RepeatButton x:Name="PART_ScrollButtonLeft" Width="{StaticResource DefaultControlHeight}" Height="Auto" Padding="8,0" VerticalAlignment="Stretch" pf:IconElement.Geometry="{StaticResource LeftGeometry}" pf:IconElement.Height="14" Background="{DynamicResource SecondaryRegionBrush}" BorderThickness="0" Focusable="False" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource RepeatButtonIcon}" />
+          <RepeatButton Focusable="False" Style="{StaticResource RepeatButtonIcon}" BorderThickness="0" pf:IconElement.Height="14" Padding="8 0" Height="Auto" VerticalAlignment="Stretch" Width="{StaticResource DefaultControlHeight}" pf:IconElement.Geometry="{StaticResource LeftGeometry}" Foreground="{DynamicResource PrimaryTextBrush}" Background="{DynamicResource SecondaryRegionBrush}" x:Name="PART_ScrollButtonLeft" />
         </Border>
-        <pf:ScrollViewer x:Name="PART_OverflowScrollviewer" Grid.Row="0" Grid.Column="1" pf:ScrollViewerAttach.Orientation="Horizontal" CanMouseWheel="True" HorizontalScrollBarVisibility="Hidden" IsDeferredScrollingEnabled="True" IsInertiaEnabled="True">
-          <Border Name="PART_HeaderBorder" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-            <pf:TabPanel x:Name="PART_HeaderPanel" MinHeight="{TemplateBinding TabItemHeight}" Margin="0,0,-1,-1" HorizontalAlignment="Left" Background="{DynamicResource SecondaryTextBrush}" IsItemsHost="true" IsTabFillEnabled="{TemplateBinding IsTabFillEnabled}" TabItemHeight="{TemplateBinding TabItemHeight}" TabItemWidth="{TemplateBinding TabItemWidth}">
+        <pf:ScrollViewer HorizontalScrollBarVisibility="Hidden" CanMouseWheel="True" pf:ScrollViewerAttach.Orientation="Horizontal" IsInertiaEnabled="True" Grid.Row="0" Grid.Column="1" IsDeferredScrollingEnabled="True" x:Name="PART_OverflowScrollviewer">
+          <Border Background="{TemplateBinding Background}" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Name="PART_HeaderBorder">
+            <pf:TabPanel MinHeight="{TemplateBinding TabItemHeight}" TabItemHeight="{TemplateBinding TabItemHeight}" TabItemWidth="{TemplateBinding TabItemWidth}" IsTabFillEnabled="{TemplateBinding IsTabFillEnabled}" Margin="0,0,-1,-1" x:Name="PART_HeaderPanel" HorizontalAlignment="Left" Background="{DynamicResource SecondaryTextBrush}" IsItemsHost="true">
               <pf:Interaction.Behaviors>
-                <pf:FluidMoveBehavior AppliesTo="Children" Duration="{Binding FluidMoveDuration, ElementName=PART_HeaderPanel}">
+                <pf:FluidMoveBehavior AppliesTo="Children" Duration="{Binding FluidMoveDuration,ElementName=PART_HeaderPanel}">
                   <pf:FluidMoveBehavior.EaseX>
                     <CubicEase EasingMode="EaseOut" />
                   </pf:FluidMoveBehavior.EaseX>
@@ -13464,18 +13464,18 @@ Themes\Styles\Custom\Window.xaml
             </pf:TabPanel>
           </Border>
         </pf:ScrollViewer>
-        <Border Grid.Row="0" Grid.Column="2" Margin="0,-1,0,0" HorizontalAlignment="Right" Background="{DynamicResource RegionBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,1">
+        <Border Margin="0,-1,0,0" Grid.Row="0" Grid.Column="2" BorderThickness="1,0,0,1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource RegionBrush}" HorizontalAlignment="Right">
           <Border.CacheMode>
             <BitmapCache SnapsToDevicePixels="True" />
           </Border.CacheMode>
           <StackPanel Orientation="Horizontal">
-            <RepeatButton x:Name="PART_ScrollButtonRight" Width="{StaticResource DefaultControlHeight}" Height="Auto" Padding="8,0" VerticalAlignment="Stretch" pf:IconElement.Geometry="{StaticResource RightGeometry}" pf:IconElement.Height="14" Background="{DynamicResource SecondaryRegionBrush}" BorderThickness="0" Focusable="False" Foreground="{DynamicResource PrimaryTextBrush}" Style="{StaticResource RepeatButtonIcon}" Visibility="{TemplateBinding ShowScrollButton,                                                          Converter={StaticResource Boolean2VisibilityConverter}}" />
-            <Border Width="1" Background="{DynamicResource BorderBrush}" Visibility="{Binding Visibility, ElementName=PART_OverflowButton}" />
-            <pf:ContextMenuToggleButton x:Name="PART_OverflowButton" Height="Auto" Padding="0" pf:IconElement.Width="14" pf:IconSwitchElement.Geometry="{StaticResource DownGeometry}" pf:IconSwitchElement.GeometrySelected="{StaticResource UpGeometry}" Background="{DynamicResource SecondaryRegionBrush}" BorderThickness="0" Style="{StaticResource ToggleButtonIconTransparent}" Visibility="Collapsed" />
+            <RepeatButton Focusable="False" Visibility="{TemplateBinding ShowScrollButton,Converter={StaticResource Boolean2VisibilityConverter}}" Style="{StaticResource RepeatButtonIcon}" BorderThickness="0" pf:IconElement.Height="14" Padding="8 0" Height="Auto" VerticalAlignment="Stretch" Width="{StaticResource DefaultControlHeight}" pf:IconElement.Geometry="{StaticResource RightGeometry}" Foreground="{DynamicResource PrimaryTextBrush}" Background="{DynamicResource SecondaryRegionBrush}" x:Name="PART_ScrollButtonRight" />
+            <Border Visibility="{Binding Visibility,ElementName=PART_OverflowButton}" Width="1" Background="{DynamicResource BorderBrush}" />
+            <pf:ContextMenuToggleButton x:Name="PART_OverflowButton" Visibility="Collapsed" Padding="0" pf:IconElement.Width="14" Height="Auto" BorderThickness="0" Background="{DynamicResource SecondaryRegionBrush}" Style="{StaticResource ToggleButtonIconTransparent}" pf:IconSwitchElement.Geometry="{StaticResource DownGeometry}" pf:IconSwitchElement.GeometrySelected="{StaticResource UpGeometry}" />
           </StackPanel>
         </Border>
-        <Border x:Name="contentPanel" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="{DynamicResource SecondaryRegionBrush}">
-          <ContentPresenter x:Name="PART_SelectedContentHost" Margin="{TemplateBinding Padding}" ContentSource="SelectedContent" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+        <Border x:Name="contentPanel" Background="{DynamicResource SecondaryRegionBrush}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3">
+          <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" Margin="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
         </Border>
       </Grid>
     </Border>
@@ -13526,24 +13526,24 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pfcontrol:Tag">
-          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="true" Style="{StaticResource BorderCircular}">
+          <Border Style="{StaticResource BorderCircular}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="true">
             <Grid>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <Border Width="{Binding ActualHeight, RelativeSource={RelativeSource Self}}" Background="{Binding Path=(pfcontrol:TitleElement.Background), RelativeSource={RelativeSource TemplatedParent}}" BorderBrush="{Binding Path=(pfcontrol:TitleElement.BorderBrush), RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource BorderCircularClip}" Visibility="{Binding HasHeader, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}">
-                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header" ContentStringFormat="{TemplateBinding HeaderStringFormat}" ContentTemplate="{TemplateBinding HeaderTemplate}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" TextElement.Foreground="{Binding Path=(pfcontrol:TitleElement.Foreground), RelativeSource={RelativeSource TemplatedParent}}" />
+              <Border Visibility="{Binding HasHeader,RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" Width="{Binding ActualHeight,RelativeSource={RelativeSource Self}}" Style="{StaticResource BorderCircularClip}" BorderBrush="{Binding Path=(pfcontrol:TitleElement.BorderBrush),RelativeSource={RelativeSource TemplatedParent}}" Background="{Binding Path=(pfcontrol:TitleElement.Background),RelativeSource={RelativeSource TemplatedParent}}">
+                <ContentPresenter TextElement.Foreground="{Binding Path=(pfcontrol:TitleElement.Foreground),RelativeSource={RelativeSource TemplatedParent}}" ContentSource="Header" ContentTemplate="{TemplateBinding HeaderTemplate}" ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" ContentStringFormat="{TemplateBinding HeaderStringFormat}" VerticalAlignment="Center" HorizontalAlignment="Center" />
               </Border>
-              <ContentPresenter Grid.Column="1" Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-              <Button Name="ButtonClose" Grid.Column="2" Width="16" Margin="0,0,6,0" Padding="0" pf:IconElement.Geometry="{StaticResource DeleteGeometry}" pf:IconElement.Width="8" BorderThickness="0" Command="pfcontrol:ControlCommands.Close" Focusable="False" Foreground="{TemplateBinding Foreground}" Style="{StaticResource ButtonIcon}" Visibility="{TemplateBinding ShowCloseButton,                                                              Converter={StaticResource Boolean2VisibilityConverter}}" />
+              <ContentPresenter Margin="{TemplateBinding Padding}" Grid.Column="1" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+              <Button Focusable="False" Name="ButtonClose" Padding="0" BorderThickness="0" pf:IconElement.Width="8" Visibility="{TemplateBinding ShowCloseButton,Converter={StaticResource Boolean2VisibilityConverter}}" Command="pfcontrol:ControlCommands.Close" Margin="0,0,6,0" Width="16" Grid.Column="2" Style="{StaticResource ButtonIcon}" pf:IconElement.Geometry="{StaticResource DeleteGeometry}" Foreground="{TemplateBinding Foreground}" />
             </Grid>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger SourceName="ButtonClose" Property="IsMouseOver" Value="True">
-              <Setter TargetName="ButtonClose" Property="pfcontrol:IconElement.Geometry" Value="{StaticResource DeleteFillCircleGeometry}" />
-              <Setter TargetName="ButtonClose" Property="pfcontrol:IconElement.Width" Value="14" />
+            <Trigger Property="IsMouseOver" Value="True" SourceName="ButtonClose">
+              <Setter Property="pfcontrol:IconElement.Geometry" Value="{StaticResource DeleteFillCircleGeometry}" TargetName="ButtonClose" />
+              <Setter Property="pfcontrol:IconElement.Width" Value="14" TargetName="ButtonClose" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -13562,7 +13562,7 @@ Themes\Styles\Custom\Window.xaml
       </Trigger>
     </Style.Triggers>
   </Style>
-  <Style x:Key="TagContainerBaseStyle" BasedOn="{StaticResource BaseStyle}" TargetType="pfcontrol:TagContainer">
+  <Style x:Key="TagContainerBaseStyle" TargetType="pfcontrol:TagContainer" BasedOn="{StaticResource BaseStyle}">
     <Setter Property="pfcontrol:BorderElement.CornerRadius" Value="{StaticResource DefaultCornerRadius}" />
     <Setter Property="ItemContainerStyle" Value="{StaticResource TagBaseStyle}" />
     <Setter Property="BorderThickness" Value="1" />
@@ -13577,7 +13577,7 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="pfcontrol:TagContainer">
-          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+          <Border CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius),RelativeSource={RelativeSource TemplatedParent}}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
             <pf:ScrollViewer Focusable="false">
               <ItemsPresenter Margin="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
             </pf:ScrollViewer>
@@ -14631,7 +14631,7 @@ Themes\Styles\Custom\Window.xaml
                     <Rectangle Width="16" Height="16" Fill="{StaticResource SortByNameDrawingBrush}" />
                   </RadioButton>
                 </pf:ButtonGroup>
-                <pf:SearchBar x:Name="PART_SearchBar" pf:InfoElement.ShowClearButton="True" IsRealTime="True" Style="{StaticResource SearchBarPlus}" Visibility="{Binding ShowSortButton, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <pf:SearchBar x:Name="PART_SearchBar" pf:InfoElement.ShowClearButton="True" IsRealTime="True" Visibility="{Binding ShowSortButton, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Boolean2VisibilityConverter}}" Style="{StaticResource SearchBarPlus}" />
               </DockPanel>
               <pf:PropertyItemsControl x:Name="PART_ItemsControl" Grid.Row="1" Style="{StaticResource PropertyItemsControlBaseStyle}">
                 <pf:PropertyItemsControl.GroupStyle>

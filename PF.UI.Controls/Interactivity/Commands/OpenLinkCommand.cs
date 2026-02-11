@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Windows.Input;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class OpenLinkCommand : ICommand
 {

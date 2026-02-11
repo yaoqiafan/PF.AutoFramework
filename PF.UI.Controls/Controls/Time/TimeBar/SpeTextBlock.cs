@@ -2,7 +2,7 @@
 using System.Windows.Controls;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     作为刻度使用的文字块

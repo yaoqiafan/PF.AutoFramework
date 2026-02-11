@@ -12,6 +12,7 @@
     <Project Path="PF.UI.Controls/PF.UI.Controls.csproj" Id="4c6c2036-2c0b-4942-8e68-b98681bbb924" />
     <Project Path="PF.UI.Infrastructure/PF.UI.Infrastructure.csproj" Id="c8569ae9-5c28-441c-94f7-956ba84d9517" />
     <Project Path="PF.UI.Resources/PF.UI.Resources.csproj" Id="c4402f06-7589-400a-a676-154b76014f58" />
+    <Project Path="PF.UI.Shared/PF.UI.Shared.csproj" />
   </Folder>
   <Folder Name="/03.Modules (业务模块层)/">
     <Project Path="PF.Modules.Logging/PF.Modules.Logging.csproj" Id="20bfc342-f6c7-4186-b145-8abb66d44edc" />

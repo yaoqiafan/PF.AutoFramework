@@ -1,12 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using PF.Common.Core.Param.Entity;
-using PF.Common.Core.Param.Entity.Category;
-using PF.Common.Core.Param.Entity.Category.Default;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using PF.Data.Entity;
+using PF.Data.Entity.Category;
+using PF.Data.Params;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public abstract class TriggerAction<T> : TriggerAction where T : DependencyObject
 {

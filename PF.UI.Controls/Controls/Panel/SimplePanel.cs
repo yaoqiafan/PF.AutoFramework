@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 /// <summary>
 ///     用以代替Grid

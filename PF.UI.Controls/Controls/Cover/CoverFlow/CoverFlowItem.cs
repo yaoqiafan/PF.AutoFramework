@@ -2,9 +2,9 @@
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
-using PF.UI.Infrastructure.Tools;
+using PF.UI.Shared.Tools;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class CoverFlowItem : ModelVisual3D
 {

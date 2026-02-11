@@ -1,4 +1,4 @@
-﻿namespace PF.UI.Infrastructure.Data;
+﻿namespace PF.UI.Shared.Data;
 
 public enum GlowBitmapPart
 {

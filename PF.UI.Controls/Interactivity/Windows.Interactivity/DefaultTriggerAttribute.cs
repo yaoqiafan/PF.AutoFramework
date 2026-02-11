@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Globalization;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
 public sealed class DefaultTriggerAttribute : Attribute

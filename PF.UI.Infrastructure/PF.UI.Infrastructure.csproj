@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 	<ItemGroup>
@@ -6,6 +6,7 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
+	  <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
 	</ItemGroup>
 
 </Project>

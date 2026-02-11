@@ -1,12 +1,12 @@
-﻿using PF.Common.Data.Admin;
-using PF.Common.Interface.Param;
-using PF.Common.Interface.Param.Attributes;
-using PF.Common.Param.Dialog.Mappers;
-using PF.Common.Param.ViewModels.Models;
+﻿using PF.Core.Entities.Identity;
+using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Configuration.Attributes;
+using PF.Modules.Parameter.Dialog.Mappers;
+using PF.Modules.Parameter.ViewModels.Models;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace PF.Common.Param.Dialog.Base
+namespace PF.Modules.Parameter.Dialog.Base
 {
     /// <summary>
     /// 通用视图工厂

@@ -1,11 +1,11 @@
 ﻿
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 using System;
 using System.Windows;
 using System.Windows.Input;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class EventToCommand : TriggerAction<DependencyObject>
 {

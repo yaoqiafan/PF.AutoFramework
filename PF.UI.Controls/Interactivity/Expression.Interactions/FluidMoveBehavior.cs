@@ -1,4 +1,4 @@
-﻿using PF.UI.Infrastructure.Data;
+﻿using PF.UI.Shared.Data;
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -10,7 +10,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public sealed class FluidMoveBehavior : FluidMoveBehaviorBase
 {

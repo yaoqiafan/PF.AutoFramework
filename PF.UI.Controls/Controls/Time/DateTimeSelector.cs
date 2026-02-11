@@ -1,4 +1,4 @@
-﻿using PF.UI.Infrastructure.Data;
+﻿using PF.UI.Shared.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 
-namespace PF.Controls
+namespace PF.UI.Controls
 {
     [TemplatePart(Name = ElementTextBlockStart, Type = typeof(TextBlock))]
     [TemplatePart(Name = ElementTextBlockEnd, Type = typeof(TextBlock))]

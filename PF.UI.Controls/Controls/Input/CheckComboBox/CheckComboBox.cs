@@ -5,10 +5,10 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementPanel, Type = typeof(Panel))]
 [TemplatePart(Name = ElementSelectAll, Type = typeof(CheckComboBoxItem))]
@@ -87,7 +87,7 @@ public class CheckComboBox : ListBox
 
     public CheckComboBox()
     {
-        AddHandler(PF.Controls.Tag.ClosedEvent, new RoutedEventHandler(Tags_OnClosed));
+        AddHandler(PF.UI.Controls.Tag.ClosedEvent, new RoutedEventHandler(Tags_OnClosed));
 
         CommandBindings.Add(new CommandBinding(ControlCommands.Clear, (s, e) =>
         {

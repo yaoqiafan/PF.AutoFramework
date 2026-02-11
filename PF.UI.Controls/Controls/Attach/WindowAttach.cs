@@ -3,10 +3,10 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools.Interop;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools.Interop;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public static class WindowAttach
 {

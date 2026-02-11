@@ -8,11 +8,11 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Drawing;
-using PF.UI.Infrastructure.Tools;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Drawing;
+using PF.UI.Shared.Tools;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [DefaultEvent("ValueChanged"), DefaultProperty("Value")]
 [TemplatePart(Name = ElementTrack, Type = typeof(Track))]

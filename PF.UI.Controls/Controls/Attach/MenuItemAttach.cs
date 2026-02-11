@@ -1,9 +1,9 @@
 ﻿using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using PF.UI.Infrastructure.Tools.Extension;
+using PF.UI.Shared.Tools.Extension;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class MenuItemAttach
 {

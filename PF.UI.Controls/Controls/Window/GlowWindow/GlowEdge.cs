@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
-using PF.Controls;
-using PF.UI.Infrastructure.Tools.Interop;
+using PF.UI.Controls;
+using PF.UI.Shared.Tools.Interop;
 
-namespace PF.UI.Infrastructure.Data;
+namespace PF.UI.Shared.Data;
 
 public class GlowEdge : HwndWrapper
 {

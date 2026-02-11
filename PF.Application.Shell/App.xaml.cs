@@ -1,12 +1,26 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using log4net;
+using Microsoft.Extensions.Hosting;
+using PF.Application.Shell.CustomConfiguration.Logging;
+using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
-using PF.UI.Controls.Data;
-using PF.UI.Controls.Tools;
-using PF.UI.Controls.Tools.Helper;
+using PF.Common.Core.PrismBase;
+using PF.Core.Entities.Configuration;
+using PF.Core.Entities.Identity;
+using PF.Core.Enums;
+using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Logging;
+using PF.Data.Params;
+using PF.Data.Repositories;
+using PF.Infrastructure.Logging;
+using PF.Modules.Logging;
+using PF.Modules.Parameter;
+using PF.Modules.Parameter.Dialog.Base;
+using PF.Modules.Parameter.Dialog.Mappers;
+using PF.Modules.Parameter.ViewModels.Models;
 using PF.UI.Resources;
-using Prism.Dialogs;
-using Prism.Ioc;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools;
+using PF.UI.Shared.Tools.Helper;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -91,7 +105,7 @@ namespace PF.Application.Shell
         /// <param name="str"></param>
         internal void UpdateSkin(string str = "Default")
         {
-            if (Enum.TryParse<PF.UI.Infrastructure.Data.SkinType>(str, out PF.UI.Infrastructure.Data.SkinType skin))
+            if (Enum.TryParse<SkinType>(str, out SkinType skin))
             {
                 var skins0 = Resources.MergedDictionaries[0];
                 skins0.MergedDictionaries.Clear();
@@ -103,7 +117,7 @@ namespace PF.Application.Shell
 
                 skins1.MergedDictionaries.Add(new ResourceDictionary
                 {
-                    Source = new Uri("pack://application:,,,/PF.Resources;component/Themes/Default.xaml")
+                    Source = new Uri("pack://application:,,,/PF.UI.Resources;component/Themes/Default.xaml")
                 });
 
                 Current.MainWindow?.OnApplyTemplate();
@@ -166,7 +180,7 @@ namespace PF.Application.Shell
         {
             base.ConfigureModuleCatalog(moduleCatalog);
             moduleCatalog.AddModule<LoggingModule>();
-            moduleCatalog.AddModule<ParamModule>();
+            moduleCatalog.AddModule<ParameterModule>();
         }
         #endregion
 
@@ -241,10 +255,10 @@ namespace PF.Application.Shell
                 var filePath = Path.Combine(appFolder, "SystemParamsCollection.db");
 
                 // 3. 初始化数据库上下文工厂
-                Common.Tools.Factory.DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
+                PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
 
                 // 4. 创建数据库上下文并确保数据库创建
-                using var dbContext = Common.Tools.Factory.DbContextFactory<AppParamDbContext>.CreateDbContext();
+                using var dbContext = PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.CreateDbContext();
                 await dbContext.Database.EnsureCreatedAsync();
                 await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
 
@@ -274,10 +288,10 @@ namespace PF.Application.Shell
                 var filePath = Path.Combine(appFolder, "SystemParamsCollection.db");
 
                 //  初始化数据库上下文工厂
-                Common.Tools.Factory.DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
+                PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
 
                 // 创建数据库上下文选项
-                var dbContextOptions = Common.Tools.Factory.DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
+                var dbContextOptions = PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
 
                 container.RegisterInstance(dbContextOptions);
 

@@ -2,9 +2,9 @@
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using PF.UI.Infrastructure.Tools;
+using PF.UI.Shared.Tools;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = ElementSliding, Type = typeof(FrameworkElement))]
 public class SlidingTabContainer : ContentControl

@@ -1,21 +1,19 @@
 ﻿
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using PF.Common.Core.PrismBase;
-using PF.Common.Data.Logging;
-using PF.Common.Interface;
-using PF.Common.Interface.Loging;
-using System;
-using System.Collections.Generic;
+using PF.Core.Entities.Logging;
+using PF.Core.Enums;
+using PF.Core.Interfaces.Logging;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 
-namespace PF.Common.Logging.ViewModels
+namespace PF.Modules.Logging.ViewModels
 {
     public class LogListViewModel : ViewModelBase
     {
@@ -42,7 +40,7 @@ namespace PF.Common.Logging.ViewModels
             RefreshCommand = new DelegateCommand(Refresh);
 
             // 设置集合视图以支持筛选和排序
-            _logEntriesView = CollectionViewSource.GetDefaultView(_logService.LogEntries);
+            _logEntriesView = CollectionViewSource.GetDefaultView(LogEntries);
             _logEntriesView.Filter = LogEntriesFilter;
             _logEntriesView.SortDescriptions.Add(
                 new SortDescription("Timestamp", ListSortDirection.Descending));
@@ -76,7 +74,7 @@ namespace PF.Common.Logging.ViewModels
 
         public ICollectionView LogEntriesView => _logEntriesView;
 
-        public ObservableCollection<LogEntry> LogEntries => _logService.LogEntries;
+        public ObservableCollection<LogEntry> LogEntries { get; set; } = new ObservableCollection<LogEntry>();
 
         // 在 LogListViewModel.cs 中
         private LogEntry _selectedLogEntry;

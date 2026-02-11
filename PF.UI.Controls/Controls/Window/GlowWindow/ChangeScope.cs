@@ -1,6 +1,6 @@
-﻿using PF.Controls;
+﻿using PF.UI.Controls;
 
-namespace PF.UI.Infrastructure.Data;
+namespace PF.UI.Shared.Data;
 
 public class ChangeScope : DisposableObject
 {

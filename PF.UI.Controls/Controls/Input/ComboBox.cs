@@ -9,10 +9,10 @@ using System.Windows.Media;
 #if NET40
 using System.Windows.Threading;
 #endif
-using PF.UI.Infrastructure.Data;
+using PF.UI.Shared.Data;
 
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 [TemplatePart(Name = AutoCompletePanel, Type = typeof(Panel))]
 [TemplatePart(Name = EditableTextBox, Type = typeof(System.Windows.Controls.TextBox))]

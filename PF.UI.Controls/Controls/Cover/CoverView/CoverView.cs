@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Data;
-using PF.UI.Infrastructure.Data;
-using PF.UI.Infrastructure.Tools;
+using PF.UI.Shared.Data;
+using PF.UI.Shared.Tools;
 
-namespace PF.Controls;
+namespace PF.UI.Controls;
 
 public class CoverView : RegularItemsControl
 {
