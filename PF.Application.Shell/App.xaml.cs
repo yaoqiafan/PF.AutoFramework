@@ -9,6 +9,7 @@ using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;
+using PF.Data.Context;
 using PF.Data.Params;
 using PF.Data.Repositories;
 using PF.Infrastructure.Logging;
@@ -255,10 +256,10 @@ namespace PF.Application.Shell
                 var filePath = Path.Combine(appFolder, "SystemParamsCollection.db");
 
                 // 3. 初始化数据库上下文工厂
-                PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
+                DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
 
                 // 4. 创建数据库上下文并确保数据库创建
-                using var dbContext = PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.CreateDbContext();
+                using var dbContext = DbContextFactory<AppParamDbContext>.CreateDbContext();
                 await dbContext.Database.EnsureCreatedAsync();
                 await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
 
@@ -288,10 +289,10 @@ namespace PF.Application.Shell
                 var filePath = Path.Combine(appFolder, "SystemParamsCollection.db");
 
                 //  初始化数据库上下文工厂
-                PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
+                DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
 
                 // 创建数据库上下文选项
-                var dbContextOptions = PF.CommonTools.Factory.DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
+                var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
 
                 container.RegisterInstance(dbContextOptions);
 
