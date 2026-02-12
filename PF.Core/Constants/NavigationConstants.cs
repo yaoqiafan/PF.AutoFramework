@@ -35,6 +35,10 @@ namespace PF.Core.Constants
             #endregion
             #region 参数管理
             public const string ParameterView = nameof(ParameterView);
+            public const string ParameterView_SystemConfigParam = nameof(ParameterView_SystemConfigParam);
+            public const string ParameterView_CommonParam = nameof(ParameterView_CommonParam);
+            public const string ParameterView_HardWareParam = nameof(ParameterView_HardWareParam);
+            public const string ParameterView_UserLoginParam = nameof(ParameterView_UserLoginParam);
             #endregion
 
             #region 登录

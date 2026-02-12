@@ -19,7 +19,7 @@ namespace PF.Modules.Identity.ViewModels
             Permissions = new ObservableCollection<PagePermissionItem>
             {
                 new PagePermissionItem { ViewName = "UserManagementView", Description = "用户管理", RequiredLevel = UserLevel.Administrator },
-                new PagePermissionItem { ViewName = "ParameterView", Description = "参数设置", RequiredLevel = UserLevel.Engineer },
+                new PagePermissionItem { ViewName = "ParameterView_SystemConfigParam", Description = "参数设置", RequiredLevel = UserLevel.Engineer },
                 new PagePermissionItem { ViewName = "LogListView", Description = "日志查询", RequiredLevel = UserLevel.Operator },
                 new PagePermissionItem { ViewName = "ProductionView", Description = "生产监控", RequiredLevel = UserLevel.Null }
             };

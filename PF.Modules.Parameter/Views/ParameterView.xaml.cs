@@ -16,7 +16,7 @@ using System.Windows.Shapes;
 namespace PF.Modules.Parameter.Views
 {
     /// <summary>
-    /// ParameterView.xaml 的交互逻辑
+    /// ParameterView_SystemConfigParam.xaml 的交互逻辑
     /// </summary>
     public partial class ParameterView : UserControl
     {

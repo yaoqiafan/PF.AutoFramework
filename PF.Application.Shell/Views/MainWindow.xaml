@@ -285,17 +285,17 @@
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/6.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
-                        <pf:SideMenuItem Header=" 运行参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView}">
+                        <pf:SideMenuItem Header=" 运行参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_SystemConfigParam}">
                             <pf:SideMenuItem.Icon>
                                 <Path Data="{StaticResource SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        <pf:SideMenuItem Header=" 公共参数">
+                        <pf:SideMenuItem Header=" 公共参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_CommonParam}">
                             <pf:SideMenuItem.Icon>
                                 <Path Data="{StaticResource AudioGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        <pf:SideMenuItem Header=" 设备硬件参数">
+                        <pf:SideMenuItem Header=" 设备硬件参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_HardWareParam}">
                             <pf:SideMenuItem.Icon>
                                 <Path Data="{StaticResource  CurveIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
                             </pf:SideMenuItem.Icon>
@@ -393,7 +393,7 @@
                                 <Path Data="{StaticResource  LoginInIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        <pf:SideMenuItem Header=" 权限管理"  Tag="{x:Static tokens:NavigationConstants+Views.UserManagementView}">
+                        <pf:SideMenuItem Header=" 权限管理"  Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_UserLoginParam}">
                             <pf:SideMenuItem.Icon>
                                 <Path Data="{StaticResource  NailGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
                             </pf:SideMenuItem.Icon>

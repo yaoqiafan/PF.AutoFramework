@@ -1,13 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PF.Application.Shell.CustomConfiguration.Logging;
-using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
 using PF.UI.Controls;
+using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
-using Prism.Navigation.Regions;
 using System.Reflection;
 using System.Windows.Input;
 
@@ -26,15 +25,9 @@ namespace PF.Application.Shell.ViewModels
 
         public MainWindowViewModel(IParamService paramService)
         {
-
             _paramService = paramService;
-
-
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
-
-
-
         }
 
         private void OnNavigated(FunctionEventArgs<object> args)
@@ -44,25 +37,47 @@ namespace PF.Application.Shell.ViewModels
                 if (sideMenuItem.Tag != null)
                 {
                     string viewName = sideMenuItem.Tag.ToString();
+
+                    // 检查是否为参数管理相关的视图名称
+                    // 这里假设 SideMenu 的 Tag 设置为具体的参数实体类型名称，如 "CommonParam"
+                    if (IsParameterView(viewName))
+                    {
+                        var parameters = new NavigationParameters();
+                        parameters.Add("TargetParamType", viewName);
+
+                        // 统一导航到 ParameterView_SystemConfigParam，并传递具体的参数类型
+                        RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
+                        return;
+                    }
+
                     string category = NavigationConstantMapper.GetCategory(viewName);
                     switch (category)
                     {
                         case nameof(NavigationConstants.Views):
-                            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion,viewName,NavigationComplete);
+                            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                             break;
                         case nameof(NavigationConstants.Dialogs):
                             DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
                             break;
                     }
-
-                  
                 }
             }
         }
 
+        /// <summary>
+        /// 判断是否为参数配置页面类型
+        /// </summary>
+        private bool IsParameterView(string viewName)
+        {
+            return viewName == NavigationConstants.Views.ParameterView_SystemConfigParam ||
+                   viewName == NavigationConstants.Views.ParameterView_CommonParam ||
+                    viewName == NavigationConstants.Views.ParameterView_UserLoginParam ||
+                   viewName == NavigationConstants.Views.ParameterView_HardWareParam;
+        }
+
         private void OnLoginOverCallback()
         {
-           
+
         }
 
         // 可选：添加导航回调以处理错误
@@ -75,7 +90,6 @@ namespace PF.Application.Shell.ViewModels
             }
         }
 
-
         private string _SoftWareName = string.Empty;
 
         public string SoftWareName
@@ -86,7 +100,6 @@ namespace PF.Application.Shell.ViewModels
             }
             set
             {
-
                 SetProperty(ref _SoftWareName, value);
             }
         }
@@ -109,8 +122,6 @@ namespace PF.Application.Shell.ViewModels
             set { SetProperty(ref _sysTime, value); }
         }
 
-
-
         public ICommand LoadCommand { get; set; }
         public ICommand SwitchItemCmd { get; set; }
 
@@ -123,16 +134,22 @@ namespace PF.Application.Shell.ViewModels
             _custom = CategoryLoggerFactory.Custom(_logService);
 
             Assembly assembly = Assembly.GetEntryAssembly();
-            string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}_V{assembly.GetName().Version}";
-            SoftWareName = name;
+            // 注意：这里需要确保 GetParamAsync 调用安全，或者在 Loaded 后调用
+            try
+            {
+                string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}_V{assembly.GetName().Version}";
+                SoftWareName = name;
 
-            name = await _paramService.GetParamAsync<string>("COName");
-            CoName = name;
+                name = await _paramService.GetParamAsync<string>("COName");
+                CoName = name;
+            }
+            catch
+            {
+                // 忽略初始化时的异常或记录日志
+            }
 
             UPdataTime();
         }
-
-
 
         #region 公共
         public void UPdataTime()

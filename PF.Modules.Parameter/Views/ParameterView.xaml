@@ -17,7 +17,6 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  顶部工具栏  -->
         <Border
             Grid.Row="0"
             Margin="0,0,0,10"
@@ -31,17 +30,20 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!--  参数类型选择  -->
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <TextBlock
                         Margin="0,0,5,0"
                         VerticalAlignment="Center"
-                        Text="参数类型：" />
-                    <ComboBox
-                        Width="150"
-                        DisplayMemberPath="Name"
-                        ItemsSource="{Binding ParamTypes}"
-                        SelectedItem="{Binding SelectedParamType}" />
+                        Text="当前参数类型："
+                        FontWeight="Bold" />
+                    <TextBlock
+                        Margin="0,0,15,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding SelectedParamType.Name}"
+                        FontSize="14"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        FontWeight="Bold" />
+
                     <TextBlock
                         Margin="10,0,5,0"
                         VerticalAlignment="Center"
@@ -52,7 +54,6 @@
                         SelectedIndex="{Binding SelectCategory}" />
                 </StackPanel>
 
-                <!--  状态信息  -->
                 <TextBlock
                     Grid.Column="1"
                     HorizontalAlignment="Center"
@@ -60,7 +61,6 @@
                     Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
                     Text="{Binding StatusMessage}" />
 
-                <!--  操作按钮  -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button
                         Margin="0,0,5,0"
@@ -85,7 +85,6 @@
             </Grid>
         </Border>
 
-        <!--  参数列表  -->
         <Border
             Grid.Row="1"
             BorderBrush="{DynamicResource PrimaryTextBrush}"
@@ -148,15 +147,10 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-
-
-
                 </DataGrid.Columns>
-
             </DataGrid>
         </Border>
 
-        <!--  底部操作栏  -->
         <Border
             Grid.Row="2"
             Margin="0,10,0,10"
@@ -173,7 +167,6 @@
                     Style="{StaticResource ButtonSuccess}"
                     ToolTip="添加新参数">
                     <StackPanel Orientation="Horizontal">
-
                         <TextBlock Margin="5,0,0,0" Text="添加" />
                     </StackPanel>
                 </Button>
@@ -188,7 +181,6 @@
                     Style="{StaticResource ButtonDanger}"
                     ToolTip="删除选中参数">
                     <StackPanel Orientation="Horizontal">
-
                         <TextBlock Margin="5,0,0,0" Text="删除" />
                     </StackPanel>
                 </Button>
@@ -201,14 +193,12 @@
                     Style="{StaticResource ButtonPrimary}"
                     ToolTip="保存所有修改">
                     <StackPanel Orientation="Horizontal">
-
                         <TextBlock Margin="5,0,0,0" Text="保存" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </Border>
 
-        <!--  统计信息  -->
         <StatusBar Grid.Row="3">
             <StatusBarItem>
                 <TextBlock>
@@ -221,7 +211,7 @@
             <StatusBarItem>
                 <TextBlock>
                     <Run Text="已修改：" />
-                    <Run Text="{Binding ModifiedCount}" />
+                    <Run Text="{Binding ModifiedCount}" /> 
                     <Run Text="个" />
                 </TextBlock>
             </StatusBarItem>
