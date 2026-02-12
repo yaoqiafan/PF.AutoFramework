@@ -5,6 +5,11 @@
 	<ItemGroup>
 		<None Remove="Images\ICO\-pfico.ico" />
 		<None Remove="Images\JPG\Loading_Default.jpg" />
+		<None Remove="Images\PNG\DevOps-Boards.png" />
+		<None Remove="Images\PNG\DevOps-Overview.png" />
+		<None Remove="Images\PNG\DevOps-Pipelines.png" />
+		<None Remove="Images\PNG\DevOps-Repos.png" />
+		<None Remove="Images\PNG\DevOps-TestPlans.png" />
 		<None Remove="Images\PNG\聚力LOGO.png" />
 	</ItemGroup>
 	
@@ -18,6 +23,11 @@
 	<ItemGroup>
 		<Resource Include="Images\ICO\-pfico.ico" />
 		<Resource Include="Images\JPG\Loading_Default.jpg" />
+		<Resource Include="Images\PNG\DevOps-Boards.png" />
+		<Resource Include="Images\PNG\DevOps-Overview.png" />
+		<Resource Include="Images\PNG\DevOps-Pipelines.png" />
+		<Resource Include="Images\PNG\DevOps-Repos.png" />
+		<Resource Include="Images\PNG\DevOps-TestPlans.png" />
 		<Resource Include="Images\PNG\聚力LOGO.png" />
 	</ItemGroup>
 

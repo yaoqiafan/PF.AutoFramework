@@ -5,6 +5,9 @@ using PF.Core.Constants;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
+using PF.UI.Controls;
+using PF.UI.Shared.Data;
+using Prism.Navigation.Regions;
 using System.Reflection;
 using System.Windows.Input;
 
@@ -28,19 +31,24 @@ namespace PF.Application.Shell.ViewModels
 
 
             LoadCommand = new DelegateCommand(OnLoading);
-            OpenCommand = new DelegateCommand<string>(OnNavigated);
+            SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
 
             
            
         }
 
-        private void OnNavigated(string obj)
+        private void OnNavigated(FunctionEventArgs<object> args)
         {
-            if (obj != null) 
+            if (args != null)
             {
-                RegionManager.RegisterViewWithRegion(NavigationConstants.Regions.SoftwareViewRegion, obj);
+                if (args.Info is SideMenuItem sideMenuItem)
+                {
+                    RegionManager.RegisterViewWithRegion(NavigationConstants.Regions.SoftwareViewRegion, sideMenuItem.Tag.ToString());
+                } 
             }
         }
+
+       
 
         private string _SoftWareName = string.Empty;
 
@@ -78,7 +86,7 @@ namespace PF.Application.Shell.ViewModels
 
 
         public ICommand LoadCommand { get; set; }
-        public ICommand OpenCommand { get; set; }
+        public ICommand SwitchItemCmd { get; set; }
 
         private async void OnLoading()
         {

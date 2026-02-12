@@ -273,240 +273,163 @@
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0" Background="{DynamicResource RegionBrush}">
-                <Grid
-                    x:Name="nav_pnl"
-                    Width="65"
-                    HorizontalAlignment="Left"
-                    Background="{DynamicResource RegionBrush}">
+                <pf:SideMenu BorderThickness="1" Width="200" Margin="20,10,30,10" ExpandMode="Accordion">
+                    <pf:Interaction.Triggers>
+                        <pf:EventTrigger EventName="SelectionChanged">
+                            <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
+                        </pf:EventTrigger>
+                    </pf:Interaction.Triggers>
+                    <pf:SideMenuItem Header="设备总览">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Overview.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
 
+                        <pf:SideMenuItem Header="总览">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource ProjectGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
 
-                    <Grid.Triggers>
-                        <EventTrigger RoutedEvent="MouseEnter">
-                            <BeginStoryboard>
-                                <Storyboard x:Name="ShowStackPanel">
-                                    <DoubleAnimation
-                                        BeginTime="0:0:0"
-                                        Storyboard.TargetName="nav_pnl"
-                                        Storyboard.TargetProperty="Width"
-                                        From="65"
-                                        To="230"
-                                        Duration="0:0:0.3" />
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                        <EventTrigger RoutedEvent="MouseLeave">
-                            <BeginStoryboard>
-                                <Storyboard x:Name="HideStackPanel">
-                                    <DoubleAnimation
-                                        BeginTime="0:0:0"
-                                        Storyboard.TargetName="nav_pnl"
-                                        Storyboard.TargetProperty="Width"
-                                        From="230"
-                                        To="65"
-                                        Duration="0:0:0.2" />
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Grid.Triggers>
+                    </pf:SideMenuItem>
 
+                    <pf:SideMenuItem Header="设备参数设置">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Boards.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 运行参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView}">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 公共参数">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource AudioGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 设备硬件参数">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  CurveIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                    </pf:SideMenuItem>
 
+                    <pf:SideMenuItem Header="历史报表">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Repos.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 历史记录">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  SumIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 日志查询">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  RunInfoIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                       
+                    </pf:SideMenuItem>
 
-                    <ListView
-                        Grid.Row="1"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        Style="{StaticResource ListViewBaseStyle}">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Width="230" Header="选择" />
-                            </GridView>
-                        </ListView.View>
+                    <pf:SideMenuItem Header="配方管理">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 新建配方">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  NewGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 配方查询">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  SearchGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 配方管理">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        
+                    </pf:SideMenuItem>
 
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource HomeIcon}"
-                                    Fill="{Binding ElementName=Home, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="Home"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="主显界面" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Home" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="主显界面" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource SettingIcon}"
-                                    Fill="{Binding ElementName=Params, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="Params"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="参数设置" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="{x:Static tokens:NavigationConstants+Views.ParameterView}" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="参数设置" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource CalibrationIcon}"
-                                    Fill="{Binding ElementName=Calibration, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="Calibration"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="光谱校准" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Calibration" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="光谱校准" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource CurveIcon}"
-                                    Fill="{Binding ElementName=Formula, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="Formula"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="方案配置" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Formula" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="方案配置" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource CalendarGeometry}"
-                                    Fill="{Binding ElementName=Datas, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="Datas"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="数据统计" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenCommand}" CommandParameter="Datas" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="数据统计" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource LoginInIcon}"
-                                    Fill="{Binding ElementName=Login, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="Login"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="权限获取" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenNewWindowCommand}" CommandParameter="Login" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="权限获取" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                        <ListViewItem
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource ListViewItemStyle}">
-                            <StackPanel Width="230" Orientation="Horizontal">
-                                <Path
-                                    Width="20"
-                                    Height="20"
-                                    Data="{StaticResource AboutIcon}"
-                                    Fill="{Binding ElementName=About, Path=Foreground}"
-                                    Stretch="Fill" />
-                                <TextBlock
-                                    x:Name="About"
-                                    Margin="25,0,0,0"
-                                    FontSize="20"
-                                    Text="关于" />
-                            </StackPanel>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseUp">
-                                    <i:InvokeCommandAction Command="{Binding OpenNewWindowCommand}" CommandParameter="About" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            <ListViewItem.ToolTip>
-                                <ToolTip Content="关于和帮助" />
-                            </ListViewItem.ToolTip>
-                        </ListViewItem>
-                    </ListView>
-                </Grid>
+                    <pf:SideMenuItem Header="报警管理">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 报警处理">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  ErrorGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 报警查询">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource   SearchGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                       
+                    </pf:SideMenuItem>
+
+                    <pf:SideMenuItem Header="设备调试">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 轴调试">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 通讯调试">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 模组测试">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" IO监控">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                    </pf:SideMenuItem>
+
+                    <pf:SideMenuItem Header="权限管控">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 权限获取">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  LoginInIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 权限管理">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  NailGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                        <pf:SideMenuItem Header=" 页面权限配置">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                    </pf:SideMenuItem>
+
+                    <pf:SideMenuItem Header="关于">
+                        <pf:SideMenuItem.Icon>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                        </pf:SideMenuItem.Icon>
+                        <pf:SideMenuItem Header=" 帮助">
+                            <pf:SideMenuItem.Icon>
+                                <Path Data="{StaticResource  InfoGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                            </pf:SideMenuItem.Icon>
+                        </pf:SideMenuItem>
+                       
+
+                    </pf:SideMenuItem>
+
+                </pf:SideMenu>
             </Grid>
 
             <Grid Grid.Column="1">
