@@ -16,9 +16,6 @@ namespace PF.Modules.Identity
         {
             // 注册登录弹窗
             containerRegistry.RegisterDialog<LoginView, LoginViewModel>(NavigationConstants.Dialogs.LoginView);
-
-            // 注册管理页面用于导航
-            containerRegistry.RegisterForNavigation<UserManagementView, UserManagementViewModel>(NavigationConstants.Views.UserManagementView);
             containerRegistry.RegisterForNavigation<PagePermissionView, PagePermissionViewModel>(NavigationConstants.Views.PagePermissionView);
         }
     }
