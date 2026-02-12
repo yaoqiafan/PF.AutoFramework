@@ -13,6 +13,7 @@
     ResizeMode="NoResize"
     SizeToContent="WidthAndHeight"
     Style="{StaticResource WindowWin10}"
+    WindowStartupLocation="CenterScreen"
     WindowStyle="ToolWindow"
     mc:Ignorable="d">
     <Grid />

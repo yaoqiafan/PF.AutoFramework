@@ -14,6 +14,8 @@ namespace PF.Core.Constants
 
             public const string CommonChangeParamDialog = nameof(CommonChangeParamDialog);
 
+            public const string LoginView = nameof(LoginView);
+
         }
 
         public static class Regions
@@ -33,6 +35,12 @@ namespace PF.Core.Constants
             #endregion
             #region 参数管理
             public const string ParameterView = nameof(ParameterView);
+            #endregion
+
+            #region 登录
+            public const string UserManagementView = nameof(UserManagementView);
+
+            public const string PagePermissionView = nameof(PagePermissionView);
             #endregion
 
 

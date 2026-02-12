@@ -33,8 +33,8 @@ namespace PF.Application.Shell.ViewModels
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
 
-            
-           
+
+
         }
 
         private void OnNavigated(FunctionEventArgs<object> args)
@@ -44,22 +44,34 @@ namespace PF.Application.Shell.ViewModels
                 if (sideMenuItem.Tag != null)
                 {
                     string viewName = sideMenuItem.Tag.ToString();
+                    string category = NavigationConstantMapper.GetCategory(viewName);
+                    switch (category)
+                    {
+                        case nameof(NavigationConstants.Views):
+                            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion,viewName,NavigationComplete);
+                            break;
+                        case nameof(NavigationConstants.Dialogs):
+                            DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
+                            break;
+                    }
 
-                    // 使用 RequestNavigate 进行导航，它会自动激活目标视图
-                    RegionManager.RequestNavigate(
-                        NavigationConstants.Regions.SoftwareViewRegion,
-                        viewName,
-                        NavigationComplete);
+                  
                 }
             }
         }
+
+        private void OnLoginOverCallback()
+        {
+           
+        }
+
         // 可选：添加导航回调以处理错误
         private void NavigationComplete(NavigationResult result)
         {
             if (result.Success == false && result.Exception != null)
             {
                 // 这里可以记录日志：导航失败
-                 _logService.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
+                _logService.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
             }
         }
 
@@ -74,7 +86,7 @@ namespace PF.Application.Shell.ViewModels
             }
             set
             {
-               
+
                 SetProperty(ref _SoftWareName, value);
             }
         }
@@ -151,7 +163,7 @@ namespace PF.Application.Shell.ViewModels
                 while (!ct.IsCancellationRequested)
                 {
                     SysTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                   
+
                     await Task.Delay(500, ct);
                 }
             }

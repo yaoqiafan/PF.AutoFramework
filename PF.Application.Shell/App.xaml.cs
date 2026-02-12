@@ -3,22 +3,25 @@ using Microsoft.Extensions.Hosting;
 using PF.Application.Shell.CustomConfiguration.Logging;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
-using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Data.Context;
 using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
+using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
+using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
@@ -171,6 +174,8 @@ namespace PF.Application.Shell
 
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
 
+            RegisterUserIdentityTypes(containerRegistry);
+
             ViewFactory.PreloadAssemblies();
             ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
 
@@ -178,11 +183,14 @@ namespace PF.Application.Shell
 
         }
 
+        
+
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
             base.ConfigureModuleCatalog(moduleCatalog);
             moduleCatalog.AddModule<LoggingModule>();
             moduleCatalog.AddModule<ParameterModule>();
+            moduleCatalog.AddModule<IdentityModule>();
         }
         #endregion
 
@@ -334,7 +342,10 @@ namespace PF.Application.Shell
 
         }
 
-
+        private void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
+        {
+            containerRegistry.RegisterSingleton<IUserService, UserService>();
+        }
         #endregion
 
 

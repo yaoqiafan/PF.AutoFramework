@@ -16,11 +16,11 @@ using System.Windows.Shapes;
 namespace PF.Modules.Identity.Views
 {
     /// <summary>
-    /// Interaction logic for ViewA.xaml
+    /// LoginView.xaml 的交互逻辑
     /// </summary>
-    public partial class ViewA : UserControl
+    public partial class LoginView : UserControl
     {
-        public ViewA()
+        public LoginView()
         {
             InitializeComponent();
         }
