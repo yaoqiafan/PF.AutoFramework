@@ -9,7 +9,7 @@ using PF.Data.Repositories;
 using System.Reflection;
 using System.Text.Json;
 
-namespace PF.Data.Params
+namespace PF.Services.Params
 {
     /// <summary>
     /// 参数服务实现（包含更改事件）

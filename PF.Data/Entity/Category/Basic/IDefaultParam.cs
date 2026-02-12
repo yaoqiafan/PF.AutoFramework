@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Data.Params
+namespace PF.Data.Entity.Category.Basic
 {
     public interface IDefaultParam
     {

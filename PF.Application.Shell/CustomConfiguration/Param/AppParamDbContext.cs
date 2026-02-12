@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PF.Data.Entity;
 using PF.Data.Entity.Category;
-using PF.Data.Params;
+using PF.Data.Entity.Category.Basic;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {

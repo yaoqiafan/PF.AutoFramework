@@ -1,7 +1,7 @@
 ﻿using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Data.Entity.Category;
-using PF.Data.Params;
+using PF.Data.Entity.Category.Basic;
 using PF.UI.Shared.Data;
 using System.Text.Json;
 

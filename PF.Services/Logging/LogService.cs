@@ -19,7 +19,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PF.Infrastructure.Logging
+namespace PF.Services.Logging
 {
     /// <summary>
     /// 高性能统一日志服务 (无UI依赖版)

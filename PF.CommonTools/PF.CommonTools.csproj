@@ -8,6 +8,7 @@
 
 	<ItemGroup>
     <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
+    <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
   </ItemGroup>
 
 </Project>

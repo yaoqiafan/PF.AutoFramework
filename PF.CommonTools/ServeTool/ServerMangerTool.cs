@@ -1,5 +1,4 @@
-﻿
-using PF.Infrastructure.Logging;
+﻿using PF.Services.Logging;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;

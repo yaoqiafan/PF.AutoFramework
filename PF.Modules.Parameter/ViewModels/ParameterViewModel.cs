@@ -5,7 +5,7 @@ using PF.Core.Entities.Identity;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Data.Entity;
-using PF.Data.Params;
+using PF.Data.Entity.Category.Basic;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows;
