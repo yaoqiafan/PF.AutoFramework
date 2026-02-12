@@ -39,19 +39,30 @@ namespace PF.Application.Shell.ViewModels
 
         private void OnNavigated(FunctionEventArgs<object> args)
         {
-            if (args != null)
+            if (args != null && args.Info is SideMenuItem sideMenuItem)
             {
-                if (args.Info is SideMenuItem sideMenuItem)
+                if (sideMenuItem.Tag != null)
                 {
-                    if (sideMenuItem.Tag!=null)
-                    {
-                        RegionManager.RegisterViewWithRegion(NavigationConstants.Regions.SoftwareViewRegion, sideMenuItem.Tag?.ToString());
-                    }
-                } 
+                    string viewName = sideMenuItem.Tag.ToString();
+
+                    // 使用 RequestNavigate 进行导航，它会自动激活目标视图
+                    RegionManager.RequestNavigate(
+                        NavigationConstants.Regions.SoftwareViewRegion,
+                        viewName,
+                        NavigationComplete);
+                }
+            }
+        }
+        // 可选：添加导航回调以处理错误
+        private void NavigationComplete(NavigationResult result)
+        {
+            if (result.Success == false && result.Exception != null)
+            {
+                // 这里可以记录日志：导航失败
+                 _logService.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
             }
         }
 
-       
 
         private string _SoftWareName = string.Empty;
 

@@ -32,17 +32,30 @@
             <Setter Property="ContextMenu">
                 <Setter.Value>
                     <ContextMenu>
-                        <MenuItem Command="{Binding DataContext.CopySelectedCommand, RelativeSource={RelativeSource AncestorType=ListView}}" Header="复制选中内容">
+                        <MenuItem Command="{Binding DataContext.CopySelectedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Header="复制选中内容">
                             <MenuItem.Icon>
                                 <TextBlock Text="📋" />
                             </MenuItem.Icon>
                         </MenuItem>
-                        <Separator />
-                        <MenuItem Command="{Binding DataContext.CopyAllCommand, RelativeSource={RelativeSource AncestorType=ListView}}" Header="复制全部显示内容">
+                        <MenuItem Command="{Binding DataContext.CopyAllCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Header="复制全部显示内容">
                             <MenuItem.Icon>
                                 <TextBlock Text="📑" />
                             </MenuItem.Icon>
                         </MenuItem>
+
+                        <Separator />
+                        <MenuItem Command="{Binding DataContext.ClearLogsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Header="清空日志">
+                            <MenuItem.Icon>
+                                <TextBlock Text="🆑" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding DataContext.RefreshCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Header="刷新">
+                            <MenuItem.Icon>
+                                <TextBlock Text="🔄️" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+
+
                     </ContextMenu>
                 </Setter.Value>
             </Setter>

@@ -16,6 +16,12 @@
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core">
 
     <pf:Window.Resources>
+        <Style x:Key="IconStyle" TargetType="Image">
+            <Setter Property="Height" Value="35" />
+            <Setter Property="Width" Value="35" />
+        </Style>
+
+
         <Style x:Key="TitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18px" />
             <Setter Property="FontWeight" Value="Medium" />
@@ -237,23 +243,6 @@
                             LineStrokeDashArray="2,2"
                             LineStrokeThickness="1"
                             Orientation="Vertical" />
-
-                        <pf:UniformSpacingPanel
-                            MaxHeight="134"
-                            Margin="10"
-                            ChildWrapping="Wrap"
-                            Orientation="Vertical"
-                            Spacing="10">
-                            <Button
-                                Command="{Binding ShowParamDialogCommand}"
-                                Content="基础参数"
-                                Style="{StaticResource ButtonCustom}" />
-                            <Button
-                                Command="{Binding ShowParamDialogCommand}"
-                                Content="运行参数"
-                                Style="{StaticResource ButtonCustom}" />
-
-                        </pf:UniformSpacingPanel>
                     </StackPanel>
                 </Border>
             </Popup>
@@ -273,7 +262,7 @@
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0" Background="{DynamicResource RegionBrush}">
-                <pf:SideMenu BorderThickness="1" Width="200" Margin="20,10,30,10" ExpandMode="Accordion">
+                <pf:SideMenu BorderThickness="1" Width="200" Margin="20,10,30,10" ExpandMode="ShowOne">
                     <pf:Interaction.Triggers>
                         <pf:EventTrigger EventName="SelectionChanged">
                             <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
@@ -281,7 +270,7 @@
                     </pf:Interaction.Triggers>
                     <pf:SideMenuItem Header="设备总览">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Overview.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/10.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
 
                         <pf:SideMenuItem Header="总览">
@@ -294,7 +283,7 @@
 
                     <pf:SideMenuItem Header="设备参数设置">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Boards.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/6.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 运行参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView}">
                             <pf:SideMenuItem.Icon>
@@ -315,7 +304,7 @@
 
                     <pf:SideMenuItem Header="历史报表">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Repos.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/7.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 历史记录" Tag="{x:Static tokens:NavigationConstants+Views.LogManagementView}">
                             <pf:SideMenuItem.Icon>
@@ -332,7 +321,7 @@
 
                     <pf:SideMenuItem Header="配方管理">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/9.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 新建配方">
                             <pf:SideMenuItem.Icon>
@@ -354,7 +343,7 @@
 
                     <pf:SideMenuItem Header="报警管理">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/1.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 报警处理">
                             <pf:SideMenuItem.Icon>
@@ -371,7 +360,7 @@
 
                     <pf:SideMenuItem Header="设备调试">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/4.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 轴调试">
                             <pf:SideMenuItem.Icon>
@@ -397,7 +386,7 @@
 
                     <pf:SideMenuItem Header="权限管控">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/3.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 权限获取">
                             <pf:SideMenuItem.Icon>
@@ -418,7 +407,7 @@
 
                     <pf:SideMenuItem Header="关于">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-TestPlans.png" Width="24" Height="24"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/2.png" Style="{StaticResource IconStyle}"/>
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 帮助">
                             <pf:SideMenuItem.Icon>

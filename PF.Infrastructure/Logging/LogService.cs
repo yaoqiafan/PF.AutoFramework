@@ -35,7 +35,15 @@ namespace PF.Infrastructure.Logging
         private const string SYSTEM_CATEGORY = "System";
 
         // 历史日志查询正则
-        private const string HISTORICAL_LOG_PATTERN = @"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(ERROR|WARN|INFO|DEBUG|FATAL)\s+-\s+(.+)";
+        // 正则表达式说明：
+        // ^(\d{...})          : 捕获组1 - 时间戳 (yyyy-MM-dd HH:mm:ss,fff)
+        // \s+\[.*?\]\s+       : 匹配线程ID，如 [1] 或 [MainThread]，非捕获
+        // (ERROR|...|SUCCESS) : 捕获组2 - 日志级别
+        // \s+                 : 空格
+        // (?:\[(.*?)\]\s+)?   : 非捕获组，内部捕获组3 - 可选的分类 [CategoryName]
+        // -\s+                : 分隔符 "- "
+        // (.+)$               : 捕获组4 - 消息内容
+        private const string HISTORICAL_LOG_PATTERN = @"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+\[.*?\]\s+(ERROR|WARN|INFO|DEBUG|FATAL|SUCCESS)\s+(?:\[(.*?)\]\s+)?-\s+(.+)$";
         private static readonly Regex LogLineRegex = new Regex(HISTORICAL_LOG_PATTERN,
             RegexOptions.Compiled | RegexOptions.Singleline);
         #endregion
@@ -253,7 +261,7 @@ namespace PF.Infrastructure.Logging
                 {
                     File = logFilePath,
                     AppendToFile = true,
-                    Layout = new PatternLayout("%date [%thread] %-5level - %message%newline"),
+                    Layout = new PatternLayout("%date [%thread] %-5level [%logger] - %message%newline"),
                     Threshold = ConvertToLog4NetLevel(config.MinLevel),
                     Encoding = Encoding.UTF8
                 };
@@ -477,8 +485,8 @@ namespace PF.Infrastructure.Logging
                 if (!Directory.Exists(logBasePath))
                     return results;
 
-                var directories = GetHistoricalLogDirectories(logBasePath, queryParams.StartTime, queryParams.EndTime);
-                var filesToRead = CollectLogFiles(directories, queryParams.Categories);
+                var directories = GetHistoricalLogDirectories(logBasePath);
+                var filesToRead = CollectLogFiles(directories, queryParams.Categories, queryParams.StartTime, queryParams.EndTime);
 
                 var allLogs = new ConcurrentBag<LogEntry>();
                 var parallelOptions = new ParallelOptions
@@ -583,7 +591,7 @@ namespace PF.Infrastructure.Logging
         #endregion
 
         #region 历史日志查询辅助方法
-        private List<DirectoryInfo> GetHistoricalLogDirectories(string basePath, DateTime start, DateTime end)
+        private List<DirectoryInfo> GetHistoricalLogDirectories(string basePath)
         {
             var directories = new List<DirectoryInfo>();
             try
@@ -594,16 +602,7 @@ namespace PF.Infrastructure.Logging
                     var dateDirs = rootDir.GetDirectories("*", SearchOption.TopDirectoryOnly);
                     foreach (var dir in dateDirs)
                     {
-                        // 假设目录格式为 yyyyMMdd 或其他可解析的格式
-                        // 这里尝试宽松解析，或者您需要根据实际目录命名策略修改
-                        // 示例代码中原始逻辑是 yyyyMMdd
-                        if (DateTime.TryParseExact(dir.Name, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dirDate))
-                        {
-                            if (dirDate.Date >= start.Date && dirDate.Date <= end.Date)
-                            {
-                                directories.Add(dir);
-                            }
-                        }
+                        directories.Add(dir);
                     }
                 }
                 return directories.OrderBy(d => d.Name).ToList();
@@ -615,95 +614,222 @@ namespace PF.Infrastructure.Logging
             }
         }
 
-        private List<FileInfo> CollectLogFiles(List<DirectoryInfo> directories, string[] categories)
+        private List<FileInfo> CollectLogFiles(List<DirectoryInfo> directories, string[] categories, DateTime startTime, DateTime endTime)
         {
             var filesToRead = new List<FileInfo>();
+
+            // 正则匹配文件名末尾的时间戳：_yyyy-MM-dd-HH.log 或 _yyyy-MM-dd.log
+            // 对应 LogService.CreateLoggerForCategory 中的生成规则
+            var dateRegex = new Regex(@"_(\d{4}-\d{2}-\d{2}(?:-\d{2})?)\.log$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
             foreach (var directory in directories)
             {
+                // 获取所有日志文件
                 var allFiles = directory.GetFiles("*.log", SearchOption.AllDirectories);
-                if (categories == null || categories.Length == 0)
+
+                foreach (var file in allFiles)
                 {
-                    filesToRead.AddRange(allFiles);
-                }
-                else
-                {
-                    foreach (var category in categories)
+                    // --- 1. 时间过滤 (Time Filter) ---
+                    var match = dateRegex.Match(file.Name);
+                    if (match.Success)
                     {
-                        var config = _configuration.GetCategoryConfig(category);
-                        var prefix = config.FileNamePrefix;
-                        if (!string.IsNullOrEmpty(prefix))
+                        string dateStr = match.Groups[1].Value;
+                        bool isHourly = dateStr.Length > 10; // "yyyy-MM-dd" 是10位，超过即包含小时
+
+                        if (DateTime.TryParseExact(dateStr, isHourly ? "yyyy-MM-dd-HH" : "yyyy-MM-dd",
+                            CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime fileStartTime))
                         {
-                            var pattern = $".{prefix}.";
-                            filesToRead.AddRange(allFiles.Where(f => f.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase)));
+                            // 计算文件的覆盖范围
+                            // 按天分割的文件覆盖 [fileTime, fileTime + 1天)
+                            // 按小时分割的文件覆盖 [fileTime, fileTime + 1小时)
+                            DateTime fileEndTime = isHourly ? fileStartTime.AddHours(1) : fileStartTime.AddDays(1);
+
+                            // 判断【文件时间段】与【查询时间段】是否有交集
+                            // 逻辑：如果 (文件结束时间 <= 查询开始) 或 (文件开始时间 >= 查询结束)，则无交集，跳过
+                            if (fileEndTime <= startTime || fileStartTime >= endTime)
+                            {
+                                continue;
+                            }
+                        }
+                    }
+
+                    // --- 2. 分类过滤 (Category Filter) ---
+                    if (categories == null || categories.Length == 0)
+                    {
+                        filesToRead.Add(file);
+                    }
+                    else
+                    {
+                        bool isMatch = false;
+                        foreach (var category in categories)
+                        {
+                            var config = _configuration.GetCategoryConfig(category);
+                            var prefix = config.FileNamePrefix;
+
+                            if (!string.IsNullOrEmpty(prefix))
+                            {
+                                // 修正建议：原代码使用 $".{prefix}."，但 LogService 生成文件通常用的是下划线 "_"
+                                // 建议改为宽松匹配，只要文件名包含前缀即可
+                                if (file.Name.Contains(prefix, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    isMatch = true;
+                                    break; // 只要匹配到一个分类即可
+                                }
+                            }
+                        }
+
+                        if (isMatch)
+                        {
+                            filesToRead.Add(file);
                         }
                     }
                 }
             }
+
             return filesToRead.DistinctBy(f => f.FullName).ToList();
         }
 
         private IEnumerable<LogEntry> ReadLogFile(FileInfo file, LogQueryParams queryParams)
         {
-            var logEntries = new List<LogEntry>();
+            var results = new List<LogEntry>();
+            LogEntry currentEntry = null;
+
             try
             {
-                using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var reader = new StreamReader(stream, Encoding.UTF8);
-
-                StringBuilder currentMessage = null;
-                DateTime? currentTime = null;
-                LogLevel? currentLevel = null;
-                var categoryFromFile = ExtractCategoryFromFileName(file.Name);
-
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                // 使用 FileShare.ReadWrite 打开，防止文件正在被 Log4Net 写入时出现占用错误
+                using (var fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(fs, Encoding.UTF8))
                 {
-                    var match = LogLineRegex.Match(line);
-                    if (match.Success)
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
                     {
-                        if (currentMessage != null && currentTime.HasValue && currentLevel.HasValue)
+                        // 跳过空行
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var match = Regex.Match(line, HISTORICAL_LOG_PATTERN);
+
+                        if (match.Success)
                         {
-                            var entry = CreateLogEntry(currentMessage, currentTime.Value, currentLevel.Value, categoryFromFile);
-                            if (ShouldIncludeEntry(entry, queryParams))
+                            // --- 发现新日志行，先保存上一条 ---
+                            if (currentEntry != null)
                             {
-                                logEntries.Add(entry);
+                                if (IsMatchFilter(currentEntry, queryParams))
+                                {
+                                    results.Add(currentEntry);
+                                }
+                            }
+
+                            // --- 解析新日志行 ---
+
+                            // 1. 解析时间
+                            if (!DateTime.TryParseExact(match.Groups[1].Value, "yyyy-MM-dd HH:mm:ss,fff",
+                                CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime timestamp))
+                            {
+                                continue; // 时间解析失败，跳过
+                            }
+
+                            // 2. 快速时间过滤（如果在查询范围之外，标记为 null 或跳过）
+                            // 注意：为了支持多行消息的追加，这里建议先解析，在添加到列表时再过滤
+                            // 但为了性能，如果确定不需要该行，可以不创建对象。
+                            // 这里我们创建一个对象，最后统一判定。
+
+                            // 3. 解析级别
+                            if (!Enum.TryParse(match.Groups[2].Value, true, out Core.Enums.LogLevel level))
+                            {
+                                level = Core.Enums.LogLevel.Info;
+                            }
+
+                            // 4. 解析分类 (优先取日志行内的 [Category]，取不到则从文件名提取)
+                            string category = match.Groups[3].Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value)
+                                ? match.Groups[3].Value.Trim()
+                                : ExtractCategoryFromFileName(file.Name);
+
+                            // 5. 获取消息
+                            string message = match.Groups[4].Value;
+
+                            // 初始化当前日志条目
+                            currentEntry = new LogEntry
+                            {
+                                Timestamp = timestamp,
+                                Level = level,
+                                Category = category,
+                                Message = message
+                            };
+                        }
+                        else
+                        {
+                            // --- 没有匹配正则，说明是上一条日志的后续内容（如异常堆栈） ---
+                            if (currentEntry != null)
+                            {
+                                currentEntry.Message += Environment.NewLine + line;
                             }
                         }
-                        currentTime = DateTime.ParseExact(match.Groups[1].Value, "yyyy-MM-dd HH:mm:ss,fff", CultureInfo.InvariantCulture);
-                        currentLevel = ParseLogLevel(match.Groups[2].Value);
-                        currentMessage = new StringBuilder(match.Groups[3].Value.Trim());
                     }
-                    else if (currentMessage != null && !string.IsNullOrWhiteSpace(line))
-                    {
-                        currentMessage.AppendLine().Append(line.Trim());
-                    }
-                }
 
-                if (currentMessage != null && currentTime.HasValue && currentLevel.HasValue)
-                {
-                    var entry = CreateLogEntry(currentMessage, currentTime.Value, currentLevel.Value, categoryFromFile);
-                    if (ShouldIncludeEntry(entry, queryParams))
+                    // 循环结束，添加最后一条日志
+                    if (currentEntry != null)
                     {
-                        logEntries.Add(entry);
+                        if (IsMatchFilter(currentEntry, queryParams))
+                        {
+                            results.Add(currentEntry);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"读取日志文件失败 {file.Name}: {ex.Message}");
+                // 记录读取错误，或者在调试输出中显示
+                System.Diagnostics.Debug.WriteLine($"读取日志文件 {file.Name} 失败: {ex.Message}");
             }
-            return logEntries;
+
+            return results;
+        }
+
+        // 辅助方法：判断日志是否符合查询条件
+        private bool IsMatchFilter(LogEntry entry, LogQueryParams queryParams)
+        {
+            if (queryParams == null) return true;
+
+            // 1. 时间过滤
+            if (entry.Timestamp < queryParams.StartTime || entry.Timestamp > queryParams.EndTime)
+                return false;
+
+            // 2. 关键词过滤 (不区分大小写)
+            if (!string.IsNullOrEmpty(queryParams.Keyword))
+            {
+                bool messageContains = entry.Message?.IndexOf(queryParams.Keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+                bool categoryContains = entry.Category?.IndexOf(queryParams.Keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (!messageContains && !categoryContains)
+                    return false;
+            }
+
+            return true;
         }
 
         private string ExtractCategoryFromFileName(string fileName)
         {
-            var parts = fileName.Split('.');
-            if (parts.Length >= 2)
+            try
             {
-                if (parts[1] == "current") return parts[0];
-                return parts[1];
+                // 匹配规则：提取下划线+日期之前的部分
+                // 例如: System_2026-02-12.log -> System
+                var match = Regex.Match(fileName, @"^(.*)_\d{4}-\d{2}-\d{2}(?:-\d{2})?\.log$", RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value;
+                }
+
+                // 备用简单的 Split
+                var parts = fileName.Split('_');
+                if (parts.Length > 1)
+                {
+                    return parts[0];
+                }
             }
-            return DEFAULT_CATEGORY;
+            catch { }
+
+            return "Default"; // 或者你的 DEFAULT_CATEGORY 常量
         }
 
         private LogEntry CreateLogEntry(StringBuilder message, DateTime time, LogLevel level, string category)
