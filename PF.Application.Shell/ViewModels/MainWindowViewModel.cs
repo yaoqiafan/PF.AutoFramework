@@ -43,7 +43,10 @@ namespace PF.Application.Shell.ViewModels
             {
                 if (args.Info is SideMenuItem sideMenuItem)
                 {
-                    RegionManager.RegisterViewWithRegion(NavigationConstants.Regions.SoftwareViewRegion, sideMenuItem.Tag.ToString());
+                    if (sideMenuItem.Tag!=null)
+                    {
+                        RegionManager.RegisterViewWithRegion(NavigationConstants.Regions.SoftwareViewRegion, sideMenuItem.Tag?.ToString());
+                    }
                 } 
             }
         }

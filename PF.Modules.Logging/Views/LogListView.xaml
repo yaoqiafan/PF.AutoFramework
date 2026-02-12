@@ -14,7 +14,6 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <!--  转换器  -->
         <local:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
         <local:LogLevelToSymbolConverter x:Key="LogLevelToSymbolConverter" />
         <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
@@ -22,7 +21,6 @@
         <local:NullToTextConverter x:Key="NullToTextConverter" NullText="全部" />
         <local:ExceptionToExpanderVisibilityConverter x:Key="ExceptionToExpanderVisibilityConverter" />
 
-        <!-- 修改 LogItemStyle 添加行为 -->
         <Style x:Key="LogItemStyle" TargetType="ListViewItem">
             <Setter Property="BorderThickness" Value="0,0,0,1" />
             <Setter Property="BorderBrush" Value="#E0E0E0" />
@@ -31,6 +29,23 @@
             <Setter Property="Focusable" Value="True" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Command="{Binding DataContext.CopySelectedCommand, RelativeSource={RelativeSource AncestorType=ListView}}" Header="复制选中内容">
+                            <MenuItem.Icon>
+                                <TextBlock Text="📋" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Command="{Binding DataContext.CopyAllCommand, RelativeSource={RelativeSource AncestorType=ListView}}" Header="复制全部显示内容">
+                            <MenuItem.Icon>
+                                <TextBlock Text="📑" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#F5F7FA" />
@@ -46,10 +61,8 @@
             </Style.Triggers>
         </Style>
 
-       
-        <!--  日志项模板  -->
         <DataTemplate x:Key="LogEntryTemplate">
-            <Border Padding="4,2" Background="Transparent">
+            <Border Background="Transparent" Padding="4,2">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -64,7 +77,6 @@
                         <RowDefinition Height="Auto" MinHeight="0" />
                     </Grid.RowDefinitions>
 
-                    <!--  时间  -->
                     <TextBlock
                         Grid.Column="0"
                         Margin="0,0,12,0"
@@ -74,7 +86,6 @@
                         Foreground="#666"
                         Text="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}" />
 
-                    <!--  级别图标  -->
                     <TextBlock
                         Grid.Column="1"
                         Width="24"
@@ -85,7 +96,6 @@
                         TextAlignment="Center"
                         ToolTip="{Binding Level}" />
 
-                    <!--  级别标签  -->
                     <Border
                         Grid.Column="2"
                         Margin="0,0,12,0"
@@ -100,7 +110,6 @@
                             Text="{Binding Level}" />
                     </Border>
 
-                    <!--  消息  -->
                     <TextBlock
                         Grid.Column="3"
                         Margin="0,0,8,0"
@@ -109,7 +118,6 @@
                         Text="{Binding Message}"
                         TextWrapping="Wrap" />
 
-                    <!--  类别标签  -->
                     <Border
                         Grid.Column="4"
                         Margin="0,0,8,0"
@@ -128,7 +136,6 @@
                             Text="{Binding Category}" />
                     </Border>
 
-                    <!--  异常指示器  -->
                     <Border
                         Grid.Column="5"
                         Padding="4,2"
@@ -150,7 +157,6 @@
                         </StackPanel>
                     </Border>
 
-                    <!--  异常详情（只有有异常的项在选中时才显示）  -->
                     <Border
                         Grid.Row="1"
                         Grid.Column="0"
@@ -186,15 +192,14 @@
             </Border>
         </DataTemplate>
     </UserControl.Resources>
-
-    <Grid>
+    <Border  BorderThickness="2" BorderBrush="{DynamicResource SecondaryBorderBrush}">
+    <Grid Margin="5" >
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  工具栏  -->
         <Border
             Grid.Row="0"
             Padding="12,8"
@@ -203,25 +208,17 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!--  筛选工具栏  -->
                 <StackPanel
                     Grid.Column="0"
                     Margin="0,0,20,0"
                     Orientation="Horizontal">
-                    <TextBlock
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"
-                        FontWeight="SemiBold"
-                        Text="筛选：" />
 
-                    <!--  日志级别  -->
                     <ComboBox
-                        Width="120"
+                        Width="110"
                         Height="28"
                         Margin="0,0,12,0"
                         VerticalAlignment="Center"
@@ -241,7 +238,6 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <!--  日期范围  -->
                     <ComboBox
                         Width="100"
                         Height="28"
@@ -251,111 +247,52 @@
                         SelectedItem="{Binding SelectedDateRange}" />
                 </StackPanel>
 
-                <!--  搜索框  -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBox
-                        Width="200"
+                    <pf:SearchBar
+                        Width="240"
                         Height="28"
-                        Padding="8,0"
                         VerticalAlignment="Center"
-                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
-                        <TextBox.ToolTip>
-                            <TextBlock>
-                                <Run Text="支持搜索：" /><LineBreak />
-                                <Run Text="• 日志内容" /><LineBreak />
-                                <Run Text="• 分类名称" /><LineBreak />
-                                <Run Text="• 异常信息" />
-                            </TextBlock>
-                        </TextBox.ToolTip>
-                    </TextBox>
+                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                        ToolTip="搜索日志内容、分类或异常信息"/>
                 </StackPanel>
 
-                <!--  操作按钮  -->
                 <StackPanel
-                    Grid.Column="2"
-                    Margin="20,0"
-                    Orientation="Horizontal">
-                    <Button
-                        Width="60"
-                        Height="28"
-                        Margin="0,0,8,0"
-                        Command="{Binding RefreshCommand}"
-                        Content="刷新"
-                        ToolTip="刷新日志列表" />
-
-                    <Button
-                        Width="60"
-                        Height="28"
-                        Margin="0,0,8,0"
-                        Command="{Binding ClearLogsCommand}"
-                        Content="清空"
-                        Style="{StaticResource ButtonDanger}"
-                        ToolTip="清空所有日志" />
-
-                    <Button
-                        Width="60"
-                        Height="28"
-                        Margin="0,0,8,0"
-                        Command="{Binding ExportLogsCommand}"
-                        Content="导出"
-                        Style="{StaticResource ButtonPrimary}"
-                        ToolTip="导出当前显示的日志" />
-                </StackPanel>
-
-                <!--  统计信息  -->
-                <Border
                     Grid.Column="3"
-                    Padding="8,4"
-                    HorizontalAlignment="Center"
-                    BorderThickness="1"
-                    CornerRadius="4">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="📊" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontWeight="SemiBold"
-                            Text="{Binding FilteredLogCount, StringFormat='显示 {0} 条'}" />
-                        <TextBlock
-                            Margin="4,0,0,0"
-                            VerticalAlignment="Center"
-                            Foreground="#666"
-                            Text="{Binding TotalLogCount, StringFormat=' / 总计 {0} 条'}" />
-                    </StackPanel>
-                </Border>
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
 
-                <!--  控制选项  -->
-                <StackPanel Grid.Column="4" Orientation="Horizontal">
+                    <Border
+                        Margin="0,0,16,0"
+                        Padding="10,4"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                FontSize="14"
+                                Text="📊" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Text="{Binding FilteredLogCount, StringFormat='显示 {0}'}" />
+                            <TextBlock
+                                Margin="4,0,0,0"
+                                VerticalAlignment="Center"
+                                Foreground="#999"
+                                Text="{Binding TotalLogCount, StringFormat='/ {0}'}" />
+                        </StackPanel>
+                    </Border>
+
                     <CheckBox
-                        Margin="0,0,12,0"
                         VerticalAlignment="Center"
                         Content="自动滚动"
                         IsChecked="{Binding AutoScroll}" />
-
-                    <Button
-                        Width="80"
-                        Height="28"
-                        Margin="0,0,8,0"
-                        Command="{Binding CopySelectedCommand}"
-                        Content="📋复制"
-                        Style="{StaticResource ButtonDashed}"
-                        ToolTip="复制选中日志" />
-
-                    <Button
-                        Width="80"
-                        Height="28"
-                        Command="{Binding CopyAllCommand}"
-                        Content="📋复制全部"
-                        Style="{StaticResource ButtonDashed}"
-                        ToolTip="复制所有显示的日志" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!--  日志列表  -->
         <Border Grid.Row="1">
             <Grid>
                 <ListView
@@ -377,7 +314,7 @@
                         <GroupStyle>
                             <GroupStyle.HeaderTemplate>
                                 <DataTemplate>
-                                    <Border Padding="12,8" BorderThickness="0,0,0,1">
+                                    <Border BorderThickness="0,0,0,1" Padding="12,8">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock
                                                 FontSize="13"
@@ -398,7 +335,6 @@
                     </ListView.GroupStyle>
                 </ListView>
 
-                <!--  空状态提示  -->
                 <Border
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
@@ -408,74 +344,60 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center">
                         <Path
-                            Width="80"
-                            Height="80"
+                            Width="64"
+                            Height="64"
                             Margin="0,0,0,16"
                             Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
-                            Fill="#E9ECEF"
+                            Fill="#F1F3F5"
                             Stretch="Uniform" />
-                        <TextBlock
-                            Margin="0,0,0,8"
-                            HorizontalAlignment="Center"
-                            FontSize="18"
-                            FontWeight="Medium"
-                            Foreground="#6C757D"
-                            Text="暂无日志" />
                         <TextBlock
                             HorizontalAlignment="Center"
                             FontSize="14"
                             Foreground="#ADB5BD"
-                            Text="应用程序的日志将在这里显示" />
+                            Text="暂无符合条件的日志" />
                     </StackPanel>
                 </Border>
 
-                <!--  加载指示器  -->
                 <Border Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <pf:LoadingLine />
                         <TextBlock
                             Margin="0,12,0,0"
                             Foreground="#666"
-                            Text="正在加载日志..." />
+                            Text="正在加载..." />
                     </StackPanel>
                 </Border>
             </Grid>
         </Border>
 
-        <!-- 状态栏 -->
-        <Border Grid.Row="2"
-                BorderThickness="0,1,0,0"
-                Padding="12,6">
+        <Border
+            Grid.Row="2"
+            Padding="12,4"
+            BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- 状态信息 - 添加选中项信息 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <TextBlock Text="{Binding SelectedLogLevel, Converter={StaticResource NullToTextConverter}, StringFormat='筛选：{0}'}"
-                             VerticalAlignment="Center"
-                             Foreground="#666"
-                             FontSize="12"/>
-
-                    <!-- 显示选中项信息 -->
-                    <TextBlock Text="{Binding SelectedLogEntry.Message, StringFormat=' | 选中：{0}'}"
-                             VerticalAlignment="Center"
-                             Foreground="#2196F3"
-                             FontSize="12"
-                             Margin="20,0,0,0"
-                             FontWeight="SemiBold"
-                             Visibility="{Binding SelectedLogEntry, Converter={StaticResource NullToVisibilityConverter}}"/>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="#2196F3"
+                        Text="{Binding SelectedLogEntry.Message, StringFormat='选中：{0}'}"
+                        TextTrimming="CharacterEllipsis"
+                        Visibility="{Binding SelectedLogEntry, Converter={StaticResource NullToVisibilityConverter}}" />
                 </StackPanel>
 
-                <!-- 时间 -->
-                <TextBlock Grid.Column="1"
-                         Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='最后更新：{0:HH:mm:ss}'}"
-                         VerticalAlignment="Center"
-                         Foreground="#666"
-                         FontSize="12"/>
+                <TextBlock
+                    Grid.Column="1"
+                    FontSize="12"
+                    Foreground="#999"
+                    Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='最后更新：{0:HH:mm:ss}'}"
+                    VerticalAlignment="Center" />
             </Grid>
         </Border>
     </Grid>
+    </Border>
 </UserControl>

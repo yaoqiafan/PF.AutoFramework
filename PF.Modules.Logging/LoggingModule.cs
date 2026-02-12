@@ -42,6 +42,8 @@ namespace PF.Modules.Logging
             try
             {
                 containerRegistry.RegisterForNavigation<LogListView, LogListViewModel>(NavigationConstants.Views.LoggingListView);
+
+                containerRegistry.RegisterForNavigation<LogManagementView, LogManagementViewModel>(NavigationConstants.Views.LogManagementView);
             }
             catch (Exception ex)
             {

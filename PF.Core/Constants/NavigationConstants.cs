@@ -28,6 +28,8 @@ namespace PF.Core.Constants
         {
             #region 日志
             public const string LoggingListView = nameof(LoggingListView);
+
+            public const string LogManagementView = nameof(LogManagementView);
             #endregion
             #region 参数管理
             public const string ParameterView = nameof(ParameterView);

@@ -317,7 +317,7 @@
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/DevOps-Repos.png" Width="24" Height="24"/>
                         </pf:SideMenuItem.Icon>
-                        <pf:SideMenuItem Header=" 历史记录">
+                        <pf:SideMenuItem Header=" 历史记录" Tag="{x:Static tokens:NavigationConstants+Views.LogManagementView}">
                             <pf:SideMenuItem.Icon>
                                 <Path Data="{StaticResource  SumIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
                             </pf:SideMenuItem.Icon>

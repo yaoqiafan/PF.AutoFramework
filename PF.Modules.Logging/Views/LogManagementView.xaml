@@ -1,0 +1,91 @@
+﻿<UserControl x:Class="PF.Modules.Logging.Views.LogManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+             xmlns:local="clr-namespace:PF.Modules.Logging.Converter"
+             prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <UserControl.Resources>
+        <local:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
+        <local:LogLevelToSymbolConverter x:Key="LogLevelToSymbolConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="日志管理" FontSize="24" FontWeight="Light" Margin="0,0,0,20"/>
+
+        <pf:Card Grid.Row="1" Header="当前内存数据维护" Margin="0,0,0,20">
+            <StackPanel Margin="10" Orientation="Horizontal">
+                <Button Command="{Binding RefreshCommand}" Content="🔄 刷新列表" 
+                        Style="{StaticResource ButtonPrimary}" Margin="0,0,10,0"/>
+                <Button Command="{Binding ExportLogsCommand}" Content="📤 导出内存日志" Margin="0,0,10,0"/>
+                <Button Command="{Binding ClearLogsCommand}" Content="🗑️ 清空内存" 
+                        Style="{StaticResource ButtonDanger}"/>
+            </StackPanel>
+        </pf:Card>
+
+        <pf:Card Grid.Row="2" Header="历史文件查询" VerticalAlignment="Stretch">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                    <TextBlock Text="日期：" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <DatePicker SelectedDate="{Binding QueryDate}" Width="120" Margin="0,0,20,0"/>
+
+                    <TextBlock Text="关键词：" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox Text="{Binding QueryKeyword, UpdateSourceTrigger=PropertyChanged}" 
+                             Width="200" pf:InfoElement.Placeholder="输入内容/分类/异常信息" Margin="0,0,10,0"/>
+
+                    <Button Command="{Binding QueryHistoryCommand}" 
+                            Content="🔍 查询文件" 
+                            Style="{StaticResource ButtonPrimary}"
+                            IsEnabled="{Binding IsQuerying, Converter={StaticResource Boolean2BooleanReConverter}}"/>
+                </StackPanel>
+
+                <DataGrid Grid.Row="1" 
+                          ItemsSource="{Binding HistoricalLogs}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          Background="White"
+                          BorderThickness="1"
+                          BorderBrush="#EEE">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="原始内容" Binding="{Binding Message}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Grid Grid.Row="1" Visibility="{Binding IsQuerying, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#88FFFFFF">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <pf:LoadingCircle Width="40" Height="40"/>
+                        <TextBlock Text="正在从磁盘读取..." Margin="0,10,0,0" Foreground="#666"/>
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Row="2" Margin="0,10,0,0" Padding="5" Background="#F9F9F9" CornerRadius="4">
+                    <TextBlock Text="{Binding QueryStatusMessage}" Foreground="#666" FontSize="12"/>
+                </Border>
+            </Grid>
+        </pf:Card>
+    </Grid>
+</UserControl>
