@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using PF.Application.Shell.CustomConfiguration.Logging;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
-using PF.Common.Core.PrismBase;
+using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;

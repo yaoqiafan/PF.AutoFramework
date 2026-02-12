@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PF.Application.Shell.CustomConfiguration.Logging;
-using PF.Common.Core.PrismBase;
+using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;

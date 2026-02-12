@@ -1,9 +1,9 @@
 ﻿<pf:Window
-    x:Class="PF.Common.Core.PrismBase.PFDialogBaseWindow"
+    x:Class="PF.UI.Infrastructure.PrismBase.PFDialogBaseWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:PF.Common.Core.PrismBase"
+    xmlns:local="clr-namespace:PF.UI.Infrastructure.PrismBase"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     Title="{Binding Title}"

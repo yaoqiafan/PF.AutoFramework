@@ -1,5 +1,5 @@
 ﻿using Microsoft.Win32;
-using PF.Common.Core.PrismBase;
+using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Entities.Logging;
 using PF.Core.Interfaces.Logging;
 using Prism.Commands;

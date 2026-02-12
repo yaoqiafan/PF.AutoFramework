@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Common.Core.PrismBase
+namespace PF.UI.Infrastructure.PrismBase
 {
     public abstract class ViewModelBase : BindableBase, IDestructible
     {

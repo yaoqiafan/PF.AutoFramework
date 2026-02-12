@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace PF.Common.Core.PrismBase
+namespace PF.UI.Infrastructure.PrismBase
 {
     public abstract class PFDialogViewModelBase: ViewModelBase, IDialogAware
     {

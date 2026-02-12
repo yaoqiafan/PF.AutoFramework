@@ -1,4 +1,4 @@
-﻿using PF.Common.Core.PrismBase;
+﻿using PF.UI.Infrastructure.PrismBase;
 using PF.CommonTools.Reflection;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.ViewModels;
