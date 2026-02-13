@@ -17,7 +17,7 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Identity.Views
 {
-    [ModuleNavigation(NavigationConstants.Dialogs.LoginView, "窗体权限更改", GroupName = "权限管控", Order = 1, IsDialog = false)]
+    [ModuleNavigation(NavigationConstants.Views.PagePermissionView, "窗体权限更改", GroupName = "权限管控", Icon = "SettingIcon", Order = 3)]
     public partial class PagePermissionView : UserControl
     {
         public PagePermissionView()

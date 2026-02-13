@@ -10,6 +10,7 @@ using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
+using Prism.Navigation.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -100,22 +101,50 @@ namespace PF.Application.Shell.ViewModels
             {
                 if (sideMenuItem.Tag is NavigationItem navItem && !string.IsNullOrEmpty(navItem.ViewName))
                 {
-                    if (navItem.IsDialog)
-                    {
-                        // 打开登录弹窗
-                        DialogService.ShowDialog(navItem.ViewName, OnLoginOverCallback);
-                    }
-                    else
-                    {
-                        // 页面跳转，同时支持携带参数
-                        var parameters = new NavigationParameters();
-                        if (!string.IsNullOrEmpty(navItem.NavigationParameter))
-                        {
-                            parameters.Add("TargetParamType", navItem.NavigationParameter);
-                        }
+                    string viewName = navItem.ViewName;
 
-                        RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, navItem.ViewName, NavigationComplete, parameters);
+                    if (IsParameterView(viewName))
+                    {
+                        var parameters = new NavigationParameters();
+                        parameters.Add("TargetParamType", viewName);
+
+                        RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
+                        return;
                     }
+
+                    string category = NavigationConstantMapper.GetCategory(viewName);
+                    switch (category)
+                    {
+                        case nameof(NavigationConstants.Views):
+                            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
+                            break;
+                        case nameof(NavigationConstants.Dialogs):
+                            // 打开登录弹窗，无需再手动赋值，因为有全局事件 OnUserChanged 在监听
+                            DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
+                            break;
+                    }
+
+
+
+
+
+
+                    //if (navItem.IsDialog)
+                    //{
+                    //    // 打开登录弹窗
+                    //    DialogService.ShowDialog(navItem.ViewName, OnLoginOverCallback);
+                    //}
+                    //else
+                    //{
+                    //    // 页面跳转，同时支持携带参数
+                    //    var parameters = new NavigationParameters();
+                    //    if (!string.IsNullOrEmpty(navItem.NavigationParameter))
+                    //    {
+                    //        parameters.Add("TargetParamType", navItem.NavigationParameter);
+                    //    }
+
+                    //    RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, navItem.ViewName, NavigationComplete, parameters);
+                    //}
                 }
             }
         }

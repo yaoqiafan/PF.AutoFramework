@@ -3,6 +3,10 @@ using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace PF.Application.Shell.Views
 {
@@ -18,59 +22,88 @@ namespace PF.Application.Shell.Views
             InitializeComponent();
             this.Loaded += MainWindow_Loaded; // 订阅 Loaded 事件
         }
-
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             if (this.DataContext is MainWindowViewModel vm)
             {
-                // 1. 初始渲染一次
                 RenderSideMenu(vm.MenuItems);
 
-                // 2. 监听集合的变化（应对模块异步加载或在 OnLoading 中的刷新）
                 vm.MenuItems.CollectionChanged += (s, args) =>
                 {
                     Dispatcher.Invoke(() => RenderSideMenu(vm.MenuItems));
                 };
             }
         }
-        /// <summary>
-        /// 动态将数据模型转换为控件支持的 SideMenuItem
-        /// </summary>
+
         private void RenderSideMenu(ObservableCollection<NavigationItem> menuItems)
         {
             MainSideMenu.Items.Clear();
 
             foreach (var group in menuItems)
             {
-                // 创建父级分组节点
                 var groupItem = new SideMenuItem
                 {
+                    FontSize = 15,
                     Header = group.Title,
-                    DataContext = group
+                    DataContext = group,
+                    Background = (Brush)FindResource("LightPrimaryBrush"), // 还原原有的背景色
+                    Margin = new Thickness(0, 0, 0, 10),
+                    Icon = CreateIconElement(group.Icon) // 渲染组图标
                 };
 
-                // 创建子页面节点
                 foreach (var child in group.Children)
                 {
                     var childItem = new SideMenuItem
                     {
-                        Header = $" {child.Title}", // 稍微加个空格缩进美化
-                        Tag = child,                 // 💡 关键：把整个数据模型塞进 Tag 里，传给点击事件
-                        DataContext = child
+                        Header = $" {child.Title}",
+                        Tag = child,
+                        DataContext = child,
+                        Icon = CreateIconElement(child.Icon) // 渲染子节点图标
                     };
 
-                    // 将子节点加入分组
                     groupItem.Items.Add(childItem);
                 }
 
-                // 将分组加入左侧菜单
                 MainSideMenu.Items.Add(groupItem);
+            }
+        }
+
+        /// <summary>
+        /// 智能解析图标：包含 .png 则生成 Image，否则视为 StaticResource 的 Geometry Path
+        /// </summary>
+        private object CreateIconElement(string iconStr)
+        {
+            if (string.IsNullOrEmpty(iconStr)) return null;
+
+            if (iconStr.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                var image = new Image();
+                // 补全 Pack URI 协议，防止找不到图片
+                string packUri = iconStr.StartsWith("/") ? $"pack://application:,,,{iconStr}" : iconStr;
+                image.Source = new BitmapImage(new Uri(packUri, UriKind.Absolute));
+                image.SetResourceReference(FrameworkElement.StyleProperty, "IconStyle");
+                return image;
+            }
+            else
+            {
+                var path = new Path
+                {
+                    Width = 16,
+                    Height = 16,
+                    Stretch = Stretch.Fill
+                };
+
+                // 绑定 Geometry 资源 (如 SettingIcon, AudioGeometry)
+                path.SetResourceReference(Path.DataProperty, iconStr);
+                // 绑定颜色资源
+                path.SetResourceReference(Path.FillProperty, "TextIconBrush");
+
+                return path;
             }
         }
 
         private void ButtonSkins_OnClick(object sender, RoutedEventArgs e)
         {
-         
         }
 
         private void ButtonConfig_OnClick(object sender, RoutedEventArgs e) => PopupConfig.IsOpen = true;
@@ -80,8 +113,6 @@ namespace PF.Application.Shell.Views
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-
-          
         }
 
     }

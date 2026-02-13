@@ -18,7 +18,7 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Identity.Views
 {
-    [ModuleNavigation(NavigationConstants.Dialogs.LoginView, "权限获取", GroupName = "权限管控", Order = 1, IsDialog = true)]
+    [ModuleNavigation(NavigationConstants.Dialogs.LoginView, "权限获取", GroupName = "权限管控", Icon = "LoginInIcon", GroupOrder = 7, Order = 1)]
     public partial class LoginView : UserControl
     {
         public LoginView(IContainerExtension containerExtension)
