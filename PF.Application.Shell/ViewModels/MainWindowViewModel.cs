@@ -28,6 +28,13 @@ namespace PF.Application.Shell.ViewModels
             _paramService = paramService;
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
+            ChangeExpandCmd = new DelegateCommand<string>((e) => 
+            {
+                if (Enum.TryParse<ExpandMode>(e,out ExpandMode result))
+                {
+                    Expand = result;
+                }
+            });
         }
 
         private void OnNavigated(FunctionEventArgs<object> args)
@@ -122,8 +129,17 @@ namespace PF.Application.Shell.ViewModels
             set { SetProperty(ref _sysTime, value); }
         }
 
+
+        private ExpandMode _ExpandMode = ExpandMode.ShowAll;
+        public ExpandMode Expand
+        {
+            get { return _ExpandMode; }
+            set { SetProperty(ref _ExpandMode, value); }
+        }
+
         public ICommand LoadCommand { get; set; }
         public ICommand SwitchItemCmd { get; set; }
+        public ICommand ChangeExpandCmd { get; set; }
 
         private async void OnLoading()
         {

@@ -5,6 +5,7 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     Width="1900"
     Height="1000"
     prism:ViewModelLocator.AutoWireViewModel="True"
@@ -12,8 +13,7 @@
     Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
-    WindowState="Maximized"
-    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core">
+    WindowState="Maximized">
 
     <pf:Window.Resources>
         <Style x:Key="IconStyle" TargetType="Image">
@@ -262,7 +262,25 @@
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0" Background="{DynamicResource RegionBrush}">
-                <pf:SideMenu BorderThickness="1" Width="200" Margin="20,10,30,10" ExpandMode="ShowOne" AutoSelect="False" >
+
+                <Grid.RowDefinitions>
+                    <RowDefinition  />
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+
+                <pf:ButtonGroup Grid.Row="1" Margin="5">
+                    <RadioButton pf:IconElement.Geometry="{StaticResource AlignRightGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="ShowOne" />
+                    <RadioButton pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="ShowAll"/>
+                    <!--<RadioButton pf:IconElement.Geometry="{StaticResource AlignHCenterGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="Accordion"/>
+                    <RadioButton pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="Freedom"/>-->
+                </pf:ButtonGroup>
+                <pf:SideMenu 
+                    Grid.Row="0"
+                    Width="200"
+                    Margin="5"
+                    AutoSelect="False"
+                    BorderThickness="1"
+                    ExpandMode="{Binding Expand}">
                     <pf:Interaction.Triggers>
                         <pf:EventTrigger EventName="SelectionChanged">
                             <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
@@ -270,12 +288,17 @@
                     </pf:Interaction.Triggers>
                     <pf:SideMenuItem Header="设备总览">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/10.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/10.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
 
                         <pf:SideMenuItem Header="总览">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource ProjectGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource ProjectGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
 
@@ -283,138 +306,231 @@
 
                     <pf:SideMenuItem Header="设备参数设置">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/6.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/6.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 运行参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_SystemConfigParam}">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource SettingIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 公共参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_CommonParam}">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource AudioGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource AudioGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        <pf:SideMenuItem Header=" 设备硬件参数" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_HardWareParam}">
+                        <pf:SideMenuItem
+                            Header=" 设备硬件参数"
+                            Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_HardWareParam}"
+                            Visibility="Visible">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  CurveIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource CurveIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                     </pf:SideMenuItem>
 
                     <pf:SideMenuItem Header="历史报表">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/7.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/7.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
-                        <pf:SideMenuItem Header=" 历史记录" >
+                        <pf:SideMenuItem Header=" 历史记录">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  SumIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource SumIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 日志查询" Tag="{x:Static tokens:NavigationConstants+Views.LogManagementView}">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  RunInfoIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource RunInfoIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                       
+
                     </pf:SideMenuItem>
 
                     <pf:SideMenuItem Header="配方管理">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/9.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/9.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 新建配方">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  NewGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource NewGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 配方查询">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  SearchGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource SearchGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 配方管理">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource SettingIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        
+
                     </pf:SideMenuItem>
 
                     <pf:SideMenuItem Header="报警管理">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/1.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/1.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 报警处理">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  ErrorGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource ErrorGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 报警查询">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource   SearchGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource SearchGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                       
+
                     </pf:SideMenuItem>
 
                     <pf:SideMenuItem Header="设备调试">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/4.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/4.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 轴调试">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource DebugIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 通讯调试">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource DebugIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" 模组测试">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource DebugIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                         <pf:SideMenuItem Header=" IO监控">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource DebugIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource DebugIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                     </pf:SideMenuItem>
 
                     <pf:SideMenuItem Header="权限管控">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/3.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/3.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
-                        <pf:SideMenuItem Header=" 权限获取"  Tag="{x:Static tokens:NavigationConstants+Dialogs.LoginView}">
+                        <pf:SideMenuItem Header=" 权限获取" Tag="{x:Static tokens:NavigationConstants+Dialogs.LoginView}">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  LoginInIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource LoginInIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        <pf:SideMenuItem Header=" 权限管理"  Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_UserLoginParam}">
+                        <pf:SideMenuItem Header=" 权限管理" Tag="{x:Static tokens:NavigationConstants+Views.ParameterView_UserLoginParam}">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  NailGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource NailGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                        <pf:SideMenuItem Header=" 页面权限配置"  Tag="{x:Static tokens:NavigationConstants+Views.PagePermissionView}">
+                        <pf:SideMenuItem Header=" 页面权限配置" Tag="{x:Static tokens:NavigationConstants+Views.PagePermissionView}">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  SettingIcon}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource SettingIcon}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
                     </pf:SideMenuItem>
 
                     <pf:SideMenuItem Header="关于">
                         <pf:SideMenuItem.Icon>
-                            <Image Source="/PF.UI.Resources;component/Images/PNG/2.png" Style="{StaticResource IconStyle}"/>
+                            <Image Source="/PF.UI.Resources;component/Images/PNG/2.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
                         <pf:SideMenuItem Header=" 帮助">
                             <pf:SideMenuItem.Icon>
-                                <Path Data="{StaticResource  InfoGeometry}" Height="16" Width="16" Stretch="Fill" Fill="{StaticResource  TextIconBrush}"></Path>
+                                <Path
+                                    Width="16"
+                                    Height="16"
+                                    Data="{StaticResource InfoGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Fill" />
                             </pf:SideMenuItem.Icon>
                         </pf:SideMenuItem>
-                       
+
 
                     </pf:SideMenuItem>
 

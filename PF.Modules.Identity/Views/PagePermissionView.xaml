@@ -10,31 +10,52 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="页面访问权限配置" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+        <Border Grid.Row="0" BorderBrush="#EEE" BorderThickness="0,0,0,1" Margin="0,0,0,15" Padding="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="权限配置对象：" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0"/>
 
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Permissions}" AutoGenerateColumns="False" 
-                  CanUserAddRows="False" BorderThickness="1" BorderBrush="#DDD" RowHeight="35">
+                <ComboBox ItemsSource="{Binding Users}" 
+                          SelectedItem="{Binding SelectedUser}"
+                          DisplayMemberPath="UserName"
+                          Width="200" Height="30" VerticalContentAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal" Margin="15,0,0,0" VerticalAlignment="Center" 
+                            Visibility="{Binding SelectedUser}">
+                    <TextBlock Text="当前等级: " Foreground="Gray"/>
+                    <TextBlock Text="{Binding SelectedUser.Root}" FontWeight="SemiBold" Foreground="#007ACC" Margin="5,0,0,0"/>
+
+                    <TextBlock Text="（修改并保存将覆盖该等级的默认权限）" Foreground="Orange" Margin="15,0,0,0" FontStyle="Italic" FontSize="11" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Button Content="刷新用户列表" Command="{Binding RefreshUsersCommand}" Margin="20,0,0,0" Padding="10,0"/>
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding PermissionList}" AutoGenerateColumns="False" 
+                  CanUserAddRows="False" BorderThickness="1" BorderBrush="#DDD" RowHeight="35"
+                  SelectionUnit="FullRow" GridLinesVisibility="Horizontal">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="界面名称 (ViewName)" Binding="{Binding ViewName}" Width="200" IsReadOnly="True"/>
-                <DataGridTextColumn Header="功能说明" Binding="{Binding Description}" Width="*" IsReadOnly="True"/>
-
-                <DataGridTemplateColumn Header="最低访问需求" Width="150">
+                <DataGridTemplateColumn Header="授权" Width="60">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding RequiredLevel}" VerticalAlignment="Center" Margin="5,0"/>
+                            <CheckBox IsChecked="{Binding IsAuthorized, UpdateSourceTrigger=PropertyChanged}" 
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox ItemsSource="{Binding DataContext.UserLevels, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      SelectedItem="{Binding RequiredLevel, UpdateSourceTrigger=PropertyChanged}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="功能模块" Binding="{Binding Description}" Width="200" IsReadOnly="True" FontWeight="Bold"/>
+
+                <DataGridTextColumn Header="界面代码 (ViewName)" Binding="{Binding ViewName}" Width="*" IsReadOnly="True" Foreground="Gray"/>
             </DataGrid.Columns>
         </DataGrid>
 
-        <Button Grid.Row="2" Content="保存当前配置" Command="{Binding SaveCommand}" 
-                HorizontalAlignment="Right" Margin="0,15,0,0" Padding="20,5"/>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <TextBlock Text="{Binding SelectedUser.UserName, StringFormat='正在配置用户: {0}'}" 
+                       VerticalAlignment="Center" Margin="0,0,20,0" Foreground="Gray"/>
+
+            <Button Content="保存当前用户配置" Command="{Binding SaveCommand}" 
+                    Padding="25,8" Background="#007ACC" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
+        </StackPanel>
     </Grid>
 </UserControl>
