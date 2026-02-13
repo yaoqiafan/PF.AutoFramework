@@ -1,8 +1,9 @@
-﻿<prism:PrismApplication x:Class="PF.Application.Shell.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:PF.Application.Shell"
-             xmlns:prism="http://prismlibrary.com/" >
+﻿<prism:PrismApplication
+    x:Class="PF.Application.Shell.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.Application.Shell"
+    xmlns:prism="http://prismlibrary.com/">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

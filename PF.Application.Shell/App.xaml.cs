@@ -21,11 +21,13 @@ using PF.Modules.Parameter.ViewModels.Models;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
+using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
+using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -161,6 +163,7 @@ namespace PF.Application.Shell
         protected override void OnInitialized()
         {
             base.OnInitialized();
+           
 
         }
 
@@ -173,6 +176,9 @@ namespace PF.Application.Shell
             containerRegistry.RegisterSingleton<Splash>();
 
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
+
+            containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
+
 
             RegisterUserIdentityTypes(containerRegistry);
 

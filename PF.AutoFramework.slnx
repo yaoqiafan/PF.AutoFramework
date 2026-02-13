@@ -30,5 +30,7 @@
   <Folder Name="/06.Application (应用入口)/">
     <Project Path="PF.Application.Shell/PF.Application.Shell.csproj" />
   </Folder>
-  <Folder Name="/07.External Services(外部服务)/" />
+  <Folder Name="/07.External Services(外部服务)/">
+    <Project Path="ConsoleApp1/ConsoleApp1.csproj" Id="e29412e5-ad25-494b-95b5-905045aaf9d7" />
+  </Folder>
 </Solution>

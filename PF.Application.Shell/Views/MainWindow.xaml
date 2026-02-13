@@ -6,26 +6,24 @@
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
+    xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity"
     Width="1900"
     Height="1000"
+    pf:WindowAttach.ExtendContentToNonClientArea="False"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Closing="Window_Closing"
     Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
-    Style="{StaticResource WindowWin10}"
-    WindowStartupLocation="CenterScreen"
-    xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity"
-    pf:WindowAttach.ExtendContentToNonClientArea="False"
     NonClientAreaHeight="80"
     ShowNonClientArea="True"
+    Style="{StaticResource WindowWin10}"
+    WindowStartupLocation="CenterScreen"
     WindowState="Maximized">
 
     <pf:Window.Resources>
         <userConverter:UserTextConnver x:Key="UserTextConnver" />
         <userConverter:UserBackGroundConnver x:Key="UserBackGroundConnver" />
 
-        <Style x:Key="IconStyle" TargetType="Image">
-            
-        </Style>
+        <Style x:Key="IconStyle" TargetType="Image" />
 
 
         <Style x:Key="TitleStyle" TargetType="TextBlock">
@@ -187,14 +185,24 @@
                 CornerRadius="2">
                 <TextBlock
                     VerticalAlignment="Center"
+                    FontSize="{DynamicResource SecondTitleFontSize}"
                     FontWeight="Bold"
                     Foreground="{DynamicResource PrimaryTextBrush}"
-                    FontSize="{DynamicResource  SecondTitleFontSize}"
                     Text="{Binding SoftWareName}" />
             </Border>
 
-            <pf:Shield  Grid.Column="2" Subject="V" Status="1.0.0" Margin="4,0,0,0" Color="#1182c3"/>
-            <pf:Shield  Grid.Column="3" Subject=".net" Status="8.0" Margin="4,0,0,0" Color="#1182c3"/>
+            <pf:Shield
+                Grid.Column="2"
+                Margin="4,0,0,0"
+                Status="1.0.0"
+                Subject="V"
+                Color="#1182c3" />
+            <pf:Shield
+                Grid.Column="3"
+                Margin="4,0,0,0"
+                Status="8.0"
+                Subject=".net"
+                Color="#1182c3" />
 
 
             <Button
@@ -274,16 +282,22 @@
             <Grid Grid.Column="0" Background="{DynamicResource RegionBrush}">
 
                 <Grid.RowDefinitions>
-                    <RowDefinition  />
-                    <RowDefinition Height="auto"/>
+                    <RowDefinition />
+                    <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
 
                 <pf:ButtonGroup Grid.Row="1" Margin="5">
-                    <RadioButton pf:IconElement.Geometry="{StaticResource AlignRightGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="ShowOne" />
-                    <RadioButton pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="ShowAll"/>
-                   
+                    <RadioButton
+                        pf:IconElement.Geometry="{StaticResource AlignRightGeometry}"
+                        Command="{Binding ChangeExpandCmd}"
+                        CommandParameter="ShowOne" />
+                    <RadioButton
+                        pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}"
+                        Command="{Binding ChangeExpandCmd}"
+                        CommandParameter="ShowAll" />
+
                 </pf:ButtonGroup>
-                <pf:SideMenu 
+                <!--<pf:SideMenu
                     Grid.Row="0"
                     Width="200"
                     Margin="5"
@@ -543,6 +557,22 @@
 
                     </pf:SideMenuItem>
 
+                </pf:SideMenu>-->
+
+
+                <pf:SideMenu
+                    x:Name="MainSideMenu"
+                    Grid.Row="0"
+                    Width="200"
+                    Margin="5"
+                    AutoSelect="False"
+                    BorderThickness="1"
+                    ExpandMode="{Binding Expand}">
+                    <pf:Interaction.Triggers>
+                        <pf:EventTrigger EventName="SelectionChanged">
+                            <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
+                        </pf:EventTrigger>
+                    </pf:Interaction.Triggers>
                 </pf:SideMenu>
             </Grid>
 
@@ -571,11 +601,11 @@
                 <TextBlock Text="{Binding CoName}" />
             </StatusBarItem>
 
-            <Separator ></Separator>
+            <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                <TextBlock Text="当前权限：" />
-                    <TextBlock Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" />
+                    <TextBlock Text="当前权限：" />
+                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
                 </StackPanel>
             </StatusBarItem>
 

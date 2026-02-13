@@ -1,4 +1,6 @@
-﻿using PF.Modules.Identity.ViewModels;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using PF.Modules.Identity.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,9 +18,7 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Identity.Views
 {
-    /// <summary>
-    /// LoginView.xaml 的交互逻辑
-    /// </summary>
+    [ModuleNavigation(NavigationConstants.Dialogs.LoginView, "权限获取", GroupName = "权限管控", Order = 1, IsDialog = true)]
     public partial class LoginView : UserControl
     {
         public LoginView(IContainerExtension containerExtension)

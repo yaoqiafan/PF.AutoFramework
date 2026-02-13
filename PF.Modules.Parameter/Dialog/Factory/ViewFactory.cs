@@ -1,6 +1,6 @@
-﻿using PF.Core.Entities.Identity;
+﻿using PF.Core.Attributes;
+using PF.Core.Entities.Identity;
 using PF.Core.Interfaces.Configuration;
-using PF.Core.Interfaces.Configuration.Attributes;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
 using System.Collections.Concurrent;

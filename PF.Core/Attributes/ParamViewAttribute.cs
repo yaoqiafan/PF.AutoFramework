@@ -1,10 +1,11 @@
-﻿using System;
+﻿using PF.Core.Interfaces.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Core.Interfaces.Configuration.Attributes
+namespace PF.Core.Attributes
 {
     /// <summary>
     /// 参数视图特性

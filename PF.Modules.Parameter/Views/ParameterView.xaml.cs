@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,9 +17,8 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Parameter.Views
 {
-    /// <summary>
-    /// ParameterView_SystemConfigParam.xaml 的交互逻辑
-    /// </summary>
+   
+    [ModuleNavigation(NavigationConstants.Views.ParameterView, "运行参数", GroupName = "设备参数设置", Order = 1)]
     public partial class ParameterView : UserControl
     {
         public ParameterView()

@@ -1,8 +1,10 @@
-﻿using PF.Modules.Logging.ViewModels;
-using PF.Modules.Logging.Views;
+﻿using log4net;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Logging;
-using log4net;
+using PF.Modules.Logging.ViewModels;
+using PF.Modules.Logging.Views;
+using PF.UI.Infrastructure.Navigation;
+using System.Reflection;
 
 namespace PF.Modules.Logging
 {
@@ -35,6 +37,10 @@ namespace PF.Modules.Logging
                 // 使用备用方式记录错误
                 LogFallbackError("日志模块初始化失败", ex);
             }
+
+            // 解析导航服务并扫描当前程序集自动注册菜单
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)

@@ -7,9 +7,11 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
 using PF.UI.Controls;
+using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
 using System;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +23,7 @@ namespace PF.Application.Shell.ViewModels
     {
         private readonly IParamService _paramService;
         private readonly IUserService _userService;
+        private readonly INavigationMenuService _navigationMenuService;
         private ILogService _logService;
 
         private CategoryLogger _dbLogger;
@@ -29,14 +32,15 @@ namespace PF.Application.Shell.ViewModels
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public MainWindowViewModel(IParamService paramService, IUserService userService)
+        public ObservableCollection<NavigationItem> MenuItems => _navigationMenuService.MenuItems;
+
+        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService)
         {
             _paramService = paramService;
             _userService = userService;
+            _navigationMenuService = navigationMenuService; // 注入导航服务
 
-            // 订阅全局用户改变事件
             _userService.CurrentUserChanged += OnUserChanged;
-            // 初始化默认值
             CurrentUser = _userService.CurrentUser ?? new UserInfo();
 
             LoadCommand = new DelegateCommand(OnLoading);
@@ -56,33 +60,61 @@ namespace PF.Application.Shell.ViewModels
             CurrentUser = newUser ?? new UserInfo();
         }
 
+        //private void OnNavigated(FunctionEventArgs<object> args)
+        //{
+        //    if (args != null && args.Info is SideMenuItem sideMenuItem)
+        //    {
+        //        if (sideMenuItem.Tag != null)
+        //        {
+        //            string viewName = sideMenuItem.Tag.ToString();
+
+        //            if (IsParameterView(viewName))
+        //            {
+        //                var parameters = new NavigationParameters();
+        //                parameters.Add("TargetParamType", viewName);
+
+        //                RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
+        //                return;
+        //            }
+
+        //            string category = NavigationConstantMapper.GetCategory(viewName);
+        //            switch (category)
+        //            {
+        //                case nameof(NavigationConstants.Views):
+        //                    RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
+        //                    break;
+        //                case nameof(NavigationConstants.Dialogs):
+        //                    // 打开登录弹窗，无需再手动赋值，因为有全局事件 OnUserChanged 在监听
+        //                    DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
+        //                    break;
+        //            }
+        //        }
+        //    }
+        //}
+
+
+        // 在 MainWindowViewModel.cs 中
         private void OnNavigated(FunctionEventArgs<object> args)
         {
             if (args != null && args.Info is SideMenuItem sideMenuItem)
             {
-                if (sideMenuItem.Tag != null)
+                if (sideMenuItem.Tag is NavigationItem navItem && !string.IsNullOrEmpty(navItem.ViewName))
                 {
-                    string viewName = sideMenuItem.Tag.ToString();
-
-                    if (IsParameterView(viewName))
+                    if (navItem.IsDialog)
                     {
-                        var parameters = new NavigationParameters();
-                        parameters.Add("TargetParamType", viewName);
-
-                        RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
-                        return;
+                        // 打开登录弹窗
+                        DialogService.ShowDialog(navItem.ViewName, OnLoginOverCallback);
                     }
-
-                    string category = NavigationConstantMapper.GetCategory(viewName);
-                    switch (category)
+                    else
                     {
-                        case nameof(NavigationConstants.Views):
-                            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
-                            break;
-                        case nameof(NavigationConstants.Dialogs):
-                            // 打开登录弹窗，无需再手动赋值，因为有全局事件 OnUserChanged 在监听
-                            DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
-                            break;
+                        // 页面跳转，同时支持携带参数
+                        var parameters = new NavigationParameters();
+                        if (!string.IsNullOrEmpty(navItem.NavigationParameter))
+                        {
+                            parameters.Add("TargetParamType", navItem.NavigationParameter);
+                        }
+
+                        RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, navItem.ViewName, NavigationComplete, parameters);
                     }
                 }
             }
@@ -155,6 +187,7 @@ namespace PF.Application.Shell.ViewModels
             _dbLogger = CategoryLoggerFactory.Database(_logService);
             _systemLogger = CategoryLoggerFactory.System(_logService);
             _custom = CategoryLoggerFactory.Custom(_logService);
+            RaisePropertyChanged(nameof(MenuItems));
             try
             {
                 string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}";

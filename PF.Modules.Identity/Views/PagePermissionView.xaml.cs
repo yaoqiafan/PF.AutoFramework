@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,9 +17,7 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Identity.Views
 {
-    /// <summary>
-    /// PagePermissionView.xaml 的交互逻辑
-    /// </summary>
+    [ModuleNavigation(NavigationConstants.Dialogs.LoginView, "窗体权限更改", GroupName = "权限管控", Order = 1, IsDialog = false)]
     public partial class PagePermissionView : UserControl
     {
         public PagePermissionView()

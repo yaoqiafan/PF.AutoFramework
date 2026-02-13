@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,9 +17,7 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Logging.Views
 {
-    /// <summary>
-    /// LogManagementView.xaml 的交互逻辑
-    /// </summary>
+    [ModuleNavigation(NavigationConstants.Views.LogManagementView, "日志查询", GroupName = "设备参数设置", Order = 2)]
     public partial class LogManagementView : UserControl
     {
         public LogManagementView()
