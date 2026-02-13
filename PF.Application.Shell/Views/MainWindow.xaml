@@ -24,8 +24,7 @@
         <userConverter:UserBackGroundConnver x:Key="UserBackGroundConnver" />
 
         <Style x:Key="IconStyle" TargetType="Image">
-            <Setter Property="Height" Value="35" />
-            <Setter Property="Width" Value="35" />
+            
         </Style>
 
 
@@ -296,7 +295,7 @@
                             <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
                         </pf:EventTrigger>
                     </pf:Interaction.Triggers>
-                    <pf:SideMenuItem Header="设备总览">
+                    <pf:SideMenuItem Header="设备总览" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/10.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -314,7 +313,7 @@
 
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="设备参数设置">
+                    <pf:SideMenuItem Header="设备参数设置" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/6.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -353,7 +352,7 @@
                         </pf:SideMenuItem>
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="历史报表">
+                    <pf:SideMenuItem Header="历史报表" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/7.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -380,7 +379,7 @@
 
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="配方管理">
+                    <pf:SideMenuItem Header="配方管理" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/9.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -417,7 +416,7 @@
 
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="报警管理">
+                    <pf:SideMenuItem Header="报警管理" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/1.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -444,7 +443,7 @@
 
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="设备调试">
+                    <pf:SideMenuItem Header="设备调试" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/4.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -490,7 +489,7 @@
                         </pf:SideMenuItem>
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="权限管控">
+                    <pf:SideMenuItem Header="权限管控" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/3.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -526,7 +525,7 @@
                         </pf:SideMenuItem>
                     </pf:SideMenuItem>
 
-                    <pf:SideMenuItem Header="关于">
+                    <pf:SideMenuItem Header="关于" Background="{DynamicResource LightPrimaryBrush}" Margin="0,0,0,10">
                         <pf:SideMenuItem.Icon>
                             <Image Source="/PF.UI.Resources;component/Images/PNG/2.png" Style="{StaticResource IconStyle}" />
                         </pf:SideMenuItem.Icon>
@@ -574,9 +573,9 @@
 
             <Separator ></Separator>
             <StatusBarItem>
-                <StackPanel>
+                <StackPanel Orientation="Horizontal">
                 <TextBlock Text="当前权限：" />
-                <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                    <TextBlock Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" />
                 </StackPanel>
             </StatusBarItem>
 

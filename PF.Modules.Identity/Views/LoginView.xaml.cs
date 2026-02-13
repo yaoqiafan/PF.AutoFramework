@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PF.Modules.Identity.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,9 +21,10 @@ namespace PF.Modules.Identity.Views
     /// </summary>
     public partial class LoginView : UserControl
     {
-        public LoginView()
+        public LoginView(IContainerExtension containerExtension)
         {
             InitializeComponent();
+            this.DataContext = containerExtension.Resolve<LoginViewModel>();
         }
     }
 }

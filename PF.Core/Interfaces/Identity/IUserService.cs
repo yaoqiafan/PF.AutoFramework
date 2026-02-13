@@ -1,5 +1,6 @@
 ﻿using PF.Core.Entities.Identity;
 using PF.Core.Enums;
+using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -11,6 +12,11 @@ namespace PF.Core.Interfaces.Identity
         /// 当前登录用户
         /// </summary>
         UserInfo? CurrentUser { get; }
+
+        /// <summary>
+        /// 当登录用户发生变化时触发（登录、注销）
+        /// </summary>
+        event EventHandler<UserInfo?> CurrentUserChanged;
 
         /// <summary>
         /// 登录

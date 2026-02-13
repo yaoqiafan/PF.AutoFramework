@@ -6,11 +6,13 @@ using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
-using PF.Services.Identity;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
+using System;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace PF.Application.Shell.ViewModels
@@ -27,20 +29,31 @@ namespace PF.Application.Shell.ViewModels
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public MainWindowViewModel(IParamService paramService,IUserService userService)
+        public MainWindowViewModel(IParamService paramService, IUserService userService)
         {
             _paramService = paramService;
             _userService = userService;
-            CurrentUser = new UserInfo();
+
+            // 订阅全局用户改变事件
+            _userService.CurrentUserChanged += OnUserChanged;
+            // 初始化默认值
+            CurrentUser = _userService.CurrentUser ?? new UserInfo();
+
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
-            ChangeExpandCmd = new DelegateCommand<string>((e) => 
+            ChangeExpandCmd = new DelegateCommand<string>((e) =>
             {
-                if (Enum.TryParse<ExpandMode>(e,out ExpandMode result))
+                if (Enum.TryParse<ExpandMode>(e, out ExpandMode result))
                 {
                     Expand = result;
                 }
             });
+        }
+
+        // 当 UserService 中的登录用户发生变化时触发
+        private void OnUserChanged(object sender, UserInfo? newUser)
+        {
+            CurrentUser = newUser ?? new UserInfo();
         }
 
         private void OnNavigated(FunctionEventArgs<object> args)
@@ -51,14 +64,11 @@ namespace PF.Application.Shell.ViewModels
                 {
                     string viewName = sideMenuItem.Tag.ToString();
 
-                    // 检查是否为参数管理相关的视图名称
-                    // 这里假设 SideMenu 的 Tag 设置为具体的参数实体类型名称，如 "CommonParam"
                     if (IsParameterView(viewName))
                     {
                         var parameters = new NavigationParameters();
                         parameters.Add("TargetParamType", viewName);
 
-                        // 统一导航到 ParameterView_SystemConfigParam，并传递具体的参数类型
                         RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
                         return;
                     }
@@ -70,62 +80,46 @@ namespace PF.Application.Shell.ViewModels
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                             break;
                         case nameof(NavigationConstants.Dialogs):
+                            // 打开登录弹窗，无需再手动赋值，因为有全局事件 OnUserChanged 在监听
                             DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
-                            CurrentUser = _userService.CurrentUser;
                             break;
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// 判断是否为参数配置页面类型
-        /// </summary>
         private bool IsParameterView(string viewName)
         {
             return viewName == NavigationConstants.Views.ParameterView_SystemConfigParam ||
                    viewName == NavigationConstants.Views.ParameterView_CommonParam ||
-                    viewName == NavigationConstants.Views.ParameterView_UserLoginParam ||
+                   viewName == NavigationConstants.Views.ParameterView_UserLoginParam ||
                    viewName == NavigationConstants.Views.ParameterView_HardWareParam;
         }
 
         private void OnLoginOverCallback()
         {
-
+            // 由于通过事件驱动了，这里可以留空，或者处理特定的弹窗关闭逻辑
         }
 
-        // 可选：添加导航回调以处理错误
         private void NavigationComplete(NavigationResult result)
         {
             if (result.Success == false && result.Exception != null)
             {
-                // 这里可以记录日志：导航失败
-                _logService.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
+                _logService?.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
             }
         }
 
         private string _SoftWareName = string.Empty;
-
         public string SoftWareName
         {
-            get
-            {
-                return _SoftWareName;
-            }
-            set
-            {
-                SetProperty(ref _SoftWareName, value);
-            }
+            get { return _SoftWareName; }
+            set { SetProperty(ref _SoftWareName, value); }
         }
 
         private string _CoName = string.Empty;
-
         public string CoName
         {
-            get
-            {
-                return _CoName;
-            }
+            get { return _CoName; }
             set { SetProperty(ref _CoName, value); }
         }
 
@@ -136,15 +130,12 @@ namespace PF.Application.Shell.ViewModels
             set { SetProperty(ref _sysTime, value); }
         }
 
-        private UserInfo _CurrentUser = new UserInfo();
-
+        private UserInfo _currentUser = new UserInfo();
         public UserInfo CurrentUser
         {
-            get { return _CurrentUser; }
-            set { SetProperty(ref _CurrentUser, value); }
+            get { return _currentUser; }
+            set { SetProperty(ref _currentUser, value); }
         }
-
-
 
         private ExpandMode _ExpandMode = ExpandMode.ShowAll;
         public ExpandMode Expand
@@ -164,10 +155,6 @@ namespace PF.Application.Shell.ViewModels
             _dbLogger = CategoryLoggerFactory.Database(_logService);
             _systemLogger = CategoryLoggerFactory.System(_logService);
             _custom = CategoryLoggerFactory.Custom(_logService);
-            CurrentUser = new UserInfo();
-
-            Assembly assembly = Assembly.GetEntryAssembly();
-            // 注意：这里需要确保 GetParamAsync 调用安全，或者在 Loaded 后调用
             try
             {
                 string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}";
@@ -178,7 +165,6 @@ namespace PF.Application.Shell.ViewModels
             }
             catch
             {
-                // 忽略初始化时的异常或记录日志
             }
 
             UPdataTime();
@@ -213,7 +199,6 @@ namespace PF.Application.Shell.ViewModels
                 while (!ct.IsCancellationRequested)
                 {
                     SysTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
                     await Task.Delay(500, ct);
                 }
             }

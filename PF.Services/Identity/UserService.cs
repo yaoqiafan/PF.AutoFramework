@@ -7,7 +7,7 @@ using PF.Data.Entity.Category;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text.Json; 
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace PF.Services.Identity
@@ -19,36 +19,43 @@ namespace PF.Services.Identity
 
         public UserInfo? CurrentUser { get; private set; }
 
+        // 实现用户变化事件
+        public event EventHandler<UserInfo?> CurrentUserChanged;
+
         public UserService(IParamService paramService, ILogService logService)
         {
             _paramService = paramService;
             _logService = logService;
 
-            // 【关键】注册映射关系：告诉 ParamService，遇到 UserInfo 类型的数据，
-            // 请存到 UserLoginParam 对应的数据库表中。
+            // 注册映射关系
             _paramService.RegisterParamType<UserLoginParam, UserInfo>();
+        }
+
+        private void OnCurrentUserChanged()
+        {
+            CurrentUserChanged?.Invoke(this, CurrentUser);
         }
 
         public async Task<bool> LoginAsync(string userName, string password)
         {
             try
             {
-                // 1. 直接通过 ParamService 获取用户信息
-                // GetParamAsync 内部会自动去 UserLoginParams 表查找 Name 为 userName 的记录并反序列化
                 var user = await _paramService.GetParamAsync<UserInfo>(userName);
 
                 if (user != null && user.Password == password)
                 {
                     CurrentUser = user;
                     _logService.Info($"用户 {userName} 登录成功", "Identity");
+                    OnCurrentUserChanged(); // 触发用户变化事件
                     return true;
                 }
 
-                // 2. 后备系统管理员通道 (防止数据库无数据时无法登录)
+                // 后备系统管理员通道
                 if (userName == "System" && password == "admin")
                 {
                     CurrentUser = UserInfo.SystemUser;
                     _logService.Info($"系统管理员 {userName} 登录成功 (后备通道)", "Identity");
+                    OnCurrentUserChanged(); // 触发用户变化事件
                     return true;
                 }
 
@@ -68,13 +75,13 @@ namespace PF.Services.Identity
             {
                 _logService.Info($"用户 {CurrentUser.UserName} 已注销", "Identity");
                 CurrentUser = null;
+                OnCurrentUserChanged(); // 触发用户变化事件
             }
         }
 
         public bool IsAuthorized(UserLevel requiredLevel)
         {
             if (CurrentUser == null) return false;
-            // 数值越大权限越高
             return (int)CurrentUser.Root >= (int)requiredLevel;
         }
 
@@ -83,10 +90,8 @@ namespace PF.Services.Identity
             var users = new ObservableCollection<UserInfo>();
             try
             {
-                // 1. 获取所有类型为 UserLoginParam 的参数信息
                 var paramInfos = await _paramService.GetParamsByCategoryAsync<UserLoginParam>();
 
-                // 2. 遍历并反序列化
                 foreach (var info in paramInfos)
                 {
                     if (string.IsNullOrWhiteSpace(info.ToString())) continue;
@@ -118,10 +123,6 @@ namespace PF.Services.Identity
 
             try
             {
-                // 直接调用 SetParamAsync
-                // Name = user.UserName (作为唯一键)
-                // Value = user (会被序列化存入 Content/JsonValue)
-                // UserInfo = CurrentUser (用于记录是谁修改的这个参数)
                 return await _paramService.SetParamAsync(
                     name: user.UserName,
                     value: user,
@@ -142,7 +143,6 @@ namespace PF.Services.Identity
 
             try
             {
-                // 直接调用 DeleteParamAsync，根据 Name 删除
                 return await _paramService.DeleteParamAsync(user.UserName, CurrentUser);
             }
             catch (Exception ex)

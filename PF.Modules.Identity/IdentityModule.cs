@@ -14,8 +14,8 @@ namespace PF.Modules.Identity
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            // 注册登录弹窗
-            containerRegistry.RegisterDialog<LoginView, LoginViewModel>(NavigationConstants.Dialogs.LoginView);
+            containerRegistry.RegisterSingleton<LoginViewModel>();
+            containerRegistry.RegisterForNavigation<LoginView>(NavigationConstants.Dialogs.LoginView);
             containerRegistry.RegisterForNavigation<PagePermissionView, PagePermissionViewModel>(NavigationConstants.Views.PagePermissionView);
         }
     }

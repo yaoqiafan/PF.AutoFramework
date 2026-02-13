@@ -1,9 +1,9 @@
 ﻿using PF.Core.Interfaces.Identity;
 using PF.UI.Infrastructure.PrismBase;
+using System;
 
 namespace PF.Modules.Identity.ViewModels
 {
-    // 继承自已有的 PFDialogViewModelBase
     public class LoginViewModel : PFDialogViewModelBase
     {
         private readonly IUserService _userService;
@@ -15,11 +15,14 @@ namespace PF.Modules.Identity.ViewModels
         public LoginViewModel(IUserService userService)
         {
             _userService = userService;
-            Title = "系统登录"; // 设置弹窗标题
+            Title = "系统登录";
 
             LoginCommand = new DelegateCommand(ExecuteLogin, CanExecuteLogin)
                 .ObservesProperty(() => UserName)
                 .ObservesProperty(() => Password)
+                .ObservesProperty(() => IsLoggingIn);
+
+            LogoutCommand = new DelegateCommand(ExecuteLogout, CanExecuteLogout)
                 .ObservesProperty(() => IsLoggingIn);
 
             CancelCommand = new DelegateCommand(ExecuteCancel);
@@ -51,6 +54,7 @@ namespace PF.Modules.Identity.ViewModels
 
         public DelegateCommand LoginCommand { get; }
         public DelegateCommand CancelCommand { get; }
+        public DelegateCommand LogoutCommand { get; }
 
         private bool CanExecuteLogin()
         {
@@ -69,9 +73,7 @@ namespace PF.Modules.Identity.ViewModels
                 var result = await _userService.LoginAsync(UserName, Password);
                 if (result)
                 {
-                    // 登录成功，关闭弹窗，返回 OK
                     var dialogResult = new DialogResult(ButtonResult.OK);
-                    // 假设父类暴露了 RequestClose 属性或方法
                     RequestClose.Invoke(dialogResult);
                 }
                 else
@@ -87,6 +89,21 @@ namespace PF.Modules.Identity.ViewModels
             {
                 IsLoggingIn = false;
             }
+        }
+
+        private bool CanExecuteLogout()
+        {
+            // 如果服务中有用户处于登录状态，并且当前没有正在执行登录动作，则允许注销
+            return _userService.CurrentUser != null && !IsLoggingIn;
+        }
+
+        private void ExecuteLogout()
+        {
+            _userService.Logout();
+            ErrorMessage = "当前用户已注销";
+            UserName = string.Empty;
+            Password = string.Empty;
+            // 也可以选择注销后直接关闭窗口: RequestClose.Invoke(new DialogResult(ButtonResult.OK));
         }
 
         private void ExecuteCancel()
