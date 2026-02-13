@@ -22,7 +22,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="账号" VerticalAlignment="Center" Foreground="#666"/>
-            <TextBox Grid.Column="1" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" 
+            <TextBox Grid.Column="1" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged,Mode=TwoWay}" 
                      Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
         </Grid>
 
@@ -43,7 +43,7 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
             <Button Content="登录" Command="{Binding LoginCommand}" IsDefault="True"
                     Width="75" Height="35" Margin="0,0,10,0"
-                    IsEnabled="{Binding IsLoggingIn, Converter={StaticResource Boolean2BooleanReConverter}}"/>
+                    IsEnabled="{Binding IsLoggingIn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource Boolean2BooleanReConverter}}"/>
 
             <Button Content="注销" Command="{Binding LogoutCommand}" 
                     Width="75" Height="35" Margin="0,0,10,0"/>

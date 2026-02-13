@@ -2,6 +2,7 @@
 using PF.Application.Shell.CustomConfiguration.Logging;
 using PF.Core.Constants;
 using PF.Core.Entities.Identity;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
@@ -12,8 +13,9 @@ using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
 using Prism.Navigation.Regions;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Reflection;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -33,16 +35,17 @@ namespace PF.Application.Shell.ViewModels
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public ObservableCollection<NavigationItem> MenuItems => _navigationMenuService.MenuItems;
+        // 核心修改1：直接实例化集合，保证内存引用不变，避免UI假死
+        public ObservableCollection<NavigationItem> MenuItems { get; } = new ObservableCollection<NavigationItem>();
 
         public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService)
         {
             _paramService = paramService;
             _userService = userService;
-            _navigationMenuService = navigationMenuService; // 注入导航服务
+            _navigationMenuService = navigationMenuService;
 
             _userService.CurrentUserChanged += OnUserChanged;
-            CurrentUser = _userService.CurrentUser ?? new UserInfo();
+            CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
 
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
@@ -55,46 +58,80 @@ namespace PF.Application.Shell.ViewModels
             });
         }
 
-        // 当 UserService 中的登录用户发生变化时触发
         private void OnUserChanged(object sender, UserInfo? newUser)
         {
-            CurrentUser = newUser ?? new UserInfo();
+            CurrentUser = newUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
+
+            RefreshMenu();
         }
 
-        //private void OnNavigated(FunctionEventArgs<object> args)
-        //{
-        //    if (args != null && args.Info is SideMenuItem sideMenuItem)
-        //    {
-        //        if (sideMenuItem.Tag != null)
-        //        {
-        //            string viewName = sideMenuItem.Tag.ToString();
+        private void RefreshMenu()
+        {
+            var allSystemMenus = _navigationMenuService.MenuItems;
+            var filteredMenus = FilterMenuTree(allSystemMenus, CurrentUser);
 
-        //            if (IsParameterView(viewName))
-        //            {
-        //                var parameters = new NavigationParameters();
-        //                parameters.Add("TargetParamType", viewName);
+            // 核心修改2：在 UI 线程原地清空和添加，刷新控件的选择状态
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                MenuItems.Clear();
+                foreach (var item in filteredMenus)
+                {
+                    MenuItems.Add(item);
+                }
+            });
+        }
 
-        //                RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
-        //                return;
-        //            }
+        private bool IsWhiteListView(string viewName)
+        {
+            if (string.IsNullOrEmpty(viewName)) return false;
+            if (NavigationConstantMapper.GetCategory(viewName) == nameof(NavigationConstants.Dialogs)) return true;
+            return false;
+        }
 
-        //            string category = NavigationConstantMapper.GetCategory(viewName);
-        //            switch (category)
-        //            {
-        //                case nameof(NavigationConstants.Views):
-        //                    RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
-        //                    break;
-        //                case nameof(NavigationConstants.Dialogs):
-        //                    // 打开登录弹窗，无需再手动赋值，因为有全局事件 OnUserChanged 在监听
-        //                    DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
-        //                    break;
-        //            }
-        //        }
-        //    }
-        //}
+        private ObservableCollection<NavigationItem> FilterMenuTree(IEnumerable<NavigationItem> originalItems, UserInfo user)
+        {
+            var filteredCollection = new ObservableCollection<NavigationItem>();
 
+            if (originalItems == null || !originalItems.Any()) return filteredCollection;
 
-        // 在 MainWindowViewModel.cs 中
+            user ??= new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
+
+            bool isSuperAdmin = user.Root == UserLevel.SuperUser || user.Root == UserLevel.Administrator;
+            var allowedViews = user.AccessibleViews ?? new List<string>();
+
+            foreach (var item in originalItems)
+            {
+                var clonedItem = new NavigationItem
+                {
+                    ViewName = item.ViewName,
+                    Title = item.Title,
+                    Icon = item.Icon,
+                    Order = item.Order,
+                    NavigationParameter = item.NavigationParameter,
+                    Children = new ObservableCollection<NavigationItem>()
+                };
+
+                if (item.Children != null && item.Children.Any())
+                {
+                    var filteredChildren = FilterMenuTree(item.Children, user);
+                    if (filteredChildren.Any())
+                    {
+                        clonedItem.Children = filteredChildren;
+                        filteredCollection.Add(clonedItem);
+                    }
+                }
+                else
+                {
+                    // 满足白名单、超管、或配置权限其一即展示
+                    if (isSuperAdmin || allowedViews.Contains(clonedItem.ViewName) || IsWhiteListView(clonedItem.ViewName))
+                    {
+                        filteredCollection.Add(clonedItem);
+                    }
+                }
+            }
+            return filteredCollection;
+        }
+
         private void OnNavigated(FunctionEventArgs<object> args)
         {
             if (args != null && args.Info is SideMenuItem sideMenuItem)
@@ -107,7 +144,6 @@ namespace PF.Application.Shell.ViewModels
                     {
                         var parameters = new NavigationParameters();
                         parameters.Add("TargetParamType", viewName);
-
                         RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
                         return;
                     }
@@ -119,32 +155,9 @@ namespace PF.Application.Shell.ViewModels
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                             break;
                         case nameof(NavigationConstants.Dialogs):
-                            // 打开登录弹窗，无需再手动赋值，因为有全局事件 OnUserChanged 在监听
                             DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
                             break;
                     }
-
-
-
-
-
-
-                    //if (navItem.IsDialog)
-                    //{
-                    //    // 打开登录弹窗
-                    //    DialogService.ShowDialog(navItem.ViewName, OnLoginOverCallback);
-                    //}
-                    //else
-                    //{
-                    //    // 页面跳转，同时支持携带参数
-                    //    var parameters = new NavigationParameters();
-                    //    if (!string.IsNullOrEmpty(navItem.NavigationParameter))
-                    //    {
-                    //        parameters.Add("TargetParamType", navItem.NavigationParameter);
-                    //    }
-
-                    //    RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, navItem.ViewName, NavigationComplete, parameters);
-                    //}
                 }
             }
         }
@@ -157,10 +170,7 @@ namespace PF.Application.Shell.ViewModels
                    viewName == NavigationConstants.Views.ParameterView_HardWareParam;
         }
 
-        private void OnLoginOverCallback()
-        {
-            // 由于通过事件驱动了，这里可以留空，或者处理特定的弹窗关闭逻辑
-        }
+        private void OnLoginOverCallback() { }
 
         private void NavigationComplete(NavigationResult result)
         {
@@ -212,27 +222,30 @@ namespace PF.Application.Shell.ViewModels
         private async void OnLoading()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
-
             _dbLogger = CategoryLoggerFactory.Database(_logService);
             _systemLogger = CategoryLoggerFactory.System(_logService);
             _custom = CategoryLoggerFactory.Custom(_logService);
-            RaisePropertyChanged(nameof(MenuItems));
+
+            // 首次进入主界面时执行过滤，拦截无权限页面
+            RefreshMenu();
+
+            // 如果未登录，强制弹窗
+            if (CurrentUser == null || CurrentUser.Root == UserLevel.Null)
+            {
+                DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
+            }
+
             try
             {
-                string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}";
-                SoftWareName = name;
-
-                name = await _paramService.GetParamAsync<string>("COName");
-                CoName = name;
+                SoftWareName = $"{await _paramService.GetParamAsync<string>("SoftWareName")}";
+                CoName = await _paramService.GetParamAsync<string>("COName");
             }
-            catch
-            {
-            }
+            catch { }
 
             UPdataTime();
         }
 
-        #region 公共
+        #region 公共时间刷新
         public void UPdataTime()
         {
             _cts = new CancellationTokenSource();
@@ -247,10 +260,7 @@ namespace PF.Application.Shell.ViewModels
         public async Task StopAsync()
         {
             _cts?.Cancel();
-            if (_runningTask != null)
-            {
-                await _runningTask;
-            }
+            if (_runningTask != null) await _runningTask;
             _cts?.Dispose();
         }
 
@@ -264,12 +274,8 @@ namespace PF.Application.Shell.ViewModels
                     await Task.Delay(500, ct);
                 }
             }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception ex)
-            {
-            }
+            catch (OperationCanceledException) { }
+            catch (Exception) { }
         }
         #endregion
     }
