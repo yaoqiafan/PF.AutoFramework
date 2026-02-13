@@ -1,258 +1,343 @@
-﻿using System;
+﻿using PF.UI.Shared.Data;
+using System;
 using System.Linq;
 using System.Windows;
-using PF.UI.Shared.Data;
+using System.Windows.Controls;
 
-namespace PF.UI.Controls;
-
-public class SideMenu : HeaderedSimpleItemsControl
+namespace PF.UI.Controls
 {
-    private SideMenuItem _selectedItem;
-
-    private SideMenuItem _selectedHeader;
-
-    private bool _isItemSelected;
-
-    public SideMenu()
+    public class SideMenu : HeaderedSimpleItemsControl
     {
-        AddHandler(SideMenuItem.SelectedEvent, new RoutedEventHandler(SideMenuItemSelected));
+        private SideMenuItem _selectedItem;
+        private SideMenuItem _selectedHeader;
+        private bool _isItemSelected;
 
-        Loaded += (s, e) => Init();
-    }
+        // =========================================================================
+        // 新增：SelectedItem 依赖属性，支持双向绑定
+        // =========================================================================
+        public static readonly DependencyProperty SelectedItemProperty = DependencyProperty.Register(
+            nameof(SelectedItem), typeof(object), typeof(SideMenu),
+            new FrameworkPropertyMetadata(default(object), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedItemChanged));
 
-    protected override void Refresh()
-    {
-        base.Refresh();
-
-        Init();
-    }
-
-    private void Init()
-    {
-        if (ItemsHost == null) return;
-
-        OnExpandModeChanged(ExpandMode);
-    }
-
-    private void SideMenuItemSelected(object sender, RoutedEventArgs e)
-    {
-        if (e.OriginalSource is SideMenuItem item)
+        public object SelectedItem
         {
-            if (item.Role == SideMenuItemRole.Item)
+            get => GetValue(SelectedItemProperty);
+            set => SetValue(SelectedItemProperty, value);
+        }
+
+        private static void OnSelectedItemChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var ctl = (SideMenu)d;
+            if (e.NewValue == null)
             {
-                _isItemSelected = true;
-
-                if (Equals(item, _selectedItem)) return;
-
-                if (_selectedItem != null)
-                {
-                    _selectedItem.IsSelected = false;
-                }
-
-                _selectedItem = item;
-                _selectedItem.IsSelected = true;
-                RaiseEvent(new FunctionEventArgs<object>(SelectionChangedEvent, this)
-                {
-                    Info = e.OriginalSource
-                });
+                ctl.ClearAllSelection();          // 外部设为 null 时清除所有选中
             }
             else
             {
-                if (!Equals(item, _selectedHeader))
-                {
-                    if (_selectedHeader != null)
-                    {
-                        if (ExpandMode == ExpandMode.Freedom && item.ItemsHost.IsVisible && !_isItemSelected)
-                        {
-                            item.IsSelected = false;
-                            SwitchPanelArea(item);
-                            return;
-                        }
-
-                        _selectedHeader.IsSelected = false;
-                        if (ExpandMode != ExpandMode.Freedom)
-                        {
-                            SwitchPanelArea(_selectedHeader);
-                        }
-                    }
-
-                    _selectedHeader = item;
-                    _selectedHeader.IsSelected = true;
-                    SwitchPanelArea(_selectedHeader);
-                }
-                else if (ExpandMode == ExpandMode.Freedom && !_isItemSelected)
-                {
-                    _selectedHeader.IsSelected = false;
-                    SwitchPanelArea(_selectedHeader);
-                    _selectedHeader = null;
-                }
-
-                if (_isItemSelected)
-                {
-                    _isItemSelected = false;
-                }
-                else if (_selectedHeader != null)
-                {
-                    if (AutoSelect)
-                    {
-                        if (_selectedItem != null)
-                        {
-                            _selectedItem.IsSelected = false;
-                            _selectedItem = null;
-                        }
-
-                        _selectedHeader.SelectDefaultItem();
-                    }
-                    _isItemSelected = false;
-                }
-
-                if (!item.HasItems)
-                {
-                    RaiseEvent(new FunctionEventArgs<object>(SelectionChangedEvent, this)
-                    {
-                        Info = e.OriginalSource
-                    });
-                }
+                ctl.SyncUISelection(e.NewValue);  // 外部设置非空值时同步 UI 选中状态
             }
         }
-    }
 
-    private void SwitchPanelArea(SideMenuItem oldItem)
-    {
-        switch (ExpandMode)
+        // 清除所有选中项（包括 Header 和 Item）
+        private void ClearAllSelection()
         {
-            case ExpandMode.ShowAll:
-                return;
-            case ExpandMode.ShowOne:
-            case ExpandMode.Freedom:
-            case ExpandMode.Accordion:
-                oldItem.SwitchPanelArea(oldItem.IsSelected);
-                break;
-        }
-    }
-
-    protected override DependencyObject GetContainerForItemOverride() => new SideMenuItem();
-
-    protected override bool IsItemItsOwnContainerOverride(object item) => item is SideMenuItem;
-
-    public static readonly DependencyProperty AutoSelectProperty = DependencyProperty.Register(
-        nameof(AutoSelect), typeof(bool), typeof(SideMenu), new PropertyMetadata(ValueBoxes.TrueBox));
-
-    public bool AutoSelect
-    {
-        get => (bool) GetValue(AutoSelectProperty);
-        set => SetValue(AutoSelectProperty, ValueBoxes.BooleanBox(value));
-    }
-
-    public static readonly DependencyProperty ExpandModeProperty = DependencyProperty.Register(
-        nameof(ExpandMode), typeof(ExpandMode), typeof(SideMenu), new PropertyMetadata(default(ExpandMode), OnExpandModeChanged));
-
-    private static void OnExpandModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        var ctl = (SideMenu) d;
-        var v = (ExpandMode) e.NewValue;
-
-        if (ctl.ItemsHost == null)
-        {
-            return;
-        }
-
-        ctl.OnExpandModeChanged(v);
-    }
-
-    private void OnExpandModeChanged(ExpandMode mode)
-    {
-        if (mode == ExpandMode.ShowAll)
-        {
-            ShowAll();
-        }
-        else if (mode == ExpandMode.ShowOne)
-        {
-            SideMenuItem sideMenuItemSelected = null;
-            foreach (var sideMenuItem in ItemsHost.Children.OfType<SideMenuItem>())
+            if (_selectedItem != null)
             {
-                if (sideMenuItemSelected != null)
+                _selectedItem.IsSelected = false;
+                _selectedItem = null;
+            }
+            if (_selectedHeader != null)
+            {
+                _selectedHeader.IsSelected = false;
+                _selectedHeader = null;
+            }
+            _isItemSelected = false;
+        }
+
+        // 根据外部传入的数据对象，在视觉树中查找对应的 SideMenuItem 并设为选中
+        private void SyncUISelection(object data)
+        {
+            if (data == null || ItemsHost == null) return;
+
+            var target = FindSideMenuItemByData(ItemsHost.Children, data);
+            if (target != null)
+            {
+                ClearAllSelection();               // 先取消当前选中
+                target.IsSelected = true;           // 设置新选中（会触发 SideMenuItem 内部的面板展开等逻辑）
+                if (target.Role == SideMenuItemRole.Item)
+                    _selectedItem = target;
+                else
+                    _selectedHeader = target;
+            }
+        }
+
+        // 递归查找 DataContext 或自身与指定数据匹配的 SideMenuItem
+        private SideMenuItem FindSideMenuItemByData(UIElementCollection container, object data)
+        {
+            if (container == null) return null;
+            foreach (var child in container.OfType<SideMenuItem>())
+            {
+                if (child.DataContext == data || child == data)
+                    return child;
+
+                if (child.ItemsHost != null)
                 {
-                    sideMenuItem.IsSelected = false;
-                    if (sideMenuItem.ItemsHost != null)
-                    {
-                        foreach (var sideMenuSubItem in sideMenuItem.ItemsHost.Children.OfType<SideMenuItem>())
-                        {
-                            sideMenuSubItem.IsSelected = false;
-                        }
-                    }
+                    var found = FindSideMenuItemByData(child.ItemsHost.Children, data);
+                    if (found != null)
+                        return found;
                 }
-                else if (sideMenuItem.IsSelected)
+            }
+            return null;
+        }
+        // =========================================================================
+
+        public SideMenu()
+        {
+            AddHandler(SideMenuItem.SelectedEvent, new RoutedEventHandler(SideMenuItemSelected));
+            Loaded += (s, e) => Init();
+        }
+
+        protected override void Refresh()
+        {
+            base.Refresh();
+            Init();
+        }
+
+        private void Init()
+        {
+            if (ItemsHost == null) return;
+            OnExpandModeChanged(ExpandMode);
+        }
+
+        // -------------------------------------------------------------------------
+        // 核心：菜单项点击处理（保留原完整逻辑，仅增加 SelectedItem 更新）
+        // -------------------------------------------------------------------------
+        private void SideMenuItemSelected(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is SideMenuItem item)
+            {
+                object itemData = item.DataContext ?? item;   // 获取项对应的业务数据
+
+                if (item.Role == SideMenuItemRole.Item)       // 叶子项选中
                 {
-                    switch (sideMenuItem.Role)
+                    _isItemSelected = true;
+
+                    // 如果当前项已是选中项且 SelectedItem 不为 null（未被外部重置），则忽略重复点击
+                    if (Equals(item, _selectedItem) && SelectedItem != null)
+                        return;
+
+                    if (_selectedItem != null)
+                        _selectedItem.IsSelected = false;
+
+                    _selectedItem = item;
+                    _selectedItem.IsSelected = true;
+
+                    // 【新增】更新绑定属性，通知 ViewModel
+                    SelectedItem = itemData;
+
+                    RaiseSelectionChanged(e.OriginalSource);
+                }
+                else                                            // Header 项选中
+                {
+                    // ---------- 以下为原有 Header 处理逻辑，仅添加了无子项时的 SelectedItem 赋值 ----------
+                    if (!Equals(item, _selectedHeader))
                     {
-                        case SideMenuItemRole.Header:
-                            _selectedHeader = sideMenuItem;
-                            break;
-                        case SideMenuItemRole.Item:
-                            _selectedItem = sideMenuItem;
-                            break;
+                        if (_selectedHeader != null)
+                        {
+                            if (ExpandMode == ExpandMode.Freedom && item.ItemsHost != null && item.ItemsHost.IsVisible && !_isItemSelected)
+                            {
+                                item.IsSelected = false;
+                                SwitchPanelArea(item);
+                                return;
+                            }
+
+                            _selectedHeader.IsSelected = false;
+                            if (ExpandMode != ExpandMode.Freedom)
+                            {
+                                SwitchPanelArea(_selectedHeader);
+                            }
+                        }
+
+                        _selectedHeader = item;
+                        _selectedHeader.IsSelected = true;
+                        SwitchPanelArea(_selectedHeader);
+                    }
+                    else if (ExpandMode == ExpandMode.Freedom && !_isItemSelected)
+                    {
+                        _selectedHeader.IsSelected = false;
+                        SwitchPanelArea(_selectedHeader);
+                        _selectedHeader = null;
                     }
 
-                    ShowSelectedOne(sideMenuItem);
-                    sideMenuItemSelected = sideMenuItem;
-
-                    if (sideMenuItem.ItemsHost != null)
+                    if (_isItemSelected)
                     {
-                        foreach (var sideMenuSubItem in sideMenuItem.ItemsHost.Children.OfType<SideMenuItem>())
+                        _isItemSelected = false;
+                    }
+                    else if (_selectedHeader != null)
+                    {
+                        if (AutoSelect)
                         {
                             if (_selectedItem != null)
                             {
-                                sideMenuSubItem.IsSelected = false;
+                                _selectedItem.IsSelected = false;
+                                _selectedItem = null;
                             }
-                            else if (sideMenuSubItem.IsSelected)
+                            _selectedHeader.SelectDefaultItem();  // 自动选择默认子项，会触发子项的 SelectedEvent
+                        }
+                        _isItemSelected = false;
+                    }
+
+                    // 【新增】如果 Header 本身没有子项，则将其视为可选中项，更新 SelectedItem
+                    if (!item.HasItems)
+                    {
+                        SelectedItem = itemData;
+                        RaiseSelectionChanged(e.OriginalSource);
+                    }
+                    // ---------- Header 处理结束 ----------
+                }
+            }
+        }
+
+        private void RaiseSelectionChanged(object info)
+        {
+            RaiseEvent(new FunctionEventArgs<object>(SelectionChangedEvent, this)
+            {
+                Info = info
+            });
+        }
+
+        // -------------------------------------------------------------------------
+        // 面板切换辅助方法
+        // -------------------------------------------------------------------------
+        private void SwitchPanelArea(SideMenuItem oldItem)
+        {
+            switch (ExpandMode)
+            {
+                case ExpandMode.ShowAll:
+                    return;
+                case ExpandMode.ShowOne:
+                case ExpandMode.Freedom:
+                case ExpandMode.Accordion:
+                    oldItem.SwitchPanelArea(oldItem.IsSelected);
+                    break;
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 容器生成与识别
+        // -------------------------------------------------------------------------
+        protected override DependencyObject GetContainerForItemOverride() => new SideMenuItem();
+        protected override bool IsItemItsOwnContainerOverride(object item) => item is SideMenuItem;
+
+        // -------------------------------------------------------------------------
+        // 依赖属性：AutoSelect, ExpandMode, PanelAreaLength
+        // -------------------------------------------------------------------------
+        public static readonly DependencyProperty AutoSelectProperty = DependencyProperty.Register(
+            nameof(AutoSelect), typeof(bool), typeof(SideMenu), new PropertyMetadata(ValueBoxes.TrueBox));
+
+        public bool AutoSelect
+        {
+            get => (bool)GetValue(AutoSelectProperty);
+            set => SetValue(AutoSelectProperty, ValueBoxes.BooleanBox(value));
+        }
+
+        public static readonly DependencyProperty ExpandModeProperty = DependencyProperty.Register(
+            nameof(ExpandMode), typeof(ExpandMode), typeof(SideMenu), new PropertyMetadata(default(ExpandMode), OnExpandModeChanged));
+
+        public ExpandMode ExpandMode
+        {
+            get => (ExpandMode)GetValue(ExpandModeProperty);
+            set => SetValue(ExpandModeProperty, value);
+        }
+
+        private static void OnExpandModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var ctl = (SideMenu)d;
+            if (ctl.ItemsHost == null) return;
+            ctl.OnExpandModeChanged((ExpandMode)e.NewValue);
+        }
+
+        // 【保留原有复杂逻辑】当 ExpandMode 变为 ShowOne 时，确保只有一个顶级项展开，并同步内部选中状态
+        private void OnExpandModeChanged(ExpandMode mode)
+        {
+            if (mode == ExpandMode.ShowAll)
+            {
+                ShowAll();
+            }
+            else if (mode == ExpandMode.ShowOne)
+            {
+                SideMenuItem sideMenuItemSelected = null;
+                foreach (var sideMenuItem in ItemsHost.Children.OfType<SideMenuItem>())
+                {
+                    if (sideMenuItemSelected != null)
+                    {
+                        sideMenuItem.IsSelected = false;
+                        if (sideMenuItem.ItemsHost != null)
+                        {
+                            foreach (var sub in sideMenuItem.ItemsHost.Children.OfType<SideMenuItem>())
+                                sub.IsSelected = false;
+                        }
+                    }
+                    else if (sideMenuItem.IsSelected)
+                    {
+                        switch (sideMenuItem.Role)
+                        {
+                            case SideMenuItemRole.Header:
+                                _selectedHeader = sideMenuItem;
+                                break;
+                            case SideMenuItemRole.Item:
+                                _selectedItem = sideMenuItem;
+                                break;
+                        }
+                        ShowSelectedOne(sideMenuItem);
+                        sideMenuItemSelected = sideMenuItem;
+
+                        if (sideMenuItem.ItemsHost != null)
+                        {
+                            foreach (var sub in sideMenuItem.ItemsHost.Children.OfType<SideMenuItem>())
                             {
-                                _selectedItem = sideMenuSubItem;
+                                if (_selectedItem != null)
+                                    sub.IsSelected = false;
+                                else if (sub.IsSelected)
+                                    _selectedItem = sub;
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    public ExpandMode ExpandMode
-    {
-        get => (ExpandMode) GetValue(ExpandModeProperty);
-        set => SetValue(ExpandModeProperty, value);
-    }
-
-    public static readonly DependencyProperty PanelAreaLengthProperty = DependencyProperty.Register(
-        nameof(PanelAreaLength), typeof(double), typeof(SideMenu), new PropertyMetadata(double.NaN));
-
-    public double PanelAreaLength
-    {
-        get => (double) GetValue(PanelAreaLengthProperty);
-        set => SetValue(PanelAreaLengthProperty, value);
-    }
-
-    private void ShowAll()
-    {
-        foreach (var sideMenuItem in ItemsHost.Children.OfType<SideMenuItem>())
+        private void ShowAll()
         {
-            sideMenuItem.SwitchPanelArea(true);
+            foreach (var item in ItemsHost.Children.OfType<SideMenuItem>())
+                item.SwitchPanelArea(true);
         }
-    }
 
-    private void ShowSelectedOne(SideMenuItem item)
-    {
-        foreach (var sideMenuItem in ItemsHost.Children.OfType<SideMenuItem>())
+        private void ShowSelectedOne(SideMenuItem item)
         {
-            sideMenuItem.SwitchPanelArea(Equals(sideMenuItem, item));
+            foreach (var other in ItemsHost.Children.OfType<SideMenuItem>())
+                other.SwitchPanelArea(Equals(other, item));
         }
-    }
 
-    public static readonly RoutedEvent SelectionChangedEvent = EventManager.RegisterRoutedEvent(
-        "SelectionChanged", RoutingStrategy.Bubble, typeof(EventHandler<FunctionEventArgs<object>>), typeof(SideMenu));
+        public static readonly DependencyProperty PanelAreaLengthProperty = DependencyProperty.Register(
+            nameof(PanelAreaLength), typeof(double), typeof(SideMenu), new PropertyMetadata(double.NaN));
 
-    public event EventHandler<FunctionEventArgs<object>> SelectionChanged
-    {
-        add => AddHandler(SelectionChangedEvent, value);
-        remove => RemoveHandler(SelectionChangedEvent, value);
+        public double PanelAreaLength
+        {
+            get => (double)GetValue(PanelAreaLengthProperty);
+            set => SetValue(PanelAreaLengthProperty, value);
+        }
+
+        // -------------------------------------------------------------------------
+        // 路由事件：SelectionChanged
+        // -------------------------------------------------------------------------
+        public static readonly RoutedEvent SelectionChangedEvent = EventManager.RegisterRoutedEvent(
+            "SelectionChanged", RoutingStrategy.Bubble, typeof(EventHandler<FunctionEventArgs<object>>), typeof(SideMenu));
+
+        public event EventHandler<FunctionEventArgs<object>> SelectionChanged
+        {
+            add => AddHandler(SelectionChangedEvent, value);
+            remove => RemoveHandler(SelectionChangedEvent, value);
+        }
     }
 }

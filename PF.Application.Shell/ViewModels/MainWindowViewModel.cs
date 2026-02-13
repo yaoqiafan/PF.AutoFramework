@@ -24,6 +24,7 @@ namespace PF.Application.Shell.ViewModels
 {
     public class MainWindowViewModel : RegionViewModelBase
     {
+        #region 私有字段
         private readonly IParamService _paramService;
         private readonly IUserService _userService;
         private readonly INavigationMenuService _navigationMenuService;
@@ -34,10 +35,13 @@ namespace PF.Application.Shell.ViewModels
         private CategoryLogger _custom;
         private CancellationTokenSource _cts;
         private Task _runningTask;
+        #endregion
 
-        // 核心修改1：直接实例化集合，保证内存引用不变，避免UI假死
+        #region 公共集合
         public ObservableCollection<NavigationItem> MenuItems { get; } = new ObservableCollection<NavigationItem>();
+        #endregion
 
+        #region 构造函数
         public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService)
         {
             _paramService = paramService;
@@ -57,20 +61,42 @@ namespace PF.Application.Shell.ViewModels
                 }
             });
         }
+        #endregion
 
+        #region 用户变更处理
         private void OnUserChanged(object sender, UserInfo? newUser)
         {
             CurrentUser = newUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
 
             RefreshMenu();
-        }
 
+            if (CurrentUser.Root == UserLevel.Null)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // 重置主显示区域，确保注销后屏幕不留敏感数据
+                    if (RegionManager.Regions.ContainsRegionWithName(NavigationConstants.Regions.SoftwareViewRegion))
+                    {
+                        var region = RegionManager.Regions[NavigationConstants.Regions.SoftwareViewRegion];
+
+                        foreach (var view in region.Views.ToArray())
+                        {
+                            region.Remove(view);
+                        }
+                    }
+
+                    SelectedMenuItem = null;
+                });
+            }
+        }
+        #endregion
+
+        #region 菜单刷新与权限过滤
         private void RefreshMenu()
         {
             var allSystemMenus = _navigationMenuService.MenuItems;
             var filteredMenus = FilterMenuTree(allSystemMenus, CurrentUser);
 
-            // 核心修改2：在 UI 线程原地清空和添加，刷新控件的选择状态
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 MenuItems.Clear();
@@ -122,7 +148,6 @@ namespace PF.Application.Shell.ViewModels
                 }
                 else
                 {
-                    // 满足白名单、超管、或配置权限其一即展示
                     if (isSuperAdmin || allowedViews.Contains(clonedItem.ViewName) || IsWhiteListView(clonedItem.ViewName))
                     {
                         filteredCollection.Add(clonedItem);
@@ -131,7 +156,9 @@ namespace PF.Application.Shell.ViewModels
             }
             return filteredCollection;
         }
+        #endregion
 
+        #region 导航处理
         private void OnNavigated(FunctionEventArgs<object> args)
         {
             if (args != null && args.Info is SideMenuItem sideMenuItem)
@@ -154,8 +181,10 @@ namespace PF.Application.Shell.ViewModels
                         case nameof(NavigationConstants.Views):
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                             break;
+
                         case nameof(NavigationConstants.Dialogs):
                             DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
+                            SelectedMenuItem = null;
                             break;
                     }
                 }
@@ -179,12 +208,21 @@ namespace PF.Application.Shell.ViewModels
                 _logService?.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
             }
         }
+        #endregion
 
+        #region 公共属性
         private string _SoftWareName = string.Empty;
         public string SoftWareName
         {
             get { return _SoftWareName; }
             set { SetProperty(ref _SoftWareName, value); }
+        }
+
+        private object _selectedMenuItem;
+        public object SelectedMenuItem
+        {
+            get { return _selectedMenuItem; }
+            set { SetProperty(ref _selectedMenuItem, value); }
         }
 
         private string _CoName = string.Empty;
@@ -214,11 +252,15 @@ namespace PF.Application.Shell.ViewModels
             get { return _ExpandMode; }
             set { SetProperty(ref _ExpandMode, value); }
         }
+        #endregion
 
+        #region 命令属性
         public ICommand LoadCommand { get; set; }
         public ICommand SwitchItemCmd { get; set; }
         public ICommand ChangeExpandCmd { get; set; }
+        #endregion
 
+        #region 加载初始化
         private async void OnLoading()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
@@ -226,10 +268,8 @@ namespace PF.Application.Shell.ViewModels
             _systemLogger = CategoryLoggerFactory.System(_logService);
             _custom = CategoryLoggerFactory.Custom(_logService);
 
-            // 首次进入主界面时执行过滤，拦截无权限页面
             RefreshMenu();
 
-            // 如果未登录，强制弹窗
             if (CurrentUser == null || CurrentUser.Root == UserLevel.Null)
             {
                 DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
@@ -244,6 +284,7 @@ namespace PF.Application.Shell.ViewModels
 
             UPdataTime();
         }
+        #endregion
 
         #region 公共时间刷新
         public void UPdataTime()

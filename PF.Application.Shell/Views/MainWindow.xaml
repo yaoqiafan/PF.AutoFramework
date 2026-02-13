@@ -287,7 +287,7 @@
                 </Grid.RowDefinitions>
 
                 <pf:ButtonGroup Grid.Row="1" Margin="5">
-                    <RadioButton
+                    <RadioButton IsChecked="True"
                         pf:IconElement.Geometry="{StaticResource AlignRightGeometry}"
                         Command="{Binding ChangeExpandCmd}"
                         CommandParameter="ShowOne" />
@@ -305,6 +305,7 @@
                     Margin="5"
                     AutoSelect="False"
                     BorderThickness="1"
+                    SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
                     ExpandMode="{Binding Expand}">
                     <pf:Interaction.Triggers>
                         <pf:EventTrigger EventName="SelectionChanged">

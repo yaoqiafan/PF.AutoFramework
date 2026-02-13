@@ -21,7 +21,6 @@ namespace PF.UI.Infrastructure.Navigation
 
             foreach (var type in viewTypes)
             {
-                // 👇 关键修改：获取该类上的所有导航特性（支持一个视图挂多个菜单）
                 var attributes = type.GetCustomAttributes<ModuleNavigationAttribute>();
 
                 foreach (var attr in attributes)
@@ -34,7 +33,6 @@ namespace PF.UI.Infrastructure.Navigation
                         group = new NavigationItem
                         {
                             Title = groupName,
-                            // 👇 关键修改 1：分组的排序字段使用 GroupOrder
                             Order = attr.GroupOrder,
                             Icon = attr.GroupIcon
                         };
@@ -42,7 +40,6 @@ namespace PF.UI.Infrastructure.Navigation
                     }
                     else
                     {
-                        // 👇 关键修改 2：如果同一个分组的其他标签指定了更小的 GroupOrder，则更新它（容错处理）
                         if (attr.GroupOrder < group.Order)
                             group.Order = attr.GroupOrder;
 
@@ -50,14 +47,13 @@ namespace PF.UI.Infrastructure.Navigation
                             group.Icon = attr.GroupIcon;
                     }
 
-                    // 添加子节点（子节点自身的排序依然使用 Order）
                     group.Children.Add(new NavigationItem
                     {
                         Title = attr.Title,
                         ViewName = attr.ViewName,
                         Icon = attr.Icon,
                         NavigationParameter = attr.NavigationParameter,
-                        Order = attr.Order // 👈 子节点用 Order
+                        Order = attr.Order 
                     });
                 }
             }
