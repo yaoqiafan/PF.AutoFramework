@@ -3,13 +3,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:PF.UI.Resources"
     xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls">
-   
+
     <Storyboard x:Key="Right2LeftTransition" x:Shared="False">
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)"
-            From="50"
+            From="100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -19,9 +19,9 @@
     <Storyboard x:Key="Left2RightTransition" x:Shared="False">
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)"
-            From="-50"
+            From="-100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -31,9 +31,9 @@
     <Storyboard x:Key="Bottom2TopTransition" x:Shared="False">
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)"
-            From="50"
+            From="100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -43,9 +43,9 @@
     <Storyboard x:Key="Top2BottomTransition" x:Shared="False">
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)"
-            From="-50"
+            From="-100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -57,12 +57,12 @@
             Storyboard.TargetProperty="(UIElement.Opacity)"
             From="0"
             To="1"
-            Duration="0:0:0.4" />
+            Duration="0:0:0.8" />
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)"
-            From="50"
+            From="100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -74,12 +74,12 @@
             Storyboard.TargetProperty="(UIElement.Opacity)"
             From="0"
             To="1"
-            Duration="0:0:0.4" />
+            Duration="0:0:0.8" />
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)"
-            From="-50"
+            From="-100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -91,12 +91,12 @@
             Storyboard.TargetProperty="(UIElement.Opacity)"
             From="0"
             To="1"
-            Duration="0:0:0.4" />
+            Duration="0:0:0.8" />
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)"
-            From="50"
+            From="100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -108,12 +108,12 @@
             Storyboard.TargetProperty="(UIElement.Opacity)"
             From="0"
             To="1"
-            Duration="0:0:0.4" />
+            Duration="0:0:0.8" />
         <DoubleAnimation
             Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)"
-            From="-50"
+            From="-100"
             To="0"
-            Duration="0:0:0.4">
+            Duration="0:0:0.8">
             <DoubleAnimation.EasingFunction>
                 <CubicEase EasingMode="EaseOut" />
             </DoubleAnimation.EasingFunction>
@@ -125,7 +125,7 @@
             Storyboard.TargetProperty="(UIElement.Opacity)"
             From="0"
             To="1"
-            Duration="0:0:0.4" />
+            Duration="0:0:0.8" />
     </Storyboard>
 
     <Style TargetType="pfcontrol:TransitioningContentControl">

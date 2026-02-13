@@ -1,9 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PF.Application.Shell.CustomConfiguration.Logging;
 using PF.Core.Constants;
+using PF.Core.Entities.Identity;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
+using PF.Services.Identity;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
@@ -15,6 +18,7 @@ namespace PF.Application.Shell.ViewModels
     public class MainWindowViewModel : RegionViewModelBase
     {
         private readonly IParamService _paramService;
+        private readonly IUserService _userService;
         private ILogService _logService;
 
         private CategoryLogger _dbLogger;
@@ -23,9 +27,11 @@ namespace PF.Application.Shell.ViewModels
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
-        public MainWindowViewModel(IParamService paramService)
+        public MainWindowViewModel(IParamService paramService,IUserService userService)
         {
             _paramService = paramService;
+            _userService = userService;
+            CurrentUser = new UserInfo();
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
             ChangeExpandCmd = new DelegateCommand<string>((e) => 
@@ -65,6 +71,7 @@ namespace PF.Application.Shell.ViewModels
                             break;
                         case nameof(NavigationConstants.Dialogs):
                             DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
+                            CurrentUser = _userService.CurrentUser;
                             break;
                     }
                 }
@@ -129,6 +136,15 @@ namespace PF.Application.Shell.ViewModels
             set { SetProperty(ref _sysTime, value); }
         }
 
+        private UserInfo _CurrentUser = new UserInfo();
+
+        public UserInfo CurrentUser
+        {
+            get { return _CurrentUser; }
+            set { SetProperty(ref _CurrentUser, value); }
+        }
+
+
 
         private ExpandMode _ExpandMode = ExpandMode.ShowAll;
         public ExpandMode Expand
@@ -148,12 +164,13 @@ namespace PF.Application.Shell.ViewModels
             _dbLogger = CategoryLoggerFactory.Database(_logService);
             _systemLogger = CategoryLoggerFactory.System(_logService);
             _custom = CategoryLoggerFactory.Custom(_logService);
+            CurrentUser = new UserInfo();
 
             Assembly assembly = Assembly.GetEntryAssembly();
             // 注意：这里需要确保 GetParamAsync 调用安全，或者在 Loaded 后调用
             try
             {
-                string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}_V{assembly.GetName().Version}";
+                string name = $"{await _paramService.GetParamAsync<string>("SoftWareName")}";
                 SoftWareName = name;
 
                 name = await _paramService.GetParamAsync<string>("COName");

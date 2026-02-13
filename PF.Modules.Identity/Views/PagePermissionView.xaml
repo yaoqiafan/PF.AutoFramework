@@ -2,7 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:prism="http://prismlibrary.com/"
+            xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
              prism:ViewModelLocator.AutoWireViewModel="True">
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -58,4 +60,5 @@
                     Padding="25,8" Background="#007ACC" Foreground="White" BorderThickness="0" FontWeight="Bold"/>
         </StackPanel>
     </Grid>
+    </pf:TransitioningContentControl>
 </UserControl>

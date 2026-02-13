@@ -68,6 +68,7 @@
                 </Grid.RowDefinitions>
                 <Grid
                     Name="PART_NonClientArea"
+                    Height="{TemplateBinding NonClientAreaHeight}"
                     Background="{TemplateBinding NonClientAreaBackground}"
                     TextElement.Foreground="{TemplateBinding NonClientAreaForeground}">
                     <Grid.ColumnDefinitions>
@@ -143,7 +144,7 @@
                         </Grid.ColumnDefinitions>
                         <Button
                             Name="ButtonIcon"
-                            Margin="10"
+                            Margin="20,10,10,10"
                             VerticalAlignment="Center"
                             Background="Transparent"
                             Command="{x:Static SystemCommands.ShowSystemMenuCommand}"
@@ -157,8 +158,8 @@
                                 </pfcontrol:EventTrigger>
                             </pfcontrol:Interaction.Triggers>
                             <Image
-                                Width="30"
-                                Height="30"
+                                Width="50"
+                                Height="50"
                                 VerticalAlignment="Center"
                                 IsHitTestVisible="False"
                                 Source="{TemplateBinding Icon}" />

@@ -1261,28 +1261,28 @@ Themes\Styles\Custom\Window.xaml
     </Setter>
   </Style>
   <Storyboard x:Key="Right2LeftTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Left2RightTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Bottom2TopTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Top2BottomTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
@@ -1290,7 +1290,7 @@ Themes\Styles\Custom\Window.xaml
   </Storyboard>
   <Storyboard x:Key="Right2LeftWithFadeTransition" x:Shared="False">
     <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
@@ -1298,7 +1298,7 @@ Themes\Styles\Custom\Window.xaml
   </Storyboard>
   <Storyboard x:Key="Left2RightWithFadeTransition" x:Shared="False">
     <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
@@ -1306,7 +1306,7 @@ Themes\Styles\Custom\Window.xaml
   </Storyboard>
   <Storyboard x:Key="Bottom2TopWithFadeTransition" x:Shared="False">
     <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
@@ -1314,7 +1314,7 @@ Themes\Styles\Custom\Window.xaml
   </Storyboard>
   <Storyboard x:Key="Top2BottomWithFadeTransition" x:Shared="False">
     <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-50" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-100" To="0" Duration="0:0:0.4">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
@@ -10239,7 +10239,7 @@ Themes\Styles\Custom\Window.xaml
           <RowDefinition Height="Auto" />
           <RowDefinition />
         </Grid.RowDefinitions>
-        <Grid Name="PART_NonClientArea" Background="{TemplateBinding NonClientAreaBackground}" TextElement.Foreground="{TemplateBinding NonClientAreaForeground}">
+        <Grid Name="PART_NonClientArea" Height="{TemplateBinding NonClientAreaHeight}" Background="{TemplateBinding NonClientAreaBackground}" TextElement.Foreground="{TemplateBinding NonClientAreaForeground}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition Width="Auto" />
@@ -10256,13 +10256,13 @@ Themes\Styles\Custom\Window.xaml
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <Button Name="ButtonIcon" Margin="10" VerticalAlignment="Center" Background="Transparent" Command="{x:Static SystemCommands.ShowSystemMenuCommand}" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding Icon,                                                          Converter={StaticResource Object2VisibilityConverter}}" WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button Name="ButtonIcon" Margin="20,10,10,10" VerticalAlignment="Center" Background="Transparent" Command="{x:Static SystemCommands.ShowSystemMenuCommand}" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding Icon,                                                          Converter={StaticResource Object2VisibilityConverter}}" WindowChrome.IsHitTestVisibleInChrome="True">
               <pf:Interaction.Triggers>
                 <pf:EventTrigger EventName="MouseDoubleClick">
                   <pf:InvokeCommandAction Command="{x:Static SystemCommands.CloseWindowCommand}" />
                 </pf:EventTrigger>
               </pf:Interaction.Triggers>
-              <Image Width="30" Height="30" VerticalAlignment="Center" IsHitTestVisible="False" Source="{TemplateBinding Icon}" />
+              <Image Width="50" Height="50" VerticalAlignment="Center" IsHitTestVisible="False" Source="{TemplateBinding Icon}" />
             </Button>
             <TextBlock Grid.Column="1" Padding="10,0,0,0" VerticalAlignment="Center" Text="{TemplateBinding Title}">
               <TextBlock.Visibility>

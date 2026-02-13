@@ -16,7 +16,7 @@ using System.Windows.Data;
 
 namespace PF.Modules.Logging.ViewModels
 {
-    public class LogManagementViewModel : ViewModelBase
+    public class LogManagementViewModel : RegionViewModelBase
     {
         private readonly ILogService _logService;
         private readonly ObservableCollection<LogEntry> _rawLogsSource; // 原始数据源

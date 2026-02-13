@@ -75,7 +75,7 @@
         </Style>
 
         <DataTemplate x:Key="LogEntryTemplate">
-            <Border Background="Transparent" Padding="4,2">
+            <Border Padding="4,2" Background="Transparent">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -205,212 +205,216 @@
             </Border>
         </DataTemplate>
     </UserControl.Resources>
-    <Border  BorderThickness="2" BorderBrush="{DynamicResource SecondaryBorderBrush}">
-    <Grid Margin="5" >
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            Padding="12,8"
-            BorderThickness="0,0,0,1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
 
-                <StackPanel
-                    Grid.Column="0"
-                    Margin="0,0,20,0"
-                    Orientation="Horizontal">
-
-                    <ComboBox
-                        Width="110"
-                        Height="28"
-                        Margin="0,0,12,0"
-                        VerticalAlignment="Center"
-                        ItemsSource="{Binding LogLevels}"
-                        SelectedItem="{Binding SelectedLogLevel}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock
-                                        Width="20"
-                                        Margin="0,0,6,0"
-                                        Text="{Binding Converter={StaticResource LogLevelToSymbolConverter}}"
-                                        TextAlignment="Center" />
-                                    <TextBlock VerticalAlignment="Center" Text="{Binding Converter={StaticResource NullToTextConverter}}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-
-                    <ComboBox
-                        Width="100"
-                        Height="28"
-                        VerticalAlignment="Center"
-                        DisplayMemberPath="Name"
-                        ItemsSource="{Binding DateRanges}"
-                        SelectedItem="{Binding SelectedDateRange}" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <pf:SearchBar
-                        Width="240"
-                        Height="28"
-                        VerticalAlignment="Center"
-                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                        ToolTip="搜索日志内容、分类或异常信息"/>
-                </StackPanel>
-
-                <StackPanel
-                    Grid.Column="3"
-                    HorizontalAlignment="Right"
-                    Orientation="Horizontal">
-
-                    <Border
-                        Margin="0,0,16,0"
-                        Padding="10,4"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        CornerRadius="4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock
-                                Margin="0,0,6,0"
-                                VerticalAlignment="Center"
-                                FontSize="14"
-                                Text="📊" />
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                FontWeight="SemiBold"
-                                Text="{Binding FilteredLogCount, StringFormat='显示 {0}'}" />
-                            <TextBlock
-                                Margin="4,0,0,0"
-                                VerticalAlignment="Center"
-                                Foreground="#999"
-                                Text="{Binding TotalLogCount, StringFormat='/ {0}'}" />
-                        </StackPanel>
-                    </Border>
-
-                    <CheckBox
-                        VerticalAlignment="Center"
-                        Content="自动滚动"
-                        IsChecked="{Binding AutoScroll}" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Border Grid.Row="1">
-            <Grid>
-                <ListView
-                    x:Name="LogListViewControl"
-                    BorderThickness="0"
-                    Focusable="True"
-                    ItemContainerStyle="{StaticResource LogItemStyle}"
-                    ItemTemplate="{StaticResource LogEntryTemplate}"
-                    ItemsSource="{Binding LogEntriesView}"
-                    ScrollViewer.CanContentScroll="True"
-                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                    ScrollViewer.VerticalScrollBarVisibility="Auto"
-                    SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}"
-                    SelectionMode="Single"
-                    VirtualizingPanel.IsVirtualizing="True"
-                    VirtualizingPanel.ScrollUnit="Item"
-                    VirtualizingPanel.VirtualizationMode="Standard">
-                    <ListView.GroupStyle>
-                        <GroupStyle>
-                            <GroupStyle.HeaderTemplate>
-                                <DataTemplate>
-                                    <Border BorderThickness="0,0,0,1" Padding="12,8">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock
-                                                FontSize="13"
-                                                FontWeight="Bold"
-                                                Foreground="#495057"
-                                                Text="{Binding Name, StringFormat='📅 {0}'}" />
-                                            <TextBlock
-                                                Margin="8,0,0,0"
-                                                VerticalAlignment="Center"
-                                                FontSize="11"
-                                                Foreground="#6C757D"
-                                                Text="{Binding ItemCount, StringFormat=' ({0} 条)'}" />
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </GroupStyle.HeaderTemplate>
-                        </GroupStyle>
-                    </ListView.GroupStyle>
-                </ListView>
+        <Border BorderBrush="{DynamicResource SecondaryBorderBrush}" BorderThickness="2">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
                 <Border
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    Visibility="{Binding LogEntriesView.IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <StackPanel
-                        Margin="0,0,0,80"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                        <Path
-                            Width="64"
-                            Height="64"
-                            Margin="0,0,0,16"
-                            Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
-                            Fill="#F1F3F5"
-                            Stretch="Uniform" />
-                        <TextBlock
-                            HorizontalAlignment="Center"
-                            FontSize="14"
-                            Foreground="#ADB5BD"
-                            Text="暂无符合条件的日志" />
-                    </StackPanel>
+                    Grid.Row="0"
+                    Padding="12,8"
+                    BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="0"
+                            Margin="0,0,20,0"
+                            Orientation="Horizontal">
+
+                            <ComboBox
+                                Width="110"
+                                Height="28"
+                                Margin="0,0,12,0"
+                                VerticalAlignment="Center"
+                                ItemsSource="{Binding LogLevels}"
+                                SelectedItem="{Binding SelectedLogLevel}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock
+                                                Width="20"
+                                                Margin="0,0,6,0"
+                                                Text="{Binding Converter={StaticResource LogLevelToSymbolConverter}}"
+                                                TextAlignment="Center" />
+                                            <TextBlock VerticalAlignment="Center" Text="{Binding Converter={StaticResource NullToTextConverter}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <ComboBox
+                                Width="100"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                DisplayMemberPath="Name"
+                                ItemsSource="{Binding DateRanges}"
+                                SelectedItem="{Binding SelectedDateRange}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <pf:SearchBar
+                                Width="240"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="搜索日志内容、分类或异常信息" />
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="3"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal">
+
+                            <Border
+                                Margin="0,0,16,0"
+                                Padding="10,4"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                CornerRadius="4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="14"
+                                        Text="📊" />
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding FilteredLogCount, StringFormat='显示 {0}'}" />
+                                    <TextBlock
+                                        Margin="4,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Foreground="#999"
+                                        Text="{Binding TotalLogCount, StringFormat='/ {0}'}" />
+                                </StackPanel>
+                            </Border>
+
+                            <CheckBox
+                                VerticalAlignment="Center"
+                                Content="自动滚动"
+                                IsChecked="{Binding AutoScroll}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
-                <Border Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <pf:LoadingLine />
+                <Border Grid.Row="1">
+                    <Grid>
+                        <ListView
+                            x:Name="LogListViewControl"
+                            BorderThickness="0"
+                            Focusable="True"
+                            ItemContainerStyle="{StaticResource LogItemStyle}"
+                            ItemTemplate="{StaticResource LogEntryTemplate}"
+                            ItemsSource="{Binding LogEntriesView}"
+                            ScrollViewer.CanContentScroll="True"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                            SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}"
+                            SelectionMode="Single"
+                            VirtualizingPanel.IsVirtualizing="True"
+                            VirtualizingPanel.ScrollUnit="Item"
+                            VirtualizingPanel.VirtualizationMode="Standard">
+                            <ListView.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="12,8" BorderThickness="0,0,0,1">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock
+                                                        FontSize="13"
+                                                        FontWeight="Bold"
+                                                        Foreground="#495057"
+                                                        Text="{Binding Name, StringFormat='📅 {0}'}" />
+                                                    <TextBlock
+                                                        Margin="8,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="#6C757D"
+                                                        Text="{Binding ItemCount, StringFormat=' ({0} 条)'}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </ListView.GroupStyle>
+                        </ListView>
+
+                        <Border
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Visibility="{Binding LogEntriesView.IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel
+                                Margin="0,0,0,80"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                                <Path
+                                    Width="64"
+                                    Height="64"
+                                    Margin="0,0,0,16"
+                                    Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                    Fill="#F1F3F5"
+                                    Stretch="Uniform" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="14"
+                                    Foreground="#ADB5BD"
+                                    Text="暂无符合条件的日志" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <pf:LoadingLine />
+                                <TextBlock
+                                    Margin="0,12,0,0"
+                                    Foreground="#666"
+                                    Text="正在加载..." />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border
+                    Grid.Row="2"
+                    Padding="12,4"
+                    BorderThickness="0,1,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="#2196F3"
+                                Text="{Binding SelectedLogEntry.Message, StringFormat='选中：{0}'}"
+                                TextTrimming="CharacterEllipsis"
+                                Visibility="{Binding SelectedLogEntry, Converter={StaticResource NullToVisibilityConverter}}" />
+                        </StackPanel>
+
                         <TextBlock
-                            Margin="0,12,0,0"
-                            Foreground="#666"
-                            Text="正在加载..." />
-                    </StackPanel>
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="#999"
+                            Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='最后更新：{0:HH:mm:ss}'}" />
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
-
-        <Border
-            Grid.Row="2"
-            Padding="12,4"
-            BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        FontSize="12"
-                        Foreground="#2196F3"
-                        Text="{Binding SelectedLogEntry.Message, StringFormat='选中：{0}'}"
-                        TextTrimming="CharacterEllipsis"
-                        Visibility="{Binding SelectedLogEntry, Converter={StaticResource NullToVisibilityConverter}}" />
-                </StackPanel>
-
-                <TextBlock
-                    Grid.Column="1"
-                    FontSize="12"
-                    Foreground="#999"
-                    Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='最后更新：{0:HH:mm:ss}'}"
-                    VerticalAlignment="Center" />
-            </Grid>
-        </Border>
-    </Grid>
-    </Border>
+    </pf:TransitioningContentControl>
 </UserControl>

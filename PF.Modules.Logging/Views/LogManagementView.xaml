@@ -11,6 +11,8 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
 
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+    
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -133,4 +135,5 @@
             </Grid>
         </pf:Card>
     </Grid>
+    </pf:TransitioningContentControl>
 </UserControl>

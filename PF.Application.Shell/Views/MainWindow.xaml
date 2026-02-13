@@ -13,9 +13,16 @@
     Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
+    xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity"
+    pf:WindowAttach.ExtendContentToNonClientArea="False"
+    NonClientAreaHeight="80"
+    ShowNonClientArea="True"
     WindowState="Maximized">
 
     <pf:Window.Resources>
+        <userConverter:UserTextConnver x:Key="UserTextConnver" />
+        <userConverter:UserBackGroundConnver x:Key="UserBackGroundConnver" />
+
         <Style x:Key="IconStyle" TargetType="Image">
             <Setter Property="Height" Value="35" />
             <Setter Property="Width" Value="35" />
@@ -183,8 +190,12 @@
                     VerticalAlignment="Center"
                     FontWeight="Bold"
                     Foreground="{DynamicResource PrimaryTextBrush}"
+                    FontSize="{DynamicResource  SecondTitleFontSize}"
                     Text="{Binding SoftWareName}" />
             </Border>
+
+            <pf:Shield  Grid.Column="2" Subject="V" Status="1.0.0" Margin="4,0,0,0" Color="#1182c3"/>
+            <pf:Shield  Grid.Column="3" Subject=".net" Status="8.0" Margin="4,0,0,0" Color="#1182c3"/>
 
 
             <Button
@@ -271,8 +282,7 @@
                 <pf:ButtonGroup Grid.Row="1" Margin="5">
                     <RadioButton pf:IconElement.Geometry="{StaticResource AlignRightGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="ShowOne" />
                     <RadioButton pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="ShowAll"/>
-                    <!--<RadioButton pf:IconElement.Geometry="{StaticResource AlignHCenterGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="Accordion"/>
-                    <RadioButton pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}" Command="{Binding ChangeExpandCmd}" CommandParameter="Freedom"/>-->
+                   
                 </pf:ButtonGroup>
                 <pf:SideMenu 
                     Grid.Row="0"
@@ -560,6 +570,14 @@
             BorderThickness="0">
             <StatusBarItem>
                 <TextBlock Text="{Binding CoName}" />
+            </StatusBarItem>
+
+            <Separator ></Separator>
+            <StatusBarItem>
+                <StackPanel>
+                <TextBlock Text="当前权限：" />
+                <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                </StackPanel>
             </StatusBarItem>
 
             <StatusBarItem HorizontalAlignment="Right">

@@ -38,7 +38,7 @@ namespace PF.UI.Infrastructure.PrismBase
         /// <returns></returns>
         public virtual bool IsNavigationTarget(NavigationContext navigationContext)
         {
-            return true;
+            return false;
         }
 
         /// <summary>

@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace PF.Modules.Identity.ViewModels
 {
-    public class PagePermissionViewModel : ViewModelBase
+    public class PagePermissionViewModel : RegionViewModelBase
     {
         private readonly IUserService _userService;
         private ObservableCollection<PermissionCheckItem> _permissionList;
