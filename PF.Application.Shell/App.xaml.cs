@@ -21,6 +21,9 @@ using PF.Modules.Parameter.ViewModels.Models;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
+using PF.UI.Infrastructure.Dialog;
+using PF.UI.Infrastructure.Dialog.Basic;
+using PF.UI.Infrastructure.Dialog.ViewModels;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Resources;
@@ -80,8 +83,8 @@ namespace PF.Application.Shell
             {
                 str = string.Format("Application UnhandledError:{0}", e);
             }
-            //SystemError.WriteAlarmLog(str);
-            System.Windows.MessageBox.Show("发生错误，请查看程序日志！" + Environment.NewLine + str, "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            IMessageService messageService = Container.Resolve<IMessageService>();
+            messageService.ShowMessage("发生错误，请查看程序日志！" + Environment.NewLine + str, "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
         }
 
@@ -183,7 +186,14 @@ namespace PF.Application.Shell
             RegisterUserIdentityTypes(containerRegistry);
 
             ViewFactory.PreloadAssemblies();
+
             ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
+
+
+            containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
+            containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
+            containerRegistry.RegisterDialog<WaitDialogView, WaitDialogViewModel>("WaitDialog");
+            containerRegistry.RegisterSingleton<IMessageService, MessageService>();
 
 
 
@@ -225,12 +235,15 @@ namespace PF.Application.Shell
                         var strDateInfo = "出现应用程序未处理的异常：" + DateTime.Now + "\r\n";
                         var str = string.Format(strDateInfo + "异常类型：{0}\r\n异常消息：{1}\r\n异常信息：{2}\r\n",
                         ex.GetType().Name, ex.Message, ex.StackTrace);
-                        System.Windows.MessageBox.Show("发生错误，请查看程序日志！" + Environment.NewLine + str, "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                        IMessageService messageService = Container.Resolve<IMessageService>();
+                        messageService.ShowMessage("发生错误，请查看程序日志！" + Environment.NewLine + str, "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
                 else
                 {
-                    System.Windows.MessageBox.Show("当前应用程序已经在运行！", "警告", MessageBoxButton.OK, MessageBoxImage.Asterisk);
+                    IMessageService messageService = Container.Resolve<IMessageService>();
+                    messageService.ShowMessage("当前应用程序已经在运行！", "警告", MessageBoxButton.OK, MessageBoxImage.Asterisk);
                     this.Shutdown();
                 }
 

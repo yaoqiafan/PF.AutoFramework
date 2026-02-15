@@ -9,8 +9,13 @@
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
-    <pf:TransitioningContentControl TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}"  TransitionMode="Right2LeftWithFade">
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="10">
+            <Grid.Resources>
+                <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            </Grid.Resources>
+
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -65,19 +70,24 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal">
                         <Button
                             Margin="0,0,5,0"
+                            pf:IconElement.Geometry="{StaticResource RotateLeftGeometry}"
+                            pf:IconElement.Height="16"
+                            pf:IconElement.Width="16"
                             Command="{Binding LoadCommand}"
                             Content="刷新"
                             Style="{StaticResource ButtonPrimary}"
-                            ToolTip="重新加载参数" />
+                            ToolTip="重新加载参数"
+                            Visibility="{Binding CanRefreshAndReset, Converter={StaticResource BoolToVis}}" />
 
                         <Button
                             Margin="0,0,5,0"
-                            pf:IconElement.Geometry="{StaticResource RotateLeftGeometry}"
+                            pf:IconElement.Geometry="{StaticResource ClockGeometry}"
                             pf:IconElement.Height="16"
                             pf:IconElement.Width="16"
                             Command="{Binding ResetDefaultsCommand}"
                             Style="{StaticResource ButtonWarning}"
-                            ToolTip="重置为默认参数">
+                            ToolTip="重置为默认参数"
+                            Visibility="{Binding CanRefreshAndReset, Converter={StaticResource BoolToVis}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Margin="5,0,0,0" Text="重置" />
                             </StackPanel>
@@ -106,7 +116,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn
                             Width="auto"
-                            Binding="{Binding Category}"
+                            Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
                             Header="类别" />
 
                         <DataGridTextColumn
@@ -119,10 +129,21 @@
                             Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                             Header="描述" />
 
-                        <DataGridTextColumn
-                            Width="auto"
-                            Binding="{Binding TypeFullName}"
-                            Header="类型" />
+                        <DataGridTemplateColumn Width="180" Header="数据类型">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding TypeFullName}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox 
+                                        IsEditable="True" 
+                                        ItemsSource="{Binding DataContext.AvailableTypes, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        Text="{Binding TypeFullName, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
 
                         <DataGridTemplateColumn Width="120" Header="操作">
                             <DataGridTemplateColumn.CellTemplate>
@@ -161,12 +182,13 @@
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <Button
                         Margin="0,0,10,0"
-                        pf:IconElement.Geometry="{StaticResource RotateLeftGeometry}"
+                        pf:IconElement.Geometry="{StaticResource AddGeometry}"
                         pf:IconElement.Height="16"
                         pf:IconElement.Width="16"
                         Command="{Binding AddCommand}"
                         Style="{StaticResource ButtonSuccess}"
-                        ToolTip="添加新参数">
+                        ToolTip="添加新参数"
+                        Visibility="{Binding CanAddAndDelete, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Margin="5,0,0,0" Text="添加" />
                         </StackPanel>
@@ -174,20 +196,21 @@
 
                     <Button
                         Margin="0,0,10,0"
-                        pf:IconElement.Geometry="{StaticResource RotateLeftGeometry}"
+                        pf:IconElement.Geometry="{StaticResource DeleteGeometry}"
                         pf:IconElement.Height="16"
                         pf:IconElement.Width="16"
                         Command="{Binding DeleteCommand}"
                         CommandParameter="{Binding ElementName=ParametersGrid, Path=SelectedItem}"
                         Style="{StaticResource ButtonDanger}"
-                        ToolTip="删除选中参数">
+                        ToolTip="删除选中参数"
+                        Visibility="{Binding CanAddAndDelete, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Margin="5,0,0,0" Text="删除" />
                         </StackPanel>
                     </Button>
 
                     <Button
-                        pf:IconElement.Geometry="{StaticResource RotateLeftGeometry}"
+                        pf:IconElement.Geometry="{StaticResource SaveGeometry}"
                         pf:IconElement.Height="16"
                         pf:IconElement.Width="16"
                         Command="{Binding SaveCommand}"
@@ -219,5 +242,4 @@
             </StatusBar>
         </Grid>
     </pf:TransitioningContentControl>
-
 </UserControl>

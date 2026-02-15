@@ -1,10 +1,11 @@
 ﻿using PF.Core.Enums;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
 
 namespace PF.Modules.Parameter.ViewModels.Models
 {
-    public class UserParamView :BindableBase
+    public class UserParamView : BindableBase
     {
         private string _UserName;
 
@@ -40,5 +41,12 @@ namespace PF.Modules.Parameter.ViewModels.Models
             set { SetProperty(ref _Password, value); }
         }
 
+        private List<string> _accessibleViews;
+        [Browsable(false)] // 隐藏该属性，不在参数属性网格中显示
+        public List<string> AccessibleViews
+        {
+            get { return _accessibleViews; }
+            set { SetProperty(ref _accessibleViews, value); }
+        }
     }
 }

@@ -14,6 +14,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using PF.UI.Infrastructure.Dialog.Basic;
 
 namespace PF.Modules.Logging.ViewModels
 {
@@ -32,7 +33,6 @@ namespace PF.Modules.Logging.ViewModels
         public LogListViewModel()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
-
             // 初始化日志集合 - 从服务中加载现有日志
             // LogService 内部是 List，0 是最新的，这里我们直接加载
             if (_logService.LogEntries != null)
@@ -278,15 +278,15 @@ namespace PF.Modules.Logging.ViewModels
             FilteredLogCount = _logEntriesView?.Cast<object>().Count() ?? 0;
         }
 
-        private void ClearLogs()
+        private async void ClearLogs()
         {
-            var result = MessageBox.Show(
+            var result = await MessageService.ShowMessageAsync(
                 "确定要清空所有日志吗？此操作不可撤销。",
                 "确认清空",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
-            if (result == MessageBoxResult.Yes)
+            if (result == ButtonResult.Yes)
             {
                 // 清空 Service 中的内存缓存
                 _logService.Clear();
@@ -327,7 +327,7 @@ namespace PF.Modules.Logging.ViewModels
 
                     _logService.Info($"日志已导出到: {saveDialog.FileName}", "UI");
 
-                    MessageBox.Show(
+                    MessageService.ShowMessage(
                         $"日志已成功导出到：\n{saveDialog.FileName}",
                         "导出成功",
                         MessageBoxButton.OK,
@@ -337,7 +337,7 @@ namespace PF.Modules.Logging.ViewModels
             catch (Exception ex)
             {
                 _logService.Error($"导出日志失败: {ex.Message}", "UI", ex);
-                MessageBox.Show(
+                MessageService.ShowMessage(
                     $"导出失败：{ex.Message}",
                     "错误",
                     MessageBoxButton.OK,

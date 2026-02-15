@@ -96,8 +96,6 @@
                         RowHeight="40"
                         SelectionUnit="FullRow">
 
-
-
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="90" Header="是否授权">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -154,6 +152,15 @@
                     VerticalAlignment="Center"
                     FontSize="13"
                     Text="{Binding SelectedUser.UserName, StringFormat='正在配置系统账号: {0}'}" />
+
+                <Button
+                    Height="36"
+                    Padding="15,0"
+                    Margin="0,0,15,0"
+                    BorderThickness="1"
+                    Command="{Binding ApplyDefaultPermissionsCommand}"
+                    Content="恢复该等级默认权限"
+                    Cursor="Hand" />
 
                 <Button
                     Height="36"

@@ -44,6 +44,10 @@ namespace PF.Modules.Identity.ViewModels
                           .ObservesProperty(() => SelectedUser)
                           .ObservesProperty(() => IsLoading);
 
+            ApplyDefaultPermissionsCommand = new DelegateCommand(ApplyDefaultPermissions, CanSaveConfig)
+                          .ObservesProperty(() => SelectedUser)
+                          .ObservesProperty(() => IsLoading);
+
             RefreshUsersCommand = new DelegateCommand(async () => await LoadUsersAsync());
 
             LoadSystemViewsFromNavigation();
@@ -52,6 +56,7 @@ namespace PF.Modules.Identity.ViewModels
 
         public DelegateCommand SaveCommand { get; }
         public DelegateCommand RefreshUsersCommand { get; }
+        public DelegateCommand ApplyDefaultPermissionsCommand { get; }
 
         public bool IsLoading
         {
@@ -199,6 +204,20 @@ namespace PF.Modules.Identity.ViewModels
             return SelectedUser != null && !IsLoading;
         }
 
+        private void ApplyDefaultPermissions()
+        {
+            if (SelectedUser == null || PermissionList == null) return;
+
+            var defaultViews = GetDefaultAllowedViewsByLevel(SelectedUser.Root);
+
+            foreach (var item in PermissionList)
+            {
+                item.IsAuthorized = defaultViews.Contains(item.ViewName);
+            }
+
+            _logService.Info($"已将用户 [{SelectedUser.UserName}] 的权限勾选状态重置为 {SelectedUser.Root} 等级的默认状态", "PagePermission");
+        }
+
         private async Task SaveConfigAsync()
         {
             if (SelectedUser == null) return;
@@ -213,17 +232,17 @@ namespace PF.Modules.Identity.ViewModels
                 if (isSuccess)
                 {
                     _logService.Info($"用户 [{SelectedUser.UserName}] 权限配置已存入数据库", "PagePermission");
-                    MessageBox.Show($"用户 [{SelectedUser.UserName}] 权限配置已保存！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageService.ShowMessage ($"用户 [{SelectedUser.UserName}] 权限配置已保存！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show("保存失败，请检查数据库连接。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                     MessageService.ShowMessage ("保存失败，请检查数据库连接。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 _logService.Error($"保存用户权限时异常: {ex.Message}", "PagePermission", ex);
-                MessageBox.Show($"保存出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                 MessageService.ShowMessage ($"保存出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

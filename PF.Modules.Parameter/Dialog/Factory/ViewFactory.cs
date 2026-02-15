@@ -32,6 +32,8 @@ namespace PF.Modules.Parameter.Dialog.Base
             // 布尔类型
             { typeof(bool), typeof(BooleanParamView) },
 
+            // 添加 UserInfo 类型的视图映射
+            { typeof(UserInfo), typeof(UserParamView) }
         };
 
         // 系统类型到映射器的映射

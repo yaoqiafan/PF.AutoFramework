@@ -143,7 +143,7 @@ namespace PF.Services.Identity
 
             try
             {
-                return await _paramService.DeleteParamAsync(user.UserName, CurrentUser);
+                return await _paramService.DeleteParamAsync<UserInfo>(user.UserName, CurrentUser);
             }
             catch (Exception ex)
             {

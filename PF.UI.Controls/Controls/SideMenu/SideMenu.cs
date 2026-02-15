@@ -1,5 +1,7 @@
 ﻿using PF.UI.Shared.Data;
 using System;
+using System.Collections;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -242,7 +244,11 @@ namespace PF.UI.Controls
         }
 
         public static readonly DependencyProperty ExpandModeProperty = DependencyProperty.Register(
-            nameof(ExpandMode), typeof(ExpandMode), typeof(SideMenu), new PropertyMetadata(default(ExpandMode), OnExpandModeChanged));
+     nameof(ExpandMode), typeof(ExpandMode), typeof(SideMenu),
+     new FrameworkPropertyMetadata(
+         default(ExpandMode),
+         FrameworkPropertyMetadataOptions.Inherits, // 核心：允许属性值向下级元素继承
+         OnExpandModeChanged));
 
         public ExpandMode ExpandMode
         {
@@ -338,6 +344,57 @@ namespace PF.UI.Controls
         {
             add => AddHandler(SelectionChangedEvent, value);
             remove => RemoveHandler(SelectionChangedEvent, value);
+        }
+
+
+
+        protected override void OnItemsSourceChanged(IEnumerable oldValue, IEnumerable newValue)
+        {
+            base.OnItemsSourceChanged(oldValue, newValue);
+            _selectedHeader = null;
+            _selectedItem = null;
+            _isItemSelected = false;
+        }  
+        
+        protected override void OnItemsChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            base.OnItemsChanged(sender, e);
+
+            // 当触发清空重置（如注销时清理菜单），清空内部状态指针
+            if (e.Action == NotifyCollectionChangedAction.Reset ||
+                e.Action == NotifyCollectionChangedAction.Remove)
+            {
+                _selectedHeader = null;
+                _selectedItem = null;
+                _isItemSelected = false;
+
+                // 如果有 SelectedItem 依赖属性，也将其置空
+                if (SelectedItem != null)
+                {
+                    SetCurrentValue(SelectedItemProperty, null);
+                }
+            }
+        }
+
+        // 在 SideMenu.cs 中重写 UpdateItems 方法
+        protected override void UpdateItems()
+        {
+            base.UpdateItems();
+
+            // 清空缓存防死锁
+            _selectedHeader = null;
+            _selectedItem = null;
+            _isItemSelected = false;
+
+            // 使用 DispatcherPriority.Loaded 延迟执行
+            // 确保这段代码在 WPF 把 SideMenuItem 完全生成并挂载到界面后才运行
+            this.Dispatcher.InvokeAsync(() =>
+            {
+                if (this.ItemsHost != null)
+                {
+                    OnExpandModeChanged(this.ExpandMode);
+                }
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
     }
 }

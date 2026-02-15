@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PF.UI.Infrastructure.Dialog.Basic;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,7 @@ namespace PF.UI.Infrastructure.PrismBase
             DialogService = ContainerLocator.Container.Resolve<IDialogService>();
 
             ServiceProvider = ContainerLocator.Container.Resolve<IServiceProvider>();
+            MessageService = ContainerLocator.Container.Resolve<IMessageService>();
         }
 
         public IServiceProvider ServiceProvider { get; }
@@ -31,6 +33,8 @@ namespace PF.UI.Infrastructure.PrismBase
         /// </summary>
         protected IDialogService DialogService { get; }
 
+
+        protected IMessageService MessageService { get; }
         /// <summary>
         /// 销毁
         /// </summary>

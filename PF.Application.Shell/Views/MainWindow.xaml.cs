@@ -1,5 +1,6 @@
 ﻿using PF.Application.Shell.ViewModels;
 using PF.UI.Controls;
+using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Navigation;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -15,12 +16,12 @@ namespace PF.Application.Shell.Views
     /// </summary>
     public partial class MainWindow : PF.UI.Controls.Window
     {
-
-        public MainWindow()
+        private readonly IMessageService _messageService;
+        public MainWindow(IMessageService messageService)
         {
-
             InitializeComponent();
             this.Loaded += MainWindow_Loaded; // 订阅 Loaded 事件
+            _messageService = messageService;
         }
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -111,8 +112,39 @@ namespace PF.Application.Shell.Views
 
 
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+
+            var result = await _messageService.ShowMessageAsync("确定要退出系统吗？",
+                "退出提示",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (result == ButtonResult.Yes)
+            {
+                try
+                {
+                    // [可选] 在这里执行资源清理，例如记录退出日志
+                    // var logService = Prism.Ioc.ContainerLocator.Container.Resolve<ILogService>();
+                    // logService?.Info("用户关闭了主程序，系统退出。", "System");
+                }
+                catch
+                {
+                    // 忽略清理时的异常，确保程序能顺利关闭
+                }
+
+                // 3. 彻底结束当前进程
+                // 使用 Environment.Exit(0) 而不是 Application.Current.Shutdown() 的好处是：
+                // 它可以强行终止所有后台线程（比如您程序里运行的 TCP 监听或 Log4Net 队列），防止出现界面关闭但后台进程卡死在任务管理器里的“僵尸进程”现象。
+                Environment.Exit(0);
+            }
+            else
+            {
+                // 用户点击了“否”，取消关闭操作，程序继续运行
+                e.Cancel = true;
+            }
+
+
+           
         }
 
     }

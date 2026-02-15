@@ -13,6 +13,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
+using PF.UI.Infrastructure.Dialog.Basic;
 
 namespace PF.Modules.Logging.ViewModels
 {
@@ -21,10 +22,9 @@ namespace PF.Modules.Logging.ViewModels
         private readonly ILogService _logService;
         private readonly ObservableCollection<LogEntry> _rawLogsSource; // 原始数据源
 
-        public LogManagementViewModel(ILogService logService)
+        public LogManagementViewModel(ILogService logService, IMessageService messageService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-
             ExportLogsCommand = new DelegateCommand(ExportLogs);
             QueryHistoryCommand = new DelegateCommand(async () => await QueryHistory());
 
@@ -231,7 +231,7 @@ namespace PF.Modules.Logging.ViewModels
 
             if (!visibleLogs.Any())
             {
-                MessageBox.Show("当前列表中没有数据可供导出。", "提示");
+                MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
                 return;
             }
 
@@ -260,11 +260,11 @@ namespace PF.Modules.Logging.ViewModels
                     File.WriteAllText(saveDialog.FileName, sb.ToString(), Encoding.UTF8);
 
                     _logService.Info($"用户导出了 {visibleLogs.Count} 条日志到 {saveDialog.FileName}", "LogManagement");
-                    MessageBox.Show($"导出成功！\n路径: {saveDialog.FileName}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageService.ShowMessage($"导出成功！\n路径: {saveDialog.FileName}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageService.ShowMessage($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

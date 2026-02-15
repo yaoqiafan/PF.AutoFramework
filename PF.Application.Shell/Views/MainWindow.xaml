@@ -287,11 +287,11 @@
                 </Grid.RowDefinitions>
 
                 <pf:ButtonGroup Grid.Row="1" Margin="5">
-                    <RadioButton IsChecked="True"
+                    <RadioButton
                         pf:IconElement.Geometry="{StaticResource AlignRightGeometry}"
                         Command="{Binding ChangeExpandCmd}"
                         CommandParameter="ShowOne" />
-                    <RadioButton
+                    <RadioButton  IsChecked="True"
                         pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}"
                         Command="{Binding ChangeExpandCmd}"
                         CommandParameter="ShowAll" />

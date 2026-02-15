@@ -18,6 +18,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
                 userView.UserId = userData.UserId;
                 userView.Root = userData.Root;
                 userView.Password = userData.Password;
+                userView.AccessibleViews = userData.AccessibleViews; // 包含原有的页面权限
                 return true;
             }
 
@@ -33,7 +34,8 @@ namespace PF.Modules.Parameter.Dialog.Mappers
                     UserName = userView.UserName,
                     UserId = userView.UserId,
                     Root = userView.Root,
-                    Password = userView.Password
+                    Password = userView.Password,
+                    AccessibleViews = userView.AccessibleViews // 映射回实体
                 };
             }
 

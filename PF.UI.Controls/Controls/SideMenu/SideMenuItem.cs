@@ -23,18 +23,18 @@ public class SideMenuItem : HeaderedSimpleItemsControl, ISelectable, ICommandSou
 
     public SideMenuItem()
     {
-        SetBinding(ExpandModeProperty, new Binding(SideMenu.ExpandModeProperty.Name)
-        {
-            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(SideMenu), 1)
-        });
+        // 【核心修复】：彻底删掉这里的 SetBinding 代码！
+        // 因为我们采用了 Inherits 继承机制，不再需要强行用 Binding 向上找爹了。
     }
 
+    // 【核心修复】：将 AddOwner 的元数据替换为 FrameworkPropertyMetadata 并加上 Inherits
     public static readonly DependencyProperty ExpandModeProperty =
-        SideMenu.ExpandModeProperty.AddOwner(typeof(SideMenuItem), new PropertyMetadata(default(ExpandMode)));
+        SideMenu.ExpandModeProperty.AddOwner(typeof(SideMenuItem),
+            new FrameworkPropertyMetadata(default(ExpandMode), FrameworkPropertyMetadataOptions.Inherits));
 
     public ExpandMode ExpandMode
     {
-        get => (ExpandMode) GetValue(ExpandModeProperty);
+        get => (ExpandMode)GetValue(ExpandModeProperty);
         set => SetValue(ExpandModeProperty, value);
     }
 

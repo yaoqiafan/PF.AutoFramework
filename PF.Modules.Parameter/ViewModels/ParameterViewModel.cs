@@ -1,10 +1,13 @@
 ﻿using PF.CommonTools.Reflection;
 using PF.Core.Constants;
 using PF.Core.Entities.Identity;
+using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Identity;
 using PF.Data.Entity;
 using PF.Data.Entity.Category.Basic;
+using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
 using System.Text.Json;
@@ -17,73 +20,71 @@ namespace PF.Modules.Parameter.ViewModels
     {
         private readonly IParamService _paramService;
         private readonly IEventAggregator _eventAggregator;
-        private readonly UserInfo _currentUser;
+        private readonly IUserService _userService;
         private readonly IDefaultParam _defaultParam;
 
         public ParameterViewModel(
             IParamService paramService,
             IEventAggregator eventAggregator,
-            UserInfo currentUser,
-            IDefaultParam defaultParam)
+            IUserService userService,
+            IDefaultParam defaultParam,
+            IMessageService messageService)
         {
             _paramService = paramService;
             _eventAggregator = eventAggregator;
-            _currentUser = currentUser;
+            _userService = userService;
             _defaultParam = defaultParam;
 
             InitializeCommands();
 
-            // 初始化参数类型列表（不立即加载数据，等待导航触发）
+            // 初始化参数类型列表
             InitializeParamTypes();
 
-            // 订阅参数变更事件，用于多端同步刷新
-            _paramService.ParamChanged += OnParamChanged;
+            // 初始化权限计算
+            UpdatePermissions();
+            RaisePropertyChanged(nameof(CanRefreshAndReset));
+
+            if (_userService != null)
+            {
+                _userService.CurrentUserChanged += OnCurrentUserChanged;
+            }
+
+            if (_paramService != null)
+            {
+                _paramService.ParamChanged += OnParamChanged;
+            }
         }
 
-        #region Navigation (核心修改区域)
+        #region Navigation
 
-        /// <summary>
-        /// 当导航进入此页面时触发
-        /// </summary>
-        /// <param name="navigationContext"></param>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
 
-            // 1. 获取导航传递的参数类型名称 (例如: "CommonParam", "SystemConfigParam")
             if (navigationContext.Parameters.ContainsKey("TargetParamType"))
             {
                 string targetType = navigationContext.Parameters.GetValue<string>("TargetParamType");
 
-                if (targetType != null) 
+                if (targetType != null && targetType.Contains("_"))
                 {
-                    if (targetType.Contains("_"))
-                    {
-                        var paramtype = targetType.Split("_")[1];
-                        // 2. 在已加载的类型列表中查找匹配项
-                        var match = ParamTypes.FirstOrDefault(p => p.TypeInstence.Name == paramtype);
+                    var paramtype = targetType.Split("_")[1];
+                    var match = ParamTypes.FirstOrDefault(p => p.TypeInstence.Name == paramtype);
 
-                        if (match != null)
+                    if (match != null)
+                    {
+                        if (SelectedParamType != match)
                         {
-                            // 3. 如果匹配到了，且当前未选中或选中的不是同一个，则切换
-                            // 切换 SelectedParamType 会自动触发 Set 里的 LoadParametersAsync
-                            if (SelectedParamType != match)
-                            {
-                                SelectedParamType = match;
-                            }
-                            else
-                            {
-                                // 如果已经是当前类型，强制刷新一下数据
-                                _ = LoadParametersAsync();
-                            }
+                            SelectedParamType = match;
+                        }
+                        else
+                        {
+                            _ = LoadParametersAsync();
                         }
                     }
                 }
-               
             }
             else
             {
-                // 如果没有传参（比如首次初始化），且当前没有选中项，默认选中第一个
                 if (SelectedParamType == null && ParamTypes.Any())
                 {
                     SelectedParamType = ParamTypes.First();
@@ -93,36 +94,41 @@ namespace PF.Modules.Parameter.ViewModels
 
         #endregion
 
-        #region Properties
+        #region Properties & Permissions
 
-        // 支持的参数类型列表（通用、系统、用户等）
+        public bool CanRefreshAndReset => _userService.CurrentUser != null && _userService.CurrentUser.Root >= UserLevel.SuperUser;
+
+        private bool _canAddAndDelete;
+        public bool CanAddAndDelete
+        {
+            get => _canAddAndDelete;
+            set => SetProperty(ref _canAddAndDelete, value);
+        }
+
         public ObservableCollection<ParamTypeViewModel> ParamTypes { get; private set; }
 
+        public ObservableCollection<string> AvailableTypes { get; } = new ObservableCollection<string>();
+
         private ParamTypeViewModel _selectedParamType;
-        /// <summary>
-        /// 当前选中的参数类型（由导航自动设置）
-        /// </summary>
         public ParamTypeViewModel SelectedParamType
         {
             get => _selectedParamType;
             set
             {
-                // 当类型改变时，重置分类索引并重新加载数据
                 if (SetProperty(ref _selectedParamType, value))
                 {
                     SelectCategory = 0; // 重置为"全部"
+                    UpdatePermissions(); // 动态计算添加/删除权限
+                    UpdateAvailableTypes(); // 切换大类时动态更新可选的数据类型
                     _ = LoadParametersAsync();
                 }
             }
         }
 
         private int _SelectCategory = 0;
-        /// <summary>
-        /// 当前选中的具体分类索引（对应 SelectedParamType.Category 数组）
-        /// </summary>
         public int SelectCategory
         {
-            get { return _SelectCategory; }
+            get => _SelectCategory;
             set
             {
                 if (SetProperty(ref _SelectCategory, value))
@@ -167,6 +173,13 @@ namespace PF.Modules.Parameter.ViewModels
             set => SetProperty(ref _totalCount, value);
         }
 
+        private int _modifiedCount;
+        public int ModifiedCount
+        {
+            get => _modifiedCount;
+            set => SetProperty(ref _modifiedCount, value);
+        }
+
         #endregion
 
         #region Commands
@@ -181,56 +194,93 @@ namespace PF.Modules.Parameter.ViewModels
 
         #endregion
 
-        #region Initialization
+        #region Initialization & Logic
 
         private void InitializeCommands()
         {
             LoadCommand = new DelegateCommand(async () => await LoadParametersAsync());
             SaveCommand = new DelegateCommand(async () => await SaveChangesAsync());
             AddCommand = new DelegateCommand(AddNewParameter);
-            DeleteCommand = new DelegateCommand<object>(DeleteParameter);
+            DeleteCommand = new DelegateCommand<object>(async obj => await DeleteParameterAsync(obj));
             ResetDefaultsCommand = new DelegateCommand(async () => await ResetToDefaultsAsync(_defaultParam));
             ViewHistoryCommand = new DelegateCommand<object>(ViewParameterHistory);
             ChangeValueCommand = new DelegateCommand<ParamItemViewModel>(OnValueChanged);
         }
 
+        private void OnCurrentUserChanged(object sender, UserInfo? newUser)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RaisePropertyChanged(nameof(CanRefreshAndReset));
+                UpdatePermissions();
+            });
+        }
+
+        private void UpdatePermissions()
+        {
+            var currentUser = _userService.CurrentUser;
+            if (currentUser == null)
+            {
+                CanAddAndDelete = false;
+                return;
+            }
+
+            if (SelectedParamType?.TypeInstence?.Name == "UserLoginParam")
+            {
+                CanAddAndDelete = currentUser.Root >= UserLevel.Administrator;
+            }
+            else
+            {
+                CanAddAndDelete = currentUser.Root >= UserLevel.SuperUser;
+            }
+        }
+
+        private void UpdateAvailableTypes()
+        {
+            AvailableTypes.Clear();
+            if (_selectedParamType == null) return;
+
+            if (_selectedParamType.TypeInstence.Name == "UserLoginParam")
+            {
+                AvailableTypes.Add("PF.Core.Entities.Identity.UserInfo");
+            }
+            else
+            {
+                AvailableTypes.Add(typeof(string).FullName);
+                AvailableTypes.Add(typeof(int).FullName);
+                AvailableTypes.Add(typeof(double).FullName);
+                AvailableTypes.Add(typeof(bool).FullName);
+                AvailableTypes.Add(typeof(float).FullName);
+                AvailableTypes.Add(typeof(long).FullName);
+            }
+        }
+
         private async void InitializeParamTypes()
         {
-            // 扫描所有继承自 ParamEntity 的类型
             var paramEntityTypes = TypeScanner<ParamEntity>.GetAllTypes();
             ParamTypes = new ObservableCollection<ParamTypeViewModel>();
 
-            for (int i = 0; i < paramEntityTypes.Count; i++)
+            foreach (var type in paramEntityTypes)
             {
-                string displayName = paramEntityTypes[i].Name;
-                // 设置友好的显示名称
-                switch (paramEntityTypes[i].Name)
+                string displayName = type.Name switch
                 {
-                    case "CommonParam": displayName = "通用参数"; break;
-                    case "SystemConfigParam": displayName = "系统配置参数"; break;
-                    case "UserLoginParam": displayName = "用户登录参数"; break;
-                }
+                    "CommonParam" => "通用参数",
+                    "SystemConfigParam" => "系统配置参数",
+                    "UserLoginParam" => "用户登录参数",
+                    _ => type.Name
+                };
 
                 var paramTypeVm = new ParamTypeViewModel()
                 {
                     Name = displayName,
-                    TypeInstence = paramEntityTypes[i]
+                    TypeInstence = type
                 };
 
-                // 异步加载该类型下的所有 Category 字符串列表
                 paramTypeVm.Category = await GetAllCategoryWithType(paramTypeVm);
-
                 ParamTypes.Add(paramTypeVm);
             }
         }
 
-        #endregion
-
-        #region Data Loading & Logic
-
-        /// <summary>
-        /// 加载参数列表核心逻辑
-        /// </summary>
         private async Task LoadParametersAsync()
         {
             try
@@ -239,17 +289,14 @@ namespace PF.Modules.Parameter.ViewModels
 
                 IsLoading = true;
                 StatusMessage = "正在加载参数...";
-
                 Parameters.Clear();
 
-                // 检查分类数组是否越界，防止未加载完成时报错
                 string selectedCategory = "全部";
                 if (SelectedParamType.Category != null && SelectCategory >= 0 && SelectCategory < SelectedParamType.Category.Length)
                 {
                     selectedCategory = SelectedParamType.Category[SelectCategory];
                 }
 
-                // 从服务获取数据
                 var paramInfos = await _paramService.GetParamsByCategoryAsync(SelectedParamType.TypeInstence.FullName, selectedCategory);
 
                 foreach (var paramInfo in paramInfos)
@@ -262,18 +309,19 @@ namespace PF.Modules.Parameter.ViewModels
                         TypeFullName = paramInfo.TypeName,
                         Category = paramInfo.Category,
                         UpdateTime = paramInfo.UpdateTime,
-                        ParamType = SelectedParamType.TypeInstence.Name,
+                        // 【修复1：删除异常】这里必须使用 FullName，否则底层删除时反射找不到正确的表
+                        ParamType = SelectedParamType.TypeInstence.FullName,
                         JsonValue = paramInfo.Value?.ToString() ?? ""
                     });
                 }
 
                 UpdateCounts();
                 StatusMessage = $"已加载 {Parameters.Count} 个参数";
+                ModifiedCount = 0;
             }
             catch (Exception ex)
             {
                 StatusMessage = $"加载失败: {ex.Message}";
-                // 实际生产中建议记录日志，这里仅做简单提示
             }
             finally
             {
@@ -291,7 +339,7 @@ namespace PF.Modules.Parameter.ViewModels
                        .Where(p => !string.IsNullOrEmpty(p.Category))
                        .Select(p => p.Category)
                        .Distinct()
-                       .Prepend("全部") // 在列表头部插入"全部"选项
+                       .Prepend("全部")
                        .ToArray();
             }
             catch
@@ -302,14 +350,8 @@ namespace PF.Modules.Parameter.ViewModels
 
         private void OnParamChanged(object sender, ParamChangedEventArgs e)
         {
-            // 如果后台或其他客户端修改了当前显示的参数类型的参数，进行刷新
             if (SelectedParamType != null)
             {
-                // 判断类型是否匹配（简单判断，实际可能需要更严谨的 FullName 判断）
-                // 这里的逻辑假设 ParamTypeViewModel.Name 是中文，TypeInstence.Name 是类名
-                // e.ParamName 通常无法直接判断类型，但如果在查看全部或对应分类，应该刷新
-
-                // 简单起见，收到任何更新事件都刷新当前列表（如果不想太频繁，可加判断）
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     _ = LoadParametersAsync();
@@ -326,14 +368,13 @@ namespace PF.Modules.Parameter.ViewModels
 
         #endregion
 
-        #region CRUD Operations & Dialogs
+        #region CRUD Operations
 
         private void OnValueChanged(ParamItemViewModel model)
         {
             if (model == null) return;
 
-            var param = new DialogParameters();
-            param.Add("Data", model);
+            var param = new DialogParameters { { "Data", model } };
             DialogService.ShowDialog(NavigationConstants.Dialogs.CommonChangeParamDialog, param, ValueChangeCallBack);
         }
 
@@ -346,11 +387,25 @@ namespace PF.Modules.Parameter.ViewModels
                     var paramItem = result.Parameters.GetValue<ParamItemViewModel>("CallBackParamItem");
                     if (paramItem != null)
                     {
-                        // 刷新列表或更新单项
-                        _ = LoadParametersAsync();
+                        // 同步用户参数的 Name 作为主键
+                        if (paramItem.TypeFullName == typeof(UserInfo).FullName)
+                        {
+                            var userInfo = JsonSerializer.Deserialize<UserInfo>(paramItem.JsonValue);
+                            if (userInfo != null && !string.IsNullOrWhiteSpace(userInfo.UserName))
+                            {
+                                paramItem.Name = userInfo.UserName;
+                                paramItem.Description = $"用户账号: {userInfo.UserName}";
+                            }
+                        }
+
+                        // 注释掉此行以防止覆盖内存中未保存的新增项
+                        // _ = LoadParametersAsync(); 
                     }
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                }
             }
         }
 
@@ -361,7 +416,9 @@ namespace PF.Modules.Parameter.ViewModels
                 IsLoading = true;
                 StatusMessage = "正在保存参数...";
 
-                var modifiedParams = Parameters; // 这里假设所有都保存，或者你可以筛选 IsDirty 的项
+                // 【关键修复】：这里必须加上 .ToList()，创建一个列表副本！
+                // 这样即使保存时触发了事件导致原 Parameters 被清空，也不会影响这里的循环遍历。
+                var modifiedParams = Parameters.ToList();
 
                 if (!modifiedParams.Any())
                 {
@@ -381,7 +438,7 @@ namespace PF.Modules.Parameter.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"保存失败: {ex.Message}";
-                MessageBox.Show($"保存参数时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+               await MessageService.ShowMessageAsync($"保存参数时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -393,28 +450,29 @@ namespace PF.Modules.Parameter.ViewModels
         {
             try
             {
-                bool success = false;
-                // 根据当前选中的参数类型，将 JsonValue 反序列化为对应类型的对象并保存
-                switch (SelectedParamType.TypeInstence.Name)
+                Type valueType = Type.GetType(paramVm.TypeFullName);
+                if (valueType == null)
                 {
-                    case "CommonParam":
-                        var commonValue = DeserializeValue<object>(paramVm.JsonValue, paramVm.TypeFullName);
-                        success = await _paramService.SetParamAsync(paramVm.Name, commonValue, _currentUser, paramVm.Description);
-                        break;
-                    case "UserLoginParam":
-                        var userValue = DeserializeValue<UserInfo>(paramVm.JsonValue, paramVm.TypeFullName);
-                        success = await _paramService.SetParamAsync(paramVm.Name, userValue, _currentUser, paramVm.Description);
-                        break;
-                    case "SystemConfigParam":
-                        var sysValue = DeserializeValue<object>(paramVm.JsonValue, paramVm.TypeFullName);
-                        success = await _paramService.SetParamAsync(paramVm.Name, sysValue, _currentUser, paramVm.Description);
-                        break;
-                    default:
-                        // 处理其他可能的自定义类型
-                        var objValue = DeserializeValue<object>(paramVm.JsonValue, paramVm.TypeFullName);
-                        success = await _paramService.SetParamAsync(paramVm.Name, objValue, _currentUser, paramVm.Description);
-                        break;
+                    foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        valueType = asm.GetType(paramVm.TypeFullName);
+                        if (valueType != null) break;
+                    }
                 }
+
+                if (valueType == null) throw new Exception($"找不到类型: {paramVm.TypeFullName}");
+
+                object realValue = JsonSerializer.Deserialize(paramVm.JsonValue, valueType);
+                if (realValue == null) throw new Exception("参数值不能为空");
+
+                // 【关键修复点】：不再使用泛型推导 (dynamic)realValue，避免触发 where T : class 约束
+                // 显式传入 paramVm.ParamType (如 PF.Data.Entity.Category.SystemConfigParam) 保证参数存在正确的表中
+                bool success = await _paramService.SetParamAsync(
+                    typeName: paramVm.ParamType,
+                    name: paramVm.Name,
+                    value: realValue, // 直接作为 object 传入
+                    userInfo: _userService.CurrentUser,
+                    description: paramVm.Description);
 
                 if (!success) throw new InvalidOperationException($"更新参数 '{paramVm.Name}' 返回失败");
             }
@@ -424,84 +482,86 @@ namespace PF.Modules.Parameter.ViewModels
             }
         }
 
-        private T DeserializeValue<T>(string jsonValue, string typeFullName)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(jsonValue)) return default;
-
-                // 尝试根据全名获取类型
-                Type type = null;
-                if (!string.IsNullOrEmpty(typeFullName))
-                {
-                    type = Type.GetType(typeFullName);
-                    // 如果 Type.GetType 找不到（可能是未加载的程序集），尝试简单查找
-                    if (type == null)
-                    {
-                        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                        {
-                            type = asm.GetType(typeFullName);
-                            if (type != null) break;
-                        }
-                    }
-                }
-
-                if (type != null)
-                {
-                    return (T)JsonSerializer.Deserialize(jsonValue, type);
-                }
-
-                // 降级处理
-                return JsonSerializer.Deserialize<T>(jsonValue);
-            }
-            catch
-            {
-                // 如果反序列化失败，可能是字符串格式问题，直接返回默认
-                return default;
-            }
-        }
-
         private void AddNewParameter()
         {
             if (SelectedParamType == null) return;
 
+            string currentCategory = "未分类";
+            if (SelectedParamType.Category != null && SelectCategory > 0 && SelectCategory < SelectedParamType.Category.Length)
+            {
+                currentCategory = SelectedParamType.Category[SelectCategory];
+            }
+
+            bool isUserParam = SelectedParamType.TypeInstence.Name == "UserLoginParam";
+            string defaultType = isUserParam ? "PF.Core.Entities.Identity.UserInfo" : typeof(string).FullName;
+
+            // 给定初始名称
+            string newName = isUserParam ? $"User_{DateTime.Now:HHmmss}" : $"NewParam_{DateTime.Now:HHmmss}";
+            string defaultJson = "\"New Value\"";
+
+            // 【修复2：默认权限】如果是添加用户，直接给定操作员的默认权限并生成完整 JSON
+            if (isUserParam)
+            {
+                var defaultUser = new UserInfo
+                {
+                    UserName = newName,
+                    UserId = "0000",
+                    Root = UserLevel.Operator, // 默认操作员
+                    Password = "123",          // 默认密码
+                    AccessibleViews = new List<string>
+            {
+                // 默认赋予操作员最基础的两个页面权限
+                NavigationConstants.Views.LoggingListView,
+                NavigationConstants.Views.ParameterView_CommonParam
+            }
+                };
+                defaultJson = JsonSerializer.Serialize(defaultUser);
+            }
+
             var newParam = new ParamItemViewModel
             {
-                Name = $"NewParameter_{DateTime.Now:HHmmss}",
-                Description = "新参数",
-                TypeFullName = typeof(string).FullName,
-                JsonValue = "\"New Value\"", // 默认为 JSON 字符串格式
-                Category = "Default",
-                ParamType = SelectedParamType.TypeInstence.Name,
+                Name = newName,
+                Description = isUserParam ? "新用户" : "新参数",
+                TypeFullName = defaultType,
+                JsonValue = defaultJson,
+                Category = currentCategory,
+                // 【修复1：删除异常】新增的对象也必须使用 FullName
+                ParamType = SelectedParamType.TypeInstence.FullName,
             };
+
             Parameters.Add(newParam);
             SelectedParameter = newParam;
 
-            // 滚动到新添加的项
             UpdateCounts();
+            ModifiedCount++;
             StatusMessage = "已添加新参数（未保存）";
         }
 
-        private async void DeleteParameter(object parameterObj)
+        private async Task DeleteParameterAsync(object parameterObj)
         {
             if (parameterObj is not ParamItemViewModel paramVm) return;
 
-            if (MessageBox.Show($"确定要删除参数 '{paramVm.Name}' 吗？", "确认删除",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            if (await MessageService.ShowMessageAsync($"确定要删除参数 '{paramVm.Name}' 吗？", "确认删除",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != ButtonResult.Yes) return;
 
             try
             {
                 IsLoading = true;
-                bool success = await _paramService.DeleteParamAsync(paramVm.Name, _currentUser);
+
+                bool success = await _paramService.DeleteParamAsync(paramVm.ParamType, paramVm.Name, _userService.CurrentUser);
+
                 if (success)
                 {
-                    Parameters.Remove(paramVm);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Parameters.Remove(paramVm);
+                    });
                     StatusMessage = $"参数 '{paramVm.Name}' 已删除";
                     UpdateCounts();
                 }
                 else
                 {
-                    StatusMessage = $"删除参数 '{paramVm.Name}' 失败";
+                    StatusMessage = $"删除参数 '{paramVm.Name}' 失败，可能是对应类型中不存在此参数。";
                 }
             }
             catch (Exception ex)
@@ -511,54 +571,49 @@ namespace PF.Modules.Parameter.ViewModels
             finally { IsLoading = false; }
         }
 
-        private void ViewParameterHistory(object parameterObj)
+        private async void ViewParameterHistory(object parameterObj)
         {
             if (parameterObj is not ParamItemViewModel paramVm) return;
-            MessageBox.Show($"查看参数 '{paramVm.Name}' 的历史记录功能暂未实现。", "提示");
+            await MessageService.ShowMessageAsync($"查看参数 '{paramVm.Name}' 的历史记录功能暂未实现。", "提示");
         }
 
         private async Task ResetToDefaultsAsync(IDefaultParam DefaultParameters)
         {
-            if (MessageBox.Show("确定要重置当前类型的所有参数为默认值吗？\n这将覆盖现有数据！", "确认重置",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            if (await MessageService.ShowMessageAsync("确定要重置当前类型的所有参数为默认值吗？\n这将覆盖现有数据！", "确认重置",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) !=  ButtonResult.Yes) return;
 
             try
             {
                 IsLoading = true;
                 StatusMessage = "正在重置...";
-                Dictionary<string, object> defaultParams = null;
+                bool success = false;
 
                 if (SelectedParamType == null) return;
 
                 switch (SelectedParamType.TypeInstence.Name)
                 {
                     case "CommonParam":
-                        defaultParams = DefaultParameters.GetCommonDefaults().ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                        var commonDict = DefaultParameters.GetCommonDefaults();
+                        success = await _paramService.BatchSetParamsAsync(commonDict, _userService.CurrentUser, "用户手动重置");
                         break;
                     case "UserLoginParam":
-                        defaultParams = DefaultParameters.GetUsersDefaults().ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                        var userDict = DefaultParameters.GetUsersDefaults();
+                        success = await _paramService.BatchSetParamsAsync(userDict, _userService.CurrentUser, "用户手动重置");
                         break;
                     case "SystemConfigParam":
-                        defaultParams = DefaultParameters.GetSystemDefaults().ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                        var sysDict = DefaultParameters.GetSystemDefaults();
+                        success = await _paramService.BatchSetParamsAsync(sysDict, _userService.CurrentUser, "用户手动重置");
                         break;
                 }
 
-                if (defaultParams != null && defaultParams.Any())
+                if (success)
                 {
-                    bool success = await _paramService.BatchSetParamsAsync(defaultParams, _currentUser, "用户手动重置");
-                    if (success)
-                    {
-                        StatusMessage = "重置成功";
-                        await LoadParametersAsync();
-                    }
-                    else
-                    {
-                        StatusMessage = "重置操作返回失败";
-                    }
+                    StatusMessage = "重置成功";
+                    await LoadParametersAsync();
                 }
                 else
                 {
-                    StatusMessage = "未找到该类型的默认参数定义";
+                    StatusMessage = "重置操作返回失败或未找到默认定义";
                 }
             }
             catch (Exception ex)
@@ -579,81 +634,25 @@ namespace PF.Modules.Parameter.ViewModels
             {
                 _paramService.ParamChanged -= OnParamChanged;
             }
+            if (_userService != null)
+            {
+                _userService.CurrentUserChanged -= OnCurrentUserChanged;
+            }
         }
 
         #endregion
     }
 
+    #region Supporting Classes
+
+    public class ParamUpdatedEvent : PubSubEvent<ParamUpdateInfo> { }
+
+    public class ParamUpdateInfo
+    {
+        public string ParamName { get; set; }
+        public string Category { get; set; }
+        public DateTime ChangeTime { get; set; }
+    }
+
+    #endregion
 }
-
-#region Supporting Classes
-
-public class ParamTypeViewModel : BindableBase
-{
-    public Type TypeInstence { get; set; }
-    public string Name { get; set; }
-
-    private string[] _Category;
-    public string[] Category
-    {
-        get { return _Category; }
-        set { SetProperty(ref _Category, value); }
-    }
-
-}
-
-public class ParamItemViewModel : BindableBase
-{
-    private string _name;
-    public string Name
-    {
-        get => _name;
-        set => SetProperty(ref _name, value);
-    }
-
-    private string _description;
-    public string Description
-    {
-        get => _description;
-        set => SetProperty(ref _description, value);
-    }
-
-    private string _typeFullName;
-    public string TypeFullName
-    {
-        get => _typeFullName;
-        set => SetProperty(ref _typeFullName, value);
-    }
-
-    private string _jsonValue;
-    public string JsonValue
-    {
-        get => _jsonValue;
-        set => SetProperty(ref _jsonValue, value);
-    }
-
-    private string _category;
-    public string Category
-    {
-        get => _category;
-        set => SetProperty(ref _category, value);
-    }
-
-    public string Id { get; set; }
-    public DateTime UpdateTime { get; set; }
-    public string ParamType { get; set; }
-
-}
-
-// 事件定义
-public class ParamUpdatedEvent : PubSubEvent<ParamUpdateInfo> { }
-
-public class ParamUpdateInfo
-{
-    public string ParamName { get; set; }
-    public string Category { get; set; }
-    public DateTime ChangeTime { get; set; }
-}
-
-#endregion
-
