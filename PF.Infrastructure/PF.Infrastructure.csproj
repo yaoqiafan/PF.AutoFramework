@@ -12,6 +12,11 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
 	</ItemGroup>
+	
+	
+	<ItemGroup>
+	  <Folder Include="Hardware\Motor\Basic\" />
+	</ItemGroup>
 
 	
 
