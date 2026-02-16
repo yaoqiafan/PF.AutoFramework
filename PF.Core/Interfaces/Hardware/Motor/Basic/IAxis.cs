@@ -1,63 +1,77 @@
 ﻿namespace PF.Core.Interfaces.Hardware.Motor.Basic
 {
     /// <summary>
-    /// 电机基础接口，定义电机通用的属性和操作
+    /// 单轴运动控制器接口，继承自基础硬件设备接口
     /// </summary>
     public interface IAxis : IHardwareDevice
     {
-        /// <summary>当前实时物理位置</summary>
+        #region 轴状态属性
+
+        /// <summary>轴在系统中的索引号 (如 0, 1, 2...)</summary>
+        int AxisIndex { get; }
+
+        /// <summary>当前实时物理位置 (工程单位，如 mm)</summary>
         double CurrentPosition { get; }
 
         /// <summary>是否正在运动中</summary>
         bool IsMoving { get; }
 
-        /// <summary>是否触碰正向限位传感器</summary>
+        /// <summary>是否触碰正向硬件限位传感器</summary>
         bool IsPositiveLimit { get; }
 
-        /// <summary>是否触碰负向限位传感器</summary>
+        /// <summary>是否触碰负向硬件限位传感器</summary>
         bool IsNegativeLimit { get; }
+
+        /// <summary>伺服是否已使能 (Servo On)</summary>
+        bool IsEnabled { get; }
+
+        #endregion
+
+        #region 轴控制指令
+
         /// <summary>
-        /// 电机使能
+        /// 伺服使能
         /// </summary>
-        /// <returns>操作是否成功</returns>
         Task<bool> EnableAsync();
 
         /// <summary>
-        /// 电机去使能
+        /// 伺服断使能
         /// </summary>
-        /// <returns>操作是否成功</returns>
         Task<bool> DisableAsync();
 
         /// <summary>
-        /// 正向点动
+        /// 停止运动 (减速停止或急停，由具体实现决定)
         /// </summary>
-        /// <param name="velocity">点动速度，单位取决于电机类型</param>
-        /// <returns>操作是否成功</returns>
-        Task<bool> JogPositiveAsync(double velocity);
-
-        /// <summary>
-        /// 反向点动
-        /// </summary>
-        /// <param name="velocity">点动速度，单位取决于电机类型</param>
-        /// <returns>操作是否成功</returns>
-        Task<bool> JogNegativeAsync(double velocity);
-
-        /// <summary>
-        /// 停止运动
-        /// </summary>
-        /// <returns>操作是否成功</returns>
         Task<bool> StopAsync();
 
         /// <summary>
-        /// 速度运行
+        /// 回原点动作 (Home)
         /// </summary>
-        /// <param name="velocity">运动速度，正负表示方向</param>
-        /// <returns>操作是否成功</returns>
-        Task<bool> RunWithVelocityAsync(double velocity);
-
         Task<bool> HomeAsync(CancellationToken token = default);
-        Task<bool> MoveToPositionAsync(double position, double velocity, CancellationToken token = default);
+
+        /// <summary>
+        /// 绝对位置定位
+        /// </summary>
+        /// <param name="targetPosition">目标绝对位置</param>
+        /// <param name="velocity">运动速度</param>
+        /// <param name="token">取消令牌，用于急停打断</param>
+        Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity, CancellationToken token = default);
+
+        /// <summary>
+        /// 相对位置定位
+        /// </summary>
+        /// <param name="distance">相对移动距离</param>
+        /// <param name="velocity">运动速度</param>
+        /// <param name="token">取消令牌，用于急停打断</param>
         Task<bool> MoveRelativeAsync(double distance, double velocity, CancellationToken token = default);
 
+        /// <summary>
+        /// 持续点动 (Jog)
+        /// </summary>
+        /// <param name="velocity">点动速度</param>
+        /// <param name="isPositive">是否为正向</param>
+        Task<bool> JogAsync(double velocity, bool isPositive);
+
+        #endregion
     }
 }
