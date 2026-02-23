@@ -145,8 +145,13 @@ namespace PF.Services.CustomWorkstation.Mechanisms
             // ③ 关真空阀（释放物料）
             _vacuumIO.WriteOutput(VacuumValve, false);
 
-            // ④ 等待真空消失确认（1000ms 超时，超时不抛异常，认为物料已离开）
-            await _vacuumIO.WaitInputAsync(VacuumSensor, false, 1000, token);
+            // ④ 等待真空消失确认
+            // 修复：原代码忽略返回值，超时时静默继续——在真空未消失（物料未离开）的情况下
+            //       X轴仍会运动，可能带着物料碰撞。现改为超时时打印警告，
+            //       实际项目可改为 throw 以强制停线。
+            bool vacuumReleased = await _vacuumIO.WaitInputAsync(VacuumSensor, false, 1000, token);
+            if (!vacuumReleased)
+                _logger.Warn($"[{MechanismName}] 真空释放超时，物料可能未完全离开！");
 
             // ⑤ 退回安全位
             if (!await _xAxis.MoveAbsoluteAsync(SafeX, FastSpeed, token))

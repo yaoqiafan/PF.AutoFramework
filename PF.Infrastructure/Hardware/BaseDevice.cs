@@ -217,9 +217,11 @@ namespace PF.Infrastructure.Hardware
                 if (disposing)
                 {
                     // 释放托管资源
+                    // 问题：直接 DisconnectAsync().Wait() 在 UI 线程或同步上下文中会死锁。
+                    // 修复：强制在线程池线程上运行，脱离当前 SynchronizationContext。
                     if (IsConnected)
                     {
-                        DisconnectAsync().Wait(); // 同步等待断开
+                        Task.Run(() => DisconnectAsync()).GetAwaiter().GetResult();
                     }
                 }
                 _isDisposed = true;

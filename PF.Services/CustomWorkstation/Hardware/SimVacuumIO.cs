@@ -23,6 +23,10 @@ namespace PF.Services.CustomWorkstation.Hardware
     public class SimVacuumIO : BaseDevice, IIOController
     {
         private readonly bool[] _outputs = new bool[8];
+        // 问题：_inputs 由后台 Task（WriteOutput 的 ContinueWith）写入，同时被
+        //       WaitInputAsync 所在的工站线程读取，存在无锁并发访问（数据竞争）。
+        // 修复：使用 Volatile.Read/Write 保证内存可见性（对 bool 读写本已原子，
+        //       但 volatile 语义确保跨线程缓存一致性，无需加锁）。
         private readonly bool[] _inputs  = new bool[8];
 
         public int InputCount  => _inputs.Length;
@@ -40,35 +44,41 @@ namespace PF.Services.CustomWorkstation.Hardware
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
-            // 复位：关闭所有输出，清除所有输入缓存
-            Array.Clear(_outputs, 0, _outputs.Length);
-            Array.Clear(_inputs,  0, _inputs.Length);
+            // 复位：关闭所有输出，清除所有输入缓存（使用 Volatile.Write 保证写入可见）
+            for (int i = 0; i < _outputs.Length; i++) Volatile.Write(ref _outputs[i], false);
+            for (int i = 0; i < _inputs.Length;  i++) Volatile.Write(ref _inputs[i],  false);
             return Task.CompletedTask;
         }
 
         // ── IIOController 实现 ────────────────────────────────────────────
 
-        public bool ReadInput(int portIndex)  => _inputs[portIndex];
-        public bool ReadOutput(int portIndex) => _outputs[portIndex];
+        /// <summary>
+        /// 修复：使用 Volatile.Read 保证跨线程读到最新值（防 CPU 缓存导致的脏读）
+        /// </summary>
+        public bool ReadInput(int portIndex)  => Volatile.Read(ref _inputs[portIndex]);
+        public bool ReadOutput(int portIndex) => Volatile.Read(ref _outputs[portIndex]);
 
         /// <summary>
         /// 写输出端口，并模拟物理反馈延迟（300ms 后 Input[0] 跟随变化）
+        /// 修复：后台任务写入 _inputs 时使用 Volatile.Write，与 ReadInput/WaitInputAsync
+        ///       的 Volatile.Read 形成配对，消除数据竞争。
         /// </summary>
         public void WriteOutput(int portIndex, bool value)
         {
-            _outputs[portIndex] = value;
+            Volatile.Write(ref _outputs[portIndex], value);
             _logger.Info($"[{DeviceName}] OUT[{portIndex}] → {(value ? "ON ↑" : "OFF ↓")}");
 
             // 模拟真空阀动作后传感器的物理响应延迟
             if (portIndex == 0)
             {
-                _ = Task.Delay(300).ContinueWith(_ => _inputs[0] = value);
+                _ = Task.Delay(300).ContinueWith(_ => Volatile.Write(ref _inputs[0], value));
             }
         }
 
         /// <summary>
         /// 轮询等待输入端口达到目标状态（内置超时防卡死）
         /// 每 50ms 采样一次，直到目标状态或超时
+        /// 修复：使用 Volatile.Read 读取 _inputs，与 WriteOutput 的后台写入配对。
         /// </summary>
         public async Task<bool> WaitInputAsync(int portIndex, bool targetState,
             int timeoutMs = 5000, CancellationToken token = default)
@@ -77,7 +87,7 @@ namespace PF.Services.CustomWorkstation.Hardware
             while (DateTime.UtcNow < deadline)
             {
                 token.ThrowIfCancellationRequested(); // 支持急停打断
-                if (_inputs[portIndex] == targetState) return true;
+                if (Volatile.Read(ref _inputs[portIndex]) == targetState) return true;
                 await Task.Delay(50, token);
             }
             _logger.Warn($"[{DeviceName}] WaitInput IN[{portIndex}]=={targetState} 超时 ({timeoutMs}ms)");
