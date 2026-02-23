@@ -9,8 +9,8 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
     <ProjectReference Include="..\PF.Data\PF.Data.csproj" />
+    <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

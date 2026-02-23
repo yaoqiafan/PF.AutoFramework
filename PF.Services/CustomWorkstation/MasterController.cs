@@ -1,0 +1,110 @@
+﻿using PF.Core.Enums;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Station.Basic;
+using Stateless;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PF.Services.CustomWorkstation
+{
+    /// <summary>
+    /// 全局主控状态机（主线程管理器）
+    /// </summary>
+    public class MasterController
+    {
+        public MachineState CurrentState => _globalMachine.State;
+
+        // 供 UI 绑定的主控状态改变事件
+        public event EventHandler<MachineState> MasterStateChanged;
+        public event EventHandler<string> MasterAlarmTriggered;
+
+        private readonly ILogService _logger;
+        private readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
+
+        // 管理的子工站列表
+        private readonly List<StationBase> _subStations;
+
+        public MasterController(ILogService logger, IEnumerable<StationBase> subStations)
+        {
+            _logger = logger;
+            _subStations = new List<StationBase>(subStations);
+
+            // 监听所有子工站的报警事件
+            foreach (var station in _subStations)
+            {
+                station.StationAlarmTriggered += OnSubStationAlarm;
+            }
+
+            _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Idle);
+            ConfigureGlobalMachine();
+        }
+
+        private void ConfigureGlobalMachine()
+        {
+            _globalMachine.OnTransitioned(t =>
+            {
+                _logger.Info($"【全局主控】状态切换: {t.Source} -> {t.Destination}");
+                MasterStateChanged?.Invoke(this, t.Destination);
+            });
+
+            // 状态转移配置
+            _globalMachine.Configure(MachineState.Idle)
+                .Permit(MachineTrigger.Start, MachineState.Running)
+                .Permit(MachineTrigger.Error, MachineState.Alarm);
+
+            // 【主控启动】：启动所有的子线程
+            _globalMachine.Configure(MachineState.Running)
+                .OnEntry(() => _subStations.ForEach(s => s.Start()))
+                .OnExit(() => _subStations.ForEach(s => s.Stop())) // 退出运行时，急停所有子工站
+                .Permit(MachineTrigger.Pause, MachineState.Paused)
+                .Permit(MachineTrigger.Stop, MachineState.Idle)
+                .Permit(MachineTrigger.Error, MachineState.Alarm);
+
+            // 【主控暂停】：暂停所有的子线程
+            _globalMachine.Configure(MachineState.Paused)
+                .OnEntry(() => _subStations.ForEach(s => s.Pause()))
+                .OnExit(() => _subStations.ForEach(s => s.Resume())) // 退出暂停时恢复它们
+                .Permit(MachineTrigger.Resume, MachineState.Running)
+                .Permit(MachineTrigger.Stop, MachineState.Idle)
+                .Permit(MachineTrigger.Error, MachineState.Alarm);
+
+            _globalMachine.Configure(MachineState.Alarm)
+                .OnEntry(() => _subStations.ForEach(s => s.TriggerAlarm())) // 强制所有工站切入报警
+                .Permit(MachineTrigger.Reset, MachineState.Idle);
+        }
+
+        /// <summary>
+        /// 核心联动逻辑：只要有任何一个子线程报警，主控立刻触发全局急停！
+        /// </summary>
+        private void OnSubStationAlarm(object sender, string errorMessage)
+        {
+            _logger.Fatal($"【主控接收到报警】: {errorMessage}，立即触发全线急停！");
+
+            // 触发全局报警，由于配置了 OnExit(Stop)，这会瞬间中断所有其他正常运行的子线程！
+            if (_globalMachine.CanFire(MachineTrigger.Error))
+            {
+                _globalMachine.Fire(MachineTrigger.Error);
+                MasterAlarmTriggered?.Invoke(this, errorMessage); // 通知UI弹窗
+            }
+        }
+
+        // --- 供 UI 绑定的主控一键操作指令 ---
+        public void StartAll() => Fire(MachineTrigger.Start);
+        public void StopAll() => Fire(MachineTrigger.Stop);
+        public void PauseAll() => Fire(MachineTrigger.Pause);
+        public void ResumeAll() => Fire(MachineTrigger.Resume);
+        public void ResetAll()
+        {
+            _subStations.ForEach(s => s.ResetAlarm()); // 先复位子工站
+            Fire(MachineTrigger.Reset);                // 再复位主控
+        }
+
+        private void Fire(MachineTrigger trigger)
+        {
+            if (_globalMachine.CanFire(trigger)) _globalMachine.Fire(trigger);
+        }
+    }
+}
