@@ -17,6 +17,7 @@
     <PackageVersion Include="Prism.DryIoc" Version="9.0.537" />
     <PackageVersion Include="Prism.Wpf" Version="9.0.537" />
     <PackageVersion Include="NPOI" Version="2.7.5" />
+    <PackageVersion Include="Stateless" Version="5.20.1" />
     <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.2" />
     <PackageVersion Include="XAMLTools.MSBuild" Version="1.0.0-alpha0178" />
   </ItemGroup>
