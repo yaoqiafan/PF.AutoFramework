@@ -17,6 +17,8 @@ namespace PF.Infrastructure.Communication.TCP
         private NetworkStream _stream;
         private CancellationTokenSource _receiveCancellationTokenSource;
         private CancellationTokenSource _connectCancellationTokenSource;
+        // 修复：追踪重连后台循环的 CTS，防止多次调用 ReconnectAsync 后台任务不断累积
+        private CancellationTokenSource _reconnectCts;
         private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
         private readonly SemaphoreSlim _connectLock = new SemaphoreSlim(1, 1);
 
@@ -264,22 +266,32 @@ namespace PF.Infrastructure.Communication.TCP
 
             if (AutoReconnect)
             {
+                // 修复：先取消并释放旧的重连循环（防止多次调用 ReconnectAsync 后任务不断堆积）
+                _reconnectCts?.Cancel();
+                _reconnectCts?.Dispose();
+                _reconnectCts = new CancellationTokenSource();
+                var cts = _reconnectCts;
+
                 // 在后台尝试重连
                 _ = Task.Run(async () =>
                 {
-                    while (AutoReconnect && Status != ClientStatus.Connected)
+                    while (!cts.IsCancellationRequested && AutoReconnect && Status != ClientStatus.Connected)
                     {
                         try
                         {
-                            await Task.Delay(ReconnectInterval);
+                            await Task.Delay(ReconnectInterval, cts.Token);
                             await ConnectAsync(_serverIp, _serverPort);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break; // 被外部取消，退出循环
                         }
                         catch
                         {
                             // 重连失败，继续尝试
                         }
                     }
-                });
+                }, cts.Token);
             }
         }
 
@@ -342,6 +354,11 @@ namespace PF.Infrastructure.Communication.TCP
                 {
                     AutoReconnect = false; // 停止自动重连
 
+                    // 修复：先停止重连循环，防止 Dispose 过程中重连任务再次发起连接
+                    _reconnectCts?.Cancel();
+                    _reconnectCts?.Dispose();
+                    _reconnectCts = null;
+
                     _connectCancellationTokenSource?.Cancel();
                     _connectCancellationTokenSource?.Dispose();
 
@@ -351,7 +368,10 @@ namespace PF.Infrastructure.Communication.TCP
                     _connectLock?.Dispose();
                     _sendLock?.Dispose();
 
-                    CleanupConnection().Wait();
+                    // 修复：CleanupConnection().Wait() 在有 SynchronizationContext 时会死锁。
+                    // CleanupConnection 内部全是同步 IO 操作（Cancel/Close），直接内联执行。
+                    try { _stream?.Close(); _stream = null; } catch { }
+                    try { _tcpClient?.Close(); _tcpClient = null; } catch { }
                 }
 
                 _disposedValue = true;

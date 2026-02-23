@@ -83,11 +83,16 @@ namespace PF.Services.CustomWorkstation
         {
             _logger.Fatal($"【主控接收到报警】: {errorMessage}，立即触发全线急停！");
 
+            // 修复：原代码将 MasterAlarmTriggered 嵌套在 CanFire 判断内部——
+            // 若主控已处于 Alarm 状态（如两个工站几乎同时报警），CanFire(Error)=false，
+            // 导致 MasterAlarmTriggered 事件永远不触发，UI 无法弹出第二条报警信息。
+            // 修复：先无条件通知 UI，再尝试驱动状态机。
+            MasterAlarmTriggered?.Invoke(this, errorMessage); // 始终通知 UI 弹窗
+
             // 触发全局报警，由于配置了 OnExit(Stop)，这会瞬间中断所有其他正常运行的子线程！
             if (_globalMachine.CanFire(MachineTrigger.Error))
             {
                 _globalMachine.Fire(MachineTrigger.Error);
-                MasterAlarmTriggered?.Invoke(this, errorMessage); // 通知UI弹窗
             }
         }
 

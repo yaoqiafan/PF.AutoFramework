@@ -153,7 +153,11 @@ namespace PF.Infrastructure.Communication.TCP
                 OnClientConnected(clientConnection);
 
                 stream = tcpClient.GetStream();
-                var buffer = new byte[8 * 1024 * 1024 + 100];
+                // 修复：原始 8MB+100 的固定缓冲区在每个客户端连接时分配，
+                // 100 个并发客户端即占用 ~800MB 堆内存，极易引发 OOM。
+                // 工业设备协议单帧通常远小于 64KB，调整为合理大小。
+                // 若确实需要大包，应在应用层做流式分帧，而非一次性大缓冲。
+                var buffer = new byte[64 * 1024]; // 64KB，足够绝大多数工业协议
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -367,7 +371,9 @@ namespace PF.Infrastructure.Communication.TCP
                 {
                     if (Status == ServerStatus.Running)
                     {
-                        StopAsync().Wait();
+                        // 修复：StopAsync().Wait() 在有 SynchronizationContext（如 UI 线程）
+                        // 时会死锁。强制在线程池线程上执行，脱离当前上下文。
+                        Task.Run(() => StopAsync()).GetAwaiter().GetResult();
                     }
 
                     _cancellationTokenSource?.Dispose();

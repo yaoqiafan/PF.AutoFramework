@@ -81,6 +81,8 @@ namespace PF.Infrastructure.Station.Basic
 
         private void OnStartRunning()
         {
+            // 修复：反复 Start/Stop/Start 时，旧 CTS 必须先释放，否则每次重启泄漏一个对象。
+            _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
             _pauseEvent.Set();
             // 启动专属于该工站的后台任务（子线程）
@@ -138,6 +140,13 @@ namespace PF.Infrastructure.Station.Basic
         public virtual void Dispose()
         {
             _runCts?.Cancel();
+            // 修复①：如果线程阻塞在 _pauseEvent.Wait() 暂停点，必须先开闸，
+            //         否则 Cancel 信号无法触达，_workflowTask 永远不退出。
+            _pauseEvent?.Set();
+            // 修复②：等待后台任务真正退出（最多 5 秒），防止 Dispose 返回后
+            //         任务仍在访问已释放的资源（如 _pauseEvent 本身）。
+            try { _workflowTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            _runCts?.Dispose();
             _pauseEvent?.Dispose();
         }
     }
