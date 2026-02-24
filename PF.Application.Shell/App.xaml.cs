@@ -7,11 +7,14 @@ using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Hardware;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Mechanisms;
 using PF.Data.Context;
 using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
+using PF.Modules.Debug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
@@ -30,6 +33,8 @@ using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
+using PF.Workstation.Demo.Hardware;
+using PF.Workstation.Demo.Mechanisms;
 using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
@@ -195,11 +200,31 @@ namespace PF.Application.Shell
             containerRegistry.RegisterDialog<WaitDialogView, WaitDialogViewModel>("WaitDialog");
             containerRegistry.RegisterSingleton<IMessageService, MessageService>();
 
-
-
+            // =======================================================
+            // 【新增】注册硬件与模组
+            // =======================================================
+            RegisterHardwareAndMechanisms(containerRegistry);
         }
 
-        
+        private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
+        {
+            var xAxis = new SimXAxis(0, _logService);
+            var vacuumIO = new SimVacuumIO(_logService);
+
+          
+            // a. 供具体模组注入使用
+            containerRegistry.RegisterInstance(xAxis);
+            containerRegistry.RegisterInstance(vacuumIO);
+
+            // b. 供设备调试界面的 IEnumerable<IHardwareDevice> 抓取使用
+            containerRegistry.RegisterInstance<IHardwareDevice>(xAxis, "SimXAxis");
+            containerRegistry.RegisterInstance<IHardwareDevice>(vacuumIO, "SimVacuumIO");
+
+
+            // 3. 注册业务模组 (模组的构造函数只有接口，没有 int/string，所以用 Singleton 自动解析是没问题的)
+            containerRegistry.RegisterInstance<IMechanism>(new GantryMechanism(xAxis, vacuumIO, _logService));
+        }
+
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
@@ -207,6 +232,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<LoggingModule>();
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<IdentityModule>();
+            moduleCatalog.AddModule<DebugModule>();
         }
         #endregion
 
