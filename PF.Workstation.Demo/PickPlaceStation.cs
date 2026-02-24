@@ -1,9 +1,9 @@
 using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Station.Basic;
-using PF.Services.CustomWorkstation.Mechanisms;
+using PF.Workstation.Demo.Mechanisms;
 
-namespace PF.Services.CustomWorkstation
+namespace PF.Workstation.Demo
 {
     /// <summary>
     /// 【工站层示例】取放工站（多线程工艺大循环）

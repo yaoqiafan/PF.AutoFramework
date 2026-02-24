@@ -1,14 +1,9 @@
-﻿using PF.Core.Enums;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Station.Basic;
 using Stateless;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PF.Services.CustomWorkstation
+namespace PF.Workstation.Demo
 {
     /// <summary>
     /// 全局主控状态机（主线程管理器）

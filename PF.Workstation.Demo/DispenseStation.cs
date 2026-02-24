@@ -1,12 +1,7 @@
-﻿using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Station.Basic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PF.Services.CustomWorkstation
+namespace PF.Workstation.Demo
 {
     public class DispenseStation : StationBase
     {
