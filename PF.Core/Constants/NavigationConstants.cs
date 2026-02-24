@@ -42,11 +42,13 @@ namespace PF.Core.Constants
             #endregion
 
             #region 登录
-            public const string UserManagementView = nameof(UserManagementView);
-
             public const string PagePermissionView = nameof(PagePermissionView);
             #endregion
 
+            #region 调试
+            public const string HardwareDebugView = nameof(HardwareDebugView);
+            public const string MechanismDebugView = nameof(MechanismDebugView);
+            #endregion
 
 
         }

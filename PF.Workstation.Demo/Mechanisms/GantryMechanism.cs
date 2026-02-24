@@ -39,7 +39,6 @@ namespace PF.Workstation.Demo.Mechanisms
         private const int VacuumSensor  = 0;      // IN[0]:  真空检测传感器
 
         public GantryMechanism(IAxis xAxis, IIOController vacuumIO, ILogService logger)
-            // 将两块硬件传入 BaseMechanism，基类构造函数自动订阅其 AlarmTriggered 事件
             : base("龙门取放模组", logger, xAxis, vacuumIO)
         {
             _xAxis    = xAxis;

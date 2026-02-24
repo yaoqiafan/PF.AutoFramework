@@ -25,6 +25,7 @@
     <Project Path="PF.Workstation.Demo/PF.Workstation.Demo.csproj" />
   </Folder>
   <Folder Name="/06.Modules (业务模块层)/">
+    <Project Path="PF.Modules.Debug/PF.Modules.Debug.csproj" Id="929901b1-bfec-4cf4-a270-3586097114ed" />
     <Project Path="PF.Modules.Identity/PF.Modules.Identity.csproj" Id="a2ab45f4-d470-4a68-9950-9e6a8420a392" />
     <Project Path="PF.Modules.Logging/PF.Modules.Logging.csproj" Id="20bfc342-f6c7-4186-b145-8abb66d44edc" />
     <Project Path="PF.Modules.Parameter/PF.Modules.Parameter.csproj" Id="56c7fb2a-6687-4f13-9ea9-092bdc4bf4bb" />

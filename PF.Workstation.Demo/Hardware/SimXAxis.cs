@@ -33,7 +33,7 @@ namespace PF.Workstation.Demo.Hardware
         public bool IsNegativeLimit => _currentPosition <= 0.0;
         public bool IsEnabled => _isEnabled;
 
-        public SimXAxis(int axisIndex, ILogService logger)
+        public SimXAxis( int axisIndex, ILogService logger)
             : base($"SIM_X_AXIS_{axisIndex}", $"模拟X轴[{axisIndex}]", isSimulated: true, logger)
         {
             AxisIndex = axisIndex;
