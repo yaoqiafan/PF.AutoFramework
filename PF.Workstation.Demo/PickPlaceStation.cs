@@ -1,7 +1,9 @@
 using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.Workstation.Demo.Mechanisms;
+using PF.Workstation.Demo.Sync;
 
 namespace PF.Workstation.Demo
 {
@@ -23,24 +25,27 @@ namespace PF.Workstation.Demo
     ///    └──────────────────────────────────────────────────────────────────
     ///
     ///  工站线程（Task.Run 新线程池线程）
-    ///    │  ProcessWrapperAsync(token)           ← StationBase 提供，全局异常守护
-    ///    │    └─ ProcessLoopAsync(token)         ← 本类实现，工艺大循环
+    ///    │  ProcessWrapperAsync(token)            ← StationBase 提供，全局异常守护
+    ///    │    └─ ProcessLoopAsync(token)          ← 本类实现，工艺大循环
     ///    │         │
-    ///    │         ├─ _pauseEvent.Wait(token)    ← 暂停点：MasterController.PauseAll()
-    ///    │         │     ManualResetEventSlim 闸门关闭时此处阻塞，直到 ResumeAll() 开闸
+    ///    │         ├─ _pauseEvent.Wait(token)     ← 暂停点①
     ///    │         │
-    ///    │         ├─ await WaitForMaterialAsync() ← 等待上游信号（IO / 传感器）
+    ///    │         ├─ await WaitForMaterialAsync  ← 等待上游物料（传感器/IO）
     ///    │         │
-    ///    │         ├─ _pauseEvent.Wait(token)    ← 再次检查暂停（防等待过程中被暂停）
+    ///    │         ├─ _pauseEvent.Wait(token)     ← 暂停点②
     ///    │         │
-    ///    │         ├─ await _gantry.PickAsync(token)
-    ///    │         │     └─ _xAxis.MoveAbsoluteAsync → await Task.Delay(ms, token)
-    ///    │         │     └─ _vacuumIO.WriteOutput / WaitInputAsync
-    ///    │         │     ← 急停时 token.Cancel() 使所有 await 立即抛 OperationCanceledException
+    ///    │         ├─ await _gantry.PickAsync     ← 从上游取料
     ///    │         │
-    ///    │         ├─ _pauseEvent.Wait(token)    ← 取放之间的暂停点
+    ///    │         ├─ _pauseEvent.Wait(token)     ← 暂停点③
     ///    │         │
-    ///    │         └─ await _gantry.PlaceAsync(token)
+    ///    │         ├─ await _sync.WaitAsync(SlotEmpty)   ← ★ 协同点：等待槽位空闲
+    ///    │         │     阻塞直到点胶工站完成当前产品并 Release(SlotEmpty)
+    ///    │         │
+    ///    │         ├─ await _gantry.PlaceAsync    ← 将产品放入工作台
+    ///    │         │
+    ///    │         ├─ _sync.Release(ProductReady) ← ★ 协同点：通知点胶工站产品已到位
+    ///    │         │
+    ///    │         └─ await NotifyDownstreamAsync
     ///    │
     ///    │  异常捕获（ProcessWrapperAsync）：
     ///    │    · OperationCanceledException → 正常退出（急停/停止）
@@ -63,12 +68,14 @@ namespace PF.Workstation.Demo
     public class PickPlaceStation : StationBase
     {
         private readonly GantryMechanism _gantry;
+        private readonly IStationSyncService _sync;
         private int _cycleCount;
 
-        public PickPlaceStation(GantryMechanism gantry, ILogService logger)
+        public PickPlaceStation(GantryMechanism gantry, IStationSyncService sync, ILogService logger)
             : base("取放工站", logger)
         {
             _gantry = gantry;
+            _sync   = sync;
 
             // 订阅模组报警事件：硬件故障将通过此路径驱动本工站进入 Alarm 状态
             _gantry.AlarmTriggered += OnMechanismAlarm;
@@ -94,9 +101,6 @@ namespace PF.Workstation.Demo
             {
                 // ════════════════════════════════════════════════════════════
                 //  暂停检查点 ①
-                //  MasterController.PauseAll() 会关闭 _pauseEvent 闸门
-                //  此处阻塞（不消耗 CPU），直到 ResumeAll() 重新开闸
-                //  同时传入 token，使急停时能打断阻塞状态
                 // ════════════════════════════════════════════════════════════
                 _pauseEvent.Wait(token);
 
@@ -104,8 +108,7 @@ namespace PF.Workstation.Demo
                 _logger.Info($"[{StationName}] ══ Cycle #{_cycleCount} 开始 ══");
 
                 // ── Step 1: 等待上游物料到位信号 ──────────────────────────
-                // 实际项目替换为：await _ioCtrl.WaitInputAsync(MATERIAL_IN_PORT, true, token: token)
-                _logger.Info($"[{StationName}] [1/4] 等待上游物料到位...");
+                _logger.Info($"[{StationName}] [1/5] 等待上游物料到位...");
                 await WaitForMaterialAsync(token);
 
                 // ════════════════════════════════════════════════════════════
@@ -113,28 +116,33 @@ namespace PF.Workstation.Demo
                 // ════════════════════════════════════════════════════════════
                 _pauseEvent.Wait(token);
 
-                // ── Step 2: 执行取料 ───────────────────────────────────────
-                _logger.Info($"[{StationName}] [2/4] 执行取料动作...");
+                // ── Step 2: 从上游取料 ─────────────────────────────────────
+                _logger.Info($"[{StationName}] [2/5] 执行取料动作...");
                 await _gantry.PickAsync(token);
-                // 若 PickAsync 内部抛异常（真空超时、轴故障等），
-                // ProcessWrapperAsync 会捕获并自动触发 Error 状态机
 
                 // ════════════════════════════════════════════════════════════
                 //  暂停检查点 ③（取放之间提供暂停窗口）
                 // ════════════════════════════════════════════════════════════
                 _pauseEvent.Wait(token);
 
-                // ── Step 3: 执行放料 ───────────────────────────────────────
-                _logger.Info($"[{StationName}] [3/4] 执行放料动作...");
+                // ── Step 3: 等待工作台槽位空闲（★ 流水线协同核心）──────────
+                // 若点胶工站尚未完成上一个产品，此处阻塞，直到它调用 Release(SlotEmpty)
+                _logger.Info($"[{StationName}] [3/5] 等待工作台槽位空闲...");
+                await _sync.WaitAsync(WorkstationSignals.SlotEmpty, token);
+
+                // ── Step 4: 将产品放入工作台 ───────────────────────────────
+                _logger.Info($"[{StationName}] [4/5] 执行放料动作（放入工作台）...");
                 await _gantry.PlaceAsync(token);
 
-                // ── Step 4: 通知下游（如触发下游工站启动信号）─────────────
-                _logger.Info($"[{StationName}] [4/4] 通知下游接收物料");
+                // ── Step 5: 通知点胶工站：产品已到位（★ 流水线协同核心）────
+                _sync.Release(WorkstationSignals.ProductReady);
+                _logger.Info($"[{StationName}] [5/5] 已通知点胶工站：产品到位");
+
                 await NotifyDownstreamAsync(token);
 
                 _logger.Success($"[{StationName}] ══ Cycle #{_cycleCount} 完成 ══\n");
 
-                // 节拍间隙：防止循环过于紧凑，给其他线程 CPU 时间
+                // 节拍间隙
                 await Task.Delay(100, token);
             }
         }
@@ -143,12 +151,11 @@ namespace PF.Workstation.Demo
 
         /// <summary>
         /// 等待上游物料到位信号（模拟）
-        /// 实际项目替换为真实 IO 等待：
-        ///   await _ioCtrl.WaitInputAsync(MATERIAL_SENSOR_PORT, true, timeoutMs: 30000, token)
+        /// 实际项目替换为：await _ioCtrl.WaitInputAsync(MATERIAL_SENSOR_PORT, true, timeoutMs: 30000, token)
         /// </summary>
         private async Task WaitForMaterialAsync(CancellationToken token)
         {
-            await Task.Delay(800, token); // 模拟等待约 800ms
+            await Task.Delay(800, token);
         }
 
         /// <summary>
@@ -162,18 +169,10 @@ namespace PF.Workstation.Demo
 
         // ── 报警处理 ───────────────────────────────────────────────────────
 
-        /// <summary>
-        /// 接收模组报警事件 → 驱动本工站状态机进入 Alarm 状态
-        ///
-        /// 事件回调运行在触发报警的线程上（通常是工站线程或硬件回调线程）。
-        /// TriggerAlarm() 内部的状态机 Fire() 是线程安全的（Stateless 库保证）。
-        /// </summary>
         private void OnMechanismAlarm(object sender, MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            TriggerAlarm(); // → StationBase 状态机 Running/Paused → Alarm
-                            // → Alarm.OnEntry: StationAlarmTriggered 事件
-                            // → MasterController 接管，触发全线急停
+            TriggerAlarm();
         }
 
         public override void Dispose()
