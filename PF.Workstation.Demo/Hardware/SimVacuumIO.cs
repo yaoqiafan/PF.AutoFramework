@@ -33,7 +33,7 @@ namespace PF.Workstation.Demo.Hardware
         public int OutputCount => _outputs.Length;
 
         public SimVacuumIO(ILogService logger)
-            : base("SIM_VACUUM_IO", "模拟真空IO卡", isSimulated: true, logger) { }
+            : base("SIM_VACUUM_IO", "模拟真空IO卡", isSimulated: true, logger) { Category = Core.Enums.HardwareCategory.IOController; }
 
         // ── BaseDevice 钩子实现 ────────────────────────────────────────────
         protected override Task<bool> InternalConnectAsync(CancellationToken token)

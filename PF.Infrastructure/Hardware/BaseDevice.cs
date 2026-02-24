@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Hardware;
+﻿using PF.Core.Enums;
+using PF.Core.Interfaces.Hardware;
 using PF.Core.Interfaces.Logging;
 
 namespace PF.Infrastructure.Hardware
@@ -18,6 +19,7 @@ namespace PF.Infrastructure.Hardware
 
         public string DeviceId { get; }
         public string DeviceName { get; }
+        public HardwareCategory Category { get; protected set; } = HardwareCategory.General;
         public bool IsSimulated { get; }
 
         public bool IsConnected

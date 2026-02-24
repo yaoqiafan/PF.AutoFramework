@@ -37,6 +37,7 @@ namespace PF.Workstation.Demo.Hardware
             : base($"SIM_X_AXIS_{axisIndex}", $"模拟X轴[{axisIndex}]", isSimulated: true, logger)
         {
             AxisIndex = axisIndex;
+            Category = Core.Enums.HardwareCategory.Axis;
         }
 
         // ── BaseDevice 三个必须实现的钩子（模拟设备直接返回成功）────────────
