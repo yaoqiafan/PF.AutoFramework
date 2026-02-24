@@ -244,6 +244,394 @@ protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
 
 ---
 
+## 📋 开发者指南：如何添加一个新的参数分类？
+
+框架内置 `CommonParam`、`UserLoginParam`、`SystemConfigParam` 三张参数表。当业务需要独立隔离的参数（如 `MotionParam` 运动参数、`VisionParam` 视觉参数），可按以下步骤扩展新分类：
+
+### Step 1: 在 PF.Data 中定义实体类
+
+在 `PF.Data/Entity/Category/` 下新建实体类，继承 `ParamEntity`，并通过 `[Table]` 特性指定数据库表名：
+
+```csharp
+// 文件：PF.Data/Entity/Category/MotionParam.cs
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace PF.Data.Entity.Category
+{
+    /// <summary>运动控制参数表</summary>
+    [Table("MotionParams")]
+    public class MotionParam : ParamEntity
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public override string ID { get; set; } = Guid.NewGuid().ToString();
+    }
+}
+```
+
+### Step 2: 在 AppParamDbContext 中注册表与索引
+
+打开 `PF.Application.Shell/CustomConfiguration/Param/AppParamDbContext.cs`，将新实体加入 `DbContext`：
+
+```csharp
+public class AppParamDbContext : DbContext
+{
+    public DbSet<CommonParam>       CommonParams       { get; set; }
+    public DbSet<UserLoginParam>    UserLoginParams    { get; set; }
+    public DbSet<SystemConfigParam> SystemConfigParams { get; set; }
+    public DbSet<MotionParam>       MotionParams       { get; set; }  // 新增
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        // ...原有索引配置...
+
+        // 为新分类配置唯一索引（按 Name 字段）
+        modelBuilder.Entity<MotionParam>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
+    }
+}
+```
+
+### Step 3: 在 DefaultParameters 中添加默认值
+
+打开 `PF.Application.Shell/CustomConfiguration/Param/DefaultParameters.cs`，在 `IDefaultParam` 中添加新分类默认值（可在 `GetCommonDefaults()` 中添加，或为新分类单独扩展接口）：
+
+```csharp
+// 在 GetCommonDefaults() 或新增方法中添加默认参数
+{
+    "Axis1_Speed", new MotionParam
+    {
+        Name        = "Axis1_Speed",
+        Description = "1轴运动速度 (mm/s)",
+        TypeFullName = typeof(double).FullName,
+        JsonValue   = JsonSerializer.Serialize(100.0),
+        Category    = "运动参数",
+        Version     = 1,
+    }
+},
+```
+
+并在 `EnsureDefaultParametersCreatedAsync()` 中增加对新表的初始化调用：
+
+```csharp
+await EnsureParametersExistAsync(
+    MotionParams,
+    defaultParam.GetMotionDefaults(),   // 新增方法
+    cancellationToken);
+```
+
+### Step 4: 在 App.xaml.cs 中注册类型映射
+
+在 `RegisterParamModels()` 方法中，调用 `IParamService.RegisterParamType<>()` 注册新类型，使 `ParamService` 知道用哪张表存储：
+
+```csharp
+private void RegisterParamModels(IContainerRegistry containerRegistry)
+{
+    // 若业务 ViewModel 使用的 Model 类与 Entity 类不同，在此注册映射
+    // 若 Entity 就是 Model（直接用 MotionParam 读写），则无需注册，ParamService 会自动识别
+    // paramService.RegisterParamType<MotionParam, MotionParam>();
+}
+```
+
+> **说明**：`ParamService.DetermineEntityType<T>()` 会自动识别直接继承自 `ParamEntity` 的类型，无需额外注册即可直接使用。
+
+### Step 5: 在 ViewModel 中使用新分类参数
+
+```csharp
+public class MotionViewModel : BindableBase
+{
+    private readonly IParamService _paramService;
+
+    public MotionViewModel(IParamService paramService)
+    {
+        _paramService = paramService;
+    }
+
+    public async Task LoadAsync()
+    {
+        // 读取：泛型类型直接指定 MotionParam（Entity即Model）
+        var speedParam = await _paramService.GetParamAsync<MotionParam>("Axis1_Speed");
+        double speed = speedParam != null ? JsonSerializer.Deserialize<double>(speedParam.JsonValue) : 100.0;
+    }
+
+    public async Task SaveAsync(double newSpeed)
+    {
+        // 写入：ParamService 自动将数据存入 MotionParams 表
+        await _paramService.SetParamAsync<MotionParam>(
+            name:        "Axis1_Speed",
+            value:       newSpeed,
+            userInfo:    _currentUser,
+            description: "1轴运动速度");
+    }
+}
+```
+
+---
+
+## ⚙️ 开发者指南：硬件 → 模组 → 工站的开发流程
+
+框架将工业控制分为三个层次，自下而上依次为：**硬件设备（Device）** → **功能模组（Mechanism）** → **生产工站（Station）**。每一层都有对应的抽象基类，子类只需实现业务逻辑。
+
+```
+StationBase（工站：生产工艺大循环 + 状态机）
+    └── BaseMechanism（模组：协调多个硬件完成功能动作）
+            └── BaseDevice（硬件：物理设备连接与通信）
+```
+
+---
+
+### Layer 1: 硬件设备（继承 BaseDevice）
+
+`BaseDevice` 封装了连接重试（3次，间隔2秒）、模拟模式、报警事件。子类只需实现 3 个抽象方法：
+
+```csharp
+// 文件：PF.Infrastructure/Hardware/ServoMotor.cs
+using PF.Infrastructure.Hardware;
+using PF.Core.Interfaces.Logging;
+
+public class ServoMotor : BaseDevice
+{
+    private TcpClient _tcpClient;
+    private readonly string _ip;
+    private readonly int _port;
+
+    public ServoMotor(string deviceId, string ip, int port, bool isSimulated, ILogService logger)
+        : base(deviceId, $"伺服电机[{deviceId}]", isSimulated, logger)
+    {
+        _ip = ip;
+        _port = port;
+    }
+
+    // 必须实现①：建立物理连接（TCP/串口/板卡SDK等）
+    protected override async Task<bool> InternalConnectAsync(CancellationToken token)
+    {
+        _tcpClient = new TcpClient();
+        await _tcpClient.ConnectAsync(_ip, _port, token);
+        return _tcpClient.Connected;
+    }
+
+    // 必须实现②：断开物理连接
+    protected override async Task InternalDisconnectAsync()
+    {
+        _tcpClient?.Close();
+        await Task.CompletedTask;
+    }
+
+    // 必须实现③：硬件复位清除报警
+    protected override async Task InternalResetAsync(CancellationToken token)
+    {
+        // 发送复位指令到硬件
+        await SendCommandAsync("RESET", token);
+    }
+
+    // 扩展业务方法：供模组层调用
+    public async Task MoveToAsync(double position, CancellationToken token)
+    {
+        if (!IsConnected) throw new InvalidOperationException("设备未连接");
+        await SendCommandAsync($"MOVE {position}", token);
+    }
+
+    private async Task SendCommandAsync(string cmd, CancellationToken token)
+    {
+        // 实际通信逻辑...
+        await Task.CompletedTask;
+    }
+}
+```
+
+**关键特性**：
+- 连接前自动检查 `IsSimulated`，模拟模式下跳过物理连接，直接返回 `true`
+- 调用 `RaiseAlarm(errorCode, message)` 触发 `AlarmTriggered` 事件，通知上层模组
+
+---
+
+### Layer 2: 功能模组（继承 BaseMechanism）
+
+`BaseMechanism` 聚合一个或多个 `BaseDevice`，自动订阅硬件报警并向上传递。子类实现初始化流程与停止逻辑：
+
+```csharp
+// 文件：PF.Infrastructure/Mechanisms/PickPlaceMechanism.cs
+using PF.Infrastructure.Mechanisms;
+using PF.Core.Interfaces.Logging;
+
+public class PickPlaceMechanism : BaseMechanism
+{
+    private readonly ServoMotor _xAxis;
+    private readonly ServoMotor _zAxis;
+    private readonly VacuumValve _vacuum;
+
+    public PickPlaceMechanism(
+        ServoMotor xAxis,
+        ServoMotor zAxis,
+        VacuumValve vacuum,
+        ILogService logger)
+        // 将所有硬件传给基类，基类自动订阅它们的 AlarmTriggered 事件
+        : base("取放模组", logger, xAxis, zAxis, vacuum)
+    {
+        _xAxis   = xAxis;
+        _zAxis   = zAxis;
+        _vacuum  = vacuum;
+    }
+
+    // 必须实现①：初始化流程（回原点、检测IO等）
+    protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
+    {
+        // 1. 连接所有硬件
+        bool xOk = await _xAxis.ConnectAsync(token);
+        bool zOk = await _zAxis.ConnectAsync(token);
+        bool vOk = await _vacuum.ConnectAsync(token);
+        if (!xOk || !zOk || !vOk) return false;
+
+        // 2. 回原点
+        await _xAxis.MoveToAsync(0, token);
+        await _zAxis.MoveToAsync(0, token);
+        _logger.Info("[取放模组] 回原点完成");
+        return true;
+    }
+
+    // 必须实现②：紧急停止
+    protected override async Task InternalStopAsync()
+    {
+        await _xAxis.DisconnectAsync();
+        await _zAxis.DisconnectAsync();
+    }
+
+    // 对外暴露业务动作：供工站层调用
+    public async Task PickAsync(double pickX, double pickZ, CancellationToken token)
+    {
+        CheckReady(); // 基类方法：报警状态或未初始化时直接抛异常
+        await _zAxis.MoveToAsync(pickZ, token);
+        await _vacuum.OpenAsync(token);
+        await _zAxis.MoveToAsync(0, token);
+    }
+
+    public async Task PlaceAsync(double placeX, double placeZ, CancellationToken token)
+    {
+        CheckReady();
+        await _xAxis.MoveToAsync(placeX, token);
+        await _zAxis.MoveToAsync(placeZ, token);
+        await _vacuum.CloseAsync(token);
+    }
+}
+```
+
+**关键特性**：
+- 构造函数中注入的所有硬件，基类自动聚合其 `AlarmTriggered` 事件，任一硬件报警则整个模组进入 `HasAlarm = true`
+- `CheckReady()` 是防呆保护，在任何动作前调用，可避免无效操作
+- `ResetAsync()` 自动遍历所有硬件执行复位，无需手动实现
+
+---
+
+### Layer 3: 生产工站（继承 StationBase）
+
+`StationBase` 内置基于 `Stateless` 的状态机（`Idle → Running ↔ Paused → Alarm`）和后台子线程管理。子类只需实现工艺大循环：
+
+```csharp
+// 文件：PF.Infrastructure/Station/AssemblyStation.cs
+using PF.Infrastructure.Station.Basic;
+using PF.Core.Interfaces.Logging;
+
+public class AssemblyStation : StationBase
+{
+    private readonly PickPlaceMechanism _pickPlace;
+    private readonly IParamService _paramService;
+
+    public AssemblyStation(
+        PickPlaceMechanism pickPlace,
+        IParamService paramService,
+        ILogService logger)
+        : base("装配工站", logger)
+    {
+        _pickPlace    = pickPlace;
+        _paramService = paramService;
+
+        // 订阅模组报警，触发工站自身进入 Alarm 状态
+        _pickPlace.AlarmTriggered += (s, e) =>
+        {
+            _logger.Error($"[{StationName}] 模组报警: {e.ErrorMessage}");
+            TriggerAlarm(); // 基类方法，触发状态机 Error 转换
+        };
+    }
+
+    // 必须实现：工艺大循环（在独立后台线程中运行）
+    protected override async Task ProcessLoopAsync(CancellationToken token)
+    {
+        // 初始化所有模组
+        await _pickPlace.InitializeAsync(token);
+
+        while (!token.IsCancellationRequested)
+        {
+            // ★ 关键：在每个循环开始前等待暂停闸门
+            // Pause() 被调用时 _pauseEvent 关闭，此处会阻塞；Resume() 后恢复执行
+            _pauseEvent.Wait(token);
+
+            _logger.Info($"[{StationName}] 开始新节拍");
+
+            // 读取运动参数
+            var speedParam = await _paramService.GetParamAsync<MotionParam>("Axis1_Speed");
+
+            // 执行工艺动作
+            await _pickPlace.PickAsync(pickX: 50, pickZ: -30, token);
+            await Task.Delay(200, token); // 等待传感器检测
+            await _pickPlace.PlaceAsync(placeX: 200, placeZ: -30, token);
+
+            _logger.Info($"[{StationName}] 节拍完成");
+        }
+    }
+}
+```
+
+**状态机说明**：
+
+| 状态 | 描述 | 可触发操作 |
+|------|------|-----------|
+| `Idle`（待机） | 初始状态，未运行 | `Start()` → Running |
+| `Running`（运行） | 后台线程执行 `ProcessLoopAsync` | `Pause()` / `Stop()` / `TriggerAlarm()` |
+| `Paused`（暂停） | `_pauseEvent` 关闭，线程在 `Wait()` 处挂起 | `Resume()` → Running / `Stop()` |
+| `Alarm`（报警） | 后台线程被终止，等待人工干预 | `ResetAlarm()` → Idle |
+
+### Step 4: 注册到 DI 容器并使用
+
+在模块的 `RegisterTypes` 中注册（推荐单例，因硬件资源不可重复创建）：
+
+```csharp
+public class MyEquipmentModule : IModule
+{
+    public void RegisterTypes(IContainerRegistry containerRegistry)
+    {
+        // 1. 注册硬件（从参数服务读取 IP/Port 等配置）
+        containerRegistry.RegisterSingleton<ServoMotor>(container =>
+        {
+            var paramService = container.Resolve<IParamService>();
+            var logger = container.Resolve<ILogService>();
+            var ip = paramService.GetParamAsync<SystemConfigParam>("ServoIP").Result?.JsonValue ?? "192.168.1.10";
+            return new ServoMotor("X1", ip, 502, isSimulated: false, logger);
+        });
+
+        // 2. 注册模组（DI 自动注入已注册的硬件）
+        containerRegistry.RegisterSingleton<PickPlaceMechanism>();
+
+        // 3. 注册工站
+        containerRegistry.RegisterSingleton<AssemblyStation>();
+    }
+
+    public void OnInitialized(IContainerProvider containerProvider)
+    {
+        // 在应用启动时拿到工站实例，供主控订阅事件
+        var station = containerProvider.Resolve<AssemblyStation>();
+        station.StationAlarmTriggered += (s, msg) =>
+        {
+            // 通过 Prism EventAggregator 广播到全局，或直接弹出报警对话框
+        };
+    }
+}
+```
+
+---
+
 ## 🛠️ 第三方集成建议
 
 本框架的模块化特性非常适合集成工业自动化领域的第三方 SDK，将其封装为独立服务或模块：
