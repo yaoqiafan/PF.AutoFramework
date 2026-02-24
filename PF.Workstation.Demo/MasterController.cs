@@ -1,12 +1,19 @@
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
+using PF.Workstation.Demo.Sync;
 using Stateless;
 
 namespace PF.Workstation.Demo
 {
     /// <summary>
     /// 全局主控状态机（主线程管理器）
+    ///
+    /// 职责：
+    ///   · 管理所有子工站的生命周期（启动/暂停/恢复/停止/报警）
+    ///   · 在构造时向 IStationSyncService 注册本方案所需的所有流水线信号量
+    ///   · 在系统复位时重置信号量，确保下一轮启动状态正确
     /// </summary>
     public class MasterController
     {
@@ -17,21 +24,31 @@ namespace PF.Workstation.Demo
         public event EventHandler<string> MasterAlarmTriggered;
 
         private readonly ILogService _logger;
+        private readonly IStationSyncService _sync;
         private readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
 
         // 管理的子工站列表
         private readonly List<StationBase> _subStations;
 
-        public MasterController(ILogService logger, IEnumerable<StationBase> subStations)
+        public MasterController(
+            ILogService logger,
+            IStationSyncService sync,
+            IEnumerable<StationBase> subStations)
         {
             _logger = logger;
+            _sync   = sync;
             _subStations = new List<StationBase>(subStations);
+
+            // ── 注册本工站方案所需的流水线信号量 ──────────────────────────
+            // 规则：初始计数决定了哪个工站"先行"
+            //   SlotEmpty   = 1：槽位初始为空 → 取放工站可立即开始第一轮
+            //   ProductReady= 0：初始无产品 → 点胶工站初始阻塞，等取放工站先放料
+            _sync.Register(WorkstationSignals.SlotEmpty,    initialCount: 1, maxCount: 1);
+            _sync.Register(WorkstationSignals.ProductReady, initialCount: 0, maxCount: 1);
 
             // 监听所有子工站的报警事件
             foreach (var station in _subStations)
-            {
                 station.StationAlarmTriggered += OnSubStationAlarm;
-            }
 
             _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Idle);
             ConfigureGlobalMachine();
@@ -98,8 +115,9 @@ namespace PF.Workstation.Demo
         public void ResumeAll() => Fire(MachineTrigger.Resume);
         public void ResetAll()
         {
-            _subStations.ForEach(s => s.ResetAlarm()); // 先复位子工站
-            Fire(MachineTrigger.Reset);                // 再复位主控
+            _subStations.ForEach(s => s.ResetAlarm()); // 先复位子工站（各自取消 Alarm 状态）
+            _sync.ResetAll();                           // 复位信号量至初始状态，准备下一轮启动
+            Fire(MachineTrigger.Reset);                 // 再复位主控状态机
         }
 
         private void Fire(MachineTrigger trigger)
