@@ -2,7 +2,7 @@ using PF.Core.Interfaces.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware;
 
-namespace PF.Services.CustomWorkstation.Hardware
+namespace PF.Workstation.Demo.Hardware
 {
     /// <summary>
     /// 【硬件层示例】模拟真空吸盘IO控制卡

@@ -3,7 +3,7 @@ using PF.Core.Interfaces.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
 
-namespace PF.Services.CustomWorkstation.Mechanisms
+namespace PF.Workstation.Demo.Mechanisms
 {
     /// <summary>
     /// 【模组层示例】龙门取放模组
