@@ -1,5 +1,6 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -11,12 +12,18 @@ namespace PF.Services.Hardware
     ///
     /// 生命周期：
     ///   ① App.xaml.cs 调用 RegisterFactory(...) 注册所有实现类的工厂
-    ///   ② App.xaml.cs 调用 LoadAndInitializeAsync() → 从 JSON 加载配置 → 工厂实例化 → ConnectAsync
+    ///   ② App.xaml.cs 调用 LoadAndInitializeAsync() → 从 JSON 加载配置 → 拓扑排序实例化 → ConnectAsync
     ///   ③ 其他模块通过 ActiveDevices / GetDevice(id) 取用设备引用
     ///   ④ ReloadAllAsync() 支持热重载（如运行时新增/删除设备配置后调用）
     ///
     /// 配置文件位置：{dataDirectory}/hardware_config.json
-    /// 若文件不存在，首次启动会写入内置默认配置（SimXAxis + SimVacuumIO）。
+    /// 若文件不存在，首次启动会写入内置默认配置（SIM_CARD_0 + SimXAxis + SimVacuumIO）。
+    ///
+    /// 初始化顺序（拓扑分层）：
+    ///   · 第1层：ParentDeviceId 为空的顶级设备（运动控制卡）
+    ///   · 第2层：ParentDeviceId 非空的子设备（轴、IO）
+    ///   若父设备连接失败，依赖它的子设备直接标记跳过（不实例化）并记录警告。
+    ///   子设备实例化后，若实现 IAttachedDevice，自动注入父板卡实例引用。
     /// </summary>
     public sealed class HardwareManagerService : IHardwareManagerService, IDisposable
     {
@@ -81,12 +88,49 @@ namespace PF.Services.Hardware
 
         // ── 生命周期 ───────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 拓扑分层初始化所有已启用设备：
+        ///   第1层 → ParentDeviceId 为空（板卡等顶级设备）
+        ///   第2层 → ParentDeviceId 非空（轴、IO 等子设备）
+        ///
+        /// 若父设备未能成功连接，其所有子设备直接跳过并记录警告。
+        /// 子设备实例化完成后，若实现 IAttachedDevice，自动绑定父板卡引用。
+        /// </summary>
         public async Task LoadAndInitializeAsync()
         {
-            _logger.Info($"[HardwareManager] 开始加载并初始化 {_configs.Count(c => c.IsEnabled)} 个已启用设备...");
+            var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
+            _logger.Info($"[HardwareManager] 开始拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...");
 
-            foreach (var config in _configs.Where(c => c.IsEnabled))
+            // ── 第1层：顶级设备（板卡，ParentDeviceId 为空）────────────────────
+            var topLevel = enabledConfigs.Where(c => string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
+            _logger.Info($"[HardwareManager] 第1层：初始化 {topLevel.Count} 个顶级设备...");
+            foreach (var config in topLevel)
                 await ActivateDeviceAsync(config);
+
+            // ── 第2层：子设备（轴/IO，ParentDeviceId 非空）──────────────────────
+            var children = enabledConfigs.Where(c => !string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
+            _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备...");
+            foreach (var config in children)
+            {
+                // 检查父设备是否存在且已连接
+                if (!_activeDevices.TryGetValue(config.ParentDeviceId, out var parentDevice))
+                {
+                    _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
+                                 $"'{config.ParentDeviceId}' 未被激活，跳过该子设备。");
+                    continue;
+                }
+
+                if (!parentDevice.IsConnected)
+                {
+                    _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父板卡 " +
+                                 $"'{config.ParentDeviceId}' 连接失败，跳过该子设备。");
+                    continue;
+                }
+
+                // 激活子设备，并注入父板卡引用
+                var parentCard = parentDevice as IMotionCard;
+                await ActivateDeviceAsync(config, parentCard);
+            }
 
             _logger.Success($"[HardwareManager] 初始化完成，活跃设备数: {_activeDevices.Count}");
         }
@@ -111,7 +155,11 @@ namespace PF.Services.Hardware
 
         // ── 私有工具 ────────────────────────────────────────────────────────────
 
-        private async Task ActivateDeviceAsync(HardwareConfig config)
+        /// <summary>
+        /// 实例化并连接单个设备。
+        /// 若 parentCard 不为 null 且设备实现 IAttachedDevice，则自动绑定父板卡。
+        /// </summary>
+        private async Task ActivateDeviceAsync(HardwareConfig config, IMotionCard? parentCard = null)
         {
             if (!_factories.TryGetValue(config.ImplementationClassName, out var factory))
             {
@@ -122,6 +170,11 @@ namespace PF.Services.Hardware
             try
             {
                 var device = factory(config);
+
+                // 若设备声明了 IAttachedDevice 且父板卡已就绪，注入父板卡实例引用
+                if (parentCard != null && device is IAttachedDevice attachable)
+                    attachable.AttachToCard(parentCard);
+
                 var connected = await device.ConnectAsync();
                 if (!connected)
                     _logger.Warn($"[HardwareManager] 设备 '{config.DeviceName}' 连接失败，仍加入活跃列表以供 UI 显示");
@@ -174,31 +227,49 @@ namespace PF.Services.Hardware
         }
 
         /// <summary>
-        /// 内置默认配置（对应 PF.Workstation.Demo 中的两个模拟设备），
-        /// 首次运行时写入，方便开发者快速上手。
+        /// 内置默认配置（对应 PF.Workstation.Demo 中的模拟设备），首次运行时写入。
+        ///
+        /// 层级关系：
+        ///   SIM_CARD_0（顶级板卡，ParentDeviceId 为空）
+        ///   ├── SIM_X_AXIS_0（轴，ParentDeviceId = "SIM_CARD_0"）
+        ///   └── SIM_VACUUM_IO（IO，ParentDeviceId = "SIM_CARD_0"）
         /// </summary>
         private static List<HardwareConfig> BuildDefaultConfigs() =>
         [
             new HardwareConfig
             {
-                DeviceId               = "SIM_X_AXIS_0",
-                DeviceName             = "模拟X轴[0]",
-                Category               = "Axis",
-                ImplementationClassName= "SimXAxis",
-                IsSimulated            = true,
-                IsEnabled              = true,
-                ConnectionParameters   = new Dictionary<string, string> { ["AxisIndex"] = "0" },
-                Remarks                = "模拟X轴，用于开发/调试"
+                DeviceId                = "SIM_CARD_0",
+                DeviceName              = "模拟运动控制卡[0]",
+                Category                = "MotionCard",
+                ImplementationClassName = "SimMotionCard",
+                IsSimulated             = true,
+                IsEnabled               = true,
+                ParentDeviceId          = string.Empty,
+                ConnectionParameters    = new Dictionary<string, string> { ["CardIndex"] = "0" },
+                Remarks                 = "模拟运动控制卡，用于开发/调试"
             },
             new HardwareConfig
             {
-                DeviceId               = "SIM_VACUUM_IO",
-                DeviceName             = "模拟真空IO卡",
-                Category               = "IOController",
-                ImplementationClassName= "SimVacuumIO",
-                IsSimulated            = true,
-                IsEnabled              = true,
-                Remarks                = "模拟真空IO卡，用于开发/调试"
+                DeviceId                = "SIM_X_AXIS_0",
+                DeviceName              = "模拟X轴[0]",
+                Category                = "Axis",
+                ImplementationClassName = "SimXAxis",
+                IsSimulated             = true,
+                IsEnabled               = true,
+                ParentDeviceId          = "SIM_CARD_0",
+                ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
+                Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
+            },
+            new HardwareConfig
+            {
+                DeviceId                = "SIM_VACUUM_IO",
+                DeviceName              = "模拟真空IO卡",
+                Category                = "IOController",
+                ImplementationClassName = "SimVacuumIO",
+                IsSimulated             = true,
+                IsEnabled               = true,
+                ParentDeviceId          = "SIM_CARD_0",
+                Remarks                 = "模拟真空IO卡，挂载于 SIM_CARD_0"
             }
         ];
 

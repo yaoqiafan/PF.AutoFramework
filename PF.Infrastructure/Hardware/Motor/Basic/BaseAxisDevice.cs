@@ -1,4 +1,6 @@
 using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using System.Text.Json;
@@ -8,15 +10,34 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
     /// <summary>
     /// 轴设备抽象基类
     ///
-    /// 在 BaseDevice 的基础上，实现 IAxis 中的点表管理（PointTable CRUD + JSON 持久化）
-    /// 和 MoveToPointAsync 便捷方法。子类只需实现具体的运动控制方法即可。
+    /// 在 BaseDevice 的基础上，实现：
+    ///   · IAxis 点表管理（PointTable CRUD + JSON 持久化）与 MoveToPointAsync 便捷方法
+    ///   · IAttachedDevice 父板卡关联 — HardwareManagerService 初始化子设备后自动注入父板卡
     ///
-    /// 点表存储：每个轴在 <see cref="_dataDirectory"/>/AxisPoints/{DeviceId}.json 下存一个 JSON 文件。
+    /// 点表存储：{dataDirectory}/AxisPoints/{DeviceId}.json
+    ///
+    /// 父板卡访问：
+    ///   子类可通过 <see cref="ParentCard"/> 属性获取所挂载的 IMotionCard 实例，
+    ///   进而调用厂商板卡 SDK（如获取板卡句柄、读写寄存器等）。
     /// </summary>
-    public abstract class BaseAxisDevice : BaseDevice, IAxis
+    public abstract class BaseAxisDevice : BaseDevice, IAxis, IAttachedDevice
     {
         private readonly List<AxisPoint> _pointTable = new();
         private readonly string _pointTableFilePath;
+
+        #region IAttachedDevice 实现
+
+        /// <inheritdoc/>
+        public IMotionCard? ParentCard { get; private set; }
+
+        /// <inheritdoc/>
+        public void AttachToCard(IMotionCard card)
+        {
+            ParentCard = card;
+            _logger?.Info($"[{DeviceName}] 已挂载到板卡: '{card.DeviceName}' (CardIndex={card.CardIndex})");
+        }
+
+        #endregion
 
         protected BaseAxisDevice(
             string deviceId,

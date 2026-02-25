@@ -40,6 +40,14 @@ namespace PF.Core.Entities.Hardware
         /// </summary>
         public Dictionary<string, string> ConnectionParameters { get; set; } = new();
 
+        /// <summary>
+        /// 父级控制卡的 DeviceId。
+        /// 空字符串表示顶级设备（如板卡自身）；
+        /// 非空表示该设备挂载在指定板卡下（如轴、IO），
+        /// HardwareManagerService 将据此在初始化时建立父子关联。
+        /// </summary>
+        public string ParentDeviceId { get; set; } = string.Empty;
+
         /// <summary>设备备注说明</summary>
         public string Remarks { get; set; } = string.Empty;
     }
