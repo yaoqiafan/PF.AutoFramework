@@ -1,5 +1,5 @@
 using PF.Core.Entities.Hardware;
-using PF.Core.Interfaces.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using System.Text.Json;
 

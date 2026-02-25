@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Core.Interfaces.Mechanisms
+namespace PF.Core.Interfaces.Device.Mechanisms
 {
     /// <summary>
     /// 工业机构模组基础接口

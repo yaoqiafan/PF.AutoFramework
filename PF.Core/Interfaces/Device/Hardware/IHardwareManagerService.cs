@@ -1,6 +1,6 @@
 using PF.Core.Entities.Hardware;
 
-namespace PF.Core.Interfaces.Hardware
+namespace PF.Core.Interfaces.Device.Hardware
 {
     /// <summary>
     /// 硬件设备管理服务接口

@@ -1,4 +1,4 @@
-﻿using PF.Core.Interfaces.Mechanisms;
+﻿using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Mvvm;
