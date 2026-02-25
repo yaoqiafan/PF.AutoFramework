@@ -8,10 +8,7 @@ namespace PF.Core.Attributes
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class MechanismUIAttribute : Attribute
     {
-        /// <summary>
-        /// 模组唯一标识 (例如 "PickPlace")
-        /// </summary>
-        public string MechanismId { get; }
+        public string MechanismViewName { get; }
 
         /// <summary>
         /// UI显示名称 (例如 "取放模组调试")
@@ -23,10 +20,11 @@ namespace PF.Core.Attributes
         /// </summary>
         public int Order { get; set; } = 99;
 
-        public MechanismUIAttribute(string mechanismId, string title)
+        public MechanismUIAttribute(string title, string viewName, int order = 99)
         {
-            MechanismId = mechanismId;
+            MechanismViewName = viewName;
             Title = title;
+            Order = order;
         }
     }
 }

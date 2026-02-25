@@ -22,6 +22,7 @@
     <Project Path="PF.Services/PF.Services.csproj" Id="17350e09-de76-4c9d-90bf-addcf7e31fc9" />
   </Folder>
   <Folder Name="/05.Workstation (设备层)/">
+    <Project Path="PF.Workstation.Demo.UI/PF.Workstation.Demo.UI.csproj" Id="5758dd5b-0705-4f5e-b73f-830e76506fad" />
     <Project Path="PF.Workstation.Demo/PF.Workstation.Demo.csproj" />
   </Folder>
   <Folder Name="/06.Modules (业务模块层)/">
