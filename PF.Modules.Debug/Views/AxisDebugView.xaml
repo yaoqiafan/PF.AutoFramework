@@ -1,0 +1,182 @@
+﻿<UserControl
+    x:Class="PF.Modules.Debug.Views.AxisDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    d:DesignHeight="600"
+    d:DesignWidth="900"
+    mc:Ignorable="d">
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Margin="0,0,0,15" Padding="15"  BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="48" Height="48"  CornerRadius="8" Margin="0,0,15,0">
+                        <TextBlock Text="⚙️" FontSize="24" Foreground="{DynamicResource TextIconBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DeviceName}" FontSize="22" FontWeight="Bold"  />
+                        <TextBlock Text="{Binding DeviceDescription}" FontSize="13"  Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="通讯状态:"   VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <Border Padding="8,4" CornerRadius="4" Background="#10B981">
+                            <TextBlock Text="{Binding IsConnected, StringFormat='{}{0}'}" Foreground="White" FontWeight="SemiBold"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="340" />
+                    <ColumnDefinition Width="15" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"  BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="实时位置 (DRO)" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,10"/>
+                            <Border Background="#E2E8F0" CornerRadius="6" Padding="15">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding CurrentPosition, StringFormat=\{0:F3\}}" FontSize="36" FontWeight="Heavy" Foreground="#4ADE80" FontFamily="Consolas"/>
+                                    <TextBlock Text=" mm" FontSize="16" Foreground="#94A3B8" VerticalAlignment="Bottom" Margin="8,0,0,6"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="IO 状态监控" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Margin="0,15,0,10"/>
+                            <UniformGrid Columns="2" Margin="0,5">
+                                <CheckBox Content="轴已使能 (SVON)" IsChecked="{Binding IsEnabled, Mode=OneWay}" IsHitTestVisible="False" Margin="0,5"/>
+                                <CheckBox Content="正在运动 (BUSY)" IsChecked="{Binding IsMoving, Mode=OneWay}" IsHitTestVisible="False" Margin="0,5" Foreground="#0284C7"/>
+                                <CheckBox Content="正限位 (PEL)" IsChecked="{Binding IsPositiveLimit, Mode=OneWay}" IsHitTestVisible="False" Margin="0,5" Foreground="#EF4444"/>
+                                <CheckBox Content="负限位 (NEL)" IsChecked="{Binding IsNegativeLimit, Mode=OneWay}" IsHitTestVisible="False" Margin="0,5" Foreground="#EF4444"/>
+                                <CheckBox Content="驱动器报警 (ALM)" IsChecked="{Binding IsAlarm, Mode=OneWay}" IsHitTestVisible="False" Margin="0,5" Foreground="#EF4444"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1"  BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="设备启停" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,10"/>
+                            <UniformGrid Columns="2" Margin="0,0,0,10">
+                                <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" Content="连接硬件" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="5,0,0,5" Command="{Binding DisconnectCommand}" Content="断开连接" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="0,5,5,0" Command="{Binding EnableCommand}" Content="伺服使能 (ON)" Style="{DynamicResource ButtonPrimary}" />
+                                <Button Height="36" Margin="5,5,0,0" Command="{Binding DisableCommand}" Content="断开使能 (OFF)" Style="{DynamicResource ButtonWarning}" />
+                            </UniformGrid>
+
+                            <Button Height="40" Margin="0,5" Command="{Binding HomeCommand}" Content="执行回零 (HOME)" Style="{DynamicResource ButtonSuccess}" />
+                            <Button Height="45" Margin="0,5" Command="{Binding StopCommand}" Content="急 停 (E-STOP)" FontSize="16" FontWeight="Bold" Style="{DynamicResource ButtonDanger}" />
+                            <Button Height="36" Margin="0,5" Command="{Binding ResetCommand}" Content="报警复位 (RESET)" Style="{DynamicResource ButtonDefault}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <StackPanel  Grid.Column="2">
+
+                    <Border  BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="5" Text="绝对定位 (Absolute Move)" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,15"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" Text="目标位置 (mm):" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Height="36" Margin="0,0,20,0" VerticalContentAlignment="Center" Text="{Binding TargetPosition}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,0,10,0" VerticalAlignment="Center" Text="运动速度 (mm/s):" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Height="36" Margin="0,0,20,0" VerticalContentAlignment="Center" Text="{Binding AbsVelocity}" />
+
+                            <Button Grid.Row="1" Grid.Column="4" Height="36" Command="{Binding MoveAbsoluteCommand}" Content="绝 对 运 动" Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+                    </Border>
+
+                    <Border  BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="5" Text="相对定位 (Relative Move)" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,15"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" Text="相对距离 (mm):" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Height="36" Margin="0,0,20,0" VerticalContentAlignment="Center" Text="{Binding RelativeDistance}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,0,10,0" VerticalAlignment="Center" Text="运动速度 (mm/s):" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Height="36" Margin="0,0,20,0" VerticalContentAlignment="Center" Text="{Binding RelVelocity}" />
+
+                            <Button Grid.Row="1" Grid.Column="4" Height="36" Command="{Binding MoveRelativeCommand}" Content="相 对 运 动" Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+                    </Border>
+
+                    <Border  BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="5" Text="连续点动 (JOG)" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,0,15"/>
+
+                            <Button Grid.Row="1" Grid.Column="0" Height="50" Command="{Binding JogNegativeCommand}" Content="◀ JOG -" FontSize="16" FontWeight="Bold" Style="{DynamicResource ButtonDefault}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="20,0,10,0" VerticalAlignment="Center" Text="点动速度 (mm/s):" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Height="36" Margin="0,0,20,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Text="{Binding JogVelocity}" />
+
+                            <Button Grid.Row="1" Grid.Column="4" Height="50" Command="{Binding JogPositiveCommand}" Content="JOG + ▶" FontSize="16" FontWeight="Bold" Style="{DynamicResource ButtonDefault}" />
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

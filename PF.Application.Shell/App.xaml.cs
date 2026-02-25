@@ -170,9 +170,12 @@ namespace PF.Application.Shell
         }
         protected override void OnInitialized()
         {
-            base.OnInitialized();
-           
+            var authService = Container.Resolve<IUserService>();
 
+            // 2. 使用默认的操作员账号进行静默登录
+            // 使用 .GetAwaiter().GetResult() 来同步等待异步方法完成
+            bool loginSuccess = authService.LoginAsync("SuperUser", "PF88888").GetAwaiter().GetResult();
+            base.OnInitialized();
         }
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
@@ -211,7 +214,7 @@ namespace PF.Application.Shell
             var xAxis = new SimXAxis(0, _logService);
             var vacuumIO = new SimVacuumIO(_logService);
 
-          
+
             // a. 供具体模组注入使用
             containerRegistry.RegisterInstance(xAxis);
             containerRegistry.RegisterInstance(vacuumIO);
