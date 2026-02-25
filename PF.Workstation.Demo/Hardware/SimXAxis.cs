@@ -1,5 +1,5 @@
 using PF.Core.Interfaces.Logging;
-using PF.Infrastructure.Hardware;
+using PF.Infrastructure.Hardware.Motor.Basic;
 
 namespace PF.Workstation.Demo.Hardware
 {
