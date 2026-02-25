@@ -424,6 +424,8 @@ namespace PF.Application.Shell
 
                 SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
                 var hwManager = Container.Resolve<IHardwareManagerService>();
+                var paramService = Container.Resolve<IParamService>();
+                await EnsureDefaultHardwareConfigsAsync(hwManager, paramService);
                 await hwManager.LoadAndInitializeAsync();
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
@@ -444,6 +446,75 @@ namespace PF.Application.Shell
         {
             await Task.Delay(1000);
             return true;
+        }
+
+        /// <summary>
+        /// 【Workstation 层】首次运行检测与默认硬件配置注入
+        ///
+        /// 流程：
+        ///   1. 查询数据库中是否已有硬件配置（HardwareParam 类别）
+        ///   2. 若无数据，说明首次运行，构造本 Workstation 专属的模拟设备默认列表
+        ///   3. 调用 ImportConfigsAsync 将默认配置写入数据库
+        ///
+        /// 设计说明：
+        ///   · 核心服务层（HardwareManagerService）不携带任何默认数据，
+        ///     具体应用（设备型号、索引、命名）由 Workstation 层负责定义。
+        ///   · 此处仅在数据库完全为空时执行一次，之后由运维/UI 界面管理配置。
+        /// </summary>
+        private async Task EnsureDefaultHardwareConfigsAsync(
+            IHardwareManagerService hwManager,
+            IParamService paramService)
+        {
+            // 通过查询数据库判断是否首次运行（空表 = 首次运行）
+            var existingParams = await paramService.GetParamsByCategoryAsync<PF.Data.Entity.Category.HardwareParam>();
+            if (existingParams.Count > 0)
+                return;
+
+            _logService.Info("[Workstation] 首次运行检测到空硬件配置，正在注入模拟设备默认配置...");
+
+            // 构造本 Workstation 的模拟设备配置
+            // 层级：SIM_CARD_0（板卡）→ SIM_X_AXIS_0（轴）、SIM_VACUUM_IO（IO）
+            var defaultConfigs = new List<HardwareConfig>
+            {
+                new HardwareConfig
+                {
+                    DeviceId                = "SIM_CARD_0",
+                    DeviceName              = "模拟运动控制卡[0]",
+                    Category                = "MotionCard",
+                    ImplementationClassName = "SimMotionCard",
+                    IsSimulated             = true,
+                    IsEnabled               = true,
+                    ParentDeviceId          = string.Empty,
+                    ConnectionParameters    = new Dictionary<string, string> { ["CardIndex"] = "0" },
+                    Remarks                 = "模拟运动控制卡，用于开发/调试"
+                },
+                new HardwareConfig
+                {
+                    DeviceId                = "SIM_X_AXIS_0",
+                    DeviceName              = "模拟X轴[0]",
+                    Category                = "Axis",
+                    ImplementationClassName = "SimXAxis",
+                    IsSimulated             = true,
+                    IsEnabled               = true,
+                    ParentDeviceId          = "SIM_CARD_0",
+                    ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
+                    Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
+                },
+                new HardwareConfig
+                {
+                    DeviceId                = "SIM_VACUUM_IO",
+                    DeviceName              = "模拟真空IO卡",
+                    Category                = "IOController",
+                    ImplementationClassName = "SimVacuumIO",
+                    IsSimulated             = true,
+                    IsEnabled               = true,
+                    ParentDeviceId          = "SIM_CARD_0",
+                    Remarks                 = "模拟真空IO卡，挂载于 SIM_CARD_0"
+                }
+            };
+
+            await hwManager.ImportConfigsAsync(defaultConfigs);
+            _logService.Info("[Workstation] 默认硬件配置注入完成。");
         }
 
 

@@ -12,12 +12,17 @@ namespace PF.Services.Hardware
     /// <summary>
     /// 硬件设备管理服务实现
     ///
+    /// 设计原则（关注点分离）：
+    ///   · 本服务只提供机制（CRUD + 初始化），不包含任何具体应用的默认数据。
+    ///   · 具体的设备配置（SIM_CARD_0 等）由上层 Workstation 通过 ImportConfigsAsync 注入。
+    ///
     /// 生命周期：
     ///   ① App.xaml.cs 注册 RegisterParamType&lt;HardwareParam, HardwareConfig&gt;()
     ///   ② App.xaml.cs 调用 RegisterFactory(...) 注册所有实现类的工厂
-    ///   ③ App.xaml.cs 调用 LoadAndInitializeAsync() → 从数据库加载配置 → 拓扑排序实例化 → ConnectAsync
-    ///   ④ 其他模块通过 ActiveDevices / GetDevice(id) 取用设备引用
-    ///   ⑤ ReloadAllAsync() 支持热重载（如运行时新增/删除设备配置后调用）
+    ///   ③ App.xaml.cs 检测首次运行时调用 ImportConfigsAsync(defaultConfigs) 写入初始配置
+    ///   ④ App.xaml.cs 调用 LoadAndInitializeAsync() → 从数据库加载配置 → 拓扑排序实例化 → ConnectAsync
+    ///   ⑤ 其他模块通过 ActiveDevices / GetDevice(id) 取用设备引用
+    ///   ⑥ ReloadAllAsync() 支持热重载（如运行时新增/删除设备配置后调用）
     ///
     /// 配置持久化：通过 IParamService 读写数据库 HardwareParams 表
     ///   · Key   = HardwareConfig.DeviceId（如 "SIM_CARD_0"）
@@ -59,7 +64,6 @@ namespace PF.Services.Hardware
         {
             _logger = logger;
             _paramService = paramService;
-            // 配置加载改为异步，在 LoadAndInitializeAsync 中执行
         }
 
         // ── 工厂注册 ───────────────────────────────────────────────────────────
@@ -106,6 +110,41 @@ namespace PF.Services.Hardware
             await _paramService.DeleteParamAsync<HardwareConfig>(deviceId);
 
             _logger.Info($"[HardwareManager] 删除配置: '{deviceId}'");
+        }
+
+        /// <summary>
+        /// 批量导入配置：将外部传入的配置集合逐一写入数据库并刷新内存缓存。
+        ///
+        /// 典型用途：上层 Workstation 在首次启动时检测到数据库为空，
+        /// 构造应用层特定的默认设备列表，通过本方法一次性写入。
+        /// 已存在的同 DeviceId 配置会被覆盖（upsert 语义）。
+        /// </summary>
+        /// <param name="configs">要导入的配置集合</param>
+        public async Task ImportConfigsAsync(IEnumerable<HardwareConfig> configs)
+        {
+            var list = configs?.ToList() ?? [];
+            if (list.Count == 0)
+            {
+                _logger.Warn("[HardwareManager] ImportConfigsAsync 收到空集合，跳过导入。");
+                return;
+            }
+
+            _logger.Info($"[HardwareManager] 开始批量导入 {list.Count} 条硬件配置...");
+
+            foreach (var config in list)
+            {
+                // 同步更新内存缓存
+                var existing = _configs.FirstOrDefault(c => c.DeviceId == config.DeviceId);
+                if (existing != null)
+                    _configs.Remove(existing);
+                _configs.Add(config);
+
+                // 写入数据库
+                await _paramService.SetParamAsync<HardwareConfig>(
+                    config.DeviceId, config, description: config.Remarks);
+            }
+
+            _logger.Success($"[HardwareManager] 批量导入完成，共写入 {list.Count} 条配置。");
         }
 
         // ── 生命周期 ───────────────────────────────────────────────────────────
@@ -179,13 +218,13 @@ namespace PF.Services.Hardware
 
         /// <summary>
         /// 从数据库加载所有硬件配置到内存缓存。
-        /// 若数据库中无记录（首次启动），生成内置默认配置并写入数据库。
+        /// 若数据库为空，仅记录日志并保持 _configs 为空——
+        /// 上层 Workstation 应在调用 LoadAndInitializeAsync 之前通过 ImportConfigsAsync 注入配置。
         /// </summary>
         private async Task LoadConfigsAsync()
         {
             try
             {
-                // 从 HardwareParam 表获取所有记录（ParamInfo 包含 JSON 字符串）
                 var paramInfos = await _paramService.GetParamsByCategoryAsync<HardwareParam>();
 
                 _configs = paramInfos
@@ -198,24 +237,14 @@ namespace PF.Services.Hardware
                     .ToList()!;
 
                 if (!_configs.Any())
-                {
-                    // 首次启动：生成默认配置并持久化到数据库
-                    _configs = BuildDefaultConfigs();
-                    foreach (var cfg in _configs)
-                        await _paramService.SetParamAsync<HardwareConfig>(
-                            cfg.DeviceId, cfg, description: cfg.Remarks);
-
-                    _logger.Info($"[HardwareManager] 数据库中无硬件配置，已写入 {_configs.Count} 条默认配置");
-                }
+                    _logger.Info("[HardwareManager] 数据库中无硬件配置，等待外部注入或配置。");
                 else
-                {
-                    _logger.Info($"[HardwareManager] 从数据库加载了 {_configs.Count} 条硬件配置");
-                }
+                    _logger.Info($"[HardwareManager] 从数据库加载了 {_configs.Count} 条硬件配置。");
             }
             catch (Exception ex)
             {
-                _logger.Error($"[HardwareManager] 从数据库加载硬件配置失败，使用内置默认配置: {ex.Message}");
-                _configs = BuildDefaultConfigs();
+                _logger.Error($"[HardwareManager] 从数据库加载硬件配置失败: {ex.Message}");
+                _configs = [];
             }
         }
 
@@ -235,7 +264,6 @@ namespace PF.Services.Hardware
             {
                 var device = factory(config);
 
-                // 若设备声明了 IAttachedDevice 且父板卡已就绪，注入父板卡实例引用
                 if (parentCard != null && device is IAttachedDevice attachable)
                     attachable.AttachToCard(parentCard);
 
@@ -252,53 +280,6 @@ namespace PF.Services.Hardware
                 _logger.Error($"[HardwareManager] 激活设备 '{config.DeviceId}' 失败: {ex.Message}");
             }
         }
-
-        /// <summary>
-        /// 内置默认配置（对应 PF.Workstation.Demo 中的模拟设备），首次运行时写入数据库。
-        ///
-        /// 层级关系：
-        ///   SIM_CARD_0（顶级板卡，ParentDeviceId 为空）
-        ///   ├── SIM_X_AXIS_0（轴，ParentDeviceId = "SIM_CARD_0"）
-        ///   └── SIM_VACUUM_IO（IO，ParentDeviceId = "SIM_CARD_0"）
-        /// </summary>
-        private static List<HardwareConfig> BuildDefaultConfigs() =>
-        [
-            new HardwareConfig
-            {
-                DeviceId                = "SIM_CARD_0",
-                DeviceName              = "模拟运动控制卡[0]",
-                Category                = "MotionCard",
-                ImplementationClassName = "SimMotionCard",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = string.Empty,
-                ConnectionParameters    = new Dictionary<string, string> { ["CardIndex"] = "0" },
-                Remarks                 = "模拟运动控制卡，用于开发/调试"
-            },
-            new HardwareConfig
-            {
-                DeviceId                = "SIM_X_AXIS_0",
-                DeviceName              = "模拟X轴[0]",
-                Category                = "Axis",
-                ImplementationClassName = "SimXAxis",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = "SIM_CARD_0",
-                ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
-                Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
-            },
-            new HardwareConfig
-            {
-                DeviceId                = "SIM_VACUUM_IO",
-                DeviceName              = "模拟真空IO卡",
-                Category                = "IOController",
-                ImplementationClassName = "SimVacuumIO",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = "SIM_CARD_0",
-                Remarks                 = "模拟真空IO卡，挂载于 SIM_CARD_0"
-            }
-        ];
 
         public void Dispose()
         {
