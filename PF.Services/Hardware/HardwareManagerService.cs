@@ -191,7 +191,7 @@ namespace PF.Services.Hardware
                 _configs = paramInfos
                     .Select(p =>
                     {
-                        try { return JsonSerializer.Deserialize<HardwareConfig>(p.Value); }
+                        try { return JsonSerializer.Deserialize<HardwareConfig>(p.Value.ToString()); }
                         catch { return null; }
                     })
                     .Where(c => c != null)
