@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+	<ItemGroup>
+		<PackageReference Include="Prism.Wpf" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="ViewModels\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+	  <ProjectReference Include="..\PF.Workstation.Demo\PF.Workstation.Demo.csproj" />
+	</ItemGroup>
+</Project>
