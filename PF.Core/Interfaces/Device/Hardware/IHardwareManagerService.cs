@@ -5,16 +5,19 @@ namespace PF.Core.Interfaces.Device.Hardware
     /// <summary>
     /// 硬件设备管理服务接口
     ///
-    /// 设计原则：
+    /// 设计原则（关注点分离）：
+    ///   · 本接口只暴露机制（CRUD + 初始化 + 批量导入），不包含任何具体应用的默认数据。
     ///   · 通过 RegisterFactory 注册工厂函数（在组合根 App.xaml.cs 调用），
     ///     使服务本身不依赖任何具体设备类，符合依赖倒置原则。
     ///   · 配置通过 IParamService 持久化到数据库，支持异步 CRUD 热重载。
     ///   · ActiveDevices 供左侧设备树等 UI 模块订阅和展示。
     ///
-    /// 典型使用流程：
-    ///   1. App.xaml.cs RegisterFactory("SimXAxis", config => new SimXAxis(...))
-    ///   2. App.xaml.cs LoadAndInitializeAsync() → 从数据库加载配置 → 实例化并连接所有已启用设备
-    ///   3. 其他模块通过 ActiveDevices / GetDevice(id) 获取设备引用
+    /// 典型启动流程（由上层 Workstation 驱动）：
+    ///   1. RegisterFactory(...)                   注册设备工厂
+    ///   2. 查询配置是否为空（首次运行检测）
+    ///      → 构造应用层默认配置列表
+    ///      → ImportConfigsAsync(defaultConfigs)   写入数据库
+    ///   3. LoadAndInitializeAsync()               加载配置并连接所有设备
     /// </summary>
     public interface IHardwareManagerService
     {
@@ -32,6 +35,15 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// <summary>异步删除指定配置（已运行的设备需先停止），同时从数据库删除</summary>
         Task DeleteConfigAsync(string deviceId);
 
+        /// <summary>
+        /// 批量导入配置：将外部传入的配置集合逐一写入数据库并刷新内存缓存（upsert 语义）。
+        ///
+        /// 典型用途：上层 Workstation 在首次启动时检测到数据库为空，
+        /// 构造应用层特定的默认设备列表，通过本方法一次性写入后再调用 LoadAndInitializeAsync。
+        /// </summary>
+        /// <param name="configs">要导入的配置集合，DeviceId 重复时覆盖已有记录</param>
+        Task ImportConfigsAsync(IEnumerable<HardwareConfig> configs);
+
         // ── 工厂注册 ───────────────────────────────────────────────────────────
 
         /// <summary>
@@ -45,7 +57,7 @@ namespace PF.Core.Interfaces.Device.Hardware
 
         /// <summary>
         /// 从数据库加载配置，再根据已启用配置通过注册工厂实例化所有设备并调用 ConnectAsync。
-        /// 通常在应用启动完成后调用一次。
+        /// 通常在应用启动、且已通过 ImportConfigsAsync 确认配置存在后调用一次。
         /// </summary>
         Task LoadAndInitializeAsync();
 
