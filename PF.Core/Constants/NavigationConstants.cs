@@ -24,6 +24,8 @@ namespace PF.Core.Constants
 
             public const string SoftwareViewRegion = nameof(SoftwareViewRegion);
 
+            public const string DebugViewRegion = nameof(DebugViewRegion);
+
         }
 
         public static class Views
@@ -48,6 +50,8 @@ namespace PF.Core.Constants
             #region 调试
             public const string HardwareDebugView = nameof(HardwareDebugView);
             public const string MechanismDebugView = nameof(MechanismDebugView);
+            public const string AxisDebugView = nameof(AxisDebugView);
+            public const string IODebugView = nameof(IODebugView);
             #endregion
 
 

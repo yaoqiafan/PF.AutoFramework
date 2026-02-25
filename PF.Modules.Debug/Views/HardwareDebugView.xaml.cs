@@ -22,12 +22,38 @@ namespace PF.Modules.Debug.Views
     [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "设备综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 4, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
     public partial class HardwareDebugView : UserControl
     {
-        public HardwareDebugView() { InitializeComponent(); }
+        public HardwareDebugView(IRegionManager regionManager)
+        {
+            // 2. 【核心修复】在初始化 XAML 之前，检查并移除残留的嵌套 Region
+            string regionName = NavigationConstants.Regions.DebugViewRegion;
+            if (regionManager.Regions.ContainsRegionWithName(regionName))
+            {
+                regionManager.Regions.Remove(regionName);
+            }
+
+            // 3. 此时再解析 XAML 注册 Region 就不会报重复冲突的错了
+            InitializeComponent();
+        }
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (DataContext is HardwareDebugViewModel vm)
-                vm.SelectedNode = e.NewValue as DebugTreeNode;
+            {
+                var node = e.NewValue as DebugTreeNode;
+
+                // 1. 更新 ViewModel 的选中节点
+                vm.SelectedNode = node;
+
+                // 2. 提取 Payload 并执行导航命令
+                if (node?.Payload != null)
+                {
+                    // 确保命令可以执行
+                    if (vm.NavigateToDebugCommand.CanExecute(node.Payload))
+                    {
+                        vm.NavigateToDebugCommand.Execute(node.Payload);
+                    }
+                }
+            }
         }
     }
 }

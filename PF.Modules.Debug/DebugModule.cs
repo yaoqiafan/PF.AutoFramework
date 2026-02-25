@@ -30,6 +30,10 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterForNavigation<MechanismDebugView, MechanismDebugViewModel>(NavigationConstants.Views.MechanismDebugView);
 
             // 如果你后面还有其他独立的调试页面（比如视觉专用的校准页面），也可以继续在这里注册
+
+            containerRegistry.RegisterForNavigation<AxisDebugView, AxisDebugViewModel>(NavigationConstants.Views.AxisDebugView);
+
+            containerRegistry.RegisterForNavigation<IODebugView, IODebugViewModel>(NavigationConstants.Views.IODebugView);
         }
     }
 }

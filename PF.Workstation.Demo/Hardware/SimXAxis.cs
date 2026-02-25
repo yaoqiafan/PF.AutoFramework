@@ -118,5 +118,7 @@ namespace PF.Workstation.Demo.Hardware
             _isMoving = false;
             return true;
         }
+
+       
     }
 }
