@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PF.Data.Entity;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
@@ -10,7 +10,8 @@ namespace PF.Application.Shell.CustomConfiguration.Param
     {
         CommonParams,
         UserLoginParams,
-        SystemConfigParams
+        SystemConfigParams,
+        HardwareParams
     }
 
 
@@ -21,6 +22,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         public DbSet<CommonParam> CommonParams { get; set; }
         public DbSet<UserLoginParam> UserLoginParams { get; set; }
         public DbSet<SystemConfigParam> SystemConfigParams { get; set; }
+        public DbSet<HardwareParam> HardwareParams { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -36,6 +38,10 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 .IsUnique();
 
             modelBuilder.Entity<SystemConfigParam>()
+                .HasIndex(p => p.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<HardwareParam>()
                 .HasIndex(p => p.Name)
                 .IsUnique();
         }
@@ -66,8 +72,28 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// </summary>
         public async Task EnsureDefaultParametersCreatedAsync(IDefaultParam defaultParam,CancellationToken cancellationToken = default)
         {
-            // 确保数据库已创建
+            // 确保数据库已创建（全新安装场景：创建所有表）
             await Database.EnsureCreatedAsync(cancellationToken);
+
+            // 兼容已有数据库（升级场景）：确保 HardwareParams 表存在
+            // EnsureCreatedAsync 只在数据库不存在时建表，已有库需要手动补建
+            await Database.ExecuteSqlRawAsync(@"
+                CREATE TABLE IF NOT EXISTS HardwareParams (
+                    ID          TEXT NOT NULL,
+                    Name        TEXT NOT NULL,
+                    JsonValue   TEXT,
+                    TypeFullName TEXT,
+                    Category    TEXT,
+                    Description TEXT,
+                    CreateTime  TEXT NOT NULL DEFAULT '',
+                    UpdateTime  TEXT NOT NULL DEFAULT '',
+                    Version     INTEGER NOT NULL DEFAULT 0,
+                    CONSTRAINT PK_HardwareParams PRIMARY KEY (ID)
+                );", cancellationToken);
+
+            await Database.ExecuteSqlRawAsync(
+                "CREATE UNIQUE INDEX IF NOT EXISTS IX_HardwareParams_Name ON HardwareParams (Name);",
+                cancellationToken);
 
             // 初始化CommonParams
             await EnsureParametersExistAsync(

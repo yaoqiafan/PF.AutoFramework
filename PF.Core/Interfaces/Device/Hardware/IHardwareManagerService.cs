@@ -8,29 +8,29 @@ namespace PF.Core.Interfaces.Device.Hardware
     /// 设计原则：
     ///   · 通过 RegisterFactory 注册工厂函数（在组合根 App.xaml.cs 调用），
     ///     使服务本身不依赖任何具体设备类，符合依赖倒置原则。
-    ///   · 配置以 JSON 文件持久化，支持 CRUD 热重载。
+    ///   · 配置通过 IParamService 持久化到数据库，支持异步 CRUD 热重载。
     ///   · ActiveDevices 供左侧设备树等 UI 模块订阅和展示。
     ///
     /// 典型使用流程：
     ///   1. App.xaml.cs RegisterFactory("SimXAxis", config => new SimXAxis(...))
-    ///   2. App.xaml.cs LoadAndInitializeAsync() → 实例化并连接所有已启用设备
+    ///   2. App.xaml.cs LoadAndInitializeAsync() → 从数据库加载配置 → 实例化并连接所有已启用设备
     ///   3. 其他模块通过 ActiveDevices / GetDevice(id) 获取设备引用
     /// </summary>
     public interface IHardwareManagerService
     {
         // ── 配置 CRUD ──────────────────────────────────────────────────────────
 
-        /// <summary>获取所有硬件配置记录</summary>
+        /// <summary>获取内存缓存中的所有硬件配置记录（在 LoadAndInitializeAsync 后可用）</summary>
         IEnumerable<HardwareConfig> GetAllConfigs();
 
-        /// <summary>按 DeviceId 查找配置</summary>
+        /// <summary>按 DeviceId 查找内存缓存中的配置</summary>
         HardwareConfig? GetConfig(string deviceId);
 
-        /// <summary>添加或更新配置（以 DeviceId 为唯一键）</summary>
-        void SaveConfig(HardwareConfig config);
+        /// <summary>异步添加或更新配置（以 DeviceId 为唯一键），同时写入数据库</summary>
+        Task SaveConfigAsync(HardwareConfig config);
 
-        /// <summary>删除指定配置（已运行的设备需先停止）</summary>
-        void DeleteConfig(string deviceId);
+        /// <summary>异步删除指定配置（已运行的设备需先停止），同时从数据库删除</summary>
+        Task DeleteConfigAsync(string deviceId);
 
         // ── 工厂注册 ───────────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ namespace PF.Core.Interfaces.Device.Hardware
         // ── 生命周期 ───────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 根据所有已启用的配置，通过注册的工厂实例化所有设备并调用 ConnectAsync。
+        /// 从数据库加载配置，再根据已启用配置通过注册工厂实例化所有设备并调用 ConnectAsync。
         /// 通常在应用启动完成后调用一次。
         /// </summary>
         Task LoadAndInitializeAsync();

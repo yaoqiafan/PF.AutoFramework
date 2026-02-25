@@ -1,7 +1,9 @@
 using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
+using PF.Data.Entity.Category;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -11,24 +13,26 @@ namespace PF.Services.Hardware
     /// 硬件设备管理服务实现
     ///
     /// 生命周期：
-    ///   ① App.xaml.cs 调用 RegisterFactory(...) 注册所有实现类的工厂
-    ///   ② App.xaml.cs 调用 LoadAndInitializeAsync() → 从 JSON 加载配置 → 拓扑排序实例化 → ConnectAsync
-    ///   ③ 其他模块通过 ActiveDevices / GetDevice(id) 取用设备引用
-    ///   ④ ReloadAllAsync() 支持热重载（如运行时新增/删除设备配置后调用）
+    ///   ① App.xaml.cs 注册 RegisterParamType&lt;HardwareParam, HardwareConfig&gt;()
+    ///   ② App.xaml.cs 调用 RegisterFactory(...) 注册所有实现类的工厂
+    ///   ③ App.xaml.cs 调用 LoadAndInitializeAsync() → 从数据库加载配置 → 拓扑排序实例化 → ConnectAsync
+    ///   ④ 其他模块通过 ActiveDevices / GetDevice(id) 取用设备引用
+    ///   ⑤ ReloadAllAsync() 支持热重载（如运行时新增/删除设备配置后调用）
     ///
-    /// 配置文件位置：{dataDirectory}/hardware_config.json
-    /// 若文件不存在，首次启动会写入内置默认配置（SIM_CARD_0 + SimXAxis + SimVacuumIO）。
+    /// 配置持久化：通过 IParamService 读写数据库 HardwareParams 表
+    ///   · Key   = HardwareConfig.DeviceId（如 "SIM_CARD_0"）
+    ///   · Value = HardwareConfig 对象的 JSON 序列化
     ///
     /// 初始化顺序（拓扑分层）：
     ///   · 第1层：ParentDeviceId 为空的顶级设备（运动控制卡）
     ///   · 第2层：ParentDeviceId 非空的子设备（轴、IO）
-    ///   若父设备连接失败，依赖它的子设备直接标记跳过（不实例化）并记录警告。
+    ///   若父设备连接失败，依赖它的子设备直接跳过并记录警告。
     ///   子设备实例化后，若实现 IAttachedDevice，自动注入父板卡实例引用。
     /// </summary>
     public sealed class HardwareManagerService : IHardwareManagerService, IDisposable
     {
-        private readonly string _configFilePath;
         private readonly ILogService _logger;
+        private readonly IParamService _paramService;
 
         // 工厂注册表：ImplementationClassName → Func<HardwareConfig, IHardwareDevice>
         private readonly Dictionary<string, Func<HardwareConfig, IHardwareDevice>> _factories = new();
@@ -36,7 +40,7 @@ namespace PF.Services.Hardware
         // 已激活的设备字典：DeviceId → IHardwareDevice
         private readonly ConcurrentDictionary<string, IHardwareDevice> _activeDevices = new();
 
-        // 配置缓存（内存中）
+        // 内存配置缓存（在 LoadAndInitializeAsync 后有效）
         private List<HardwareConfig> _configs = new();
 
         public event EventHandler<IHardwareDevice>? DeviceAdded;
@@ -44,12 +48,18 @@ namespace PF.Services.Hardware
 
         public IEnumerable<IHardwareDevice> ActiveDevices => _activeDevices.Values;
 
-        public HardwareManagerService(ILogService logger, string dataDirectory)
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="logger">日志服务</param>
+        /// <param name="paramService">
+        ///   参数服务（需事先调用 RegisterParamType&lt;HardwareParam, HardwareConfig&gt;() 注册映射）
+        /// </param>
+        public HardwareManagerService(ILogService logger, IParamService paramService)
         {
             _logger = logger;
-            Directory.CreateDirectory(dataDirectory);
-            _configFilePath = Path.Combine(dataDirectory, "hardware_config.json");
-            LoadConfigs();
+            _paramService = paramService;
+            // 配置加载改为异步，在 LoadAndInitializeAsync 中执行
         }
 
         // ── 工厂注册 ───────────────────────────────────────────────────────────
@@ -62,34 +72,46 @@ namespace PF.Services.Hardware
 
         // ── 配置 CRUD ──────────────────────────────────────────────────────────
 
+        /// <summary>返回内存缓存中的所有配置（LoadAndInitializeAsync 后有效）</summary>
         public IEnumerable<HardwareConfig> GetAllConfigs() => _configs.AsReadOnly();
 
         public HardwareConfig? GetConfig(string deviceId)
             => _configs.FirstOrDefault(c => c.DeviceId == deviceId);
 
-        public void SaveConfig(HardwareConfig config)
+        /// <summary>
+        /// 异步保存单条配置：更新内存缓存并写入数据库
+        /// </summary>
+        public async Task SaveConfigAsync(HardwareConfig config)
         {
             var existing = _configs.FirstOrDefault(c => c.DeviceId == config.DeviceId);
             if (existing != null)
                 _configs.Remove(existing);
             _configs.Add(config);
-            PersistConfigs();
+
+            await _paramService.SetParamAsync<HardwareConfig>(
+                config.DeviceId, config, description: config.Remarks);
+
             _logger.Info($"[HardwareManager] 保存配置: '{config.DeviceId}' ({config.DeviceName})");
         }
 
-        public void DeleteConfig(string deviceId)
+        /// <summary>
+        /// 异步删除单条配置：从内存缓存和数据库中同时移除
+        /// </summary>
+        public async Task DeleteConfigAsync(string deviceId)
         {
             var target = _configs.FirstOrDefault(c => c.DeviceId == deviceId);
             if (target == null) return;
+
             _configs.Remove(target);
-            PersistConfigs();
+            await _paramService.DeleteParamAsync<HardwareConfig>(deviceId);
+
             _logger.Info($"[HardwareManager] 删除配置: '{deviceId}'");
         }
 
         // ── 生命周期 ───────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 拓扑分层初始化所有已启用设备：
+        /// 从数据库加载配置，然后拓扑分层初始化所有已启用设备：
         ///   第1层 → ParentDeviceId 为空（板卡等顶级设备）
         ///   第2层 → ParentDeviceId 非空（轴、IO 等子设备）
         ///
@@ -98,6 +120,8 @@ namespace PF.Services.Hardware
         /// </summary>
         public async Task LoadAndInitializeAsync()
         {
+            await LoadConfigsAsync();
+
             var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
             _logger.Info($"[HardwareManager] 开始拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...");
 
@@ -112,7 +136,6 @@ namespace PF.Services.Hardware
             _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备...");
             foreach (var config in children)
             {
-                // 检查父设备是否存在且已连接
                 if (!_activeDevices.TryGetValue(config.ParentDeviceId, out var parentDevice))
                 {
                     _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
@@ -127,7 +150,6 @@ namespace PF.Services.Hardware
                     continue;
                 }
 
-                // 激活子设备，并注入父板卡引用
                 var parentCard = parentDevice as IMotionCard;
                 await ActivateDeviceAsync(config, parentCard);
             }
@@ -146,7 +168,7 @@ namespace PF.Services.Hardware
             }
             _activeDevices.Clear();
 
-            LoadConfigs();
+            // LoadAndInitializeAsync 内部会重新调用 LoadConfigsAsync 从数据库加载最新配置
             await LoadAndInitializeAsync();
         }
 
@@ -154,6 +176,48 @@ namespace PF.Services.Hardware
             => _activeDevices.TryGetValue(deviceId, out var d) ? d : null;
 
         // ── 私有工具 ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 从数据库加载所有硬件配置到内存缓存。
+        /// 若数据库中无记录（首次启动），生成内置默认配置并写入数据库。
+        /// </summary>
+        private async Task LoadConfigsAsync()
+        {
+            try
+            {
+                // 从 HardwareParam 表获取所有记录（ParamInfo 包含 JSON 字符串）
+                var paramInfos = await _paramService.GetParamsByCategoryAsync<HardwareParam>();
+
+                _configs = paramInfos
+                    .Select(p =>
+                    {
+                        try { return JsonSerializer.Deserialize<HardwareConfig>(p.Value); }
+                        catch { return null; }
+                    })
+                    .Where(c => c != null)
+                    .ToList()!;
+
+                if (!_configs.Any())
+                {
+                    // 首次启动：生成默认配置并持久化到数据库
+                    _configs = BuildDefaultConfigs();
+                    foreach (var cfg in _configs)
+                        await _paramService.SetParamAsync<HardwareConfig>(
+                            cfg.DeviceId, cfg, description: cfg.Remarks);
+
+                    _logger.Info($"[HardwareManager] 数据库中无硬件配置，已写入 {_configs.Count} 条默认配置");
+                }
+                else
+                {
+                    _logger.Info($"[HardwareManager] 从数据库加载了 {_configs.Count} 条硬件配置");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[HardwareManager] 从数据库加载硬件配置失败，使用内置默认配置: {ex.Message}");
+                _configs = BuildDefaultConfigs();
+            }
+        }
 
         /// <summary>
         /// 实例化并连接单个设备。
@@ -189,45 +253,8 @@ namespace PF.Services.Hardware
             }
         }
 
-        private void LoadConfigs()
-        {
-            if (!File.Exists(_configFilePath))
-            {
-                _configs = BuildDefaultConfigs();
-                PersistConfigs();
-                _logger.Info($"[HardwareManager] 配置文件不存在，已生成默认配置 → {_configFilePath}");
-                return;
-            }
-
-            try
-            {
-                var json = File.ReadAllText(_configFilePath);
-                _configs = JsonSerializer.Deserialize<List<HardwareConfig>>(json)
-                           ?? new List<HardwareConfig>();
-                _logger.Info($"[HardwareManager] 已加载 {_configs.Count} 条硬件配置");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[HardwareManager] 配置文件解析失败，使用默认配置: {ex.Message}");
-                _configs = BuildDefaultConfigs();
-            }
-        }
-
-        private void PersistConfigs()
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(_configs, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_configFilePath, json);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[HardwareManager] 配置文件保存失败: {ex.Message}");
-            }
-        }
-
         /// <summary>
-        /// 内置默认配置（对应 PF.Workstation.Demo 中的模拟设备），首次运行时写入。
+        /// 内置默认配置（对应 PF.Workstation.Demo 中的模拟设备），首次运行时写入数据库。
         ///
         /// 层级关系：
         ///   SIM_CARD_0（顶级板卡，ParentDeviceId 为空）

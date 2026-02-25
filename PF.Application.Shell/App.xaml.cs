@@ -4,6 +4,7 @@ using PF.Application.Shell.CustomConfiguration.Logging;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
 using PF.Core.Entities.Configuration;
+using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
@@ -12,6 +13,7 @@ using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Data.Context;
+using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
 using PF.Modules.Debug;
@@ -480,10 +482,19 @@ namespace PF.Application.Shell
 
         private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
         {
+            // dataDirectory 仍用于 SimXAxis 点表文件存储（与硬件配置存储无关）
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var dataDirectory = Path.Combine(appDataPath, "PFAutoFrameWork");
 
-            var hwManager = new HardwareManagerService(_logService, dataDirectory);
+            // 从容器解析 IParamService（已在 RegisterSystemParamsTypes 中注册为单例）
+            var container = containerRegistry.GetContainer();
+            var paramService = container.Resolve<IParamService>();
+
+            // 注册 HardwareParam → HardwareConfig 参数类型映射
+            // 使得 IParamService 泛型方法能正确定位 HardwareParams 表
+            paramService.RegisterParamType<HardwareParam, HardwareConfig>();
+
+            var hwManager = new HardwareManagerService(_logService, paramService);
 
             // 注册 SimMotionCard 工厂（顶级板卡，必须先于子设备注册以确保工厂存在）
             hwManager.RegisterFactory("SimMotionCard", cfg =>
