@@ -15,12 +15,14 @@ using PF.Data.Context;
 using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
 using PF.Modules.Debug;
+using PF.Modules.HardwareDebug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
@@ -184,6 +186,8 @@ namespace PF.Application.Shell
 
             RegisterSystemParamsTypes(containerRegistry);
 
+            RegisterHardwareTypes(containerRegistry);
+
             containerRegistry.RegisterSingleton<Splash>();
 
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
@@ -236,6 +240,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
+            moduleCatalog.AddModule<HardwareDebugModule>();
         }
         #endregion
 
@@ -418,6 +423,12 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "配置文件加载成功。。。", msgType: MsgType.Success);
                 await Task.Delay(500);
 
+                SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
+                var hwManager = Container.Resolve<IHardwareManagerService>();
+                await hwManager.LoadAndInitializeAsync();
+                SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
+                await Task.Delay(300);
+
                 SplashUpdateMessage(splash, logService, "初始化完成", msgType: MsgType.Success);
                 await Task.Delay(500);
                 return true;
@@ -467,6 +478,32 @@ namespace PF.Application.Shell
 
         #endregion
 
+
+        #region 硬件服务注册
+
+        private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var dataDirectory = Path.Combine(appDataPath, "PFAutoFrameWork");
+
+            var hwManager = new HardwareManagerService(_logService, dataDirectory);
+
+            // 注册 SimXAxis 工厂（工厂在 Composition Root 持有具体类型引用，不违反依赖方向）
+            hwManager.RegisterFactory("SimXAxis", cfg =>
+            {
+                int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
+                    ? int.Parse(idx) : 0;
+                return new PF.Workstation.Demo.Hardware.SimXAxis(axisIndex, _logService, dataDirectory);
+            });
+
+            // 注册 SimVacuumIO 工厂（当前示例仅占位，后续替换为真实 IO 卡实现）
+            hwManager.RegisterFactory("SimVacuumIO", cfg =>
+                new PF.Workstation.Demo.Hardware.SimVacuumIO(_logService));
+
+            containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
+        }
+
+        #endregion
 
         #region 日志配置加载
 
