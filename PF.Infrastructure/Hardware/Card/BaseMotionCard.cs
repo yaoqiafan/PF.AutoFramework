@@ -1,0 +1,97 @@
+using PF.Core.Interfaces.Device.Hardware.Card;
+using PF.Core.Interfaces.Logging;
+
+namespace PF.Infrastructure.Hardware.Card
+{
+    /// <summary>
+    /// 运动控制卡抽象基类
+    ///
+    /// 继承链：ConcreteCard → BaseMotionCard → BaseDevice → IHardwareDevice
+    ///                                                     → IMotionCard
+    ///
+    /// BaseDevice 已提供：
+    ///   · 连接重试（最多3次，间隔2s）
+    ///   · 模拟模式拦截（IsSimulated=true 时跳过真实硬件）
+    ///   · 统一报警（RaiseAlarm → AlarmTriggered 事件）
+    ///   · IDisposable 清理
+    ///
+    /// 本类额外提供：
+    ///   · LoadConfigAsync 公开入口（含文件存在检查、异常拦截、日志记录）
+    ///   · InternalLoadConfigAsync 钩子留给具体厂商板卡类实现配置解析逻辑
+    ///
+    /// 具体厂商板卡类需实现：
+    ///   · CardIndex / AxisCount / InputCount / OutputCount 属性
+    ///   · InternalConnectAsync / InternalDisconnectAsync / InternalResetAsync
+    ///   · InternalLoadConfigAsync（可选，若不需要配置文件可直接返回 true）
+    /// </summary>
+    public abstract class BaseMotionCard : BaseDevice, IMotionCard
+    {
+        #region IMotionCard 属性（由子类实现）
+
+        /// <inheritdoc/>
+        public abstract int CardIndex { get; }
+
+        /// <inheritdoc/>
+        public abstract int AxisCount { get; }
+
+        /// <inheritdoc/>
+        public abstract int InputCount { get; }
+
+        /// <inheritdoc/>
+        public abstract int OutputCount { get; }
+
+        #endregion
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        protected BaseMotionCard(string deviceId, string deviceName, bool isSimulated, ILogService logger)
+            : base(deviceId, deviceName, isSimulated, logger)
+        {
+            Category = Core.Enums.HardwareCategory.MotionCard;
+        }
+
+        #region IMotionCard.LoadConfigAsync 实现（模板方法）
+
+        /// <summary>
+        /// 加载板卡硬件配置文件（公开入口）
+        ///
+        /// 封装了：文件存在校验、异常拦截、成功/失败日志。
+        /// 具体的文件解析逻辑委托给 InternalLoadConfigAsync。
+        /// </summary>
+        public async Task<bool> LoadConfigAsync(string configFilePath)
+        {
+            _logger?.Info($"[{DeviceName}] 加载板卡配置文件: {configFilePath}");
+            try
+            {
+                if (!File.Exists(configFilePath))
+                {
+                    _logger?.Warn($"[{DeviceName}] 板卡配置文件不存在，跳过加载: {configFilePath}");
+                    return false;
+                }
+
+                var result = await InternalLoadConfigAsync(configFilePath);
+
+                if (result)
+                    _logger?.Success($"[{DeviceName}] 板卡配置文件加载成功");
+                else
+                    _logger?.Warn($"[{DeviceName}] 板卡配置文件加载失败（InternalLoadConfigAsync 返回 false）");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{DeviceName}] 加载板卡配置文件时发生异常: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 子类实现：解析具体厂商板卡的配置文件格式（如 INI / XML / 二进制）。
+        /// 调用前已保证文件存在，异常由 LoadConfigAsync 统一捕获。
+        /// </summary>
+        protected abstract Task<bool> InternalLoadConfigAsync(string configFilePath);
+
+        #endregion
+    }
+}

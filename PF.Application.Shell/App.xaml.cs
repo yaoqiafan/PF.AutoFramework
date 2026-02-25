@@ -485,6 +485,14 @@ namespace PF.Application.Shell
 
             var hwManager = new HardwareManagerService(_logService, dataDirectory);
 
+            // 注册 SimMotionCard 工厂（顶级板卡，必须先于子设备注册以确保工厂存在）
+            hwManager.RegisterFactory("SimMotionCard", cfg =>
+            {
+                int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
+                    ? int.Parse(ci) : 0;
+                return new PF.Workstation.Demo.Hardware.SimMotionCard(cardIndex, _logService);
+            });
+
             // 注册 SimXAxis 工厂（工厂在 Composition Root 持有具体类型引用，不违反依赖方向）
             hwManager.RegisterFactory("SimXAxis", cfg =>
             {
@@ -493,7 +501,7 @@ namespace PF.Application.Shell
                 return new PF.Workstation.Demo.Hardware.SimXAxis(axisIndex, _logService, dataDirectory);
             });
 
-            // 注册 SimVacuumIO 工厂（当前示例仅占位，后续替换为真实 IO 卡实现）
+            // 注册 SimVacuumIO 工厂
             hwManager.RegisterFactory("SimVacuumIO", cfg =>
                 new PF.Workstation.Demo.Hardware.SimVacuumIO(_logService));
 
