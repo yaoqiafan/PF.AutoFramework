@@ -1,10 +1,11 @@
-﻿using System;
+﻿using PF.Core.Interfaces.Device.Hardware;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Core.Interfaces.Hardware.IO.Basic
+namespace PF.Core.Interfaces.Device.Hardware.IO.Basic
 {
     /// <summary>
     /// 数字量 IO 控制卡接口，继承自基础硬件设备接口

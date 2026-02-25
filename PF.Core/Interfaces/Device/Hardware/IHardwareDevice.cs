@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Core.Interfaces.Hardware
+namespace PF.Core.Interfaces.Device.Hardware
 {
     /// <summary>
     /// 工业硬件设备基础生命周期接口

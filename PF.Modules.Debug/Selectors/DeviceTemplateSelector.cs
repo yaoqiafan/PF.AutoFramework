@@ -1,6 +1,6 @@
-﻿using PF.Core.Interfaces.Hardware;
-using PF.Core.Interfaces.Hardware.IO.Basic;
-using PF.Core.Interfaces.Hardware.Motor.Basic;
+﻿using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using System.Windows;
 using System.Windows.Controls;
 

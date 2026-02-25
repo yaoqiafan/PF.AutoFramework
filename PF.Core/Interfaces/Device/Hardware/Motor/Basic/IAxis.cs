@@ -1,6 +1,7 @@
 using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Device.Hardware;
 
-namespace PF.Core.Interfaces.Hardware.Motor.Basic
+namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
 {
     /// <summary>
     /// 单轴运动控制器接口，继承自基础硬件设备接口

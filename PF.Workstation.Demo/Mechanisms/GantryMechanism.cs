@@ -1,5 +1,5 @@
-using PF.Core.Interfaces.Hardware.IO.Basic;
-using PF.Core.Interfaces.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
 

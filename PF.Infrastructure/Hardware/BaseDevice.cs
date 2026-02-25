@@ -1,5 +1,5 @@
 ﻿using PF.Core.Enums;
-using PF.Core.Interfaces.Hardware;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
 
 namespace PF.Infrastructure.Hardware

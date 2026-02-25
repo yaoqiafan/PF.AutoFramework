@@ -1,4 +1,4 @@
-﻿using PF.Core.Interfaces.Hardware.IO.Basic;
+﻿using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;

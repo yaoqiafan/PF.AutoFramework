@@ -1,4 +1,4 @@
-using PF.Core.Interfaces.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware;
 

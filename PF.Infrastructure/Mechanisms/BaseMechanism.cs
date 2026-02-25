@@ -1,7 +1,7 @@
 ﻿using PF.Core.Events;
-using PF.Core.Interfaces.Hardware;
+using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
-using PF.Core.Interfaces.Mechanisms;
 using System;
 using System.Collections.Generic;
 using System.Linq;

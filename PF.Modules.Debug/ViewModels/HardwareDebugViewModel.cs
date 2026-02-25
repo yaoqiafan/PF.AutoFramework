@@ -1,7 +1,7 @@
 ﻿using PF.Core.Constants;
-using PF.Core.Interfaces.Hardware;
-using PF.Core.Interfaces.Hardware.IO.Basic;
-using PF.Core.Interfaces.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
