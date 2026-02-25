@@ -196,7 +196,7 @@ namespace PF.Application.Shell.ViewModels
             return viewName == NavigationConstants.Views.ParameterView_SystemConfigParam ||
                    viewName == NavigationConstants.Views.ParameterView_CommonParam ||
                    viewName == NavigationConstants.Views.ParameterView_UserLoginParam ||
-                   viewName == NavigationConstants.Views.ParameterView_HardWareParam;
+                   viewName == NavigationConstants.Views.ParameterView_HardwareParam;
         }
 
         private void OnLoginOverCallback() { }

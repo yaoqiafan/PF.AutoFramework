@@ -266,6 +266,7 @@ namespace PF.Modules.Parameter.ViewModels
                 {
                     "CommonParam" => "通用参数",
                     "SystemConfigParam" => "系统配置参数",
+                    "HardwareParam" => "硬件参数",
                     "UserLoginParam" => "用户登录参数",
                     _ => type.Name
                 };
