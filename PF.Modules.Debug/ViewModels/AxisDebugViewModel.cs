@@ -1,6 +1,13 @@
-﻿using PF.Core.Interfaces.Hardware.Motor.Basic;
+﻿using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Hardware.Motor.Basic;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
+using Prism.Commands;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
@@ -22,7 +29,7 @@ namespace PF.Modules.Debug.ViewModels
 
             InitializeCommands();
 
-            // 定时器初始化：工控上位机状态轮询通常 50ms 刷新一次界面
+            // 定时器初始化：50ms 刷新一次界面
             _pollingTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(50)
@@ -36,7 +43,6 @@ namespace PF.Modules.Debug.ViewModels
         {
             base.OnNavigatedTo(navigationContext);
 
-            // 从 HardwareDebugViewModel 的 Navigate 参数中获取具体的轴对象
             if (navigationContext.Parameters.ContainsKey("Device"))
             {
                 _axis = navigationContext.Parameters.GetValue<IAxis>("Device");
@@ -44,7 +50,6 @@ namespace PF.Modules.Debug.ViewModels
 
                 if (_baseDevice != null)
                 {
-                    // 提取设备名称和描述，用于 UI 顶部横幅显示
                     DeviceName = _baseDevice.DeviceName;
                     DeviceDescription = $"设备类别: {_baseDevice.Category} | 模拟状态: {_baseDevice.IsSimulated}";
                 }
@@ -56,7 +61,9 @@ namespace PF.Modules.Debug.ViewModels
 
                 if (_axis != null)
                 {
-                    _pollingTimer.Start(); // 只有拿到实例才启动轮询
+                    // 加载该轴的点表数据
+                    PointTable = new ObservableCollection<AxisPoint>(_axis.PointTable);
+                    _pollingTimer.Start();
                 }
             }
         }
@@ -64,8 +71,6 @@ namespace PF.Modules.Debug.ViewModels
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
-
-            // 离开当前页面时停止轮询并取消可能正在进行的延时任务，释放内存
             _pollingTimer.Stop();
             _cts?.Cancel();
         }
@@ -122,8 +127,27 @@ namespace PF.Modules.Debug.ViewModels
 
         #endregion
 
+        #region 【点表管理属性】
+
+        private ObservableCollection<AxisPoint> _pointTable = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> PointTable
+        {
+            get => _pointTable;
+            set => SetProperty(ref _pointTable, value);
+        }
+
+        private AxisPoint _selectedPoint;
+        public AxisPoint SelectedPoint
+        {
+            get => _selectedPoint;
+            set => SetProperty(ref _selectedPoint, value);
+        }
+
+        #endregion
+
         #region 【控制命令定义】
 
+        // 基础控制命令
         public DelegateCommand ConnectCommand { get; private set; }
         public DelegateCommand DisconnectCommand { get; private set; }
         public DelegateCommand EnableCommand { get; private set; }
@@ -136,33 +160,26 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand JogPositiveCommand { get; private set; }
         public DelegateCommand JogNegativeCommand { get; private set; }
 
+        // 点表控制命令
+        public DelegateCommand AddPointCommand { get; private set; }
+        public DelegateCommand DeletePointCommand { get; private set; }
+        public DelegateCommand SavePointsCommand { get; private set; }
+        public DelegateCommand GoToPointCommand { get; private set; }
+
         private void InitializeCommands()
         {
-            ConnectCommand = new DelegateCommand(async () =>
-            {
-                if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None);
-            });
-
-            DisconnectCommand = new DelegateCommand(async () =>
-            {
-                if (_baseDevice != null) await _baseDevice.DisconnectAsync();
-            });
-
+            // ===== 基础硬件命令 =====
+            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
+            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             EnableCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.EnableAsync(); });
             DisableCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.DisableAsync(); });
-
             HomeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.HomeAsync(CancellationToken.None); });
-
             StopCommand = new DelegateCommand(async () =>
             {
                 _cts?.Cancel();
                 if (_axis != null) await _axis.StopAsync();
             });
-
-            ResetCommand = new DelegateCommand(async () =>
-            {
-                if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None);
-            });
+            ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
 
             MoveAbsoluteCommand = new DelegateCommand(async () =>
             {
@@ -180,6 +197,46 @@ namespace PF.Modules.Debug.ViewModels
 
             JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true); });
             JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false); });
+
+            // ===== 点表管理命令 =====
+            AddPointCommand = new DelegateCommand(() =>
+            {
+                if (_axis == null) return;
+                int nextOrder = PointTable.Any() ? PointTable.Max(p => p.SortOrder) + 10 : 10;
+                var newPoint = new AxisPoint
+                {
+                    Name = $"新点位_{DateTime.Now:HHmmss}",
+                    TargetPosition = CurrentPosition, // 默认记录当前位置
+                    Speed = AbsVelocity,
+                    SortOrder = nextOrder
+                };
+                PointTable.Add(newPoint);
+                _axis.AddOrUpdatePoint(newPoint);
+                SelectedPoint = newPoint;
+            });
+
+            DeletePointCommand = new DelegateCommand(() =>
+            {
+                if (_axis == null || SelectedPoint == null) return;
+                var name = SelectedPoint.Name;
+                PointTable.Remove(SelectedPoint);
+                _axis.DeletePoint(name);
+                SelectedPoint = null;
+            });
+
+            SavePointsCommand = new DelegateCommand(() =>
+            {
+                if (_axis == null) return;
+                foreach (var p in PointTable) _axis.AddOrUpdatePoint(p);
+                _axis.SavePointTable();
+            });
+
+            GoToPointCommand = new DelegateCommand(async () =>
+            {
+                if (_axis == null || SelectedPoint == null) return;
+                RefreshCancellationToken();
+                await _axis.MoveToPointAsync(SelectedPoint.Name, _cts.Token);
+            });
         }
 
         private void RefreshCancellationToken()
@@ -196,19 +253,11 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (_axis == null) return;
 
-            // 定期拉取底层硬件的状态同步到 UI
             CurrentPosition = _axis.CurrentPosition;
             IsMoving = _axis.IsMoving;
             IsEnabled = _axis.IsEnabled;
             IsPositiveLimit = _axis.IsPositiveLimit;
             IsNegativeLimit = _axis.IsNegativeLimit;
-
-            // 如果 BaseDevice 有连接状态和报警状态，在这里更新
-            // 例如：
-            // if (_baseDevice != null)
-            // {
-            //     IsConnected = _baseDevice.IsConnected; 
-            // }
         }
 
         #endregion

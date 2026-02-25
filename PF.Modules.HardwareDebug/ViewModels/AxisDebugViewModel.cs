@@ -311,7 +311,7 @@ namespace PF.Modules.HardwareDebug.ViewModels
             {
                 Name              = $"新点位_{DateTime.Now:HHmmss}",
                 TargetPosition    = CurrentPosition,
-                SuggestedVelocity = MoveVelocity,
+                Speed = MoveVelocity,
                 SortOrder         = nextOrder
             };
             PointTable.Add(newPoint);

@@ -33,7 +33,7 @@ namespace PF.Core.Entities.Hardware
         }
 
         /// <summary>建议运动速度（工程单位，如 mm/s）</summary>
-        public double SuggestedVelocity
+        public double Speed
         {
             get => _suggestedVelocity;
             set { _suggestedVelocity = value; OnPropertyChanged(); }

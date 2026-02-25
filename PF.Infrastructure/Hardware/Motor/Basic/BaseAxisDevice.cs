@@ -3,7 +3,7 @@ using PF.Core.Interfaces.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using System.Text.Json;
 
-namespace PF.Infrastructure.Hardware
+namespace PF.Infrastructure.Hardware.Motor.Basic
 {
     /// <summary>
     /// 轴设备抽象基类
@@ -42,15 +42,15 @@ namespace PF.Infrastructure.Hardware
             if (existing != null)
             {
                 existing.TargetPosition    = point.TargetPosition;
-                existing.SuggestedVelocity = point.SuggestedVelocity;
+                existing.Speed = point.Speed;
                 existing.Description       = point.Description;
                 existing.SortOrder         = point.SortOrder;
-                _logger?.Info($"[{DeviceName}] 更新点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.SuggestedVelocity} mm/s");
+                _logger?.Info($"[{DeviceName}] 更新点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
             }
             else
             {
                 _pointTable.Add(point);
-                _logger?.Info($"[{DeviceName}] 新增点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.SuggestedVelocity} mm/s");
+                _logger?.Info($"[{DeviceName}] 新增点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
             }
         }
 
@@ -83,8 +83,8 @@ namespace PF.Infrastructure.Hardware
             var point = _pointTable.FirstOrDefault(p => p.Name == pointName)
                 ?? throw new KeyNotFoundException($"[{DeviceName}] 点表中未找到点位 '{pointName}'，请先在点表中添加。");
 
-            _logger?.Info($"[{DeviceName}] MoveToPoint '{pointName}' → {point.TargetPosition:F2} mm @ {point.SuggestedVelocity} mm/s");
-            return await MoveAbsoluteAsync(point.TargetPosition, point.SuggestedVelocity, token);
+            _logger?.Info($"[{DeviceName}] MoveToPoint '{pointName}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
+            return await MoveAbsoluteAsync(point.TargetPosition, point.Speed, token);
         }
 
         // ── IAxis 运动控制方法（留给子类实现）────────────────────────────────────

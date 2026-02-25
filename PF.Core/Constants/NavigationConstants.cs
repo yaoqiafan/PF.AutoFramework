@@ -43,10 +43,7 @@ namespace PF.Core.Constants
             public const string ParameterView_UserLoginParam = nameof(ParameterView_UserLoginParam);
             #endregion
 
-            #region 硬件调试
-            public const string AxisDebugView = nameof(AxisDebugView);
-            #endregion
-
+          
             #region 登录
             public const string PagePermissionView = nameof(PagePermissionView);
             #endregion

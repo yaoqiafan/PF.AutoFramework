@@ -15,7 +15,6 @@ using PF.Data.Context;
 using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
 using PF.Modules.Debug;
-using PF.Modules.HardwareDebug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
@@ -37,7 +36,6 @@ using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo.Hardware;
 using PF.Workstation.Demo.Mechanisms;
-using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -215,7 +213,7 @@ namespace PF.Application.Shell
 
         private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
         {
-            var xAxis = new SimXAxis(0, _logService);
+            var xAxis = new SimXAxis(0, _logService,"");
             var vacuumIO = new SimVacuumIO(_logService);
 
 
@@ -240,7 +238,6 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
-            moduleCatalog.AddModule<HardwareDebugModule>();
         }
         #endregion
 
