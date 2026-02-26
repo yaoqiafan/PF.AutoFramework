@@ -7,23 +7,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     xmlns:prism="http://prismlibrary.com/"
-    xmlns:selectors="clr-namespace:PF.Modules.Debug.Selectors"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
-    <UserControl.Resources>
-        <DataTemplate x:Key="GenericMechanismTemplate">
-            <StackPanel>
-                <TextBlock
-                    FontSize="20"
-                    FontWeight="Bold"
-                    Text="{Binding StringFormat='模组功能测试 - {0}'}" />
-            </StackPanel>
-        </DataTemplate>
-
-        <selectors:DeviceTemplateSelector x:Key="MyMechanismSelector" DefaultHardwareTemplate="{StaticResource GenericMechanismTemplate}" />
-    </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="5">
@@ -53,11 +41,11 @@
             </Border>
 
             <Border Grid.Column="2" CornerRadius="5">
-                <ContentControl Content="{Binding SelectedNode.Payload}" ContentTemplateSelector="{StaticResource MyMechanismSelector}">
+                <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.MechanismContentRegion}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedNode.Payload}" Value="{x:Null}">
+                                <DataTrigger Binding="{Binding SelectedNode}" Value="{x:Null}">
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ContentControl">

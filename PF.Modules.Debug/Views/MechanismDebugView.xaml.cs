@@ -2,6 +2,7 @@
 using PF.Core.Constants;
 using PF.Modules.Debug.Models;
 using PF.Modules.Debug.ViewModels;
+using Prism.Navigation.Regions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +24,19 @@ namespace PF.Modules.Debug.Views
     [ModuleNavigation(NavigationConstants.Views.MechanismDebugView, "业务模组调试", GroupName = "系统调试", Icon = "DebugIcon")]
     public partial class MechanismDebugView : UserControl
     {
-        public MechanismDebugView() { InitializeComponent(); }
+        public MechanismDebugView(IRegionManager regionManager) 
+        {
+            // 2. 【核心修复】在初始化 XAML 之前，检查并移除残留的嵌套 Region
+            string regionName = NavigationConstants.Regions.MechanismContentRegion;
+            if (regionManager.Regions.ContainsRegionWithName(regionName))
+            {
+                regionManager.Regions.Remove(regionName);
+            }
+
+            // 3. 此时再解析 XAML 注册 Region 就不会报重复冲突的错了
+
+            InitializeComponent(); 
+        }
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
