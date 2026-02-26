@@ -1,4 +1,4 @@
-﻿using PF.Core.Enums;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
 using Stateless;
 using System;
@@ -11,6 +11,13 @@ namespace PF.Infrastructure.Station.Basic
 {
     /// <summary>
     /// 工站（子线程）状态机基础类
+    ///
+    /// 生命周期：
+    ///   Uninitialized → (Initialize) → Initializing → (InitializeDone) → Idle
+    ///                                                 → (Error)         → Alarm
+    ///   Idle          → (Start)      → Running
+    ///   Running       → (Stop)       → Idle
+    ///   Alarm         → (Reset)      → Idle  （经由 ExecuteResetAsync）
     /// </summary>
     public abstract class StationBase : IDisposable
     {
@@ -24,25 +31,33 @@ namespace PF.Infrastructure.Station.Basic
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
 
         // 线程控制三剑客
-        private CancellationTokenSource _runCts;            // 用于终止线程
-        protected ManualResetEventSlim _pauseEvent;         // 用于挂起/恢复线程 (保护级别设为protected，方便子类使用)
-        private Task _workflowTask;                         // 后台子线程本身
+        private CancellationTokenSource _runCts;
+        protected ManualResetEventSlim _pauseEvent;
+        private Task _workflowTask;
 
         protected StationBase(string name, ILogService logger)
         {
             StationName = name;
             _logger = logger;
-            _pauseEvent = new ManualResetEventSlim(true); // 默认闸门打开
+            _pauseEvent = new ManualResetEventSlim(true);
 
-            // 初始化状态机
-            _machine = new StateMachine<MachineState, MachineTrigger>(MachineState.Idle);
+            // 初始状态：Uninitialized（硬件未就绪，禁止直接启动）
+            _machine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
             ConfigureStateMachine();
         }
 
         private void ConfigureStateMachine()
         {
-            // 状态变迁日志（可选）
             _machine.OnTransitioned(t => _logger?.Debug($"[{StationName}] 状态变迁: {t.Source} -> {t.Destination}"));
+
+            // --- 未初始化状态 ---
+            _machine.Configure(MachineState.Uninitialized)
+                .Permit(MachineTrigger.Initialize, MachineState.Initializing);
+
+            // --- 初始化中状态 ---
+            _machine.Configure(MachineState.Initializing)
+                .Permit(MachineTrigger.InitializeDone, MachineState.Idle)
+                .Permit(MachineTrigger.Error, MachineState.Alarm);
 
             // --- 待机状态 ---
             _machine.Configure(MachineState.Idle)
@@ -52,16 +67,16 @@ namespace PF.Infrastructure.Station.Basic
 
             // --- 运行状态 ---
             _machine.Configure(MachineState.Running)
-                .OnEntry(OnStartRunning)       // 核心：进入运行时，分配并启动子线程 Task
-                .OnExit(OnStopRunning)         // 核心：退出运行时，取消 CancellationToken
+                .OnEntry(OnStartRunning)
+                .OnExit(OnStopRunning)
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
 
             // --- 暂停状态 ---
             _machine.Configure(MachineState.Paused)
-                .OnEntry(() => _pauseEvent.Reset())  // 关闸门，挂起线程
-                .OnExit(() => _pauseEvent.Set())     // 开闸门，放行线程
+                .OnEntry(() => _pauseEvent.Reset())
+                .OnExit(() => _pauseEvent.Set())
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
@@ -70,8 +85,7 @@ namespace PF.Infrastructure.Station.Basic
             _machine.Configure(MachineState.Alarm)
                 .OnEntry(() =>
                 {
-                    _pauseEvent.Set(); // 如果在暂停时发生报警，必须开闸，让线程随CancellationToken死亡
-                    // 触发对外的报警事件，通知主控
+                    _pauseEvent.Set();
                     StationAlarmTriggered?.Invoke(this, $"[{StationName}] 发生内部异常，进入报警状态！");
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Idle);
@@ -81,17 +95,15 @@ namespace PF.Infrastructure.Station.Basic
 
         private void OnStartRunning()
         {
-            // 修复：反复 Start/Stop/Start 时，旧 CTS 必须先释放，否则每次重启泄漏一个对象。
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
             _pauseEvent.Set();
-            // 启动专属于该工站的后台任务（子线程）
             _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token), _runCts.Token);
         }
 
         private void OnStopRunning()
         {
-            _runCts?.Cancel(); // 发出终止信号，打断正在等待的底层硬件动作
+            _runCts?.Cancel();
         }
 
         /// <summary>
@@ -101,7 +113,6 @@ namespace PF.Infrastructure.Station.Basic
         {
             try
             {
-                // 调用子类实现的具体业务逻辑
                 await ProcessLoopAsync(token);
             }
             catch (OperationCanceledException)
@@ -111,11 +122,8 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
-                // 如果子线程抛出异常，触发自身状态机进入报警状态
                 if (_machine.CanFire(MachineTrigger.Error))
-                {
                     _machine.Fire(MachineTrigger.Error);
-                }
             }
         }
 
@@ -130,14 +138,30 @@ namespace PF.Infrastructure.Station.Basic
         protected abstract Task ProcessLoopAsync(CancellationToken token);
 
         /// <summary>
+        /// 硬件初始化钩子，由 MasterController.InitializeAllAsync() 在 Initializing 阶段顺序调用。
+        /// 基类默认实现：直接推进 Uninitialized → Initializing → Idle（无真实硬件）。
+        /// 子类 override 规范：
+        ///   1. 首行调用 Fire(MachineTrigger.Initialize)，将本工站推入 Initializing。
+        ///   2. 执行真实硬件初始化动作（连接 / 使能 / 回原点等）。
+        ///   3. 成功后调用 Fire(MachineTrigger.InitializeDone) 进入 Idle；
+        ///      失败时调用 Fire(MachineTrigger.Error) 进入 Alarm，再 throw/rethrow。
+        /// </summary>
+        public virtual async Task ExecuteInitializeAsync(CancellationToken token)
+        {
+            Fire(MachineTrigger.Initialize);    // Uninitialized → Initializing
+            await Task.CompletedTask;
+            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+        }
+
+        /// <summary>
         /// 物理复位：先执行工站/模组级硬件复位，再将状态机从 Alarm 切回 Idle。
         /// 基类默认实现仅复位状态机；子类可 override 以执行真实硬件清警 + 回原点动作。
         /// 由 MasterController.ResetAllAsync() 在 Resetting 阶段顺序调用。
         /// </summary>
         public virtual async Task ExecuteResetAsync(CancellationToken token)
         {
-            await Task.CompletedTask; // 子类覆写：在此处执行硬件复位动作
-            ResetAlarm();             // 状态机：Alarm → Idle
+            await Task.CompletedTask;
+            ResetAlarm(); // Alarm → Idle
         }
 
         // --- 供主控调用的公开方法 ---
@@ -148,7 +172,10 @@ namespace PF.Infrastructure.Station.Basic
         public void TriggerAlarm() => Fire(MachineTrigger.Error);
         public void ResetAlarm() => Fire(MachineTrigger.Reset);
 
-        private void Fire(MachineTrigger trigger)
+        /// <summary>
+        /// 触发本工站状态机跳转。protected，供子类在 ExecuteInitializeAsync / ExecuteResetAsync 中驱动生命周期。
+        /// </summary>
+        protected void Fire(MachineTrigger trigger)
         {
             if (_machine.CanFire(trigger)) _machine.Fire(trigger);
         }
@@ -156,11 +183,7 @@ namespace PF.Infrastructure.Station.Basic
         public virtual void Dispose()
         {
             _runCts?.Cancel();
-            // 修复①：如果线程阻塞在 _pauseEvent.Wait() 暂停点，必须先开闸，
-            //         否则 Cancel 信号无法触达，_workflowTask 永远不退出。
             _pauseEvent?.Set();
-            // 修复②：等待后台任务真正退出（最多 5 秒），防止 Dispose 返回后
-            //         任务仍在访问已释放的资源（如 _pauseEvent 本身）。
             try { _workflowTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
             _runCts?.Dispose();
             _pauseEvent?.Dispose();

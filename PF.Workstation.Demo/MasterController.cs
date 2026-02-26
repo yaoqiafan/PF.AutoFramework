@@ -10,8 +10,14 @@ namespace PF.Workstation.Demo
     /// <summary>
     /// 全局主控状态机（主线程管理器）
     ///
+    /// 生命周期：
+    ///   Uninitialized → InitializeAllAsync()  → Initializing → Idle
+    ///   Idle          → StartAll()            → Running
+    ///   Running       → StopAll()             → Idle
+    ///   Alarm         → ResetAllAsync()       → Resetting → Idle
+    ///
     /// 职责：
-    ///   · 管理所有子工站的生命周期（启动/暂停/恢复/停止/报警）
+    ///   · 管理所有子工站的生命周期（初始化/启动/暂停/恢复/停止/复位）
     ///   · 在构造时向 IStationSyncService 注册本方案所需的所有流水线信号量
     ///   · 在系统复位时重置信号量，确保下一轮启动状态正确
     /// </summary>
@@ -45,9 +51,6 @@ namespace PF.Workstation.Demo
             _subStations = new List<StationBase>(subStations);
 
             // ── 注册本工站方案所需的流水线信号量 ──────────────────────────
-            // 规则：初始计数决定了哪个工站"先行"
-            //   SlotEmpty   = 1：槽位初始为空 → 取放工站可立即开始第一轮
-            //   ProductReady= 0：初始无产品 → 点胶工站初始阻塞，等取放工站先放料
             _sync.Register(WorkstationSignals.SlotEmpty,    initialCount: 1, maxCount: 1);
             _sync.Register(WorkstationSignals.ProductReady, initialCount: 0, maxCount: 1);
 
@@ -55,7 +58,8 @@ namespace PF.Workstation.Demo
             foreach (var station in _subStations)
                 station.StationAlarmTriggered += OnSubStationAlarm;
 
-            _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Idle);
+            // 初始状态：Uninitialized
+            _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
             ConfigureGlobalMachine();
         }
 
@@ -67,7 +71,16 @@ namespace PF.Workstation.Demo
                 MasterStateChanged?.Invoke(this, t.Destination);
             });
 
-            // 状态转移配置
+            // --- 未初始化状态 ---
+            _globalMachine.Configure(MachineState.Uninitialized)
+                .Permit(MachineTrigger.Initialize, MachineState.Initializing);
+
+            // --- 初始化中状态 ---
+            _globalMachine.Configure(MachineState.Initializing)
+                .Permit(MachineTrigger.InitializeDone, MachineState.Idle)
+                .Permit(MachineTrigger.Error, MachineState.Alarm);
+
+            // --- 待机状态 ---
             _globalMachine.Configure(MachineState.Idle)
                 .Permit(MachineTrigger.Start, MachineState.Running)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
@@ -75,7 +88,7 @@ namespace PF.Workstation.Demo
             // 【主控启动】：启动所有的子线程
             _globalMachine.Configure(MachineState.Running)
                 .OnEntry(() => _subStations.ForEach(s => s.Start()))
-                .OnExit(() => _subStations.ForEach(s => s.Stop())) // 退出运行时，急停所有子工站
+                .OnExit(() => _subStations.ForEach(s => s.Stop()))
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
@@ -83,13 +96,13 @@ namespace PF.Workstation.Demo
             // 【主控暂停】：暂停所有的子线程
             _globalMachine.Configure(MachineState.Paused)
                 .OnEntry(() => _subStations.ForEach(s => s.Pause()))
-                .OnExit(() => _subStations.ForEach(s => s.Resume())) // 退出暂停时恢复它们
+                .OnExit(() => _subStations.ForEach(s => s.Resume()))
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
 
             _globalMachine.Configure(MachineState.Alarm)
-                .OnEntry(() => _subStations.ForEach(s => s.TriggerAlarm())) // 强制所有工站切入报警
+                .OnEntry(() => _subStations.ForEach(s => s.TriggerAlarm()))
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
             // 【主控复位中】：等待 ResetAllAsync 完成各工站物理复位后触发 ResetDone
@@ -103,30 +116,21 @@ namespace PF.Workstation.Demo
         private void OnSubStationAlarm(object sender, string errorMessage)
         {
             _logger.Fatal($"【主控接收到报警】: {errorMessage}，立即触发全线急停！");
+            MasterAlarmTriggered?.Invoke(this, errorMessage);
 
-            // 修复：原代码将 MasterAlarmTriggered 嵌套在 CanFire 判断内部——
-            // 若主控已处于 Alarm 状态（如两个工站几乎同时报警），CanFire(Error)=false，
-            // 导致 MasterAlarmTriggered 事件永远不触发，UI 无法弹出第二条报警信息。
-            // 修复：先无条件通知 UI，再尝试驱动状态机。
-            MasterAlarmTriggered?.Invoke(this, errorMessage); // 始终通知 UI 弹窗
-
-            // 触发全局报警，由于配置了 OnExit(Stop)，这会瞬间中断所有其他正常运行的子线程！
             if (_globalMachine.CanFire(MachineTrigger.Error))
-            {
                 _globalMachine.Fire(MachineTrigger.Error);
-            }
         }
 
         // --- 供 UI 绑定的主控一键操作指令 ---
-        public void StartAll() => Fire(MachineTrigger.Start);
-        public void StopAll() => Fire(MachineTrigger.Stop);
-        public void PauseAll() => Fire(MachineTrigger.Pause);
+        public void StartAll()  => Fire(MachineTrigger.Start);
+        public void StopAll()   => Fire(MachineTrigger.Stop);
+        public void PauseAll()  => Fire(MachineTrigger.Pause);
         public void ResumeAll() => Fire(MachineTrigger.Resume);
 
         /// <summary>
         /// 设置运行模式。只允许在 Idle 状态下调用，同时向所有子工站下发新模式。
         /// </summary>
-        /// <returns>设置成功返回 true；非 Idle 状态时返回 false 并记录警告。</returns>
         public bool SetMode(OperationMode mode)
         {
             if (CurrentState != MachineState.Idle)
@@ -141,9 +145,45 @@ namespace PF.Workstation.Demo
         }
 
         /// <summary>
+        /// 全线初始化流程（异步，一次性）：
+        ///   Uninitialized → Initializing → 顺序调用各工站 ExecuteInitializeAsync → Idle
+        ///
+        /// 各工站的 ExecuteInitializeAsync 负责驱动自身状态机完成
+        /// Uninitialized → Initializing → Idle 的跳转。
+        /// 任意工站初始化失败（抛出异常），主控将进入 Alarm 状态。
+        /// 建议 UI 以 fire-and-forget（_ = controller.InitializeAllAsync()）调用。
+        /// </summary>
+        public async Task InitializeAllAsync()
+        {
+            if (!_globalMachine.CanFire(MachineTrigger.Initialize))
+            {
+                _logger.Warn($"【主控】当前状态 {CurrentState} 无法执行初始化（仅限 Uninitialized）");
+                return;
+            }
+
+            _logger.Info("【主控】开始全线初始化...");
+            _globalMachine.Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            try
+            {
+                foreach (var station in _subStations)
+                    await station.ExecuteInitializeAsync(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"【主控】初始化过程发生异常: {ex.Message}");
+                Fire(MachineTrigger.Error); // Initializing → Alarm
+                return;
+            }
+
+            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+            _logger.Success("【主控】全线初始化完成，已进入 Idle 待机状态。");
+        }
+
+        /// <summary>
         /// 物理复位流程（异步）：
         ///   Alarm → Resetting → 顺序调用各工站 ExecuteResetAsync → 复位信号量 → Idle
-        /// 建议 UI 以 fire-and-forget（_ = controller.ResetAllAsync()）调用，不阻塞界面线程。
         /// </summary>
         public async Task ResetAllAsync()
         {
@@ -167,8 +207,8 @@ namespace PF.Workstation.Demo
                 _logger.Error($"【主控】复位过程中发生异常: {ex.Message}");
             }
 
-            _sync.ResetAll();                           // 复位信号量至初始状态，准备下一轮启动
-            Fire(MachineTrigger.ResetDone);             // Resetting → Idle
+            _sync.ResetAll();
+            Fire(MachineTrigger.ResetDone); // Resetting → Idle
             _logger.Success("【主控】全线复位完成，已回到 Idle 状态。");
         }
 
