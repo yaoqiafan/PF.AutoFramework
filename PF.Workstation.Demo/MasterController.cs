@@ -19,6 +19,11 @@ namespace PF.Workstation.Demo
     {
         public MachineState CurrentState => _globalMachine.State;
 
+        /// <summary>
+        /// 当前运行模式。只允许在 Idle 状态下通过 <see cref="SetMode"/> 修改。
+        /// </summary>
+        public OperationMode CurrentMode { get; private set; } = OperationMode.Normal;
+
         // 供 UI 绑定的主控状态改变事件
         public event EventHandler<MachineState> MasterStateChanged;
         public event EventHandler<string> MasterAlarmTriggered;
@@ -85,7 +90,11 @@ namespace PF.Workstation.Demo
 
             _globalMachine.Configure(MachineState.Alarm)
                 .OnEntry(() => _subStations.ForEach(s => s.TriggerAlarm())) // 强制所有工站切入报警
-                .Permit(MachineTrigger.Reset, MachineState.Idle);
+                .Permit(MachineTrigger.Reset, MachineState.Resetting);
+
+            // 【主控复位中】：等待 ResetAllAsync 完成各工站物理复位后触发 ResetDone
+            _globalMachine.Configure(MachineState.Resetting)
+                .Permit(MachineTrigger.ResetDone, MachineState.Idle);
         }
 
         /// <summary>
@@ -113,11 +122,54 @@ namespace PF.Workstation.Demo
         public void StopAll() => Fire(MachineTrigger.Stop);
         public void PauseAll() => Fire(MachineTrigger.Pause);
         public void ResumeAll() => Fire(MachineTrigger.Resume);
-        public void ResetAll()
+
+        /// <summary>
+        /// 设置运行模式。只允许在 Idle 状态下调用，同时向所有子工站下发新模式。
+        /// </summary>
+        /// <returns>设置成功返回 true；非 Idle 状态时返回 false 并记录警告。</returns>
+        public bool SetMode(OperationMode mode)
         {
-            _subStations.ForEach(s => s.ResetAlarm()); // 先复位子工站（各自取消 Alarm 状态）
+            if (CurrentState != MachineState.Idle)
+            {
+                _logger.Warn($"【主控】只允许在 Idle 状态下切换运行模式，当前状态: {CurrentState}");
+                return false;
+            }
+            CurrentMode = mode;
+            _subStations.ForEach(s => s.CurrentMode = mode);
+            _logger.Info($"【主控】运行模式已切换为: {mode}");
+            return true;
+        }
+
+        /// <summary>
+        /// 物理复位流程（异步）：
+        ///   Alarm → Resetting → 顺序调用各工站 ExecuteResetAsync → 复位信号量 → Idle
+        /// 建议 UI 以 fire-and-forget（_ = controller.ResetAllAsync()）调用，不阻塞界面线程。
+        /// </summary>
+        public async Task ResetAllAsync()
+        {
+            if (!_globalMachine.CanFire(MachineTrigger.Reset))
+            {
+                _logger.Warn($"【主控】当前状态 {CurrentState} 无法执行复位");
+                return;
+            }
+
+            _logger.Info("【主控】开始全线物理复位...");
+            _globalMachine.Fire(MachineTrigger.Reset); // Alarm → Resetting
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            try
+            {
+                foreach (var station in _subStations)
+                    await station.ExecuteResetAsync(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"【主控】复位过程中发生异常: {ex.Message}");
+            }
+
             _sync.ResetAll();                           // 复位信号量至初始状态，准备下一轮启动
-            Fire(MachineTrigger.Reset);                 // 再复位主控状态机
+            Fire(MachineTrigger.ResetDone);             // Resetting → Idle
+            _logger.Success("【主控】全线复位完成，已回到 Idle 状态。");
         }
 
         private void Fire(MachineTrigger trigger)

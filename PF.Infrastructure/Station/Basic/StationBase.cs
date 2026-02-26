@@ -121,8 +121,24 @@ namespace PF.Infrastructure.Station.Basic
 
         #endregion
 
+        /// <summary>
+        /// 当前运行模式（由 MasterController 在 Idle 状态下统一设置后下发至各工站）
+        /// </summary>
+        public OperationMode CurrentMode { get; set; } = OperationMode.Normal;
+
         // --- 强制子类必须实现的工艺大循环 ---
         protected abstract Task ProcessLoopAsync(CancellationToken token);
+
+        /// <summary>
+        /// 物理复位：先执行工站/模组级硬件复位，再将状态机从 Alarm 切回 Idle。
+        /// 基类默认实现仅复位状态机；子类可 override 以执行真实硬件清警 + 回原点动作。
+        /// 由 MasterController.ResetAllAsync() 在 Resetting 阶段顺序调用。
+        /// </summary>
+        public virtual async Task ExecuteResetAsync(CancellationToken token)
+        {
+            await Task.CompletedTask; // 子类覆写：在此处执行硬件复位动作
+            ResetAlarm();             // 状态机：Alarm → Idle
+        }
 
         // --- 供主控调用的公开方法 ---
         public void Start() => Fire(MachineTrigger.Start);
