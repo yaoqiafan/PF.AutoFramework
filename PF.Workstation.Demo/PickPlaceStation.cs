@@ -12,6 +12,19 @@ namespace PF.Workstation.Demo
     /// 【工站层示例】取放工站（步序状态机 + 运行模式解耦）
     ///
     /// ═══════════════════════════════════════════════════════════════════════
+    ///  生命周期（由 MasterController 驱动）
+    /// ═══════════════════════════════════════════════════════════════════════
+    ///
+    ///   ExecuteInitializeAsync()        ← 硬件初始化（连接 / 使能 / 回原点）
+    ///     Uninitialized → Initializing → Idle
+    ///
+    ///   Start() → ProcessLoopAsync()    ← 按模式路由至独立工艺循环
+    ///     Idle → Running
+    ///
+    ///   ExecuteResetAsync()             ← 故障后硬件复位 + 步序智能回跳
+    ///     Alarm → Idle
+    ///
+    /// ═══════════════════════════════════════════════════════════════════════
     ///  运行模式路由（ProcessLoopAsync 入口）
     /// ═══════════════════════════════════════════════════════════════════════
     ///
@@ -24,29 +37,29 @@ namespace PF.Workstation.Demo
     /// ═══════════════════════════════════════════════════════════════════════
     ///
     ///  Normal 步序流：
-    ///   Init(0) → WaitMaterial(10) → Pick(20) → WaitSlotEmpty(30) → Place(40) → NotifyDownstream(50) ──┐
-    ///             └──────────────────────────────────────────────────────────────────────────────────────┘
+    ///   WaitMaterial(10) → Pick(20) → WaitSlotEmpty(30) → Place(40) → NotifyDownstream(50) ──┐
+    ///   └────────────────────────────────────────────────────────────────────────────────────┘
     ///
     ///  DryRun 步序流（跳过 WaitSlotEmpty，Place 后不 Release 信号量）：
-    ///   Init(0) → WaitMaterial(10) → Pick(20) ──→ Place(40) → NotifyDownstream(50) ──┐
-    ///             └───────────────────────────────────────────────────────────────────┘
+    ///   WaitMaterial(10) → Pick(20) ──→ Place(40) → NotifyDownstream(50) ──┐
+    ///   └──────────────────────────────────────────────────────────────────┘
     ///
     /// ═══════════════════════════════════════════════════════════════════════
     ///  ExecuteResetAsync 智能回跳策略（与运行模式无关，基于步序值范围判断）
     /// ═══════════════════════════════════════════════════════════════════════
     ///
-    ///   步序 < Pick(20)              → Init         （重新初始化）
-    ///   Pick(20) ≤ 步序 < Place(40) → Pick          （重新取料；回原点后吸盘已空）
-    ///   步序 ≥ Place(40)            → WaitMaterial  （放料完成或在途，下一循环取新物料）
+    ///   步序 < Pick(20)              → WaitMaterial  （取料前发生故障，从头等待物料）
+    ///   Pick(20) ≤ 步序 < Place(40) → Pick           （取料中途，重新取料；回原点后吸盘已空）
+    ///   步序 ≥ Place(40)            → WaitMaterial   （放料完成或在途，下一循环取新物料）
     ///
     /// ═══════════════════════════════════════════════════════════════════════
     /// </summary>
     public class PickPlaceStation : StationBase
     {
         // ── 步序枚举（显式间隔整数值，便于将来插入中间步序）─────────────────
+        // Init 步序已移至 ExecuteInitializeAsync，此处仅保留运行时步序。
         private enum PickPlaceStep
         {
-            Init             = 0,   // 初始化模组（仅启动/复位后执行一次）
             WaitMaterial     = 10,  // 等待上游物料到位（Normal 等真实信号；DryRun 模拟延迟）
             Pick             = 20,  // 执行取料（两种模式均调用真实轴运动）
             WaitSlotEmpty    = 30,  // 等待工作台槽位空闲（仅 Normal；DryRun 跳过此步）
@@ -57,7 +70,7 @@ namespace PF.Workstation.Demo
         private readonly GantryMechanism _gantry;
         private readonly IStationSyncService _sync;
         private int _cycleCount;
-        private PickPlaceStep _currentStep = PickPlaceStep.Init;
+        private PickPlaceStep _currentStep = PickPlaceStep.WaitMaterial;
 
         public PickPlaceStation(GantryMechanism gantry, IStationSyncService sync, ILogService logger)
             : base("取放工站", logger)
@@ -69,11 +82,36 @@ namespace PF.Workstation.Demo
             _gantry.AlarmTriggered += OnMechanismAlarm;
         }
 
+        // ── 硬件初始化（生命周期第一阶段）──────────────────────────────────
+
+        /// <summary>
+        /// 由 MasterController.InitializeAllAsync() 顺序调用。
+        /// 驱动本工站状态机：Uninitialized → Initializing → Idle（或 Alarm）。
+        /// </summary>
+        public override async Task ExecuteInitializeAsync(CancellationToken token)
+        {
+            Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
+            try
+            {
+                _logger.Info($"[{StationName}] 正在初始化龙门模组...");
+                if (!await _gantry.InitializeAsync(token))
+                    throw new Exception($"[{StationName}] 龙门模组初始化失败！");
+                _logger.Success($"[{StationName}] 初始化完成，就绪。");
+                Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+            }
+            catch
+            {
+                Fire(MachineTrigger.Error); // Initializing → Alarm
+                throw;
+            }
+        }
+
         // ── 主入口：按运行模式路由至独立循环 ────────────────────────────────
 
         /// <summary>
         /// 工艺入口路由，由 StationBase.ProcessWrapperAsync 在后台线程中调用。
         /// CurrentMode 在 Idle 状态下由 MasterController.SetMode() 固定，循环期间不会改变。
+        /// 硬件已在 ExecuteInitializeAsync 中完成初始化，本方法不再重复执行。
         /// </summary>
         protected override async Task ProcessLoopAsync(CancellationToken token)
         {
@@ -87,7 +125,7 @@ namespace PF.Workstation.Demo
 
         /// <summary>
         /// 完整生产工艺大循环：
-        ///   Init → 等待真实物料信号 → 取料 → 等槽位（流水线协同）→ 放料 → 通知下游
+        ///   等待真实物料信号 → 取料 → 等槽位（流水线协同）→ 放料 → 通知下游
         ///
         /// · 通过 _pauseEvent.Wait(token) 在关键步序前提供暂停窗口
         /// · 通过 _sync.WaitAsync / _sync.Release 与点胶工站实现流水线节拍协同
@@ -99,15 +137,6 @@ namespace PF.Workstation.Demo
             {
                 switch (_currentStep)
                 {
-                    // ── Init: 初始化龙门模组 ──────────────────────────────────
-                    case PickPlaceStep.Init:
-                        _logger.Info($"[{StationName}] 正在初始化龙门模组...");
-                        if (!await _gantry.InitializeAsync(token))
-                            throw new Exception($"[{StationName}] 龙门模组初始化失败，工站无法启动！");
-                        _logger.Success($"[{StationName}] 初始化完成，进入 Normal 工艺循环 ▶");
-                        _currentStep = PickPlaceStep.WaitMaterial;
-                        break;
-
                     // ── WaitMaterial: 等待上游物料到位 ───────────────────────
                     case PickPlaceStep.WaitMaterial:
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
@@ -176,15 +205,6 @@ namespace PF.Workstation.Demo
             {
                 switch (_currentStep)
                 {
-                    // ── Init: 初始化龙门模组（硬件必须初始化，与 Normal 相同）─
-                    case PickPlaceStep.Init:
-                        _logger.Info($"[{StationName}] [DryRun] 正在初始化龙门模组...");
-                        if (!await _gantry.InitializeAsync(token))
-                            throw new Exception($"[{StationName}] 龙门模组初始化失败，工站无法启动！");
-                        _logger.Success($"[{StationName}] [DryRun] 初始化完成，进入空跑验证循环 ▶");
-                        _currentStep = PickPlaceStep.WaitMaterial;
-                        break;
-
                     // ── WaitMaterial: 模拟物料到位（不等真实传感器）──────────
                     case PickPlaceStep.WaitMaterial:
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
@@ -233,9 +253,9 @@ namespace PF.Workstation.Demo
         /// 回跳判断基于 PickPlaceStep 值范围，与 CurrentMode 无关，
         /// 对 Normal 和 DryRun 模式发生的故障均适用。
         ///
-        ///   步序 &lt; Pick(20)              → Init         （重新初始化）
-        ///   Pick(20) ≤ 步序 &lt; Place(40) → Pick          （重新取料；回原点后吸盘已空）
-        ///   步序 ≥ Place(40)            → WaitMaterial  （放料完成或在途，跳过取料）
+        ///   步序 &lt; Pick(20)              → WaitMaterial  （取料前，重新等待物料）
+        ///   Pick(20) ≤ 步序 &lt; Place(40) → Pick           （取料中，重新取料）
+        ///   步序 ≥ Place(40)            → WaitMaterial   （放料后，跳过取料直接等下一批）
         /// </summary>
         public override async Task ExecuteResetAsync(CancellationToken token)
         {
@@ -261,8 +281,8 @@ namespace PF.Workstation.Demo
             }
             else
             {
-                _currentStep = PickPlaceStep.Init;
-                _logger.Info($"[{StationName}] 步序回跳 → Init（初始化阶段故障，重新初始化）");
+                _currentStep = PickPlaceStep.WaitMaterial;
+                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（取料前故障，重新等待物料）");
             }
 
             // 4. 工站状态机：Alarm → Idle
