@@ -1,4 +1,5 @@
-﻿using PF.Core.Entities.Identity;
+﻿using PF.Core.Entities.Hardware;
+using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
@@ -152,6 +153,94 @@ namespace PF.Application.Shell.CustomConfiguration.Param
 
 
 
+
+        /// <summary>
+        /// 获取硬件设备默认配置
+        ///
+        /// 层级关系：
+        ///   SIM_CARD_0（顶级板卡，ParentDeviceId 为空）
+        ///   ├── SIM_X_AXIS_0（轴，ParentDeviceId = "SIM_CARD_0"）
+        ///   └── SIM_VACUUM_IO（IO，ParentDeviceId = "SIM_CARD_0"）
+        ///
+        /// 说明：每条 HardwareParam 的 Name = DeviceId，JsonValue = HardwareConfig 的 JSON 序列化结果。
+        /// </summary>
+        public Dictionary<string, HardwareParam> GetHardwareDefaults()
+        {
+            HardwareConfig simCard = new()
+            {
+                DeviceId                = "SIM_CARD_0",
+                DeviceName              = "模拟运动控制卡[0]",
+                Category                = "MotionCard",
+                ImplementationClassName = "SimMotionCard",
+                IsSimulated             = true,
+                IsEnabled               = true,
+                ParentDeviceId          = string.Empty,
+                ConnectionParameters    = new Dictionary<string, string> { ["CardIndex"] = "0" },
+                Remarks                 = "模拟运动控制卡，用于开发/调试"
+            };
+
+            HardwareConfig simAxis = new()
+            {
+                DeviceId                = "SIM_X_AXIS_0",
+                DeviceName              = "模拟X轴[0]",
+                Category                = "Axis",
+                ImplementationClassName = "SimXAxis",
+                IsSimulated             = true,
+                IsEnabled               = true,
+                ParentDeviceId          = "SIM_CARD_0",
+                ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
+                Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
+            };
+
+            HardwareConfig simIO = new()
+            {
+                DeviceId                = "SIM_VACUUM_IO",
+                DeviceName              = "模拟真空IO卡",
+                Category                = "IOController",
+                ImplementationClassName = "SimVacuumIO",
+                IsSimulated             = true,
+                IsEnabled               = true,
+                ParentDeviceId          = "SIM_CARD_0",
+                Remarks                 = "模拟真空IO卡，挂载于 SIM_CARD_0"
+            };
+
+            return new Dictionary<string, HardwareParam>
+            {
+                {
+                    simCard.DeviceId, new HardwareParam
+                    {
+                        Name         = simCard.DeviceId,
+                        Description  = simCard.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(simCard),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    simAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = simAxis.DeviceId,
+                        Description  = simAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(simAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    simIO.DeviceId, new HardwareParam
+                    {
+                        Name         = simIO.DeviceId,
+                        Description  = simIO.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(simIO),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                }
+            };
+        }
 
         /// <summary>
         /// 获取系统默认配置
