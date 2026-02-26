@@ -1,3 +1,4 @@
+using PF.Core.Attributes;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
@@ -23,6 +24,9 @@ namespace PF.Workstation.Demo.Mechanisms
     ///   同一时刻只有一个 Station 线程调用本模组（单工站单模组设计）。
     ///   若多工站共用模组，需在此层添加 SemaphoreSlim 串行化。
     /// </summary>
+    /// 
+
+    [MechanismUI("取放模组调试", "GantryMechanismView", 1)]
     public class GantryMechanism : BaseMechanism
     {
         private readonly IAxis          _xAxis;
@@ -37,6 +41,14 @@ namespace PF.Workstation.Demo.Mechanisms
 
         private const int VacuumValve   = 0;      // OUT[0]: 真空阀
         private const int VacuumSensor  = 0;      // IN[0]:  真空检测传感器
+
+
+        // 在 GantryMechanism 类中添加这两个公开属性，供 ViewModel 访问
+        public IAxis XAxis => _xAxis;
+        public IIOController VacuumIO => _vacuumIO;
+
+        // 暴露真空阀端口号供 ViewModel 使用
+        public int VacuumValvePort => VacuumValve;
 
         public GantryMechanism(IAxis xAxis, IIOController vacuumIO, ILogService logger)
             : base("龙门取放模组", logger, xAxis, vacuumIO)

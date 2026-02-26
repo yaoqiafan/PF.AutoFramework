@@ -26,6 +26,8 @@ namespace PF.Core.Constants
 
             public const string DebugViewRegion = nameof(DebugViewRegion);
 
+            public const string MechanismContentRegion = nameof(MechanismContentRegion);
+
         }
 
         public static class Views

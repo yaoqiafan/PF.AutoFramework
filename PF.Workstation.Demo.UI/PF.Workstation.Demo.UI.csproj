@@ -4,9 +4,6 @@
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="ViewModels\" />
-	</ItemGroup>
-	<ItemGroup>
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.Workstation.Demo\PF.Workstation.Demo.csproj" />
 	</ItemGroup>

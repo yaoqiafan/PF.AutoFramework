@@ -38,6 +38,7 @@ using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo.Hardware;
 using PF.Workstation.Demo.Mechanisms;
+using PF.Workstation.Demo.UI;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -228,8 +229,16 @@ namespace PF.Application.Shell
             containerRegistry.RegisterInstance<IHardwareDevice>(vacuumIO, "SimVacuumIO");
 
 
-            // 3. 注册业务模组 (模组的构造函数只有接口，没有 int/string，所以用 Singleton 自动解析是没问题的)
-            containerRegistry.RegisterInstance<IMechanism>(new GantryMechanism(xAxis, vacuumIO, _logService));
+           
+            // 假设你在这里或者硬件管理服务里创建了 gantryMechanism
+            var gantryMechanism = new GantryMechanism(xAxis, vacuumIO, _logService);
+
+            // 必须把它注册为单例，这样 ViewModel 的构造函数才能要到它！
+            containerRegistry.RegisterInstance<GantryMechanism>(gantryMechanism);
+
+            // 如果是通过接口管理的，最好也把接口注册上
+            containerRegistry.RegisterInstance<IMechanism>(gantryMechanism);
+          
         }
 
 
@@ -240,6 +249,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
+            moduleCatalog.AddModule<UIModule>();
         }
         #endregion
 

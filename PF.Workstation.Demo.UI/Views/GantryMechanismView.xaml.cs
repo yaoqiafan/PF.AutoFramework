@@ -19,8 +19,6 @@ namespace PF.Workstation.Demo.UI.Views
     /// <summary>
     /// GantryMechanismView.xaml 的交互逻辑
     /// </summary>
-
-    [MechanismUI("取放模组调试", "PickPlaceDebugView", 1)]
     public partial class GantryMechanismView : UserControl
     {
         public GantryMechanismView()
