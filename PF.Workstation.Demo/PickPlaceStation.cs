@@ -9,40 +9,35 @@ using PF.Workstation.Demo.Sync;
 namespace PF.Workstation.Demo
 {
     /// <summary>
-    /// 【工站层示例】取放工站（步序状态机 + 运行模式支持）
+    /// 【工站层示例】取放工站（步序状态机 + 运行模式解耦）
     ///
     /// ═══════════════════════════════════════════════════════════════════════
-    ///  步序枚举（PickPlaceStep）
+    ///  运行模式路由（ProcessLoopAsync 入口）
     /// ═══════════════════════════════════════════════════════════════════════
     ///
-    ///   Init (0)
-    ///     │  初始化龙门模组（连接 → 使能 → 回原点）
-    ///     ▼
-    ///   WaitMaterial (10)
-    ///     │  Normal：等待真实传感器到位信号（800 ms 模拟）
-    ///     │  DryRun ：跳过等待，延迟 200 ms 后直接进入下一步
-    ///     ▼
-    ///   Pick (20)
-    ///     │  执行取料（移到取料位 → 慢降 → 开真空 → 提升）
-    ///     ▼
-    ///   WaitSlotEmpty (30)
-    ///     │  等待点胶工站完成当前产品，释放 SlotEmpty 信号量（★ 流水线协同）
-    ///     ▼
-    ///   Place (40)
-    ///     │  执行放料（移到放料位 → 慢降 → 关真空 → 退位）
-    ///     │  放料完成后 Release(ProductReady)，通知点胶工站
-    ///     ▼
-    ///   NotifyDownstream (50)
-    ///     │  通知下游（模拟：延迟 50 ms）
-    ///     └──→ 回到 WaitMaterial，开始下一个 Cycle
+    ///   ProcessLoopAsync
+    ///     ├─ Normal  → ProcessNormalLoopAsync   完整生产工艺（含真实 IO 与流水线信号量协同）
+    ///     └─ DryRun  → ProcessDryRunLoopAsync   空跑验证（跳过物料等待与下游协同，仅验证轴轨迹）
     ///
     /// ═══════════════════════════════════════════════════════════════════════
-    ///  ExecuteResetAsync 智能回跳策略
+    ///  共享步序枚举（PickPlaceStep）— 两种模式共用，保证 ExecuteResetAsync 回跳一致
     /// ═══════════════════════════════════════════════════════════════════════
     ///
-    ///   步序 < Pick(20)         → Init     （重新初始化）
-    ///   Pick(20) ≤ 步序 < Place(40) → Pick （重新取料；初始化后吸盘已空）
-    ///   步序 ≥ Place(40)        → WaitMaterial（放料已完成或在途，跳过取料）
+    ///  Normal 步序流：
+    ///   Init(0) → WaitMaterial(10) → Pick(20) → WaitSlotEmpty(30) → Place(40) → NotifyDownstream(50) ──┐
+    ///             └──────────────────────────────────────────────────────────────────────────────────────┘
+    ///
+    ///  DryRun 步序流（跳过 WaitSlotEmpty，Place 后不 Release 信号量）：
+    ///   Init(0) → WaitMaterial(10) → Pick(20) ──→ Place(40) → NotifyDownstream(50) ──┐
+    ///             └───────────────────────────────────────────────────────────────────┘
+    ///
+    /// ═══════════════════════════════════════════════════════════════════════
+    ///  ExecuteResetAsync 智能回跳策略（与运行模式无关，基于步序值范围判断）
+    /// ═══════════════════════════════════════════════════════════════════════
+    ///
+    ///   步序 < Pick(20)              → Init         （重新初始化）
+    ///   Pick(20) ≤ 步序 < Place(40) → Pick          （重新取料；回原点后吸盘已空）
+    ///   步序 ≥ Place(40)            → WaitMaterial  （放料完成或在途，下一循环取新物料）
     ///
     /// ═══════════════════════════════════════════════════════════════════════
     /// </summary>
@@ -52,10 +47,10 @@ namespace PF.Workstation.Demo
         private enum PickPlaceStep
         {
             Init             = 0,   // 初始化模组（仅启动/复位后执行一次）
-            WaitMaterial     = 10,  // 等待上游物料到位
-            Pick             = 20,  // 执行取料
-            WaitSlotEmpty    = 30,  // 等待工作台槽位空闲
-            Place            = 40,  // 执行放料 + 释放 ProductReady 信号量
+            WaitMaterial     = 10,  // 等待上游物料到位（Normal 等真实信号；DryRun 模拟延迟）
+            Pick             = 20,  // 执行取料（两种模式均调用真实轴运动）
+            WaitSlotEmpty    = 30,  // 等待工作台槽位空闲（仅 Normal；DryRun 跳过此步）
+            Place            = 40,  // 执行放料（两种模式均调用真实轴运动）
             NotifyDownstream = 50,  // 通知下游
         }
 
@@ -70,74 +65,79 @@ namespace PF.Workstation.Demo
             _gantry = gantry;
             _sync   = sync;
 
-            // 订阅模组报警事件：硬件故障将通过此路径驱动本工站进入 Alarm 状态
+            // 订阅模组报警事件：硬件故障通过此路径驱动本工站进入 Alarm 状态
             _gantry.AlarmTriggered += OnMechanismAlarm;
         }
 
-        // ── 工艺大循环（步序状态机）──────────────────────────────────────────
+        // ── 主入口：按运行模式路由至独立循环 ────────────────────────────────
 
         /// <summary>
-        /// ProcessLoopAsync 由 StationBase.ProcessWrapperAsync 在后台线程中调用。
-        /// 使用 switch(_currentStep) 驱动步序状态机，支持从任意步序恢复（配合 ExecuteResetAsync）。
+        /// 工艺入口路由，由 StationBase.ProcessWrapperAsync 在后台线程中调用。
+        /// CurrentMode 在 Idle 状态下由 MasterController.SetMode() 固定，循环期间不会改变。
         /// </summary>
         protected override async Task ProcessLoopAsync(CancellationToken token)
+        {
+            if (CurrentMode == OperationMode.Normal)
+                await ProcessNormalLoopAsync(token);
+            else if (CurrentMode == OperationMode.DryRun)
+                await ProcessDryRunLoopAsync(token);
+        }
+
+        // ── Normal 模式：完整生产工艺循环 ───────────────────────────────────
+
+        /// <summary>
+        /// 完整生产工艺大循环：
+        ///   Init → 等待真实物料信号 → 取料 → 等槽位（流水线协同）→ 放料 → 通知下游
+        ///
+        /// · 通过 _pauseEvent.Wait(token) 在关键步序前提供暂停窗口
+        /// · 通过 _sync.WaitAsync / _sync.Release 与点胶工站实现流水线节拍协同
+        /// · 不含任何 DryRun 判断，逻辑简洁清晰
+        /// </summary>
+        private async Task ProcessNormalLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
                 switch (_currentStep)
                 {
-                    // ── Step Init: 初始化模组（启动或复位后首次执行）─────────
+                    // ── Init: 初始化龙门模组 ──────────────────────────────────
                     case PickPlaceStep.Init:
                         _logger.Info($"[{StationName}] 正在初始化龙门模组...");
                         if (!await _gantry.InitializeAsync(token))
                             throw new Exception($"[{StationName}] 龙门模组初始化失败，工站无法启动！");
-                        _logger.Success($"[{StationName}] 初始化完成，进入工艺循环 ▶");
+                        _logger.Success($"[{StationName}] 初始化完成，进入 Normal 工艺循环 ▶");
                         _currentStep = PickPlaceStep.WaitMaterial;
                         break;
 
-                    // ── Step WaitMaterial: 等待上游物料到位 ──────────────────
+                    // ── WaitMaterial: 等待上游物料到位 ───────────────────────
                     case PickPlaceStep.WaitMaterial:
-                        // ════════ 暂停检查点 ① ════════
-                        _pauseEvent.Wait(token);
+                        _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
                         _logger.Info($"[{StationName}] ══ Cycle #{_cycleCount} 开始 ══");
-
-                        if (CurrentMode == OperationMode.DryRun)
-                        {
-                            _logger.Info($"[{StationName}] [DryRun][1/5] 跳过真实物料等待，模拟已到位");
-                            await Task.Delay(200, token);
-                        }
-                        else
-                        {
-                            _logger.Info($"[{StationName}] [1/5] 等待上游物料到位...");
-                            await WaitForMaterialAsync(token);
-                        }
-
+                        _logger.Info($"[{StationName}] [1/5] 等待上游物料到位...");
+                        await WaitForMaterialAsync(token);
                         _currentStep = PickPlaceStep.Pick;
                         break;
 
-                    // ── Step Pick: 执行取料 ───────────────────────────────────
+                    // ── Pick: 取料 ───────────────────────────────────────────
                     case PickPlaceStep.Pick:
-                        // ════════ 暂停检查点 ② ════════
-                        _pauseEvent.Wait(token);
+                        _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [2/5] 执行取料动作...");
                         await _gantry.PickAsync(token);
                         _currentStep = PickPlaceStep.WaitSlotEmpty;
                         break;
 
-                    // ── Step WaitSlotEmpty: 等待工作台槽位空闲（★ 流水线协同）
+                    // ── WaitSlotEmpty: 等待工作台槽位空闲（★ 流水线协同）────
                     case PickPlaceStep.WaitSlotEmpty:
-                        // ════════ 暂停检查点 ③ ════════
-                        _pauseEvent.Wait(token);
+                        _pauseEvent.Wait(token); // ════ 暂停检查点 ③ ════
 
                         _logger.Info($"[{StationName}] [3/5] 等待工作台槽位空闲...");
                         await _sync.WaitAsync(WorkstationSignals.SlotEmpty, token);
                         _currentStep = PickPlaceStep.Place;
                         break;
 
-                    // ── Step Place: 执行放料 + 通知点胶工站（★ 流水线协同）────
+                    // ── Place: 放料 + 通知点胶工站（★ 流水线协同）──────────
                     case PickPlaceStep.Place:
                         _logger.Info($"[{StationName}] [4/5] 执行放料动作（放入工作台）...");
                         await _gantry.PlaceAsync(token);
@@ -147,12 +147,78 @@ namespace PF.Workstation.Demo
                         _currentStep = PickPlaceStep.NotifyDownstream;
                         break;
 
-                    // ── Step NotifyDownstream: 通知下游 ──────────────────────
+                    // ── NotifyDownstream: 通知下游 ────────────────────────────
                     case PickPlaceStep.NotifyDownstream:
                         await NotifyDownstreamAsync(token);
                         _logger.Success($"[{StationName}] ══ Cycle #{_cycleCount} 完成 ══\n");
+                        await Task.Delay(100, token);
+                        _currentStep = PickPlaceStep.WaitMaterial;
+                        break;
+                }
+            }
+        }
 
-                        // 节拍间隙
+        // ── DryRun 模式：空跑验证循环 ────────────────────────────────────────
+
+        /// <summary>
+        /// 空跑验证循环：模拟物料信号 → 执行真实取/放轴运动（验证轨迹） → 跳过流水线协同。
+        ///
+        /// 与 Normal 的差异：
+        ///   · WaitMaterial  — 短延迟模拟物料到位，不等待真实传感器 IO
+        ///   · WaitSlotEmpty — 完全跳过（Pick 后直接进入 Place），无下游工站联动需求
+        ///   · Place         — 执行真实放料轴运动，但不 Release(ProductReady)
+        ///
+        /// 共享 <see cref="PickPlaceStep"/> 枚举值，保证 ExecuteResetAsync 回跳策略对两种模式均有效。
+        /// </summary>
+        private async Task ProcessDryRunLoopAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                switch (_currentStep)
+                {
+                    // ── Init: 初始化龙门模组（硬件必须初始化，与 Normal 相同）─
+                    case PickPlaceStep.Init:
+                        _logger.Info($"[{StationName}] [DryRun] 正在初始化龙门模组...");
+                        if (!await _gantry.InitializeAsync(token))
+                            throw new Exception($"[{StationName}] 龙门模组初始化失败，工站无法启动！");
+                        _logger.Success($"[{StationName}] [DryRun] 初始化完成，进入空跑验证循环 ▶");
+                        _currentStep = PickPlaceStep.WaitMaterial;
+                        break;
+
+                    // ── WaitMaterial: 模拟物料到位（不等真实传感器）──────────
+                    case PickPlaceStep.WaitMaterial:
+                        _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
+
+                        _cycleCount++;
+                        _logger.Info($"[{StationName}] [DryRun] ══ Cycle #{_cycleCount} 开始 ══");
+                        _logger.Info($"[{StationName}] [DryRun][1/4] 模拟物料到位（200 ms）");
+                        await Task.Delay(200, token);
+                        _currentStep = PickPlaceStep.Pick;
+                        break;
+
+                    // ── Pick: 执行真实取料轴运动（验证轨迹）────────────────
+                    case PickPlaceStep.Pick:
+                        _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
+
+                        _logger.Info($"[{StationName}] [DryRun][2/4] 执行取料轴运动（验证轨迹）...");
+                        await _gantry.PickAsync(token);
+                        // 跳过 WaitSlotEmpty（值 30）：空跑时无下游联动，直接进入放料
+                        _currentStep = PickPlaceStep.Place;
+                        break;
+
+                    // ── Place: 执行真实放料轴运动（验证轨迹，不通知下游）────
+                    case PickPlaceStep.Place:
+                        _logger.Info($"[{StationName}] [DryRun][3/4] 执行放料轴运动（验证轨迹）...");
+                        await _gantry.PlaceAsync(token);
+                        // 不 Release(ProductReady)：空跑时下游点胶工站不监听此信号量
+                        _currentStep = PickPlaceStep.NotifyDownstream;
+                        break;
+
+                    // ── NotifyDownstream: 节拍间隙 ────────────────────────────
+                    case PickPlaceStep.NotifyDownstream:
+                        _logger.Info($"[{StationName}] [DryRun][4/4] 节拍间隙...");
+                        await NotifyDownstreamAsync(token);
+                        _logger.Success($"[{StationName}] [DryRun] ══ Cycle #{_cycleCount} 完成 ══\n");
                         await Task.Delay(100, token);
                         _currentStep = PickPlaceStep.WaitMaterial;
                         break;
@@ -163,11 +229,13 @@ namespace PF.Workstation.Demo
         // ── 物理复位（覆写基类）─────────────────────────────────────────────
 
         /// <summary>
-        /// 硬件复位 + 智能步序回跳：
-        ///   1. 调用 _gantry.ResetAsync() 清除硬件报警
-        ///   2. 调用 _gantry.InitializeAsync() 重新回原点
-        ///   3. 根据故障时所在步序决定恢复入口（见类注释中的策略表）
-        ///   4. 调用 ResetAlarm() 将工站状态机推回 Idle
+        /// 硬件复位 + 智能步序回跳。
+        /// 回跳判断基于 PickPlaceStep 值范围，与 CurrentMode 无关，
+        /// 对 Normal 和 DryRun 模式发生的故障均适用。
+        ///
+        ///   步序 &lt; Pick(20)              → Init         （重新初始化）
+        ///   Pick(20) ≤ 步序 &lt; Place(40) → Pick          （重新取料；回原点后吸盘已空）
+        ///   步序 ≥ Place(40)            → WaitMaterial  （放料完成或在途，跳过取料）
         /// </summary>
         public override async Task ExecuteResetAsync(CancellationToken token)
         {
@@ -180,26 +248,21 @@ namespace PF.Workstation.Demo
             if (!await _gantry.InitializeAsync(token))
                 _logger.Warn($"[{StationName}] 复位后初始化未完全成功，请检查硬件！");
 
-            // 3. 智能回跳：根据故障发生的步序决定下一次 ProcessLoopAsync 从哪里进入
+            // 3. 智能回跳
             if (_currentStep >= PickPlaceStep.Place)
             {
-                // 放料阶段（或之后）发生故障：放料动作已完成或吸盘已空，
-                // 安全地从下一个物料开始。
                 _currentStep = PickPlaceStep.WaitMaterial;
-                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（跳过取料）");
+                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（放料阶段故障，跳过取料）");
             }
             else if (_currentStep >= PickPlaceStep.Pick)
             {
-                // 取料阶段（到等待槽位之间）发生故障：硬件已回原点，吸盘已空，
-                // 重新尝试取料。
                 _currentStep = PickPlaceStep.Pick;
-                _logger.Info($"[{StationName}] 步序回跳 → Pick（重试取料）");
+                _logger.Info($"[{StationName}] 步序回跳 → Pick（取料阶段故障，重试取料）");
             }
             else
             {
-                // 初始化阶段或等待物料前发生故障：从头初始化。
                 _currentStep = PickPlaceStep.Init;
-                _logger.Info($"[{StationName}] 步序回跳 → Init（重新初始化）");
+                _logger.Info($"[{StationName}] 步序回跳 → Init（初始化阶段故障，重新初始化）");
             }
 
             // 4. 工站状态机：Alarm → Idle
