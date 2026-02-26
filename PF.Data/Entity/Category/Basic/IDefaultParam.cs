@@ -14,5 +14,7 @@ namespace PF.Data.Entity.Category.Basic
         Dictionary<string, UserLoginParam> GetUsersDefaults();
 
         Dictionary<string, SystemConfigParam> GetSystemDefaults();
+
+        Dictionary<string, HardwareParam> GetHardwareDefaults();
     }
 }

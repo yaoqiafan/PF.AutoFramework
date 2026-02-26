@@ -112,6 +112,12 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 SystemConfigParams,
                 defaultParam.GetSystemDefaults(),
                 cancellationToken);
+
+            // 初始化HardwareParams（默认硬件设备配置）
+            await EnsureParametersExistAsync(
+                HardwareParams,
+                defaultParam.GetHardwareDefaults(),
+                cancellationToken);
         }
 
         /// <summary>
