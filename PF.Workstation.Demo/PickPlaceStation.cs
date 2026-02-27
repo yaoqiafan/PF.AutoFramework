@@ -1,3 +1,4 @@
+using PF.Core.Attributes;
 using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
@@ -54,6 +55,7 @@ namespace PF.Workstation.Demo
     ///
     /// ═══════════════════════════════════════════════════════════════════════
     /// </summary>
+    [StationUI("取放工站调试", "PickPlaceStationDebugView", order: 1)]
     public class PickPlaceStation : StationBase
     {
         // ── 步序枚举（显式间隔整数值，便于将来插入中间步序）─────────────────
@@ -139,6 +141,7 @@ namespace PF.Workstation.Demo
                 {
                     // ── WaitMaterial: 等待上游物料到位 ───────────────────────
                     case PickPlaceStep.WaitMaterial:
+                        CurrentStepDescription = "等待上游物料到位...";
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
@@ -150,6 +153,7 @@ namespace PF.Workstation.Demo
 
                     // ── Pick: 取料 ───────────────────────────────────────────
                     case PickPlaceStep.Pick:
+                        CurrentStepDescription = "正在执行取料动作...";
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [2/5] 执行取料动作...");
@@ -159,6 +163,7 @@ namespace PF.Workstation.Demo
 
                     // ── WaitSlotEmpty: 等待工作台槽位空闲（★ 流水线协同）────
                     case PickPlaceStep.WaitSlotEmpty:
+                        CurrentStepDescription = "等待工作台槽位空闲...";
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ③ ════
 
                         _logger.Info($"[{StationName}] [3/5] 等待工作台槽位空闲...");
@@ -168,6 +173,7 @@ namespace PF.Workstation.Demo
 
                     // ── Place: 放料 + 通知点胶工站（★ 流水线协同）──────────
                     case PickPlaceStep.Place:
+                        CurrentStepDescription = "正在执行放料动作...";
                         _logger.Info($"[{StationName}] [4/5] 执行放料动作（放入工作台）...");
                         await _gantry.PlaceAsync(token);
 
@@ -178,6 +184,7 @@ namespace PF.Workstation.Demo
 
                     // ── NotifyDownstream: 通知下游 ────────────────────────────
                     case PickPlaceStep.NotifyDownstream:
+                        CurrentStepDescription = "正在通知下游工站...";
                         await NotifyDownstreamAsync(token);
                         _logger.Success($"[{StationName}] ══ Cycle #{_cycleCount} 完成 ══\n");
                         await Task.Delay(100, token);
@@ -207,6 +214,7 @@ namespace PF.Workstation.Demo
                 {
                     // ── WaitMaterial: 模拟物料到位（不等真实传感器）──────────
                     case PickPlaceStep.WaitMaterial:
+                        CurrentStepDescription = "[DryRun] 模拟物料到位...";
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
@@ -218,6 +226,7 @@ namespace PF.Workstation.Demo
 
                     // ── Pick: 执行真实取料轴运动（验证轨迹）────────────────
                     case PickPlaceStep.Pick:
+                        CurrentStepDescription = "[DryRun] 正在验证取料轨迹...";
                         _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [DryRun][2/4] 执行取料轴运动（验证轨迹）...");
@@ -228,6 +237,7 @@ namespace PF.Workstation.Demo
 
                     // ── Place: 执行真实放料轴运动（验证轨迹，不通知下游）────
                     case PickPlaceStep.Place:
+                        CurrentStepDescription = "[DryRun] 正在验证放料轨迹...";
                         _logger.Info($"[{StationName}] [DryRun][3/4] 执行放料轴运动（验证轨迹）...");
                         await _gantry.PlaceAsync(token);
                         // 不 Release(ProductReady)：空跑时下游点胶工站不监听此信号量
@@ -236,6 +246,7 @@ namespace PF.Workstation.Demo
 
                     // ── NotifyDownstream: 节拍间隙 ────────────────────────────
                     case PickPlaceStep.NotifyDownstream:
+                        CurrentStepDescription = "[DryRun] 节拍间隙...";
                         _logger.Info($"[{StationName}] [DryRun][4/4] 节拍间隙...");
                         await NotifyDownstreamAsync(token);
                         _logger.Success($"[{StationName}] [DryRun] ══ Cycle #{_cycleCount} 完成 ══\n");
