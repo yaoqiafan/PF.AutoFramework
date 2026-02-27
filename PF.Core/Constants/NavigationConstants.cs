@@ -28,6 +28,9 @@ namespace PF.Core.Constants
 
             public const string MechanismContentRegion = nameof(MechanismContentRegion);
 
+            /// <summary>工站调试模块右侧内容区域</summary>
+            public const string StationContentRegion = nameof(StationContentRegion);
+
         }
 
         public static class Views
@@ -54,6 +57,8 @@ namespace PF.Core.Constants
             public const string MechanismDebugView = nameof(MechanismDebugView);
             public const string AxisDebugView = nameof(AxisDebugView);
             public const string IODebugView = nameof(IODebugView);
+            public const string StationDebugView = nameof(StationDebugView);
+            public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
             #endregion
 
 

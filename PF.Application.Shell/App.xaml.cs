@@ -25,10 +25,13 @@ using PF.Modules.Parameter;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Core.Interfaces.Sync;
+using PF.Infrastructure.Station.Basic;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
+using PF.Services.Sync;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Dialog.ViewModels;
@@ -248,6 +251,17 @@ namespace PF.Application.Shell
             // 2. 将 DemoMachineController 绑定到 IMasterController 接口
             containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
 
+
+            // ── 工站同步服务 + 工站实例 ──────────────────────────────────────
+            // StationSyncService：流水线信号量管理，供 PickPlaceStation 使用
+            var syncService = new StationSyncService(_logService);
+            containerRegistry.RegisterInstance<IStationSyncService>(syncService);
+
+            // PickPlaceStation：取放工站实例，注册为 StationBase 供 StationDebugViewModel
+            // 通过 IEnumerable<StationBase> 自动发现（DryIoc 集合解析）
+            var pickPlaceStation = new PickPlaceStation(gantryMechanism, syncService, _logService);
+            containerRegistry.RegisterInstance<PickPlaceStation>(pickPlaceStation);
+            containerRegistry.RegisterInstance<StationBase>(pickPlaceStation, "PickPlaceStation");
         }
 
 
