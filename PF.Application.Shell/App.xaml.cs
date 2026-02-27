@@ -7,11 +7,13 @@ using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
+using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Station;
 using PF.Data.Context;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
@@ -36,6 +38,7 @@ using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
+using PF.Workstation.Demo;
 using PF.Workstation.Demo.Hardware;
 using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
@@ -238,7 +241,13 @@ namespace PF.Application.Shell
 
             // 如果是通过接口管理的，最好也把接口注册上
             containerRegistry.RegisterInstance<IMechanism>(gantryMechanism);
-          
+
+            // 1. 将自定义纯 C# 事件总线注册为全局单例
+            containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
+
+            // 2. 将 DemoMachineController 绑定到 IMasterController 接口
+            containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
+
         }
 
 
