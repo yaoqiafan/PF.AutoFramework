@@ -245,6 +245,7 @@ namespace PF.Application.Shell
             // 如果是通过接口管理的，最好也把接口注册上
             containerRegistry.RegisterInstance<IMechanism>(gantryMechanism);
 
+
             // 1. 将自定义纯 C# 事件总线注册为全局单例
             containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
 
@@ -262,6 +263,7 @@ namespace PF.Application.Shell
             var pickPlaceStation = new PickPlaceStation(gantryMechanism, syncService, _logService);
             containerRegistry.RegisterInstance<PickPlaceStation>(pickPlaceStation);
             containerRegistry.RegisterInstance<StationBase>(pickPlaceStation, "PickPlaceStation");
+
         }
 
 
