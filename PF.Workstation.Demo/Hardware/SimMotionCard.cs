@@ -66,5 +66,80 @@ namespace PF.Workstation.Demo.Hardware
         /// </summary>
         protected override Task<bool> InternalLoadConfigAsync(string configFilePath)
             => Task.FromResult(true);
+
+        public override Task<bool> EnableAxisAsync(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> DisableAxisAsync(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> StopAxisAsync(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> JogAsync(int axisIndex, double velocity, bool isPositive)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override double GetAxisCurrentPosition(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool IsAxisMoving(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool IsAxisPositiveLimit(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool IsAxisNegativeLimit(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool IsAxisEnabled(int axisIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool ReadInputPort(int portIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WriteOutputPort(int portIndex, bool value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool ReadOutputPort(int portIndex)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
