@@ -59,6 +59,7 @@ namespace PF.Core.Constants
             public const string IODebugView = nameof(IODebugView);
             public const string StationDebugView = nameof(StationDebugView);
             public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
+            public const string CardDebugView = nameof(CardDebugView);
             #endregion
 
 
