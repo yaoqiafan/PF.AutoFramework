@@ -31,7 +31,6 @@
                         Margin="12,12,12,8"
                         FontSize="13"
                         FontWeight="SemiBold"
-                        Foreground="{DynamicResource PrimaryColorBrush}"
                         Text="工站列表" />
                     <Separator
                         DockPanel.Dock="Top"
@@ -68,7 +67,6 @@
                                             Text="{Binding Title}" />
                                         <TextBlock
                                             FontSize="11"
-                                            Foreground="{DynamicResource SecondaryTextColorBrush}"
                                             Text="{Binding StationName}" />
                                     </StackPanel>
                                 </StackPanel>
@@ -81,7 +79,6 @@
             <!-- ── 右侧内容区域 ─────────────────────────────────────────────── -->
             <Border
                 Grid.Column="2"
-                Background="{DynamicResource SecondaryRegionColorBrush}"
                 CornerRadius="6">
                 <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.StationContentRegion}">
                     <ContentControl.Style>
@@ -97,13 +94,11 @@
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
                                                         FontSize="36"
-                                                        Foreground="{DynamicResource BorderColorBrush}"
                                                         Text="&#xE71B;" />
                                                     <TextBlock
                                                         Margin="0,8,0,0"
                                                         HorizontalAlignment="Center"
                                                         FontSize="14"
-                                                        Foreground="{DynamicResource SecondaryTextColorBrush}"
                                                         Text="请从左侧列表选择工站进行调试" />
                                                 </StackPanel>
                                             </ControlTemplate>

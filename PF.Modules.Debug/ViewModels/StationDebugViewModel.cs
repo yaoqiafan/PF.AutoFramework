@@ -1,8 +1,6 @@
 using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Infrastructure.Station.Basic;
-using Prism.Mvvm;
-using Prism.Regions;
 using System.Collections.ObjectModel;
 using System.Reflection;
 
