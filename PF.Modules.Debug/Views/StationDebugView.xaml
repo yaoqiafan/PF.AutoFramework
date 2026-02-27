@@ -15,15 +15,15 @@
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="5">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="240" />
-                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="15" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- ── 左侧工站导航列表 ──────────────────────────────────────────── -->
-            <Border
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="3"
                 Grid.Column="0"
-                Background="{DynamicResource SecondaryRegionColorBrush}"
+                Background="{DynamicResource RegionBrush}"
                 CornerRadius="6">
                 <DockPanel>
                     <TextBlock
@@ -43,13 +43,7 @@
                         ItemsSource="{Binding NavItems}"
                         SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemContainerStyle>
-                            <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
-                                <Setter Property="Margin" Value="2,2" />
-                                <Setter Property="Padding" Value="10,8" />
-                                <Setter Property="BorderThickness" Value="0" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
+                       
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:StationNavItem}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
