@@ -1,6 +1,5 @@
 using PF.Core.Attributes;
 using PF.Core.Constants;
-using Prism.Regions;
 using System.Windows.Controls;
 
 namespace PF.Modules.Debug.Views
