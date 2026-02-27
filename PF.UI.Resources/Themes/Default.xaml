@@ -1261,67 +1261,67 @@ Themes\Styles\Custom\Window.xaml
     </Setter>
   </Style>
   <Storyboard x:Key="Right2LeftTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Left2RightTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Bottom2TopTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Top2BottomTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Right2LeftWithFadeTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.8" />
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Left2RightWithFadeTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.8" />
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" From="-100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Bottom2TopWithFadeTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.8" />
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="Top2BottomWithFadeTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-100" To="0" Duration="0:0:0.4">
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.8" />
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)" From="-100" To="0" Duration="0:0:0.8">
       <DoubleAnimation.EasingFunction>
         <CubicEase EasingMode="EaseOut" />
       </DoubleAnimation.EasingFunction>
     </DoubleAnimation>
   </Storyboard>
   <Storyboard x:Key="FadeTransition" x:Shared="False">
-    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.4" />
+    <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" From="0" To="1" Duration="0:0:0.8" />
   </Storyboard>
   <Style TargetType="pfcontrol:TransitioningContentControl">
     <Setter Property="Focusable" Value="False" />
