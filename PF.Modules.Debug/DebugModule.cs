@@ -1,7 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Modules.Debug.ViewModels;
 using PF.Modules.Debug.Views;
-using PF.UI.Infrastructure.Navigation; // 引入你框架中的导航菜单服务
+using PF.UI.Infrastructure.Navigation;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Reflection;
@@ -33,6 +33,9 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterForNavigation<AxisDebugView, AxisDebugViewModel>(NavigationConstants.Views.AxisDebugView);
 
             containerRegistry.RegisterForNavigation<IODebugView, IODebugViewModel>(NavigationConstants.Views.IODebugView);
+
+            // 3. 注册工站调试容器视图（子工站调试视图由各工站 UI 模块自行注册）
+            containerRegistry.RegisterForNavigation<StationDebugView, StationDebugViewModel>(NavigationConstants.Views.StationDebugView);
         }
     }
 }
