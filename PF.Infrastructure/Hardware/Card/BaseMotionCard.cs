@@ -18,11 +18,15 @@ namespace PF.Infrastructure.Hardware.Card
     /// 本类额外提供：
     ///   · LoadConfigAsync 公开入口（含文件存在检查、异常拦截、日志记录）
     ///   · InternalLoadConfigAsync 钩子留给具体厂商板卡类实现配置解析逻辑
+    ///   · 所有运动控制 / IO 操作方法以 abstract 形式声明，强制子类用厂商 SDK 实现
     ///
     /// 具体厂商板卡类需实现：
     ///   · CardIndex / AxisCount / InputCount / OutputCount 属性
     ///   · InternalConnectAsync / InternalDisconnectAsync / InternalResetAsync
     ///   · InternalLoadConfigAsync（可选，若不需要配置文件可直接返回 true）
+    ///   · 运动控制方法：Enable/Disable/Stop/Home/MoveAbsolute/MoveRelative/Jog（带 axisIndex）
+    ///   · 轴状态读取方法：GetAxisCurrentPosition / IsAxisMoving / IsAxisPositiveLimit 等
+    ///   · IO 控制方法：ReadInputPort / WriteOutputPort / ReadOutputPort（带 portIndex）
     /// </summary>
     public abstract class BaseMotionCard : BaseDevice, IMotionCard
     {
@@ -70,7 +74,7 @@ namespace PF.Infrastructure.Hardware.Card
                     return false;
                 }
 
-                var result = await InternalLoadConfigAsync(configFilePath);
+                var result = await InternalLoadConfigAsync(configFilePath).ConfigureAwait(false);
 
                 if (result)
                     _logger?.Success($"[{DeviceName}] 板卡配置文件加载成功");
@@ -91,6 +95,63 @@ namespace PF.Infrastructure.Hardware.Card
         /// 调用前已保证文件存在，异常由 LoadConfigAsync 统一捕获。
         /// </summary>
         protected abstract Task<bool> InternalLoadConfigAsync(string configFilePath);
+
+        #endregion
+
+        #region 运动控制方法（abstract — 子类用厂商 SDK 实现，第一参数为板卡内物理轴号）
+
+        /// <inheritdoc/>
+        public abstract Task<bool> EnableAxisAsync(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract Task<bool> DisableAxisAsync(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract Task<bool> StopAxisAsync(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token = default);
+
+        /// <inheritdoc/>
+        public abstract Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, CancellationToken token = default);
+
+        /// <inheritdoc/>
+        public abstract Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, CancellationToken token = default);
+
+        /// <inheritdoc/>
+        public abstract Task<bool> JogAsync(int axisIndex, double velocity, bool isPositive);
+
+        #endregion
+
+        #region 轴状态读取方法（abstract — 子类用厂商 SDK 实现）
+
+        /// <inheritdoc/>
+        public abstract double GetAxisCurrentPosition(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract bool IsAxisMoving(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract bool IsAxisPositiveLimit(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract bool IsAxisNegativeLimit(int axisIndex);
+
+        /// <inheritdoc/>
+        public abstract bool IsAxisEnabled(int axisIndex);
+
+        #endregion
+
+        #region IO 控制方法（abstract — 子类用厂商 SDK 实现，第一参数为板卡内物理端口号）
+
+        /// <inheritdoc/>
+        public abstract bool ReadInputPort(int portIndex);
+
+        /// <inheritdoc/>
+        public abstract void WriteOutputPort(int portIndex, bool value);
+
+        /// <inheritdoc/>
+        public abstract bool ReadOutputPort(int portIndex);
 
         #endregion
     }
