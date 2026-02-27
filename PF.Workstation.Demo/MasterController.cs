@@ -12,14 +12,20 @@ namespace PF.Workstation.Demo
     ///
     /// 生命周期：
     ///   Uninitialized → InitializeAllAsync()  → Initializing → Idle
-    ///   Idle          → StartAll()            → Running
-    ///   Running       → StopAll()             → Idle
-    ///   Alarm         → ResetAllAsync()       → Resetting → Idle
+    ///   Idle          → StartAllAsync()        → Running
+    ///   Running       → StopAll()              → Idle
+    ///   Alarm         → ResetAllAsync()        → Resetting → Idle
     ///
     /// 职责：
     ///   · 管理所有子工站的生命周期（初始化/启动/暂停/恢复/停止/复位）
     ///   · 在构造时向 IStationSyncService 注册本方案所需的所有流水线信号量
     ///   · 在系统复位时重置信号量，确保下一轮启动状态正确
+    ///
+    /// 并发安全设计：
+    ///   · 所有状态机跳转通过 _machineLock（SemaphoreSlim 1,1）独占执行。
+    ///   · Running 状态使用 OnEntryAsync，启动所有子工站前等待其旧任务结束。
+    ///   · ResetAllAsync 采用熔断机制：任一子工站复位失败则立即中断，
+    ///     绝不在有异常的情况下触发 ResetDone，杜绝"假复位"。
     /// </summary>
     public class MasterController
     {
@@ -37,6 +43,9 @@ namespace PF.Workstation.Demo
         private readonly ILogService _logger;
         private readonly IStationSyncService _sync;
         private readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
+
+        // ── 并发安全：所有状态机跳转均通过此信号量独占执行 ─────────────────
+        private readonly SemaphoreSlim _machineLock = new(1, 1);
 
         // 管理的子工站列表
         private readonly List<StationBase> _subStations;
@@ -85,18 +94,27 @@ namespace PF.Workstation.Demo
                 .Permit(MachineTrigger.Start, MachineState.Running)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
 
-            // 【主控启动】：启动所有的子线程
+            // 【主控启动/恢复】：异步启动所有子工站
+            // OnEntryAsync 会依序 await 每个 station.StartAsync()，
+            // 确保新任务在旧任务彻底终止后才启动（由 StationBase.OnStartRunningAsync 保证）。
             _globalMachine.Configure(MachineState.Running)
-                .OnEntry(() => _subStations.ForEach(s => s.Start()))
+                .OnEntryAsync(async () =>
+                {
+                    foreach (var s in _subStations)
+                        await s.StartAsync();
+                })
                 .OnExit(() => _subStations.ForEach(s => s.Stop()))
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
 
-            // 【主控暂停】：暂停所有的子线程
+            // 【主控暂停】：暂停所有子工站
+            // OnExit 不再调用 s.Resume()：
+            //   · 各子工站在进入 Paused 前已由 Running.OnExit 调用 Stop() 回到 Idle；
+            //   · 恢复时由 Running.OnEntryAsync 重新调用 StartAsync()，从检查点继续；
+            //   · 这避免了原设计中 Stop-from-Paused 路径意外启动子工站的隐患。
             _globalMachine.Configure(MachineState.Paused)
                 .OnEntry(() => _subStations.ForEach(s => s.Pause()))
-                .OnExit(() => _subStations.ForEach(s => s.Resume()))
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
@@ -111,22 +129,24 @@ namespace PF.Workstation.Demo
         }
 
         /// <summary>
-        /// 核心联动逻辑：只要有任何一个子线程报警，主控立刻触发全局急停！
+        /// 核心联动逻辑：只要有任何一个子线程报警，主控立刻触发全线急停！
+        /// 此方法可能从子工站后台线程调用，通过 Fire() 的 _machineLock 保证线程安全。
         /// </summary>
         private void OnSubStationAlarm(object sender, string errorMessage)
         {
             _logger.Fatal($"【主控接收到报警】: {errorMessage}，立即触发全线急停！");
             MasterAlarmTriggered?.Invoke(this, errorMessage);
-
-            if (_globalMachine.CanFire(MachineTrigger.Error))
-                _globalMachine.Fire(MachineTrigger.Error);
+            Fire(MachineTrigger.Error);
         }
 
         // --- 供 UI 绑定的主控一键操作指令 ---
-        public void StartAll()  => Fire(MachineTrigger.Start);
-        public void StopAll()   => Fire(MachineTrigger.Stop);
-        public void PauseAll()  => Fire(MachineTrigger.Pause);
-        public void ResumeAll() => Fire(MachineTrigger.Resume);
+
+        /// <summary>异步启动全线（触发 Running 状态的 OnEntryAsync）</summary>
+        public async Task StartAllAsync()  => await FireAsync(MachineTrigger.Start);
+        public void StopAll()              => Fire(MachineTrigger.Stop);
+        public void PauseAll()             => Fire(MachineTrigger.Pause);
+        /// <summary>异步恢复全线（触发 Running 状态的 OnEntryAsync）</summary>
+        public async Task ResumeAllAsync() => await FireAsync(MachineTrigger.Resume);
 
         /// <summary>
         /// 设置运行模式。只允许在 Idle 状态下调用，同时向所有子工站下发新模式。
@@ -162,7 +182,7 @@ namespace PF.Workstation.Demo
             }
 
             _logger.Info("【主控】开始全线初始化...");
-            _globalMachine.Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
+            Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             try
@@ -182,8 +202,13 @@ namespace PF.Workstation.Demo
         }
 
         /// <summary>
-        /// 物理复位流程（异步）：
+        /// 物理复位流程（异步，熔断式）：
         ///   Alarm → Resetting → 顺序调用各工站 ExecuteResetAsync → 复位信号量 → Idle
+        ///
+        /// 熔断策略：
+        ///   · 任一子工站的 ExecuteResetAsync 抛出异常，立即中断后续复位流程。
+        ///   · 发生异常时绝不触发 ResetDone，系统保持 Resetting 状态（需人工干预）。
+        ///   · 只有全部子工站复位成功后，才调用 _sync.ResetAll() 并流转到 Idle。
         /// </summary>
         public async Task ResetAllAsync()
         {
@@ -194,7 +219,7 @@ namespace PF.Workstation.Demo
             }
 
             _logger.Info("【主控】开始全线物理复位...");
-            _globalMachine.Fire(MachineTrigger.Reset); // Alarm → Resetting
+            Fire(MachineTrigger.Reset); // Alarm → Resetting
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             try
@@ -204,17 +229,51 @@ namespace PF.Workstation.Demo
             }
             catch (Exception ex)
             {
-                _logger.Error($"【主控】复位过程中发生异常: {ex.Message}");
+                // 【熔断】复位过程有异常 → 中断流程，系统保持 Resetting/Alarm 状态
+                // 绝对禁止在此处调用 Fire(ResetDone)，防止"假复位"导致带故障状态启动
+                _logger.Error($"【主控】复位过程中发生异常，中止复位流程！原因: {ex.Message}");
+                _logger.Error("【主控】系统保持当前状态，请排查故障后重新执行复位！");
+                return;
             }
 
+            // 只有全部工站无异常时，才安全地重置信号量并回到 Idle
             _sync.ResetAll();
-            Fire(MachineTrigger.ResetDone); // Resetting → Idle
+            await FireAsync(MachineTrigger.ResetDone); // Resetting → Idle
             _logger.Success("【主控】全线复位完成，已回到 Idle 状态。");
         }
 
+        /// <summary>
+        /// 线程安全的同步状态跳转（适用于无 OnEntryAsync 的路径）。
+        /// 后台报警线程与 UI 线程可同时调用，_machineLock 保证互斥。
+        /// </summary>
         private void Fire(MachineTrigger trigger)
         {
-            if (_globalMachine.CanFire(trigger)) _globalMachine.Fire(trigger);
+            _machineLock.Wait();
+            try
+            {
+                if (_globalMachine.CanFire(trigger)) _globalMachine.Fire(trigger);
+            }
+            finally
+            {
+                _machineLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// 线程安全的异步状态跳转（适用于含 OnEntryAsync 的路径：Start、Resume）。
+        /// 使用 WaitAsync 避免在 async 上下文中阻塞调用线程。
+        /// </summary>
+        private async Task FireAsync(MachineTrigger trigger)
+        {
+            await _machineLock.WaitAsync();
+            try
+            {
+                if (_globalMachine.CanFire(trigger)) await _globalMachine.FireAsync(trigger);
+            }
+            finally
+            {
+                _machineLock.Release();
+            }
         }
     }
 }
