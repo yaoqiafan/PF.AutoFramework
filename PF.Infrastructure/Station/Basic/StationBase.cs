@@ -18,6 +18,11 @@ namespace PF.Infrastructure.Station.Basic
     ///   Idle          → (Start)      → Running
     ///   Running       → (Stop)       → Idle
     ///   Alarm         → (Reset)      → Idle  （经由 ExecuteResetAsync）
+    ///
+    /// 并发安全设计：
+    ///   · 所有状态机跳转（Fire / FireAsync）均通过 _stateLock（SemaphoreSlim 1,1）独占执行，
+    ///     防止后台线程报警与 UI 线程发出的 Stop/Pause 同时修改状态机内部状态。
+    ///   · Running 状态采用 OnEntryAsync，确保旧任务彻底终止后再启动新任务，消除"幽灵线程"。
     /// </summary>
     public abstract class StationBase : IDisposable
     {
@@ -30,7 +35,11 @@ namespace PF.Infrastructure.Station.Basic
         protected readonly ILogService _logger;
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
 
-        // 线程控制三剑客
+        // ── 并发安全：所有状态机跳转均通过此信号量独占执行 ─────────────────
+        // 使用 SemaphoreSlim 而非 lock，以支持 async/await 场景下的无死锁等待。
+        private readonly SemaphoreSlim _stateLock = new(1, 1);
+
+        // 线程生命周期三剑客
         private CancellationTokenSource _runCts;
         protected ManualResetEventSlim _pauseEvent;
         private Task _workflowTask;
@@ -66,8 +75,10 @@ namespace PF.Infrastructure.Station.Basic
                 .Ignore(MachineTrigger.Stop);
 
             // --- 运行状态 ---
+            // 【关键】OnEntryAsync 确保：旧任务彻底结束 → 再启动新任务，消除幽灵线程。
+            // 注意：凡触发进入 Running 的 Fire 调用（Start / Resume）均须使用 FireAsync。
             _machine.Configure(MachineState.Running)
-                .OnEntry(OnStartRunning)
+                .OnEntryAsync(OnStartRunningAsync)
                 .OnExit(OnStopRunning)
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
@@ -93,14 +104,37 @@ namespace PF.Infrastructure.Station.Basic
 
         #region 线程生命周期管控
 
-        private void OnStartRunning()
+        /// <summary>
+        /// Running 状态异步入口：
+        ///   1. 取消旧 CTS → 防止旧任务继续执行硬件指令
+        ///   2. 等待旧任务彻底死亡 → 消除"幽灵线程"导致的硬件指令冲突
+        ///   3. 释放旧 CTS → 建立新 CTS → 启动新任务
+        /// </summary>
+        private async Task OnStartRunningAsync()
         {
+            // 1. 取消旧任务
+            _runCts?.Cancel();
+
+            // 2. 等待旧任务彻底结束（捕获取消异常，正常退出即可）
+            if (_workflowTask is { IsCompleted: false })
+            {
+                try { await _workflowTask; }
+                catch { /* 旧任务被取消，忽略 OperationCanceledException 及其他退出异常 */ }
+            }
+
+            // 3. 重建令牌，启动新任务
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
             _pauseEvent.Set();
-            _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token), _runCts.Token);
+            _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token));
         }
 
+        /// <summary>
+        /// Running 状态同步出口：仅发出取消信号。
+        /// 不在此处等待任务结束——OnStopRunning 在 _stateLock 持有期间被调用，
+        /// 若同时等待可能阻塞后台任务调用 Fire(Error) 时的加锁请求，造成死锁。
+        /// 任务的彻底终止由下次 OnStartRunningAsync 的 await _workflowTask 保证。
+        /// </summary>
         private void OnStopRunning()
         {
             _runCts?.Cancel();
@@ -122,8 +156,8 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
-                if (_machine.CanFire(MachineTrigger.Error))
-                    _machine.Fire(MachineTrigger.Error);
+                // 使用线程安全的 Fire() 而非直接调用 _machine.Fire()
+                Fire(MachineTrigger.Error);
             }
         }
 
@@ -165,28 +199,76 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         // --- 供主控调用的公开方法 ---
-        public void Start() => Fire(MachineTrigger.Start);
-        public void Stop() => Fire(MachineTrigger.Stop);
-        public void Pause() => Fire(MachineTrigger.Pause);
-        public void Resume() => Fire(MachineTrigger.Resume);
-        public void TriggerAlarm() => Fire(MachineTrigger.Error);
-        public void ResetAlarm() => Fire(MachineTrigger.Reset);
 
         /// <summary>
-        /// 触发本工站状态机跳转。protected，供子类在 ExecuteInitializeAsync / ExecuteResetAsync 中驱动生命周期。
+        /// 异步启动工站。因 Running 状态配置了 OnEntryAsync，必须使用 FireAsync 触发跳转。
+        /// </summary>
+        public async Task StartAsync() => await FireAsync(MachineTrigger.Start);
+
+        public void Stop() => Fire(MachineTrigger.Stop);
+        public void Pause() => Fire(MachineTrigger.Pause);
+
+        /// <summary>
+        /// 异步恢复工站（Paused → Running）。因 Running 状态配置了 OnEntryAsync，必须使用 FireAsync。
+        /// </summary>
+        public async Task ResumeAsync() => await FireAsync(MachineTrigger.Resume);
+
+        public void TriggerAlarm() => Fire(MachineTrigger.Error);
+        public void ResetAlarm()   => Fire(MachineTrigger.Reset);
+
+        /// <summary>
+        /// 线程安全的同步状态跳转。
+        /// 通过 _stateLock 确保同一时刻只有一个线程修改状态机，
+        /// 防止后台报警线程与 UI 线程并发触发导致状态机内部状态崩溃。
+        /// 适用于不含 OnEntryAsync/OnExitAsync 的跳转路径（Error、Stop、Pause、Reset 等）。
         /// </summary>
         protected void Fire(MachineTrigger trigger)
         {
-            if (_machine.CanFire(trigger)) _machine.Fire(trigger);
+            _stateLock.Wait();
+            try
+            {
+                if (_machine.CanFire(trigger)) _machine.Fire(trigger);
+            }
+            finally
+            {
+                _stateLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// 线程安全的异步状态跳转。
+        /// 与 Fire() 的区别：使用 WaitAsync 避免在 async 上下文中阻塞线程；
+        /// 使用 FireAsync 以正确 await Running 状态的 OnEntryAsync 回调。
+        /// 适用于可能触发 OnEntryAsync 的路径（Start → Running、Resume → Running）。
+        /// </summary>
+        protected async Task FireAsync(MachineTrigger trigger)
+        {
+            await _stateLock.WaitAsync();
+            try
+            {
+                if (_machine.CanFire(trigger)) await _machine.FireAsync(trigger);
+            }
+            finally
+            {
+                _stateLock.Release();
+            }
         }
 
         public virtual void Dispose()
         {
             _runCts?.Cancel();
             _pauseEvent?.Set();
-            try { _workflowTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+
+            // 等待后台任务安全退出（最多 5 秒），防止 Dispose 后幽灵线程继续访问已释放资源
+            var task = _workflowTask;
+            if (task is { IsCompleted: false })
+            {
+                try { task.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            }
+
             _runCts?.Dispose();
             _pauseEvent?.Dispose();
+            _stateLock?.Dispose();
         }
     }
 }
