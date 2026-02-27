@@ -1,11 +1,8 @@
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
 using Stateless;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace PF.Infrastructure.Station.Basic
 {
@@ -24,10 +21,35 @@ namespace PF.Infrastructure.Station.Basic
     ///     防止后台线程报警与 UI 线程发出的 Stop/Pause 同时修改状态机内部状态。
     ///   · Running 状态采用 OnEntryAsync，确保旧任务彻底终止后再启动新任务，消除"幽灵线程"。
     /// </summary>
-    public abstract class StationBase : IDisposable
+    public abstract class StationBase : IDisposable, INotifyPropertyChanged
     {
+        // ── INotifyPropertyChanged ────────────────────────────────────────────
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        // ── 标识 ─────────────────────────────────────────────────────────────
         public string StationName { get; }
+
+        /// <summary>当前状态机状态（状态变化时触发 PropertyChanged）</summary>
         public MachineState CurrentState => _machine.State;
+
+        /// <summary>
+        /// 当前步序描述，供 UI 实时显示（如"正在取料..."、"等待槽位空闲..."）。
+        /// 子类在每次步序切换时通过 protected set 赋值，自动触发 PropertyChanged。
+        /// </summary>
+        private string _currentStepDescription = "就绪";
+        public string CurrentStepDescription
+        {
+            get => _currentStepDescription;
+            protected set
+            {
+                if (_currentStepDescription == value) return;
+                _currentStepDescription = value;
+                RaisePropertyChanged();
+            }
+        }
 
         // 向上层（主控）抛出的报警事件
         public event EventHandler<string> StationAlarmTriggered;
@@ -57,7 +79,11 @@ namespace PF.Infrastructure.Station.Basic
 
         private void ConfigureStateMachine()
         {
-            _machine.OnTransitioned(t => _logger?.Debug($"[{StationName}] 状态变迁: {t.Source} -> {t.Destination}"));
+            _machine.OnTransitioned(t =>
+        {
+            _logger?.Debug($"[{StationName}] 状态变迁: {t.Source} -> {t.Destination}");
+            RaisePropertyChanged(nameof(CurrentState)); // 通知 UI 刷新状态绑定
+        });
 
             // --- 未初始化状态 ---
             _machine.Configure(MachineState.Uninitialized)
@@ -164,9 +190,20 @@ namespace PF.Infrastructure.Station.Basic
         #endregion
 
         /// <summary>
-        /// 当前运行模式（由 MasterController 在 Idle 状态下统一设置后下发至各工站）
+        /// 当前运行模式（由 MasterController 在 Idle 状态下统一设置后下发至各工站）。
+        /// 属性变化时触发 PropertyChanged，供 UI 绑定。
         /// </summary>
-        public OperationMode CurrentMode { get; set; } = OperationMode.Normal;
+        private OperationMode _currentMode = OperationMode.Normal;
+        public OperationMode CurrentMode
+        {
+            get => _currentMode;
+            set
+            {
+                if (_currentMode == value) return;
+                _currentMode = value;
+                RaisePropertyChanged();
+            }
+        }
 
         // --- 强制子类必须实现的工艺大循环 ---
         protected abstract Task ProcessLoopAsync(CancellationToken token);
