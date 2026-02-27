@@ -5,298 +5,241 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    xmlns:vm="clr-namespace:PF.Modules.Debug.ViewModels"
-    d:DesignHeight="600"
-    d:DesignWidth="1000"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    d:DesignHeight="500"
+    d:DesignWidth="900"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
-        <Grid Margin="5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
-                <ColumnDefinition Width="10" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <!-- ── 左侧板卡列表 ──────────────────────────────────────────────── -->
+            <!-- ── 顶部：设备头部信息卡 ────────────────────────────────────────── -->
             <Border
-                Grid.Column="0"
-                Background="{DynamicResource SecondaryRegionColorBrush}"
+                Grid.Row="0"
+                Margin="0,0,0,15"
+                Padding="15"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
                 CornerRadius="6">
-                <DockPanel>
-                    <TextBlock
-                        DockPanel.Dock="Top"
-                        Margin="12,12,12,8"
-                        FontSize="13"
-                        FontWeight="SemiBold"
-                        Text="控制卡列表" />
-                    <Separator
-                        DockPanel.Dock="Top"
-                        Margin="8,0"
-                        Background="{DynamicResource BorderColorBrush}" />
-                    <ListBox
-                        Margin="4,4"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        ItemsSource="{Binding Cards}"
-                        SelectedItem="{Binding SelectedCard, Mode=TwoWay}"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemContainerStyle>
-                            <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
-                                <Setter Property="Margin" Value="2,2" />
-                                <Setter Property="Padding" Value="10,8" />
-                                <Setter Property="BorderThickness" Value="0" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:CardNavItem}">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Border
-                                        Width="3"
-                                        Height="20"
-                                        Margin="0,0,8,0"
-                                        Background="{DynamicResource PrimaryColorBrush}"
-                                        CornerRadius="1.5" />
-                                    <TextBlock
-                                        FontSize="13"
-                                        FontWeight="Medium"
-                                        Text="{Binding Title}"
-                                        VerticalAlignment="Center" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 板卡图标 -->
+                    <Border
+                        Grid.Column="0"
+                        Width="48"
+                        Height="48"
+                        Margin="0,0,15,0"
+                        CornerRadius="8">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="24"
+                            Foreground="{DynamicResource TextIconBrush}"
+                            Text="&#xE7FC;" />
+                    </Border>
+
+                    <!-- 设备名称 + 描述 -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="22"
+                            FontWeight="Bold"
+                            Text="{Binding DeviceName}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            FontSize="13"
+                            Text="{Binding DeviceDescription}" />
+                    </StackPanel>
+
+                    <!-- 操作按钮 -->
+                    <StackPanel
+                        Grid.Column="2"
+                        Margin="0,0,20,0"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding ConnectCommand}"
+                            Content="连接板卡"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding DisconnectCommand}"
+                            Content="断开连接"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Command="{Binding ResetCommand}"
+                            Content="板卡复位"
+                            Style="{DynamicResource ButtonWarning}" />
+                    </StackPanel>
+
+                    <!-- 状态指示 -->
+                    <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                        <!-- 连接状态 -->
+                        <StackPanel Margin="0,0,0,6" Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="#64748B"
+                                Text="通讯：" />
+                            <Ellipse
+                                Width="10"
+                                Height="10"
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Center"
+                                Fill="{Binding ConnectionBrush}" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="{Binding ConnectionText}" />
+                        </StackPanel>
+                        <!-- 报警状态 -->
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="#64748B"
+                                Text="报警：" />
+                            <Ellipse
+                                Width="10"
+                                Height="10"
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Center"
+                                Fill="{Binding AlarmBrush}" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="{Binding AlarmText}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- ── 右侧详情面板 ──────────────────────────────────────────────── -->
-            <Grid Grid.Column="2">
-
-                <!-- 无板卡选中时的占位提示 -->
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedCard}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
+            <!-- ── 下方：板卡规格看板 ─────────────────────────────────────────── -->
+            <Border
+                Grid.Row="1"
+                Padding="20"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <StackPanel>
                     <TextBlock
-                        HorizontalAlignment="Center"
-                        FontSize="36"
-                        Text="&#xE7F4;" />
-                    <TextBlock
-                        Margin="0,8,0,0"
-                        HorizontalAlignment="Center"
-                        FontSize="14"
-                        Text="请从左侧列表选择控制卡进行调试" />
-                </StackPanel>
+                        Margin="0,0,0,16"
+                        FontSize="15"
+                        FontWeight="SemiBold"
+                        Foreground="#475569"
+                        Text="板卡规格（Motion Card Specification）" />
 
-                <!-- 有板卡选中时的详情面板 -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ScrollViewer.Style>
-                        <Style TargetType="ScrollViewer">
-                            <Setter Property="Visibility" Value="Visible" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedCard}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ScrollViewer.Style>
-                    <StackPanel Margin="4">
+                    <!-- 四项统计 -->
+                    <UniformGrid Columns="4" Rows="1">
 
-                        <!-- ── 板卡标题卡 ──────────────────────────────────── -->
-                        <Border
-                            Margin="0,0,0,10"
-                            Padding="18,14"
-                            Background="{DynamicResource SecondaryRegionColorBrush}"
-                            CornerRadius="8">
-                            <StackPanel>
+                        <Border Margin="0,0,10,0" Padding="16,14" CornerRadius="8" Background="{DynamicResource SecondaryRegionColorBrush}">
+                            <StackPanel HorizontalAlignment="Center">
                                 <TextBlock
-                                    FontSize="20"
+                                    HorizontalAlignment="Center"
+                                    FontSize="36"
                                     FontWeight="Bold"
-                                    Text="{Binding CardName}" />
+                                    Text="{Binding CardIndex}" />
                                 <TextBlock
                                     Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
                                     FontSize="12"
-                                    Text="{Binding DeviceId, StringFormat='设备 ID: {0}'}" />
+                                    Foreground="#64748B"
+                                    Text="槽位索引 (CardIndex)" />
                             </StackPanel>
                         </Border>
 
-                        <!-- ── 状态指示卡（连接 + 报警并排） ─────────────── -->
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="10" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- 连接状态 -->
-                            <Border
-                                Grid.Column="0"
-                                Padding="16,14"
-                                Background="{DynamicResource SecondaryRegionColorBrush}"
-                                CornerRadius="8">
-                                <StackPanel>
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                        Text="连接状态" />
-                                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Ellipse
-                                            Width="12"
-                                            Height="12"
-                                            Margin="0,0,8,0"
-                                            VerticalAlignment="Center"
-                                            Fill="{Binding ConnectionBrush}" />
-                                        <TextBlock
-                                            FontSize="16"
-                                            FontWeight="SemiBold"
-                                            Text="{Binding ConnectionText}"
-                                            VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- 报警状态 -->
-                            <Border
-                                Grid.Column="2"
-                                Padding="16,14"
-                                Background="{DynamicResource SecondaryRegionColorBrush}"
-                                CornerRadius="8">
-                                <StackPanel>
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                        Text="报警状态" />
-                                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Ellipse
-                                            Width="12"
-                                            Height="12"
-                                            Margin="0,0,8,0"
-                                            VerticalAlignment="Center"
-                                            Fill="{Binding AlarmBrush}" />
-                                        <TextBlock
-                                            FontSize="16"
-                                            FontWeight="SemiBold"
-                                            Text="{Binding AlarmText}"
-                                            VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-
-                        <!-- ── 板卡规格信息 ────────────────────────────────── -->
-                        <Border
-                            Margin="0,0,0,10"
-                            Padding="16,14"
-                            Background="{DynamicResource SecondaryRegionColorBrush}"
-                            CornerRadius="8">
-                            <StackPanel>
+                        <Border Margin="0,0,10,0" Padding="16,14" CornerRadius="8" Background="{DynamicResource SecondaryRegionColorBrush}">
+                            <StackPanel HorizontalAlignment="Center">
                                 <TextBlock
-                                    Margin="0,0,0,12"
-                                    FontSize="13"
-                                    FontWeight="SemiBold"
-                                    Text="板卡规格" />
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="26"
-                                            FontWeight="Bold"
-                                            Text="{Binding CardIndex}" />
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="11"
-                                            Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                            Text="槽位索引" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="26"
-                                            FontWeight="Bold"
-                                            Text="{Binding AxisCount}" />
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="11"
-                                            Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                            Text="轴数量" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="26"
-                                            FontWeight="Bold"
-                                            Text="{Binding InputCount}" />
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="11"
-                                            Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                            Text="DI 端口数" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="26"
-                                            FontWeight="Bold"
-                                            Text="{Binding OutputCount}" />
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontSize="11"
-                                            Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                            Text="DO 端口数" />
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- ── 基础测试命令 ───────────────────────────────── -->
-                        <Border
-                            Padding="16,14"
-                            Background="{DynamicResource SecondaryRegionColorBrush}"
-                            CornerRadius="8">
-                            <StackPanel>
+                                    HorizontalAlignment="Center"
+                                    FontSize="36"
+                                    FontWeight="Bold"
+                                    Text="{Binding AxisCount}" />
                                 <TextBlock
-                                    Margin="0,0,0,12"
-                                    FontSize="13"
-                                    FontWeight="SemiBold"
-                                    Text="基础测试命令" />
-                                <StackPanel Orientation="Horizontal">
-                                    <Button
-                                        Width="140"
-                                        Height="38"
-                                        Margin="0,0,12,0"
-                                        Command="{Binding ReconnectCommand}"
-                                        Content="重新连接"
-                                        Style="{DynamicResource ButtonDefault}" />
-                                    <Button
-                                        Width="140"
-                                        Height="38"
-                                        Command="{Binding ResetCommand}"
-                                        Content="复位板卡"
-                                        Style="{DynamicResource ButtonDefault}" />
-                                </StackPanel>
+                                    Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="#64748B"
+                                    Text="运动控制轴数 (AxisCount)" />
                             </StackPanel>
                         </Border>
 
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
+                        <Border Margin="0,0,10,0" Padding="16,14" CornerRadius="8" Background="{DynamicResource SecondaryRegionColorBrush}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="36"
+                                    FontWeight="Bold"
+                                    Text="{Binding InputCount}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="#64748B"
+                                    Text="数字输入端口 (DI Count)" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Padding="16,14" CornerRadius="8" Background="{DynamicResource SecondaryRegionColorBrush}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="36"
+                                    FontWeight="Bold"
+                                    Text="{Binding OutputCount}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="#64748B"
+                                    Text="数字输出端口 (DO Count)" />
+                            </StackPanel>
+                        </Border>
+
+                    </UniformGrid>
+
+                    <!-- 子设备提示 -->
+                    <Border
+                        Margin="0,16,0,0"
+                        Padding="12,10"
+                        Background="#0D3B82F6"
+                        BorderBrush="#3B82F6"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                                FontSize="13"
+                                Foreground="#3B82F6"
+                                Text="ℹ" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="#3B82F6"
+                                Text="该板卡挂载的轴（Axis）和 IO 控制器（IOController）已列于左侧设备树中，点击子节点可跳转到对应的专项调试界面。" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
         </Grid>
     </pf:TransitioningContentControl>
 </UserControl>
