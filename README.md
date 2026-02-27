@@ -26,9 +26,10 @@
 
 ---
 
+
 ## 🏗️ 系统架构图
 
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/b975209b-aa36-40f7-8353-2df6f837242d" />
+<img width="2816" height="1536" alt="Gemini_Generated_Image_m74mdfm74mdfm74m" src="https://github.com/user-attachments/assets/f2de5424-777f-482e-9555-fed2dfadc1f5" />
 
 ---
 
