@@ -1,4 +1,4 @@
-﻿using PF.Core.Constants;
+using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
@@ -26,6 +26,7 @@ namespace PF.Modules.Identity.ViewModels
         private ObservableCollection<UserInfo> _users;
         private UserInfo _selectedUser;
         private bool _isLoading;
+        private bool _hasUnsavedDefaults;
 
         private readonly List<PermissionCheckItem> _allSystemViews;
 
@@ -64,6 +65,16 @@ namespace PF.Modules.Identity.ViewModels
             set => SetProperty(ref _isLoading, value);
         }
 
+        /// <summary>
+        /// 当当前选中的用户尚无持久化的 AccessibleViews 时为 true，
+        /// 提示操作员当前显示的是等级默认方案，需要手动保存以生效。
+        /// </summary>
+        public bool HasUnsavedDefaults
+        {
+            get => _hasUnsavedDefaults;
+            set => SetProperty(ref _hasUnsavedDefaults, value);
+        }
+
         public ObservableCollection<UserInfo> Users
         {
             get => _users;
@@ -78,7 +89,7 @@ namespace PF.Modules.Identity.ViewModels
                 if (SetProperty(ref _selectedUser, value))
                 {
                     if (value != null) LoadPermissionsForUser(value);
-                    else PermissionList = null;
+                    else { PermissionList = null; HasUnsavedDefaults = false; }
                 }
             }
         }
@@ -153,24 +164,21 @@ namespace PF.Modules.Identity.ViewModels
         {
             if (user == null) return;
 
+            // 检测该用户是否已有持久化的权限配置
+            bool hasPersistedPermissions = user.AccessibleViews != null && user.AccessibleViews.Any();
+            HasUnsavedDefaults = !hasPersistedPermissions;
+
+            // 若无持久化配置则回显等级默认方案（但不自动写库，需用户点击保存）
+            List<string> allowedViews = hasPersistedPermissions
+                ? user.AccessibleViews
+                : GetDefaultAllowedViewsByLevel(user.Root);
+
             var displayList = _allSystemViews.Select(v => new PermissionCheckItem
             {
                 ViewName = v.ViewName,
                 Description = v.Description,
-                IsAuthorized = false
+                IsAuthorized = allowedViews.Contains(v.ViewName)
             }).ToList();
-
-            List<string> allowedViews = (user.AccessibleViews != null && user.AccessibleViews.Any())
-                                        ? user.AccessibleViews
-                                        : GetDefaultAllowedViewsByLevel(user.Root);
-
-            foreach (var item in displayList)
-            {
-                if (allowedViews.Contains(item.ViewName))
-                {
-                    item.IsAuthorized = true;
-                }
-            }
 
             PermissionList = new ObservableCollection<PermissionCheckItem>(displayList);
         }
@@ -215,7 +223,8 @@ namespace PF.Modules.Identity.ViewModels
                 item.IsAuthorized = defaultViews.Contains(item.ViewName);
             }
 
-            _logService.Info($"已将用户 [{SelectedUser.UserName}] 的权限勾选状态重置为 {SelectedUser.Root} 等级的默认状态", "PagePermission");
+            HasUnsavedDefaults = true;
+            _logService.Info($"已将用户 [{SelectedUser.UserName}] 的权限勾选状态重置为 {SelectedUser.Root} 等级的默认状态（尚未保存）", "PagePermission");
         }
 
         private async Task SaveConfigAsync()
@@ -231,18 +240,19 @@ namespace PF.Modules.Identity.ViewModels
 
                 if (isSuccess)
                 {
-                    _logService.Info($"用户 [{SelectedUser.UserName}] 权限配置已存入数据库", "PagePermission");
-                    MessageService.ShowMessage ($"用户 [{SelectedUser.UserName}] 权限配置已保存！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    HasUnsavedDefaults = false;
+                    _logService.Info($"用户 [{SelectedUser.UserName}] 权限配置（{currentAllowed.Count} 个页面）已持久化到数据库", "PagePermission");
+                    MessageService.ShowMessage($"用户 [{SelectedUser.UserName}] 权限配置已保存！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                     MessageService.ShowMessage ("保存失败，请检查数据库连接。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageService.ShowMessage("保存失败，请检查数据库连接。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 _logService.Error($"保存用户权限时异常: {ex.Message}", "PagePermission", ex);
-                 MessageService.ShowMessage ($"保存出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageService.ShowMessage($"保存出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

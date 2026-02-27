@@ -85,6 +85,18 @@ namespace PF.Services.Identity
             return (int)CurrentUser.Root >= (int)requiredLevel;
         }
 
+        public bool HasPagePermission(string viewName)
+        {
+            if (CurrentUser == null) return false;
+
+            // SuperUser / Administrator 拥有所有页面的访问权限
+            if (CurrentUser.Root == UserLevel.SuperUser || CurrentUser.Root == UserLevel.Administrator)
+                return true;
+
+            // 其他等级：严格比对当前用户的 Per-User 页面权限列表
+            return CurrentUser.AccessibleViews?.Contains(viewName) == true;
+        }
+
         public async Task<ObservableCollection<UserInfo>> GetUserListAsync()
         {
             var users = new ObservableCollection<UserInfo>();

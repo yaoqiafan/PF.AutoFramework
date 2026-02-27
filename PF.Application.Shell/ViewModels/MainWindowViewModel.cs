@@ -166,6 +166,23 @@ namespace PF.Application.Shell.ViewModels
                 if (sideMenuItem.Tag is NavigationItem navItem && !string.IsNullOrEmpty(navItem.ViewName))
                 {
                     string viewName = navItem.ViewName;
+                    string category = NavigationConstantMapper.GetCategory(viewName);
+
+                    // ── Per-User 页面权限纵深拦截 ──────────────────────────────────
+                    // 菜单已按 AccessibleViews 过滤作为第一道防线；
+                    // 此处在实际导航前再做二次校验，防止绕过菜单层直接触发的访问。
+                    if (category == nameof(NavigationConstants.Views) && !_userService.HasPagePermission(viewName))
+                    {
+                        _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
+                        System.Windows.MessageBox.Show(
+                            $"您无权访问该页面。\n\n页面路由: {viewName}\n当前用户: {CurrentUser?.UserName}\n\n请联系管理员在「权限管控 → 窗体权限更改」中配置相应权限。",
+                            "权限不足",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                        SelectedMenuItem = null;
+                        return;
+                    }
+                    // ── 权限拦截结束 ─────────────────────────────────────────────
 
                     if (IsParameterView(viewName))
                     {
@@ -175,7 +192,6 @@ namespace PF.Application.Shell.ViewModels
                         return;
                     }
 
-                    string category = NavigationConstantMapper.GetCategory(viewName);
                     switch (category)
                     {
                         case nameof(NavigationConstants.Views):

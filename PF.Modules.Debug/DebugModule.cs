@@ -36,6 +36,9 @@ namespace PF.Modules.Debug
 
             // 3. 注册工站调试容器视图（子工站调试视图由各工站 UI 模块自行注册）
             containerRegistry.RegisterForNavigation<StationDebugView, StationDebugViewModel>(NavigationConstants.Views.StationDebugView);
+
+            // 4. 注册控制卡级调试视图
+            containerRegistry.RegisterForNavigation<CardDebugView, CardDebugViewModel>(NavigationConstants.Views.CardDebugView);
         }
     }
 }

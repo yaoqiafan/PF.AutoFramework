@@ -29,9 +29,16 @@ namespace PF.Core.Interfaces.Identity
         void Logout();
 
         /// <summary>
-        /// 权限检查
+        /// 权限检查（基于用户等级）
         /// </summary>
         bool IsAuthorized(UserLevel requiredLevel);
+
+        /// <summary>
+        /// 精确到具体用户的页面权限校验（Per-User）。
+        /// SuperUser / Administrator 默认拥有全部页面权限；
+        /// 其他等级严格比对当前用户 AccessibleViews 列表。
+        /// </summary>
+        bool HasPagePermission(string viewName);
 
         /// <summary>
         /// 获取所有用户列表

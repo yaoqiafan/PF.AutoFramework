@@ -1,176 +1,294 @@
-﻿<UserControl
+<UserControl
     x:Class="PF.Modules.Identity.Views.PagePermissionView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:conv="clr-namespace:PF.Modules.Identity.Converter"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:local="clr-namespace:PF.Modules.Identity.Views"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
-        <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <conv:UserTextConnver x:Key="UserTextConverter" />
+        <conv:UserBackGroundConnver x:Key="UserBgConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <local:NullToVisibilityConverter x:Key="NullToVisibility" />
+        <local:NullToVisibilityConverter x:Key="NullToVisibilityInvert" Invert="True" />
     </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
-        <Grid Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <!-- 左侧：用户列表 -->
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="12" />
+                <!-- 右侧：权限配置区 -->
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--  左侧用户列表                                                  -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
             <Border
-                Grid.Row="0"
-                Margin="0,0,0,15"
-                Padding="15"
-                BorderThickness="1"
-                CornerRadius="6">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                Grid.Column="0"
+                Background="{DynamicResource SecondaryRegionColorBrush}"
+                CornerRadius="8">
+                <DockPanel>
+                    <!-- 列表标题 + 刷新按钮 -->
+                    <DockPanel DockPanel.Dock="Top" Margin="12,12,8,8">
+                        <Button
+                            DockPanel.Dock="Right"
+                            Width="28"
+                            Height="28"
+                            Padding="0"
+                            Command="{Binding RefreshUsersCommand}"
+                            Content="↻"
+                            FontSize="14"
+                            Style="{DynamicResource ButtonDefault}"
+                            ToolTip="刷新用户列表" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Text="系统账号" />
+                    </DockPanel>
 
-                    <TextBlock
-                        Grid.Column="0"
-                        Margin="0,0,10,0"
-                        VerticalAlignment="Center"
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        Text="配置对象：" />
+                    <Separator
+                        DockPanel.Dock="Top"
+                        Margin="8,0"
+                        Background="{DynamicResource BorderColorBrush}" />
 
-                    <ComboBox
-                        Grid.Column="1"
-                        Width="220"
-                        Height="32"
-                        VerticalContentAlignment="Center"
-                        DisplayMemberPath="UserName"
+                    <!-- 用户列表 -->
+                    <ListBox
+                        Margin="4,4"
+                        Background="Transparent"
+                        BorderThickness="0"
                         ItemsSource="{Binding Users}"
-                        SelectedItem="{Binding SelectedUser}" />
+                        SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="2,2" />
+                                <Setter Property="Padding" Value="8,6" />
+                                <Setter Property="BorderThickness" Value="0" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="13"
+                                            FontWeight="Medium"
+                                            Text="{Binding UserName}" />
+                                        <TextBlock
+                                            FontSize="11"
+                                            Foreground="{DynamicResource SecondaryTextColorBrush}"
+                                            Text="{Binding Root, Converter={StaticResource UserTextConverter}}" />
+                                    </StackPanel>
+                                    <!-- 等级色标 -->
+                                    <Border
+                                        Grid.Column="1"
+                                        Width="4"
+                                        Margin="4,0,0,0"
+                                        CornerRadius="2"
+                                        Background="{Binding Root, Converter={StaticResource UserBgConverter}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
 
-                    <StackPanel
-                        Grid.Column="2"
-                        Margin="20,0,0,0"
-                        VerticalAlignment="Center"
-                        Orientation="Horizontal"
-                        Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibilityConverter}}">
-                        <Border
-                            Padding="10,4"
-                            BorderThickness="1"
-                            CornerRadius="4">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontSize="12" Text="当前等级：" />
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!--  右侧：权限配置区                                              -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- ── 未选中用户的占位提示 ──────────────────────────────── -->
+                <StackPanel
+                    Grid.RowSpan="4"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibilityInvert}}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="36"
+                        Text="&#xE77B;" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        HorizontalAlignment="Center"
+                        FontSize="14"
+                        Text="请从左侧选择要配置权限的账号" />
+                </StackPanel>
+
+                <!-- ── 已选中用户：顶部信息栏 ─────────────────────────── -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,0,0,8"
+                    Padding="14,10"
+                    Background="{DynamicResource SecondaryRegionColorBrush}"
+                    CornerRadius="8"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Text="{Binding SelectedUser.UserName, StringFormat='正在配置: {0}'}" />
+                            <StackPanel Margin="0,3,0,0" Orientation="Horizontal">
                                 <TextBlock
                                     FontSize="12"
-                                    FontWeight="Bold"
-                                    Text="{Binding SelectedUser.Root}" />
+                                    Foreground="{DynamicResource SecondaryTextColorBrush}"
+                                    Text="等级: " />
+                                <TextBlock
+                                    FontSize="12"
+                                    FontWeight="Medium"
+                                    Foreground="{Binding SelectedUser.Root, Converter={StaticResource UserBgConverter}}"
+                                    Text="{Binding SelectedUser.Root, Converter={StaticResource UserTextConverter}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{DynamicResource SecondaryTextColorBrush}"
+                            Text="{Binding PermissionList.Count, StringFormat='共 {0} 个页面'}" />
+                    </Grid>
+                </Border>
+
+                <!-- ── 未固化权限提示横幅 ──────────────────────────────── -->
+                <Border
+                    Grid.Row="1"
+                    Margin="0,0,0,8"
+                    Padding="12,8"
+                    Background="#1AE9AF20"
+                    BorderBrush="#FFE9AF20"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Visibility="{Binding HasUnsavedDefaults, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            Foreground="#FFE9AF20"
+                            Text="⚠" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="#FFE9AF20"
+                            Text="该账号尚无独立权限配置，当前显示为等级默认方案。请点击「保存权限配置」以写入数据库使权限生效。" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ── 权限列表 DataGrid ───────────────────────────────── -->
+                <Border
+                    Grid.Row="2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibility}}">
+                    <Grid>
+                        <DataGrid
+                            AutoGenerateColumns="False"
+                            BorderThickness="0"
+                            CanUserAddRows="False"
+                            CanUserSortColumns="False"
+                            GridLinesVisibility="Horizontal"
+                            HeadersVisibility="Column"
+                            ItemsSource="{Binding PermissionList}"
+                            RowHeight="40"
+                            SelectionUnit="FullRow">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="80" Header="授权">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox
+                                                Width="16"
+                                                Height="16"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                IsChecked="{Binding IsAuthorized, UpdateSourceTrigger=PropertyChanged}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTextColumn
+                                    Width="220"
+                                    Binding="{Binding Description}"
+                                    FontWeight="Medium"
+                                    Header="模块名称"
+                                    IsReadOnly="True" />
+
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding ViewName}"
+                                    FontFamily="Consolas"
+                                    Foreground="#999999"
+                                    Header="路由代码 (ViewName)"
+                                    IsReadOnly="True" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- 加载遮罩 -->
+                        <Border
+                            Background="{DynamicResource RegionColorBrush}"
+                            Opacity="0.8"
+                            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <pf:LoadingCircle
+                                    Width="36"
+                                    Height="36"
+                                    Foreground="#007ACC" />
+                                <TextBlock
+                                    Margin="0,12,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="13"
+                                    Text="正在处理..." />
                             </StackPanel>
                         </Border>
-                    </StackPanel>
+                    </Grid>
+                </Border>
 
+                <!-- ── 底部操作按钮 ─────────────────────────────────────── -->
+                <StackPanel
+                    Grid.Row="3"
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibility}}">
                     <Button
-                        Grid.Column="3"
-                        Height="32"
-                        Command="{Binding RefreshUsersCommand}"
-                        Content="刷新用户列表"
-                        Style="{DynamicResource ButtonDefault}" />
-                </Grid>
-            </Border>
-
-            <Border
-                Grid.Row="1"
-                BorderThickness="1"
-                CornerRadius="6">
-                <Grid>
-                    <DataGrid
-                        AutoGenerateColumns="False"
-                        BorderThickness="2"
-                        CanUserAddRows="False"
-                        CanUserSortColumns="False"
-                        GridLinesVisibility="Horizontal"
-                        HeadersVisibility="Column"
-                        ItemsSource="{Binding PermissionList}"
-                        RowHeight="40"
-                        SelectionUnit="FullRow">
-
-                        <DataGrid.Columns>
-                            <DataGridTemplateColumn Width="90" Header="是否授权">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <CheckBox
-                                            Width="16"
-                                            Height="16"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            IsChecked="{Binding IsAuthorized, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTextColumn
-                                Width="250"
-                                Binding="{Binding Description}"
-                                FontWeight="Medium"
-                                Header="模块名称"
-                                IsReadOnly="True" />
-
-                            <DataGridTextColumn
-                                Width="*"
-                                Binding="{Binding ViewName}"
-                                FontFamily="Consolas"
-                                Foreground="#999999"
-                                Header="路由代码 (ViewName)"
-                                IsReadOnly="True" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-
-                    <Border Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <pf:LoadingCircle
-                                Width="40"
-                                Height="40"
-                                Foreground="#007ACC" />
-                            <TextBlock
-                                Margin="0,15,0,0"
-                                FontSize="14"
-                                Text="正在处理..." />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Border>
-
-            <StackPanel
-                Grid.Row="2"
-                Margin="0,20,0,0"
-                HorizontalAlignment="Right"
-                Orientation="Horizontal">
-                <TextBlock
-                    Margin="0,0,20,0"
-                    VerticalAlignment="Center"
-                    FontSize="13"
-                    Text="{Binding SelectedUser.UserName, StringFormat='正在配置系统账号: {0}'}" />
-
-                <Button
-                    Height="36"
-                    Padding="15,0"
-                    Margin="0,0,15,0"
-                    BorderThickness="1"
-                    Command="{Binding ApplyDefaultPermissionsCommand}"
-                    Content="恢复该等级默认权限"
-                    Cursor="Hand" />
-
-                <Button
-                    Height="36"
-                    Padding="35,0"
-                    BorderThickness="0"
-                    Command="{Binding SaveCommand}"
-                    Content="保存权限配置"
-                    Cursor="Hand"
-                    FontWeight="SemiBold"/>
-            </StackPanel>
+                        Height="36"
+                        Padding="15,0"
+                        Margin="0,0,12,0"
+                        BorderThickness="1"
+                        Command="{Binding ApplyDefaultPermissionsCommand}"
+                        Content="恢复等级默认权限"
+                        Cursor="Hand" />
+                    <Button
+                        Height="36"
+                        Padding="30,0"
+                        BorderThickness="0"
+                        Command="{Binding SaveCommand}"
+                        Content="保存权限配置"
+                        Cursor="Hand"
+                        FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
         </Grid>
     </pf:TransitioningContentControl>
 </UserControl>
