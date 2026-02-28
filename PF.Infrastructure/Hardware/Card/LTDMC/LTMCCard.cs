@@ -209,7 +209,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex.Message, "雷赛总线控制卡", ex);
+                HardwareLogger.Debug(ex.Message, ex);
                 return false;
             }
         }

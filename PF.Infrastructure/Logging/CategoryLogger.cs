@@ -22,7 +22,7 @@ namespace PF.Infrastructure.Logging
             _category = category ?? throw new ArgumentNullException(nameof(category));
         }
 
-        public void Debug(string message) => _logService.Debug(message, _category);
+        public void Debug(string message,Exception ex=null ) => _logService.Debug(message, _category,ex );
         public void Info(string message) => _logService.Info(message, _category);
         public void Success(string message) => _logService.Success(message, _category);
         public void Warn(string message, Exception ex = null) => _logService.Warn(message, _category, ex);
