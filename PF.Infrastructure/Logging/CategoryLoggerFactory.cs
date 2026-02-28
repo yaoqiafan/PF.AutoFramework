@@ -1,7 +1,8 @@
-﻿using PF.Core.Interfaces.Logging;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
 
-namespace PF.Application.Shell.CustomConfiguration.Logging
+namespace PF.Infrastructure.Logging
 {
     /// <summary>
     /// 分类日志工厂
