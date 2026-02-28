@@ -1,6 +1,6 @@
 ﻿using log4net;
 using Microsoft.Extensions.Hosting;
-using PF.Application.Shell.CustomConfiguration.Logging;
+
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
 using PF.Core.Entities.Configuration;
@@ -51,6 +51,7 @@ using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
+using PF.Core.Constants;
 
 namespace PF.Application.Shell
 {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Application.Shell.CustomConfiguration.Logging
+namespace PF.Core.Constants
 {
     /// <summary>
     /// 日志分类常量
