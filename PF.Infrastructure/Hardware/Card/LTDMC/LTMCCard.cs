@@ -54,7 +54,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         public override Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token = default)
         {
-            throw new NotImplementedException();
+            
         }
 
         public override bool IsAxisEnabled(int axisIndex)
@@ -111,6 +111,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             throw new NotImplementedException();
         }
+
+
+        #region 控制卡连接和初始化
 
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
         {
@@ -272,7 +275,20 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         protected override Task InternalDisconnectAsync()
         {
-            throw new NotImplementedException();
+            try
+            {
+                short ret = CardAPI.LTDMC.dmc_board_close();
+                if (ret != 0)
+                {
+                    throw new Exception($"关闭运动控制卡失败,dmc_board_close返回值：{ret}");
+                }
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.CompletedTask;
+            }
         }
 
 
@@ -284,7 +300,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
+
+        #endregion 控制卡连接和初始化
     }
 }
