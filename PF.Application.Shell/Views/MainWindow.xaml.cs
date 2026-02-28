@@ -59,7 +59,8 @@ namespace PF.Application.Shell.Views
                         Header = $" {child.Title}",
                         Tag = child,
                         DataContext = child,
-                        Icon = CreateIconElement(child.Icon) // 渲染子节点图标
+                        Icon = CreateIconElement(child.Icon),
+                        IsExpanded = true// 渲染子节点图标
                     };
 
                     groupItem.Items.Add(childItem);

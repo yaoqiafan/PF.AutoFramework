@@ -17,7 +17,8 @@
     ShowNonClientArea="True"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
-    WindowState="Maximized">
+    WindowState="Maximized"
+    FontSize="{StaticResource  TextFontSize}">
 
     <pf:Window.Resources>
         <userConverter:UserTextConnver x:Key="UserTextConnver" />
@@ -43,16 +44,147 @@
         </Style>
 
 
-       
+        <Style
+            x:Key="SideMenuItemHeader"
+            BasedOn="{StaticResource BaseStyle}"
+            TargetType="pf:SideMenuItem">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisualRadius0Margin0}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource SideMenuItemBaseStyle}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="pf:SideMenuItem">
+                        <Border Name="BorderRoot" Background="Transparent">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition MinHeight="48" />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <Border
+                                    Name="BorderBack"
+                                    Margin="0,0,3,0"
+                                    Background="{DynamicResource BorderBrush}"
+                                    CornerRadius="0,4,4,0" />
+                                <Path  Margin="0,0,10,0"
+                                       x:Name="UpDownGeometry"
+                                    Width="14"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Data="{StaticResource DownGeometry}"
+                                    Fill="{StaticResource TextIconBrush}"
+                                    Stretch="Uniform" />
+                                <ContentControl Grid.Row="0" Margin="5,0,0,0">
+                                    <DockPanel
+                                        Name="PanelHeader"
+                                        Margin="{TemplateBinding Padding}"
+                                        Background="Transparent">
+                                        <ContentControl Name="PresenterIcon" Width="40">
+                                            <ContentPresenter
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                ContentSource="Icon" />
+                                        </ContentControl>
+                                        <ContentPresenter
+                                            
+                                            Name="PresenterHeader"
+                                            Margin="6,0,0,0"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            ContentSource="Header" />
+                                    </DockPanel>
+                                </ContentControl>
+                                <StackPanel
+                                    x:Name="PART_Panel"
+                                    Grid.Row="1"
+                                    Height="{Binding PanelAreaLength, RelativeSource={RelativeSource AncestorType=pf:SideMenu}}"
+                                    Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Icon" Value="{x:Null}">
+                                <Setter TargetName="PresenterIcon" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="BorderBack" Property="BorderThickness" Value="4,0,0,0" />
+                                <Setter TargetName="BorderBack" Property="BorderBrush" Value="{DynamicResource NomalInfoBrush}" />
+                                <Setter TargetName="PresenterHeader" Property="TextElement.FontWeight" Value="Bold" />
+                                <Setter TargetName="PresenterHeader" Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}" />
+                            </Trigger>
+
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="UpDownGeometry" Property="Data" Value="{StaticResource  UpGeometry}" />
+                            </Trigger>
+                            <Trigger SourceName="PanelHeader" Property="IsMouseOver" Value="true">
+                                <Setter TargetName="BorderBack" Property="Background" Value="{DynamicResource BackgroundBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
 
-
+        <Style
+            x:Key="SideMenuItemBaseStyle"
+            BasedOn="{StaticResource BaseStyle}"
+            TargetType="{x:Type pf:SideMenuItem}">
+            <Setter Property="FrameworkElement.FocusVisualStyle" Value="{StaticResource FocusVisualRadius0Margin0}" />
+            <Setter Property="pf:SideMenuItem.Role" Value="Item" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type pf:SideMenuItem}">
+                        <ControlTemplate.Triggers>
+                            
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=pf:SideMenuItem}}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                            </DataTrigger>
+                            <Trigger Property="pf:SideMenuItem.IsSelected" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                                <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+                                <Setter TargetName="PresenterHeader" Property="TextElement.FontWeight" Value="Bold" />
+                            </Trigger>
+                            <Trigger Property="UIElement.IsMouseOver" Value="true">
+                                <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                        <Border Name="BorderRoot" Background="{TemplateBinding Background}">
+                            <pf:SimplePanel>
+                                <Rectangle
+                                    Width="4"
+                                    HorizontalAlignment="Left"
+                                    Fill="{TemplateBinding BorderBrush}" />
+                                <ContentControl Margin="4,0,0,0">
+                                    <DockPanel Margin="{TemplateBinding Padding}">
+                                        <ContentControl Name="PresenterIcon" Width="50">
+                                            <ContentPresenter
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                ContentSource="Icon" />
+                                        </ContentControl>
+                                        <ContentPresenter
+                                            Name="PresenterHeader"
+                                            Margin="6,0,0,0"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            ContentSource="Header" />
+                                    </DockPanel>
+                                </ContentControl>
+                            </pf:SimplePanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
 
 
     </pf:Window.Resources>
     <pf:Window.NonClientAreaContent>
-        <Grid>
+        <Grid >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -156,7 +288,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
-            <RowDefinition Height="30" />
+            <RowDefinition Height="40" />
         </Grid.RowDefinitions>
 
 
@@ -172,20 +304,6 @@
                     <RowDefinition />
                     <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
-
-                <pf:ButtonGroup Grid.Row="1" Margin="5">
-                    <RadioButton
-                        pf:IconElement.Geometry="{StaticResource AlignRightGeometry}"
-                        Command="{Binding ChangeExpandCmd}"
-                        CommandParameter="ShowOne" />
-                    <RadioButton
-                        pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}"
-                        Command="{Binding ChangeExpandCmd}"
-                        CommandParameter="ShowAll"
-                        IsChecked="True" />
-
-                </pf:ButtonGroup>
-
                 <pf:SideMenu
                     x:Name="MainSideMenu"
                     Grid.Row="0"
@@ -194,6 +312,7 @@
                     AutoSelect="False"
                     BorderThickness="1"
                     ExpandMode="Freedom"
+                    ItemContainerStyle="{StaticResource SideMenuItemHeader}"
                     SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}">
                     <pf:Interaction.Triggers>
                         <pf:EventTrigger EventName="SelectionChanged">
@@ -205,8 +324,8 @@
 
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition Height="300" />
+                    <RowDefinition Height="80*" />
+                    <RowDefinition Height="20*" />
                 </Grid.RowDefinitions>
                 <ContentControl Grid.Row="0" prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.SoftwareViewRegion}" />
                 <ContentControl
@@ -220,11 +339,11 @@
 
 
 
-        <StatusBar
+        <StatusBar  FontSize="{StaticResource  TextFontSize}"
             Grid.Row="1"
             Background="{DynamicResource RegionBrush}"
             BorderThickness="0">
-            <StatusBarItem>
+            <StatusBarItem >
                 <TextBlock Text="{Binding CoName}" />
             </StatusBarItem>
 

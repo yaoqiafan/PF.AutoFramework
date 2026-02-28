@@ -24,8 +24,8 @@
         <Style x:Key="LogItemStyle" TargetType="ListViewItem">
             <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" />
 
-            <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1,1,1,1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Focusable" Value="True" />
@@ -61,14 +61,14 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F5F7FA" />
+                    <Setter Property="Background" Value="{DynamicResource  LightInfoBrush}" />
                 </Trigger>
                 <MultiTrigger>
                     <MultiTrigger.Conditions>
                         <Condition Property="IsSelected" Value="True" />
                     </MultiTrigger.Conditions>
-                    <Setter Property="Background" Value="#E3F2FD" />
-                    <Setter Property="BorderBrush" Value="#2196F3" />
+                    <Setter Property="Background" Value="{DynamicResource LightPrimaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBorderBrush}" />
                     <Setter Property="BorderThickness" Value="1" />
                 </MultiTrigger>
             </Style.Triggers>
@@ -95,9 +95,9 @@
                         Margin="0,0,12,0"
                         VerticalAlignment="Top"
                         FontFamily="Consolas"
-                        FontSize="11"
-                        Foreground="#666"
-                        Text="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}" />
+                        FontSize="15"
+                        Foreground="{DynamicResource TextIconBrush}"
+                        Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss'}" />
 
                     <TextBlock
                         Grid.Column="1"
@@ -106,22 +106,11 @@
                         VerticalAlignment="Top"
                         FontSize="14"
                         Text="{Binding Level, Converter={StaticResource LogLevelToSymbolConverter}}"
+                        Foreground="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}"
                         TextAlignment="Center"
                         ToolTip="{Binding Level}" />
 
-                    <Border
-                        Grid.Column="2"
-                        Margin="0,0,12,0"
-                        Padding="6,2"
-                        VerticalAlignment="Top"
-                        Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}"
-                        CornerRadius="4">
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="10"
-                            FontWeight="SemiBold"
-                            Text="{Binding Level}" />
-                    </Border>
+                  
 
                     <TextBlock
                         Grid.Column="3"
@@ -140,7 +129,7 @@
                         BorderBrush="#C8E6C9"
                         BorderThickness="1"
                         CornerRadius="3"
-                        Visibility="{Binding Category, Converter={StaticResource NullToVisibilityConverter}}">
+                        Visibility="Collapsed">
                         <TextBlock
                             VerticalAlignment="Center"
                             FontSize="10"
@@ -263,7 +252,7 @@
                                 SelectedItem="{Binding SelectedDateRange}" />
 
 
-                            <Button Content="测试" Command="{Binding test}"></Button>
+                            <Button Content="测试" Visibility="Collapsed" Command="{Binding test}"></Button>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -389,34 +378,6 @@
                     </Grid>
                 </Border>
 
-                <Border
-                    Grid.Row="2"
-                    Padding="12,4"
-                    BorderThickness="0,1,0,0">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Foreground="#2196F3"
-                                Text="{Binding SelectedLogEntry.Message, StringFormat='选中：{0}'}"
-                                TextTrimming="CharacterEllipsis"
-                                Visibility="{Binding SelectedLogEntry, Converter={StaticResource NullToVisibilityConverter}}" />
-                        </StackPanel>
-
-                        <TextBlock
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            FontSize="12"
-                            Foreground="#999"
-                            Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='最后更新：{0:HH:mm:ss}'}" />
-                    </Grid>
-                </Border>
             </Grid>
         </Border>
     </pf:TransitioningContentControl>
