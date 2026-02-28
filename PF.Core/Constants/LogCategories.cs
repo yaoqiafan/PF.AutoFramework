@@ -18,6 +18,9 @@ namespace PF.Core.Constants
         public const string Communication = "Communication";
 
         public const string Custom = "Custom";
+
+
+        public const string HaraWare = "Hardware";
         /// <summary>
         /// 获取所有内置分类
         /// </summary>
@@ -30,6 +33,7 @@ namespace PF.Core.Constants
                 UI,
                 Communication,
                Custom,
+               HaraWare,
             };
         }
     }

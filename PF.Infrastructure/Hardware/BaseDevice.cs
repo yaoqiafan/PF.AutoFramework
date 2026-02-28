@@ -1,6 +1,7 @@
 ﻿using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 
 namespace PF.Infrastructure.Hardware
 {
@@ -50,6 +51,9 @@ namespace PF.Infrastructure.Hardware
         public event EventHandler<bool> ConnectionChanged;
         public event EventHandler<DeviceAlarmEventArgs> AlarmTriggered;
 
+
+        public readonly   CategoryLogger HardwareLogger;
+
         #endregion
 
         /// <summary>
@@ -61,6 +65,7 @@ namespace PF.Infrastructure.Hardware
             DeviceName = deviceName;
             IsSimulated = isSimulated;
             _logger = logger;
+            HardwareLogger = CategoryLoggerFactory.Hardware(logger);
         }
 
         #region 核心生命周期与重连封装 (Template Methods)
