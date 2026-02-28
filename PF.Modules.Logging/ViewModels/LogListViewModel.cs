@@ -81,6 +81,14 @@ namespace PF.Modules.Logging.ViewModels
 
             // 更新统计信息
             UpdateStatistics();
+
+
+            test = new DelegateCommand(()=>
+            {
+                _logService.Success("test", "123");
+
+
+            });
         }
 
         #region 属性
@@ -214,6 +222,9 @@ namespace PF.Modules.Logging.ViewModels
         public ICommand CopyAllCommand { get; }
         public ICommand ToggleDateFilterCommand { get; }
         public ICommand RefreshCommand { get; }
+
+        public ICommand test { get; }
+
 
         #endregion
 
