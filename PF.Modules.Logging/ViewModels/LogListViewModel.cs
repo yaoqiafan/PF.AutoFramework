@@ -15,6 +15,8 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using PF.UI.Infrastructure.Dialog.Basic;
+using PF.Core.Constants;
+using PF.Infrastructure.Logging;
 
 namespace PF.Modules.Logging.ViewModels
 {
@@ -85,7 +87,8 @@ namespace PF.Modules.Logging.ViewModels
 
             test = new DelegateCommand(()=>
             {
-                _logService.Success("test", "123");
+
+                CategoryLoggerFactory.Hardware(_logService).Debug("test",new Exception("1212132132132132132132"));
 
 
             });
