@@ -4,50 +4,51 @@
     xmlns:system="clr-namespace:System;assembly=mscorlib"
     xmlns:local="clr-namespace:PF.UI.Resources">
 
-
-    <Color x:Key="LightPrimaryColor">#00C1FF</Color>
-    <Color x:Key="PrimaryColor">#2A55A5</Color>
-    <Color x:Key="DarkPrimaryColor">#003A7F</Color>
+    <Color x:Key="LightPrimaryColor">#E6F0FA</Color>
+    <Color x:Key="PrimaryColor">#005FB8</Color>
+    <Color x:Key="DarkPrimaryColor">#004578</Color>
     <Color x:Key="DeepDarkPrimaryColor">#002142</Color>
 
-    <Color x:Key="LightDangerColor">#fff6f7</Color>
-    <Color x:Key="DangerColor">#db3340</Color>
-    <Color x:Key="DarkDangerColor">#ff0000</Color>
+    <Color x:Key="LightDangerColor">#FDF3F4</Color>
+    <Color x:Key="DangerColor">#D13438</Color>
+    <Color x:Key="DarkDangerColor">#A4262C</Color>
 
-    <Color x:Key="LightWarningColor">#fffcf5</Color>
-    <Color x:Key="WarningColor">#e9af20</Color>
-    <Color x:Key="DarkWarningColor">#e9af20</Color>
+    <Color x:Key="LightWarningColor">#FFF8F0</Color>
+    <Color x:Key="WarningColor">#D83B01</Color>
+    <Color x:Key="DarkWarningColor">#A80000</Color>
 
-    <Color x:Key="LightInfoColor">#f1fdff</Color>
-    <Color x:Key="InfoColor">#12E2E8</Color>
-    <Color x:Key="DarkInfoColor">#518EFA</Color>
+    <Color x:Key="LightInfoColor">#F3F9FD</Color>
+    <Color x:Key="InfoColor">#0078D4</Color>
+    <Color x:Key="DarkInfoColor">#005A9E</Color>
 
-    <Color x:Key="LightSuccessColor">#f3fff6</Color>
-    <Color x:Key="SuccessColor">#00FF30</Color>
-    <Color x:Key="DarkSuccessColor">#2db84d</Color>
+    <Color x:Key="LightSuccessColor">#F1FAF5</Color>
+    <Color x:Key="SuccessColor">#107C41</Color>
+    <Color x:Key="DarkSuccessColor">#0B5A2F</Color>
 
-    <Color x:Key="PrimaryTextColor">#2A55A5</Color>
-    <Color x:Key="SecondaryTextColor">#757575</Color>
-    <Color x:Key="ThirdlyTextColor">#bdbdbd</Color>
-    <Color x:Key="ReverseTextColor">#212121</Color>
-    <Color x:Key="TextIconColor">#212121</Color>
+    <Color x:Key="PrimaryTextColor">#242424</Color>
+    <Color x:Key="SecondaryTextColor">#605E5C</Color>
+    <Color x:Key="ThirdlyTextColor">#A19F9D</Color>
+    <Color x:Key="ReverseTextColor">#FFFFFF</Color>
+    <Color x:Key="TextIconColor">#323130</Color>
 
-    <Color x:Key="BorderColor">#ffffff</Color>
-    <Color x:Key="SecondaryBorderColor">#EDF2F9</Color>
-    <Color x:Key="BackgroundColor">#eeeeee</Color>
-    <Color x:Key="RegionColor">#ffffff</Color>
-    <Color x:Key="SecondaryRegionColor">#eeeeee</Color>
-    <Color x:Key="ThirdlyRegionColor">White</Color>
-    <Color x:Key="TitleColor">#326cf3</Color>
-    <Color x:Key="SecondaryTitleColor">#326cf3</Color>
+    <Color x:Key="BorderColor">#E1DFDD</Color>
+    <Color x:Key="SecondaryBorderColor">#EDEBE9</Color>
 
-    <Color x:Key="DefaultColor">White</Color>
-    <Color x:Key="DarkDefaultColor">#f5f5f5</Color>
+    <Color x:Key="BackgroundColor">#F3F4F6</Color>
+    <Color x:Key="RegionColor">#FFFFFF</Color>
+    <Color x:Key="SecondaryRegionColor">#F8F9FA</Color>
+    <Color x:Key="ThirdlyRegionColor">#EAECEF</Color>
+    <Color x:Key="TitleColor">#242424</Color>
+    <Color x:Key="SecondaryTitleColor">#005FB8</Color>
 
-    <Color x:Key="AccentColor">#f8491e</Color>
-    <Color x:Key="DarkAccentColor">#f8491e</Color>
+    <Color x:Key="DefaultColor">#FFFFFF</Color>
+    <Color x:Key="DarkDefaultColor">#F3F2F1</Color>
 
-    <Color x:Key="DarkMaskColor">#20000000</Color>
-    <Color x:Key="DarkOpacityColor">#40000000</Color>
+    <Color x:Key="AccentColor">#005FB8</Color>
+    <Color x:Key="DarkAccentColor">#004578</Color>
+
+    <Color x:Key="DarkMaskColor">#4D000000</Color>
+    <Color x:Key="DarkOpacityColor">#1A000000</Color>
     <system:UInt32 x:Key="BlurGradientValue">0x99FFFFFF</system:UInt32>
+
 </ResourceDictionary>
