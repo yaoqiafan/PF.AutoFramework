@@ -13,7 +13,7 @@ namespace PF.Core.Interfaces.Logging
     {
         // 基础日志方法
         void Log(LogLevel level, string message, string category = null, Exception exception = null);
-        void Debug(string message, string category = null);
+        void Debug(string message, string category = null, Exception exception = null);
         void Info(string message, string category = null);
         void Success(string message, string category = null);
         void Warn(string message, string category = null, Exception exception = null);

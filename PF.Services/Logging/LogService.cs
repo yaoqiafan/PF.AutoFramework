@@ -376,7 +376,11 @@ namespace PF.Services.Logging
                 }
                 else
                 {
-                    ProcessLogEntrySync(entry);
+                    if (entry?.Level != LogLevel.Debug)
+                    {
+                        ProcessLogEntrySync(entry);
+                    }
+
                 }
             }
             catch (InvalidOperationException)
@@ -409,7 +413,7 @@ namespace PF.Services.Logging
             }
         }
 
-        public void Debug(string message, string category = null) => Log(LogLevel.Debug, message, category);
+        public void Debug(string message, string category = null, Exception exception = null) => Log(LogLevel.Debug, message, category, exception);
         public void Info(string message, string category = null) => Log(LogLevel.Info, message, category);
         public void Success(string message, string category = null) => Log(LogLevel.Success, message, category);
         public void Warn(string message, string category = null, Exception exception = null) => Log(LogLevel.Warn, message, category, exception);

@@ -33,16 +33,16 @@ namespace PF.Infrastructure.Hardware.Card
         #region IMotionCard 属性（由子类实现）
 
         /// <inheritdoc/>
-        public abstract int CardIndex { get; }
+        public abstract int CardIndex { get;   }
 
         /// <inheritdoc/>
         public abstract int AxisCount { get; }
 
         /// <inheritdoc/>
-        public abstract int InputCount { get; }
+        public abstract int InputCount { get;  }
 
         /// <inheritdoc/>
-        public abstract int OutputCount { get; }
+        public abstract int OutputCount { get;  }
 
         #endregion
 
