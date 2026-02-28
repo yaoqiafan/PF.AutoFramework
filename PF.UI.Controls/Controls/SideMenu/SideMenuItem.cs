@@ -10,6 +10,29 @@ namespace PF.UI.Controls;
 
 public class SideMenuItem : HeaderedSimpleItemsControl, ISelectable, ICommandSource
 {
+
+
+    // =========================================================================
+    // 新增：指示当前菜单项的子面板是否处于展开状态
+    // =========================================================================
+    public static readonly DependencyProperty IsExpandedProperty = DependencyProperty.Register(
+        nameof(IsExpanded), typeof(bool), typeof(SideMenuItem),
+        new PropertyMetadata(ValueBoxes.FalseBox, OnIsExpandedChanged)); // 沿用你代码中的 ValueBoxes 习惯
+
+    public bool IsExpanded
+    {
+        get => (bool)GetValue(IsExpandedProperty);
+        set => SetValue(IsExpandedProperty, ValueBoxes.BooleanBox(value));
+    }
+
+    private static void OnIsExpandedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var item = (SideMenuItem)d;
+        // 可选：如果外部直接修改了 IsExpanded，在这里触发面板切换逻辑
+         item.SwitchPanelArea((bool)e.NewValue); 
+    }
+
+
     private bool _isMouseLeftButtonDown;
 
     public static readonly DependencyProperty IconProperty = DependencyProperty.Register(
@@ -161,6 +184,10 @@ public class SideMenuItem : HeaderedSimpleItemsControl, ISelectable, ICommandSou
         if (ItemsHost == null) return;
         if (Role == SideMenuItemRole.Header)
         {
+            if (IsExpanded != isShow)
+            {
+                IsExpanded = isShow;
+            }
             ItemsHost.Show(isShow);
         }
     }

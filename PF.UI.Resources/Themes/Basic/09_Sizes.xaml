@@ -6,9 +6,9 @@
 
     <system:Double x:Key="LargeFontSize">24</system:Double>
     <system:Double x:Key="HeadFontSize">20</system:Double>
-    <system:Double x:Key="SubHeadFontSize">16</system:Double>
-    <system:Double x:Key="TextFontSize">12</system:Double>
-    <system:Double x:Key="DefaultControlHeight">28</system:Double>
+    <system:Double x:Key="SubHeadFontSize">18</system:Double>
+    <system:Double x:Key="TextFontSize">14</system:Double>
+    <system:Double x:Key="DefaultControlHeight">30</system:Double>
     <system:Double x:Key="SmallControlHeight">20</system:Double>
     <Thickness x:Key="DefaultControlPadding">10,5</Thickness>
     <Thickness x:Key="DefaultInputPadding">8,0</Thickness>

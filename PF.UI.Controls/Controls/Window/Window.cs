@@ -256,9 +256,8 @@ namespace PF.UI.Controls
             base.OnStateChanged(e);
             if (WindowState == WindowState.Maximized)
             {
-                BorderThickness = new Thickness();
                 _tempNonClientAreaHeight = NonClientAreaHeight;
-                NonClientAreaHeight += 20;
+                NonClientAreaHeight += 0;
             }
             else
             {
@@ -274,8 +273,7 @@ namespace PF.UI.Controls
 
             if (WindowState == WindowState.Maximized)
             {
-                BorderThickness = new Thickness();
-                _tempNonClientAreaHeight += 20;
+                _tempNonClientAreaHeight += 0;
             }
 
             CommandBindings.Add(new CommandBinding(SystemCommands.MinimizeWindowCommand,
@@ -296,7 +294,7 @@ namespace PF.UI.Controls
 
             if (WindowState == WindowState.Maximized)
             {
-                _tempNonClientAreaHeight -= 20;
+                _tempNonClientAreaHeight -= 0;
             }
 
             if (SizeToContent != SizeToContent.WidthAndHeight)
