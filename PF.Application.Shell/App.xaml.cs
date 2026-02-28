@@ -611,7 +611,9 @@ namespace PF.Application.Shell
                 config.ConfigureDefaultCategories();
 
                 // 添加更多自定义分类
-                config.AddCategory(LogCategories.Custom, LogLevel.Warn, "Custom");
+                config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
+
+              
 
 
                 // 确保日志目录存在

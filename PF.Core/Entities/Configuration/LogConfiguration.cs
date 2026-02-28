@@ -1,4 +1,5 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Constants;
+using PF.Core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,19 +76,21 @@ namespace PF.Core.Entities.Configuration
         public LogConfiguration ConfigureDefaultCategories()
         {
             // 系统日志 - 记录系统运行状态
-            AddCategory("System", LogLevel.Debug, "System");
+            AddCategory(LogCategories.System, LogLevel.Debug, LogCategories.System);
 
             // 数据库日志 - 记录数据库操作
-            AddCategory("Database", LogLevel.Info, "Database");
+            AddCategory(LogCategories.Database, LogLevel.Info, LogCategories.Database);
 
             // UI日志 - 记录用户界面操作
-            AddCategory("UI", LogLevel.Info, "UI");
+            AddCategory(LogCategories.UI, LogLevel.Info, LogCategories.UI);
 
             // 通信日志 - 记录网络通信
-            AddCategory("Communication", LogLevel.Info, "Communication");
+            AddCategory(LogCategories.Communication, LogLevel.Info, LogCategories.Communication);
 
             // 默认分类 - 未明确分类的日志
             AddCategory("Default", LogLevel.Info, "General");
+            //硬件日志 - 记录硬件调试
+            AddCategory(LogCategories.HaraWare, LogLevel.Debug, LogCategories.HaraWare);
 
             return this;
         }
