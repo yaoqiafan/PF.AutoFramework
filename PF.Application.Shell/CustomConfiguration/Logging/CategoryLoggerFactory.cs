@@ -19,6 +19,7 @@ namespace PF.Application.Shell.CustomConfiguration.Logging
 
         public static CategoryLogger Communication(ILogService logService) =>
             new CategoryLogger(logService, LogCategories.Communication);
+
         public static CategoryLogger Custom(ILogService logService) =>
            new CategoryLogger(logService, LogCategories.Custom);
     }

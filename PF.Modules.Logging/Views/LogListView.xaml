@@ -261,6 +261,9 @@
                                 DisplayMemberPath="Name"
                                 ItemsSource="{Binding DateRanges}"
                                 SelectedItem="{Binding SelectedDateRange}" />
+
+
+                            <Button Content="测试" Command="{Binding test}"></Button>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">

@@ -24,8 +24,6 @@
         <userConverter:UserBackGroundConnver x:Key="UserBackGroundConnver" />
 
         <Style x:Key="IconStyle" TargetType="Image" />
-
-
         <Style x:Key="TitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18px" />
             <Setter Property="FontWeight" Value="Medium" />
@@ -38,130 +36,19 @@
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
         </Style>
 
-
         <Style x:Key="NotesStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10px" />
             <Setter Property="FontWeight" Value="Regular" />
             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
         </Style>
 
-        <Style
-            x:Key="CustomToolbar"
-            BasedOn="{StaticResource ToolBarBaseStyle}"
-            TargetType="{x:Type ToolBar}">
-            <Setter Property="Background" Value="Pink" />
-            <Setter Property="FontSize" Value="28" />
-        </Style>
 
-        <Style
-            x:Key="CustomToolbarToggleButton"
-            BasedOn="{StaticResource ToggleButtonBaseStyle}"
-            TargetType="{x:Type ToggleButton}">
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="20" />
-            <Setter Property="Content">
-                <Setter.Value>
-                    <Grid>
-                        <Line
-                            Stroke="{DynamicResource PrimaryBrush}"
-                            StrokeThickness="2"
-                            X1="0"
-                            X2="200"
-                            Y1="1"
-                            Y2="1" />
-                        <Line
-                            Stroke="{DynamicResource PrimaryBrush}"
-                            StrokeThickness="2"
-                            X1="0"
-                            X2="200"
-                            Y1="9"
-                            Y2="9" />
-                        <Line
-                            Stroke="{DynamicResource PrimaryBrush}"
-                            StrokeThickness="2"
-                            X1="0"
-                            X2="200"
-                            Y1="17"
-                            Y2="17" />
-                    </Grid>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border
-                            x:Name="border"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Content="{TemplateBinding Content}" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource BorderBrush}" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-                                <Setter TargetName="border" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect BlurRadius="5" Color="LightGray" />
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+       
 
 
-        <Style x:Key="ListViewItemStyle" TargetType="{x:Type ListViewItem}">
-            <Style.Setters>
-                <Setter Property="SnapsToDevicePixels" Value="True" />
-                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="{x:Type ListViewItem}">
-                            <Border
-                                Name="Bd"
-                                Height="50"
-                                Padding="{TemplateBinding Control.Padding}"
-                                Background="{TemplateBinding Panel.Background}"
-                                CornerRadius="5"
-                                SnapsToDevicePixels="True">
-                                <GridViewRowPresenter
-                                    Margin="3"
-                                    HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}"
-                                    SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" />
-                            </Border>
-                            <ControlTemplate.Triggers>
-
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Trigger.Setters>
-                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DarkPrimaryBrush}" />
-                                        <Setter Property="Foreground" Value="{DynamicResource TextIconBrush}" />
-                                    </Trigger.Setters>
-                                </Trigger>
 
 
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Trigger.Setters>
-                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BorderBrush}" />
-                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-                                    </Trigger.Setters>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style.Setters>
-        </Style>
+
 
     </pf:Window.Resources>
     <pf:Window.NonClientAreaContent>
@@ -291,13 +178,14 @@
                         pf:IconElement.Geometry="{StaticResource AlignRightGeometry}"
                         Command="{Binding ChangeExpandCmd}"
                         CommandParameter="ShowOne" />
-                    <RadioButton  IsChecked="True"
+                    <RadioButton
                         pf:IconElement.Geometry="{StaticResource AlignHStretchGeometry}"
                         Command="{Binding ChangeExpandCmd}"
-                        CommandParameter="ShowAll" />
+                        CommandParameter="ShowAll"
+                        IsChecked="True" />
 
                 </pf:ButtonGroup>
-               
+
                 <pf:SideMenu
                     x:Name="MainSideMenu"
                     Grid.Row="0"
@@ -305,8 +193,8 @@
                     Margin="5"
                     AutoSelect="False"
                     BorderThickness="1"
-                    SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
-                    ExpandMode="{Binding Expand}">
+                    ExpandMode="Freedom"
+                    SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}">
                     <pf:Interaction.Triggers>
                         <pf:EventTrigger EventName="SelectionChanged">
                             <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
