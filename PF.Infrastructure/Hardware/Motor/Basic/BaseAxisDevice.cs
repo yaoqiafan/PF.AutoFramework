@@ -128,7 +128,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         // ── IAxis 轴状态属性（委托给 ParentCard 读取，替代原来的抽象属性）──────────
 
         /// <summary>当前实时物理位置（工程单位，如 mm）</summary>
-        public virtual double CurrentPosition
+        public virtual double? CurrentPosition
         {
             get
             {
