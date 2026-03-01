@@ -36,7 +36,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         int AxisIndex { get; }
 
         /// <summary>当前实时物理位置 (工程单位，如 mm)</summary>
-        double CurrentPosition { get; }
+        double? CurrentPosition { get; }
 
         /// <summary>是否正在运动中</summary>
         bool IsMoving { get; }

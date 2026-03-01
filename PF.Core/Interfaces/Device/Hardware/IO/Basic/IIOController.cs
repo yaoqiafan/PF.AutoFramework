@@ -23,19 +23,19 @@ namespace PF.Core.Interfaces.Device.Hardware.IO.Basic
         /// </summary>
         /// <param name="portIndex">端口号</param>
         /// <returns>True 为有信号(高电平)，False 为无信号(低电平)</returns>
-        bool ReadInput(int portIndex);
+        bool? ReadInput(int portIndex);
 
         /// <summary>
         /// 设置指定的输出信号
         /// </summary>
         /// <param name="portIndex">端口号</param>
         /// <param name="value">True 为开启输出，False 为关闭</param>
-        void WriteOutput(int portIndex, bool value);
+        bool  WriteOutput(int portIndex, bool value);
 
         /// <summary>
         /// 读取指定的输出信号当前状态（用于UI回显）
         /// </summary>
-        bool ReadOutput(int portIndex);
+        bool? ReadOutput(int portIndex);
 
         /// <summary>
         /// 异步等待某个输入端口达到指定状态（自带防卡死超时机制）
