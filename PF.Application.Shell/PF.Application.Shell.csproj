@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 
 	<PropertyGroup>
@@ -16,6 +16,7 @@
 	  <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj" />
 	  <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj" />
 	  <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
+	  <ProjectReference Include="..\PF.WorkStation.AutoOcr\PF.Workstation.AutoOcr.csproj" />
 	  <ProjectReference Include="..\PF.Workstation.Demo.UI\PF.Workstation.Demo.UI.csproj" />
 	  <ProjectReference Include="..\PF.Workstation.Demo\PF.Workstation.Demo.csproj" />
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />

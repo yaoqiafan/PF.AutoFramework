@@ -13,11 +13,11 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.Card.LTDMC
 {
-    public class LTMCCard : BaseMotionCard
+    public class LTMCMotionCard : BaseMotionCard
     {
 
 
-        public LTMCCard(int cardIndex, ILogService logger)
+        public LTMCMotionCard(int cardIndex, ILogService logger)
             : base(
                 deviceId: $"SIM_CARD_{cardIndex}",
                 deviceName: $"雷赛运动控制卡[{cardIndex}]",

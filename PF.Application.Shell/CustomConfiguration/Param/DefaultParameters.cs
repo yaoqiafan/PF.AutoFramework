@@ -4,16 +4,17 @@ using PF.Core.Enums;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
 using PF.UI.Shared.Data;
+using PF.Workstation.AutoOcr.CostParam;
 using System.Text.Json;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {
-    public class DefaultParameters:IDefaultParam
+    public class DefaultParameters : IDefaultParam
     {
         /// <summary>
         /// 获取系统默认配置
         /// </summary>
-        public  Dictionary<string, CommonParam> GetCommonDefaults()
+        public Dictionary<string, CommonParam> GetCommonDefaults()
         {
             return new Dictionary<string, CommonParam>
             {
@@ -92,7 +93,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// <summary>
         /// 获取系统默认配置
         /// </summary>
-        public  Dictionary<string, UserLoginParam> GetUsersDefaults()
+        public Dictionary<string, UserLoginParam> GetUsersDefaults()
         {
             UserInfo Operator = new UserInfo() { Password = "PF111", Root = UserLevel.Operator, UserId = "Operator", UserName = "Operator" };
             UserInfo Engineer = new UserInfo() { Password = "PF222", Root = UserLevel.Engineer, UserId = "Engineer", UserName = "Engineer" };
@@ -168,53 +169,141 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         {
             HardwareConfig simCard = new()
             {
-                DeviceId                = "SIM_CARD_0",
-                DeviceName              = "模拟运动控制卡[0]",
-                Category                = "MotionCard",
-                ImplementationClassName = "SimMotionCard",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = string.Empty,
-                ConnectionParameters    = new Dictionary<string, string> { ["CardIndex"] = "0" },
-                Remarks                 = "模拟运动控制卡，用于开发/调试"
-            };
-
-            HardwareConfig simXAxis = new()
-            {
-                DeviceId                = "SIM_X_AXIS_0",
-                DeviceName              = "模拟X轴[0]",
-                Category                = "Axis",
-                ImplementationClassName = "SimXAxis",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = "SIM_CARD_0",
-                ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
-                Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
-            };
-
-            HardwareConfig simYAxis = new()
-            {
-                DeviceId = "SIM_Y_AXIS_1",
-                DeviceName = "模拟Y轴[1]",
-                Category = "Axis",
-                ImplementationClassName = "SimXAxis",
-                IsSimulated = true,
+                DeviceId = "LTDMC_Card_0",
+                DeviceName = "雷赛运动控制卡[0]",
+                Category = "MotionCard",
+                ImplementationClassName = "LTMCMotionCard",
+                IsSimulated = false,
                 IsEnabled = true,
-                ParentDeviceId = "SIM_CARD_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1" },
-                Remarks = "模拟Y轴，挂载于 SIM_CARD_0"
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["CardIndex"] = "0" },
+                Remarks = "雷赛运动控制卡，用于开发/调试"
             };
+
+            HardwareConfig OcrYAxis = new()
+            {
+                DeviceId = E_AxisName .视觉Y轴 .ToString (),
+                DeviceName = "OCR模块Y轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false ,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "0" },
+                Remarks = "OCR模块Y轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig OcrXAxis = new()
+            {
+                DeviceId = E_AxisName.视觉X轴.ToString(),
+                DeviceName = "OCR模块X轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1" },
+                Remarks = "OCR模块X轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig OcrZAxis = new()
+            {
+                DeviceId = E_AxisName.视觉X轴.ToString(),
+                DeviceName = "OCR模块Z轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "2" },
+                Remarks = "OCR模块Z轴，挂载于 LTDMC_Card_0"
+            };
+
+            HardwareConfig station2ZAxis = new()
+            {
+                DeviceId = E_AxisName.工位2上料Z轴.ToString(),
+                DeviceName = "工位2上料Z轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "3" },
+                Remarks = "工位2上料Z轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station2YAxis = new()
+            {
+                DeviceId = E_AxisName.工位2拉料Y轴 .ToString(),
+                DeviceName = "工位2晶圆拉料Y轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "4" },
+                Remarks = "工位2晶圆拉料Y轴，挂载于 LTDMC_Card_0"
+            };
+
+
+            HardwareConfig station1ZAxis = new()
+            {
+                DeviceId = E_AxisName.工位1上料Z轴.ToString(),
+                DeviceName = "工位1上料Z轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "5" },
+                Remarks = "工位1上料Z轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station1YAxis = new()
+            {
+                DeviceId = E_AxisName.工位1拉料Y轴.ToString(),
+                DeviceName = "工位1晶圆拉料Y轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "6" },
+                Remarks = "工位1晶圆拉料Y轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station1XAxis = new()
+            {
+                DeviceId = E_AxisName.工位1挡料X轴.ToString(),
+                DeviceName = "工位1挡料X轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "7" },
+                Remarks = "工位1挡料X轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station2XAxis = new()
+            {
+                DeviceId = E_AxisName.工位2挡料X轴.ToString(),
+                DeviceName = "工位2挡料X轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "8" },
+                Remarks = "工位2挡料X轴，挂载于 LTDMC_Card_0"
+            };
+
+          
 
             HardwareConfig simIO = new()
             {
-                DeviceId                = "SIM_VACUUM_IO",
-                DeviceName              = "模拟真空IO卡",
-                Category                = "IOController",
+                DeviceId = "SIM_VACUUM_IO",
+                DeviceName = "模拟真空IO卡",
+                Category = "IOController",
                 ImplementationClassName = "SimVacuumIO",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = "SIM_CARD_0",
-                Remarks                 = "模拟真空IO卡，挂载于 SIM_CARD_0"
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = "SIM_CARD_0",
+                Remarks = "模拟真空IO卡，挂载于 SIM_CARD_0"
             };
 
             return new Dictionary<string, HardwareParam>
@@ -271,7 +360,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// <summary>
         /// 获取系统默认配置
         /// </summary>
-        public  Dictionary<string, SystemConfigParam> GetSystemDefaults()
+        public Dictionary<string, SystemConfigParam> GetSystemDefaults()
         {
             return new Dictionary<string, SystemConfigParam>
             {

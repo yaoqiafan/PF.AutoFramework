@@ -47,6 +47,19 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             Category = Core.Enums.HardwareCategory.IOController;
         }
 
+
+        /// <summary>
+        /// 输入信息明细
+        /// </summary>
+        public abstract Dictionary<string, int> InputInfos { get; }
+
+
+        /// <summary>
+        /// 输出信息明细
+        /// </summary>
+        public abstract Dictionary<string, int> OutputInfos { get; }
+
+
         // ── IIOController 端口数量（保留 abstract — 由子类/配置提供本控制器管辖的端口总数）─
 
         /// <inheritdoc/>
