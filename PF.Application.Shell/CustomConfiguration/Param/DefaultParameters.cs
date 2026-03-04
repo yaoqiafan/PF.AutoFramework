@@ -179,7 +179,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks                 = "模拟运动控制卡，用于开发/调试"
             };
 
-            HardwareConfig simAxis = new()
+            HardwareConfig simXAxis = new()
             {
                 DeviceId                = "SIM_X_AXIS_0",
                 DeviceName              = "模拟X轴[0]",
@@ -190,6 +190,19 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 ParentDeviceId          = "SIM_CARD_0",
                 ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
                 Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
+            };
+
+            HardwareConfig simYAxis = new()
+            {
+                DeviceId = "SIM_Y_AXIS_1",
+                DeviceName = "模拟Y轴[1]",
+                Category = "Axis",
+                ImplementationClassName = "SimXAxis",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = "SIM_CARD_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1" },
+                Remarks = "模拟Y轴，挂载于 SIM_CARD_0"
             };
 
             HardwareConfig simIO = new()
@@ -218,16 +231,29 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                     }
                 },
                 {
-                    simAxis.DeviceId, new HardwareParam
+                    simXAxis.DeviceId, new HardwareParam
                     {
-                        Name         = simAxis.DeviceId,
-                        Description  = simAxis.Remarks,
+                        Name         = simXAxis.DeviceId,
+                        Description  = simXAxis.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
-                        JsonValue    = JsonSerializer.Serialize(simAxis),
+                        JsonValue    = JsonSerializer.Serialize(simXAxis),
                         Category     = "Hardware",
                         Version      = 1
                     }
-                },
+                }
+                ,
+                {
+                    simYAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = simYAxis.DeviceId,
+                        Description  = simYAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(simYAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                }
+                ,
                 {
                     simIO.DeviceId, new HardwareParam
                     {

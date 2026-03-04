@@ -1,4 +1,5 @@
 using PF.Core.Attributes;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
@@ -29,6 +30,7 @@ namespace PF.Workstation.Demo.Mechanisms
     [MechanismUI("取放模组调试", "GantryMechanismView", 1)]
     public class GantryMechanism : BaseMechanism
     {
+        private readonly IHardwareManagerService _hwManager;
         private readonly IAxis          _xAxis;
         private readonly IIOController  _vacuumIO;
 

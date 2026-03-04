@@ -223,20 +223,23 @@ namespace PF.Application.Shell
 
         private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
         {
-            var xAxis = new SimXAxis(0, _logService,"");
+            var xAxis = new SimXAxis(0, _logService, "");
+            var yAxis = new SimXAxis(1, _logService, "");
             var vacuumIO = new SimVacuumIO(_logService);
 
 
             // a. 供具体模组注入使用
             containerRegistry.RegisterInstance(xAxis);
+            containerRegistry.RegisterInstance(yAxis);
             containerRegistry.RegisterInstance(vacuumIO);
 
             // b. 供设备调试界面的 IEnumerable<IHardwareDevice> 抓取使用
             containerRegistry.RegisterInstance<IHardwareDevice>(xAxis, "SimXAxis");
+            containerRegistry.RegisterInstance<IHardwareDevice>(yAxis, "SimYAxis");
             containerRegistry.RegisterInstance<IHardwareDevice>(vacuumIO, "SimVacuumIO");
 
 
-           
+
             // 假设你在这里或者硬件管理服务里创建了 gantryMechanism
             var gantryMechanism = new GantryMechanism(xAxis, vacuumIO, _logService);
 
@@ -548,6 +551,7 @@ namespace PF.Application.Shell
                 return new PF.Workstation.Demo.Hardware.SimXAxis(axisIndex, _logService, dataDirectory);
             });
 
+            
             // 注册 SimVacuumIO 工厂
             hwManager.RegisterFactory("SimVacuumIO", cfg =>
                 new PF.Workstation.Demo.Hardware.SimVacuumIO(_logService));
