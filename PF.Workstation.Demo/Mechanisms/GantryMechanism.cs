@@ -20,64 +20,103 @@ namespace PF.Workstation.Demo.Mechanisms
     ///   · ResetAsync()：遍历所有内部硬件批量复位
     ///   · InitializeAsync()：带状态和日志的初始化包装
     ///
+    /// 硬件获取策略（代理委托模式）：
+    ///   构造函数仅注入 IHardwareManagerService 和 ILogService，不依赖任何具体设备类型。
+    ///   实际硬件实例在 InternalInitializeAsync 中通过 DeviceId 延迟解析，
+    ///   确保在 HardwareManagerService.LoadAndInitializeAsync() 完成后才访问设备。
+    ///   更换硬件品牌时，只需在 DefaultParameters / HardwareManagerService 中修改工厂注册，
+    ///   无需改动本模组代码。
+    ///
     /// 线程安全：
     ///   本类所有公开方法均接受 CancellationToken，运动/等待 均支持急停打断。
     ///   同一时刻只有一个 Station 线程调用本模组（单工站单模组设计）。
     ///   若多工站共用模组，需在此层添加 SemaphoreSlim 串行化。
     /// </summary>
-    /// 
-
     [MechanismUI("取放模组调试", "GantryMechanismView", 1)]
     public class GantryMechanism : BaseMechanism
     {
         private readonly IHardwareManagerService _hwManager;
-        private readonly IAxis          _xAxis;
-        private readonly IIOController  _vacuumIO;
+
+        // 硬件实例：构造后为 null，在 InternalInitializeAsync 中通过 hwManager 延迟解析
+        private IAxis         _xAxis;
+        private IIOController _vacuumIO;
 
         // ── 工艺坐标常量（实际项目从 IParamService 读取，支持界面调参）──────
-        private const double PickX      = 100.0;  // mm: 取料位 X 坐标
-        private const double PlaceX     = 350.0;  // mm: 放料位 X 坐标
-        private const double SafeX      = 50.0;   // mm: 安全缩回/提升量（相对）
-        private const double FastSpeed  = 300.0;  // mm/s: 空移速度
-        private const double SlowSpeed  = 60.0;   // mm/s: 接触/离开物料慢速
+        private const double PickX     = 100.0;  // mm: 取料位 X 坐标
+        private const double PlaceX    = 350.0;  // mm: 放料位 X 坐标
+        private const double SafeX     = 50.0;   // mm: 安全缩回/提升量（相对）
+        private const double FastSpeed = 300.0;  // mm/s: 空移速度
+        private const double SlowSpeed = 60.0;   // mm/s: 接触/离开物料慢速
 
-        private const int VacuumValve   = 0;      // OUT[0]: 真空阀
-        private const int VacuumSensor  = 0;      // IN[0]:  真空检测传感器
+        private const int VacuumValve  = 0;      // OUT[0]: 真空阀
+        private const int VacuumSensor = 0;      // IN[0]:  真空检测传感器
 
-
-        // 在 GantryMechanism 类中添加这两个公开属性，供 ViewModel 访问
+        /// <summary>
+        /// X 轴实例（InitializeAsync 完成后可用）。
+        /// 在初始化之前为 null；ViewModel 轮询时已有 null 保护，安全访问。
+        /// </summary>
         public IAxis XAxis => _xAxis;
+
+        /// <summary>真空 IO 实例（InitializeAsync 完成后可用）</summary>
         public IIOController VacuumIO => _vacuumIO;
 
-        // 暴露真空阀端口号供 ViewModel 使用
+        /// <summary>真空阀端口号，供 ViewModel 使用</summary>
         public int VacuumValvePort => VacuumValve;
 
-        public GantryMechanism(IAxis xAxis, IIOController vacuumIO, ILogService logger)
-            : base("龙门取放模组", logger, xAxis, vacuumIO)
+        /// <summary>
+        /// 构造函数：仅注入硬件管理服务和日志服务。
+        /// 不在此处获取设备实例——设备需在 LoadAndInitializeAsync 完成后才可用，
+        /// 通过 InternalInitializeAsync 延迟解析。
+        /// </summary>
+        public GantryMechanism(IHardwareManagerService hwManager, ILogService logger)
+            : base("龙门取放模组", logger)  // 无设备参数；设备将在 InternalInitializeAsync 中注册
         {
-            _xAxis    = xAxis;
-            _vacuumIO = vacuumIO;
+            _hwManager = hwManager ?? throw new ArgumentNullException(nameof(hwManager));
         }
 
         // ── BaseMechanism 钩子实现 ─────────────────────────────────────────
 
         /// <summary>
-        /// 模组初始化：依次连接硬件 → 使能伺服 → 回原点 → 安全输出
-        /// 任何步骤失败则返回 false，InitializeAsync 上层会记录日志并标记 IsInitialized=false
+        /// 模组初始化：
+        ///   ① 通过 IHardwareManagerService 延迟解析 X轴 和 真空IO 实例（DeviceId 与配置对应）
+        ///   ② 通过 RegisterHardwareDevice 将设备注册到模组（报警聚合 + 批量复位）
+        ///   ③ 连接硬件 → 使能伺服 → 回原点 → 安全输出
+        ///
+        /// 调用前提：HardwareManagerService.LoadAndInitializeAsync() 已完成。
+        /// 任何步骤失败则返回 false，InitializeAsync 上层会记录日志并标记 IsInitialized=false。
         /// </summary>
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
-            // 1. 连接所有硬件（BaseDevice 内部有3次重试）
+            // ① 延迟解析：DeviceId 与 DefaultParameters.GetHardwareDefaults() 保持一致
+            _xAxis = _hwManager.GetDevice("SIM_X_AXIS_0") as IAxis;
+            if (_xAxis == null)
+            {
+                _logger.Error("[GantryMechanism] 未找到X轴 'SIM_X_AXIS_0'，请确认硬件配置或 HardwareManagerService 已完成初始化。");
+                return false;
+            }
+
+            _vacuumIO = _hwManager.GetDevice("SIM_VACUUM_IO") as IIOController;
+            if (_vacuumIO == null)
+            {
+                _logger.Error("[GantryMechanism] 未找到IO 'SIM_VACUUM_IO'，请确认硬件配置或 HardwareManagerService 已完成初始化。");
+                return false;
+            }
+
+            // ② 注册到模组：报警事件聚合 + 批量复位（幂等，重复调用不会重复订阅）
+            RegisterHardwareDevice(_xAxis    as IHardwareDevice);
+            RegisterHardwareDevice(_vacuumIO as IHardwareDevice);
+
+            // ③ 连接所有硬件（BaseDevice 内部有3次重试）
             if (!await _xAxis.ConnectAsync(token))    return false;
             if (!await _vacuumIO.ConnectAsync(token)) return false;
 
-            // 2. 使能 X 轴伺服
+            // ④ 使能 X 轴伺服
             if (!await _xAxis.EnableAsync()) return false;
 
-            // 3. X 轴回原点（阻塞直至完成或 token 取消）
+            // ⑤ X 轴回原点（阻塞直至完成或 token 取消）
             if (!await _xAxis.HomeAsync(token)) return false;
 
-            // 4. 安全初始输出：关闭真空阀
+            // ⑥ 安全初始输出：关闭真空阀
             _vacuumIO.WriteOutput(VacuumValve, false);
 
             return true;
@@ -88,8 +127,8 @@ namespace PF.Workstation.Demo.Mechanisms
         /// </summary>
         protected override async Task InternalStopAsync()
         {
-            await _xAxis.StopAsync();
-            _vacuumIO.WriteOutput(VacuumValve, false);
+            if (_xAxis    != null) await _xAxis.StopAsync();
+            if (_vacuumIO != null) _vacuumIO.WriteOutput(VacuumValve, false);
         }
 
         // ── 业务动作 API（Station 层在 ProcessLoopAsync 中调用）────────────
@@ -159,9 +198,6 @@ namespace PF.Workstation.Demo.Mechanisms
             //_vacuumIO.WriteOutput(VacuumValve, false);
 
             //// ④ 等待真空消失确认
-            //// 修复：原代码忽略返回值，超时时静默继续——在真空未消失（物料未离开）的情况下
-            ////       X轴仍会运动，可能带着物料碰撞。现改为超时时打印警告，
-            ////       实际项目可改为 throw 以强制停线。
             //bool vacuumReleased = await _vacuumIO.WaitInputAsync(VacuumSensor, false, 1000, token);
             //if (!vacuumReleased)
             //    _logger.Warn($"[{MechanismName}] 真空释放超时，物料可能未完全离开！");
