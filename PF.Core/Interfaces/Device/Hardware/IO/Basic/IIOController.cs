@@ -25,17 +25,47 @@ namespace PF.Core.Interfaces.Device.Hardware.IO.Basic
         /// <returns>True 为有信号(高电平)，False 为无信号(低电平)</returns>
         bool? ReadInput(int portIndex);
 
+
+
+        /// <summary>
+        /// 读取指定的输入信号
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="InPutName">输入信号名称</param>
+        /// <returns></returns>
+        bool? ReadInput<T>(T InPutName) where T : Enum;
+
         /// <summary>
         /// 设置指定的输出信号
         /// </summary>
         /// <param name="portIndex">端口号</param>
         /// <param name="value">True 为开启输出，False 为关闭</param>
-        bool  WriteOutput(int portIndex, bool value);
+        bool WriteOutput(int portIndex, bool value);
+
+
+
+        /// <summary>
+        /// 设置指定的输出信号
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="OutputName">输出信号名称</param>
+        /// <param name="value">值</param>
+        /// <returns></returns>
+        bool WriteOutput<T>(T OutputName, bool value) where T : Enum;
 
         /// <summary>
         /// 读取指定的输出信号当前状态（用于UI回显）
         /// </summary>
         bool? ReadOutput(int portIndex);
+
+
+        /// <summary>
+        /// 读取指定的输出信号当前状态（用于UI回显）
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="InPutName"></param>
+        /// <returns></returns>
+        bool? ReadOutPut<T>(T InPutName) where T : Enum;
 
         /// <summary>
         /// 异步等待某个输入端口达到指定状态（自带防卡死超时机制）
@@ -45,5 +75,9 @@ namespace PF.Core.Interfaces.Device.Hardware.IO.Basic
         /// <param name="timeoutMs">超时时间(毫秒)</param>
         /// <param name="token">取消令牌</param>
         Task<bool> WaitInputAsync(int portIndex, bool targetState, int timeoutMs = 5000, CancellationToken token = default);
+
+
+
+        Task<bool> WaitOutputAsync<T>(T InputName, bool targetState, int timeoutMs = 5000, CancellationToken token = default) where T : Enum;
     }
 }
