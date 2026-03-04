@@ -80,25 +80,25 @@ namespace PF.Services.Hardware
                 try
                 {
                     // 1. 读取当前 IO 状态
-                    bool currentStart = _ioCard.ReadInput(_config.StartButtonPort);
-                    bool currentPause = _ioCard.ReadInput(_config.PauseButtonPort);
-                    bool currentReset = _ioCard.ReadInput(_config.ResetButtonPort);
-                    bool currentEStop = _ioCard.ReadInput(_config.EStopButtonPort);
+                    bool? currentStart = _ioCard.ReadInput(_config.StartButtonPort);
+                    bool? currentPause = _ioCard.ReadInput(_config.PauseButtonPort);
+                    bool? currentReset = _ioCard.ReadInput(_config.ResetButtonPort);
+                    bool? currentEStop = _ioCard.ReadInput(_config.EStopButtonPort);
 
                     // 2. 边缘检测与事件触发
 
                     // 🚨【急停】：绝对下降沿（断开瞬间），无需等待抬起或防抖
-                    if (!currentEStop && _lastEStop)
+                    if (!currentEStop.Value  && _lastEStop)
                     {
                         _logger.Fatal("【硬件面板】检测到实体急停按钮被拍下！");
                         _hardwareEventBus.PublishPhysicalButton(PhysicalButtonType.EStop);
                     }
 
                     // 🟢【启动】：按下后抬起触发 (True -> False)
-                    if (!currentStart && _lastStart)
+                    if (!currentStart.Value  && _lastStart)
                     {
                         await Task.Delay(20, token); // 机械防抖
-                        if (!_ioCard.ReadInput(_config.StartButtonPort)) // 确认已稳定松开
+                        if (!_ioCard.ReadInput(_config.StartButtonPort).Value ) // 确认已稳定松开
                         {
                             _logger.Info("【硬件面板】启动按钮按下后抬起，触发启动指令");
                             _hardwareEventBus.PublishPhysicalButton(PhysicalButtonType.Start);
@@ -106,10 +106,10 @@ namespace PF.Services.Hardware
                     }
 
                     // 🟡【暂停】：按下后抬起触发
-                    if (!currentPause && _lastPause)
+                    if (!currentPause.Value  && _lastPause)
                     {
                         await Task.Delay(20, token);
-                        if (!_ioCard.ReadInput(_config.PauseButtonPort))
+                        if (!_ioCard.ReadInput(_config.PauseButtonPort).Value )
                         {
                             _logger.Info("【硬件面板】暂停按钮按下后抬起，触发暂停指令");
                             _hardwareEventBus.PublishPhysicalButton(PhysicalButtonType.Pause);
@@ -117,10 +117,10 @@ namespace PF.Services.Hardware
                     }
 
                     // 🔵【复位】：按下后抬起触发
-                    if (!currentReset && _lastReset)
+                    if (!currentReset.Value  && _lastReset)
                     {
                         await Task.Delay(20, token);
-                        if (!_ioCard.ReadInput(_config.ResetButtonPort))
+                        if (!_ioCard.ReadInput(_config.ResetButtonPort).Value )
                         {
                             _logger.Info("【硬件面板】复位按钮按下后抬起，触发复位指令");
                             _hardwareEventBus.PublishPhysicalButton(PhysicalButtonType.Reset);
@@ -128,10 +128,10 @@ namespace PF.Services.Hardware
                     }
 
                     // 3. 更新历史状态
-                    _lastStart = currentStart;
-                    _lastPause = currentPause;
-                    _lastReset = currentReset;
-                    _lastEStop = currentEStop;
+                    _lastStart = currentStart.Value ;
+                    _lastPause = currentPause.Value ;
+                    _lastReset = currentReset.Value ;
+                    _lastEStop = currentEStop.Value ;
 
                     await Task.Delay(30, token); // 轮询周期
                 }
