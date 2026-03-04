@@ -32,6 +32,7 @@
     <Project Path="PF.Application.Shell/PF.Application.Shell.csproj" />
   </Folder>
   <Folder Name="/07.Workstation (设备层)/">
+    <Project Path="PF.WorkStation.AutoOcr/PF.WorkStation.AutoOcr.csproj" Id="86c74a6e-a9ed-4e80-8d16-3bea9662dc85" DisplayName="PF.Workstation.AutoOcr" />
     <Project Path="PF.Workstation.Demo.UI/PF.Workstation.Demo.UI.csproj" Id="5758dd5b-0705-4f5e-b73f-830e76506fad" />
     <Project Path="PF.Workstation.Demo/PF.Workstation.Demo.csproj" />
   </Folder>

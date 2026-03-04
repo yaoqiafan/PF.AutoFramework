@@ -1,0 +1,45 @@
+﻿using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Hardware.Motor.Basic;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PF.Workstation.AutoOcr.Hardware
+{
+    public class EtherCatAxis : BaseAxisDevice
+    {
+        public EtherCatAxis(string deviceId, int axisIndex, string deviceName, ILogService logger, string dataDirectory)
+            : base(
+                deviceId: deviceId,
+                deviceName: deviceName,
+                isSimulated: true,
+                logger: logger,
+                dataDirectory: dataDirectory)
+        {
+            AxisIndex = axisIndex;
+            Category = Core.Enums.HardwareCategory.Axis;
+        }
+
+        public override int AxisIndex { get; }
+
+        public override AxisParam Param { get ; set ; }
+
+        protected override Task<bool> InternalConnectAsync(CancellationToken token)
+        {
+            return Task.FromResult(true);
+        }
+
+        protected override Task InternalDisconnectAsync()
+        {
+            return Task.FromResult(true);
+        }
+
+        protected override Task InternalResetAsync(CancellationToken token)
+        {
+            return Task.FromResult(true);
+        }
+    }
+}

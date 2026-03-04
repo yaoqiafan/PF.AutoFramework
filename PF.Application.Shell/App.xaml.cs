@@ -321,18 +321,18 @@ namespace PF.Application.Shell
         {
             try
             {
-                // 1. 获取应用程序目录
-                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
+                //// 1. 获取应用程序目录
+                //var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                //var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
 
                 // 如果目录不存在则创建
-                if (!Directory.Exists(appFolder))
+                if (!Directory.Exists(ConstGlobalParam.ConfigPath))
                 {
-                    Directory.CreateDirectory(appFolder);
+                    Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
                 }
 
                 // 2. 构建数据库文件路径
-                var filePath = Path.Combine(appFolder, "SystemParamsCollection.db");
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
 
                 // 3. 初始化数据库上下文工厂
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
@@ -363,9 +363,9 @@ namespace PF.Application.Shell
 
 
                 // 获取数据库连接字符串（与初始化时保持一致）
-                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
-                var filePath = Path.Combine(appFolder, "SystemParamsCollection.db");
+                //var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                //var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
 
                 //  初始化数据库上下文工厂
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
@@ -515,26 +515,26 @@ namespace PF.Application.Shell
             var hwManager = new HardwareManagerService(_logService, paramService);
 
             // 注册 SimMotionCard 工厂（顶级板卡，必须先于子设备注册以确保工厂存在）
-            hwManager.RegisterFactory("SimMotionCard", cfg =>
+            hwManager.RegisterFactory("LTDMCMotionCard", cfg =>
             {
                 int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
                     ? int.Parse(ci) : 0;
-                return new PF.Workstation.Demo.Hardware.SimMotionCard(cardIndex, _logService);
+                return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(cardIndex, _logService);
             });
 
             // 注册 SimXAxis 工厂（工厂在 Composition Root 持有具体类型引用，不违反依赖方向）
-            hwManager.RegisterFactory("SimXAxis", cfg =>
+            hwManager.RegisterFactory("EtherCatAxis", cfg =>
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                
-                return new PF.Workstation.Demo.Hardware.SimXAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
+
+                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
             });
 
-            
+
             // 注册 SimVacuumIO 工厂
-            hwManager.RegisterFactory("SimVacuumIO", cfg =>
-                new PF.Workstation.Demo.Hardware.SimVacuumIO(_logService));
+            hwManager.RegisterFactory("EtherCatIO", cfg =>
+                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(_logService));
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }
@@ -597,7 +597,7 @@ namespace PF.Application.Shell
                 // 添加更多自定义分类
                 config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
 
-              
+
 
 
                 // 确保日志目录存在
