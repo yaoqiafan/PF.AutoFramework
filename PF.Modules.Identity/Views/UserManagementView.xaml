@@ -14,6 +14,7 @@
     <UserControl.Resources>
         <local:BindingProxy x:Key="Proxy" Data="{Binding}" />
         <conv:SystemUserToBoolConverter x:Key="SystemUserToBoolConverter" />
+        <conv:ListToStringConverter x:Key="ListToStringConverter" />
     </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -103,7 +104,8 @@
                             <TextBlock
                                 Height="80"
                                 Margin="0,0,0,15"
-                                Text="{Binding AccessibleViews}"
+                                Text="{Binding AccessibleViews, Converter={StaticResource ListToStringConverter}}"
+                                TextWrapping="Wrap"
                                 ToolTip="例如: ParameterView, LogView, HistoryView" />
 
                             <Button
