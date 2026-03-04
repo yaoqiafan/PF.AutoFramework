@@ -288,7 +288,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
-            <RowDefinition Height="40" />
+            <RowDefinition Height="35" />
         </Grid.RowDefinitions>
 
 
@@ -298,9 +298,9 @@
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="0" Background="{DynamicResource RegionBrush}">
-
-                <Grid.RowDefinitions>
+            <Border  Grid.Column="0" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1,0,1,1">
+                <Grid  Background="{DynamicResource RegionBrush}">
+                    <Grid.RowDefinitions>
                     <RowDefinition />
                     <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
@@ -321,19 +321,20 @@
                     </pf:Interaction.Triggers>
                 </pf:SideMenu>
             </Grid>
-
-            <Grid Grid.Column="1">
+            </Border>
+            <Border  Grid.Column="1" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1,0,1,1">
+                <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="80*" />
                     <RowDefinition Height="20*" />
                 </Grid.RowDefinitions>
                 <ContentControl Grid.Row="0" prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.SoftwareViewRegion}" />
-                <ContentControl
+                <ContentControl BorderThickness="1" BorderBrush="{DynamicResource PrimaryBrush}"
                     Grid.Row="1"
                     Margin="5"
                     prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.LoggingListRegion}" />
             </Grid>
-
+            </Border>
 
         </Grid>
 
@@ -342,7 +343,7 @@
         <StatusBar  FontSize="{StaticResource  TextFontSize}"
             Grid.Row="1"
             Background="{DynamicResource RegionBrush}"
-            BorderThickness="0">
+            BorderThickness="1">
             <StatusBarItem >
                 <TextBlock Text="{Binding CoName}" />
             </StatusBarItem>

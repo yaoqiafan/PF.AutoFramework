@@ -71,34 +71,46 @@
 
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Width="200">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition />
-                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <Grid Grid.Column="1" Width="110">
+
+                                    <Grid Grid.Column="0" Width="150">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="auto" />
                                             <ColumnDefinition />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock
+
+                                        <Border
                                             Grid.Column="0"
+                                            Width="20"
+                                            Margin="0,5,10,5"
+                                            HorizontalAlignment="Left"
+                                            Background="{Binding Root, Converter={StaticResource UserBgConverter}}"
+                                            CornerRadius="2" />
+
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Left"
                                             FontSize="13"
                                             FontWeight="Medium"
                                             Text="{Binding UserName}" />
+
+                                    </Grid>
+
+                                    <Grid Grid.Column="1">
+
                                         <TextBlock
                                             Grid.Column="1"
-                                            HorizontalAlignment="Right"
+                                            Margin="10,0,0,0"
+                                            HorizontalAlignment="Stretch"
                                             FontSize="11"
                                             Text="{Binding Root, Converter={StaticResource UserTextConverter}}" />
                                     </Grid>
-                                    <!--  等级色标  -->
-                                    <Border
-                                        Grid.Column="0"
-                                        Width="50"
-                                        Margin="0,5,10,5"
-                                        Background="{Binding Root, Converter={StaticResource UserBgConverter}}"
-                                        CornerRadius="2" />
+
+
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -153,10 +165,7 @@
                                 FontWeight="SemiBold"
                                 Text="{Binding SelectedUser.UserName, StringFormat='正在配置: {0}'}" />
                             <StackPanel Margin="0,3,0,0" Orientation="Horizontal">
-                                <TextBlock
-                                    FontSize="12"
-                                    Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                    Text="等级: " />
+                                <TextBlock FontSize="12" Text="等级: " />
                                 <TextBlock
                                     FontSize="12"
                                     FontWeight="Medium"
@@ -168,7 +177,6 @@
                             Grid.Column="1"
                             VerticalAlignment="Center"
                             FontSize="12"
-                            Foreground="{DynamicResource SecondaryTextColorBrush}"
                             Text="{Binding PermissionList.Count, StringFormat='共 {0} 个页面'}" />
                     </Grid>
                 </Border>
