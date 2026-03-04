@@ -205,6 +205,19 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "模拟Y轴，挂载于 SIM_CARD_0"
             };
 
+            HardwareConfig simZAxis = new()
+            {
+                DeviceId = "SIM_Z_AXIS_2",
+                DeviceName = "模拟Z轴[2]",
+                Category = "Axis",
+                ImplementationClassName = "SimXAxis",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = "SIM_CARD_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "2" },
+                Remarks = "模拟Z轴，挂载于 SIM_CARD_0"
+            };
+
             HardwareConfig simIO = new()
             {
                 DeviceId                = "SIM_VACUUM_IO",
@@ -249,6 +262,19 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = simYAxis.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(simYAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                }
+                ,
+                
+                {
+                    simZAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = simZAxis.DeviceId,
+                        Description  = simZAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(simZAxis),
                         Category     = "Hardware",
                         Version      = 1
                     }
