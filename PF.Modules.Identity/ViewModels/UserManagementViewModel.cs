@@ -4,13 +4,7 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
-using Prism.Services.Dialogs;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace PF.Modules.Identity.ViewModels
@@ -129,7 +123,7 @@ namespace PF.Modules.Identity.ViewModels
 
             Users.Add(newUser);
             SelectedUser = newUser;
-            _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，请填写后点击"保存更改"落盘。");
+            _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，请填写后点击 “保存更改” 落盘。");
         }
 
         private async Task SaveAsync()
@@ -144,7 +138,7 @@ namespace PF.Modules.Identity.ViewModels
                 {
                     _logger.Success($"[用户管理] 用户 '{SelectedUser.UserName}' 保存成功。");
                     _messageService.ShowMessage(
-                        $"用户 "{SelectedUser.UserName}" 已保存。",
+                        $"用户 {SelectedUser.UserName} 已保存。",
                         "成功",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
@@ -176,7 +170,7 @@ namespace PF.Modules.Identity.ViewModels
 
             // 二次确认，防止误操作
             var result = await _messageService.ShowMessageAsync(
-                $"确认要删除用户 "{user.UserName}" 吗？此操作不可撤销。",
+                $"确认要删除用户 {user.UserName} 吗？此操作不可撤销。",
                 "删除确认",
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Warning);
