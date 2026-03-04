@@ -126,7 +126,7 @@ namespace PF.Modules.Identity.ViewModels
 
             Users.Add(newUser);
             SelectedUser = newUser;
-            _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，默认权限 {level}，请填写后点击"保存更改"落盘。");
+            _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，默认权限 {level}，请填写后点击\"保存更改\"落盘。");
         }
 
         /// <summary>
