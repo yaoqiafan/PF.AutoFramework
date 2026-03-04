@@ -65,7 +65,7 @@ namespace PF.Core.Interfaces.Device.Hardware.IO.Basic
         /// <typeparam name="T"></typeparam>
         /// <param name="InPutName"></param>
         /// <returns></returns>
-        bool? ReadOutPut<T>(T InPutName) where T : Enum;
+        bool? ReadOutput<T>(T InPutName) where T : Enum;
 
         /// <summary>
         /// 异步等待某个输入端口达到指定状态（自带防卡死超时机制）
@@ -77,7 +77,15 @@ namespace PF.Core.Interfaces.Device.Hardware.IO.Basic
         Task<bool> WaitInputAsync(int portIndex, bool targetState, int timeoutMs = 5000, CancellationToken token = default);
 
 
-
-        Task<bool> WaitOutputAsync<T>(T InputName, bool targetState, int timeoutMs = 5000, CancellationToken token = default) where T : Enum;
+        /// <summary>
+        /// 异步等待某个输入端口达到指定状态（自带防卡死超时机制）
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="InputName">输入信号名称</param>
+        /// <param name="targetState">期待达到的状态</param>
+        /// <param name="timeoutMs">超时时间(毫秒)</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<bool> WaitInputAsync<T>(T InputName, bool targetState, int timeoutMs = 5000, CancellationToken token = default) where T : Enum;
     }
 }
