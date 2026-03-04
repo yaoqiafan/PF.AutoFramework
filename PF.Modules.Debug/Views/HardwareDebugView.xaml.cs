@@ -19,7 +19,7 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Debug.Views
 {
-    [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "设备综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 4, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
+    [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "设备综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 1, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
     public partial class HardwareDebugView : UserControl
     {
         public HardwareDebugView(IRegionManager regionManager)

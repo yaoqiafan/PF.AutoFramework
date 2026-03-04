@@ -21,7 +21,7 @@ using System.Windows.Shapes;
 namespace PF.Modules.Debug.Views
 {
     // 注意这里：单独的侧边栏按钮“业务模组调试”
-    [ModuleNavigation(NavigationConstants.Views.MechanismDebugView, "业务模组调试", GroupName = "系统调试", Icon = "DebugIcon")]
+    [ModuleNavigation(NavigationConstants.Views.MechanismDebugView, "业务模组调试", GroupName = "系统调试", Icon = "DebugIcon" ,Order =2)]
     public partial class MechanismDebugView : UserControl
     {
         public MechanismDebugView(IRegionManager regionManager) 

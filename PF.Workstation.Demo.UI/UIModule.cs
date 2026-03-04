@@ -1,6 +1,8 @@
 ﻿using PF.Core.Constants;
+using PF.UI.Infrastructure.Navigation;
 using PF.Workstation.Demo.UI.ViewModels;
 using PF.Workstation.Demo.UI.Views;
+using System.Reflection;
 
 namespace PF.Workstation.Demo.UI
 {
@@ -8,7 +10,11 @@ namespace PF.Workstation.Demo.UI
     {
         public void OnInitialized(IContainerProvider containerProvider)
         {
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
 
+
+            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
@@ -18,6 +24,8 @@ namespace PF.Workstation.Demo.UI
             // 取放工站调试子视图（由 StationDebugView 通过 [StationUIAttribute] 发现并导航）
             containerRegistry.RegisterForNavigation<PickPlaceStationDebugView, PickPlaceStationDebugViewModel>(
                 NavigationConstants.Views.PickPlaceStationDebugView);
+
+            containerRegistry.RegisterForNavigation<MainView, MainViewModel>(NavigationConstants.Views.MainView);
         }
     }
 }
