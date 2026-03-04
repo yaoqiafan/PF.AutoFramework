@@ -62,7 +62,7 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         /// </summary>
         /// <param name="portIndex">端口号（板卡内物理端口索引）</param>
         /// <returns>true = 高电平（有信号），false = 低电平（无信号）</returns>
-        public virtual bool ReadInput(int portIndex)
+        public virtual bool? ReadInput(int portIndex)
         {
             EnsureCardAttached();
             return ParentCard!.ReadInputPort(portIndex);
@@ -73,17 +73,17 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         /// </summary>
         /// <param name="portIndex">端口号（板卡内物理端口索引）</param>
         /// <param name="value">true = 开启输出，false = 关闭输出</param>
-        public virtual void WriteOutput(int portIndex, bool value)
+        public virtual bool  WriteOutput(int portIndex, bool value)
         {
             EnsureCardAttached();
-            ParentCard!.WriteOutputPort(portIndex, value);
+           return  ParentCard!.WriteOutputPort(portIndex, value);
         }
 
         /// <summary>
         /// 读取指定输出端口的当前锁存状态（委托给父板卡执行，用于 UI 回显）。
         /// </summary>
         /// <param name="portIndex">端口号（板卡内物理端口索引）</param>
-        public virtual bool ReadOutput(int portIndex)
+        public virtual bool? ReadOutput(int portIndex)
         {
             EnsureCardAttached();
             return ParentCard!.ReadOutputPort(portIndex);
