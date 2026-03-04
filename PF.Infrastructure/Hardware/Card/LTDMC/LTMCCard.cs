@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using log4net.Core;
+using Microsoft.EntityFrameworkCore.Metadata;
+using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
 using System;
@@ -6,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Text;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.Card.LTDMC
@@ -39,78 +42,369 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         public override Task<bool> DisableAxisAsync(int axisIndex)
         {
-            throw new NotImplementedException();
+            try
+            {
+                short ret = CardAPI.LTDMC.nmc_set_axis_disable((ushort)CardIndex, (ushort)axisIndex);
+                if (ret != 0)
+                {
+                    throw new Exception($"轴[{axisIndex}]使能失败，函数名：nmc_set_axis_disable,返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+
         }
 
         public override Task<bool> EnableAxisAsync(int axisIndex)
         {
-            throw new NotImplementedException();
+            try
+            {
+                short ret = CardAPI.LTDMC.nmc_set_axis_enable((ushort)CardIndex, (ushort)axisIndex);
+                if (ret != 0)
+                {
+                    throw new Exception($"轴[{axisIndex}]使能失败，函数名：nmc_set_axis_disable,返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
         }
 
-        public override double GetAxisCurrentPosition(int axisIndex)
+        public override double? GetAxisCurrentPosition(int axisIndex)
         {
-            throw new NotImplementedException();
+            try
+            {
+                double pos = 0;
+                double? equiv = this.GetCurEquiv(axisIndex);
+                if (equiv == null)
+                {
+                    return null;
+                }
+                short ret = CardAPI.LTDMC.dmc_get_position_unit((ushort)CardIndex, (ushort)axisIndex, ref pos);
+                if (ret != 0)
+                {
+                    throw new Exception($"获取轴当前位置错误  函数名：dmc_get_position_unit ,返回值：{ret}");
+                }
+                pos *= equiv.Value;
+                return pos;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
-        public override Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token = default)
+        public override Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                double? equiv = this.GetCurEquiv(axisIndex);
+                if (equiv == null)
+                {
+                    throw new Exception($"获取轴{axisIndex}脉冲当量失败");
+                }
+                var hovel = HomeVel / equiv;
+                var hoacc = HomeAcc / equiv;
+                var hodec = HomeDec / equiv;
+                var hooffest = HomeOffest / equiv;
+                var Tacc = ((double)hovel - (double)hovel / 10.0) / (double)hoacc;
+                var Tdec = ((double)hovel - (double)hovel / 10.0) / (double)hodec;
+                short ret = CardAPI.LTDMC.nmc_set_home_profile((ushort)CardIndex, (ushort)axisIndex, (ushort)HomeModel, hovel.Value / 10, hovel.Value, Tacc, Tdec, hooffest.Value);
+                if (ret != 0)
+                {
+                    throw new Exception($"设置轴回零参数失败  函数名：nmc_set_home_profile,返回值：{ret}");
+                }
+                ret = CardAPI.LTDMC.dmc_clear_stop_reason((ushort)CardIndex, (ushort)axisIndex);
+                if (ret != 0)
+                {
+                    throw new Exception($"单轴回原点失败，清除到位原因失败函数名：dmc_clear_stop_reason,返回值：{ret}");
+                }
+                ret = CardAPI.LTDMC.nmc_home_move((ushort)CardIndex, (ushort)axisIndex);
+                if (ret != 0)
+                {
+                    throw new Exception($"单轴回原点失败，函数名：nmc_home_move,返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
         }
 
-        public override bool IsAxisEnabled(int axisIndex)
+
+
+        /// <summary>
+        /// 获取轴的脉冲当量
+        /// </summary>
+        /// <param name="axisIndex">轴索引</param>
+        /// <returns></returns>
+        private double? GetCurEquiv(int axisIndex)
         {
-            throw new NotImplementedException();
+            double equiv = 0;
+            short ret = CardAPI.LTDMC.dmc_get_equiv((ushort)CardIndex, (ushort)axisIndex, ref equiv);
+            if (ret != 0)
+            {
+                HardwareLogger.Debug($"获取轴[{axisIndex}]脉冲当量错误错误，函数名：dmc_get_equiv,返回值：{ret}");
+                return null;
+            }
+            return equiv;
         }
 
-        public override bool IsAxisMoving(int axisIndex)
+        public override MotionIOStatus GetMotionIOStatus(int axisIndex)
         {
-            throw new NotImplementedException();
+            MotionIOStatus iostatus = new MotionIOStatus();
+            try
+            {
+                uint psts = CardAPI.LTDMC.dmc_axis_io_status((ushort)CardIndex, (ushort)axisIndex);
+                iostatus.ALM = (psts & 0x01) == 0x01;
+                iostatus.PEL = (psts & 0x02) == 0x02;
+                iostatus.MEL = (psts & 0x04) == 0x04;
+                iostatus.Emg = (psts & 0x08) == 0x08;
+                iostatus.ORG = (psts & 0x10) == 0x10;
+                ushort Axis_StateMachine = 0;
+                short ret = CardAPI.LTDMC.nmc_get_axis_state_machine((ushort)CardIndex, (ushort)axisIndex, ref Axis_StateMachine);
+                if (ret == 0)
+                {
+                    iostatus.SVO = Axis_StateMachine == 4;
+                }
+                else
+                {
+                    iostatus.SVO = false;
+                }
+                ushort run_mode = 0;
+                ret = CardAPI.LTDMC.dmc_get_axis_run_mode((ushort)CardIndex, (ushort)axisIndex, ref run_mode);
+                if (ret == 0)
+                {
+                    ret = CardAPI.LTDMC.dmc_check_done((ushort)CardIndex, (ushort)axisIndex);
+                    iostatus.MoveDone = run_mode == 0 && ret == 1 ? true : false;
+                    iostatus.Moving = (run_mode == 1 || run_mode == 2) && psts == 0 ? true : false;
+                    ushort homeResult = 0;
+                    ret = CardAPI.LTDMC.dmc_get_home_result((ushort)CardIndex, (ushort)axisIndex, ref homeResult);
+                    if (ret == 0)
+                    {
+                        iostatus.HomeDone = run_mode == 0 && homeResult == 1 ? true : false;
+                        iostatus.Homing = run_mode == 3 && homeResult == 0 ? true : false;
+                    }
+                    else
+                    {
+                        iostatus.HomeDone = false;
+                        iostatus.Homing = false;
+                    }
+                }
+                else
+                {
+                    iostatus.MoveDone = false;
+                    iostatus.Moving = false;
+                    iostatus.HomeDone = false;
+                    iostatus.Homing = false;
+                }
+                return iostatus;
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return iostatus;
+            }
         }
 
-        public override bool IsAxisNegativeLimit(int axisIndex)
+        public override Task<bool> JogAsync(int axisIndex, double velocity, double Acc, double Dec, bool isPositive)
         {
-            throw new NotImplementedException();
+            try
+            {
+                double tAcc = (velocity - velocity / 10.0) / Acc;
+                double tDec = (velocity - velocity / 10.0) / Dec;
+                ushort jogDir = isPositive ? (ushort)1 : (ushort)2;
+                short ret = CardAPI.LTDMC.dmc_set_profile_unit((ushort)CardIndex, (ushort)axisIndex, velocity / 10.0, velocity, tAcc, tDec, velocity / 10.0);
+                if (ret != 0)
+                {
+                    throw new Exception($"指定轴JOG运动失败，设置单轴运动速度曲线失败  函数名： dmc_set_profile_unit  返回值：{ret}");
+                }
+                ret = CardAPI.LTDMC.dmc_vmove((ushort)CardIndex, (ushort)axisIndex, jogDir);
+                if (ret != 0)
+                {
+                    throw new Exception($"指定轴JOG运动失败    函数名：dmc_pmove_unit  返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+
         }
 
-        public override bool IsAxisPositiveLimit(int axisIndex)
+        public override Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                double? equiv = this.GetCurEquiv(axisIndex);
+                if (!equiv.HasValue)
+                {
+                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
+                }
+                double tAcc = (velocity - velocity / 10.0) / (double)Acc;
+                double tDec = (velocity - velocity / 10.0) / (double)Dec;
+                targetPosition /= equiv.Value;
+                ushort pos_mode = 1;//运动模式，0：相对坐标模式，1：绝对坐标模式
+                //设置单轴运动曲线
+                short ret = CardAPI.LTDMC.dmc_set_profile_unit((ushort)CardIndex, (ushort)axisIndex, velocity / 10.0, velocity, tAcc, tDec, velocity / 10.0);
+                if (ret != 0)
+                {
+                    throw new Exception($"指定轴绝对位置运动失败，设置单轴运动速度曲线失败 函数名： dmc_set_profile_unit  返回值：{ret}");
+                }
+                //设置S段速度
+                ret = CardAPI.LTDMC.dmc_set_s_profile((ushort)CardIndex, (ushort)axisIndex, 0, STime);
+                if (ret != 0)
+                {
+                    throw new Exception($"指定轴绝对位置运动失败，设置单轴速度曲线S段参数值失败 函数名：dmc_set_s_profile  返回值：{ret}");
+                }
+                //执行点位运动
+                ret = CardAPI.LTDMC.dmc_pmove_unit((ushort)CardIndex, (ushort)axisIndex, targetPosition, pos_mode);
+                if (ret != 0)
+                {
+                    throw new Exception($"指定轴绝对位置运动失败 函数名：dmc_pmove_unit  返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+
         }
 
-        public override Task<bool> JogAsync(int axisIndex, double velocity, bool isPositive)
+        public override Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                double? equiv = this.GetCurEquiv(axisIndex);
+                if (!equiv.HasValue)
+                {
+                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
+                }
+                double tAcc = (velocity - velocity / 10.0) / (double)Acc;
+                double tDec = (velocity - velocity / 10.0) / (double)Dec;
+                distance /= equiv.Value;
+                ushort pos_mode = 0;//运动模式，0：相对坐标模式，1：绝对坐标模式
+                //设置单轴运动曲线
+                short ret = CardAPI.LTDMC.dmc_set_profile_unit((ushort)CardIndex, (ushort)axisIndex, velocity / 10.0, velocity, tAcc, tDec, velocity / 10.0);
+                if (ret != 0)
+                {
+                    throw new Exception($"轴相对位置运动失败，设置单轴运动速度曲线失败 函数名： dmc_set_profile_unit  返回值：{ret}");
+                }
+                //设置S段速度
+                ret = CardAPI.LTDMC.dmc_set_s_profile((ushort)CardIndex, (ushort)axisIndex, 0, STime);
+                if (ret != 0)
+                {
+                    throw new Exception($"轴相对位置运动失败，设置单轴速度曲线S段参数值失败 函数名：dmc_set_s_profile  返回值：{ret}");
+                }
+                //执行点位运动
+                ret = CardAPI.LTDMC.dmc_pmove_unit((ushort)CardIndex, (ushort)axisIndex, distance, pos_mode);
+                if (ret != 0)
+                {
+                    throw new Exception($"轴相对位置运动失败 函数名：dmc_pmove_unit  返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
         }
 
-        public override Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, CancellationToken token = default)
+        public override bool? ReadInputPort(int portIndex)
         {
-            throw new NotImplementedException();
+            try
+            {
+                ushort state = 0;
+                short ret = CardAPI.LTDMC.dmc_read_inbit_ex((ushort)CardIndex, (ushort)portIndex, ref state);
+                if (ret != 0)
+                {
+                    throw new Exception($"获取输入状态失败 函数名：dmc_read_inbit_ex 返回值:{ret}");
+                }
+                return state == 0;
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return null;
+            }
         }
 
-        public override Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, CancellationToken token = default)
+        public override bool? ReadOutputPort(int portIndex)
         {
-            throw new NotImplementedException();
+            try
+            {
+                ushort state = 0;
+                short ret = CardAPI.LTDMC.dmc_read_outbit_ex((ushort)CardIndex, (ushort)portIndex, ref state);
+                if (ret != 0)
+                {
+                    throw new Exception($"获取输出状态失败 函数名：dmc_read_outbit_ex 返回值:{ret}");
+                }
+                return state == 0;
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return null;
+            }
         }
 
-        public override bool ReadInputPort(int portIndex)
+        public override Task<bool> StopAxisAsync(int axisIndex, bool IsEmgStop = false)
         {
-            throw new NotImplementedException();
+            try
+            {
+                ushort stop_mode = IsEmgStop ? (ushort)1 : (ushort)0;//制动方式，0：减速停止，1：紧急停止
+                short ret = CardAPI.LTDMC.dmc_stop((ushort)CardIndex, (ushort)axisIndex, stop_mode);
+                if (ret != 0)
+                {
+                    throw new Exception($"指定轴停止JOG运动失败 函数名： LTDMCMotion.dmc_stop 返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+
         }
 
-        public override bool ReadOutputPort(int portIndex)
+        public override bool WriteOutputPort(int portIndex, bool value)
         {
-            throw new NotImplementedException();
+            try
+            {
+                ushort uvalue = value ? (ushort)0 : (ushort)1;
+                short ret = CardAPI.LTDMC.dmc_write_outbit((ushort)CardIndex, (ushort)portIndex, uvalue);
+                if (ret != 0)
+                {
+                    throw new Exception($"设置输出状态失败 函数名：dmc_write_outbit 返回值:{ret}");
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return false;
+            }
+
+
         }
 
-        public override Task<bool> StopAxisAsync(int axisIndex)
-        {
-            throw new NotImplementedException();
-        }
 
-        public override void WriteOutputPort(int portIndex, bool value)
-        {
-            throw new NotImplementedException();
-        }
+        #region 控制卡连接和初始化
 
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
         {
@@ -272,7 +566,20 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         protected override Task InternalDisconnectAsync()
         {
-            throw new NotImplementedException();
+            try
+            {
+                short ret = CardAPI.LTDMC.dmc_board_close();
+                if (ret != 0)
+                {
+                    throw new Exception($"关闭运动控制卡失败,dmc_board_close返回值：{ret}");
+                }
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.CompletedTask;
+            }
         }
 
 
@@ -284,7 +591,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
+
+        #endregion 控制卡连接和初始化
     }
 }
