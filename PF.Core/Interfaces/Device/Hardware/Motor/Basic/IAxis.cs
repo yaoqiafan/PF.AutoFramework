@@ -1,5 +1,7 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.Card;
+using System.Numerics;
 
 namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
 {
@@ -38,18 +40,18 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <summary>当前实时物理位置 (工程单位，如 mm)</summary>
         double? CurrentPosition { get; }
 
-        /// <summary>是否正在运动中</summary>
-        bool IsMoving { get; }
 
-        /// <summary>是否触碰正向硬件限位传感器</summary>
-        bool IsPositiveLimit { get; }
 
-        /// <summary>是否触碰负向硬件限位传感器</summary>
-        bool IsNegativeLimit { get; }
+        /// <summary>
+        /// 轴参数列表
+        /// </summary>
+        AxisParam Param { get; set; }
 
-        /// <summary>伺服是否已使能 (Servo On)</summary>
-        bool IsEnabled { get; }
 
+        /// <summary>
+        /// 轴IO映射状态
+        /// </summary>
+        MotionIOStatus? AxisIOStatus { get; }
         #endregion
 
         #region 轴控制指令
@@ -67,14 +69,125 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         Task<bool> HomeAsync(CancellationToken token = default);
 
         /// <summary>绝对位置定位</summary>
-        Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity, CancellationToken token = default);
+        Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity,double Acc,double Dec, double STime, CancellationToken token = default);
 
         /// <summary>相对位置定位</summary>
-        Task<bool> MoveRelativeAsync(double distance, double velocity, CancellationToken token = default);
+        Task<bool> MoveRelativeAsync(double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <summary>持续点动 (Jog)</summary>
-        Task<bool> JogAsync(double velocity, bool isPositive);
+        Task<bool> JogAsync(double velocity, bool isPositive,double Acc, double Dec);
 
         #endregion
+    }
+
+
+    /// <summary>
+    /// 轴参数信息
+    /// </summary>
+    public class AxisParam
+    {
+
+        /// <summary>
+        /// 运行速度
+        /// </summary>
+        public double Vel { get; set; }
+
+
+        /// <summary>
+        /// 运行加速度
+        /// </summary>
+        public double Acc { get; set; }
+
+
+        /// <summary>
+        /// 运行减速度
+        /// </summary>
+        public double Dec { get; set; } 
+
+        /// <summary>
+        /// 正极限硬限位启用标志
+        /// </summary>
+        public bool PelVisEnabled { get; set; }
+
+        /// <summary>
+        /// 负极限硬限位启用标志
+        /// </summary>
+
+        public bool MelVisEnabled { get; set; }
+
+
+        /// <summary>
+        /// 原点限位启用标志
+        /// </summary>
+
+        public bool ORGVisEnabled { get; set; }
+
+
+        /// <summary>
+        /// 回零模式
+        /// </summary>
+        public int HomeModel { get; set; }
+
+
+
+        /// <summary>
+        /// 回零速度
+        /// </summary>
+        public double HomeVel { get; set; }
+
+        /// <summary>
+        /// 回零加速度
+        /// </summary>
+        public double HomeAcc { get; set; }
+
+        /// <summary>
+        /// 回零减速度
+        /// </summary>
+        public double HomeDec { get ; set; }
+
+
+        /// <summary>
+        /// 回零偏移
+        /// </summary>
+        public double  HomeOffest { get ; set; }
+
+
+
+        /// <summary>
+        /// 回零模式固定标志
+        /// </summary>
+        public  bool HomeModelFixed { get ; set; }
+
+
+        /// <summary>
+        /// 正极限回零模式
+        /// </summary>
+        public int  PelHomeModel { get; set; }
+
+
+        /// <summary>
+        /// 负极限回零模式
+        /// </summary>
+        public int MelHomeModel { get; set; }
+
+
+        /// <summary>
+        /// 负限位启用标志
+        /// </summary>
+        public bool LimitVisEnable { get; set; }
+
+
+        /// <summary>
+        /// 正极限软限位
+        /// </summary>
+
+        public double LimitPel { get; set; }
+
+
+        /// <summary>
+        /// 负极限软限位
+        /// </summary>
+
+        public double LimitMel { get; set; }
     }
 }

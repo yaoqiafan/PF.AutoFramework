@@ -1,3 +1,4 @@
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware.Motor.Basic;
 
@@ -25,16 +26,20 @@ namespace PF.Workstation.Demo.Hardware
     /// </summary>
     public class SimXAxis : BaseAxisDevice
     {
-        private double _currentPosition;
-        private bool _isMoving;
-        private bool _isEnabled;
+        //public SimXAxis(string deviceId, string deviceName, bool isSimulated, ILogService logger, string dataDirectory) : base(deviceId, deviceName, isSimulated, logger, dataDirectory)
+        //{
+        //}
 
-        public override int AxisIndex { get; }
-        public override double CurrentPosition => _currentPosition;
-        public override bool IsMoving => _isMoving;
-        public override bool IsPositiveLimit => _currentPosition >= 500.0;
-        public override bool IsNegativeLimit => _currentPosition <= 0.0;
-        public override bool IsEnabled => _isEnabled;
+        //private double _currentPosition;
+        //private bool _isMoving;
+        //private bool _isEnabled;
+
+        //public override int AxisIndex { get; }
+        //public override double CurrentPosition => _currentPosition;
+        //public override bool IsMoving => _isMoving;
+        //public override bool IsPositiveLimit => _currentPosition >= 500.0;
+        //public override bool IsNegativeLimit => _currentPosition <= 0.0;
+        //public override bool IsEnabled => _isEnabled;
 
         /// <summary>
         /// 构造函数
@@ -44,94 +49,112 @@ namespace PF.Workstation.Demo.Hardware
         /// <param name="dataDirectory">点表 JSON 存储根目录（通常为 %AppData%\PFAutoFrameWork）</param>
         public SimXAxis(int axisIndex, ILogService logger, string dataDirectory)
             : base(
-                deviceId:      $"SIM_X_AXIS_{axisIndex}",
-                deviceName:    $"模拟X轴[{axisIndex}]",
-                isSimulated:   true,
-                logger:        logger,
+                deviceId: $"SIM_X_AXIS_{axisIndex}",
+                deviceName: $"模拟X轴[{axisIndex}]",
+                isSimulated: true,
+                logger: logger,
                 dataDirectory: dataDirectory)
         {
             AxisIndex = axisIndex;
             Category = Core.Enums.HardwareCategory.Axis;
         }
 
-        // ── BaseDevice 三个钩子（模拟设备直接返回成功）────────────────────────
+        //// ── BaseDevice 三个钩子（模拟设备直接返回成功）────────────────────────
+
+        //protected override Task<bool> InternalConnectAsync(CancellationToken token)
+        //    => Task.FromResult(true);
+
+        //protected override Task InternalDisconnectAsync()
+        //    => Task.CompletedTask;
+
+        //protected override Task InternalResetAsync(CancellationToken token)
+        //{
+        //    _isMoving = false;
+        //    return Task.CompletedTask;
+        //}
+
+        //// ── IAxis 运动控制实现 ────────────────────────────────────────────────
+
+        //public override Task<bool> EnableAsync()
+        //{
+        //    _isEnabled = true;
+        //    _logger.Info($"[{DeviceName}] 伺服使能 ON");
+        //    return Task.FromResult(true);
+        //}
+
+        //public override Task<bool> DisableAsync()
+        //{
+        //    _isEnabled = false;
+        //    _logger.Info($"[{DeviceName}] 伺服使能 OFF");
+        //    return Task.FromResult(true);
+        //}
+
+        //public override Task<bool> StopAsync()
+        //{
+        //    _isMoving = false;
+        //    _logger.Warn($"[{DeviceName}] 轴急停！当前位置: {_currentPosition:F2} mm");
+        //    return Task.FromResult(true);
+        //}
+
+        //public override async Task<bool> HomeAsync(CancellationToken token = default)
+        //{
+        //    _logger.Info($"[{DeviceName}] 开始回原点...");
+        //    _isMoving = true;
+        //    await Task.Delay(1500, token);
+        //    _currentPosition = 0.0;
+        //    _isMoving = false;
+        //    _logger.Success($"[{DeviceName}] 回原点完成");
+        //    return true;
+        //}
+
+        ///// <summary>
+        ///// 绝对定位：模拟运动耗时 = 距离 / 速度，支持 CancellationToken 急停打断
+        ///// </summary>
+        //public override async Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity,
+        //    CancellationToken token = default)
+        //{
+        //    _logger.Info($"[{DeviceName}] 绝对定位 → {targetPosition:F1} mm @ {velocity} mm/s");
+        //    _isMoving = true;
+
+        //    double dist = Math.Abs(targetPosition - _currentPosition);
+        //    int ms = Math.Clamp((int)(dist / velocity * 1000), 50, 5000);
+        //    await Task.Delay(ms, token);
+
+        //    _currentPosition = targetPosition;
+        //    _isMoving = false;
+        //    _logger.Success($"[{DeviceName}] 到位: {_currentPosition:F1} mm");
+        //    return true;
+        //}
+
+        //public override async Task<bool> MoveRelativeAsync(double distance, double velocity,
+        //    CancellationToken token = default)
+        //    => await MoveAbsoluteAsync(_currentPosition + distance, velocity, token);
+
+        //public override async Task<bool> JogAsync(double velocity, bool isPositive)
+        //{
+        //    _isMoving = true;
+        //    await Task.Delay(100);
+        //    _currentPosition += isPositive ? velocity * 0.1 : -(velocity * 0.1);
+        //    _isMoving = false;
+        //    return true;
+        //}
+        public override int AxisIndex { get; }
+
+        public override AxisParam Param { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         protected override Task<bool> InternalConnectAsync(CancellationToken token)
-            => Task.FromResult(true);
+        {
+            throw new NotImplementedException();
+        }
 
         protected override Task InternalDisconnectAsync()
-            => Task.CompletedTask;
+        {
+            throw new NotImplementedException();
+        }
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
-            _isMoving = false;
-            return Task.CompletedTask;
-        }
-
-        // ── IAxis 运动控制实现 ────────────────────────────────────────────────
-
-        public override Task<bool> EnableAsync()
-        {
-            _isEnabled = true;
-            _logger.Info($"[{DeviceName}] 伺服使能 ON");
-            return Task.FromResult(true);
-        }
-
-        public override Task<bool> DisableAsync()
-        {
-            _isEnabled = false;
-            _logger.Info($"[{DeviceName}] 伺服使能 OFF");
-            return Task.FromResult(true);
-        }
-
-        public override Task<bool> StopAsync()
-        {
-            _isMoving = false;
-            _logger.Warn($"[{DeviceName}] 轴急停！当前位置: {_currentPosition:F2} mm");
-            return Task.FromResult(true);
-        }
-
-        public override async Task<bool> HomeAsync(CancellationToken token = default)
-        {
-            _logger.Info($"[{DeviceName}] 开始回原点...");
-            _isMoving = true;
-            await Task.Delay(1500, token);
-            _currentPosition = 0.0;
-            _isMoving = false;
-            _logger.Success($"[{DeviceName}] 回原点完成");
-            return true;
-        }
-
-        /// <summary>
-        /// 绝对定位：模拟运动耗时 = 距离 / 速度，支持 CancellationToken 急停打断
-        /// </summary>
-        public override async Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity,
-            CancellationToken token = default)
-        {
-            _logger.Info($"[{DeviceName}] 绝对定位 → {targetPosition:F1} mm @ {velocity} mm/s");
-            _isMoving = true;
-
-            double dist = Math.Abs(targetPosition - _currentPosition);
-            int ms = Math.Clamp((int)(dist / velocity * 1000), 50, 5000);
-            await Task.Delay(ms, token);
-
-            _currentPosition = targetPosition;
-            _isMoving = false;
-            _logger.Success($"[{DeviceName}] 到位: {_currentPosition:F1} mm");
-            return true;
-        }
-
-        public override async Task<bool> MoveRelativeAsync(double distance, double velocity,
-            CancellationToken token = default)
-            => await MoveAbsoluteAsync(_currentPosition + distance, velocity, token);
-
-        public override async Task<bool> JogAsync(double velocity, bool isPositive)
-        {
-            _isMoving = true;
-            await Task.Delay(100);
-            _currentPosition += isPositive ? velocity * 0.1 : -(velocity * 0.1);
-            _isMoving = false;
-            return true;
+            throw new NotImplementedException();
         }
     }
 }
