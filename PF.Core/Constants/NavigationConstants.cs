@@ -40,6 +40,7 @@ namespace PF.Core.Constants
 
             public const string LogManagementView = nameof(LogManagementView);
             #endregion
+
             #region 参数管理
             public const string ParameterView = nameof(ParameterView);
             public const string ParameterView_SystemConfigParam = nameof(ParameterView_SystemConfigParam);
@@ -62,6 +63,12 @@ namespace PF.Core.Constants
             public const string StationDebugView = nameof(StationDebugView);
             public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
             public const string CardDebugView = nameof(CardDebugView);
+            #endregion
+
+            #region 主界面
+            public const string MainView = nameof(MainView);
+
+            public const string HomeView = nameof(HomeView);
             #endregion
 
 
