@@ -55,32 +55,49 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
 
         /// <summary>停止指定轴运动（减速停止或急停，由具体实现决定）</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
-        Task<bool> StopAxisAsync(int axisIndex);
+        /// /// <param name="IsEmgStop">是否紧急停止（默认为减速停止）</param>
+        Task<bool> StopAxisAsync(int axisIndex,bool IsEmgStop=false );
 
-        /// <summary>执行指定轴回原点动作（Home）</summary>
+        /// <summary>
+        /// 执行指定轴回原点动作（Home）
+        /// </summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
+        /// <param name="HomeModel">回零模式</param>
+        /// <param name="HomeVel">回零速度</param>
+        /// <param name="HomeAcc">回零加速度</param>
+        /// <param name="HomeDec">回零减速度</param>
+        /// <param name="HomeOffest">回零偏移量</param>
         /// <param name="token">取消令牌</param>
-        Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token = default);
+        /// <returns></returns>
+        Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default);
 
         /// <summary>指定轴绝对位置定位</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
         /// <param name="targetPosition">目标位置（工程单位，如 mm）</param>
         /// <param name="velocity">运动速度（工程单位，如 mm/s）</param>
+        /// <param name="Acc">运动加速度（工程单位）</param>
+        /// <param name="Dec">运动减速度（工程单位）</param>
+        ///  <param name="Dec">S段速度（工程单位）</param>
         /// <param name="token">取消令牌</param>
-        Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, CancellationToken token = default);
+        Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec,double STime, CancellationToken token = default);
 
         /// <summary>指定轴相对位置定位</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
         /// <param name="distance">相对移动距离（工程单位，正负表示方向）</param>
         /// <param name="velocity">运动速度（工程单位，如 mm/s）</param>
+        /// <param name="Acc">运动加速度（工程单位）</param>
+        /// <param name="Dec">运动减速度（工程单位）</param>
+        ///  <param name="Dec">S段速度（工程单位）</param>
         /// <param name="token">取消令牌</param>
-        Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, CancellationToken token = default);
+        Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <summary>指定轴持续点动（Jog）</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
         /// <param name="velocity">点动速度（工程单位，如 mm/s）</param>
+        /// <param name="Acc">点动加速度（工程单位）</param>
+        /// <param name="Dec">点动减速度（工程单位）</param>
         /// <param name="isPositive">true = 正方向，false = 负方向</param>
-        Task<bool> JogAsync(int axisIndex, double velocity, bool isPositive);
+        Task<bool> JogAsync(int axisIndex, double velocity, double Acc, double Dec, bool isPositive);
 
         #endregion
 
@@ -88,23 +105,15 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
 
         /// <summary>读取指定轴的当前实时位置（工程单位，如 mm）</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
-        double GetAxisCurrentPosition(int axisIndex);
+        double? GetAxisCurrentPosition(int axisIndex);
 
-        /// <summary>查询指定轴是否正在运动中</summary>
-        /// <param name="axisIndex">板卡内物理轴索引</param>
-        bool IsAxisMoving(int axisIndex);
 
-        /// <summary>查询指定轴是否触碰正向硬件限位传感器</summary>
+        /// <summary>
+        /// 获取轴状态
+        /// </summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
-        bool IsAxisPositiveLimit(int axisIndex);
-
-        /// <summary>查询指定轴是否触碰负向硬件限位传感器</summary>
-        /// <param name="axisIndex">板卡内物理轴索引</param>
-        bool IsAxisNegativeLimit(int axisIndex);
-
-        /// <summary>查询指定轴伺服是否已使能</summary>
-        /// <param name="axisIndex">板卡内物理轴索引</param>
-        bool IsAxisEnabled(int axisIndex);
+        /// <returns></returns>
+        MotionIOStatus GetMotionIOStatus(int axisIndex);
 
         #endregion
 
@@ -112,17 +121,78 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
 
         /// <summary>读取指定输入端口的当前信号（true = 高电平）</summary>
         /// <param name="portIndex">板卡内物理输入端口号</param>
-        bool ReadInputPort(int portIndex);
+        bool? ReadInputPort(int portIndex);
 
         /// <summary>设置指定输出端口的信号（true = 开启输出）</summary>
         /// <param name="portIndex">板卡内物理输出端口号</param>
         /// <param name="value">输出值</param>
-        void WriteOutputPort(int portIndex, bool value);
+        bool  WriteOutputPort(int portIndex, bool value);
 
         /// <summary>读取指定输出端口的当前锁存状态（用于 UI 回显）</summary>
         /// <param name="portIndex">板卡内物理输出端口号</param>
-        bool ReadOutputPort(int portIndex);
+        bool? ReadOutputPort(int portIndex);
 
         #endregion
+    }
+
+
+
+
+
+
+    /// <summary>
+    /// 轴IO信号
+    /// </summary>
+    public class MotionIOStatus
+    {
+        /// <summary>
+        /// 原点
+        /// </summary>
+        public bool ORG;
+
+        /// <summary>
+        /// 正极限
+        /// </summary>
+        public bool PEL;
+
+        /// <summary>
+        /// 负极限
+        /// </summary>
+        public bool MEL;
+
+        /// <summary>
+        /// 报警
+        /// </summary>
+        public bool ALM;
+
+        /// <summary>
+        /// 使能
+        /// </summary>
+        public bool SVO;
+
+        /// <summary>
+        /// 急停
+        /// </summary>
+        public bool Emg;
+
+        /// <summary>
+        /// 定位完成
+        /// </summary>
+        public bool MoveDone;
+
+        /// <summary>
+        /// 回零完成
+        /// </summary>
+        public bool HomeDone;
+
+        /// <summary>
+        /// 回零中判断
+        /// </summary>
+        public bool Homing;
+
+        /// <summary>
+        /// 运动中判断
+        /// </summary>
+        public bool Moving;
     }
 }

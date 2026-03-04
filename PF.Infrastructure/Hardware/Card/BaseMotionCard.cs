@@ -107,51 +107,43 @@ namespace PF.Infrastructure.Hardware.Card
         public abstract Task<bool> DisableAxisAsync(int axisIndex);
 
         /// <inheritdoc/>
-        public abstract Task<bool> StopAxisAsync(int axisIndex);
+        public abstract Task<bool> StopAxisAsync(int axisIndex,bool IsEmgStop=false );
 
         /// <inheritdoc/>
-        public abstract Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token = default);
+        public abstract Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default);
 
         /// <inheritdoc/>
-        public abstract Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, CancellationToken token = default);
+        public abstract Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity,double Acc,double Dec,double STime, CancellationToken token = default);
 
         /// <inheritdoc/>
-        public abstract Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, CancellationToken token = default);
+        public abstract Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <inheritdoc/>
-        public abstract Task<bool> JogAsync(int axisIndex, double velocity, bool isPositive);
+        public abstract Task<bool> JogAsync(int axisIndex, double velocity, double Acc, double Dec, bool isPositive);
 
         #endregion
 
         #region 轴状态读取方法（abstract — 子类用厂商 SDK 实现）
 
         /// <inheritdoc/>
-        public abstract double GetAxisCurrentPosition(int axisIndex);
+        public abstract double? GetAxisCurrentPosition(int axisIndex);
 
-        /// <inheritdoc/>
-        public abstract bool IsAxisMoving(int axisIndex);
 
-        /// <inheritdoc/>
-        public abstract bool IsAxisPositiveLimit(int axisIndex);
-
-        /// <inheritdoc/>
-        public abstract bool IsAxisNegativeLimit(int axisIndex);
-
-        /// <inheritdoc/>
-        public abstract bool IsAxisEnabled(int axisIndex);
+        
+        public abstract MotionIOStatus GetMotionIOStatus(int axisIndex);
 
         #endregion
 
         #region IO 控制方法（abstract — 子类用厂商 SDK 实现，第一参数为板卡内物理端口号）
 
         /// <inheritdoc/>
-        public abstract bool ReadInputPort(int portIndex);
+        public abstract bool? ReadInputPort(int portIndex);
 
         /// <inheritdoc/>
-        public abstract void WriteOutputPort(int portIndex, bool value);
+        public abstract bool  WriteOutputPort(int portIndex, bool value);
 
         /// <inheritdoc/>
-        public abstract bool ReadOutputPort(int portIndex);
+        public abstract bool? ReadOutputPort(int portIndex);
 
         #endregion
     }
