@@ -326,7 +326,7 @@ namespace PF.Application.Shell
                 //var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
 
                 // 如果目录不存在则创建
-                if (!Directory.Exists(ConstGlobalParam .ConfigPath ))
+                if (!Directory.Exists(ConstGlobalParam.ConfigPath))
                 {
                     Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
                 }
@@ -519,7 +519,7 @@ namespace PF.Application.Shell
             {
                 int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
                     ? int.Parse(ci) : 0;
-                return new PF.Infrastructure .Hardware .Card .LTDMC.LTMCMotionCard (cardIndex, _logService);
+                return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(cardIndex, _logService);
             });
 
             // 注册 SimXAxis 工厂（工厂在 Composition Root 持有具体类型引用，不违反依赖方向）
@@ -527,14 +527,14 @@ namespace PF.Application.Shell
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                
-                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis (cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
+
+                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
             });
 
-            
+
             // 注册 SimVacuumIO 工厂
-            hwManager.RegisterFactory("SimVacuumIO", cfg =>
-                new PF.Workstation.Demo.Hardware.SimVacuumIO(_logService));
+            hwManager.RegisterFactory("EtherCatIO", cfg =>
+                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(_logService));
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }
@@ -597,7 +597,7 @@ namespace PF.Application.Shell
                 // 添加更多自定义分类
                 config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
 
-              
+
 
 
                 // 确保日志目录存在
