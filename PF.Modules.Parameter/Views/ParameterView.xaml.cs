@@ -29,10 +29,10 @@ namespace PF.Modules.Parameter.Views
         Icon = "AudioGeometry",
         NavigationParameter = "CommonParam")]
 
-    //[ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
-    //    GroupName = "系统调试", Order = 3,
-    //    Icon = "CurveIcon",
-    //    NavigationParameter = "HardwareParam")]
+    [ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
+        GroupName = "系统调试", Order = 3,
+        Icon = "CurveIcon",
+        NavigationParameter = "HardwareParam")]
 
 
     //[ModuleNavigation(NavigationConstants.Views.ParameterView_UserLoginParam, "权限管理",
