@@ -121,6 +121,23 @@ namespace PF.Infrastructure.Mechanisms
             if (!IsInitialized) throw new Exception($"模组 [{MechanismName}] 未初始化，禁止动作！");
         }
 
+        /// <summary>
+        /// 在 InternalInitializeAsync 中延迟注册硬件设备（代理委托模式专用）。
+        ///
+        /// 用途：当子类通过 IHardwareManagerService 延迟解析设备（而非构造函数注入）时，
+        ///   在解析到设备实例后调用本方法，将其纳入模组的：
+        ///   · 报警事件聚合（AlarmTriggered 自动冒泡至模组）
+        ///   · 批量复位列表（ResetAsync 遍历所有内部硬件）
+        ///
+        /// 重复注册保护：同一实例不会被重复添加。
+        /// </summary>
+        protected void RegisterHardwareDevice(IHardwareDevice device)
+        {
+            if (device == null || _internalHardwares.Contains(device)) return;
+            _internalHardwares.Add(device);
+            device.AlarmTriggered += OnHardwareAlarmTriggered;
+        }
+
         public virtual void Dispose()
         {
             foreach (var hw in _internalHardwares)

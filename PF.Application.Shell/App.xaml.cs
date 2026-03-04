@@ -42,7 +42,6 @@ using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo;
-using PF.Workstation.Demo.Hardware;
 using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
 using System.Diagnostics;
@@ -223,51 +222,31 @@ namespace PF.Application.Shell
 
         private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
         {
-            var xAxis = new SimXAxis(0, _logService, "");
-            var yAxis = new SimXAxis(1, _logService, "");
-            var vacuumIO = new SimVacuumIO(_logService);
-
-
-            // a. 供具体模组注入使用
-            containerRegistry.RegisterInstance(xAxis);
-            containerRegistry.RegisterInstance(yAxis);
-            containerRegistry.RegisterInstance(vacuumIO);
-
-            // b. 供设备调试界面的 IEnumerable<IHardwareDevice> 抓取使用
-            containerRegistry.RegisterInstance<IHardwareDevice>(xAxis, "SimXAxis");
-            containerRegistry.RegisterInstance<IHardwareDevice>(yAxis, "SimYAxis");
-            containerRegistry.RegisterInstance<IHardwareDevice>(vacuumIO, "SimVacuumIO");
-
-
-
-            // 假设你在这里或者硬件管理服务里创建了 gantryMechanism
-            var gantryMechanism = new GantryMechanism(xAxis, vacuumIO, _logService);
-
-            // 必须把它注册为单例，这样 ViewModel 的构造函数才能要到它！
-            containerRegistry.RegisterInstance<GantryMechanism>(gantryMechanism);
-
-            // 如果是通过接口管理的，最好也把接口注册上
-            containerRegistry.RegisterInstance<IMechanism>(gantryMechanism);
-
-
-            // 1. 将自定义纯 C# 事件总线注册为全局单例
+            // ── 事件总线 ─────────────────────────────────────────────────────
             containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
 
-            // 2. 将 DemoMachineController 绑定到 IMasterController 接口
+            // ── 工站同步服务（type-based，ILogService 由容器自动注入）────────
+            containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();
+
+            // ── 机构层：GantryMechanism 注册为自身类型 + IMechanism 接口 ────
+            // DryIoc RegisterMany 将同一个单例实例映射到多个服务类型，
+            // 构造函数依赖 IHardwareManagerService + ILogService，均已在容器中注册。
+            var container = containerRegistry.GetContainer();
+            container.RegisterMany(
+                new[] { typeof(GantryMechanism), typeof(IMechanism) },
+                typeof(GantryMechanism),
+                reuse: DryIoc.Reuse.Singleton);
+
+            // ── 工站层：PickPlaceStation 注册为自身类型 + StationBase ────────
+            // StationBase 注册使 IEnumerable<StationBase> 能被 StationDebugViewModel
+            // 和 DemoMachineController 的构造函数自动发现（DryIoc 集合解析）。
+            container.RegisterMany(
+                new[] { typeof(PickPlaceStation), typeof(StationBase) },
+                typeof(PickPlaceStation),
+                reuse: DryIoc.Reuse.Singleton);
+
+            // ── 主控调度器 ───────────────────────────────────────────────────
             containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
-
-
-            // ── 工站同步服务 + 工站实例 ──────────────────────────────────────
-            // StationSyncService：流水线信号量管理，供 PickPlaceStation 使用
-            var syncService = new StationSyncService(_logService);
-            containerRegistry.RegisterInstance<IStationSyncService>(syncService);
-
-            // PickPlaceStation：取放工站实例，注册为 StationBase 供 StationDebugViewModel
-            // 通过 IEnumerable<StationBase> 自动发现（DryIoc 集合解析）
-            var pickPlaceStation = new PickPlaceStation(gantryMechanism, syncService, _logService);
-            containerRegistry.RegisterInstance<PickPlaceStation>(pickPlaceStation);
-            containerRegistry.RegisterInstance<StationBase>(pickPlaceStation, "PickPlaceStation");
-
         }
 
 
