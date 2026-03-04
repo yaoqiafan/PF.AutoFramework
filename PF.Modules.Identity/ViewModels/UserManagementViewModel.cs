@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
@@ -119,17 +120,68 @@ namespace PF.Modules.Identity.ViewModels
 
         private void ExecuteAdd()
         {
+            var level   = UserLevel.Operator;
             var newUser = new UserInfo
             {
-                UserId   = Guid.NewGuid().ToString("N")[..8],
-                UserName = "新用户",
-                Password = "PF111",
-                Root     = UserLevel.Operator,
+                UserId          = Guid.NewGuid().ToString("N")[..8],
+                UserName        = "新用户",
+                Password        = "PF111",
+                Root            = level,
+                AccessibleViews = GetDefaultAccessibleViews(level),
             };
 
             Users.Add(newUser);
             SelectedUser = newUser;
-            _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，请填写后点击"保存更改"落盘。");
+            _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，默认权限 {level}，请填写后点击"保存更改"落盘。");
+        }
+
+        /// <summary>
+        /// 根据权限等级返回该角色应具备的默认可访问页面列表。
+        /// 高等级权限向下包含低等级权限（累积模型）。
+        /// </summary>
+        private static List<string> GetDefaultAccessibleViews(UserLevel level)
+        {
+            // Operator：日志查看 + 基础参数
+            var views = new List<string>
+            {
+                NavigationConstants.Views.LoggingListView,
+                NavigationConstants.Views.ParameterView_CommonParam,
+            };
+
+            if (level < UserLevel.Engineer)
+                return views;
+
+            // Engineer：新增硬件调试 + 系统参数 + 机构/工站调试
+            views.AddRange(new[]
+            {
+                NavigationConstants.Views.ParameterView_SystemConfigParam,
+                NavigationConstants.Views.HardwareDebugView,
+                NavigationConstants.Views.MechanismDebugView,
+                NavigationConstants.Views.StationDebugView,
+            });
+
+            if (level < UserLevel.Administrator)
+                return views;
+
+            // Administrator：新增日志管理 + 硬件参数 + 权限查看
+            views.AddRange(new[]
+            {
+                NavigationConstants.Views.LogManagementView,
+                NavigationConstants.Views.ParameterView_HardwareParam,
+                NavigationConstants.Views.PagePermissionView,
+            });
+
+            if (level < UserLevel.SuperUser)
+                return views;
+
+            // SuperUser：完整权限（追加用户管理 + 用户参数）
+            views.AddRange(new[]
+            {
+                NavigationConstants.Views.UserManagementView,
+                NavigationConstants.Views.ParameterView_UserLoginParam,
+            });
+
+            return views;
         }
 
         private async Task SaveAsync()
