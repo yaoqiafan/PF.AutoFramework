@@ -47,10 +47,10 @@ namespace PF.Workstation.Demo.Hardware
         /// <param name="axisIndex">轴索引号</param>
         /// <param name="logger">日志服务</param>
         /// <param name="dataDirectory">点表 JSON 存储根目录（通常为 %AppData%\PFAutoFrameWork）</param>
-        public SimXAxis(int axisIndex, ILogService logger, string dataDirectory)
+        public SimXAxis(string deviceId, int axisIndex, string deviceName,ILogService logger, string dataDirectory)
             : base(
-                deviceId: $"SIM_X_AXIS_{axisIndex}",
-                deviceName: $"模拟X轴[{axisIndex}]",
+                deviceId: deviceId,
+                deviceName: deviceName,
                 isSimulated: true,
                 logger: logger,
                 dataDirectory: dataDirectory)

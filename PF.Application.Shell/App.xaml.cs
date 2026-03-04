@@ -527,7 +527,8 @@ namespace PF.Application.Shell
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                return new PF.Workstation.Demo.Hardware.SimXAxis(axisIndex, _logService, dataDirectory);
+                
+                return new PF.Workstation.Demo.Hardware.SimXAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
             });
 
             
