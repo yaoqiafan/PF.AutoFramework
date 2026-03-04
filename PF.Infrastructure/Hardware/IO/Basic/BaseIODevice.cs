@@ -47,6 +47,9 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             Category = Core.Enums.HardwareCategory.IOController;
         }
 
+
+
+
         // ── IIOController 端口数量（保留 abstract — 由子类/配置提供本控制器管辖的端口总数）─
 
         /// <inheritdoc/>
@@ -68,15 +71,25 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             return ParentCard!.ReadInputPort(portIndex);
         }
 
+
+        public virtual bool? ReadInput<T>(T InPutName) where T : Enum
+        {
+            return this.ReadInput(Convert.ToInt32(InPutName));
+        }
         /// <summary>
         /// 设置指定输出端口信号（委托给父板卡执行）。
         /// </summary>
         /// <param name="portIndex">端口号（板卡内物理端口索引）</param>
         /// <param name="value">true = 开启输出，false = 关闭输出</param>
-        public virtual bool  WriteOutput(int portIndex, bool value)
+        public virtual bool WriteOutput(int portIndex, bool value)
         {
             EnsureCardAttached();
-           return  ParentCard!.WriteOutputPort(portIndex, value);
+            return ParentCard!.WriteOutputPort(portIndex, value);
+        }
+
+        public virtual bool WriteOutput<T>(T OutputName, bool value) where T : Enum
+        {
+            return this.WriteOutput(Convert.ToInt32(OutputName), value);
         }
 
         /// <summary>
@@ -88,6 +101,13 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             EnsureCardAttached();
             return ParentCard!.ReadOutputPort(portIndex);
         }
+
+        public virtual bool? ReadOutput<T>(T InPutName) where T : Enum
+        {
+            return this.ReadOutput(Convert.ToInt32(InPutName));
+        }
+
+
 
         // ── IIOController WaitInputAsync（本类内轮询实现，复用 ReadInput 代理链）────────
 
@@ -136,6 +156,18 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             return false;
         }
 
+
+
+
+
+
+        public virtual Task<bool> WaitInputAsync<T>(T InputName, bool targetState, int timeoutMs = 5000, CancellationToken token = default) where T : Enum
+        {
+            return this.WaitInputAsync(Convert.ToInt32(InputName), targetState, timeoutMs, token);
+        }
+
+
+
         // ── 私有工具 ────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -150,5 +182,7 @@ namespace PF.Infrastructure.Hardware.IO.Basic
                 throw new InvalidOperationException(msg);
             }
         }
+
+
     }
 }
