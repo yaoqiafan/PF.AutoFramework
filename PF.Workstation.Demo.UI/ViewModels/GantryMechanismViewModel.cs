@@ -27,7 +27,7 @@ namespace PF.Workstation.Demo.UI.ViewModels
             PlaceCommand = new DelegateCommand(async () => await ExecuteOperationAsync(_mechanism.PlaceAsync), CanOperatePickPlace);
 
             // 手动控制命令
-            MoveToCommand = new DelegateCommand(async () => await ExecuteOperationAsync(token => _mechanism.XAxis.MoveAbsoluteAsync(TargetPosition, 100, token)), CanOperate);
+            MoveToCommand = new DelegateCommand(async () => await ExecuteOperationAsync(token => _mechanism.XAxis.MoveAbsoluteAsync(TargetPosition, 100,1000,1000,0.08, token)), CanOperate);
             ToggleVacuumCommand = new DelegateCommand(() =>
             {
                 // 直接反转真空输出状态
@@ -125,10 +125,10 @@ namespace PF.Workstation.Demo.UI.ViewModels
 
             // 轮询更新硬件状态
             if (_mechanism.XAxis != null)
-                CurrentPosition = _mechanism.XAxis.CurrentPosition;
+                CurrentPosition = _mechanism.XAxis.CurrentPosition.Value ;
 
             if (_mechanism.VacuumIO != null)
-                IsVacuumOn = _mechanism.VacuumIO.ReadOutput(_mechanism.VacuumValvePort);
+                IsVacuumOn = _mechanism.VacuumIO.ReadOutput(_mechanism.VacuumValvePort).Value ;
         }
 
         private bool CanOperate() => !IsBusy;

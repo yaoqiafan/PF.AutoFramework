@@ -185,18 +185,18 @@ namespace PF.Modules.Debug.ViewModels
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, _cts.Token);
+                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity*5, AbsVelocity * 5,0.08, _cts.Token);
             });
 
             MoveRelativeCommand = new DelegateCommand(async () =>
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, _cts.Token);
+                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity*5, RelVelocity * 5, 0.08, _cts.Token);
             });
 
-            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true); });
-            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false); });
+            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity*5, JogVelocity*5); });
+            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity*5, JogVelocity*5); });
 
             // ===== 点表管理命令 =====
             AddPointCommand = new DelegateCommand(() =>
@@ -252,12 +252,12 @@ namespace PF.Modules.Debug.ViewModels
         private void OnPollingTimerTick(object sender, EventArgs e)
         {
             if (_axis == null) return;
-
-            CurrentPosition = _axis.CurrentPosition;
-            IsMoving = _axis.IsMoving;
-            IsEnabled = _axis.IsEnabled;
-            IsPositiveLimit = _axis.IsPositiveLimit;
-            IsNegativeLimit = _axis.IsNegativeLimit;
+            var axisio = _axis.AxisIOStatus;
+            CurrentPosition = _axis.CurrentPosition ?? 0;
+            IsMoving = axisio?.Moving ?? false;
+            IsEnabled = axisio?.SVO ?? false;
+            IsPositiveLimit = axisio?.PEL ?? false;
+            IsNegativeLimit = axisio?.MEL ?? false;
         }
 
         #endregion

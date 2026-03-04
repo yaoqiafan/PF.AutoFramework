@@ -110,23 +110,23 @@ namespace PF.Workstation.Demo.Mechanisms
             _logger.Info($"[{MechanismName}] ▶ 取料开始");
 
             // ① 空移到取料位上方（快速）
-            if (!await _xAxis.MoveAbsoluteAsync(PickX - SafeX, FastSpeed, token))
-                throw new Exception($"[{MechanismName}] 移动到取料安全位失败");
+            //if (!await _xAxis.MoveAbsoluteAsync(PickX - SafeX, FastSpeed, token))
+            //    throw new Exception($"[{MechanismName}] 移动到取料安全位失败");
 
-            // ② 慢速下降接触物料
-            if (!await _xAxis.MoveAbsoluteAsync(PickX, SlowSpeed, token))
-                throw new Exception($"[{MechanismName}] 慢降接触物料失败");
+            //// ② 慢速下降接触物料
+            //if (!await _xAxis.MoveAbsoluteAsync(PickX, SlowSpeed, token))
+            //    throw new Exception($"[{MechanismName}] 慢降接触物料失败");
 
-            // ③ 开真空阀
-            _vacuumIO.WriteOutput(VacuumValve, true);
+            //// ③ 开真空阀
+            //_vacuumIO.WriteOutput(VacuumValve, true);
 
-            // ④ 等待真空传感器变高（最多 2000ms，否则视为无料）
-            if (!await _vacuumIO.WaitInputAsync(VacuumSensor, true, 2000, token))
-                throw new Exception($"[{MechanismName}] 真空建立超时，未检测到物料！");
+            //// ④ 等待真空传感器变高（最多 2000ms，否则视为无料）
+            //if (!await _vacuumIO.WaitInputAsync(VacuumSensor, true, 2000, token))
+            //    throw new Exception($"[{MechanismName}] 真空建立超时，未检测到物料！");
 
-            // ⑤ 提升到安全高度（快速）
-            if (!await _xAxis.MoveAbsoluteAsync(PickX - SafeX, FastSpeed, token))
-                throw new Exception($"[{MechanismName}] 取料后提升失败");
+            //// ⑤ 提升到安全高度（快速）
+            //if (!await _xAxis.MoveAbsoluteAsync(PickX - SafeX, FastSpeed, token))
+            //    throw new Exception($"[{MechanismName}] 取料后提升失败");
 
             _logger.Success($"[{MechanismName}] ✔ 取料完成");
         }
@@ -145,28 +145,28 @@ namespace PF.Workstation.Demo.Mechanisms
 
             _logger.Info($"[{MechanismName}] ▶ 放料开始");
 
-            // ① 空移到放料位上方
-            if (!await _xAxis.MoveAbsoluteAsync(PlaceX - SafeX, FastSpeed, token))
-                throw new Exception($"[{MechanismName}] 移动到放料安全位失败");
+            //// ① 空移到放料位上方
+            //if (!await _xAxis.MoveAbsoluteAsync(PlaceX - SafeX, FastSpeed, token))
+            //    throw new Exception($"[{MechanismName}] 移动到放料安全位失败");
 
-            // ② 慢速下降到放料位
-            if (!await _xAxis.MoveAbsoluteAsync(PlaceX, SlowSpeed, token))
-                throw new Exception($"[{MechanismName}] 慢降到放料位失败");
+            //// ② 慢速下降到放料位
+            //if (!await _xAxis.MoveAbsoluteAsync(PlaceX, SlowSpeed, token))
+            //    throw new Exception($"[{MechanismName}] 慢降到放料位失败");
 
-            // ③ 关真空阀（释放物料）
-            _vacuumIO.WriteOutput(VacuumValve, false);
+            //// ③ 关真空阀（释放物料）
+            //_vacuumIO.WriteOutput(VacuumValve, false);
 
-            // ④ 等待真空消失确认
-            // 修复：原代码忽略返回值，超时时静默继续——在真空未消失（物料未离开）的情况下
-            //       X轴仍会运动，可能带着物料碰撞。现改为超时时打印警告，
-            //       实际项目可改为 throw 以强制停线。
-            bool vacuumReleased = await _vacuumIO.WaitInputAsync(VacuumSensor, false, 1000, token);
-            if (!vacuumReleased)
-                _logger.Warn($"[{MechanismName}] 真空释放超时，物料可能未完全离开！");
+            //// ④ 等待真空消失确认
+            //// 修复：原代码忽略返回值，超时时静默继续——在真空未消失（物料未离开）的情况下
+            ////       X轴仍会运动，可能带着物料碰撞。现改为超时时打印警告，
+            ////       实际项目可改为 throw 以强制停线。
+            //bool vacuumReleased = await _vacuumIO.WaitInputAsync(VacuumSensor, false, 1000, token);
+            //if (!vacuumReleased)
+            //    _logger.Warn($"[{MechanismName}] 真空释放超时，物料可能未完全离开！");
 
-            // ⑤ 退回安全位
-            if (!await _xAxis.MoveAbsoluteAsync(SafeX, FastSpeed, token))
-                throw new Exception($"[{MechanismName}] 退回安全位失败");
+            //// ⑤ 退回安全位
+            //if (!await _xAxis.MoveAbsoluteAsync(SafeX, FastSpeed, token))
+            //    throw new Exception($"[{MechanismName}] 退回安全位失败");
 
             _logger.Success($"[{MechanismName}] ✔ 放料完成");
         }

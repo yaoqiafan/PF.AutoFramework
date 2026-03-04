@@ -18,6 +18,14 @@ namespace PF.Core.Entities.Hardware
         private string _description = string.Empty;
         private int _sortOrder;
 
+        private double _STime = 0.08;
+
+        private double _Acc;
+
+        private double _Dec;
+
+
+
         /// <summary>点位唯一名称（如 "上料位"）</summary>
         public string Name
         {
@@ -49,8 +57,37 @@ namespace PF.Core.Entities.Hardware
         /// <summary>UI 显示排序序号</summary>
         public int SortOrder
         {
+
             get => _sortOrder;
             set { _sortOrder = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// S段时间（单位：秒）
+        /// </summary>
+        public double STime
+        {
+            get => _STime;
+            set
+            { _STime = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 加速度
+        /// </summary>
+        public double Acc
+        {
+            get => _Acc;
+            set { _Acc = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>
+        /// 减速度
+        /// </summary>
+        public double Dec
+        {
+            get => _Dec;
+            set { _Dec = value; OnPropertyChanged(); }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

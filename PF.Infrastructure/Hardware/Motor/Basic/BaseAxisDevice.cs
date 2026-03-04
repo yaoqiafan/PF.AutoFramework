@@ -72,9 +72,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             if (existing != null)
             {
                 existing.TargetPosition = point.TargetPosition;
-                existing.Speed          = point.Speed;
-                existing.Description    = point.Description;
-                existing.SortOrder      = point.SortOrder;
+                existing.Speed = point.Speed;
+                existing.Description = point.Description;
+                existing.SortOrder = point.SortOrder;
                 _logger?.Info($"[{DeviceName}] 更新点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
             }
             else
@@ -98,7 +98,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             try
             {
                 var sorted = _pointTable.OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToList();
-                var json   = JsonSerializer.Serialize(sorted, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(sorted, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_pointTableFilePath, json);
                 _logger?.Success($"[{DeviceName}] 点表已保存（{_pointTable.Count} 条）→ {_pointTableFilePath}");
             }
@@ -114,7 +114,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
                 ?? throw new KeyNotFoundException($"[{DeviceName}] 点表中未找到点位 '{pointName}'，请先在点表中添加。");
 
             _logger?.Info($"[{DeviceName}] MoveToPoint '{pointName}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
-            return await MoveAbsoluteAsync(point.TargetPosition, point.Speed, token).ConfigureAwait(false);
+            return await MoveAbsoluteAsync(point.TargetPosition, point.Speed, point.Acc, point.Dec, point.STime, token).ConfigureAwait(false);
         }
 
         // ── IAxis 轴标识（由子类/配置提供，标识本轴在父板卡中的物理索引）─────────
@@ -125,10 +125,13 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// </summary>
         public abstract int AxisIndex { get; }
 
+
+        public abstract AxisParam Param { get; set; }
+
         // ── IAxis 轴状态属性（委托给 ParentCard 读取，替代原来的抽象属性）──────────
 
         /// <summary>当前实时物理位置（工程单位，如 mm）</summary>
-        public virtual double CurrentPosition
+        public virtual double? CurrentPosition
         {
             get
             {
@@ -137,45 +140,20 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             }
         }
 
-        /// <summary>是否正在运动中</summary>
-        public virtual bool IsMoving
+
+        public virtual MotionIOStatus? AxisIOStatus
         {
             get
             {
                 EnsureCardAttached();
-                return ParentCard!.IsAxisMoving(AxisIndex);
+                return ParentCard?.GetMotionIOStatus(AxisIndex);
             }
+
         }
 
-        /// <summary>是否触碰正向硬件限位传感器</summary>
-        public virtual bool IsPositiveLimit
-        {
-            get
-            {
-                EnsureCardAttached();
-                return ParentCard!.IsAxisPositiveLimit(AxisIndex);
-            }
-        }
 
-        /// <summary>是否触碰负向硬件限位传感器</summary>
-        public virtual bool IsNegativeLimit
-        {
-            get
-            {
-                EnsureCardAttached();
-                return ParentCard!.IsAxisNegativeLimit(AxisIndex);
-            }
-        }
 
-        /// <summary>伺服是否已使能（Servo On）</summary>
-        public virtual bool IsEnabled
-        {
-            get
-            {
-                EnsureCardAttached();
-                return ParentCard!.IsAxisEnabled(AxisIndex);
-            }
-        }
+
 
         // ── IAxis 运动控制方法（委托给 ParentCard，替代原来的抽象方法）────────────
 
@@ -204,28 +182,28 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> HomeAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
-            return await ParentCard!.HomeAxisAsync(AxisIndex, token).ConfigureAwait(false);
+            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffest, token).ConfigureAwait(false);
         }
 
         /// <summary>绝对位置定位</summary>
-        public virtual async Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity, CancellationToken token = default)
+        public virtual async Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
             EnsureCardAttached();
-            return await ParentCard!.MoveAbsoluteAsync(AxisIndex, targetPosition, velocity, token).ConfigureAwait(false);
+            return await ParentCard!.MoveAbsoluteAsync(AxisIndex, targetPosition, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
         }
 
         /// <summary>相对位置定位</summary>
-        public virtual async Task<bool> MoveRelativeAsync(double distance, double velocity, CancellationToken token = default)
+        public virtual async Task<bool> MoveRelativeAsync(double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
             EnsureCardAttached();
-            return await ParentCard!.MoveRelativeAsync(AxisIndex, distance, velocity, token).ConfigureAwait(false);
+            return await ParentCard!.MoveRelativeAsync(AxisIndex, distance, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
         }
 
         /// <summary>持续点动（Jog）</summary>
-        public virtual async Task<bool> JogAsync(double velocity, bool isPositive)
+        public virtual async Task<bool> JogAsync(double velocity, bool isPositive, double Acc, double Dec)
         {
             EnsureCardAttached();
-            return await ParentCard!.JogAsync(AxisIndex, velocity, isPositive).ConfigureAwait(false);
+            return await ParentCard!.JogAsync(AxisIndex, velocity, Acc, Dec, isPositive).ConfigureAwait(false);
         }
 
         // ── 私有工具 ────────────────────────────────────────────────────────────
@@ -249,7 +227,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
             try
             {
-                var json   = File.ReadAllText(_pointTableFilePath);
+                var json = File.ReadAllText(_pointTableFilePath);
                 var loaded = JsonSerializer.Deserialize<List<AxisPoint>>(json);
                 if (loaded != null)
                 {
