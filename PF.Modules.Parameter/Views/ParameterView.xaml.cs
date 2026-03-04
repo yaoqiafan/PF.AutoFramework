@@ -29,21 +29,43 @@ namespace PF.Modules.Parameter.Views
         Icon = "AudioGeometry",
         NavigationParameter = "CommonParam")]
 
-    [ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
-        GroupName = "系统调试", Order = 3,
-        Icon = "CurveIcon",
-        NavigationParameter = "HardwareParam")]
+    //[ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
+    //    GroupName = "系统调试", Order = 3,
+    //    Icon = "CurveIcon",
+    //    NavigationParameter = "HardwareParam")]
 
 
-    [ModuleNavigation(NavigationConstants.Views.ParameterView_UserLoginParam, "权限管理",
-        GroupName = "权限管控", Order = 2,
-        Icon = "NailGeometry",
-        NavigationParameter = "UserLoginParam")]
+    //[ModuleNavigation(NavigationConstants.Views.ParameterView_UserLoginParam, "权限管理",
+    //    GroupName = "权限管控", Order = 2,
+    //    Icon = "NailGeometry",
+    //    NavigationParameter = "UserLoginParam")]
     public partial class ParameterView : UserControl
     {
         public ParameterView()
         {
             InitializeComponent();
         }
+    }
+
+
+
+
+
+
+    public class BindingProxy : Freezable
+    {
+        protected override Freezable CreateInstanceCore()
+        {
+            return new BindingProxy();
+        }
+
+        public object Data
+        {
+            get { return (object)GetValue(DataProperty); }
+            set { SetValue(DataProperty, value); }
+        }
+
+        public static readonly DependencyProperty DataProperty =
+            DependencyProperty.Register("Data", typeof(object), typeof(BindingProxy), new UIPropertyMetadata(null));
     }
 }

@@ -50,6 +50,8 @@ namespace PF.Core.Constants
 
             #region 登录
             public const string PagePermissionView = nameof(PagePermissionView);
+
+            public const string UserManagementView = nameof(UserManagementView);
             #endregion
 
             #region 调试

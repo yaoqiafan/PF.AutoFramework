@@ -4,11 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.Parameter.Views"
+    
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <local:BindingProxy x:Key="MyProxy" Data="{Binding}" />
+    </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="10">
@@ -117,28 +122,38 @@
                         <DataGridTextColumn
                             Width="auto"
                             Binding="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
-                            Header="类别" />
+                            Header="类别"
+                            IsReadOnly="True"
+                            Visibility="{Binding Data.CanRefreshAndReset, Converter={StaticResource BoolToVis}, Source={StaticResource MyProxy}}" />
 
                         <DataGridTextColumn
                             Width="auto"
                             Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                            Header="名称" />
+                            Header="名称"
+                            IsReadOnly="True" />
 
                         <DataGridTextColumn
                             Width="auto"
                             Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                            Header="描述" />
+                            Header="描述"
+                            IsReadOnly="True" />
 
-                        <DataGridTemplateColumn Width="180" Header="数据类型">
+                        <DataGridTemplateColumn
+                            Width="180"
+                            Header="数据类型"
+                            Visibility="{Binding Data.CanRefreshAndReset, Converter={StaticResource BoolToVis}, Source={StaticResource MyProxy}}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Margin="5,0" VerticalAlignment="Center" Text="{Binding TypeFullName}" />
+                                    <TextBlock
+                                        Margin="5,0"
+                                        VerticalAlignment="Center"
+                                        Text="{Binding TypeFullName}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                             <DataGridTemplateColumn.CellEditingTemplate>
                                 <DataTemplate>
-                                    <ComboBox 
-                                        IsEditable="True" 
+                                    <ComboBox
+                                        IsEditable="True"
                                         ItemsSource="{Binding DataContext.AvailableTypes, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         Text="{Binding TypeFullName, UpdateSourceTrigger=PropertyChanged}" />
                                 </DataTemplate>
@@ -165,6 +180,7 @@
                                         VerticalAlignment="Center"
                                         Background="Transparent"
                                         BorderThickness="0"
+                                        IsReadOnly="True"
                                         Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

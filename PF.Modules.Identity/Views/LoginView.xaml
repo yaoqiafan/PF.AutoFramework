@@ -3,97 +3,112 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    xmlns:prism="http://prismlibrary.com/"
-    Width="320"
-    Height="260">
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    Width="380"
+    Height="420">
 
-        <TextBlock
-            Margin="0,0,0,20"
-            HorizontalAlignment="Center"
-            FontSize="22"
-            FontWeight="Bold"
-            Foreground="#333"
-            Text="欢迎登录" />
+    <Border CornerRadius="15">
+        <Border.Effect>
+            <DropShadowEffect
+                BlurRadius="20"
+                Direction="270"
+                Opacity="0.5"
+                ShadowDepth="2"
+                Color="#EEEEEE" />
+        </Border.Effect>
 
-        <Grid Grid.Row="1" Margin="0,5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="60" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <Grid Margin="30,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Image Width="300" Margin="0,10,0,30" >
+                <Image.Source>
+                    <!--  从原始图片裁剪指定区域  -->
+                    <CroppedBitmap Source="/PF.UI.Resources;component/Images/PNG/聚力LOGO.png" SourceRect="10,10,460,160" />
+                </Image.Source>
+            </Image>
+
+            <StackPanel Grid.Row="1">
+                <TextBlock
+                    Margin="2,0,0,10"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Text="账号" />
+
+                <TextBox
+                    Height="35"
+                    Margin="0,0,0,20"
+                    VerticalContentAlignment="Center"
+                    Background="Transparent"
+                    BorderThickness="0,0,0,1"
+                    FontSize="14"
+                    Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" />
+
+
+                <TextBlock
+                    Margin="2,0,0,10"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Text="密码" />
+
+                <PasswordBox
+                    Height="35"
+                    VerticalContentAlignment="Center"
+                    pf:PasswordBoxAttach.Attach="True"
+                    pf:PasswordBoxAttach.Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Background="Transparent"
+                    BorderThickness="0,0,0,1"
+                    FontSize="14" />
+
+            </StackPanel>
+
             <TextBlock
+                Grid.Row="2"
+                Height="40"
+                Margin="0,10"
+                HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Foreground="#666"
-                Text="账号" />
-            <TextBox
-                Grid.Column="1"
-                Height="30"
-                Padding="5,0"
-                VerticalContentAlignment="Center"
-                Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                FontSize="12"
+                Foreground="#E74C3C"
+                Text="{Binding ErrorMessage}"
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+            <StackPanel
+                Grid.Row="4"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Orientation="Horizontal">
+                <Button
+                    Width="75"
+                    Height="35"
+                    Margin="0,0,10,0"
+                    Command="{Binding LoginCommand}"
+                    Content="登录"
+                    IsDefault="True"
+                    IsEnabled="{Binding IsLoggingIn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource Boolean2BooleanReConverter}}"
+                    Style="{DynamicResource ButtonPrimary}" />
+
+
+
+                <Button
+                    Width="75"
+                    Height="35"
+                    Margin="0,0,10,0"
+                    Command="{Binding LogoutCommand}"
+                    Content="注销" />
+
+
+
+                <Button
+                    Width="75"
+                    Height="35"
+                    Command="{Binding CancelCommand}"
+                    Content="取消" />
+
+            </StackPanel>
         </Grid>
-
-        <Grid Grid.Row="2" Margin="0,5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="60" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TextBlock
-                VerticalAlignment="Center"
-                Foreground="#666"
-                Text="密码" />
-            <PasswordBox
-                Grid.Column="1"
-                Height="30"
-                Padding="5,0"
-                VerticalContentAlignment="Center"
-                pf:PasswordBoxAttach.Attach="True"
-                pf:PasswordBoxAttach.IsMonitoring="True"
-                pf:PasswordBoxAttach.Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </Grid>
-
-        <TextBlock
-            Grid.Row="3"
-            Height="20"
-            Margin="0,10"
-            HorizontalAlignment="Center"
-            Foreground="Red"
-            Text="{Binding ErrorMessage}"
-            TextWrapping="Wrap" />
-
-        <StackPanel
-            Grid.Row="4"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Bottom"
-            Orientation="Horizontal">
-            <Button
-                Width="75"
-                Height="35"
-                Margin="0,0,10,0"
-                Command="{Binding LoginCommand}"
-                Content="登录"
-                IsDefault="True"
-                IsEnabled="{Binding IsLoggingIn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource Boolean2BooleanReConverter}}" />
-
-            <Button
-                Width="75"
-                Height="35"
-                Margin="0,0,10,0"
-                Command="{Binding LogoutCommand}"
-                Content="注销" />
-
-            <Button
-                Width="75"
-                Height="35"
-                Command="{Binding CancelCommand}"
-                Content="取消" />
-        </StackPanel>
-    </Grid>
+    </Border>
 </UserControl>

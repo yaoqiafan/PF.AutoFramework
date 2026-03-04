@@ -6,6 +6,7 @@ using PF.Modules.Parameter.Views;
 using PF.UI.Infrastructure.Navigation;
 using System.ComponentModel;
 using System.Reflection;
+using System.Windows;
 
 namespace PF.Modules.Parameter
 {
@@ -25,4 +26,8 @@ namespace PF.Modules.Parameter
             containerRegistry.RegisterForNavigation<ParamChangeDialog_Common, CommonChangeParamDialogViewModel>(NavigationConstants.Dialogs.CommonChangeParamDialog);
         }
     }
+
+
+
+   
 }
