@@ -19,7 +19,7 @@
 * **🏭 完整的工控生命周期**：内置标准化 `Uninitialized → Initializing → Idle → Running` 状态机，配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
 * **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice`）。
 * **🎨 现代扁平化 UI**：内置海量高颜值自定义控件库（`Growl` 消息提示、`Drawer` 抽屉视图、步骤条等），支持极简的现代化工业 UI 设计风格。
-* **🔐 全局身份与权限管理**：内置完整身份认证模块（`IdentityModule`），支持细粒度（页面级/按钮级）权限管控及多级用户角色。
+* **🔐 全局身份与权限管理**：内置完整身份认证模块（`IdentityModule`），支持细粒度（页面级/按钮级）权限管控及多级用户角色；`UserManagementViewModel` 提供完整 CRUD，新建用户时自动按角色等级赋予默认页面权限（累积模型）。
 * **💾 动态参数与持久化系统**：基于 EF Core 9 + SQLite 提供强大的泛型参数服务（`IParamService`），JSON 序列化存储，支持自动建表与审计追踪。
 * **🔌 高性能底层通信**：封装稳定可靠的 TCP 服务端/客户端通信基类（信号量锁 + 自动重连）。
 * **📊 工业级日志追踪**：内置高性能日志组件（`LogService`），生产者-消费者异步写入，支持分类日志与自动滚动。
@@ -66,7 +66,7 @@ PF.AutoFramework.slnx
 │   ├── PF.Modules.Identity           # 身份认证与权限管理
 │   ├── PF.Modules.Logging            # 日志查看与管理
 │   ├── PF.Modules.Parameter          # 系统参数管理
-│   ├── PF.Modules.Debug              # 模组调试面板（MechanismUI自动发现）
+│   ├── PF.Modules.Debug              # 硬件调试面板（板卡层级树 + 轴/IO/Card调试视图，MechanismUI自动发现）
 │   └── PF.Modules.SecsGem            # 半导体设备 SECS/GEM 通信
 │
 ├── /06. 应用入口 (Application)
@@ -104,7 +104,7 @@ PF.AutoFramework.slnx
 > 无任何外部依赖，所有项目均可安全引用。
 
 - `IHardwareDevice` — 硬件设备统一接口（连接/断开/复位/报警事件）
-- `IMotionCard` — 运动控制卡接口（继承 `IHardwareDevice`，增加 AxisCount/InputCount/OutputCount）
+- `IMotionCard` — 运动控制卡接口（继承 `IHardwareDevice`，增加 AxisCount/InputCount/OutputCount；定义 15 个统一硬件操作方法：运动控制 7 个、轴状态读取 3 个、IO 读写 3 个，以及 `MotionIOStatus` 状态结构体）
 - `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
 - `IParamService` — 泛型参数读写接口
 - `ILogService` — 统一日志接口（Info/Warn/Error/Debug）
@@ -148,13 +148,15 @@ PF.AutoFramework.slnx
 
 **BaseDevice**：模板方法模式，3 次重试连接（间隔 2s），模拟模式直通，`RaiseAlarm()` 触发事件链
 
-**BaseAxisDevice**：继承 `BaseDevice`，实现 `IAxis + IAttachedDevice`，内置点表（`AxisPoint`）JSON 持久化
+> **硬件代理层架构**：`IMotionCard` 是所有硬件操作的统一入口。`BaseAxisDevice` 和 `BaseIODevice` 均实现 `IAttachedDevice`，在 `HardwareManagerService` 拓扑初始化后通过 `AttachToCard()` 注入父板卡引用；其所有运动/IO 方法均为代理方法，委托至 `ParentCard.XxxAsync(axisIndex/portIndex, ...)`，实现与具体 SDK 的彻底解耦。
 
-**BaseIODevice**：继承 `BaseDevice`，实现 `IIOController + IAttachedDevice`
+**BaseAxisDevice**：继承 `BaseDevice`，实现 `IAxis + IAttachedDevice`。所有运动方法（`EnableAsync`、`HomeAsync`、`MoveAbsoluteAsync` 等）均为**代理方法**，通过 `ParentCard` 委托到 `IMotionCard` 统一执行；内置点表（`AxisPoint`）JSON 持久化；`EnsureCardAttached()` 防卫检查
 
-**BaseMotionCard**：继承 `BaseDevice`，实现 `IMotionCard`，`LoadConfigAsync` 带日志包装
+**BaseIODevice**：继承 `BaseDevice`，实现 `IIOController + IAttachedDevice`。`ReadInput`/`WriteOutput`/`ReadOutput` 均为**代理方法**委托到 `ParentCard`；`WaitInputAsync` 提供 20ms 轮询的通用实现，不依赖任何 SDK
 
-**BaseMechanism**：聚合多硬件，自动订阅所有硬件 `AlarmTriggered` 事件，`CheckReady()` 防呆
+**BaseMotionCard**：继承 `BaseDevice`，实现 `IMotionCard`，`LoadConfigAsync` 带日志包装；15 个操作方法声明为 `abstract`，由厂商子类调用具体 SDK
+
+**BaseMechanism**：聚合多硬件，自动订阅所有硬件 `AlarmTriggered` 事件，`CheckReady()` 防呆；提供 `RegisterHardwareDevice(device)` 方法支持在初始化钩子中**延迟注册**设备（适用于延迟解析的代理模式）
 
 **StationBase**：`Stateless` 七状态机 + 后台线程管理，标准生命周期 `Uninitialized → Idle`
 
@@ -324,50 +326,36 @@ MasterController          ← 主控：生命周期调度、状态机联动
 // PF.Infrastructure/Hardware/Motor/MyServo.cs
 public class MyServo : BaseAxisDevice  // 轴设备继承 BaseAxisDevice
 {
+    // AxisIndex 由子类决定（从 HardwareConfig.ConnectionParameters 读取）
+    public override int AxisIndex { get; }
+
     public MyServo(HardwareConfig config, ILogService logger)
         : base(config.DeviceId, config.DeviceName,
                config.IsSimulated, logger,
                dataDirectory: AppDomain.CurrentDomain.BaseDirectory)
     {
-        Category = HardwareCategory.Axis;
+        Category  = HardwareCategory.Axis;
+        AxisIndex = int.Parse(config.ConnectionParameters["AxisIndex"]);
     }
 
-    // ① 建立物理连接（TCP / 板卡SDK等）
-    protected override async Task<bool> InternalConnectAsync(CancellationToken token)
-    {
-        // 通过 ParentCard 访问父板卡句柄
-        if (ParentCard == null) return false;
-        // 调用板卡SDK初始化本轴...
-        return true;
-    }
+    // ① 建立物理连接（轴设备本身不需要独立连接——板卡连接后通过 AttachToCard 注入）
+    protected override Task<bool> InternalConnectAsync(CancellationToken token)
+        => Task.FromResult(ParentCard != null);  // 父板卡已连接即视为本轴就绪
 
     // ② 断开连接
-    protected override async Task InternalDisconnectAsync()
-    {
-        await Task.CompletedTask;
-    }
+    protected override Task InternalDisconnectAsync() => Task.CompletedTask;
 
     // ③ 报警复位
-    protected override async Task InternalResetAsync(CancellationToken token)
-    {
-        // 向硬件发送复位指令
-        await Task.CompletedTask;
-    }
-
-    // 业务方法：供模组层调用
-    public async Task<bool> MoveAbsoluteAsync(double pos, double speed, CancellationToken token)
-    {
-        if (!IsConnected) throw new InvalidOperationException($"[{DeviceName}] 未连接");
-        // 调用运动指令...
-        return true;
-    }
+    protected override Task InternalResetAsync(CancellationToken token) => Task.CompletedTask;
 }
 ```
+
+> **所有运动方法无需在子类重写**：`EnableAsync()`、`HomeAsync()`、`MoveAbsoluteAsync()` 等均由 `BaseAxisDevice` 提供默认实现，通过 `ParentCard.EnableAxisAsync(AxisIndex, ...)` 代理调用，子类只需确认 `AxisIndex` 和连接状态即可。
 
 **关键要点**：
 - `IsSimulated = true` 时，`ConnectAsync()` 自动跳过物理连接，延迟 500ms 后返回 `true`
 - 调用 `RaiseAlarm(errorCode, message)` 触发 `AlarmTriggered` 事件链向上传递
-- `BaseAxisDevice` 还实现了 `IAttachedDevice`：初始化时 `HardwareManagerService` 会自动调用 `AttachToCard(parentCard)`，子类通过 `ParentCard` 属性访问父板卡实例
+- `BaseAxisDevice` 实现了 `IAttachedDevice`：`HardwareManagerService` 拓扑初始化后自动调用 `AttachToCard(parentCard)`，子类通过 `ParentCard` 属性访问板卡实例，所有运动指令通过 `ParentCard.XxxAxisAsync(AxisIndex, ...)` 转发给厂商 SDK
 
 ---
 
@@ -398,6 +386,12 @@ public class SimMotionCard : BaseMotionCard
     }
 
     // ... InternalDisconnectAsync, InternalResetAsync
+
+    // 实现 IMotionCard 的 15 个 abstract 方法（由厂商 SDK 填充）
+    // 运动控制（7个）: EnableAxisAsync, DisableAxisAsync, StopAxisAsync,
+    //                  HomeAxisAsync, MoveAbsoluteAsync, MoveRelativeAsync, JogAsync
+    // 轴状态（3个）:  GetAxisCurrentPosition, GetMotionIOStatus
+    // IO读写（3个）:  ReadInputPort, WriteOutputPort, ReadOutputPort
 }
 ```
 
@@ -421,20 +415,31 @@ HardwareConfig { DeviceId="SIM_VACUUM_IO", ParentDeviceId="SIM_CARD_0" } ← 子
 [MechanismUI("龙门取放调试", "GantryMechanismView", order: 1)]  // 在调试面板自动显示
 public class GantryMechanism : BaseMechanism
 {
-    private readonly IAxis         _xAxis;
-    private readonly IIOController _vacuumIO;
+    private readonly IHardwareManagerService _hwManager;
+    private IAxis?         _xAxis;
+    private IIOController? _vacuumIO;
 
-    public GantryMechanism(IAxis xAxis, IIOController vacuumIO, ILogService logger)
-        // 所有硬件传入基类，基类自动订阅 AlarmTriggered
-        : base("龙门取放模组", logger, xAxis, vacuumIO)
+    // 构造函数仅注入 HardwareManagerService，不再直接依赖具体设备
+    // 硬件设备在 InternalInitializeAsync 中延迟解析（确保板卡已初始化）
+    public GantryMechanism(IHardwareManagerService hwManager, ILogService logger)
+        : base("龙门取放模组", logger)  // 此时硬件尚未可用，不传设备
     {
-        _xAxis    = xAxis;
-        _vacuumIO = vacuumIO;
+        _hwManager = hwManager ?? throw new ArgumentNullException(nameof(hwManager));
     }
 
-    // ① 初始化：依次连接 → 使能 → 回原点
+    // ① 初始化：延迟解析设备 → 注册 → 连接 → 使能 → 回原点
     protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
     {
+        // 延迟解析（板卡已由 HardwareManagerService 初始化完毕）
+        _xAxis    = _hwManager.GetDevice("SIM_X_AXIS_0")  as IAxis
+                    ?? throw new InvalidOperationException("未找到 X 轴设备");
+        _vacuumIO = _hwManager.GetDevice("SIM_VACUUM_IO") as IIOController
+                    ?? throw new InvalidOperationException("未找到真空 IO 设备");
+
+        // 延迟注册到 BaseMechanism（启用报警聚合 + 批量复位）
+        RegisterHardwareDevice(_xAxis as IHardwareDevice);
+        RegisterHardwareDevice(_vacuumIO as IHardwareDevice);
+
         if (!await _xAxis.ConnectAsync(token))    return false;
         if (!await _vacuumIO.ConnectAsync(token)) return false;
         if (!await _xAxis.HomeAsync(token))       return false;
@@ -445,16 +450,16 @@ public class GantryMechanism : BaseMechanism
     // ② 紧急停止
     protected override async Task InternalStopAsync()
     {
-        await _xAxis.StopAsync();
-        _vacuumIO.WriteOutput(0, false);
+        if (_xAxis    != null) await _xAxis.StopAsync();
+        if (_vacuumIO != null) _vacuumIO.WriteOutput(0, false);
     }
 
     // 业务动作：供工站层调用
     public async Task PickAsync(CancellationToken token)
     {
         CheckReady(); // 报警或未初始化时直接抛异常
-        await _xAxis.MoveAbsoluteAsync(PickX, FastSpeed, token);
-        _vacuumIO.WriteOutput(VacuumValve, true);
+        await _xAxis!.MoveAbsoluteAsync(PickX, FastSpeed, token);
+        _vacuumIO!.WriteOutput(VacuumValve, true);
         if (!await _vacuumIO.WaitInputAsync(VacuumSensor, true, 2000, token))
             throw new Exception("真空建立超时！");
     }
@@ -463,8 +468,10 @@ public class GantryMechanism : BaseMechanism
 
 **关键要点**：
 - `[MechanismUI]` 特性标记后，调试模块（`PF.Modules.Debug`）会自动发现并在调试面板注册对应 View
+- 构造函数**不直接依赖具体设备**，通过 `IHardwareManagerService.GetDevice()` 在 `InternalInitializeAsync` 中延迟解析，确保板卡（`IMotionCard`）已完成拓扑初始化
+- `RegisterHardwareDevice()` 延迟注册到 `BaseMechanism`，等效于构造时传入，但兼容延迟解析场景
 - `CheckReady()` 是防呆保护：`HasAlarm == true` 或 `IsInitialized == false` 时直接抛异常
-- `ResetAsync()` 自动遍历所有注入硬件批量复位，无需手动实现
+- `ResetAsync()` 自动遍历所有注册硬件批量复位，无需手动实现
 
 ---
 
@@ -679,7 +686,7 @@ public class MasterController
 ### Step 4: 注册到 DI 容器（App.xaml.cs）
 
 ```csharp
-private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
+private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
 {
     var container = containerRegistry.GetContainer();
 
@@ -687,27 +694,40 @@ private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
     var paramService = container.Resolve<IParamService>();
     paramService.RegisterParamType<HardwareParam, HardwareConfig>();
 
-    // 2. 构造 HardwareManagerService
+    // 2. 构造 HardwareManagerService 并注册设备工厂
     var logService = container.Resolve<ILogService>();
     var hardwareManager = new HardwareManagerService(logService, paramService);
-
-    // 3. 注册设备工厂（ImplementationClassName → 创建函数）
     hardwareManager.RegisterFactory("SimMotionCard",
         cfg => new SimMotionCard(cfg, logService));
     hardwareManager.RegisterFactory("SimXAxis",
         cfg => new SimXAxis(cfg, logService));
     hardwareManager.RegisterFactory("SimVacuumIO",
         cfg => new SimVacuumIO(cfg, logService));
-
-    // 4. 注册到 DI 容器
     containerRegistry.RegisterInstance<IHardwareManagerService>(hardwareManager);
 
-    // 5. 注册工站与主控（依赖 DI 自动解析）
-    containerRegistry.RegisterSingleton<GantryMechanism>();
-    containerRegistry.RegisterSingleton<PickPlaceStation>();
-    containerRegistry.RegisterSingleton<MasterController>();
+    // 3. 注册事件总线与同步服务
+    containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
+    containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();
+
+    // 4. 使用 DryIoc RegisterMany 将同一单例实例注册为多个服务类型
+    //    避免 RegisterSingleton 重复注册导致产生两个不同实例
+    container.RegisterMany(
+        new[] { typeof(GantryMechanism), typeof(IMechanism) },
+        typeof(GantryMechanism),
+        reuse: DryIoc.Reuse.Singleton);
+
+    container.RegisterMany(
+        new[] { typeof(PickPlaceStation), typeof(StationBase) },
+        typeof(PickPlaceStation),
+        reuse: DryIoc.Reuse.Singleton);
+
+    // 5. 主控（依赖 IEnumerable<StationBase> 自动收集所有工站）
+    containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
 }
 ```
+
+> **为什么使用 `RegisterMany`？**
+> `GantryMechanism` 需要同时以 `GantryMechanism`（被 `PickPlaceStation` 直接依赖）和 `IMechanism`（被 `MechanismDebugViewModel` 通过 `IEnumerable<IMechanism>` 收集）两种类型被解析。`RegisterMany` 保证两种类型解析出**同一个单例实例**，而不是各自创建独立对象。
 
 ---
 
@@ -842,6 +862,70 @@ foreach (var device in hardwareManager.ActiveDevices)
 hardwareManager.RegisterFactory("MyAxisImpl",
     cfg => new MyAxisImpl(cfg, logService));
 ```
+
+---
+
+## 🖥️ 开发者指南七：硬件调试界面（PF.Modules.Debug）
+
+`HardwareDebugView` 通过 `IHardwareManagerService.ActiveDevices` 自动构建**两级硬件层级树**，无需额外配置：
+
+```
+HardwareDebugView（左侧设备树）
+│
+├── [卡0] SimMotionCard          ← IMotionCard 节点（CardIndex 排序）
+│   ├── SIM_X_AXIS_0  (Axis)    ← IAttachedDevice，按 ParentCard.DeviceId 分组
+│   └── SIM_VACUUM_IO (IO)
+│
+└── 独立设备                     ← 非板卡且未附属的设备（如独立相机）
+    └── ...
+```
+
+点击左侧节点，右侧区域导航到对应调试视图：
+
+| 设备类型 | 导航目标 |
+|----------|---------|
+| `IMotionCard` | `CardDebugView`（显示板卡规格：CardIndex / AxisCount / DI / DO）|
+| `IAxis` | `AxisDebugView`（轴参数、点位表、运动控制）|
+| `IIOController` | `IODebugView`（IO 状态矩阵、输出控制）|
+
+> `CardDebugView` **不作为独立侧边栏项**，仅从 `HardwareDebugView` 树节点导航进入，与 `AxisDebugView` / `IODebugView` 保持相同策略。
+
+---
+
+## 🔐 开发者指南八：用户与权限管理（PF.Modules.Identity）
+
+### 用户管理后台（UserManagementViewModel）
+
+`UserManagementViewModel` 提供完整的用户 CRUD 功能，通过 `IUserService` 与数据库交互：
+
+| 命令 | 描述 |
+|------|------|
+| `LoadUsersCommand` | 刷新用户列表（`OnNavigatedTo` 自动触发） |
+| `AddCommand` | 新建草稿用户，自动按角色设置默认权限 |
+| `SaveCommand` | 持久化当前编辑用户（新增/修改均通过此命令） |
+| `DeleteCommand<UserInfo>` | 弹窗确认后删除，系统账户（superuser/system/admin）受保护 |
+
+### 默认权限分配（累积模型）
+
+新建用户时，`GetDefaultAccessibleViews(UserLevel)` 按角色等级**累积赋予**默认可访问视图：
+
+```
+Operator（操作员）      ← LoggingListView、ParameterView_CommonParam
+    +
+Engineer（工程师）      ← SystemConfigParam、HardwareDebugView、MechanismDebugView、StationDebugView
+    +
+Administrator（管理员） ← LogManagementView、ParameterView_HardwareParam、PagePermissionView
+    +
+SuperUser（超级用户）   ← UserManagementView、ParameterView_UserLoginParam
+```
+
+### 内置值转换器
+
+| 转换器 | 说明 |
+|--------|------|
+| `SystemUserToBoolConverter` | 保护系统账户（superuser/system/admin），删除按钮对其禁用 |
+| `ListToStringConverter` | `IEnumerable<string>` → 逗号分隔字符串，用于 AccessibleViews 展示 |
+| `UserBackGroundConverter` | 根据 `UserLevel` 返回对应背景色画刷 |
 
 ---
 
