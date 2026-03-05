@@ -2,8 +2,6 @@
 using PF.Modules.Identity.ViewModels;
 using PF.Modules.Identity.Views;
 using PF.UI.Infrastructure.Navigation;
-using Prism.Ioc;
-using Prism.Modularity;
 using System.Reflection;
 
 namespace PF.Modules.Identity
@@ -14,6 +12,7 @@ namespace PF.Modules.Identity
         {
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)

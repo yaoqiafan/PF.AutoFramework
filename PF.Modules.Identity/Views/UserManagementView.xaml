@@ -101,7 +101,7 @@
                             <ComboBox
                                 Margin="0,0,0,15"
                                 ItemsSource="{Binding Data.UserLevels, Source={StaticResource Proxy}}"
-                                SelectedItem="{Binding Root}" />
+                                SelectedItem="{Binding Data.EditingUserRoot, Source={StaticResource Proxy}, Mode=TwoWay}" />
 
                             <TextBlock Margin="0,0,0,5" Text="可访问页面" />
                             <TextBlock
