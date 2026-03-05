@@ -67,6 +67,14 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// </summary>
         Task ReloadAllAsync();
 
+        /// <summary>
+        /// 原子性地切换全局模拟模式：
+        /// 将所有设备配置的 IsSimulated 写入数据库，然后触发热重载。
+        /// 重载后所有设备将以新的模拟状态重新实例化并连接。
+        /// </summary>
+        /// <param name="enabled">true = 全部切换为模拟模式；false = 全部切换为真实硬件模式</param>
+        Task SetGlobalSimulationModeAsync(bool enabled);
+
         // ── 设备查询 ───────────────────────────────────────────────────────────
 
         /// <summary>当前所有已实例化并处于活跃状态的设备</summary>
