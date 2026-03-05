@@ -4,6 +4,7 @@ using PF.Core.Enums;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
 using PF.UI.Shared.Data;
+using PF.Workstation.AutoOcr.CostParam;
 using System.Text.Json;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
@@ -94,57 +95,57 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// </summary>
         public  Dictionary<string, UserLoginParam> GetUsersDefaults()
         {
-            UserInfo Operator = new UserInfo() { Password = "PF111", Root = UserLevel.Operator, UserId = "Operator", UserName = "Operator" };
-            UserInfo Engineer = new UserInfo() { Password = "PF222", Root = UserLevel.Engineer, UserId = "Engineer", UserName = "Engineer" };
-            UserInfo Administrator = new UserInfo() { Password = "PF333", Root = UserLevel.Administrator, UserId = "Administrator", UserName = "Administrator" };
-            UserInfo SuperUser = new UserInfo() { Password = "PF88888", Root = UserLevel.SuperUser, UserId = "SuperUser", UserName = "SuperUser" };
+            //UserInfo Operator = new UserInfo() { Password = "PF111", Root = UserLevel.Operator, UserId = "Operator", UserName = "Operator" };
+            //UserInfo Engineer = new UserInfo() { Password = "PF222", Root = UserLevel.Engineer, UserId = "Engineer", UserName = "Engineer" };
+            //UserInfo Administrator = new UserInfo() { Password = "PF333", Root = UserLevel.Administrator, UserId = "Administrator", UserName = "Administrator" };
+            //UserInfo SuperUser = new UserInfo() { Password = "PF88888", Root = UserLevel.SuperUser, UserId = "SuperUser", UserName = "SuperUser" };
 
             return new Dictionary<string, UserLoginParam>
             {
-                {
-                    "Operator", new UserLoginParam
-                    {
-                       Name = "Operator",
-                       Description = "默认用户Operator",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(Operator),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
-                {
-                    "Engineer", new UserLoginParam
-                    {
-                       Name = "Engineer",
-                       Description = "默认用户Engineer",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(Engineer),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
-                {
-                    "Administrator", new UserLoginParam
-                    {
-                       Name = "Administrator",
-                       Description = "默认用户Administrator",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(Administrator),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
-                {
-                    "SuperUser", new UserLoginParam
-                    {
-                       Name = "SuperUser",
-                       Description = "默认用户SuperUser",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(SuperUser),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
+                //{
+                //    "Operator", new UserLoginParam
+                //    {
+                //       Name = "Operator",
+                //       Description = "默认用户Operator",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(Operator),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
+                //{
+                //    "Engineer", new UserLoginParam
+                //    {
+                //       Name = "Engineer",
+                //       Description = "默认用户Engineer",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(Engineer),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
+                //{
+                //    "Administrator", new UserLoginParam
+                //    {
+                //       Name = "Administrator",
+                //       Description = "默认用户Administrator",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(Administrator),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
+                //{
+                //    "SuperUser", new UserLoginParam
+                //    {
+                //       Name = "SuperUser",
+                //       Description = "默认用户SuperUser",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(SuperUser),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
 
             };
         }
@@ -166,127 +167,267 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// </summary>
         public Dictionary<string, HardwareParam> GetHardwareDefaults()
         {
-            HardwareConfig simCard = new()
+            HardwareConfig LYDMCCard = new()
             {
-                DeviceId                = "SIM_CARD_0",
-                DeviceName              = "模拟运动控制卡[0]",
-                Category                = "MotionCard",
+                DeviceId = "LTDMC_Card_0",
+                DeviceName = "雷赛运动控制卡[0]",
+                Category = "MotionCard",
                 ImplementationClassName = "LTDMCMotionCard",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = string.Empty,
-                ConnectionParameters    = new Dictionary<string, string> { ["CardIndex"] = "0" },
-                Remarks                 = "模拟运动控制卡，用于开发/调试"
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["CardIndex"] = "0" },
+                Remarks = "雷赛运动控制卡，用于开发/调试"
             };
 
-            HardwareConfig simXAxis = new()
+            HardwareConfig OcrYAxis = new()
             {
-                DeviceId                = "SIM_X_AXIS_0",
-                DeviceName              = "模拟X轴[0]",
-                Category                = "Axis",
-                ImplementationClassName = "EtherCatAxis",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = "SIM_CARD_0",
-                ConnectionParameters    = new Dictionary<string, string> { ["AxisIndex"] = "0" },
-                Remarks                 = "模拟X轴，挂载于 SIM_CARD_0"
-            };
-
-            HardwareConfig simYAxis = new()
-            {
-                DeviceId = "SIM_Y_AXIS_1",
-                DeviceName = "模拟Y轴[1]",
+                DeviceId = E_AxisName.视觉Y轴.ToString(),
+                DeviceName = "OCR模块Y轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = true,
+                IsSimulated = false,
                 IsEnabled = true,
-                ParentDeviceId = "SIM_CARD_0",
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "0" },
+                Remarks = "OCR模块Y轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig OcrXAxis = new()
+            {
+                DeviceId = E_AxisName.视觉X轴.ToString(),
+                DeviceName = "OCR模块X轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1" },
-                Remarks = "模拟Y轴，挂载于 SIM_CARD_0"
+                Remarks = "OCR模块X轴，挂载于 LTDMC_Card_0"
             };
-
-            HardwareConfig simZAxis = new()
+            HardwareConfig OcrZAxis = new()
             {
-                DeviceId = "SIM_Z_AXIS_2",
-                DeviceName = "模拟Z轴[2]",
+                DeviceId = E_AxisName.视觉Z轴.ToString(),
+                DeviceName = "OCR模块Z轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = true,
+                IsSimulated = false,
                 IsEnabled = true,
-                ParentDeviceId = "SIM_CARD_0",
+                ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "2" },
-                Remarks = "模拟Z轴，挂载于 SIM_CARD_0"
+                Remarks = "OCR模块Z轴，挂载于 LTDMC_Card_0"
             };
 
-            HardwareConfig simIO = new()
+            HardwareConfig station2ZAxis = new()
             {
-                DeviceId                = "SIM_VACUUM_IO",
-                DeviceName              = "模拟真空IO卡",
-                Category                = "IOController",
+                DeviceId = E_AxisName.工位2上料Z轴.ToString(),
+                DeviceName = "工位2上料Z轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "3" },
+                Remarks = "工位2上料Z轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station2YAxis = new()
+            {
+                DeviceId = E_AxisName.工位2拉料Y轴.ToString(),
+                DeviceName = "工位2晶圆拉料Y轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "4" },
+                Remarks = "工位2晶圆拉料Y轴，挂载于 LTDMC_Card_0"
+            };
+
+
+            HardwareConfig station1ZAxis = new()
+            {
+                DeviceId = E_AxisName.工位1上料Z轴.ToString(),
+                DeviceName = "工位1上料Z轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "5" },
+                Remarks = "工位1上料Z轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station1YAxis = new()
+            {
+                DeviceId = E_AxisName.工位1拉料Y轴.ToString(),
+                DeviceName = "工位1晶圆拉料Y轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "6" },
+                Remarks = "工位1晶圆拉料Y轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station1XAxis = new()
+            {
+                DeviceId = E_AxisName.工位1挡料X轴.ToString(),
+                DeviceName = "工位1挡料X轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "7" },
+                Remarks = "工位1挡料X轴，挂载于 LTDMC_Card_0"
+            };
+            HardwareConfig station2XAxis = new()
+            {
+                DeviceId = E_AxisName.工位2挡料X轴.ToString(),
+                DeviceName = "工位2挡料X轴",
+                Category = "Axis",
+                ImplementationClassName = "EtherCatAxis",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "8" },
+                Remarks = "工位2挡料X轴，挂载于 LTDMC_Card_0"
+            };
+
+
+
+            HardwareConfig IOControll = new()
+            {
+                DeviceId = "IO_Collectorll",
+                DeviceName = "IO模块",
+                Category = "IOController",
                 ImplementationClassName = "EtherCatIO",
-                IsSimulated             = true,
-                IsEnabled               = true,
-                ParentDeviceId          = "SIM_CARD_0",
-                Remarks                 = "模拟真空IO卡，挂载于 SIM_CARD_0"
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                Remarks = "IO耦合器，挂载于 LTDMC_Card_0"
             };
 
             return new Dictionary<string, HardwareParam>
             {
                 {
-                    simCard.DeviceId, new HardwareParam
+                    LYDMCCard.DeviceId, new HardwareParam
                     {
-                        Name         = simCard.DeviceId,
-                        Description  = simCard.Remarks,
+                        Name         = LYDMCCard.DeviceId,
+                        Description  = LYDMCCard.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
-                        JsonValue    = JsonSerializer.Serialize(simCard),
+                        JsonValue    = JsonSerializer.Serialize(LYDMCCard),
                         Category     = "Hardware",
                         Version      = 1
                     }
                 },
                 {
-                    simXAxis.DeviceId, new HardwareParam
+                    OcrYAxis.DeviceId, new HardwareParam
                     {
-                        Name         = simXAxis.DeviceId,
-                        Description  = simXAxis.Remarks,
+                        Name         = OcrYAxis.DeviceId,
+                        Description  = OcrYAxis.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
-                        JsonValue    = JsonSerializer.Serialize(simXAxis),
+                        JsonValue    = JsonSerializer.Serialize(OcrYAxis),
                         Category     = "Hardware",
                         Version      = 1
                     }
                 }
                 ,
                 {
-                    simYAxis.DeviceId, new HardwareParam
+                     OcrXAxis.DeviceId, new HardwareParam
                     {
-                        Name         = simYAxis.DeviceId,
-                        Description  = simYAxis.Remarks,
+                        Name         = OcrXAxis.DeviceId,
+                        Description  = OcrXAxis.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
-                        JsonValue    = JsonSerializer.Serialize(simYAxis),
-                        Category     = "Hardware",
-                        Version      = 1
-                    }
-                }
-                ,
-                
-                {
-                    simZAxis.DeviceId, new HardwareParam
-                    {
-                        Name         = simZAxis.DeviceId,
-                        Description  = simZAxis.Remarks,
-                        TypeFullName = typeof(HardwareConfig).FullName,
-                        JsonValue    = JsonSerializer.Serialize(simZAxis),
+                        JsonValue    = JsonSerializer.Serialize(OcrXAxis),
                         Category     = "Hardware",
                         Version      = 1
                     }
                 }
                 ,
                 {
-                    simIO.DeviceId, new HardwareParam
+                    OcrZAxis.DeviceId, new HardwareParam
                     {
-                        Name         = simIO.DeviceId,
-                        Description  = simIO.Remarks,
+                        Name         = OcrZAxis.DeviceId,
+                        Description  = OcrZAxis.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
-                        JsonValue    = JsonSerializer.Serialize(simIO),
+                        JsonValue    = JsonSerializer.Serialize(OcrZAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                }
+                ,
+                {
+                    station2ZAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = station2ZAxis.DeviceId,
+                        Description  = station2ZAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(station2ZAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                 {
+                    station2XAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = station2XAxis.DeviceId,
+                        Description  = station2XAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(station2XAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                  {
+                    station2YAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = station2YAxis.DeviceId,
+                        Description  = station2YAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(station2YAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    station1ZAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = station1ZAxis.DeviceId,
+                        Description  = station1ZAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(station1ZAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                }  ,
+                {
+                    station1YAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = station1YAxis.DeviceId,
+                        Description  = station1YAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(station1YAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    station1XAxis.DeviceId, new HardwareParam
+                    {
+                        Name         = station1XAxis.DeviceId,
+                        Description  = station1XAxis.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(station1XAxis),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    IOControll .DeviceId, new HardwareParam
+                    {
+                        Name         = IOControll.DeviceId,
+                        Description  = IOControll.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(IOControll),
                         Category     = "Hardware",
                         Version      = 1
                     }
