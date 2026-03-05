@@ -107,6 +107,22 @@ namespace PF.Services.Identity
             }
         }
 
+        public void ResetToOperator()
+        {
+            var op = _builtInUsers.First(u =>
+                string.Equals(u.UserName, "Operator", StringComparison.Ordinal));
+
+            CurrentUser = new UserInfo
+            {
+                UserName = op.UserName,
+                UserId   = op.UserName,
+                Root     = op.Level,
+                Password = op.Password,
+            };
+            _logService.Info("用户长时间无操作，权限已自动重置为 Operator", "Identity");
+            OnCurrentUserChanged();
+        }
+
         public bool IsAuthorized(UserLevel requiredLevel)
         {
             if (CurrentUser == null) return false;

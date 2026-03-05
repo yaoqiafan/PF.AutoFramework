@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
+using PF.Application.Shell.Services;
 using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
@@ -35,6 +36,10 @@ namespace PF.Application.Shell.ViewModels
         private CategoryLogger _custom;
         private CancellationTokenSource _cts;
         private Task _runningTask;
+
+        // 无操作自动降权计时器（60 秒无鼠标/键盘操作 → 重置为 Operator）
+        private readonly IdleMonitorService _idleMonitor =
+            new IdleMonitorService(TimeSpan.FromSeconds(60));
         #endregion
 
         #region 公共集合
@@ -50,6 +55,8 @@ namespace PF.Application.Shell.ViewModels
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
+
+            _idleMonitor.IdleTimeout += OnIdleTimeout;
 
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
@@ -67,6 +74,12 @@ namespace PF.Application.Shell.ViewModels
         private void OnUserChanged(object sender, UserInfo? newUser)
         {
             CurrentUser = newUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
+
+            // 有真实权限时启动空闲计时；Null（已完全注销）时停止
+            if (CurrentUser.Root > UserLevel.Operator)
+                _idleMonitor.Start();
+            else
+                _idleMonitor.Stop();
 
             RefreshMenu();
 
@@ -88,6 +101,15 @@ namespace PF.Application.Shell.ViewModels
                     SelectedMenuItem = null;
                 });
             }
+        }
+
+        /// <summary>
+        /// 空闲超时回调：将当前权限降级为内置 Operator，并清空当前页面内容。
+        /// </summary>
+        private void OnIdleTimeout(object? sender, EventArgs e)
+        {
+            _logService?.Info("检测到 60 秒无操作，权限自动重置为 Operator", "IdleMonitor");
+            _userService.ResetToOperator();
         }
         #endregion
 
