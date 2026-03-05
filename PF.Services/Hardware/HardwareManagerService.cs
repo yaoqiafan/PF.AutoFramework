@@ -211,6 +211,32 @@ namespace PF.Services.Hardware
             await LoadAndInitializeAsync();
         }
 
+        /// <summary>
+        /// 原子性地切换全局模拟模式：
+        ///   1. 将内存中所有配置的 IsSimulated 改为 enabled
+        ///   2. 通过 ImportConfigsAsync 批量写入数据库（持久化）
+        ///   3. 调用 ReloadAllAsync 触发热重载（断开旧实例 → 重新实例化 → 以新模式连接）
+        /// </summary>
+        public async Task SetGlobalSimulationModeAsync(bool enabled)
+        {
+            var configs = _configs.ToList();
+            if (configs.Count == 0)
+            {
+                _logger.Warn("[HardwareManager] SetGlobalSimulationModeAsync：当前无硬件配置，跳过。");
+                return;
+            }
+
+            _logger.Info($"[HardwareManager] 切换全局模拟模式 → {(enabled ? "模拟" : "真实硬件")}，共 {configs.Count} 个设备...");
+
+            foreach (var cfg in configs)
+                cfg.IsSimulated = enabled;
+
+            await ImportConfigsAsync(configs);
+            await ReloadAllAsync();
+
+            _logger.Success($"[HardwareManager] 全局模拟模式已切换为: {(enabled ? "模拟" : "真实硬件")}");
+        }
+
         public IHardwareDevice? GetDevice(string deviceId)
             => _activeDevices.TryGetValue(deviceId, out var d) ? d : null;
 

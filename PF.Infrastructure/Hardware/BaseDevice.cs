@@ -21,7 +21,7 @@ namespace PF.Infrastructure.Hardware
         public string DeviceId { get; }
         public string DeviceName { get; }
         public HardwareCategory Category { get; protected set; } = HardwareCategory.General;
-        public bool IsSimulated { get; }
+        public bool IsSimulated { get; set; }
 
         public bool IsConnected
         {
@@ -80,11 +80,14 @@ namespace PF.Infrastructure.Hardware
             // 1. 脱机模拟模式拦截
             if (IsSimulated)
             {
-                _logger?.Info($"[{DeviceName}] 当前为模拟脱机模式，跳过真实连接过程。");
-                await Task.Delay(500, token); // 模拟连接耗时
-                IsConnected = true;
-                HasAlarm = false;
-                return true;
+                _logger?.Info($"[{DeviceName}] 当前为模拟脱机模式，进入模拟连接流程。");
+                bool simResult = await InternalConnectSimulatedAsync(token);
+                if (simResult)
+                {
+                    IsConnected = true;
+                    HasAlarm = false;
+                }
+                return simResult;
             }
 
             // 2. 真实硬件连接与重试逻辑 (默认重试 3 次)
@@ -176,6 +179,16 @@ namespace PF.Infrastructure.Hardware
         #endregion
 
         #region 供子类继承与实现的方法 (Hook Methods)
+
+        /// <summary>
+        /// 模拟模式下的连接逻辑。默认实现：延迟 500ms 后返回 true（模拟连接耗时）。
+        /// 子类可重写此方法以在模拟模式下初始化虚拟状态（如模拟轴零点、虚拟 IO 初始电平）。
+        /// </summary>
+        protected virtual async Task<bool> InternalConnectSimulatedAsync(CancellationToken token)
+        {
+            await Task.Delay(500, token);
+            return true;
+        }
 
         /// <summary>子类实现：具体的物理连接建立代码（如 TCP Socket Connect, 或调用板卡 InitDll）</summary>
         protected abstract Task<bool> InternalConnectAsync(CancellationToken token);
