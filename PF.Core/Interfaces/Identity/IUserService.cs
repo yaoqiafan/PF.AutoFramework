@@ -29,6 +29,11 @@ namespace PF.Core.Interfaces.Identity
         void Logout();
 
         /// <summary>
+        /// 无操作超时后自动将当前权限降级为内置 Operator 账号，无需重新登录。
+        /// </summary>
+        void ResetToOperator();
+
+        /// <summary>
         /// 权限检查（基于用户等级）
         /// </summary>
         bool IsAuthorized(UserLevel requiredLevel);
