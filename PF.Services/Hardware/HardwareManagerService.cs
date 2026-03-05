@@ -233,9 +233,8 @@ namespace PF.Services.Hardware
                 cfg.IsSimulated = enabled;
 
             await ImportConfigsAsync(configs);
-            await ReloadAllAsync();
 
-            _logger.Success($"[HardwareManager] 全局模拟模式已切换为: {(enabled ? "模拟" : "真实硬件")}");
+            _logger.Success($"[HardwareManager] 全局模拟模式配置已更新为: {(enabled ? "模拟" : "真实硬件")}，请手动重载硬件生效。");
         }
 
         public IHardwareDevice? GetDevice(string deviceId)
