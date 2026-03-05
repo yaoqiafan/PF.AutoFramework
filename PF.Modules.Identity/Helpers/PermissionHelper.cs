@@ -1,36 +1,42 @@
 using PF.Core.Constants;
 using PF.Core.Enums;
+using PF.UI.Infrastructure.Navigation;
 using System.Collections.Generic;
 
 namespace PF.Modules.Identity.Helpers
 {
     /// <summary>
-    /// 权限辅助工具类 — 统一管理默认访问页面列表与页面名称的中文映射。
+    /// 权限辅助工具类 — 统一管理默认访问页面列表与页面名称的中文描述。
+    /// 中文描述通过 INavigationMenuService 动态获取，无需硬编码字典。
     /// </summary>
     public static class PermissionHelper
     {
-        // ── 路由名称 → 中文显示名称映射表 ────────────────────────────────────
-        private static readonly Dictionary<string, string> _viewDisplayNames = new()
+        // 由 Initialize 从 INavigationMenuService 动态构建的路由名称 → 中文标题映射
+        private static Dictionary<string, string> _viewDisplayNames = new();
+
+        /// <summary>
+        /// 在模块初始化阶段调用，从已注册的导航菜单服务中提取所有 ViewName→Title 映射。
+        /// 需在 all RegisterAssembly 完成后调用，确保所有模块的菜单已注册。
+        /// </summary>
+        public static void Initialize(INavigationMenuService navMenuService)
         {
-            [NavigationConstants.Views.LoggingListView]              = "日志查看",
-            [NavigationConstants.Views.LogManagementView]            = "日志管理",
-            [NavigationConstants.Views.ParameterView]                = "参数管理",
-            [NavigationConstants.Views.ParameterView_CommonParam]    = "基础参数",
-            [NavigationConstants.Views.ParameterView_SystemConfigParam] = "系统参数",
-            [NavigationConstants.Views.ParameterView_HardwareParam]  = "硬件参数",
-            [NavigationConstants.Views.ParameterView_UserLoginParam] = "用户参数",
-            [NavigationConstants.Views.PagePermissionView]           = "页面权限管理",
-            [NavigationConstants.Views.UserManagementView]           = "用户管理",
-            [NavigationConstants.Views.HardwareDebugView]            = "硬件调试",
-            [NavigationConstants.Views.MechanismDebugView]           = "机构调试",
-            [NavigationConstants.Views.AxisDebugView]                = "轴调试",
-            [NavigationConstants.Views.IODebugView]                  = "IO调试",
-            [NavigationConstants.Views.StationDebugView]             = "工站调试",
-            [NavigationConstants.Views.PickPlaceStationDebugView]    = "取放工站调试",
-            [NavigationConstants.Views.CardDebugView]                = "运动卡调试",
-            [NavigationConstants.Views.MainView]                     = "主界面",
-            [NavigationConstants.Views.HomeView]                     = "首页",
-        };
+            if (navMenuService == null) return;
+            var map = new Dictionary<string, string>();
+            ExtractTitles(navMenuService.MenuItems, map);
+            _viewDisplayNames = map;
+        }
+
+        private static void ExtractTitles(IEnumerable<NavigationItem> items, Dictionary<string, string> map)
+        {
+            if (items == null) return;
+            foreach (var item in items)
+            {
+                if (item == null) continue;
+                if (!string.IsNullOrEmpty(item.ViewName) && !string.IsNullOrEmpty(item.Title))
+                    map[item.ViewName] = item.Title;
+                ExtractTitles(item.Children, map);
+            }
+        }
 
         /// <summary>
         /// 将路由名称转换为中文显示名称；未找到映射时原样返回路由名称。
@@ -56,7 +62,7 @@ namespace PF.Modules.Identity.Helpers
             if (level < UserLevel.Engineer)
                 return views;
 
-            // Engineer：新增硬件调试 + 系统参数 + 机构/工站调试
+            // Engineer：新增系统参数 + 硬件调试 + 机构/工站调试
             views.AddRange(new[]
             {
                 NavigationConstants.Views.ParameterView_SystemConfigParam,
@@ -68,7 +74,7 @@ namespace PF.Modules.Identity.Helpers
             if (level < UserLevel.Administrator)
                 return views;
 
-            // Administrator：新增日志管理 + 硬件参数 + 权限查看
+            // Administrator：新增日志管理 + 硬件参数 + 页面权限管理
             views.AddRange(new[]
             {
                 NavigationConstants.Views.LogManagementView,
@@ -79,7 +85,7 @@ namespace PF.Modules.Identity.Helpers
             if (level < UserLevel.SuperUser)
                 return views;
 
-            // SuperUser：完整权限（追加用户管理 + 用户参数）
+            // SuperUser：追加用户管理 + 用户参数
             views.AddRange(new[]
             {
                 NavigationConstants.Views.UserManagementView,
