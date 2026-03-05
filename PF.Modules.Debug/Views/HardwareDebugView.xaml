@@ -3,15 +3,21 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PF.Modules.Debug.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
-    xmlns:selectors="clr-namespace:PF.Modules.Debug.Selectors"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <local:BindingProxy x:Key="Proxy" Data="{Binding}" />
+    </UserControl.Resources>
+
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="5">
             <Grid.ColumnDefinitions>
@@ -20,27 +26,94 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" CornerRadius="5">
-                <TreeView
-                    BorderThickness="3"
-                    ItemsSource="{Binding TreeNodes}"
-                    SelectedItemChanged="TreeView_SelectedItemChanged"
-                    Style="{StaticResource TreeView.Small}">
-                    <TreeView.ItemTemplate>
-                        <HierarchicalDataTemplate DataType="{x:Type models:DebugTreeNode}" ItemsSource="{Binding Children}">
-                            <StackPanel Margin="0,4" Orientation="Horizontal">
-                                <TextBlock
-                                    VerticalAlignment="Center"
-                                    FontSize="14"
-                                    Text="{Binding NodeName}" />
-                            </StackPanel>
-                        </HierarchicalDataTemplate>
-                    </TreeView.ItemTemplate>
-                </TreeView>
-            </Border>
+            <!--  左侧：顶部全局切换 + 设备树  -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
+                <!--  全局模拟模式切换区（SuperUser 专属）  -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,0,0,6"
+                    Padding="10,8"
+                    Background="#FFF8E1"
+                    BorderBrush="#FFB300"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Visibility="{Binding IsSuperUser, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Foreground="#E65100"
+                                Text="全局模拟模式" />
+                            <TextBlock
+                                FontSize="10"
+                                Foreground="#BF360C"
+                                Text="{Binding IsGlobalSimulated, StringFormat='当前：{0}'}" />
+                        </StackPanel>
+
+                        <!--  Switch 开关：点击触发一键切换命令  -->
+                        <ToggleButton
+                            Grid.Column="1"
+                            Command="{Binding ToggleGlobalSimulationCommand}"
+                            IsChecked="{Binding IsGlobalSimulated, Mode=OneWay}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
+                            Style="{StaticResource ToggleButtonSwitch.Small}"
+                            ToolTip="一键切换所有设备的模拟/真实模式（需重载硬件）" />
+                    </Grid>
+                </Border>
+
+                <!--  设备层级树  -->
+                <Border Grid.Row="1" CornerRadius="5">
+                    <TreeView
+                        BorderThickness="3"
+                        ItemsSource="{Binding TreeNodes}"
+                        SelectedItemChanged="TreeView_SelectedItemChanged"
+                        Style="{StaticResource TreeView.Small}">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type models:DebugTreeNode}" ItemsSource="{Binding Children}">
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        FontSize="14"
+                                        Text="{Binding NodeName}" />
+
+                                    <!--  单设备模拟开关（仅有设备负载的节点显示）  -->
+                                    <ToggleButton
+                                        Grid.Column="1"
+                                        Margin="6,0,0,0"
+                                        Command="{Binding Source={StaticResource Proxy}, Path=Data.ToggleDeviceSimulationCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsChecked="{Binding IsSimulated, Mode=TwoWay}"
+                                        IsEnabled="{Binding Source={StaticResource Proxy}, Path=Data.IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
+                                        Style="{StaticResource ToggleButtonSwitch.Small}"
+                                        ToolTip="{Binding IsSimulated, StringFormat='模拟模式: {0}'}"
+                                        Visibility="{Binding HasDevice, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Border>
+            </Grid>
+
+            <!--  右侧：调试内容区  -->
             <Border Grid.Column="2" CornerRadius="5">
-                <ContentControl Grid.Row="0" prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.DebugViewRegion}" >
+                <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.DebugViewRegion}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
                             <Style.Triggers>
@@ -49,11 +122,11 @@
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ContentControl">
                                                 <TextBlock
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  FontSize="16"
-                                  Foreground="Gray"
-                                  Text="请选择具体硬件设备进行调试" />
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="16"
+                                                    Foreground="Gray"
+                                                    Text="请选择具体硬件设备进行调试" />
                                             </ControlTemplate>
                                         </Setter.Value>
                                     </Setter>
