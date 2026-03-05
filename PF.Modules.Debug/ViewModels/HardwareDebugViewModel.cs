@@ -1,18 +1,24 @@
 using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Identity;
 using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace PF.Modules.Debug.ViewModels
 {
     public class HardwareDebugViewModel : RegionViewModelBase
     {
-        public ObservableCollection<DebugTreeNode> TreeNodes { get; } = new ObservableCollection<DebugTreeNode>();
+        private readonly IHardwareManagerService _hardwareManager;
+        private readonly IUserService _userService;
+
+        public ObservableCollection<DebugTreeNode> TreeNodes { get; } = new();
 
         private DebugTreeNode _selectedNode;
         public DebugTreeNode SelectedNode
@@ -21,35 +27,126 @@ namespace PF.Modules.Debug.ViewModels
             set => SetProperty(ref _selectedNode, value);
         }
 
-        public DelegateCommand<object> NavigateToDebugCommand { get; }
-
-        public HardwareDebugViewModel(IHardwareManagerService hardwareManager)
+        private bool _isSuperUser;
+        /// <summary>当前用户是否为 SuperUser（控制全局模拟切换按钮可见性）</summary>
+        public bool IsSuperUser
         {
-            NavigateToDebugCommand = new DelegateCommand<object>(ExecuteNavigateToDebug);
-            BuildTree(hardwareManager);
+            get => _isSuperUser;
+            private set => SetProperty(ref _isSuperUser, value);
         }
 
-        /// <summary>
-        /// 按硬件物理层级构建设备树：
-        ///   第一层 — IMotionCard（板卡节点，可点击跳转板卡调试）
-        ///   第二层 — IAttachedDevice（挂载在板卡上的轴 / IO 控制器，继承自 IAttachedDevice.ParentCard）
-        ///   兜底组 — 既非板卡又无父板卡的独立设备（相机、仪器等）
-        /// </summary>
-        private void BuildTree(IHardwareManagerService hw)
+        private bool _isGlobalSimulated;
+        /// <summary>全局模拟模式开关状态（所有配置均为模拟时为 true）</summary>
+        public bool IsGlobalSimulated
         {
-            var allDevices = hw.ActiveDevices.ToList();
+            get => _isGlobalSimulated;
+            set => SetProperty(ref _isGlobalSimulated, value);
+        }
 
-            // ── 第一层：板卡节点 ──────────────────────────────────────────────
-            var cards = allDevices.OfType<IMotionCard>().OrderBy(c => c.CardIndex).ToList();
+        private bool _isBusy;
+        /// <summary>正在执行异步硬件操作（防止重复点击）</summary>
+        public bool IsBusy
+        {
+            get => _isBusy;
+            private set
+            {
+                SetProperty(ref _isBusy, value);
+                ToggleGlobalSimulationCommand.RaiseCanExecuteChanged();
+                ToggleDeviceSimulationCommand.RaiseCanExecuteChanged();
+            }
+        }
 
-            // 建立 cardId → 子设备列表 的映射（通过 IAttachedDevice.ParentCard）
+        public DelegateCommand<object> NavigateToDebugCommand { get; }
+
+        /// <summary>一键切换全局模拟模式（仅 SuperUser 可见）</summary>
+        public DelegateCommand ToggleGlobalSimulationCommand { get; }
+
+        /// <summary>切换单个设备的模拟模式</summary>
+        public DelegateCommand<DebugTreeNode> ToggleDeviceSimulationCommand { get; }
+
+        public HardwareDebugViewModel(IHardwareManagerService hardwareManager, IUserService userService)
+        {
+            _hardwareManager = hardwareManager;
+            _userService = userService;
+
+            NavigateToDebugCommand        = new DelegateCommand<object>(ExecuteNavigateToDebug);
+            ToggleGlobalSimulationCommand = new DelegateCommand(async () => await ExecuteToggleGlobalAsync(), () => !IsBusy);
+            ToggleDeviceSimulationCommand = new DelegateCommand<DebugTreeNode>(async node => await ExecuteToggleDeviceAsync(node), _ => !IsBusy);
+
+            UpdateSuperUserState();
+            _userService.CurrentUserChanged += (_, _) => UpdateSuperUserState();
+
+            BuildTree();
+            UpdateGlobalSimulatedState();
+        }
+
+        // ── 全局模拟切换 ──────────────────────────────────────────────────────
+
+        private async Task ExecuteToggleGlobalAsync()
+        {
+            IsBusy = true;
+            try
+            {
+                await _hardwareManager.SetGlobalSimulationModeAsync(!IsGlobalSimulated);
+
+                // 热重载完成后重建树（所有设备实例已更新）
+                TreeNodes.Clear();
+                BuildTree();
+                UpdateGlobalSimulatedState();
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        // ── 单设备模拟切换 ────────────────────────────────────────────────────
+
+        private async Task ExecuteToggleDeviceAsync(DebugTreeNode node)
+        {
+            if (node?.Payload is not IHardwareDevice device) return;
+
+            IsBusy = true;
+            try
+            {
+                // ToggleButton 双向绑定已预先翻转 node.IsSimulated，此处读取即为目标值
+                device.IsSimulated = node.IsSimulated;
+
+                await device.DisconnectAsync();
+                await device.ConnectAsync();
+
+                // 回写真实状态（ConnectAsync 失败时修正 UI）
+                node.IsSimulated = device.IsSimulated;
+
+                // 持久化，使下次 ReloadAllAsync 后仍生效
+                var config = _hardwareManager.GetConfig(device.DeviceId);
+                if (config != null)
+                {
+                    config.IsSimulated = device.IsSimulated;
+                    await _hardwareManager.SaveConfigAsync(config);
+                }
+
+                UpdateGlobalSimulatedState();
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        // ── 树构建 ────────────────────────────────────────────────────────────
+
+        private void BuildTree()
+        {
+            var allDevices = _hardwareManager.ActiveDevices.ToList();
+            var cards      = allDevices.OfType<IMotionCard>().OrderBy(c => c.CardIndex).ToList();
+
             var childMap = allDevices
                 .OfType<IAttachedDevice>()
                 .Where(d => d.ParentCard != null)
                 .GroupBy(d => d.ParentCard!.DeviceId)
                 .ToDictionary(g => g.Key, g => g.Cast<IHardwareDevice>().ToList());
 
-            // 所有已归入某张卡的子设备 ID 集合（用于筛选孤立设备）
             var attachedIds = childMap.Values
                 .SelectMany(list => list)
                 .Select(d => d.DeviceId)
@@ -60,12 +157,11 @@ namespace PF.Modules.Debug.ViewModels
                 var cardNode = new DebugTreeNode
                 {
                     NodeName = $"[卡{card.CardIndex}] {card.DeviceName}",
-                    Payload = card
+                    Payload  = card
                 };
 
                 if (childMap.TryGetValue(card.DeviceId, out var children))
                 {
-                    // 子设备按 Category 排序，同 Category 按设备名排序
                     foreach (var child in children.OrderBy(c => c.Category.ToString()).ThenBy(c => c.DeviceName))
                     {
                         cardNode.Children.Add(new DebugTreeNode
@@ -79,7 +175,6 @@ namespace PF.Modules.Debug.ViewModels
                 TreeNodes.Add(cardNode);
             }
 
-            // ── 兜底：既非板卡、又没有父板卡的独立设备 ─────────────────────
             var orphans = allDevices
                 .Where(d => d is not IMotionCard && !attachedIds.Contains(d.DeviceId))
                 .OrderBy(d => d.Category.ToString())
@@ -95,13 +190,13 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        // ── 导航 ──────────────────────────────────────────────────────────────
+
         private void ExecuteNavigateToDebug(object payload)
         {
             if (payload == null) return;
-
             var parameters = new NavigationParameters();
 
-            // 板卡节点：优先判断，避免子接口误匹配
             if (payload is IMotionCard card)
             {
                 parameters.Add("Device", card);
@@ -120,6 +215,17 @@ namespace PF.Modules.Debug.ViewModels
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.IODebugView, parameters);
             }
+        }
+
+        // ── 辅助 ──────────────────────────────────────────────────────────────
+
+        private void UpdateSuperUserState()
+            => IsSuperUser = _userService.IsAuthorized(UserLevel.SuperUser);
+
+        private void UpdateGlobalSimulatedState()
+        {
+            var configs = _hardwareManager.GetAllConfigs().ToList();
+            IsGlobalSimulated = configs.Any() && configs.All(c => c.IsSimulated);
         }
     }
 }
