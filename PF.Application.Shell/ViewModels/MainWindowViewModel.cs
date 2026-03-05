@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DryIoc.ImTools;
+using log4net.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 using PF.Application.Shell.Services;
 using PF.Core.Constants;
@@ -19,6 +21,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace PF.Application.Shell.ViewModels
@@ -97,7 +100,6 @@ namespace PF.Application.Shell.ViewModels
                             region.Remove(view);
                         }
                     }
-
                     SelectedMenuItem = null;
                 });
             }
@@ -109,6 +111,23 @@ namespace PF.Application.Shell.ViewModels
         private void OnIdleTimeout(object? sender, EventArgs e)
         {
             _logService?.Info("检测到 60 秒无操作，权限自动重置为 Operator", "IdleMonitor");
+
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                // 重置主显示区域，确保注销后屏幕不留敏感数据
+                if (RegionManager.Regions.ContainsRegionWithName(NavigationConstants.Regions.SoftwareViewRegion))
+                {
+                    var region = RegionManager.Regions[NavigationConstants.Regions.SoftwareViewRegion];
+
+                    foreach (var view in region.Views.ToArray())
+                    {
+                        region.Remove(view);
+                    }
+                }
+
+                SelectedMenuItem = null;
+            });
+
             _userService.ResetToOperator();
         }
         #endregion
@@ -127,12 +146,15 @@ namespace PF.Application.Shell.ViewModels
                     MenuItems.Add(item);
                 }
             });
+            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
         }
 
         private bool IsWhiteListView(string viewName)
         {
             if (string.IsNullOrEmpty(viewName)) return false;
             if (NavigationConstantMapper.GetCategory(viewName) == nameof(NavigationConstants.Dialogs)) return true;
+            if (viewName== NavigationConstants.Views.MainView|| viewName == NavigationConstants.Views.HomeView) return true;
+            
             return false;
         }
 
@@ -142,10 +164,10 @@ namespace PF.Application.Shell.ViewModels
 
             if (originalItems == null || !originalItems.Any()) return filteredCollection;
 
-            user ??= new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
+            user ??= new UserInfo { Root = UserLevel.Null, AccessibleViews = DefaultPermissions. GetAccessibleViews(UserLevel.Null) };
 
             bool isSuperAdmin = user.Root == UserLevel.SuperUser || user.Root == UserLevel.Administrator;
-            var allowedViews = user.AccessibleViews ?? new List<string>();
+            var allowedViews = user.AccessibleViews ?? DefaultPermissions.GetAccessibleViews(UserLevel.Null);
 
             foreach (var item in originalItems)
             {
@@ -196,7 +218,7 @@ namespace PF.Application.Shell.ViewModels
                     if (category == nameof(NavigationConstants.Views) && !_userService.HasPagePermission(viewName))
                     {
                         _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
-                        System.Windows.MessageBox.Show(
+                        MessageService .ShowMessage(
                             $"您无权访问该页面。\n\n页面路由: {viewName}\n当前用户: {CurrentUser?.UserName}\n\n请联系管理员在「权限管控 → 窗体权限更改」中配置相应权限。",
                             "权限不足",
                             System.Windows.MessageBoxButton.OK,

@@ -70,14 +70,14 @@ namespace PF.Services.Identity
                     return true;
                 }
 
-                // 后备系统管理员通道
-                if (string.Equals(userName, "System", StringComparison.OrdinalIgnoreCase) && password == "admin")
-                {
-                    CurrentUser = UserInfo.SystemUser;
-                    _logService.Info($"系统管理员 {userName} 登录成功 (后备通道)", "Identity");
-                    OnCurrentUserChanged();
-                    return true;
-                }
+                //// 后备系统管理员通道
+                //if (string.Equals(userName, "System", StringComparison.OrdinalIgnoreCase) && password == "admin")
+                //{
+                //    CurrentUser = UserInfo.SystemUser;
+                //    _logService.Info($"系统管理员 {userName} 登录成功 (后备通道)", "Identity");
+                //    OnCurrentUserChanged();
+                //    return true;
+                //}
 
                 // 查询数据库中的自定义用户
                 var user = await _paramService.GetParamAsync<UserInfo>(userName);
@@ -103,8 +103,18 @@ namespace PF.Services.Identity
         {
             if (CurrentUser != null)
             {
-                _logService.Info($"用户 {CurrentUser.UserName} 已注销", "Identity");
-                CurrentUser = null;
+                _logService.Info($"用户 {CurrentUser.UserName} 已注销,使用默认操作员账号！", "Identity");
+                var op = _builtInUsers.First(u =>
+                string.Equals(u.UserName, "Operator", StringComparison.Ordinal));
+
+                CurrentUser = new UserInfo
+                {
+                    UserName = op.UserName,
+                    UserId = op.UserName,
+                    Root = op.Level,
+                    Password = op.Password,
+                    AccessibleViews = DefaultPermissions.GetAccessibleViews(op.Level),
+                };
                 OnCurrentUserChanged();
             }
         }
