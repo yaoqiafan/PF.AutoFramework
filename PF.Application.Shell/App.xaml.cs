@@ -1,8 +1,9 @@
-﻿using log4net;
+using log4net;
 using Microsoft.Extensions.Hosting;
 
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
+using PF.Core.Constants;
 using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
@@ -14,10 +15,12 @@ using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
+using PF.Core.Interfaces.Sync;
 using PF.Data.Context;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
+using PF.Infrastructure.Station.Basic;
 using PF.Modules.Debug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
@@ -25,8 +28,6 @@ using PF.Modules.Parameter;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
-using PF.Core.Interfaces.Sync;
-using PF.Infrastructure.Station.Basic;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
@@ -50,7 +51,6 @@ using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
-using PF.Core.Constants;
 
 namespace PF.Application.Shell
 {
@@ -59,21 +59,66 @@ namespace PF.Application.Shell
     /// </summary>
     public partial class App : PrismApplication
     {
+        #region 私有字段
 
         private ILogService _logService;
         private HostApplicationBuilder? builder;
 
-        #region 程序自检
+        #endregion
 
+        #region 程序启动与自检
+
+        protected override async void OnStartup(StartupEventArgs e)
+        {
+            try
+            {
+                await InitializeDatabaseAsync();
+
+                base.OnStartup(e);
+
+                if (RunningInstance() == null)
+                {
+                    try
+                    {
+                        this.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(App_DispatcherUnhandledException);
+                        ApplyConfiguration();
+                    }
+                    catch (Exception ex)
+                    {
+                        var strDateInfo = "出现应用程序未处理的异常：" + DateTime.Now + "\r\n";
+                        var str = string.Format(strDateInfo + "异常类型：{0}\r\n异常消息：{1}\r\n异常信息：{2}\r\n",
+                            ex.GetType().Name, ex.Message, ex.StackTrace);
+
+                        IMessageService messageService = Container.Resolve<IMessageService>();
+                        messageService.ShowMessage("发生错误，请查看程序日志！" + Environment.NewLine + str, "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    IMessageService messageService = Container.Resolve<IMessageService>();
+                    messageService.ShowMessage("当前应用程序已经在运行！", "警告", MessageBoxButton.OK, MessageBoxImage.Asterisk);
+                    this.Shutdown();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"XamlParseException: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 检测是否已有同名进程在运行，防止重复启动。
+        /// </summary>
         public static Process RunningInstance()
         {
             Process current = System.Diagnostics.Process.GetCurrentProcess();
             System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcesses();
-            foreach (System.Diagnostics.Process process in processes) //查找相同名称的进程
+            foreach (System.Diagnostics.Process process in processes)
             {
-                if (process.Id != current.Id) //忽略当前进程
+                if (process.Id != current.Id)
                 {
-                    if (process.ProcessName == current.ProcessName)//判断进程名称是否和当前运行进程名称一样
+                    if (process.ProcessName == current.ProcessName)
                     {
                         if (Assembly.GetExecutingAssembly().Location.Replace(@"/", @"\") == current.MainModule.FileName)
                         {
@@ -102,72 +147,26 @@ namespace PF.Application.Shell
             e.Handled = true;
         }
 
-        #endregion 程序自检
+        #endregion
 
-        #region 界面资源操作
+        #region Prism 框架核心
 
-        /// <summary>
-        /// 初始化界面
-        /// </summary>
-        private void ApplyConfiguration()
-        {
-            //var Params = Container.Resolve<IParams>().GetParam<GlobalSettingsDTO>(ParamType.Base);
-
-            //if (Params.Skin != CommonConfig.Core.Dtos.SkinType.Default)
-            //{
-            UpdateSkin(SkinType.Dark.ToString());
-            //}
-
-            ConfigHelper.Instance.SetWindowDefaultStyle();
-            ConfigHelper.Instance.SetNavigationWindowDefaultStyle();
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-        }
-
-        /// <summary>
-        /// 更新皮肤资源
-        /// </summary>
-        /// <param name="str"></param>
-        internal void UpdateSkin(string str = "Default")
-        {
-            if (Enum.TryParse<SkinType>(str, out SkinType skin))
-            {
-                var skins0 = Resources.MergedDictionaries[0];
-                skins0.MergedDictionaries.Clear();
-                skins0.MergedDictionaries.Add(ResourceHelper.GetSkin(skin));
-
-
-                var skins1 = Resources.MergedDictionaries[1];
-                skins1.MergedDictionaries.Clear();
-
-                skins1.MergedDictionaries.Add(new ResourceDictionary
-                {
-                    Source = new Uri("pack://application:,,,/PF.UI.Resources;component/Themes/Default.xaml")
-                });
-
-                Current.MainWindow?.OnApplyTemplate();
-            }
-
-
-        }
-
-
-
-        #endregion 界面资源操作
-
-        #region Prism相关
         protected override Window CreateShell()
         {
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             UpdateSkin("Dark");
+
             Splash splash = Container.Resolve<Splash>();
             IParamService paramService = Container.Resolve<IParamService>();
+
             var name = paramService.GetParamAsync<string>("SoftWareName").GetAwaiter().GetResult();
             splash.WelcomeText = $"欢迎使用{name}";
+
             var nameEN = paramService.GetParamAsync<string>("SoftWareName_EN").GetAwaiter().GetResult();
             splash.WelcomeText_small = $"Welcome to the {nameEN}";
+
             Assembly assembly = Assembly.GetEntryAssembly();
-            string VersionNumber = $"V{assembly.GetName().Version}";
-            splash.VersionNumber = VersionNumber;
+            splash.VersionNumber = $"V{assembly.GetName().Version}";
             splash.LoadingAction = PerformInitializationAsync;
 
             if (splash.ShowDialog() == true)
@@ -177,79 +176,39 @@ namespace PF.Application.Shell
 
             return Container.Resolve<MainWindow>();
         }
+
         protected override void OnInitialized()
         {
             var authService = Container.Resolve<IUserService>();
             // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
-            // 2. 使用默认的操作员账号进行静默登录
-            // 使用 .GetAwaiter().GetResult() 来同步等待异步方法完成
-            bool loginSuccess = authService.LoginAsync("SuperUser", "PF88888").GetAwaiter().GetResult();
+            // 使用默认的超级管理员账号进行静默登录
+            authService.LoginAsync("SuperUser", "PF88888").GetAwaiter().GetResult();
             base.OnInitialized();
         }
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             RegisterLogServiceTypes(containerRegistry);
-
             RegisterSystemParamsTypes(containerRegistry);
-
             RegisterHardwareTypes(containerRegistry);
 
             containerRegistry.RegisterSingleton<Splash>();
-
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
-
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
-
 
             RegisterUserIdentityTypes(containerRegistry);
 
             ViewFactory.PreloadAssemblies();
-
             ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
-
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
             containerRegistry.RegisterDialog<WaitDialogView, WaitDialogViewModel>("WaitDialog");
             containerRegistry.RegisterSingleton<IMessageService, MessageService>();
 
-            // =======================================================
-            // 【新增】注册硬件与模组
-            // =======================================================
             RegisterHardwareAndMechanisms(containerRegistry);
         }
-
-        private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
-        {
-            // ── 事件总线 ─────────────────────────────────────────────────────
-            containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
-
-            // ── 工站同步服务（type-based，ILogService 由容器自动注入）────────
-            containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();
-
-            // ── 机构层：GantryMechanism 注册为自身类型 + IMechanism 接口 ────
-            // DryIoc RegisterMany 将同一个单例实例映射到多个服务类型，
-            // 构造函数依赖 IHardwareManagerService + ILogService，均已在容器中注册。
-            var container = containerRegistry.GetContainer();
-            container.RegisterMany(
-                new[] { typeof(GantryMechanism), typeof(IMechanism) },
-                typeof(GantryMechanism),
-                reuse: DryIoc.Reuse.Singleton);
-
-            // ── 工站层：PickPlaceStation 注册为自身类型 + StationBase ────────
-            // StationBase 注册使 IEnumerable<StationBase> 能被 StationDebugViewModel
-            // 和 DemoMachineController 的构造函数自动发现（DryIoc 集合解析）。
-            container.RegisterMany(
-                new[] { typeof(PickPlaceStation), typeof(StationBase) },
-                typeof(PickPlaceStation),
-                reuse: DryIoc.Reuse.Singleton);
-
-            // ── 主控调度器 ───────────────────────────────────────────────────
-            containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
-        }
-
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
@@ -260,90 +219,128 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<DebugModule>();
             moduleCatalog.AddModule<UIModule>();
         }
+
         #endregion
 
-        #region 初始入口
-        protected override async void OnStartup(StartupEventArgs e)
+        #region 日志服务注册
+
+        public void RegisterLogServiceTypes(IContainerRegistry containerRegistry)
         {
             try
             {
-                await InitializeDatabaseAsync();
-
-                base.OnStartup(e);
-
-
-
-                if (RunningInstance() == null)
-                {
-                    try
-                    {
-                        this.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(App_DispatcherUnhandledException);
-
-                        ApplyConfiguration();
-
-                    }
-                    catch (Exception ex)
-                    {
-                        var strDateInfo = "出现应用程序未处理的异常：" + DateTime.Now + "\r\n";
-                        var str = string.Format(strDateInfo + "异常类型：{0}\r\n异常消息：{1}\r\n异常信息：{2}\r\n",
-                        ex.GetType().Name, ex.Message, ex.StackTrace);
-
-                        IMessageService messageService = Container.Resolve<IMessageService>();
-                        messageService.ShowMessage("发生错误，请查看程序日志！" + Environment.NewLine + str, "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                else
-                {
-                    IMessageService messageService = Container.Resolve<IMessageService>();
-                    messageService.ShowMessage("当前应用程序已经在运行！", "警告", MessageBoxButton.OK, MessageBoxImage.Asterisk);
-                    this.Shutdown();
-                }
-
+                var logConfig = CreateLogConfiguration();
+                containerRegistry.RegisterInstance(logConfig);
+                _logService = new LogService(logConfig);
+                containerRegistry.RegisterInstance<ILogService>(_logService);
             }
             catch (Exception ex)
             {
-                // 记录详细的错误信息
-                Debug.WriteLine($"XamlParseException: {ex.Message}");
+                LogFallbackError("日志模块类型注册失败", ex);
                 throw;
             }
-
-
-
         }
+
+        private LogConfiguration CreateLogConfiguration()
+        {
+            try
+            {
+                var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
+                var logBasePath = Path.Combine(appBasePath, "Logs");
+
+                var config = new LogConfiguration
+                {
+                    BasePath             = logBasePath,
+                    HistoricalLogPath    = logBasePath,
+                    EnableConsoleLogging = true,
+                    EnableFileLogging    = true,
+                    EnableUiLogging      = true,
+                    MinimumLevel         = LogLevel.Debug,
+                    AutoDeleteLogs       = true,
+                    AutoDeleteIntervalDays = 30,
+                    MaxUiEntries         = 1000,
+                    SplitByHour          = false
+                };
+
+                config.ConfigureDefaultCategories();
+                config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
+
+                EnsureLogDirectoryExists(logBasePath);
+                foreach (var category in config.GetFileLogCategories())
+                {
+                    EnsureLogDirectoryExists(Path.Combine(logBasePath, category));
+                }
+
+                return config;
+            }
+            catch (Exception ex)
+            {
+                LogFallbackError("创建日志配置失败，使用默认配置", ex);
+                return CreateFallbackConfiguration();
+            }
+        }
+
+        private LogConfiguration CreateFallbackConfiguration()
+        {
+            return new LogConfiguration
+            {
+                BasePath               = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"),
+                EnableConsoleLogging   = true,
+                EnableFileLogging      = true,
+                EnableUiLogging        = true,
+                MinimumLevel           = LogLevel.Info,
+                AutoDeleteLogs         = false,
+                AutoDeleteIntervalDays = 30,
+                MaxUiEntries           = 500
+            }.ConfigureDefaultCategories();
+        }
+
+        private void EnsureLogDirectoryExists(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+            }
+            catch (Exception ex)
+            {
+                LogFallbackError($"创建目录失败: {path}", ex);
+            }
+        }
+
+        private void LogFallbackError(string message, Exception ex)
+        {
+            try
+            {
+                var logger = LogManager.GetLogger(typeof(LoggingModule));
+                logger.Error($"{message}: {ex.Message}", ex);
+                System.Diagnostics.Debug.WriteLine($"[LOG_FALLBACK] {message}: {ex.Message}");
+            }
+            catch
+            {
+                // 所有备用方案都失败时，静默处理
+            }
+        }
+
         #endregion
 
+        #region 参数数据库服务注册
 
-
-        #region 参数数据库加载和初始化
         /// <summary>
-        /// 初始化数据库
+        /// 初始化数据库：确保文件存在、表结构已创建、默认参数已写入。
         /// </summary>
         private async Task InitializeDatabaseAsync()
         {
             try
             {
-                //// 1. 获取应用程序目录
-                //var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                //var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
-
-                // 如果目录不存在则创建
                 if (!Directory.Exists(ConstGlobalParam.ConfigPath))
-                {
                     Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
-                }
 
-                // 2. 构建数据库文件路径
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
-
-                // 3. 初始化数据库上下文工厂
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
 
-                // 4. 创建数据库上下文并确保数据库创建
                 using var dbContext = DbContextFactory<AppParamDbContext>.CreateDbContext();
                 await dbContext.Database.EnsureCreatedAsync();
                 await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
-
-
             }
             catch (Exception ex)
             {
@@ -352,46 +349,32 @@ namespace PF.Application.Shell
             }
         }
 
-
         /// <summary>
-        /// 注册类型到容器
+        /// 向容器注册参数仓储、数据库上下文及参数服务。
         /// </summary>
         protected void RegisterSystemParamsTypes(IContainerRegistry containerRegistry)
         {
             try
             {
                 var container = containerRegistry.GetContainer();
+                var filePath  = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
 
-
-                // 获取数据库连接字符串（与初始化时保持一致）
-                //var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                //var appFolder = Path.Combine(appDataPath, "PFAutoFrameWork");
-                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
-
-                //  初始化数据库上下文工厂
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
-
-                // 创建数据库上下文选项
                 var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
-
                 container.RegisterInstance(dbContextOptions);
 
-                // 注册数据库上下文为作用域（推荐）或单例
-                container.Register<Microsoft.EntityFrameworkCore.DbContext, AppParamDbContext>(made: Made.Of(() =>
-                  new AppParamDbContext(Arg.Of<Microsoft.EntityFrameworkCore.DbContextOptions<AppParamDbContext>>())),
+                container.Register<Microsoft.EntityFrameworkCore.DbContext, AppParamDbContext>(
+                    made: Made.Of(() => new AppParamDbContext(
+                        Arg.Of<Microsoft.EntityFrameworkCore.DbContextOptions<AppParamDbContext>>())),
                     reuse: Reuse.Scoped);
 
-                // 注册泛型仓储
                 container.Register(typeof(IParamRepository<>), typeof(ParamRepository<>),
-                setup: Setup.With(condition: r => r.ServiceType.IsGenericType),
-                reuse: Reuse.ScopedOrSingleton);
+                    setup: Setup.With(condition: r => r.ServiceType.IsGenericType),
+                    reuse: Reuse.ScopedOrSingleton);
 
-                // 注册其他参数模型（用于扩展）
                 RegisterParamModels(containerRegistry);
 
-                // 注册参数服务（单例，因为它有事件订阅）
                 container.Register<IParamService, ParamService>(reuse: Reuse.Singleton);
-
                 container.Register<IDefaultParam, DefaultParameters>();
 
                 _logService.Info("系统参数服务注册完成", "DependencyInjection");
@@ -404,28 +387,89 @@ namespace PF.Application.Shell
         }
 
         /// <summary>
-        /// 注册参数模型（用于扩展）
+        /// 注册自定义参数模型（扩展点）。
         /// </summary>
         private void RegisterParamModels(IContainerRegistry containerRegistry)
         {
-
-
-
         }
+
+        #endregion
+
+        #region 用户身份服务注册
 
         private void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<IUserService, UserService>();
         }
+
         #endregion
 
+        #region 硬件服务注册
 
+        private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
+        {
+            var appDataPath  = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var dataDirectory = Path.Combine(appDataPath, "PFAutoFrameWork");
 
-        #region 加载方法
+            var container    = containerRegistry.GetContainer();
+            var paramService = container.Resolve<IParamService>();
+            paramService.RegisterParamType<HardwareParam, HardwareConfig>();
+
+            var hwManager = new HardwareManagerService(_logService, paramService);
+
+            hwManager.RegisterFactory("LTDMCMotionCard", cfg =>
+            {
+                int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
+                    ? int.Parse(ci) : 0;
+                return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(cardIndex, _logService);
+            });
+
+            hwManager.RegisterFactory("EtherCatAxis", cfg =>
+            {
+                int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
+                    ? int.Parse(idx) : 0;
+                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
+            });
+
+            hwManager.RegisterFactory("EtherCatIO", cfg =>
+                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(_logService));
+
+            containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
+        }
+
+        private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
+        {
+            // 事件总线
+            containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
+
+            // 工站同步服务
+            containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();
+
+            // 机构层：GantryMechanism 同时映射到自身类型和 IMechanism 接口
+            var container = containerRegistry.GetContainer();
+            container.RegisterMany(
+                new[] { typeof(GantryMechanism), typeof(IMechanism) },
+                typeof(GantryMechanism),
+                reuse: DryIoc.Reuse.Singleton);
+
+            // 工站层：PickPlaceStation 同时映射到自身类型和 StationBase
+            container.RegisterMany(
+                new[] { typeof(PickPlaceStation), typeof(StationBase) },
+                typeof(PickPlaceStation),
+                reuse: DryIoc.Reuse.Singleton);
+
+            // 主控调度器
+            containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
+        }
+
+        #endregion
+
+        #region 启动初始化流程（Splash）
+
         private async Task<bool> PerformInitializationAsync()
         {
-            Splash splash = Container.Resolve<Splash>();
-            ILogService? logService = Container.Resolve<ILogService>();
+            Splash splash        = Container.Resolve<Splash>();
+            ILogService logService = Container.Resolve<ILogService>();
 
             SplashUpdateMessage(splash, logService, "程序加载中。。。", msgType: MsgType.Info);
             try
@@ -458,216 +502,63 @@ namespace PF.Application.Shell
             }
         }
 
-
         private async Task<bool> LoadConfigurationAsync()
         {
             await Task.Delay(1000);
             return true;
         }
 
-
-
         private void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
         {
             switch (msgType)
             {
-                case MsgType.Success:
-                    logService?.Success(status, category);
-                    break;
-                case MsgType.Info:
-                    logService?.Info(status, category);
-                    break;
-                case MsgType.Fatal:
-                    logService?.Fatal(status, category);
-                    break;
-                case MsgType.Warning:
-                    logService?.Warn(status, category);
-                    break;
-                case MsgType.Error:
-                    logService?.Error(status, category);
-                    break;
-                default:
-                    logService?.Info(status, category);
-                    break;
+                case MsgType.Success: logService?.Success(status, category); break;
+                case MsgType.Info:    logService?.Info(status, category);    break;
+                case MsgType.Fatal:   logService?.Fatal(status, category);   break;
+                case MsgType.Warning: logService?.Warn(status, category);    break;
+                case MsgType.Error:   logService?.Error(status, category);   break;
+                default:              logService?.Info(status, category);    break;
             }
             splash?.UpdateMessage(status, msgType);
         }
 
-
         #endregion
 
+        #region 界面资源
 
-        #region 硬件服务注册
-
-        private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
+        /// <summary>
+        /// 应用初始皮肤与窗口样式配置。
+        /// </summary>
+        private void ApplyConfiguration()
         {
-            // dataDirectory 仍用于 SimXAxis 点表文件存储（与硬件配置存储无关）
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var dataDirectory = Path.Combine(appDataPath, "PFAutoFrameWork");
-
-            // 从容器解析 IParamService（已在 RegisterSystemParamsTypes 中注册为单例）
-            var container = containerRegistry.GetContainer();
-            var paramService = container.Resolve<IParamService>();
-
-            // 注册 HardwareParam → HardwareConfig 参数类型映射
-            // 使得 IParamService 泛型方法能正确定位 HardwareParams 表
-            paramService.RegisterParamType<HardwareParam, HardwareConfig>();
-
-            var hwManager = new HardwareManagerService(_logService, paramService);
-
-            // 注册 SimMotionCard 工厂（顶级板卡，必须先于子设备注册以确保工厂存在）
-            hwManager.RegisterFactory("LTDMCMotionCard", cfg =>
-            {
-                int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
-                    ? int.Parse(ci) : 0;
-                return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(cardIndex, _logService);
-            });
-
-            // 注册 SimXAxis 工厂（工厂在 Composition Root 持有具体类型引用，不违反依赖方向）
-            hwManager.RegisterFactory("EtherCatAxis", cfg =>
-            {
-                int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
-                    ? int.Parse(idx) : 0;
-
-                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
-            });
-
-
-            // 注册 SimVacuumIO 工厂
-            hwManager.RegisterFactory("EtherCatIO", cfg =>
-                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(_logService));
-
-            containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
+            UpdateSkin(SkinType.Dark.ToString());
+            ConfigHelper.Instance.SetWindowDefaultStyle();
+            ConfigHelper.Instance.SetNavigationWindowDefaultStyle();
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         }
 
-        #endregion
-
-        #region 日志配置加载
-
-        public void RegisterLogServiceTypes(IContainerRegistry containerRegistry)
+        /// <summary>
+        /// 动态切换皮肤资源字典。
+        /// </summary>
+        internal void UpdateSkin(string str = "Default")
         {
-            try
+            if (Enum.TryParse<SkinType>(str, out SkinType skin))
             {
-                // 1. 创建和注册配置
-                var logConfig = CreateLogConfiguration();
-                containerRegistry.RegisterInstance(logConfig);
-                // 2. 创建日志服务实例
-                _logService = new LogService(logConfig);
+                var skins0 = Resources.MergedDictionaries[0];
+                skins0.MergedDictionaries.Clear();
+                skins0.MergedDictionaries.Add(ResourceHelper.GetSkin(skin));
 
-                // 3. 注册ILogService接口
-                containerRegistry.RegisterInstance<ILogService>(_logService);
-
-            }
-            catch (Exception ex)
-            {
-                // 注册失败时的备用日志
-                LogFallbackError("日志模块类型注册失败", ex);
-                throw;
-            }
-        }
-
-
-        private LogConfiguration CreateLogConfiguration()
-        {
-            try
-            {
-                // 获取应用程序基础路径
-                var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
-
-                // 构建日志目录路径
-                var logBasePath = Path.Combine(appBasePath, "Logs");
-
-                // 创建日志配置
-                var config = new LogConfiguration
+                var skins1 = Resources.MergedDictionaries[1];
+                skins1.MergedDictionaries.Clear();
+                skins1.MergedDictionaries.Add(new ResourceDictionary
                 {
-                    BasePath = logBasePath,
-                    HistoricalLogPath = logBasePath,
-                    EnableConsoleLogging = true,
-                    EnableFileLogging = true,
-                    EnableUiLogging = true,
-                    MinimumLevel = LogLevel.Debug,
-                    AutoDeleteLogs = true,
-                    AutoDeleteIntervalDays = 30,
-                    MaxUiEntries = 1000,
-                    SplitByHour = false
-                };
+                    Source = new Uri("pack://application:,,,/PF.UI.Resources;component/Themes/Default.xaml")
+                });
 
-                // 配置默认分类
-                config.ConfigureDefaultCategories();
-
-                // 添加更多自定义分类
-                config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
-
-
-
-
-                // 确保日志目录存在
-                EnsureLogDirectoryExists(logBasePath);
-
-                // 为每个分类创建子目录
-                foreach (var category in config.GetFileLogCategories())
-                {
-                    var categoryPath = Path.Combine(logBasePath, category);
-                    EnsureLogDirectoryExists(categoryPath);
-                }
-
-                return config;
-            }
-            catch (Exception ex)
-            {
-                // 配置失败时返回默认配置
-                LogFallbackError("创建日志配置失败，使用默认配置", ex);
-                return CreateFallbackConfiguration();
+                Current.MainWindow?.OnApplyTemplate();
             }
         }
 
-        private void EnsureLogDirectoryExists(string path)
-        {
-            try
-            {
-                if (!Directory.Exists(path))
-                {
-                    Directory.CreateDirectory(path);
-                }
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError($"创建目录失败: {path}", ex);
-            }
-        }
-
-        private LogConfiguration CreateFallbackConfiguration()
-        {
-            return new LogConfiguration
-            {
-                BasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"),
-                EnableConsoleLogging = true,
-                EnableFileLogging = true,
-                EnableUiLogging = true,
-                MinimumLevel = LogLevel.Info,
-                AutoDeleteLogs = false, // 故障时关闭自动清理
-                AutoDeleteIntervalDays = 30,
-                MaxUiEntries = 500
-            }.ConfigureDefaultCategories();
-        }
-
-        private void LogFallbackError(string message, Exception ex)
-        {
-            // 当日志服务不可用时的备用日志记录
-            try
-            {
-                // 1. 尝试使用log4net直接记录
-                var logger = LogManager.GetLogger(typeof(LoggingModule));
-                logger.Error($"{message}: {ex.Message}", ex);
-
-                // 2. 输出到调试窗口
-                System.Diagnostics.Debug.WriteLine($"[LOG_FALLBACK] {message}: {ex.Message}");
-            }
-            catch
-            {
-                // 所有备用方案都失败时，静默处理
-            }
-        }
         #endregion
     }
 }
