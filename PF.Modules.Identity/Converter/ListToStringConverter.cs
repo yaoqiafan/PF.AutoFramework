@@ -1,8 +1,5 @@
-using PF.Modules.Identity.Helpers;
-using System;
-using System.Collections.Generic;
+using PF.UI.Infrastructure.Navigation;
 using System.Globalization;
-using System.Linq;
 using System.Windows.Data;
 
 namespace PF.Modules.Identity.Converter

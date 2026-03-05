@@ -1,18 +1,10 @@
-using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
-using PF.Modules.Identity.Helpers;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace PF.Modules.Identity.ViewModels

@@ -3,7 +3,7 @@ using PF.Core.Enums;
 using PF.UI.Infrastructure.Navigation;
 using System.Collections.Generic;
 
-namespace PF.Modules.Identity.Helpers
+namespace PF.UI.Infrastructure.Navigation
 {
     /// <summary>
     /// 权限辅助工具类 — 统一管理默认访问页面列表与页面名称的中文描述。
@@ -55,8 +55,10 @@ namespace PF.Modules.Identity.Helpers
             // Operator：日志查看 + 基础参数
             var views = new List<string>
             {
-                NavigationConstants.Views.LoggingListView,
-                NavigationConstants.Views.ParameterView_CommonParam,
+                NavigationConstants.Views.MainView,
+                NavigationConstants.Views.HomeView,
+                NavigationConstants.Dialogs.LoginView,
+                NavigationConstants.Views.LogManagementView,
             };
 
             if (level < UserLevel.Engineer)
@@ -67,8 +69,7 @@ namespace PF.Modules.Identity.Helpers
             {
                 NavigationConstants.Views.ParameterView_SystemConfigParam,
                 NavigationConstants.Views.HardwareDebugView,
-                NavigationConstants.Views.MechanismDebugView,
-                NavigationConstants.Views.StationDebugView,
+                NavigationConstants.Views.UserManagementView,
             });
 
             if (level < UserLevel.Administrator)
@@ -77,8 +78,8 @@ namespace PF.Modules.Identity.Helpers
             // Administrator：新增日志管理 + 硬件参数 + 页面权限管理
             views.AddRange(new[]
             {
-                NavigationConstants.Views.LogManagementView,
-                NavigationConstants.Views.ParameterView_HardwareParam,
+                NavigationConstants.Views.MechanismDebugView,
+                NavigationConstants.Views.StationDebugView,
                 NavigationConstants.Views.PagePermissionView,
             });
 
@@ -88,8 +89,7 @@ namespace PF.Modules.Identity.Helpers
             // SuperUser：追加用户管理 + 用户参数
             views.AddRange(new[]
             {
-                NavigationConstants.Views.UserManagementView,
-                NavigationConstants.Views.ParameterView_UserLoginParam,
+                NavigationConstants.Views.ParameterView_CommonParam
             });
 
             return views;
