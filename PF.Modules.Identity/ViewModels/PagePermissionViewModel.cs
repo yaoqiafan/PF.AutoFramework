@@ -3,6 +3,7 @@ using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Modules.Identity.Helpers;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
@@ -185,26 +186,10 @@ namespace PF.Modules.Identity.ViewModels
 
         private List<string> GetDefaultAllowedViewsByLevel(UserLevel level)
         {
-            var defaults = new List<string> { NavigationConstants.Views.LoggingListView };
+            if (level >= UserLevel.Administrator)
+                return _allSystemViews.Select(v => v.ViewName).ToList();
 
-            switch (level)
-            {
-                case UserLevel.SuperUser:
-                case UserLevel.Administrator:
-                    return _allSystemViews.Select(v => v.ViewName).ToList();
-
-                case UserLevel.Engineer:
-                    defaults.Add(NavigationConstants.Views.ParameterView_CommonParam);
-                    defaults.Add(NavigationConstants.Views.ParameterView_SystemConfigParam);
-                    defaults.Add(NavigationConstants.Views.ParameterView_UserLoginParam);
-                    break;
-
-                case UserLevel.Operator:
-                    defaults.Add(NavigationConstants.Views.ParameterView_CommonParam);
-                    break;
-            }
-
-            return defaults;
+            return PermissionHelper.GetDefaultAccessibleViews(level);
         }
 
         private bool CanSaveConfig()

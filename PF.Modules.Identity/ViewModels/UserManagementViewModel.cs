@@ -1,8 +1,8 @@
-using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Modules.Identity.Helpers;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
@@ -34,7 +34,29 @@ namespace PF.Modules.Identity.ViewModels
             set
             {
                 if (SetProperty(ref _selectedUser, value))
+                {
                     SaveCommand.RaiseCanExecuteChanged();
+                    // 同步代理属性，使 ComboBox 选中值与 SelectedUser 保持一致
+                    RaisePropertyChanged(nameof(EditingUserRoot));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 代理属性：绑定到权限等级 ComboBox。
+        /// 当值改变时自动根据新等级重新生成默认 AccessibleViews，并通知 UI 刷新。
+        /// </summary>
+        public UserLevel EditingUserRoot
+        {
+            get => SelectedUser?.Root ?? UserLevel.Operator;
+            set
+            {
+                if (SelectedUser == null || SelectedUser.Root == value) return;
+                SelectedUser.Root            = value;
+                SelectedUser.AccessibleViews = PermissionHelper.GetDefaultAccessibleViews(value);
+                RaisePropertyChanged(nameof(EditingUserRoot));
+                // 通知 ListToStringConverter 刷新 AccessibleViews 的中文显示
+                RaisePropertyChanged(nameof(SelectedUser));
             }
         }
 
@@ -98,8 +120,15 @@ namespace PF.Modules.Identity.ViewModels
             try
             {
                 var list = await _userService.GetUserListAsync();
-                Users = list ?? new ObservableCollection<UserInfo>();
-                _logger.Info($"[用户管理] 用户列表加载完成，共 {Users.Count} 条。");
+
+                // 越权可见性控制：只显示权限等级 ≤ 当前登录用户的账号
+                var currentLevel = _userService.CurrentUser?.Root ?? UserLevel.Null;
+                var filtered = (list ?? new ObservableCollection<UserInfo>())
+                    .Where(u => (int)u.Root <= (int)currentLevel)
+                    .ToList();
+
+                Users = new ObservableCollection<UserInfo>(filtered);
+                _logger.Info($"[用户管理] 用户列表加载完成，共 {Users.Count} 条（当前权限等级: {currentLevel}）。");
             }
             catch (Exception ex)
             {
@@ -121,61 +150,12 @@ namespace PF.Modules.Identity.ViewModels
                 UserName        = "新用户",
                 Password        = "PF111",
                 Root            = level,
-                AccessibleViews = GetDefaultAccessibleViews(level),
+                AccessibleViews = PermissionHelper.GetDefaultAccessibleViews(level),
             };
 
             Users.Add(newUser);
             SelectedUser = newUser;
             _logger.Info($"[用户管理] 已创建新用户草稿 UserId={newUser.UserId}，默认权限 {level}，请填写后点击\"保存更改\"落盘。");
-        }
-
-        /// <summary>
-        /// 根据权限等级返回该角色应具备的默认可访问页面列表。
-        /// 高等级权限向下包含低等级权限（累积模型）。
-        /// </summary>
-        private static List<string> GetDefaultAccessibleViews(UserLevel level)
-        {
-            // Operator：日志查看 + 基础参数
-            var views = new List<string>
-            {
-                NavigationConstants.Views.LoggingListView,
-                NavigationConstants.Views.ParameterView_CommonParam,
-            };
-
-            if (level < UserLevel.Engineer)
-                return views;
-
-            // Engineer：新增硬件调试 + 系统参数 + 机构/工站调试
-            views.AddRange(new[]
-            {
-                NavigationConstants.Views.ParameterView_SystemConfigParam,
-                NavigationConstants.Views.HardwareDebugView,
-                NavigationConstants.Views.MechanismDebugView,
-                NavigationConstants.Views.StationDebugView,
-            });
-
-            if (level < UserLevel.Administrator)
-                return views;
-
-            // Administrator：新增日志管理 + 硬件参数 + 权限查看
-            views.AddRange(new[]
-            {
-                NavigationConstants.Views.LogManagementView,
-                NavigationConstants.Views.ParameterView_HardwareParam,
-                NavigationConstants.Views.PagePermissionView,
-            });
-
-            if (level < UserLevel.SuperUser)
-                return views;
-
-            // SuperUser：完整权限（追加用户管理 + 用户参数）
-            views.AddRange(new[]
-            {
-                NavigationConstants.Views.UserManagementView,
-                NavigationConstants.Views.ParameterView_UserLoginParam,
-            });
-
-            return views;
         }
 
         private async Task SaveAsync()
