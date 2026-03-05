@@ -180,7 +180,8 @@ namespace PF.Application.Shell
         protected override void OnInitialized()
         {
             var authService = Container.Resolve<IUserService>();
-
+            // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
+            PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
             // 2. 使用默认的操作员账号进行静默登录
             // 使用 .GetAwaiter().GetResult() 来同步等待异步方法完成
             bool loginSuccess = authService.LoginAsync("SuperUser", "PF88888").GetAwaiter().GetResult();

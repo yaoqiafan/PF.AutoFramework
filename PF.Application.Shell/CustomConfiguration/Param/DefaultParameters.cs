@@ -95,57 +95,57 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// </summary>
         public  Dictionary<string, UserLoginParam> GetUsersDefaults()
         {
-            UserInfo Operator = new UserInfo() { Password = "PF111", Root = UserLevel.Operator, UserId = "Operator", UserName = "Operator" };
-            UserInfo Engineer = new UserInfo() { Password = "PF222", Root = UserLevel.Engineer, UserId = "Engineer", UserName = "Engineer" };
-            UserInfo Administrator = new UserInfo() { Password = "PF333", Root = UserLevel.Administrator, UserId = "Administrator", UserName = "Administrator" };
-            UserInfo SuperUser = new UserInfo() { Password = "PF88888", Root = UserLevel.SuperUser, UserId = "SuperUser", UserName = "SuperUser" };
+            //UserInfo Operator = new UserInfo() { Password = "PF111", Root = UserLevel.Operator, UserId = "Operator", UserName = "Operator" };
+            //UserInfo Engineer = new UserInfo() { Password = "PF222", Root = UserLevel.Engineer, UserId = "Engineer", UserName = "Engineer" };
+            //UserInfo Administrator = new UserInfo() { Password = "PF333", Root = UserLevel.Administrator, UserId = "Administrator", UserName = "Administrator" };
+            //UserInfo SuperUser = new UserInfo() { Password = "PF88888", Root = UserLevel.SuperUser, UserId = "SuperUser", UserName = "SuperUser" };
 
             return new Dictionary<string, UserLoginParam>
             {
-                {
-                    "Operator", new UserLoginParam
-                    {
-                       Name = "Operator",
-                       Description = "默认用户Operator",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(Operator),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
-                {
-                    "Engineer", new UserLoginParam
-                    {
-                       Name = "Engineer",
-                       Description = "默认用户Engineer",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(Engineer),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
-                {
-                    "Administrator", new UserLoginParam
-                    {
-                       Name = "Administrator",
-                       Description = "默认用户Administrator",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(Administrator),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
-                {
-                    "SuperUser", new UserLoginParam
-                    {
-                       Name = "SuperUser",
-                       Description = "默认用户SuperUser",
-                       TypeFullName = typeof(UserInfo).FullName,
-                       JsonValue = JsonSerializer.Serialize(SuperUser),
-                       Category = "默认用户参数",
-                       Version = 1,
-                    }
-                },
+                //{
+                //    "Operator", new UserLoginParam
+                //    {
+                //       Name = "Operator",
+                //       Description = "默认用户Operator",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(Operator),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
+                //{
+                //    "Engineer", new UserLoginParam
+                //    {
+                //       Name = "Engineer",
+                //       Description = "默认用户Engineer",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(Engineer),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
+                //{
+                //    "Administrator", new UserLoginParam
+                //    {
+                //       Name = "Administrator",
+                //       Description = "默认用户Administrator",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(Administrator),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
+                //{
+                //    "SuperUser", new UserLoginParam
+                //    {
+                //       Name = "SuperUser",
+                //       Description = "默认用户SuperUser",
+                //       TypeFullName = typeof(UserInfo).FullName,
+                //       JsonValue = JsonSerializer.Serialize(SuperUser),
+                //       Category = "默认用户参数",
+                //       Version = 1,
+                //    }
+                //},
 
             };
         }
