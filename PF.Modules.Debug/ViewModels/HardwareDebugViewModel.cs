@@ -87,11 +87,8 @@ namespace PF.Modules.Debug.ViewModels
             IsBusy = true;
             try
             {
+                // 仅持久化配置，不触发热重载；用户需手动点击重连按钮使配置生效
                 await _hardwareManager.SetGlobalSimulationModeAsync(!IsGlobalSimulated);
-
-                // 热重载完成后重建树（所有设备实例已更新）
-                TreeNodes.Clear();
-                BuildTree();
                 UpdateGlobalSimulatedState();
             }
             finally
