@@ -427,11 +427,11 @@ namespace PF.Application.Shell
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
+                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName,cfg.IsSimulated, _logService, dataDirectory);
             });
 
             hwManager.RegisterFactory("EtherCatIO", cfg =>
-                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(_logService));
+                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(cfg.DeviceId,  cfg.DeviceName, cfg.IsSimulated, _logService));
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }

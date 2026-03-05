@@ -62,7 +62,7 @@
                         </StackPanel>
 
                         <!--  Switch 开关：点击触发一键切换命令  -->
-                        <ToggleButton
+                        <ToggleButton 
                             Grid.Column="1"
                             Command="{Binding ToggleGlobalSimulationCommand}"
                             IsChecked="{Binding IsGlobalSimulated, Mode=OneWay}"
@@ -94,7 +94,7 @@
                                         Text="{Binding NodeName}" />
 
                                     <!--  单设备模拟开关（仅有设备负载的节点显示）  -->
-                                    <ToggleButton
+                                    <ToggleButton 
                                         Grid.Column="1"
                                         Margin="6,0,0,0"
                                         Command="{Binding Source={StaticResource Proxy}, Path=Data.ToggleDeviceSimulationCommand}"
@@ -103,7 +103,7 @@
                                         IsEnabled="{Binding Source={StaticResource Proxy}, Path=Data.IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
                                         Style="{StaticResource ToggleButtonSwitch.Small}"
                                         ToolTip="{Binding IsSimulated, StringFormat='模拟模式: {0}'}"
-                                        Visibility="{Binding HasDevice, Converter={StaticResource BoolToVis}}" />
+                                        Visibility="{Binding Source={StaticResource Proxy}, Path=Data.IsSuperUser, Converter={StaticResource BoolToVis}}" />
                                 </Grid>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
