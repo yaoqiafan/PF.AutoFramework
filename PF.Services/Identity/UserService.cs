@@ -1,4 +1,5 @@
-﻿using PF.Core.Entities.Identity;
+﻿using PF.Core.Constants;
+using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
@@ -58,24 +59,25 @@ namespace PF.Services.Identity
                 {
                     CurrentUser = new UserInfo
                     {
-                        UserName = builtIn.UserName,
-                        UserId   = builtIn.UserName,
-                        Root     = builtIn.Level,
-                        Password = builtIn.Password,
+                        UserName        = builtIn.UserName,
+                        UserId          = builtIn.UserName,
+                        Root            = builtIn.Level,
+                        Password        = builtIn.Password,
+                        AccessibleViews = DefaultPermissions.GetAccessibleViews(builtIn.Level),
                     };
                     _logService.Info($"内置账号 {userName} 登录成功", "Identity");
                     OnCurrentUserChanged();
                     return true;
                 }
 
-                // 后备系统管理员通道
-                if (string.Equals(userName, "System", StringComparison.OrdinalIgnoreCase) && password == "admin")
-                {
-                    CurrentUser = UserInfo.SystemUser;
-                    _logService.Info($"系统管理员 {userName} 登录成功 (后备通道)", "Identity");
-                    OnCurrentUserChanged();
-                    return true;
-                }
+                //// 后备系统管理员通道
+                //if (string.Equals(userName, "System", StringComparison.OrdinalIgnoreCase) && password == "admin")
+                //{
+                //    CurrentUser = UserInfo.SystemUser;
+                //    _logService.Info($"系统管理员 {userName} 登录成功 (后备通道)", "Identity");
+                //    OnCurrentUserChanged();
+                //    return true;
+                //}
 
                 // 查询数据库中的自定义用户
                 var user = await _paramService.GetParamAsync<UserInfo>(userName);
@@ -101,8 +103,18 @@ namespace PF.Services.Identity
         {
             if (CurrentUser != null)
             {
-                _logService.Info($"用户 {CurrentUser.UserName} 已注销", "Identity");
-                CurrentUser = null;
+                _logService.Info($"用户 {CurrentUser.UserName} 已注销,使用默认操作员账号！", "Identity");
+                var op = _builtInUsers.First(u =>
+                string.Equals(u.UserName, "Operator", StringComparison.Ordinal));
+
+                CurrentUser = new UserInfo
+                {
+                    UserName = op.UserName,
+                    UserId = op.UserName,
+                    Root = op.Level,
+                    Password = op.Password,
+                    AccessibleViews = DefaultPermissions.GetAccessibleViews(op.Level),
+                };
                 OnCurrentUserChanged();
             }
         }
@@ -114,10 +126,11 @@ namespace PF.Services.Identity
 
             CurrentUser = new UserInfo
             {
-                UserName = op.UserName,
-                UserId   = op.UserName,
-                Root     = op.Level,
-                Password = op.Password,
+                UserName        = op.UserName,
+                UserId          = op.UserName,
+                Root            = op.Level,
+                Password        = op.Password,
+                AccessibleViews = DefaultPermissions.GetAccessibleViews(op.Level),
             };
             _logService.Info("用户长时间无操作，权限已自动重置为 Operator", "Identity");
             OnCurrentUserChanged();

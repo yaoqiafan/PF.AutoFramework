@@ -11,7 +11,7 @@ namespace PF.Workstation.AutoOcr.Hardware
 {
     public class EtherCatAxis : BaseAxisDevice
     {
-        public EtherCatAxis(string deviceId, int axisIndex, string deviceName, bool isSimulated , ILogService logger, string dataDirectory)
+        public EtherCatAxis(string deviceId, int axisIndex, string deviceName, bool isSimulated, ILogService logger, string dataDirectory)
             : base(
                 deviceId: deviceId,
                 deviceName: deviceName,
