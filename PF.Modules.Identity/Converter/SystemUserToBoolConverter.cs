@@ -21,6 +21,9 @@ namespace PF.Modules.Identity.Converter
         // 不可删除的系统内置账号名（不区分大小写）
         private static readonly string[] ProtectedUsers =
         {
+            "operator",
+            "engineer",
+            "administrator",
             "superuser",
             "system",
             "admin",
