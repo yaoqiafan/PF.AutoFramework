@@ -7,8 +7,6 @@
     xmlns:local="clr-namespace:PF.Modules.Identity.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    Width="800"
-    Height="460"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -43,7 +41,7 @@
                             Style="{StaticResource ButtonPrimary}" />
                     </StackPanel>
 
-                    <DataGrid
+                    <DataGrid  ColumnWidth="*"
                         AutoGenerateColumns="False"
                         BorderThickness="1"
                         IsReadOnly="True"
@@ -52,13 +50,18 @@
                         SelectionMode="Single">
                         <DataGrid.Columns>
                             <DataGridTextColumn
-                                Width="*"
+                                 Width="*"
                                 Binding="{Binding UserName}"
                                 Header="账户名称" />
                             <DataGridTextColumn
-                                Width="100"
+                                Width="*"
                                 Binding="{Binding Root}"
                                 Header="用户等级" />
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding  Password}"
+                                Header="密码" />
+                           
                             <DataGridTemplateColumn Width="80" Header="操作">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -102,7 +105,6 @@
 
                             <TextBlock Margin="0,0,0,5" Text="可访问页面" />
                             <TextBlock
-                                Height="80"
                                 Margin="0,0,0,15"
                                 Text="{Binding AccessibleViews, Converter={StaticResource ListToStringConverter}}"
                                 TextWrapping="Wrap"
