@@ -19,6 +19,24 @@ using System.Windows.Shapes;
 
 namespace PF.Modules.Debug.Views
 {
+    /// <summary>
+    /// 将 DataContext 透传进 HierarchicalDataTemplate 内部绑定（ToggleDeviceSimulationCommand）
+    /// </summary>
+    public class BindingProxy : Freezable
+    {
+        protected override Freezable CreateInstanceCore() => new BindingProxy();
+
+        public object Data
+        {
+            get => GetValue(DataProperty);
+            set => SetValue(DataProperty, value);
+        }
+
+        public static readonly DependencyProperty DataProperty =
+            DependencyProperty.Register(nameof(Data), typeof(object), typeof(BindingProxy),
+                new UIPropertyMetadata(null));
+    }
+
     [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "设备综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 1, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
     public partial class HardwareDebugView : UserControl
     {

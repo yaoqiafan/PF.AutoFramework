@@ -154,7 +154,7 @@ namespace PF.Services.Hardware
         ///   第1层 → ParentDeviceId 为空（板卡等顶级设备）
         ///   第2层 → ParentDeviceId 非空（轴、IO 等子设备）
         ///
-        /// 若父设备未能成功连接，其所有子设备直接跳过并记录警告。
+        /// 无论父设备是否连接成功，子设备均会被实例化并加入活跃列表，确保 UI 可见。
         /// 子设备实例化完成后，若实现 IAttachedDevice，自动绑定父板卡引用。
         /// </summary>
         public async Task LoadAndInitializeAsync()
@@ -175,21 +175,22 @@ namespace PF.Services.Hardware
             _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备...");
             foreach (var config in children)
             {
+                IMotionCard? parentCard = null;
+
                 if (!_activeDevices.TryGetValue(config.ParentDeviceId, out var parentDevice))
                 {
                     _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
-                                 $"'{config.ParentDeviceId}' 未被激活，跳过该子设备。");
-                    continue;
+                                 $"'{config.ParentDeviceId}' 未被激活，仍强制实例化子设备以供 UI 显示。");
                 }
-
-                if (!parentDevice.IsConnected)
+                else
                 {
-                    _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父板卡 " +
-                                 $"'{config.ParentDeviceId}' 连接失败，跳过该子设备。");
-                    continue;
+                    if (!parentDevice.IsConnected)
+                        _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父板卡 " +
+                                     $"'{config.ParentDeviceId}' 未连接，子设备将以离线状态加入活跃列表。");
+
+                    parentCard = parentDevice as IMotionCard;
                 }
 
-                var parentCard = parentDevice as IMotionCard;
                 await ActivateDeviceAsync(config, parentCard);
             }
 
@@ -209,6 +210,31 @@ namespace PF.Services.Hardware
 
             // LoadAndInitializeAsync 内部会重新调用 LoadConfigsAsync 从数据库加载最新配置
             await LoadAndInitializeAsync();
+        }
+
+        /// <summary>
+        /// 原子性地切换全局模拟模式：
+        ///   1. 将内存中所有配置的 IsSimulated 改为 enabled
+        ///   2. 通过 ImportConfigsAsync 批量写入数据库（持久化）
+        ///   3. 调用 ReloadAllAsync 触发热重载（断开旧实例 → 重新实例化 → 以新模式连接）
+        /// </summary>
+        public async Task SetGlobalSimulationModeAsync(bool enabled)
+        {
+            var configs = _configs.ToList();
+            if (configs.Count == 0)
+            {
+                _logger.Warn("[HardwareManager] SetGlobalSimulationModeAsync：当前无硬件配置，跳过。");
+                return;
+            }
+
+            _logger.Info($"[HardwareManager] 切换全局模拟模式 → {(enabled ? "模拟" : "真实硬件")}，共 {configs.Count} 个设备...");
+
+            foreach (var cfg in configs)
+                cfg.IsSimulated = enabled;
+
+            await ImportConfigsAsync(configs);
+
+            _logger.Success($"[HardwareManager] 全局模拟模式配置已更新为: {(enabled ? "模拟" : "真实硬件")}，请手动重载硬件生效。");
         }
 
         public IHardwareDevice? GetDevice(string deviceId)
@@ -267,17 +293,28 @@ namespace PF.Services.Hardware
                 if (parentCard != null && device is IAttachedDevice attachable)
                     attachable.AttachToCard(parentCard);
 
-                var connected = await device.ConnectAsync();
-                if (!connected)
-                    _logger.Warn($"[HardwareManager] 设备 '{config.DeviceName}' 连接失败，仍加入活跃列表以供 UI 显示");
-
+                // 先注册到活跃列表并通知 UI，确保设备无论连接结果如何均可在界面显示
                 _activeDevices[config.DeviceId] = device;
                 DeviceAdded?.Invoke(this, device);
-                _logger.Info($"[HardwareManager] 设备激活: '{config.DeviceName}' ({config.DeviceId})");
+                _logger.Info($"[HardwareManager] 设备已注册: '{config.DeviceName}' ({config.DeviceId})");
+
+                // 独立尝试连接，失败只记录警告，不阻断后续设备的初始化流程
+                try
+                {
+                    var connected = await device.ConnectAsync();
+                    if (!connected)
+                        _logger.Warn($"[HardwareManager] 设备 '{config.DeviceName}' 连接返回 false，" +
+                                     "设备已保留在活跃列表，可在 UI 中手动切换模拟模式后重连。");
+                }
+                catch (Exception connEx)
+                {
+                    _logger.Error($"[HardwareManager] 设备 '{config.DeviceName}' 连接时发生异常: {connEx.Message}，" +
+                                  "设备已保留在活跃列表。");
+                }
             }
             catch (Exception ex)
             {
-                _logger.Error($"[HardwareManager] 激活设备 '{config.DeviceId}' 失败: {ex.Message}");
+                _logger.Error($"[HardwareManager] 实例化设备 '{config.DeviceId}' 失败: {ex.Message}");
             }
         }
 

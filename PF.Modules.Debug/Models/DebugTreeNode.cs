@@ -1,4 +1,5 @@
-﻿using Prism.Mvvm;
+﻿using PF.Core.Interfaces.Device.Hardware;
+using Prism.Mvvm;
 using System.Collections.ObjectModel;
 
 namespace PF.Modules.Debug.Models
@@ -33,7 +34,7 @@ namespace PF.Modules.Debug.Models
         }
 
         private object _payload;
-        /// <summary> 
+        /// <summary>
         /// 实际挂载的对象（核心！）
         /// 如果是分类文件夹，此属性为 null；
         /// 如果是叶子节点，这里存放具体的 IHardwareDevice 或 IMechanism。
@@ -41,7 +42,27 @@ namespace PF.Modules.Debug.Models
         public object Payload
         {
             get => _payload;
-            set => SetProperty(ref _payload, value);
+            set
+            {
+                SetProperty(ref _payload, value);
+                if (value is IHardwareDevice device)
+                    _isSimulated = device.IsSimulated;
+                RaisePropertyChanged(nameof(HasDevice));
+            }
+        }
+
+        /// <summary>当前节点是否关联了一个具体的硬件设备（非分类文件夹节点）</summary>
+        public bool HasDevice => Payload is IHardwareDevice;
+
+        private bool _isSimulated;
+        /// <summary>
+        /// 该硬件设备是否处于模拟模式。
+        /// UI 双向绑定此属性，ToggleDeviceSimulationCommand 在执行完毕后回写真实状态。
+        /// </summary>
+        public bool IsSimulated
+        {
+            get => _isSimulated;
+            set => SetProperty(ref _isSimulated, value);
         }
     }
 }
