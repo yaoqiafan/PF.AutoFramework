@@ -501,8 +501,7 @@ namespace PF.Application.Shell
         private void RegisterHardwareTypes(IContainerRegistry containerRegistry)
         {
             // dataDirectory 仍用于 SimXAxis 点表文件存储（与硬件配置存储无关）
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var dataDirectory = Path.Combine(appDataPath, "PFAutoFrameWork");
+            var dataDirectory = ConstGlobalParam.ConfigPath;
 
             // 从容器解析 IParamService（已在 RegisterSystemParamsTypes 中注册为单例）
             var container = containerRegistry.GetContainer();
@@ -528,13 +527,13 @@ namespace PF.Application.Shell
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
 
-                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, _logService, dataDirectory);
+                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName,cfg.IsSimulated, _logService, dataDirectory);
             });
 
 
             // 注册 SimVacuumIO 工厂
             hwManager.RegisterFactory("EtherCatIO", cfg =>
-                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(_logService));
+                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService));
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }
