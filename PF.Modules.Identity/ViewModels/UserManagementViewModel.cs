@@ -62,12 +62,14 @@ namespace PF.Modules.Identity.ViewModels
 
         /// <summary>
         /// 权限等级枚举列表（ComboBox 数据源）。
-        /// 只列出小于等于当前登录用户权限的等级，防止越权提升。
+        /// 排除 Null 和 SuperUser（SuperUser 为唯一内置账号，不允许通过 UI 创建或修改）。
+        /// 同时只列出小于等于当前登录用户权限的等级，防止越权提升。
         /// </summary>
         public IEnumerable<UserLevel> UserLevels =>
             Enum.GetValues(typeof(UserLevel))
                 .Cast<UserLevel>()
                 .Where(l => l != UserLevel.Null &&
+                            l != UserLevel.SuperUser &&
                             (int)l <= (int)(_userService.CurrentUser?.Root ?? UserLevel.Null))
                 .ToList();
 
@@ -165,6 +167,18 @@ namespace PF.Modules.Identity.ViewModels
         private async Task SaveAsync()
         {
             if (SelectedUser == null) return;
+
+            // SuperUser 为系统唯一内置账号，禁止通过 UI 创建或修改为该等级
+            if (SelectedUser.Root == UserLevel.SuperUser)
+            {
+                _logger.Warn($"[用户管理] 拒绝保存：不允许创建或修改 SuperUser 等级的自定义账号。");
+                _messageService.ShowMessage(
+                    "SuperUser 为系统内置唯一账号，不允许创建或修改为该权限等级。",
+                    "操作被拒绝",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
 
             try
             {

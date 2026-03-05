@@ -12,7 +12,7 @@ namespace PF.Workstation.AutoOcr.Hardware
     public class EtherCatIO : BaseIODevice
     {
         public EtherCatIO(string deviceId, string deviceName, bool isSimulated, ILogService logger)
-            : base(deviceId, deviceName, isSimulated: isSimulated, logger) { }
+            : base(deviceId, deviceName, isSimulated, logger) { }
 
 
         public override int InputCount { get; }

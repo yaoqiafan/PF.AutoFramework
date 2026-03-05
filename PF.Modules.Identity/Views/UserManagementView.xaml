@@ -91,20 +91,20 @@
                                 FontWeight="Bold"
                                 Text="用户信息编辑" />
 
-                            <TextBlock Margin="0,0,0,5" Text="用户名" />
+                            <TextBlock Margin="0,0,0,5" Text="用户名:" />
                             <TextBox Margin="0,0,0,15" Text="{Binding UserName}" />
 
-                            <TextBlock Margin="0,0,0,5" Text="密码" />
+                            <TextBlock Margin="0,0,0,5" Text="密码:" />
                             <TextBox Margin="0,0,0,15" Text="{Binding Password}" />
 
-                            <TextBlock Margin="0,0,0,5" Text="权限等级" />
+                            <TextBlock Margin="0,0,0,5" Text="权限等级:" />
                             <ComboBox
                                 Margin="0,0,0,15"
                                 ItemsSource="{Binding Data.UserLevels, Source={StaticResource Proxy}}"
                                 SelectedItem="{Binding Data.EditingUserRoot, Source={StaticResource Proxy}, Mode=TwoWay}" />
 
-                            <TextBlock Margin="0,0,0,5" Text="可访问页面" />
-                            <TextBlock
+                            <TextBlock Margin="0,0,0,5" Text="可访问页面:" />
+                            <TextBox IsReadOnly="True"
                                 Margin="0,0,0,15"
                                 Text="{Binding AccessibleViews, Converter={StaticResource ListToStringConverter}}"
                                 TextWrapping="Wrap"
