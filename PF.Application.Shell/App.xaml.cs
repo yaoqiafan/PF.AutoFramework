@@ -1,6 +1,5 @@
 using log4net;
 using Microsoft.Extensions.Hosting;
-
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
