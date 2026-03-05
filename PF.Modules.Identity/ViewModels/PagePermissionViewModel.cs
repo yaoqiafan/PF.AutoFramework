@@ -186,9 +186,6 @@ namespace PF.Modules.Identity.ViewModels
 
         private List<string> GetDefaultAllowedViewsByLevel(UserLevel level)
         {
-            if (level >= UserLevel.Administrator)
-                return _allSystemViews.Select(v => v.ViewName).ToList();
-
             return PermissionHelper.GetDefaultAccessibleViews(level);
         }
 

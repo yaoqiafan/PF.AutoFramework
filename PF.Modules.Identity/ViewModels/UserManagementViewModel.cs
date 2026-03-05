@@ -60,11 +60,15 @@ namespace PF.Modules.Identity.ViewModels
             }
         }
 
-        /// <summary>权限等级枚举列表（ComboBox 数据源，排除 Null）</summary>
-        public IEnumerable<UserLevel> UserLevels { get; } =
+        /// <summary>
+        /// 权限等级枚举列表（ComboBox 数据源）。
+        /// 只列出小于等于当前登录用户权限的等级，防止越权提升。
+        /// </summary>
+        public IEnumerable<UserLevel> UserLevels =>
             Enum.GetValues(typeof(UserLevel))
                 .Cast<UserLevel>()
-                .Where(l => l != UserLevel.Null)
+                .Where(l => l != UserLevel.Null &&
+                            (int)l <= (int)(_userService.CurrentUser?.Root ?? UserLevel.Null))
                 .ToList();
 
         // ── 命令 ──────────────────────────────────────────────────────────────
