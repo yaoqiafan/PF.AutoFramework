@@ -1,6 +1,5 @@
 using PF.Core.Constants;
 using PF.Core.Enums;
-using PF.UI.Infrastructure.Navigation;
 using System.Collections.Generic;
 
 namespace PF.UI.Infrastructure.Navigation
@@ -48,52 +47,11 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         /// <summary>
-        /// 根据权限等级返回该角色默认可访问的页面列表（累积模型：高等级包含低等级页面）。
+        /// 根据权限等级返回该角色默认可访问的页面列表。
+        /// 委托给 <see cref="DefaultPermissions.GetAccessibleViews"/>，保证全局唯一来源。
         /// </summary>
         public static List<string> GetDefaultAccessibleViews(UserLevel level)
-        {
-            // Operator：日志查看 + 基础参数
-            var views = new List<string>
-            {
-                NavigationConstants.Views.MainView,
-                NavigationConstants.Views.HomeView,
-                NavigationConstants.Dialogs.LoginView,
-                NavigationConstants.Views.LogManagementView,
-            };
-
-            if (level < UserLevel.Engineer)
-                return views;
-
-            // Engineer：新增系统参数 + 硬件调试 + 机构/工站调试
-            views.AddRange(new[]
-            {
-                NavigationConstants.Views.ParameterView_SystemConfigParam,
-                NavigationConstants.Views.HardwareDebugView,
-                NavigationConstants.Views.UserManagementView,
-            });
-
-            if (level < UserLevel.Administrator)
-                return views;
-
-            // Administrator：新增日志管理 + 硬件参数 + 页面权限管理
-            views.AddRange(new[]
-            {
-                NavigationConstants.Views.MechanismDebugView,
-                NavigationConstants.Views.StationDebugView,
-                NavigationConstants.Views.PagePermissionView,
-            });
-
-            if (level < UserLevel.SuperUser)
-                return views;
-
-            // SuperUser：追加用户管理 + 用户参数
-            views.AddRange(new[]
-            {
-                NavigationConstants.Views.ParameterView_CommonParam
-            });
-
-            return views;
-        }
+            => DefaultPermissions.GetAccessibleViews(level);
 
         // 系统内置账号名称集合（登录优先拦截，UI 列表过滤）
         public static readonly IReadOnlySet<string> BuiltInUserNames = new HashSet<string>
