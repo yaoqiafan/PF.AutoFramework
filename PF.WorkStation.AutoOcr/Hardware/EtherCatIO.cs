@@ -11,8 +11,8 @@ namespace PF.Workstation.AutoOcr.Hardware
 {
     public class EtherCatIO : BaseIODevice
     {
-        public EtherCatIO(ILogService logger)
-            : base("SIM_VACUUM_IO", "模拟真空IO卡", isSimulated: true, logger) { }
+        public EtherCatIO(string deviceId, string deviceName, bool isSimulated, ILogService logger)
+            : base(deviceId, deviceName, isSimulated, logger) { }
 
 
         public override int InputCount { get; }
