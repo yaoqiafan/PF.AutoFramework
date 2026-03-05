@@ -87,8 +87,17 @@ namespace PF.Modules.Debug.ViewModels
             IsBusy = true;
             try
             {
+                bool newValue = !IsGlobalSimulated;
+
                 // 仅持久化配置，不触发热重载；用户需手动点击重连按钮使配置生效
-                await _hardwareManager.SetGlobalSimulationModeAsync(!IsGlobalSimulated);
+                await _hardwareManager.SetGlobalSimulationModeAsync(newValue);
+
+                // SetGlobalSimulationModeAsync 只更新 HardwareConfig，不修改运行中的设备实例。
+                // 同步将新状态写入所有活跃设备，树节点指示才能跟随刷新。
+                foreach (var device in _hardwareManager.ActiveDevices)
+                    device.IsSimulated = newValue;
+
+                RefreshTreeNodeSimulationStates();
                 UpdateGlobalSimulatedState();
             }
             finally
@@ -223,6 +232,24 @@ namespace PF.Modules.Debug.ViewModels
         {
             var configs = _hardwareManager.GetAllConfigs().ToList();
             IsGlobalSimulated = configs.Any() && configs.All(c => c.IsSimulated);
+        }
+
+        /// <summary>
+        /// 将所有树节点的 IsSimulated 与其关联的设备实例同步。
+        /// 在全局模式切换后调用，确保 UI 指示与设备状态一致。
+        /// </summary>
+        private void RefreshTreeNodeSimulationStates()
+        {
+            foreach (var node in TreeNodes)
+                SyncNodeSimulation(node);
+        }
+
+        private static void SyncNodeSimulation(DebugTreeNode node)
+        {
+            if (node.Payload is IHardwareDevice device)
+                node.IsSimulated = device.IsSimulated;
+            foreach (var child in node.Children)
+                SyncNodeSimulation(child);
         }
     }
 }
