@@ -30,8 +30,8 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// <summary>设备是否处于报警或故障状态</summary>
         bool HasAlarm { get; }
         HardwareCategory Category { get; }
-        /// <summary>是否为模拟设备（用于脱机调试模式）</summary>
-        bool IsSimulated { get; }
+        /// <summary>是否为模拟设备（用于脱机调试模式）。可在运行时修改，修改后重新调用 ConnectAsync 即可进入新模式。</summary>
+        bool IsSimulated { get; set; }
 
         #endregion
 
