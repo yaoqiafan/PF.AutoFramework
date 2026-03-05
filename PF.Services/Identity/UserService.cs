@@ -1,4 +1,5 @@
-﻿using PF.Core.Entities.Identity;
+﻿using PF.Core.Constants;
+using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
@@ -58,10 +59,11 @@ namespace PF.Services.Identity
                 {
                     CurrentUser = new UserInfo
                     {
-                        UserName = builtIn.UserName,
-                        UserId   = builtIn.UserName,
-                        Root     = builtIn.Level,
-                        Password = builtIn.Password,
+                        UserName        = builtIn.UserName,
+                        UserId          = builtIn.UserName,
+                        Root            = builtIn.Level,
+                        Password        = builtIn.Password,
+                        AccessibleViews = DefaultPermissions.GetAccessibleViews(builtIn.Level),
                     };
                     _logService.Info($"内置账号 {userName} 登录成功", "Identity");
                     OnCurrentUserChanged();
@@ -114,10 +116,11 @@ namespace PF.Services.Identity
 
             CurrentUser = new UserInfo
             {
-                UserName = op.UserName,
-                UserId   = op.UserName,
-                Root     = op.Level,
-                Password = op.Password,
+                UserName        = op.UserName,
+                UserId          = op.UserName,
+                Root            = op.Level,
+                Password        = op.Password,
+                AccessibleViews = DefaultPermissions.GetAccessibleViews(op.Level),
             };
             _logService.Info("用户长时间无操作，权限已自动重置为 Operator", "Identity");
             OnCurrentUserChanged();
