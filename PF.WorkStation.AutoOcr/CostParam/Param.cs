@@ -118,4 +118,11 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     }
 
+
+    public enum E_ScanCode
+    {
+        工位1扫码枪,
+        工位2扫码枪,
+    }
+
 }

@@ -6,4 +6,8 @@
 		<ProjectReference Include="..\PF.Services\PF.Services.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Hardware\" />
+	</ItemGroup>
+
 </Project>

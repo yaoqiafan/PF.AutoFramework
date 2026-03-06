@@ -18,11 +18,11 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
 
 
-        public LTMDCMotionCard(int cardIndex, ILogService logger)
+        public LTMDCMotionCard(int cardIndex, string deviceId ,string deviceName, bool isSimulated, ILogService logger)
             : base(
-                deviceId: $"SIM_CARD_{cardIndex}",
-                deviceName: $"雷赛运动控制卡[{cardIndex}]",
-                isSimulated: false ,
+                deviceId: deviceId,
+                deviceName: deviceName,
+                isSimulated: isSimulated  ,
                 logger: logger)
         {
             CardIndex = cardIndex;
