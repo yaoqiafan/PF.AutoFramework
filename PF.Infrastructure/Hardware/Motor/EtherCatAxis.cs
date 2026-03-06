@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Workstation.AutoOcr.Hardware
+namespace PF.Infrastructure.Hardware.Motor
 {
     public class EtherCatAxis : BaseAxisDevice
     {

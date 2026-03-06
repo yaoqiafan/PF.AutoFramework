@@ -420,18 +420,18 @@ namespace PF.Application.Shell
             {
                 int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
                     ? int.Parse(ci) : 0;
-                return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(cardIndex, _logService);
+                return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(cardIndex, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
             hwManager.RegisterFactory("EtherCatAxis", cfg =>
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                return new PF.Workstation.AutoOcr.Hardware.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName,cfg.IsSimulated, _logService, dataDirectory);
+                return new  Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName,cfg.IsSimulated, _logService, dataDirectory);
             });
 
             hwManager.RegisterFactory("EtherCatIO", cfg =>
-                new PF.Workstation.AutoOcr.Hardware.EtherCatIO(cfg.DeviceId,  cfg.DeviceName, cfg.IsSimulated, _logService));
+                new Infrastructure.Hardware.IO.EtherCatIO(cfg.DeviceId,  cfg.DeviceName, cfg.IsSimulated, _logService));
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }

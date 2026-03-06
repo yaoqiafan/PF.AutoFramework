@@ -306,6 +306,33 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "IO耦合器，挂载于 LTDMC_Card_0"
             };
 
+
+            HardwareConfig scancode1 = new HardwareConfig
+            {
+                DeviceId = E_ScanCode.工位1扫码枪.ToString(),
+                DeviceName = "工位1扫码枪",
+                Category = "ScanCode",
+                ImplementationClassName = "LTDMCMotionCard",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9600", ["UserPort"] = "21" },
+                Remarks = "雷赛运动控制卡，用于开发/调试"
+            };
+            HardwareConfig scancode2 = new HardwareConfig
+            {
+                DeviceId = E_ScanCode.工位2扫码枪.ToString(),
+                DeviceName = "工位2扫码枪",
+                Category = "ScanCode",
+                ImplementationClassName = "LTDMCMotionCard",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9600", ["UserPort"] = "21" },
+                Remarks = "雷赛运动控制卡，用于开发/调试"
+            };
+
+
             return new Dictionary<string, HardwareParam>
             {
                 {
@@ -428,6 +455,28 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = IOControll.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(IOControll),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    scancode1.DeviceId ,new HardwareParam
+                    {
+                         Name         = scancode1.DeviceId,
+                        Description  = scancode1.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(scancode1),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    scancode2.DeviceId ,new HardwareParam
+                    {
+                         Name         = scancode2.DeviceId,
+                        Description  = scancode2.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(scancode2),
                         Category     = "Hardware",
                         Version      = 1
                     }
