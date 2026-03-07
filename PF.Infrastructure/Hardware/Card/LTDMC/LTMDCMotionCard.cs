@@ -98,6 +98,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
+                HardwareLogger.Debug(ex.Message, ex);
                 return null;
             }
         }

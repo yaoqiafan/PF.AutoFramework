@@ -22,7 +22,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan
 
         public abstract    int UserPort{ get; }
 
-        public abstract Task<bool> ChangeUserParam(object UserInfo);
-        public abstract Task<string> Tigger();
+        public abstract  int TimeOutMs { get; }
+
+        public abstract Task<bool> ChangeUserParam(object UserInfo,CancellationToken token = default);
+        public abstract Task<string> Tigger(CancellationToken token = default);
     }
 }
