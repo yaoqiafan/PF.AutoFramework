@@ -248,16 +248,16 @@ namespace PF.Application.Shell
 
                 var config = new LogConfiguration
                 {
-                    BasePath             = logBasePath,
-                    HistoricalLogPath    = logBasePath,
+                    BasePath = logBasePath,
+                    HistoricalLogPath = logBasePath,
                     EnableConsoleLogging = true,
-                    EnableFileLogging    = true,
-                    EnableUiLogging      = true,
-                    MinimumLevel         = LogLevel.Debug,
-                    AutoDeleteLogs       = true,
+                    EnableFileLogging = true,
+                    EnableUiLogging = true,
+                    MinimumLevel = LogLevel.Debug,
+                    AutoDeleteLogs = true,
                     AutoDeleteIntervalDays = 30,
-                    MaxUiEntries         = 1000,
-                    SplitByHour          = false
+                    MaxUiEntries = 1000,
+                    SplitByHour = false
                 };
 
                 config.ConfigureDefaultCategories();
@@ -282,14 +282,14 @@ namespace PF.Application.Shell
         {
             return new LogConfiguration
             {
-                BasePath               = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"),
-                EnableConsoleLogging   = true,
-                EnableFileLogging      = true,
-                EnableUiLogging        = true,
-                MinimumLevel           = LogLevel.Info,
-                AutoDeleteLogs         = false,
+                BasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"),
+                EnableConsoleLogging = true,
+                EnableFileLogging = true,
+                EnableUiLogging = true,
+                MinimumLevel = LogLevel.Info,
+                AutoDeleteLogs = false,
                 AutoDeleteIntervalDays = 30,
-                MaxUiEntries           = 500
+                MaxUiEntries = 500
             }.ConfigureDefaultCategories();
         }
 
@@ -356,7 +356,7 @@ namespace PF.Application.Shell
             try
             {
                 var container = containerRegistry.GetContainer();
-                var filePath  = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
 
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
                 var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
@@ -410,7 +410,7 @@ namespace PF.Application.Shell
             // dataDirectory 仍用于 SimXAxis 点表文件存储（与硬件配置存储无关）
             var dataDirectory = ConstGlobalParam.ConfigPath;
 
-            var container    = containerRegistry.GetContainer();
+            var container = containerRegistry.GetContainer();
             var paramService = container.Resolve<IParamService>();
             paramService.RegisterParamType<HardwareParam, HardwareConfig>();
 
@@ -427,11 +427,20 @@ namespace PF.Application.Shell
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                return new  Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName,cfg.IsSimulated, _logService, dataDirectory);
+                return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
 
             hwManager.RegisterFactory("EtherCatIO", cfg =>
-                new Infrastructure.Hardware.IO.EtherCatIO(cfg.DeviceId,  cfg.DeviceName, cfg.IsSimulated, _logService));
+                new Infrastructure.Hardware.IO.EtherCatIO(cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService));
+
+            hwManager.RegisterFactory("HKBarcodeScan", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
+                int tiggerport = cfg.ConnectionParameters.TryGetValue("TiggerPort", out var tig) ? int.Parse(tig) : 0;
+                int userport = cfg.ConnectionParameters.TryGetValue("UserPort", out var us) ? int.Parse(us) : 0;
+                int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var timeout) ? int.Parse(timeout) : 0;
+                return new Infrastructure.Hardware.BarcodeScan.HKRobot.HKBarcodeScan(ip, tiggerport, userport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+            });
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }
@@ -467,7 +476,7 @@ namespace PF.Application.Shell
 
         private async Task<bool> PerformInitializationAsync()
         {
-            Splash splash        = Container.Resolve<Splash>();
+            Splash splash = Container.Resolve<Splash>();
             ILogService logService = Container.Resolve<ILogService>();
 
             SplashUpdateMessage(splash, logService, "程序加载中。。。", msgType: MsgType.Info);
@@ -512,11 +521,11 @@ namespace PF.Application.Shell
             switch (msgType)
             {
                 case MsgType.Success: logService?.Success(status, category); break;
-                case MsgType.Info:    logService?.Info(status, category);    break;
-                case MsgType.Fatal:   logService?.Fatal(status, category);   break;
-                case MsgType.Warning: logService?.Warn(status, category);    break;
-                case MsgType.Error:   logService?.Error(status, category);   break;
-                default:              logService?.Info(status, category);    break;
+                case MsgType.Info: logService?.Info(status, category); break;
+                case MsgType.Fatal: logService?.Fatal(status, category); break;
+                case MsgType.Warning: logService?.Warn(status, category); break;
+                case MsgType.Error: logService?.Error(status, category); break;
+                default: logService?.Info(status, category); break;
             }
             splash?.UpdateMessage(status, msgType);
         }

@@ -27,11 +27,18 @@ namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
         int UserPort { get; }
 
 
+
+        /// <summary>
+        /// 扫码枪通讯超时时间，单位毫秒
+        /// </summary>
+        int TimeOutMs { get ; }
+
+
         /// <summary>
         /// 出发扫码枪
         /// </summary>
         /// <returns></returns>
-        Task<string> Tigger();
+        Task<string> Tigger(CancellationToken token =default );
 
 
         /// <summary>
@@ -39,7 +46,7 @@ namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
         /// </summary>
         /// <param name="UserIndex">用户集</param>
         /// <returns></returns>
-        Task<bool> ChangeUserParam(object UserInfo);
+        Task<bool> ChangeUserParam(object UserInfo, CancellationToken token = default);
 
     }
 }

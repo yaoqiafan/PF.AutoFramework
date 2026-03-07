@@ -312,11 +312,11 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceId = E_ScanCode.工位1扫码枪.ToString(),
                 DeviceName = "工位1扫码枪",
                 Category = "ScanCode",
-                ImplementationClassName = "LTDMCMotionCard",
+                ImplementationClassName = "HKBarcodeScan",
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9600", ["UserPort"] = "21" },
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9600", ["UserPort"] = "21", ["TimeOutMs"] = "5000" },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
             HardwareConfig scancode2 = new HardwareConfig
@@ -324,11 +324,11 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceId = E_ScanCode.工位2扫码枪.ToString(),
                 DeviceName = "工位2扫码枪",
                 Category = "ScanCode",
-                ImplementationClassName = "LTDMCMotionCard",
+                ImplementationClassName = "HKBarcodeScan",
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9600", ["UserPort"] = "21" },
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9700", ["UserPort"] = "21", ["TimeOutMs"]= "5000" },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
 

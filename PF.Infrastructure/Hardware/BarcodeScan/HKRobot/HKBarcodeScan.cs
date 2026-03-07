@@ -9,12 +9,13 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 {
     public class HKBarcodeScan : BaseBarcodeScan
     {
-        public HKBarcodeScan(string IP, int tiggerPort, int userPort, ILogService logger) : base(deviceId: $"", deviceName: $"", isSimulated: false, logger: logger)
+        public HKBarcodeScan(string IP, int tiggerPort, int userPort, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
 
             this.IPAdress = IP;
             this.TiggerPort = tiggerPort;
             this.UserPort = userPort;
+            this.TimeOutMs = timeoutms;
 
         }
 
@@ -24,15 +25,17 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         public override int UserPort { get; }
 
+        public override int TimeOutMs { get; }
+
         /// <summary>
         /// 触发客户端
         /// </summary>
-        private PF.Infrastructure.Communication.TCP.TCPClient tiggerclient;
+        private PF.Infrastructure.Communication.TCP.TCPClient tiggerclient=new Communication.TCP.TCPClient ();
 
         /// <summary>
         /// 用户权限客户端
         /// </summary>
-        private PF.Infrastructure.Communication.TCP.TCPClient Userpowerclient;
+        private PF.Infrastructure.Communication.TCP.TCPClient Userpowerclient=new Communication.TCP.TCPClient ();
 
 
         private ManualResetEventSlim TiggerEvent = new ManualResetEventSlim(false);
@@ -42,36 +45,121 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         private string TiggerRec = string.Empty;
 
-        public override Task<bool> ChangeUserParam(object UserInfo)
-        {
-            throw new NotImplementedException();
-        }
 
-        public override async Task<string> Tigger()
+        private string UserParmRec = string.Empty;
+
+        public override async Task<bool> ChangeUserParam(object UserInfo, CancellationToken token = default)
         {
             try
             {
+                if (int.TryParse(UserInfo.ToString(), out int ID))
+                {
+                    UserParmEvent.Reset();
+                    if (!await Userpowerclient.SendStringAsync("<Get,UserCur>"))
+                    {
+                        throw new Exception("海康扫码枪获取当前用户错误");
+                    }
+                    Task a = Task.Run(() => UserParmEvent.Wait(), token);
+                    Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
+                    Task result = Task.WhenAny(a, b);
+                    if (!result.Equals(a))
+                    {
+                        throw new Exception("海康扫码枪获取当前用户错误");
+                    }
+                    if (UserParmRec.Replace(">", "").Split(',').Length == 3 && UserParmRec.Replace(">", "").Split(',')[2] == ID.ToString())
+                    {
+                        return true;
+                    }
+                    UserParmEvent.Reset();
+                    if (!await Userpowerclient.SendStringAsync("<Set,Acq,0>"))
+                    {
+                        throw new Exception("海康扫码枪关闭流错误");
+                    }
+                    a = Task.Run(() => UserParmEvent.Wait(), token);
+                    b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
+                    result = Task.WhenAny(a, b);
+                    if (!result.Equals(a))
+                    {
+                        throw new Exception("海康扫码枪关闭流错误");
+                    }
+                    if (!UserParmRec.Contains("OK"))
+                    {
+                        throw new Exception("海康扫码枪关闭流错误");
+                    }
+                    UserParmEvent.Reset();
+                    if (!await Userpowerclient.SendStringAsync($"<Set,UserCur,{ID}>"))
+                    {
+                        throw new Exception("海康扫码枪设置用户错误");
+                    }
+                    a = Task.Run(() => UserParmEvent.Wait(), token);
+                    b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
+                    result = Task.WhenAny(a, b);
+                    if (!result.Equals(a))
+                    {
+                        throw new Exception("海康扫码枪设置用户错误");
+                    }
+                    if (!UserParmRec.Contains("OK"))
+                    {
+                        throw new Exception("海康扫码枪设置用户错误");
+                    }
+                    UserParmEvent.Reset();
+                    if (!await Userpowerclient.SendStringAsync($"<Set,Acq,1>"))
+                    {
+                        throw new Exception("海康扫码枪打开流错误");
+                    }
+                    a = Task.Run(() => UserParmEvent.Wait(), token);
+                    b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
+                    result = Task.WhenAny(a, b);
+                    if (!result.Equals(a))
+                    {
+                        throw new Exception("海康扫码枪打开流错误");
+                    }
+                    if (!UserParmRec.Contains("OK"))
+                    {
+                        throw new Exception("海康扫码枪打开流错误");
+                    }
+                    await tiggerclient.ReconnectAsync();
+                    return true;
+                }
+                else
+                {
+                    throw new Exception("海康扫码枪设置用户错误：设置参数错误");
+                }
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return false;
+            }
+
+        }
+
+        public override async Task<string> Tigger(CancellationToken token = default)
+        {
+            try
+            {
+                TiggerEvent.Reset();
                 string TiggerStr = "+";
                 if (await tiggerclient.SendStringAsync(TiggerStr))
                 {
                     return null;
                 }
-                Task a = Task.Run(() => TiggerEvent.Wait());
-                Task b = Task.Run(() => Thread.Sleep(2000));
-
+                Task a = Task.Run(() => TiggerEvent.Wait(), token);
+                Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
+                Task result = await Task.WhenAny(a, b);
+                if (result.Equals(a))
+                {
+                    return TiggerRec;
+                }
+                else
+                {
+                    return null;
+                }
             }
             catch (Exception ex)
             {
                 return null;
             }
-
-
-
-
-
-
-
-
         }
 
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
@@ -92,13 +180,14 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         private void Userpowerclient_DataReceived(object? sender, Core.Events.DataReceivedEventArgs e)
         {
-            TiggerRec = Encoding.UTF8.GetString(e.Data);
-            TiggerEvent.Set();
+            UserParmRec = Encoding.UTF8.GetString(e.Data);
+            UserParmEvent.Set();
         }
 
         private void Tiggerclient_DataReceived(object? sender, Core.Events.DataReceivedEventArgs e)
         {
-
+            TiggerRec = Encoding.UTF8.GetString(e.Data);
+            TiggerEvent.Set();
         }
 
         protected override async Task InternalDisconnectAsync()
