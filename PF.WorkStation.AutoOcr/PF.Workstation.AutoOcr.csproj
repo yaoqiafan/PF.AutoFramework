@@ -3,11 +3,13 @@
 	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\PF.Services\PF.Services.csproj" />
+	  <Compile Remove="Hardware\**" />
+	  <EmbeddedResource Remove="Hardware\**" />
+	  <None Remove="Hardware\**" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Hardware\" />
+		<ProjectReference Include="..\PF.Services\PF.Services.csproj" />
 	</ItemGroup>
 
 </Project>
