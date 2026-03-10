@@ -45,6 +45,7 @@ using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo;
 using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
+using PF.Workstation.AutoOcr;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -218,6 +219,9 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
             moduleCatalog.AddModule<UIModule>();
+
+            // 业务工站模块（注册 IO 映射等）
+            moduleCatalog.AddModule<AutoOcrModule>();
         }
 
         #endregion
