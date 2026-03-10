@@ -26,5 +26,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan
 
         public abstract Task<bool> ChangeUserParam(object UserInfo,CancellationToken token = default);
         public abstract Task<string> Tigger(CancellationToken token = default);
+
+
     }
 }

@@ -34,6 +34,8 @@ namespace PF.Modules.Debug
 
             containerRegistry.RegisterForNavigation<IODebugView, IODebugViewModel>(NavigationConstants.Views.IODebugView);
 
+            containerRegistry.RegisterForNavigation<BarcodeScanDebugView, BarcodeScanDebugViewModel>(NavigationConstants.Views.BarcodeScanDebugView);
+
             // 3. 注册工站调试容器视图（子工站调试视图由各工站 UI 模块自行注册）
             containerRegistry.RegisterForNavigation<StationDebugView, StationDebugViewModel>(NavigationConstants.Views.StationDebugView);
 
