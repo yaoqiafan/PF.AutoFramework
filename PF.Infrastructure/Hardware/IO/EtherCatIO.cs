@@ -11,8 +11,12 @@ namespace PF.Infrastructure.Hardware.IO
 {
     public class EtherCatIO : BaseIODevice
     {
-        public EtherCatIO(string deviceId, string deviceName, bool isSimulated, ILogService logger)
-            : base(deviceId, deviceName, isSimulated, logger) { }
+        public EtherCatIO(int inputCount,int outputCount, string deviceId, string deviceName, bool isSimulated, ILogService logger)
+            : base(deviceId, deviceName, isSimulated, logger) 
+        {
+            InputCount = inputCount;
+            OutputCount = outputCount;
+        }
 
 
         public override int InputCount { get; }

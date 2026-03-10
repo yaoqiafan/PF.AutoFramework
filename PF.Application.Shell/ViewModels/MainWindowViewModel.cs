@@ -42,7 +42,7 @@ namespace PF.Application.Shell.ViewModels
 
         // 无操作自动降权计时器（60 秒无鼠标/键盘操作 → 重置为 Operator）
         private readonly IdleMonitorService _idleMonitor =
-            new IdleMonitorService(TimeSpan.FromSeconds(60));
+            new IdleMonitorService(TimeSpan.FromSeconds(600000));
         #endregion
 
         #region 公共集合

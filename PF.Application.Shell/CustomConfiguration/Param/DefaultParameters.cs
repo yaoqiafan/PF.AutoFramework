@@ -303,6 +303,9 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string> {
+                    ["InPutCount"] = Enum.GetNames(typeof(E_InPutName)).Length.ToString(), 
+                    ["OutPutCount"] = Enum.GetNames(typeof(E_OutPutName)).Length.ToString(), },
                 Remarks = "IO耦合器，挂载于 LTDMC_Card_0"
             };
 

@@ -431,8 +431,13 @@ namespace PF.Application.Shell
                 return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
 
-            hwManager.RegisterFactory("EtherCatIO", cfg =>
-                new Infrastructure.Hardware.IO.EtherCatIO(cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService));
+
+            hwManager.RegisterFactory("EtherCatIO", cfg => 
+            {
+                int incount = cfg.ConnectionParameters.TryGetValue("InPutCount", out var tig) ? int.Parse(tig) : 0;
+                int outcount = cfg.ConnectionParameters.TryGetValue("OutPutCount", out var us) ? int.Parse(us) : 0;
+                return new Infrastructure.Hardware.IO.EtherCatIO(incount, outcount,cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+            });
 
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
             {
@@ -447,8 +452,8 @@ namespace PF.Application.Shell
 
             // 注册 AutoOcr 工站的 IO 映射
             var ioMappingService = container.Resolve<IIOMappingService>();
-            ioMappingService.RegisterInputEnum<PF.Workstation.AutoOcr.CostParam.E_InPutName>("IO_CARD_0");
-            ioMappingService.RegisterOutputEnum<PF.Workstation.AutoOcr.CostParam.E_OutPutName>("IO_CARD_0");
+            ioMappingService.RegisterInputEnum<PF.Workstation.AutoOcr.CostParam.E_InPutName>("IO_Collectorll");
+            ioMappingService.RegisterOutputEnum<PF.Workstation.AutoOcr.CostParam.E_OutPutName>("IO_Collectorll");
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }

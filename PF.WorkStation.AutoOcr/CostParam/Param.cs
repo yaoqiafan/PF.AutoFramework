@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -90,22 +91,42 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     public enum E_OutPutName
     {
+        [Browsable(false)]
+        预留1 = 0,
+        [Browsable(false)]
+        预留2 = 1,
+        [Browsable(false)]
+        预留3 = 2,
+        [Browsable(false)]
+        预留4 = 3,
+        [Browsable(false)]
+        预留5 = 4,
+        [Browsable(false)]
+        预留6 = 5,
+        [Browsable(false)]
+        预留7 = 6,
+        [Browsable(false)]
+        预留8 = 7,
         夹爪气缸左闭合 = 8,
         夹爪气缸左张开 = 9,
         夹爪左X轴气缸伸出 = 10,
         夹爪左X轴气缸缩回 = 11,
         晶圆轨道左调宽气缸伸出 = 12,
         晶圆轨道左调宽气缸收回 = 13,
-        预留1 = 14,
-        预留2 = 15,
+        [Browsable(false)]
+        预留9 = 14,
+        [Browsable(false)]
+        预留10 = 15,
         夹爪气缸右闭合 = 16,
         夹爪气缸右张开 = 17,
         夹爪右X轴气缸伸出 = 18,
         夹爪右X轴气缸缩回 = 19,
         晶圆轨道右调宽气缸伸出 = 20,
         晶圆轨道右调宽气缸收回 = 21,
-        预留3 = 22,
-        预留4 = 23,
+        [Browsable(false)]
+        预留11 = 22,
+        [Browsable(false)]
+        预留12 = 23,
         三色灯红 = 24,
         三色灯黄 = 25,
         三色灯绿 = 26,
@@ -114,8 +135,6 @@ namespace PF.Workstation.AutoOcr.CostParam
         电磁门锁2 = 29,
         电磁门锁3 = 30,
         电磁门锁4 = 31,
-
-
     }
 
 
