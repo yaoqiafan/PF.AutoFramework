@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.IO;
+using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
@@ -6,14 +7,22 @@ using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>
+    /// IO 调试视图模型
+    /// 通过 IIOMappingService 实现业务层与通用 UI 的解耦
+    /// </summary>
     public class IODebugViewModel : RegionViewModelBase
     {
         private IIOController _ioController;
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
+        private readonly IIOMappingService _ioMappingService;
 
-        public IODebugViewModel()
+        // 构造函数注入映射服务
+        public IODebugViewModel(IIOMappingService ioMappingService)
         {
+            _ioMappingService = ioMappingService;
+
             // 初始化命令
             ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(System.Threading.CancellationToken.None); });
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
@@ -93,21 +102,25 @@ namespace PF.Modules.Debug.ViewModels
             InputPorts.Clear();
             OutputPorts.Clear();
 
-            // =========================================================================
-            // ⚠️ TODO: 根据你实际的 IIOController 接口修改这里的通道数量获取方式
-            // 假设默认有 16 个输入和 16 个输出。如果有 InputCount 属性，请替换为 _ioController.InputCount
-            // =========================================================================
-            int inCount = 16;
-            int outCount = 16;
+            // 1. 获取动态引脚数量（请确保你的 IIOController 有 InputCount/OutputCount 属性）
+            int inCount = _ioController.InputCount;
+            int outCount = _ioController.OutputCount;
 
+            // 2. 获取当前设备 ID
+            string deviceId = _baseDevice?.DeviceId ?? "Default";
+
+            // 3. 构建 UI 模型
             for (int i = 0; i < inCount; i++)
             {
-                InputPorts.Add(new IOPortModel { Index = i, PortName = $"DI {i:D2}", IsOutput = false });
+                // 尝试通过服务获取名称，获取不到则默认回退到 "DI 00" 格式
+                string showName = _ioMappingService.GetInputName(deviceId, i) ?? $"DI {i:D2}";
+                InputPorts.Add(new IOPortModel { Index = i, PortName = showName, IsOutput = false });
             }
 
             for (int i = 0; i < outCount; i++)
             {
-                var outPort = new IOPortModel { Index = i, PortName = $"DO {i:D2}", IsOutput = true };
+                string showName = _ioMappingService.GetOutputName(deviceId, i) ?? $"DO {i:D2}";
+                var outPort = new IOPortModel { Index = i, PortName = showName, IsOutput = true };
                 // 绑定输出通道的点击写入命令
                 outPort.ToggleCommand = new DelegateCommand<IOPortModel>(ToggleOutputPort);
                 OutputPorts.Add(outPort);
