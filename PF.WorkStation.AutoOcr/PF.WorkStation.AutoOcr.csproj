@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+
+	<ItemGroup>
+	  <Compile Remove="Hardware\**" />
+	  <EmbeddedResource Remove="Hardware\**" />
+	  <None Remove="Hardware\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\PF.Services\PF.Services.csproj" />
+	</ItemGroup>
+
+</Project>
