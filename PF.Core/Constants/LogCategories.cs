@@ -21,6 +21,9 @@ namespace PF.Core.Constants
 
 
         public const string HaraWare = "Hardware";
+
+
+        public const string Recipe = "Recipe";
         /// <summary>
         /// 获取所有内置分类
         /// </summary>
@@ -34,6 +37,7 @@ namespace PF.Core.Constants
                 Communication,
                Custom,
                HaraWare,
+               Recipe,
             };
         }
     }
