@@ -158,6 +158,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             }
             catch (Exception ex)
             {
+                HardwareLogger.Debug(ex.Message, ex);
                 return null;
             }
         }

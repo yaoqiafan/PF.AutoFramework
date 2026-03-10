@@ -28,5 +28,8 @@ namespace PF.Infrastructure.Logging
 
         public static CategoryLogger Hardware(ILogService logService) =>
            new CategoryLogger(logService, LogCategories.HaraWare );
+
+        public static CategoryLogger Recipe (ILogService logService) =>
+          new CategoryLogger(logService, LogCategories.Recipe );
     }
 }
