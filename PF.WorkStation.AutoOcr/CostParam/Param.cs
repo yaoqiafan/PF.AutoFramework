@@ -125,4 +125,10 @@ namespace PF.Workstation.AutoOcr.CostParam
         工位2扫码枪,
     }
 
+    public enum E_WafeSize
+    {
+        _8寸,
+        _12寸
+    }
+
 }
