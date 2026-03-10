@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Recipe
 {
-    public abstract class BaseRecipe<T> : IRecipeService<T> where T : ReceipeParamBase
+    public abstract class BaseRecipe<T> : IRecipeService<T>, IRecipeManger<T> where T : ReceipeParamBase
     {
         public string RecipeDirPath => $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\Recipe";
 
@@ -22,13 +22,22 @@ namespace PF.Infrastructure.Recipe
         public readonly Logging.CategoryLogger RecipeLogger;
 
 
-        public  BaseRecipe(ILogService logger)
+        public BaseRecipe(ILogService logger)
         {
             RecipeLogger = Logging.CategoryLoggerFactory.Recipe(logger);
             if (!Directory.Exists(BackUpRecipeDirPath))
             {
                 DirectoryInfo di = Directory.CreateDirectory(BackUpRecipeDirPath);
                 di.Attributes |= FileAttributes.Hidden;
+            }
+            if (File.Exists(filepath))
+            {
+                string str = File.ReadAllText(filepath);
+                _stationRecipeDic = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, T>>(str);
+            }
+            else
+            {
+                _stationRecipeDic = new Dictionary<string, T>();
             }
         }
 
@@ -42,6 +51,8 @@ namespace PF.Infrastructure.Recipe
                 return GetAllRecipe();
             }
         }
+
+
 
         private List<string> GetAllRecipe()
         {
@@ -161,11 +172,46 @@ namespace PF.Infrastructure.Recipe
         }
 
 
+        private readonly Dictionary<string, T> _stationRecipeDic = new Dictionary<string, T>();
 
+        public Dictionary<string, T> StationRecipeDic => _stationRecipeDic;
+
+        private string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationRecipe.json";
 
         public abstract Task<bool> RecipeUpdateAsync(T RecipeParam, CancellationToken token = default);
 
         public abstract Task<bool> DownLoadRecipe(T RecipeParam, CancellationToken token = default);
 
+        public virtual Task<bool> ChangedStationRecipe(string StationName, T RecipeParam, CancellationToken token = default)
+        {
+            if (_stationRecipeDic.ContainsKey(StationName))
+            {
+                _stationRecipeDic[StationName] = RecipeParam;
+            }
+            else
+            {
+                _stationRecipeDic.TryAdd(StationName, RecipeParam);
+            }
+            return Task.FromResult(true);
+        }
+
+        public virtual Task<T> GetStationRecipe(string StationName, CancellationToken token = default)
+        {
+            if (_stationRecipeDic.TryGetValue(StationName, out T recipeParam))
+            {
+                return Task.FromResult(recipeParam);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public Task<bool> WriteRecipeManger()
+        {
+            string str = System.Text.Json.JsonSerializer.Serialize(StationRecipeDic);
+            File.WriteAllText(filepath, str);
+            return Task.FromResult(true);
+        }
     }
 }
