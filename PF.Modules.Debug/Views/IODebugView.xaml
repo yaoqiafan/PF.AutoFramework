@@ -18,7 +18,7 @@
         <SolidColorBrush x:Key="OffBorderColor" Color="#CBD5E1" />
 
         <DataTemplate x:Key="InputPortTemplate">
-            <Border Margin="5" Padding="10,5"   BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+            <Border Margin="5" Padding="12,6" MinWidth="120" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                         <Ellipse.Style>
@@ -40,7 +40,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="OutputPortTemplate">
-            <Button Margin="5" Padding="10,5" Width="300" Command="{Binding ToggleCommand}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+            <Button Margin="5" Padding="12,6" MinWidth="120" Command="{Binding ToggleCommand}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border"  BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5">
@@ -137,7 +137,7 @@
                             <ItemsControl ItemTemplate="{StaticResource InputPortTemplate}" ItemsSource="{Binding InputPorts}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="2" VerticalAlignment="Top" />
+                                        <WrapPanel Orientation="Horizontal" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
@@ -157,10 +157,10 @@
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemTemplate="{StaticResource OutputPortTemplate}" ItemsSource="{Binding OutputPorts}" >
+                            <ItemsControl ItemTemplate="{StaticResource OutputPortTemplate}" ItemsSource="{Binding OutputPorts}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="2" VerticalAlignment="Top" />
+                                        <WrapPanel Orientation="Horizontal" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
