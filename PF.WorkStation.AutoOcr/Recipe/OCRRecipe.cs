@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Recipe
 {
-    public class OCRRecipe<T> : BaseRecipe<T> where T : OCRRecipeParam
+    public class OCRRecipe<T> : BaseRecipe<T>  where T : OCRRecipeParam
     {
         public OCRRecipe(ILogService logger) : base(logger: logger)
         {

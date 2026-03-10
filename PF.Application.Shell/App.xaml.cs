@@ -485,6 +485,10 @@ namespace PF.Application.Shell
 
         #endregion
 
+        #region MyRegion
+
+        #endregion
+
         #region 启动初始化流程（Splash）
 
         private async Task<bool> PerformInitializationAsync()
