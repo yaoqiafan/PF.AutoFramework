@@ -18,7 +18,7 @@
         <SolidColorBrush x:Key="OffBorderColor" Color="#CBD5E1" />
 
         <DataTemplate x:Key="InputPortTemplate">
-            <Border Margin="5" Padding="10,5" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4">
+            <Border Margin="5" Padding="10,5"   BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                         <Ellipse.Style>
@@ -34,16 +34,16 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold"  Text="{Binding PortName}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="OutputPortTemplate">
-            <Button Margin="5" Padding="10,5" Command="{Binding ToggleCommand}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+            <Button Margin="5" Padding="10,5" Width="300" Command="{Binding ToggleCommand}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4" Padding="10,5">
+                        <Border x:Name="border"  BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                                     <Ellipse.Style>
@@ -59,13 +59,14 @@
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
+                                <TextBlock x:Name="text" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold"   Text="{Binding PortName}" />
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#F1F5F9" />
                                 <Setter TargetName="border" Property="BorderBrush" Value="#94A3B8" />
+                                <Setter TargetName="text" Property="Foreground" Value="{DynamicResource InfoBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#E2E8F0" />
@@ -109,7 +110,7 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal">
-                        <TextBlock Margin="0,0,5,0" VerticalAlignment="Center" Foreground="#64748B" Text="通讯状态:" />
+                        <TextBlock Margin="0,0,5,0" VerticalAlignment="Center"  Text="通讯状态:" />
                         <Border Padding="8,4" Background="#10B981" CornerRadius="4">
                             <TextBlock FontWeight="SemiBold" Foreground="White" Text="{Binding IsConnected, StringFormat='{}{0}'}" />
                         </Border>
@@ -130,13 +131,13 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Margin="0,0,0,15" FontSize="{DynamicResource FontSize.H3.Subtitle}" FontWeight="Bold" Foreground="#475569" Text="数字输入监控 (Digital Input)" />
+                        <TextBlock Grid.Row="0" Margin="0,0,0,15" FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold"   Text="数字输入监控 (Digital Input)" />
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemTemplate="{StaticResource InputPortTemplate}" ItemsSource="{Binding InputPorts}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="4" VerticalAlignment="Top" />
+                                        <UniformGrid Columns="2" VerticalAlignment="Top" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
@@ -151,15 +152,15 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
-                            <TextBlock FontSize="{DynamicResource FontSize.H3.Subtitle}" FontWeight="Bold" Foreground="#475569" Text="数字输出控制 (Digital Output)" />
-                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#94A3B8" Text="点击通道按钮可强制切换状态" />
+                            <TextBlock FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold"  Text="数字输出控制 (Digital Output)" />
+                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Bottom" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="{DynamicResource OffColor}" Text="(点击通道按钮可强制切换状态)" />
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemTemplate="{StaticResource OutputPortTemplate}" ItemsSource="{Binding OutputPorts}">
+                            <ItemsControl ItemTemplate="{StaticResource OutputPortTemplate}" ItemsSource="{Binding OutputPorts}" >
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Columns="4" VerticalAlignment="Top" />
+                                        <UniformGrid Columns="2" VerticalAlignment="Top" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
