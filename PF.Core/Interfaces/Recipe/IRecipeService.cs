@@ -8,7 +8,6 @@ namespace PF.Core.Interfaces.Recipe
 {
     public interface IRecipeService<T> where T : ReceipeParamBase
     {
-
         /// <summary>
         /// 获取配方参数
         /// </summary>
@@ -17,14 +16,12 @@ namespace PF.Core.Interfaces.Recipe
         /// <returns></returns>
         Task<T> RecipeParam(string RecipeName, CancellationToken token = default);
 
-
         /// <summary>
         /// 获取所有配方
         /// </summary>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
         Task<List<T>> GetAllRecipes(CancellationToken token = default);
-
 
         /// <summary>
         /// 配方文件夹路径
@@ -47,7 +44,6 @@ namespace PF.Core.Interfaces.Recipe
         /// <returns></returns>
         Task<bool> RecipeParamWriteAsync(T RecipeParam, bool IsCover = false, CancellationToken token = default);
 
-
         /// <summary>
         /// 切换配方
         /// </summary>
@@ -66,8 +62,6 @@ namespace PF.Core.Interfaces.Recipe
         /// <returns></returns>
         Task<bool> RecipeUpdateAsync(T RecipeParam, CancellationToken token = default);
 
-
-
         /// <summary>
         /// 删除指定配方
         /// </summary>
@@ -75,7 +69,6 @@ namespace PF.Core.Interfaces.Recipe
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
         Task<bool> RecipeDeleteAsync(T RecipeParam, CancellationToken token = default);
-
 
         /// <summary>
         /// 删除指定配方
@@ -94,8 +87,6 @@ namespace PF.Core.Interfaces.Recipe
         /// <returns></returns>
         Task<bool> DownLoadRecipe(T RecipeParam, CancellationToken token = default);
 
-
-
     }
 
 
@@ -111,9 +102,5 @@ namespace PF.Core.Interfaces.Recipe
         /// </summary>
         public string RecipeName { get; set; }
 
-
-
-
-        
     }
 }
