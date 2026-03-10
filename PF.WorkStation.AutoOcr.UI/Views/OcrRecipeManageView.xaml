@@ -8,20 +8,19 @@
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="600"
     d:DesignWidth="1000"
-    Background="{DynamicResource DefaultBackgroundBrush}"
     mc:Ignorable="d">
 
     <Grid Margin="15">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250" />
-            <ColumnDefinition Width="20" />
             <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="400" />
         </Grid.ColumnDefinitions>
 
         <Border
             Grid.Column="0"
             Padding="10"
-            Background="{DynamicResource SecondaryRegionColorBrush}"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
             CornerRadius="5">
             <Grid>
                 <Grid.RowDefinitions>
@@ -33,18 +32,133 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock
-                    FontSize="16"
+                    FontSize="{DynamicResource FontSize.H2.Title}"
                     FontWeight="Bold"
-                    Foreground="{DynamicResource PrimaryTextColorBrush}"
                     Text="OCR 配方列表" />
 
-                <ListBox
+                <DataGrid
                     Grid.Row="2"
-                    Background="Transparent"
-                    BorderBrush="{DynamicResource BorderColorBrush}"
-                    BorderThickness="1"
-                    ItemsSource="{Binding RecipeNames}"
-                    SelectedItem="{Binding SelectedRecipeName}" />
+                    AutoGenerateColumns="False"
+                    CanUserAddRows="False"
+                    CanUserDeleteRows="False"
+                    ColumnWidth="*"
+                    GridLinesVisibility="Horizontal"
+                    IsReadOnly="False"
+                    ItemsSource="{Binding Parameters}"
+                    SelectedItem="{Binding SelectedParameter}"
+                    SelectionMode="Single">
+
+                    <DataGrid.Columns>
+
+                        <DataGridTemplateColumn Width="auto" Header="配方名称">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Width="auto" Header="晶圆尺寸">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+
+                        <DataGridTemplateColumn Width="auto" Header="关联相机程式">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+
+                        <DataGridTemplateColumn Width="auto" Header="条码个数">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+
+                        <DataGridTemplateColumn Width="auto" Header="Pos X,Y,Z (mm)">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+
+                        <DataGridTemplateColumn Width="auto" Header="客批比对起始">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="auto" Header="客批比对长度">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+
+                        <DataGridTemplateColumn Width="auto" Header="OCR标签已张贴">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        IsReadOnly="True"
+                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
 
                 <StackPanel
                     Grid.Row="4"
@@ -80,155 +194,13 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock
-                    FontSize="16"
+                    FontSize="{DynamicResource FontSize.H2.Title}"
                     FontWeight="Bold"
-                    Foreground="{DynamicResource PrimaryTextColorBrush}"
+                    
                     Text="配方参数设定" />
 
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120" />
-                            <ColumnDefinition Width="250" />
-                            <ColumnDefinition Width="120" />
-                            <ColumnDefinition Width="250" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="40" />
-                            <RowDefinition Height="40" />
-                            <RowDefinition Height="40" />
-                            <RowDefinition Height="40" />
-                            <RowDefinition Height="40" />
-                            <RowDefinition Height="40" />
-                        </Grid.RowDefinitions>
 
-                        <TextBlock
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="配方名称:" />
-                        <TextBox
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Margin="0,0,20,0"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.RecipeName, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <TextBlock
-                            Grid.Row="0"
-                            Grid.Column="2"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="晶圆尺寸:" />
-                        <ComboBox
-                            Grid.Row="0"
-                            Grid.Column="3"
-                            VerticalAlignment="Center"
-                            ItemsSource="{Binding WafeSizes}"
-                            SelectedItem="{Binding CurrentRecipe.WafeSize}" />
-
-                        <TextBlock
-                            Grid.Row="1"
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="关联相机配方:" />
-                        <TextBox
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            Margin="0,0,20,0"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.OCRRecipeName}" />
-
-                        <TextBlock
-                            Grid.Row="1"
-                            Grid.Column="2"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="条码个数:" />
-                        <TextBox
-                            Grid.Row="1"
-                            Grid.Column="3"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.CodeCount}" />
-
-                        <TextBlock
-                            Grid.Row="2"
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="PosX (mm):" />
-                        <TextBox
-                            Grid.Row="2"
-                            Grid.Column="1"
-                            Margin="0,0,20,0"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.PosX}" />
-
-                        <TextBlock
-                            Grid.Row="2"
-                            Grid.Column="2"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="PosY (mm):" />
-                        <TextBox
-                            Grid.Row="2"
-                            Grid.Column="3"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.PosY}" />
-
-                        <TextBlock
-                            Grid.Row="3"
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="PosZ (mm):" />
-                        <TextBox
-                            Grid.Row="3"
-                            Grid.Column="1"
-                            Margin="0,0,20,0"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.PosZ}" />
-
-                        <TextBlock
-                            Grid.Row="4"
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="客批比对起始:" />
-                        <TextBox
-                            Grid.Row="4"
-                            Grid.Column="1"
-                            Margin="0,0,20,0"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.GuestStartIndex}" />
-
-                        <TextBlock
-                            Grid.Row="4"
-                            Grid.Column="2"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="客批比对长度:" />
-                        <TextBox
-                            Grid.Row="4"
-                            Grid.Column="3"
-                            VerticalAlignment="Center"
-                            Text="{Binding CurrentRecipe.GuestLength}" />
-
-                        <TextBlock
-                            Grid.Row="5"
-                            Grid.Column="0"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource PrimaryTextColorBrush}"
-                            Text="OCR标签已张贴:" />
-                        <CheckBox
-                            Grid.Row="5"
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            IsChecked="{Binding CurrentRecipe.IsOCRCodePate}" />
-                    </Grid>
-                </ScrollViewer>
+                <pf:PropertyGrid Grid.Row="2"  SelectedObject="{Binding test}"/>
 
                 <StackPanel
                     Grid.Row="4"
@@ -246,12 +218,7 @@
                         Margin="0,0,15,0"
                         Command="{Binding DeleteRecipeCommand}"
                         Content="删除配方" />
-                    <Button
-                        Width="160"
-                        Height="35"
-                        Command="{Binding ApplyRecipeCommand}"
-                        CommandParameter="AutoOcrStation"
-                        Content="应用到 AutoOcr 工站" />
+
                 </StackPanel>
             </Grid>
         </Border>
