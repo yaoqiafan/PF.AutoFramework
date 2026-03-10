@@ -18,7 +18,7 @@
         <SolidColorBrush x:Key="OffBorderColor" Color="#CBD5E1" />
 
         <DataTemplate x:Key="InputPortTemplate">
-            <Border Margin="5" Padding="12,6" MinWidth="120" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+            <Border Margin="5" Padding="15,10" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                         <Ellipse.Style>
@@ -34,16 +34,23 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold"  Text="{Binding PortName}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="OutputPortTemplate">
-            <Button Margin="5" Padding="12,6" MinWidth="120" Command="{Binding ToggleCommand}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+            <Button Margin="5" 
+                    Padding="15,10" 
+                    Command="{Binding ToggleCommand}" 
+                    CommandParameter="{Binding}" 
+                    Background="Transparent" 
+                    BorderThickness="0" 
+                    Cursor="Hand"
+                    HorizontalContentAlignment="Left">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border"  BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10,5">
+                        <Border x:Name="border" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                                     <Ellipse.Style>
@@ -59,14 +66,13 @@
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock x:Name="text" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold"   Text="{Binding PortName}" />
+                                <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#F1F5F9" />
                                 <Setter TargetName="border" Property="BorderBrush" Value="#94A3B8" />
-                                <Setter TargetName="text" Property="Foreground" Value="{DynamicResource InfoBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#E2E8F0" />
@@ -137,7 +143,7 @@
                             <ItemsControl ItemTemplate="{StaticResource InputPortTemplate}" ItemsSource="{Binding InputPorts}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
+                                        <UniformGrid Columns="2" VerticalAlignment="Top" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
@@ -160,7 +166,7 @@
                             <ItemsControl ItemTemplate="{StaticResource OutputPortTemplate}" ItemsSource="{Binding OutputPorts}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
+                                        <UniformGrid Columns="2" VerticalAlignment="Top" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
