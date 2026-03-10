@@ -1,0 +1,28 @@
+﻿using PF.Core.Constants;
+using PF.UI.Infrastructure.Navigation;
+using PF.WorkStation.AutoOcr.UI.ViewModels;
+using PF.WorkStation.AutoOcr.UI.Views;
+using System.Reflection;
+
+namespace PF.WorkStation.AutoOcr.UI
+{
+    public class AutoOcrUIModule : IModule
+    {
+        public void OnInitialized(IContainerProvider containerProvider)
+        {
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+
+            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
+        }
+
+        public void RegisterTypes(IContainerRegistry containerRegistry)
+        {
+            containerRegistry.RegisterForNavigation<MainView, MainViewModel>(NavigationConstants.Views.MainView);
+            containerRegistry.RegisterForNavigation<HomeView, MainViewModel>(NavigationConstants.Views.HomeView);
+
+            containerRegistry.RegisterForNavigation<OcrRecipeManageView, OcrRecipeManageViewModel>(nameof(OcrRecipeManageView));
+        }
+    }
+}

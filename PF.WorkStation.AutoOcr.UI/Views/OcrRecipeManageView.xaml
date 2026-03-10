@@ -1,0 +1,259 @@
+﻿<UserControl
+    x:Class="PF.WorkStation.AutoOcr.UI.Views.OcrRecipeManageView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="600"
+    d:DesignWidth="1000"
+    Background="{DynamicResource DefaultBackgroundBrush}"
+    mc:Ignorable="d">
+
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border
+            Grid.Column="0"
+            Padding="10"
+            Background="{DynamicResource SecondaryRegionColorBrush}"
+            CornerRadius="5">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="10" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="10" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource PrimaryTextColorBrush}"
+                    Text="OCR 配方列表" />
+
+                <ListBox
+                    Grid.Row="2"
+                    Background="Transparent"
+                    BorderBrush="{DynamicResource BorderColorBrush}"
+                    BorderThickness="1"
+                    ItemsSource="{Binding RecipeNames}"
+                    SelectedItem="{Binding SelectedRecipeName}" />
+
+                <StackPanel
+                    Grid.Row="4"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
+                    <Button
+                        Width="80"
+                        Height="30"
+                        Margin="0,0,10,0"
+                        Command="{Binding LoadRecipesCommand}"
+                        Content="刷新列表" />
+                    <Button
+                        Width="80"
+                        Height="30"
+                        Command="{Binding NewRecipeCommand}"
+                        Content="新建配方" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border
+            Grid.Column="2"
+            Padding="15"
+            Background="{DynamicResource SecondaryRegionColorBrush}"
+            CornerRadius="5">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="20" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="20" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource PrimaryTextColorBrush}"
+                    Text="配方参数设定" />
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="250" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="250" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="40" />
+                            <RowDefinition Height="40" />
+                            <RowDefinition Height="40" />
+                            <RowDefinition Height="40" />
+                            <RowDefinition Height="40" />
+                            <RowDefinition Height="40" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="配方名称:" />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Margin="0,0,20,0"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.RecipeName, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="晶圆尺寸:" />
+                        <ComboBox
+                            Grid.Row="0"
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            ItemsSource="{Binding WafeSizes}"
+                            SelectedItem="{Binding CurrentRecipe.WafeSize}" />
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="关联相机配方:" />
+                        <TextBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="0,0,20,0"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.OCRRecipeName}" />
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="条码个数:" />
+                        <TextBox
+                            Grid.Row="1"
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.CodeCount}" />
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="PosX (mm):" />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="0,0,20,0"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.PosX}" />
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="PosY (mm):" />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.PosY}" />
+
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="PosZ (mm):" />
+                        <TextBox
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Margin="0,0,20,0"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.PosZ}" />
+
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="客批比对起始:" />
+                        <TextBox
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Margin="0,0,20,0"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.GuestStartIndex}" />
+
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="客批比对长度:" />
+                        <TextBox
+                            Grid.Row="4"
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            Text="{Binding CurrentRecipe.GuestLength}" />
+
+                        <TextBlock
+                            Grid.Row="5"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                            Text="OCR标签已张贴:" />
+                        <CheckBox
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            IsChecked="{Binding CurrentRecipe.IsOCRCodePate}" />
+                    </Grid>
+                </ScrollViewer>
+
+                <StackPanel
+                    Grid.Row="4"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+                    <Button
+                        Width="100"
+                        Height="35"
+                        Margin="0,0,15,0"
+                        Command="{Binding SaveRecipeCommand}"
+                        Content="保存配方" />
+                    <Button
+                        Width="100"
+                        Height="35"
+                        Margin="0,0,15,0"
+                        Command="{Binding DeleteRecipeCommand}"
+                        Content="删除配方" />
+                    <Button
+                        Width="160"
+                        Height="35"
+                        Command="{Binding ApplyRecipeCommand}"
+                        CommandParameter="AutoOcrStation"
+                        Content="应用到 AutoOcr 工站" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

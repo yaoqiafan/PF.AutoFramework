@@ -10,11 +10,8 @@ namespace PF.Workstation.Demo.UI
     {
         public void OnInitialized(IContainerProvider containerProvider)
         {
-            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
-            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
-
-
-            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
+            //var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            //navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
@@ -25,7 +22,7 @@ namespace PF.Workstation.Demo.UI
             containerRegistry.RegisterForNavigation<PickPlaceStationDebugView, PickPlaceStationDebugViewModel>(
                 NavigationConstants.Views.PickPlaceStationDebugView);
 
-            containerRegistry.RegisterForNavigation<MainView, MainViewModel>(NavigationConstants.Views.MainView);
+            //containerRegistry.RegisterForNavigation<MainView, MainViewModel>(NavigationConstants.Views.MainView);
         }
     }
 }

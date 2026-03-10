@@ -14,6 +14,7 @@ using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Data.Context;
@@ -45,6 +46,8 @@ using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo;
 using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
+using PF.WorkStation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.Recipe;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -208,6 +211,8 @@ namespace PF.Application.Shell
             containerRegistry.RegisterSingleton<IMessageService, MessageService>();
 
             RegisterHardwareAndMechanisms(containerRegistry);
+
+            RegisterRecipeRelated(containerRegistry);
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
@@ -218,6 +223,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
             moduleCatalog.AddModule<UIModule>();
+            moduleCatalog.AddModule<PF.WorkStation.AutoOcr.UI.AutoOcrUIModule>();
         }
 
         #endregion
@@ -485,7 +491,25 @@ namespace PF.Application.Shell
 
         #endregion
 
-        #region MyRegion
+        #region 配方服务注册
+
+        private void RegisterRecipeRelated(IContainerRegistry containerRegistry)
+        {
+            var container = containerRegistry.GetContainer();
+
+            // 将 OCRRecipe 同时映射到 IRecipeService、IRecipeManger 接口及其自身类型，确保全局共享同一个配方字典实例
+            container.RegisterMany(
+                new[]
+                {
+                    typeof(IRecipeService<OCRRecipeParam>),
+                    typeof(IRecipeManger<OCRRecipeParam>),
+                    typeof(OCRRecipe<OCRRecipeParam>)
+                },
+                typeof(OCRRecipe<OCRRecipeParam>),
+                reuse: DryIoc.Reuse.Singleton);
+
+            // 后续如有其他工站类型的配方（如 T 为 DispensingRecipeParam），可在此处继续沿用该模式注册
+        }
 
         #endregion
 
