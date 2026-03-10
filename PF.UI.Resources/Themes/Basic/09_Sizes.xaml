@@ -1,24 +1,23 @@
-﻿<ResourceDictionary
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:PF.UI.Resources"
     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
-    <system:Double x:Key="LargeFontSize">24</system:Double>
-    <system:Double x:Key="HeadFontSize">20</system:Double>
-    <system:Double x:Key="SubHeadFontSize">18</system:Double>
-    <system:Double x:Key="TextFontSize">14</system:Double>
+    <!-- 字体大小（标准化命名 - 单一真理来源） -->
+    <system:Double x:Key="FontSize.H1.Large">24</system:Double>
+    <system:Double x:Key="FontSize.H2.Title">20</system:Double>
+    <system:Double x:Key="FontSize.H3.Subtitle">16</system:Double>
+    <system:Double x:Key="FontSize.Body.Standard">14</system:Double>
+    <system:Double x:Key="FontSize.Body.Small">12</system:Double>
+    <system:Double x:Key="FontSize.Caption.Mini">11</system:Double>
+
+    <!-- 控件尺寸 -->
     <system:Double x:Key="DefaultControlHeight">30</system:Double>
     <system:Double x:Key="SmallControlHeight">20</system:Double>
     <Thickness x:Key="DefaultControlPadding">10,5</Thickness>
     <Thickness x:Key="DefaultInputPadding">8,0</Thickness>
     <CornerRadius x:Key="DefaultCornerRadius">4</CornerRadius>
-    <system:Double x:Key="MaxTitleFontSize">22</system:Double>
-    <system:Double x:Key="TitleFontSize">20</system:Double>
-    <system:Double x:Key="SecondTitleFontSize">18</system:Double>
-    <system:Double x:Key="ThirdTitleFontSize">16</system:Double>
-    <system:Double x:Key="ForthTitleFontSize">14</system:Double>
-    <system:Double x:Key="FivethTitleFontSize">11</system:Double>
     <system:Double x:Key="{x:Static SystemParameters.VerticalScrollBarButtonHeightKey}">30</system:Double>
 
 </ResourceDictionary>

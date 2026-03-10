@@ -60,7 +60,7 @@
                                             FontWeight="Medium"
                                             Text="{Binding Title}" />
                                         <TextBlock
-                                            FontSize="11"
+                                            FontSize="{DynamicResource FontSize.Caption.Mini}"
                                             Text="{Binding StationName}" />
                                     </StackPanel>
                                 </StackPanel>
@@ -92,7 +92,7 @@
                                                     <TextBlock
                                                         Margin="0,8,0,0"
                                                         HorizontalAlignment="Center"
-                                                        FontSize="14"
+                                                        FontSize="{DynamicResource FontSize.Body.Standard}"
                                                         Text="请从左侧列表选择工站进行调试" />
                                                 </StackPanel>
                                             </ControlTemplate>

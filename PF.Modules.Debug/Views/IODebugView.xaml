@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="PF.Modules.Debug.Views.IODebugView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -34,7 +34,7 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -59,7 +59,7 @@
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
+                                <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -94,11 +94,11 @@
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Width="48" Height="48" Margin="0,0,15,0"   CornerRadius="8">
-                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextIconBrush}" FontSize="24" Text="🔌" />
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextIconBrush}" FontSize="{DynamicResource FontSize.H1.Large}" Text="🔌" />
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock FontSize="22" FontWeight="Bold" Text="{Binding DeviceName}" />
+                        <TextBlock FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="{Binding DeviceName}" />
                         <TextBlock Margin="0,4,0,0" FontSize="13"  Text="{Binding DeviceDescription}" />
                     </StackPanel>
 
@@ -130,7 +130,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Margin="0,0,0,15" FontSize="16" FontWeight="Bold" Foreground="#475569" Text="数字输入监控 (Digital Input)" />
+                        <TextBlock Grid.Row="0" Margin="0,0,0,15" FontSize="{DynamicResource FontSize.H3.Subtitle}" FontWeight="Bold" Foreground="#475569" Text="数字输入监控 (Digital Input)" />
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemTemplate="{StaticResource InputPortTemplate}" ItemsSource="{Binding InputPorts}">
@@ -151,8 +151,8 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
-                            <TextBlock FontSize="16" FontWeight="Bold" Foreground="#475569" Text="数字输出控制 (Digital Output)" />
-                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="点击通道按钮可强制切换状态" />
+                            <TextBlock FontSize="{DynamicResource FontSize.H3.Subtitle}" FontWeight="Bold" Foreground="#475569" Text="数字输出控制 (Digital Output)" />
+                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#94A3B8" Text="点击通道按钮可强制切换状态" />
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

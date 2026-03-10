@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="PF.Modules.Parameter.Views.ParameterView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -50,7 +50,7 @@
                         <TextBlock
                             Margin="0,0,15,0"
                             VerticalAlignment="Center"
-                            FontSize="14"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
                             FontWeight="Bold"
                             Foreground="{DynamicResource PrimaryTextBrush}"
                             Text="{Binding SelectedParamType.Name}" />

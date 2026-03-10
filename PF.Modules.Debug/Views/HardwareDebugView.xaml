@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="PF.Modules.Debug.Views.HardwareDebugView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -51,7 +51,7 @@
 
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="11"
+                                FontSize="{DynamicResource FontSize.Caption.Mini}"
                                 FontWeight="SemiBold"
                                 Foreground="#E65100"
                                 Text="全局模拟模式" />
@@ -90,7 +90,7 @@
                                     <TextBlock
                                         Grid.Column="0"
                                         VerticalAlignment="Center"
-                                        FontSize="14"
+                                        FontSize="{DynamicResource FontSize.Body.Standard}"
                                         Text="{Binding NodeName}" />
 
                                     <!--  单设备模拟开关（仅有设备负载的节点显示）  -->
@@ -124,7 +124,7 @@
                                                 <TextBlock
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center"
-                                                    FontSize="16"
+                                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                                     Foreground="Gray"
                                                     Text="请选择具体硬件设备进行调试" />
                                             </ControlTemplate>

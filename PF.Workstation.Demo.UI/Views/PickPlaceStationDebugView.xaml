@@ -49,7 +49,7 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <TextBlock
                 Margin="0,0,0,8"
-                FontSize="14"
+                FontSize="{DynamicResource FontSize.Body.Standard}"
                 FontWeight="SemiBold"
                 Foreground="{DynamicResource PrimaryColorBrush}"
                 Text="● 工站状态看板" />
@@ -104,7 +104,7 @@
             <!-- ══════════════════════════════════════════════════════════════ -->
             <TextBlock
                 Margin="0,20,0,8"
-                FontSize="14"
+                FontSize="{DynamicResource FontSize.Body.Standard}"
                 FontWeight="SemiBold"
                 Foreground="{DynamicResource PrimaryColorBrush}"
                 Text="● 手动控制" />
@@ -209,13 +209,13 @@
                 CornerRadius="4">
                 <StackPanel>
                     <TextBlock
-                        FontSize="12"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
                         FontWeight="SemiBold"
                         Foreground="{DynamicResource PrimaryColorBrush}"
                         Text="状态流转说明" />
                     <TextBlock
                         Margin="0,4,0,0"
-                        FontSize="11"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}"
                         Foreground="{DynamicResource SecondaryTextColorBrush}"
                         TextWrapping="Wrap"
                         Text="Uninitialized → [初始化] → Idle → [启动] → Running ⇄ [暂停/恢复] ⇄ Paused → [停止] → Idle  |  任意状态 → [触发报警] → Alarm → [复位] → Idle" />

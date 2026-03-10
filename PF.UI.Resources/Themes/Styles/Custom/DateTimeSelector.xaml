@@ -169,7 +169,7 @@
                                     CornerRadius="5" HorizontalAlignment="Stretch" 
                                     Background="{StaticResource BorderBrush}"  BorderThickness="1"  BorderBrush="{StaticResource PrimaryBrush}" >
                                 <TextBlock  x:Name="PART_TextBlockStart"  Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" 
-                                           Foreground="{TemplateBinding Foreground}"   FontSize="{StaticResource SecondTitleFontSize}" 
+                                           Foreground="{TemplateBinding Foreground}"   FontSize="{DynamicResource FontSize.H3.Subtitle}" 
                HorizontalAlignment="Left" VerticalAlignment="Center"    TextAlignment="Left"   Margin="10,0,0,0" Text="{TemplateBinding StartTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}"  ></TextBlock>
                             </Border>
 
@@ -177,7 +177,7 @@
                                       CornerRadius="5" HorizontalAlignment="Stretch"
                                       Background="{StaticResource BorderBrush}"    BorderThickness="1"  BorderBrush="{StaticResource PrimaryBrush}" >
                                 <TextBlock  x:Name="PART_TextBlockEnd"  Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" 
-                                           Foreground="{TemplateBinding Foreground}"  FontSize="{StaticResource SecondTitleFontSize}"
+                                           Foreground="{TemplateBinding Foreground}"  FontSize="{DynamicResource FontSize.H3.Subtitle}"
                HorizontalAlignment="Left"  VerticalAlignment="Center"  TextAlignment="Left"   Margin="10,0,0,0" Text="{TemplateBinding EndTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}"  ></TextBlock>
                             </Border>
                             <Grid  Grid.Column="1" Grid.ColumnSpan="3"  Grid.Row="2"  HorizontalAlignment="Stretch" >
