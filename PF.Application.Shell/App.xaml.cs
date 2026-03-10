@@ -10,6 +10,7 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
@@ -442,6 +443,7 @@ namespace PF.Application.Shell
                 return new Infrastructure.Hardware.BarcodeScan.HKRobot.HKBarcodeScan(ip, tiggerport, userport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
+            containerRegistry.RegisterSingleton<IIOMappingService, IOMappingService>();
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }
 
