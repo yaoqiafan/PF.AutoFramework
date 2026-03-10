@@ -60,6 +60,7 @@ namespace PF.Core.Constants
             public const string MechanismDebugView = nameof(MechanismDebugView);
             public const string AxisDebugView = nameof(AxisDebugView);
             public const string IODebugView = nameof(IODebugView);
+            public const string BarcodeScanDebugView = nameof(BarcodeScanDebugView);
             public const string StationDebugView = nameof(StationDebugView);
             public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
             public const string CardDebugView = nameof(CardDebugView);

@@ -1,0 +1,216 @@
+﻿<UserControl
+    x:Class="PF.Modules.Debug.Views.BarcodeScanDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="800"
+    d:DesignWidth="1100"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,15"
+                Padding="15"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="300" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="48" Height="48" Margin="0,0,15,0" CornerRadius="8">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="{DynamicResource TextIconBrush}" Text="📷" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock FontSize="22" FontWeight="Bold" Text="{Binding DeviceName}" />
+                        <TextBlock Margin="0,4,0,0" FontSize="13" Foreground="#64748B" Text="{Binding DeviceDescription}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Padding="15,0" BorderThickness="1,0,0,0" BorderBrush="#E2E8F0" VerticalAlignment="Center">
+                        <UniformGrid Columns="2" Rows="2" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <TextBlock Text="IP 地址: " Foreground="#64748B" />
+                                <TextBlock Text="{Binding IpAddress}" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <TextBlock Text="通讯超时: " Foreground="#64748B" />
+                                <TextBlock Text="{Binding TimeOutMs, StringFormat='{}{0} ms'}" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="触发端口: " Foreground="#64748B" />
+                                <TextBlock Text="{Binding TriggerPort}" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="管理端口: " Foreground="#64748B" />
+                                <TextBlock Text="{Binding UserPort}" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </Border>
+
+                    <StackPanel Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock Margin="0,0,5,0" VerticalAlignment="Center" Text="通讯状态:" />
+                        <Border Padding="8,4" CornerRadius="4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#EF4444" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                            <Setter Property="Background" Value="#02AD8B" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock FontWeight="SemiBold" Foreground="White" Text="{Binding IsConnected, StringFormat='{}{0}'}" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="340" />
+                    <ColumnDefinition Width="15" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Margin="0,0,0,15" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock Margin="0,0,0,10" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="基础设备控制" />
+                            <UniformGrid Margin="0,0,0,10" Columns="2">
+                                <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" Content="连接硬件" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="5,0,0,5" Command="{Binding DisconnectCommand}" Content="断开连接" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="0,5,5,0" Command="{Binding ResetCommand}" Content="报警复位" Style="{DynamicResource ButtonWarning}" />
+                            </UniformGrid>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <TextBlock Text="硬件报警状态：" VerticalAlignment="Center" Foreground="#475569"/>
+                                <TextBlock FontWeight="Bold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="正常"/>
+                                            <Setter Property="Foreground" Value="#02AD8B"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasAlarm}" Value="True">
+                                                    <Setter Property="Text" Value="触发报警 (ALM)"/>
+                                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Margin="0,0,0,15" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock Margin="0,0,0,10" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="用户参数集管理" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Height="32" Margin="0,0,10,0" Padding="5,0" VerticalContentAlignment="Center" Text="{Binding UserInfoInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="输入用户集索引或配置参数" />
+                                <Button Grid.Column="1" Width="80" Height="32" Command="{Binding ChangeUserParamCommand}" Content="应用修改" Style="{DynamicResource ButtonDefault}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock Margin="0,0,0,15" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="扫码触发测试 (Tigger)" />
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15" HorizontalAlignment="Center" Visibility="{Binding IsScanning, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <TextBlock Text="🔄" Foreground="#02AD8B" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="等待扫码枪返回结果..." Foreground="#02AD8B" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+
+                            <Button Height="60" Margin="0,5" Command="{Binding TriggerScanCommand}" Content="触发扫码 (Trigger)" FontSize="18" FontWeight="Bold">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ButtonPrimary}">
+                                        <Setter Property="Background" Value="#02AD8B" />
+                                        <Setter Property="BorderBrush" Value="#02AD8B" />
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Margin="0,0,0,15" Padding="20" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="{DynamicResource SecondaryRegionColorBrush}">
+                        <StackPanel >
+                            <TextBlock Margin="0,0,0,10" FontSize="14" FontWeight="SemiBold" Foreground="#64748B" Text="最新读取结果 (Latest Result)" />
+                            <Border Height="200" Padding="15" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                                <ScrollViewer>
+                                     <TextBlock FontFamily="Consolas" FontSize="32" FontWeight="Heavy" Foreground="#0F172A" TextWrapping="Wrap" Text="{Binding LastBarcode}" HorizontalAlignment="Center" />
+                                </ScrollViewer>
+                               
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="读取历史记录 (Read History)" />
+                                <Button HorizontalAlignment="Right" Height="28" Padding="15,0" Command="{Binding ClearHistoryCommand}" Content="清空历史" Style="{DynamicResource ButtonDefault}" />
+                            </Grid>
+
+                            <DataGrid
+                                Grid.Row="1"
+                                AutoGenerateColumns="False"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="1"
+                                CanUserAddRows="False"
+                                CanUserDeleteRows="False"
+                                GridLinesVisibility="Horizontal"
+                                HeadersVisibility="Column"
+                                ItemsSource="{Binding ScanHistory}"
+                                RowHeight="35"
+                                SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Width="120" Binding="{Binding Time}" Header="触发时间" Foreground="#64748B" />
+                                    <DataGridTextColumn Width="*" Binding="{Binding Barcode}" Header="条码数据 / 反馈信息" FontFamily="Consolas" FontWeight="Medium" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

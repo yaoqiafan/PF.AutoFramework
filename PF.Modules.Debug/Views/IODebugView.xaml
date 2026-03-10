@@ -18,7 +18,7 @@
         <SolidColorBrush x:Key="OffBorderColor" Color="#CBD5E1" />
 
         <DataTemplate x:Key="InputPortTemplate">
-            <Border Margin="5" Padding="15,10" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4">
+            <Border Margin="5" Padding="15,10"   BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Height="40">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                         <Ellipse.Style>
@@ -34,23 +34,22 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold"  Text="{Binding PortName}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="OutputPortTemplate">
-            <Button Margin="5" 
-                    Padding="15,10" 
+            <Button Margin="5"   HorizontalAlignment="Stretch" Height="40"
                     Command="{Binding ToggleCommand}" 
                     CommandParameter="{Binding}" 
                     Background="Transparent" 
                     BorderThickness="0" 
                     Cursor="Hand"
-                    HorizontalContentAlignment="Left">
+                    HorizontalContentAlignment="Center">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="border"  BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="16" Height="16" Margin="0,0,10,0" StrokeThickness="1">
                                     <Ellipse.Style>
@@ -66,13 +65,14 @@
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Medium" Foreground="#475569" Text="{Binding PortName}" />
+                                <TextBlock x:Name="TEXT" VerticalAlignment="Center" FontSize="{DynamicResource  FontSize.Body.Standard}" FontWeight="Bold"  Text="{Binding PortName}" />
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#F1F5F9" />
                                 <Setter TargetName="border" Property="BorderBrush" Value="#94A3B8" />
+                                <Setter TargetName="TEXT" Property="Foreground" Value="{DynamicResource InfoBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#E2E8F0" />

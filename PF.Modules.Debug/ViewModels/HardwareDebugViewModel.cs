@@ -1,6 +1,7 @@
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -220,6 +221,12 @@ namespace PF.Modules.Debug.ViewModels
                 parameters.Add("Device", io);
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.IODebugView, parameters);
+            }
+            else if (payload is IBarcodeScan barcodeScan)
+            {
+                parameters.Add("Device", barcodeScan);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.BarcodeScanDebugView, parameters);
             }
         }
 
