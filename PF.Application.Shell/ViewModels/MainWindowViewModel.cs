@@ -29,6 +29,7 @@ namespace PF.Application.Shell.ViewModels
     public class MainWindowViewModel : RegionViewModelBase
     {
         #region 私有字段
+        private readonly IContainerProvider _containerProvider;
         private readonly IParamService _paramService;
         private readonly IUserService _userService;
         private readonly INavigationMenuService _navigationMenuService;
@@ -50,11 +51,12 @@ namespace PF.Application.Shell.ViewModels
         #endregion
 
         #region 构造函数
-        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService)
+        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider)
         {
             _paramService = paramService;
             _userService = userService;
             _navigationMenuService = navigationMenuService;
+            _containerProvider = containerProvider;
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
@@ -246,6 +248,16 @@ namespace PF.Application.Shell.ViewModels
                             DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, OnLoginOverCallback);
                             SelectedMenuItem = null;
                             break;
+                    }
+
+                    if (category==null)
+                    {
+                        bool isRegistered = _containerProvider.IsRegistered<object>(viewName);
+
+                        if (isRegistered)
+                        {
+                            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
+                        }
                     }
                 }
             }
