@@ -667,7 +667,7 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="FlowDirection" Value="LeftToRight" />
   </Style>
-  <system:Double x:Key="FontSize.H1.Large">30</system:Double>
+  <system:Double x:Key="FontSize.H1.Large">24</system:Double>
   <system:Double x:Key="FontSize.H2.Title">20</system:Double>
   <system:Double x:Key="FontSize.H3.Subtitle">16</system:Double>
   <system:Double x:Key="FontSize.Body.Standard">14</system:Double>
