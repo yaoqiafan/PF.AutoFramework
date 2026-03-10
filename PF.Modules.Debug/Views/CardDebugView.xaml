@@ -44,7 +44,7 @@
                         <TextBlock
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            FontSize="24"
+                            FontSize="{DynamicResource FontSize.H1.Large}"
                             Foreground="{DynamicResource TextIconBrush}"
                             Text="&#xE7FC;" />
                     </Border>
@@ -52,7 +52,7 @@
                     <!-- 设备名称 + 描述 -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="22"
+                            FontSize="{DynamicResource FontSize.H2.Title}"
                             FontWeight="Bold"
                             Text="{Binding DeviceName}" />
                         <TextBlock
@@ -93,7 +93,7 @@
                             <TextBlock
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"
-                                FontSize="12"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
                                 Foreground="#64748B"
                                 Text="通讯：" />
                             <Ellipse
@@ -104,7 +104,7 @@
                                 Fill="{Binding ConnectionBrush}" />
                             <TextBlock
                                 VerticalAlignment="Center"
-                                FontSize="12"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
                                 FontWeight="SemiBold"
                                 Text="{Binding ConnectionText}" />
                         </StackPanel>
@@ -113,7 +113,7 @@
                             <TextBlock
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"
-                                FontSize="12"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
                                 Foreground="#64748B"
                                 Text="报警：" />
                             <Ellipse
@@ -124,7 +124,7 @@
                                 Fill="{Binding AlarmBrush}" />
                             <TextBlock
                                 VerticalAlignment="Center"
-                                FontSize="12"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
                                 FontWeight="SemiBold"
                                 Text="{Binding AlarmText}" />
                         </StackPanel>
@@ -160,7 +160,7 @@
                                 <TextBlock
                                     Margin="0,4,0,0"
                                     HorizontalAlignment="Center"
-                                    FontSize="12"
+                                    FontSize="{DynamicResource FontSize.Body.Small}"
                                     Foreground="#64748B"
                                     Text="槽位索引 (CardIndex)" />
                             </StackPanel>
@@ -176,7 +176,7 @@
                                 <TextBlock
                                     Margin="0,4,0,0"
                                     HorizontalAlignment="Center"
-                                    FontSize="12"
+                                    FontSize="{DynamicResource FontSize.Body.Small}"
                                     Foreground="#64748B"
                                     Text="运动控制轴数 (AxisCount)" />
                             </StackPanel>
@@ -192,7 +192,7 @@
                                 <TextBlock
                                     Margin="0,4,0,0"
                                     HorizontalAlignment="Center"
-                                    FontSize="12"
+                                    FontSize="{DynamicResource FontSize.Body.Small}"
                                     Foreground="#64748B"
                                     Text="数字输入端口 (DI Count)" />
                             </StackPanel>
@@ -208,7 +208,7 @@
                                 <TextBlock
                                     Margin="0,4,0,0"
                                     HorizontalAlignment="Center"
-                                    FontSize="12"
+                                    FontSize="{DynamicResource FontSize.Body.Small}"
                                     Foreground="#64748B"
                                     Text="数字输出端口 (DO Count)" />
                             </StackPanel>
@@ -233,7 +233,7 @@
                                 Text="ℹ" />
                             <TextBlock
                                 VerticalAlignment="Center"
-                                FontSize="12"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
                                 Foreground="#3B82F6"
                                 Text="该板卡挂载的轴（Axis）和 IO 控制器（IOController）已列于左侧设备树中，点击子节点可跳转到对应的专项调试界面。" />
                         </StackPanel>

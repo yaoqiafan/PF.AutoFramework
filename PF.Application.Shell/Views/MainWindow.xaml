@@ -18,7 +18,7 @@
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
     WindowState="Maximized"
-    FontSize="{StaticResource  TextFontSize}">
+    FontSize="{DynamicResource FontSize.Body.Standard}">
 
     <pf:Window.Resources>
         <userConverter:UserTextConnver x:Key="UserTextConnver" />
@@ -204,7 +204,7 @@
                 CornerRadius="2">
                 <TextBlock
                     VerticalAlignment="Center"
-                    FontSize="{DynamicResource SecondTitleFontSize}"
+                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
                     FontWeight="Bold"
                     Foreground="{DynamicResource PrimaryTextBrush}"
                     Text="{Binding SoftWareName}" />
@@ -340,7 +340,7 @@
 
 
 
-        <StatusBar  FontSize="{StaticResource  TextFontSize}"
+        <StatusBar  FontSize="{DynamicResource FontSize.Body.Standard}"
             Grid.Row="1"
             Background="{DynamicResource RegionBrush}"
             BorderThickness="1">

@@ -229,10 +229,6 @@ Themes\Styles\Custom\Window.xaml
   <FontFamily x:Key="Source_Han_Sans_SC_Regular">
         /PF.UI.Resources;component/Fonts/Font/Source_Han_Sans_SC_Regular
     </FontFamily>
-  <system:Double x:Key="LargeFontSize">24</system:Double>
-  <system:Double x:Key="HeadFontSize">20</system:Double>
-  <system:Double x:Key="SubHeadFontSize">16</system:Double>
-  <system:Double x:Key="TextFontSize">14</system:Double>
   <Geometry x:Key="SliderThumbOuterBorderGeometry" o:Freeze="True">M9.5,5 C9.5,7.4852814 7.4852814,9.5 5,9.5 C2.5147186,9.5 0.5,7.4852814 0.5,5 C0.5,2.5147186 2.5147186,0.5 5,0.5 C7.4852814,0.5 9.5,2.5147186 9.5,5 z</Geometry>
   <Geometry x:Key="ArcData_Horiz" o:Freeze="True">M0,30 C1.6673,30 3.5325,29.2554 5.0720,27.9832 C10.6645,21.9164 17.4280,18.5315 24.8500,18.5315 C32.2725,18.5315 39.0400,21.9164 44.1250,27.4695 C46.3600,29.3513 48.1100,30 50,30</Geometry>
   <Geometry x:Key="LineData_Horiz" o:Freeze="True">M0,30 C0,30,6.25,30,12.5,30 C12.5,30,18.75,30,25,30 C25,30,31.25,30,37.5,30 C37.5,30,41.25,30,50,30</Geometry>
@@ -671,17 +667,17 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="FlowDirection" Value="LeftToRight" />
   </Style>
+  <system:Double x:Key="FontSize.H1.Large">30</system:Double>
+  <system:Double x:Key="FontSize.H2.Title">20</system:Double>
+  <system:Double x:Key="FontSize.H3.Subtitle">16</system:Double>
+  <system:Double x:Key="FontSize.Body.Standard">14</system:Double>
+  <system:Double x:Key="FontSize.Body.Small">12</system:Double>
+  <system:Double x:Key="FontSize.Caption.Mini">11</system:Double>
   <system:Double x:Key="DefaultControlHeight">30</system:Double>
   <system:Double x:Key="SmallControlHeight">20</system:Double>
   <Thickness x:Key="DefaultControlPadding">10,5</Thickness>
   <Thickness x:Key="DefaultInputPadding">8,0</Thickness>
   <CornerRadius x:Key="DefaultCornerRadius">4</CornerRadius>
-  <system:Double x:Key="MaxTitleFontSize">22</system:Double>
-  <system:Double x:Key="TitleFontSize">20</system:Double>
-  <system:Double x:Key="SecondTitleFontSize">18</system:Double>
-  <system:Double x:Key="ThirdTitleFontSize">16</system:Double>
-  <system:Double x:Key="ForthTitleFontSize">14</system:Double>
-  <system:Double x:Key="FivethTitleFontSize">11</system:Double>
   <system:Double x:Key="{x:Static SystemParameters.VerticalScrollBarButtonHeightKey}">30</system:Double>
   <pf:FluidMoveBehavior x:Key="BehaviorXY200" x:Shared="False" AppliesTo="Children" Duration="0:0:.2">
     <pf:FluidMoveBehavior.EaseX>
@@ -4700,10 +4696,10 @@ Themes\Styles\Custom\Window.xaml
               <TextBlock Grid.Column="1" Margin="0,10,0,0" Text="开始时间：" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" />
               <TextBlock Grid.Column="1" Grid.Row="1" Text="结束时间：" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" />
               <Border Grid.Column="2" VerticalAlignment="Center" Margin="0,10,0,0" CornerRadius="5" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" BorderThickness="1" BorderBrush="{StaticResource PrimaryBrush}">
-                <TextBlock x:Name="PART_TextBlockStart" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" Foreground="{TemplateBinding Foreground}" FontSize="{StaticResource SecondTitleFontSize}" HorizontalAlignment="Left" VerticalAlignment="Center" TextAlignment="Left" Margin="10,0,0,0" Text="{TemplateBinding StartTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
+                <TextBlock x:Name="PART_TextBlockStart" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" Foreground="{TemplateBinding Foreground}" FontSize="{DynamicResource FontSize.H3.Subtitle}" HorizontalAlignment="Left" VerticalAlignment="Center" TextAlignment="Left" Margin="10,0,0,0" Text="{TemplateBinding StartTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
               </Border>
               <Border Grid.Column="2" Grid.Row="1" VerticalAlignment="Center" CornerRadius="5" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" BorderThickness="1" BorderBrush="{StaticResource PrimaryBrush}">
-                <TextBlock x:Name="PART_TextBlockEnd" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" Foreground="{TemplateBinding Foreground}" FontSize="{StaticResource SecondTitleFontSize}" HorizontalAlignment="Left" VerticalAlignment="Center" TextAlignment="Left" Margin="10,0,0,0" Text="{TemplateBinding EndTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
+                <TextBlock x:Name="PART_TextBlockEnd" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Border},Path=ActualWidth}" Foreground="{TemplateBinding Foreground}" FontSize="{DynamicResource FontSize.H3.Subtitle}" HorizontalAlignment="Left" VerticalAlignment="Center" TextAlignment="Left" Margin="10,0,0,0" Text="{TemplateBinding EndTime,Converter={StaticResource DateTimeToStringConverter},ConverterParameter='yyyy-MM-dd HH:mm:ss'}" />
               </Border>
               <Grid Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="2" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
@@ -5693,22 +5689,22 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="Foreground" Value="{DynamicResource ThirdlyTextBrush}" />
   </Style>
   <Style x:Key="TextBlockLarge" BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource LargeFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.H1.Large}" />
   </Style>
   <Style x:Key="TextBlockTitle" BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource HeadFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.H2.Title}" />
   </Style>
   <Style x:Key="TextBlockSubTitle" BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource SubHeadFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.H3.Subtitle}" />
   </Style>
   <Style x:Key="TextBlockLargeBold" BasedOn="{StaticResource TextBlockBoldBaseStyle}" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource LargeFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.H1.Large}" />
   </Style>
   <Style x:Key="TextBlockTitleBold" BasedOn="{StaticResource TextBlockBoldBaseStyle}" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource HeadFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.H2.Title}" />
   </Style>
   <Style x:Key="TextBlockSubTitleBold" BasedOn="{StaticResource TextBlockBoldBaseStyle}" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="{StaticResource SubHeadFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.H3.Subtitle}" />
   </Style>
   <Style x:Key="TextBlockDefaultBold" BasedOn="{StaticResource TextBlockBoldBaseStyle}" TargetType="TextBlock" />
   <Style BasedOn="{StaticResource HighlightTextBlockBaseStyle}" TargetType="pfcontrol:HighlightTextBlock" />
@@ -7202,7 +7198,7 @@ Themes\Styles\Custom\Window.xaml
   </Style>
   <Style x:Key="BaseStyle" TargetType="Control">
     <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-    <Setter Property="FontSize" Value="{StaticResource TextFontSize}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
     <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
   </Style>
   <Style x:Key="ButtonBaseBaseStyle" BasedOn="{StaticResource BaseStyle}" TargetType="ButtonBase">

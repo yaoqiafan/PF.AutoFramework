@@ -101,7 +101,7 @@
 
     <Style x:Key="BaseStyle" TargetType="Control">
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-        <Setter Property="FontSize" Value="{StaticResource TextFontSize}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
     </Style>
 

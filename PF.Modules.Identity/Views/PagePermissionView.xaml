@@ -45,7 +45,7 @@
                             Command="{Binding RefreshUsersCommand}"
                             Content="↻"
                             DockPanel.Dock="Right"
-                            FontSize="14"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
                             Style="{DynamicResource ButtonDefault}"
                             ToolTip="刷新用户列表" />
                         <TextBlock
@@ -106,7 +106,7 @@
                                             Grid.Column="1"
                                             Margin="10,0,0,0"
                                             HorizontalAlignment="Stretch"
-                                            FontSize="11"
+                                            FontSize="{DynamicResource FontSize.Caption.Mini}"
                                             Text="{Binding Root, Converter={StaticResource UserTextConverter}}" />
                                     </Grid>
 
@@ -142,7 +142,7 @@
                     <TextBlock
                         Margin="0,8,0,0"
                         HorizontalAlignment="Center"
-                        FontSize="14"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
                         Text="请从左侧选择要配置权限的账号" />
                 </StackPanel>
 
@@ -165,9 +165,9 @@
                                 FontWeight="SemiBold"
                                 Text="{Binding SelectedUser.UserName, StringFormat='正在配置: {0}'}" />
                             <StackPanel Margin="0,3,0,0" Orientation="Horizontal">
-                                <TextBlock FontSize="12" Text="等级: " />
+                                <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="等级: " />
                                 <TextBlock
-                                    FontSize="12"
+                                    FontSize="{DynamicResource FontSize.Body.Small}"
                                     FontWeight="Medium"
                                     Foreground="{Binding SelectedUser.Root, Converter={StaticResource UserBgConverter}}"
                                     Text="{Binding SelectedUser.Root, Converter={StaticResource UserTextConverter}}" />
@@ -176,7 +176,7 @@
                         <TextBlock
                             Grid.Column="1"
                             VerticalAlignment="Center"
-                            FontSize="12"
+                            FontSize="{DynamicResource FontSize.Body.Small}"
                             Text="{Binding PermissionList.Count, StringFormat='共 {0} 个页面'}" />
                     </Grid>
                 </Border>
@@ -200,7 +200,7 @@
                             Text="⚠" />
                         <TextBlock
                             VerticalAlignment="Center"
-                            FontSize="12"
+                            FontSize="{DynamicResource FontSize.Body.Small}"
                             Foreground="#FFE9AF20"
                             Text="该账号尚无独立权限配置，当前显示为等级默认方案。请点击「保存权限配置」以写入数据库使权限生效。" />
                     </StackPanel>
