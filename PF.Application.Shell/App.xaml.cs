@@ -45,7 +45,6 @@ using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo;
 using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
-using PF.Workstation.AutoOcr;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -219,9 +218,6 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
             moduleCatalog.AddModule<UIModule>();
-
-            // 业务工站模块（注册 IO 映射等）
-            moduleCatalog.AddModule<AutoOcrModule>();
         }
 
         #endregion
@@ -448,6 +444,12 @@ namespace PF.Application.Shell
             });
 
             containerRegistry.RegisterSingleton<IIOMappingService, IOMappingService>();
+
+            // 注册 AutoOcr 工站的 IO 映射
+            var ioMappingService = container.Resolve<IIOMappingService>();
+            ioMappingService.RegisterInputEnum<PF.Workstation.AutoOcr.CostParam.E_InPutName>("IO_CARD_0");
+            ioMappingService.RegisterOutputEnum<PF.Workstation.AutoOcr.CostParam.E_OutPutName>("IO_CARD_0");
+
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
         }
 
