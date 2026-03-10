@@ -1,4 +1,5 @@
 using System;
+using PF.Core.Models.Device.Hardware.IO;
 
 namespace PF.Core.Interfaces.Device.Hardware.IO
 {
@@ -26,5 +27,15 @@ namespace PF.Core.Interfaces.Device.Hardware.IO
         /// 获取指定设备、指定输出引脚的 UI 显示名称
         /// </summary>
         string GetOutputName(string deviceId, int portIndex);
+
+        /// <summary>
+        /// 获取指定设备、指定输入引脚的完整信息（包含名称和可见性）
+        /// </summary>
+        IOMapInfo GetInputInfo(string deviceId, int portIndex);
+
+        /// <summary>
+        /// 获取指定设备、指定输出引脚的完整信息（包含名称和可见性）
+        /// </summary>
+        IOMapInfo GetOutputInfo(string deviceId, int portIndex);
     }
 }

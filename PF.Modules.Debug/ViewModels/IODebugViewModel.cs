@@ -102,26 +102,35 @@ namespace PF.Modules.Debug.ViewModels
             InputPorts.Clear();
             OutputPorts.Clear();
 
-            // 1. 获取动态引脚数量（请确保你的 IIOController 有 InputCount/OutputCount 属性）
+            // 1. 获取动态引脚数量
             int inCount = _ioController.InputCount;
             int outCount = _ioController.OutputCount;
 
             // 2. 获取当前设备 ID
             string deviceId = _baseDevice?.DeviceId ?? "Default";
 
-            // 3. 构建 UI 模型
+            // 3. 初始化输入端口（过滤 [Browsable(false)] 的引脚）
             for (int i = 0; i < inCount; i++)
             {
-                // 尝试通过服务获取名称，获取不到则默认回退到 "DI 00" 格式
-                string showName = _ioMappingService.GetInputName(deviceId, i) ?? $"DI {i:D2}";
+                var ioInfo = _ioMappingService.GetInputInfo(deviceId, i);
+
+                // 【核心过滤逻辑】：如果明确标记了不可见，则直接跳过该引脚
+                if (ioInfo != null && !ioInfo.IsBrowsable) continue;
+
+                string showName = ioInfo?.Name ?? $"DI {i:D2}";
                 InputPorts.Add(new IOPortModel { Index = i, PortName = showName, IsOutput = false });
             }
 
+            // 4. 初始化输出端口（过滤 [Browsable(false)] 的引脚）
             for (int i = 0; i < outCount; i++)
             {
-                string showName = _ioMappingService.GetOutputName(deviceId, i) ?? $"DO {i:D2}";
+                var ioInfo = _ioMappingService.GetOutputInfo(deviceId, i);
+
+                // 【核心过滤逻辑】：如果明确标记了不可见，则直接跳过该引脚
+                if (ioInfo != null && !ioInfo.IsBrowsable) continue;
+
+                string showName = ioInfo?.Name ?? $"DO {i:D2}";
                 var outPort = new IOPortModel { Index = i, PortName = showName, IsOutput = true };
-                // 绑定输出通道的点击写入命令
                 outPort.ToggleCommand = new DelegateCommand<IOPortModel>(ToggleOutputPort);
                 OutputPorts.Add(outPort);
             }
