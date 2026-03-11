@@ -1,4 +1,3 @@
-using DryIoc;
 using Microsoft.EntityFrameworkCore;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Communication.TCP;
@@ -24,24 +23,22 @@ namespace PF.Modules.SecsGem
     {
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            var container = containerRegistry.GetContainer();
             var filePath = System.IO.Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemConfig.db");
 
-            // DbContext
             var dbContextOptions = new DbContextOptionsBuilder<SecsGemDbContext>()
                 .UseSqlite($"Data Source={filePath}")
                 .Options;
-            container.RegisterInstance<DbContextOptions<SecsGemDbContext>>(dbContextOptions);
-            container.Register<SecsGemDbContext>(reuse: Reuse.Singleton);
+            containerRegistry.RegisterInstance<DbContextOptions<SecsGemDbContext>>(dbContextOptions);
+            containerRegistry.RegisterSingleton<SecsGemDbContext>();
 
-            container.Register<ISecsGemDataBase, SecsGemDataBaseManger>(reuse: Reuse.Singleton);
-            container.Register<ICommandManager, SecsGemCommandManger>(reuse: Reuse.Singleton);
-            container.Register<SecsGemMessageProcessor>(reuse: Reuse.Singleton);
-            container.Register<IParams, ParamsManger>(reuse: Reuse.Singleton);
-            container.Register<IClient, TCPClient>(reuse: Reuse.Singleton);
-            container.Register<IinternalClient, InternalClient>(reuse: Reuse.Singleton);
-            container.Register<ISecsGemMessageUpdater, SecsGemMessageUpdater>(reuse: Reuse.Singleton);
-            container.Register<ISecsGemManger, SecsGemManger>(reuse: Reuse.Singleton);
+            containerRegistry.RegisterSingleton<ISecsGemDataBase, SecsGemDataBaseManger>();
+            containerRegistry.RegisterSingleton<ICommandManager, SecsGemCommandManger>();
+            containerRegistry.RegisterSingleton<SecsGemMessageProcessor>();
+            containerRegistry.RegisterSingleton<IParams, ParamsManger>();
+            containerRegistry.RegisterSingleton<IClient, TCPClient>();
+            containerRegistry.RegisterSingleton<IinternalClient, InternalClient>();
+            containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
+            containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
 
             containerRegistry.RegisterForNavigation<ViewA, ViewModels.ViewAViewModel>("SecsGemView");
         }
