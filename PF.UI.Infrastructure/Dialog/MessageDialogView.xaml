@@ -5,8 +5,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.UI.Infrastructure.Dialog"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Width="450"
-    Height="300"
+    MaxWidth="450"
+    MinHeight="250"
+    MaxHeight="600"
     mc:Ignorable="d">
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -29,7 +30,7 @@
             <ScrollViewer Grid.Column="1">
                 <TextBlock
                     VerticalAlignment="Center"
-                    FontSize="35"
+                    FontSize="{DynamicResource FontSize.H2.Title}"
                     Text="{Binding Message}"
                     TextWrapping="Wrap" />
             </ScrollViewer>

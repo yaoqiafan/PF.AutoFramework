@@ -56,8 +56,19 @@ namespace PF.Infrastructure.Recipe
 
         private List<string> GetAllRecipe()
         {
-            IEnumerable<string> jsonFiles = Directory.EnumerateFiles(this.RecipeDirPath, "*.json", SearchOption.AllDirectories);
-            return jsonFiles.ToList();
+            // 1. 先判断文件夹是否存在
+            if (!System.IO.Directory.Exists(this.RecipeDirPath))
+            {
+                // 如果不存在，直接返回空列表 
+                System.IO.Directory.CreateDirectory(this.RecipeDirPath);
+                return new List<string>();
+            }
+
+            // 2. 获取文件夹下所有的 json 文件路径
+            IEnumerable<string> jsonFiles = System.IO.Directory.EnumerateFiles(this.RecipeDirPath, "*.json", System.IO.SearchOption.AllDirectories);
+
+            // 3. 提取纯文件名（不含路径和扩展名），避免下游方法拼接路径时出错
+            return jsonFiles.Select(file => System.IO.Path.GetFileNameWithoutExtension(file)).ToList();
         }
 
 
