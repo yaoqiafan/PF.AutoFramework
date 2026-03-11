@@ -7,6 +7,7 @@
   <Folder Name="/01.Foundation (基础层)/">
     <Project Path="PF.Core/PF.Core.csproj" Id="70a66b73-fddb-4dd6-b879-ed06e0997f35" />
     <Project Path="PF.Infrastructure/PF.Infrastructure.csproj" Id="6e222cb2-93b2-4f49-86db-cb55748986dd" />
+    <Project Path="PF.SecsGem.DataBase/PF.SecsGem.DataBase.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
   </Folder>
   <Folder Name="/02.UI (UI 组件层)/">
     <Project Path="PF.UI.Controls/PF.UI.Controls.csproj" Id="4c6c2036-2c0b-4942-8e68-b98681bbb924" />
