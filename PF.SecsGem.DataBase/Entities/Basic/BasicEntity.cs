@@ -1,19 +1,11 @@
-﻿
 using PF.Core.Interfaces.Data;
-using PF.Core.Interfaces.SecsGem.DataBase;
-using PF.Infrastructure.SecsGem;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PF.Infrastructure.SecsGem.Entities.Basic
+namespace PF.SecsGem.DataBase.Entities.Basic
 {
     /// <summary>
-    /// 实体抽象类
+    /// 实体抽象基类
     /// </summary>
     public abstract class BasicEntity : IEntity
     {
@@ -28,6 +20,5 @@ namespace PF.Infrastructure.SecsGem.Entities.Basic
         public DateTime UpdateTime { get; set; } = DateTime.Now;
 
         public string? Remarks { get; set; }
-
     }
 }

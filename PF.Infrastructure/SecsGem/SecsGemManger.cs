@@ -48,7 +48,8 @@ namespace PF.Infrastructure.SecsGem
 
                 bool res3 = await ConnectAsync();
 
-                return res1 & res2;
+                // Bug1 Fix: res3 (连接结果) 之前被忽略，现在纳入返回值
+                return res1 & res2 & res3;
             }
             catch (Exception ex)
             {

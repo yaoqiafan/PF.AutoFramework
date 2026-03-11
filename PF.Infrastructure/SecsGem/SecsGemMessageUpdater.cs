@@ -131,6 +131,7 @@ namespace PF.Core.Interfaces.SecsGem
                     {
                         node.Data = BitConverter.GetBytes(u4Value);
                         node.TypedValue = u4Value;
+                        node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
                     }
                     else if (vid.Value != null)
                     {
@@ -138,6 +139,7 @@ namespace PF.Core.Interfaces.SecsGem
                         {
                             node.Data = BitConverter.GetBytes(uintValue);
                             node.TypedValue = uintValue;
+                            node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
                         }
                     }
                     break;
@@ -157,6 +159,7 @@ namespace PF.Core.Interfaces.SecsGem
                     {
                         node.Data = BitConverter.GetBytes(f4Value);
                         node.TypedValue = f4Value;
+                        node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
                     }
                     else if (vid.Value != null)
                     {
@@ -164,6 +167,7 @@ namespace PF.Core.Interfaces.SecsGem
                         {
                             node.Data = BitConverter.GetBytes(floatValue);
                             node.TypedValue = floatValue;
+                            node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
                         }
                     }
                     break;
@@ -173,6 +177,7 @@ namespace PF.Core.Interfaces.SecsGem
                     {
                         node.Data = BitConverter.GetBytes(f8Value);
                         node.TypedValue = f8Value;
+                        node.Length = 8; // Bug2 Fix: 缺少 Length 赋值
                     }
                     else if (vid.Value != null)
                     {
@@ -180,6 +185,7 @@ namespace PF.Core.Interfaces.SecsGem
                         {
                             node.Data = BitConverter.GetBytes(doubleValue);
                             node.TypedValue = doubleValue;
+                            node.Length = 8; // Bug2 Fix: 缺少 Length 赋值
                         }
                     }
                     break;
