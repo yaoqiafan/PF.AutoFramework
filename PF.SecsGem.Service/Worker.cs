@@ -22,51 +22,51 @@ namespace PF.SecsGem.Service
         #region Parames
         private SecsGemSystemParam? _secsGemSystemParam;
         /// <summary>
-        /// SECSGem״̬
+        /// SECSGem状态
         /// </summary>
         private bool _SecsStatus = false;
 
         /// <summary>
-        /// ��̨���
+        /// 机台编号
         /// </summary>
         byte[] _deviceId = new byte[] { 0xFF, 0xFF };
 
         /// <summary>
-        /// SecsGem���ӿͻ���ID
+        /// SecsGem连接客户端ID
         /// </summary>
         private string SecsGemClientId = string.Empty;
 
         /// <summary>
-        /// ���ؽ����ͻ���ID
+        /// 本地交互客户端ID
         /// </summary>
         private string LocationClientId = string.Empty;
 
         /// <summary>
-        /// SECSGEM������
+        /// SECSGEM服务器
         /// </summary>
         private TcpServer SecsGemServer;
 
         /// <summary>
-        /// ���ؽ���������
+        /// 本地交互服务器
         /// </summary>
         private TcpServer LocationServer;
 
         /// <summary>
-        /// ���SECSGEM������Ϣ�Ķ���
+        /// 存放SECSGEM完整消息的队列
         /// </summary>
         private ConcurrentQueue<byte[]> SecsGemMessageQueue = new ConcurrentQueue<byte[]>();
 
         /// <summary>
-        /// Ϊÿ��SecsGem�ͻ���ά������Ϣ������
+        /// 为每个SecsGem客户端维护的消息缓冲区
         /// </summary>
         private ConcurrentDictionary<string, MessageBuffer> _secsGemClientBuffers =
             new ConcurrentDictionary<string, MessageBuffer>();
 
         #endregion Params
 
-        #region �ڲ��� - ��Ϣ������
+        #region 内部类 - 消息缓冲区
         /// <summary>
-        /// ��Ϣ�����������ڴ���ճ���Ͱ������
+        /// 消息缓冲区，用于处理粘包和半包问题
         /// </summary>
         private class MessageBuffer
         {
@@ -74,7 +74,7 @@ namespace PF.SecsGem.Service
             private readonly object _lock = new object();
 
             /// <summary>
-            /// �򻺳�����������
+            /// 向缓冲区添加数据
             /// </summary>
             public void AppendData(byte[] data)
             {
@@ -85,9 +85,9 @@ namespace PF.SecsGem.Service
             }
 
             /// <summary>
-            /// ���Դӻ�������ȡ������SecsGem��Ϣ
+            /// 尝试从缓冲区提取完整的SecsGem消息
             /// </summary>
-            /// <returns>��������Ϣ�б�</returns>
+            /// <returns>完整的消息列表</returns>
             public List<byte[]> ExtractCompleteMessages()
             {
                 List<byte[]> completeMessages = new List<byte[]>();
@@ -96,29 +96,29 @@ namespace PF.SecsGem.Service
                 {
                     while (_buffer.Count >= 4)
                     {
-                        // ��ȡ��Ϣ���ȣ������
+                        // 读取消息长度（大端序）
                         byte[] lengthBytes = _buffer.Take(4).ToArray();
                         if (BitConverter.IsLittleEndian)
                             Array.Reverse(lengthBytes);
 
                         int messageLength = BitConverter.ToInt32(lengthBytes, 0);
 
-                        // ����Ƿ��Ѿ��յ���������Ϣ
-                        // �ܳ��� = 4�ֽڳ����ֶ� + messageLength
+                        // 检查是否已经收到完整的消息
+                        // 总长度 = 4字节长度字段 + messageLength
                         int totalLength = 4 + messageLength;
 
                         if (_buffer.Count >= totalLength)
                         {
-                            // ��ȡ������Ϣ
+                            // 提取完整消息
                             byte[] completeMessage = _buffer.Take(totalLength).ToArray();
                             completeMessages.Add(completeMessage);
 
-                            // �ӻ������Ƴ��Ѵ���������
+                            // 从缓冲区移除已处理的数据
                             _buffer.RemoveRange(0, totalLength);
                         }
                         else
                         {
-                            // ��û���յ�������Ϣ���ȴ���������
+                            // 还没有收到完整消息，等待更多数据
                             break;
                         }
                     }
@@ -128,7 +128,7 @@ namespace PF.SecsGem.Service
             }
 
             /// <summary>
-            /// ��ջ�����
+            /// 清空缓冲区
             /// </summary>
             public void Clear()
             {
@@ -139,7 +139,7 @@ namespace PF.SecsGem.Service
             }
 
             /// <summary>
-            /// ��ȡ��ǰ��������С
+            /// 获取当前缓冲区大小
             /// </summary>
             public int Size
             {
@@ -159,7 +159,7 @@ namespace PF.SecsGem.Service
         private async void SecsGemServer_ClientDisconnected(object? sender, ClientDisconnectedEventArgs e)
         {
             _SecsStatus = false;
-            // �����ͻ��˵Ļ�����
+            // 清理客户端的缓冲区
             _secsGemClientBuffers.TryRemove(e.ClientId, out _);
 
             if (!string.IsNullOrEmpty(this.LocationClientId))
@@ -181,7 +181,7 @@ namespace PF.SecsGem.Service
             this.SecsGemClientId = e.ClientId;
             _SecsStatus = true;
 
-            // Ϊ�¿ͻ��˴�����Ϣ������
+            // 为新客户端创建消息缓冲区
             _secsGemClientBuffers.TryAdd(e.ClientId, new MessageBuffer());
 
             if (!string.IsNullOrEmpty(this.LocationClientId))
@@ -192,7 +192,7 @@ namespace PF.SecsGem.Service
         }
 
         /// <summary>
-        /// ��Ϣ�����ɹ���־
+        /// 消息解析成功标志
         /// </summary>
         bool MessageIsProcessingSucess = true;
 
@@ -205,17 +205,17 @@ namespace PF.SecsGem.Service
         {
             try
             {
-                // ��ȡ�򴴽��ͻ��˵���Ϣ������
+                // 获取或创建客户端的消息缓冲区
                 if (!_secsGemClientBuffers.TryGetValue(e.ClientId, out var buffer))
                 {
                     buffer = new MessageBuffer();
                     _secsGemClientBuffers.TryAdd(e.ClientId, buffer);
                 }
 
-                // �����յ����������ӵ�������
+                // 将接收到的数据添加到缓冲区
                 buffer.AppendData(e.Data);
 
-                // ������ȡ��������Ϣ
+                // 尝试提取完整的消息
                 var completeMessages = buffer.ExtractCompleteMessages();
                 if (completeMessages.Count == 0)
                 {
@@ -223,7 +223,7 @@ namespace PF.SecsGem.Service
                     {
                         if ((DateTime.Now - MessageIsProcessingFailedDate).TotalSeconds > 20)
                         {
-                            // ����5��û���յ�������Ϣ����ջ�����
+                            // 超过5秒没有收到完整消息，清空缓冲区
                             buffer.Clear();
                             MessageIsProcessingSucess = true;
                         }
@@ -242,20 +242,20 @@ namespace PF.SecsGem.Service
 
                 foreach (var message in completeMessages)
                 {
-                    // ��������Ϣ�������
+                    // 将完整消息放入队列
                     this.SecsGemMessageQueue.Enqueue(message);
-                    this.SecsGemWriteLog.Writer.TryWrite(("��������", message));
+                    this.SecsGemWriteLog.Writer.TryWrite(("接收主机", message));
                 }
 
-                // ��ѡ����¼��������С�����ڵ��ԣ�
+                // 可选：记录缓冲区大小（用于调试）
                 if (buffer.Size > 0)
                 {
-                    _logger.LogDebug($"�ͻ��� {e.ClientId} ������ʣ������: {buffer.Size} �ֽ�");
+                    _logger.LogDebug($"客户端 {e.ClientId} 缓冲区剩余数据: {buffer.Size} 字节");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"����SecsGem����ʱ��������: {ex.Message}");
+                _logger.LogError($"处理SecsGem数据时发生错误: {ex.Message}");
             }
         }
 
@@ -273,10 +273,10 @@ namespace PF.SecsGem.Service
                 {
                     byte[] data = rec.Skip(1).ToArray();
 
-                    // ��֤��Ϣ����
+                    // 验证消息长度
                     if (data.Length < 4)
                     {
-                        byte[] send = new byte[] { 0x01, (byte)SecsErrorCode.���ݳ��ȴ��� };
+                        byte[] send = new byte[] { 0x01, (byte)SecsErrorCode.数据长度错误 };
                         await this.LocationServer.SendAsync(this.LocationClientId, send);
                         return;
                     }
@@ -288,19 +288,19 @@ namespace PF.SecsGem.Service
                     int len = BitConverter.ToInt32(len_resp, 0);
                     if (len != data.Length - 4)
                     {
-                        byte[] send = new byte[] { 0x01, (byte)SecsErrorCode.���ݳ��ȴ��� };
+                        byte[] send = new byte[] { 0x01, (byte)SecsErrorCode.数据长度错误 };
                         await this.LocationServer.SendAsync(this.LocationClientId, send);
                     }
                     else
                     {
-                        this.SecsGemWriteLog.Writer.TryWrite(("��������", data));
+                        this.SecsGemWriteLog.Writer.TryWrite(("发送主机", data));
                         this.SecsGemServer?.SendAsync(this.SecsGemClientId, data);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"������������ʱ��������: {ex.Message}");
+                _logger.LogError($"处理本地数据时发生错误: {ex.Message}");
             }
         }
 
@@ -308,7 +308,7 @@ namespace PF.SecsGem.Service
 
         #region Methods
         /// <summary>
-        /// ����SecsGem������Ϣ
+        /// 处理SecsGem服务信息
         /// </summary>
         private async Task ProcessSecsGemServiceInfo(CancellationToken token = default)
         {
@@ -330,26 +330,26 @@ namespace PF.SecsGem.Service
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogInformation("ProcessSecsGemServiceInfo ������ȡ��");
+                    _logger.LogInformation("ProcessSecsGemServiceInfo 任务已取消");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"ProcessSecsGemServiceInfo �����쳣: {ex.Message}");
+                    _logger.LogError($"ProcessSecsGemServiceInfo 任务异常: {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// ��������SecsGem��Ϣ
+        /// 处理单个SecsGem消息
         /// </summary>
         private async Task ProcessSecsGemMessage(byte[] data, CancellationToken token = default)
         {
             try
             {
-                this.SecsGemWriteLog.Writer.TryWrite(("��������", data));
-                // ��Ϣ������֤�Ѿ��ڻ���������ʱ���
-                // ֱ�ӽ�����Ϣͷ
+                this.SecsGemWriteLog.Writer.TryWrite(("接收主机", data));
+                // 消息长度验证已经在缓冲区处理时完成
+                // 直接解析消息头
                 byte[] header_resp = data.Skip(4).Take(10).ToArray();
 
                 if (header_resp[2] == 0 && header_resp[3] == 0)
@@ -364,7 +364,7 @@ namespace PF.SecsGem.Service
             }
             catch (Exception ex)
             {
-                _logger.LogError($"����SecsGem��Ϣʱ��������: {ex.Message}");
+                _logger.LogError($"处理SecsGem消息时发生错误: {ex.Message}");
             }
         }
 
@@ -384,7 +384,7 @@ namespace PF.SecsGem.Service
                 RootNode = null
             };
 
-            // ����header[5]����LinkNumber
+            // 根据header[5]设置LinkNumber
             byte linkTest = header[5];
             if (linkTest == 1)
             {
@@ -400,13 +400,13 @@ namespace PF.SecsGem.Service
             }
             else
             {
-                _logger.LogWarning($"δ֪��LinkTestֵ: {linkTest}");
+                _logger.LogWarning($"未知的LinkTest值: {linkTest}");
                 return;
             }
 
             byte[] sendData = SecsGemMessageTools.GenerateSecsBytes(message, _deviceId);
-            this.SecsGemWriteLog.Writer.TryWrite(("��������", sendData));
-            //this.SecsGemWriteLog.Writer.TryWrite(("��������", sendData));
+            this.SecsGemWriteLog.Writer.TryWrite(("发送主机", sendData));
+            //this.SecsGemWriteLog.Writer.TryWrite(("发送主机", sendData));
 
             if (this.SecsGemServer != null && !string.IsNullOrEmpty(SecsGemClientId))
             {
@@ -426,33 +426,33 @@ namespace PF.SecsGem.Service
         {
             using (var scope = _scopeFactory.CreateScope())
             {
-                // �� Scope �л�ȡ Scoped ����
+                // 从 Scope 中获取 Scoped 服务
                 var secsGemDataBase = scope.ServiceProvider.GetRequiredService<ISecsGemDataBase>();
                 var manger0 = secsGemDataBase.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
                 _secsGemSystemParam = (await manger0.GetAllAsync()).Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
             }
 
 
-            _logger.LogInformation("SecsGem ��̨�����߳�������");
+            _logger.LogInformation("SecsGem 后台工作线程已启动");
 
             try
             {
-                LocationServer = new TcpServer("���񱾵ط�����");
+                LocationServer = new TcpServer("服务本地服务器");
                 await LocationServer.StartAsync("127.0.0.1", 6800);
                 LocationServer.DataReceived += LocationServer_DataReceived;
                 LocationServer.ClientConnected += LocationServer_ClientConnected;
 
-                SecsGemServer = new TcpServer("SecsGem������");
+                SecsGemServer = new TcpServer("SecsGem服务器");
                 await SecsGemServer.StartAsync(_secsGemSystemParam.IPAddress, _secsGemSystemParam.Port);
                 SecsGemServer.DataReceived += SecsGemServer_DataReceived;
                 SecsGemServer.ClientConnected += SecsGemServer_ClientConnected;
                 SecsGemServer.ClientDisconnected += SecsGemServer_ClientDisconnected;
 
-                // ������������
+                // 启动处理任务
                 _ = ProcessSecsGemServiceInfo(stoppingToken);
                 _ = WriteLog(stoppingToken);
 
-                // �ȴ�ֹͣ�ź�
+                // 等待停止信号
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, stoppingToken);
@@ -460,26 +460,26 @@ namespace PF.SecsGem.Service
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("SecsGem ��̨�����߳��յ�ֹͣ�ź�");
+                _logger.LogInformation("SecsGem 后台工作线程收到停止信号");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "SecsGem ��̨�����߳�ִ��ʱ��������");
+                _logger.LogError(ex, "SecsGem 后台工作线程执行时发生错误");
             }
             finally
             {
-                // ������Դ
-                _logger.LogInformation("SecsGem ��̨�����߳���ֹͣ");
+                // 清理资源
+                _logger.LogInformation("SecsGem 后台工作线程已停止");
             }
         }
 
 
 
-        #region ��־��¼ģ��
+        #region 日志记录模块
 
 
         /// <summary>
-        /// GECSGEM��־������¼��
+        /// GECSGEM日志交互记录器
         /// </summary>
 
         private Channel<(string, byte[])> SecsGemWriteLog = Channel.CreateUnbounded<(string, byte[])>(new UnboundedChannelOptions()
@@ -504,11 +504,11 @@ namespace PF.SecsGem.Service
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogInformation("WriteLog ������ȡ��");
+                _logger.LogInformation("WriteLog 任务已取消");
             }
             catch (Exception ex)
             {
-                _logger.LogError("WriteLog �������" + ex.Message + ex.StackTrace);
+                _logger.LogError("WriteLog 任务错误" + ex.Message + ex.StackTrace);
             }
         }
 
@@ -542,7 +542,7 @@ namespace PF.SecsGem.Service
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError("WriteCustomLog �������" + ex.Message + ex.StackTrace);
+                        _logger.LogError("WriteCustomLog 任务错误" + ex.Message + ex.StackTrace);
                     }
                 }
 
@@ -551,7 +551,7 @@ namespace PF.SecsGem.Service
 
 
         /// <summary>
-        /// �ֽ�����ת��Ϊ���ָ�����ʮ�������ַ���
+        /// 字节数组转换为带分隔符的十六进制字符串
         /// </summary>
         /// <param name="bytes"></param>
         /// <param name="separator"></param>
@@ -577,7 +577,7 @@ namespace PF.SecsGem.Service
             return sb.ToString();
         }
 
-        #endregion ��־��¼ģ��
+        #endregion 日志记录模块
 
 
 
