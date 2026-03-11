@@ -26,6 +26,7 @@ using PF.Modules.Debug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
+using PF.Modules.SecsGem;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
@@ -224,6 +225,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<DebugModule>();
             moduleCatalog.AddModule<UIModule>();
             moduleCatalog.AddModule<PF.WorkStation.AutoOcr.UI.AutoOcrUIModule>();
+            moduleCatalog.AddModule<SecsGemModule>();
         }
 
         #endregion
