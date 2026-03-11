@@ -16,5 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
     <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
+    <ProjectReference Include="..\PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,4 @@
-﻿using NPOI.SS.Formula.Functions;
-using PF.Core.Entities.SecsGem.Message;
+﻿using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
 using System;
@@ -302,12 +301,18 @@ namespace PF.Infrastructure.SecsGem.Tools
                         break;
 
                     case DataType.Boolean:
-                        // 解析布尔值（1字节）
-                        offset++;
-                        node.Data = new[] { bytes[offset++] };
-                        node.Length = 1;
-                        node.TypedValue = node.Data[0] == 0x01; // 自动转换为bool
-                        break;
+                        {
+                            // Bug4 Fix: 从长度字节中读实际数据长度，支持 Boolean 数组
+                            byte numLenB = (byte)(b & 0b00000011);
+                            int dataLenB = ReadDataLength(bytes, ref offset, numLenB);
+                            node.Length = dataLenB;
+                            node.Data = bytes.Skip(offset).Take(dataLenB).ToArray();
+                            node.TypedValue = dataLenB == 1
+                                ? (object)(node.Data[0] == 0x01)
+                                : node.Data.Select(x => x == 0x01).ToArray();
+                            offset += dataLenB;
+                            break;
+                        }
 
                     case DataType.ASCII:
                         // 解析ASCII字符串
@@ -388,95 +393,216 @@ namespace PF.Infrastructure.SecsGem.Tools
                         break;
 
                     case DataType.I1:
-                        // 1字节有符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset++] };
-                        node.Length = 1;
-                        node.TypedValue = (sbyte)node.Data[0]; // 自动转换为sbyte
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 I1 数组
+                            byte numLenI1 = (byte)(b & 0b00000011);
+                            int dataLenI1 = ReadDataLength(bytes, ref offset, numLenI1);
+                            node.Length = dataLenI1;
+                            node.Data = bytes.Skip(offset).Take(dataLenI1).ToArray();
+                            node.TypedValue = dataLenI1 == 1
+                                ? (object)(sbyte)node.Data[0]
+                                : node.Data.Select(x => (sbyte)x).ToArray();
+                            offset += dataLenI1;
+                            break;
+                        }
 
                     case DataType.U1:
-                        // 1字节无符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset++] };
-                        node.Length = 1;
-                        node.TypedValue = node.Data[0]; // 自动转换为byte
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 U1 数组
+                            byte numLenU1 = (byte)(b & 0b00000011);
+                            int dataLenU1 = ReadDataLength(bytes, ref offset, numLenU1);
+                            node.Length = dataLenU1;
+                            node.Data = bytes.Skip(offset).Take(dataLenU1).ToArray();
+                            node.TypedValue = dataLenU1 == 1
+                                ? (object)node.Data[0]
+                                : node.Data.ToArray();
+                            offset += dataLenU1;
+                            break;
+                        }
 
                     case DataType.I2:
-                        // 2字节有符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 1], bytes[offset] };
-                        offset += 2;
-                        node.Length = 2;
-                        node.TypedValue = BitConverter.ToInt16(node.Data, 0); // 自动转换为short
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 I2 数组（原来只处理单值）
+                            byte numLenI2 = (byte)(b & 0b00000011);
+                            int dataLenI2 = ReadDataLength(bytes, ref offset, numLenI2);
+                            node.Length = dataLenI2;
+                            node.Data = bytes.Skip(offset).Take(dataLenI2).ToArray();
+                            int countI2 = dataLenI2 / 2;
+                            if (countI2 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToInt16(new[] { node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new short[countI2];
+                                for (int j = 0; j < countI2; j++)
+                                    vals[j] = BitConverter.ToInt16(new[] { node.Data[j * 2 + 1], node.Data[j * 2] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenI2;
+                            break;
+                        }
 
                     case DataType.U2:
-                        // 2字节无符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 1], bytes[offset] };
-                        offset += 2;
-                        node.Length = 2;
-                        node.TypedValue = BitConverter.ToUInt16(node.Data, 0); // 自动转换为ushort
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 U2 数组（原来只处理单值）
+                            byte numLenU2 = (byte)(b & 0b00000011);
+                            int dataLenU2 = ReadDataLength(bytes, ref offset, numLenU2);
+                            node.Length = dataLenU2;
+                            node.Data = bytes.Skip(offset).Take(dataLenU2).ToArray();
+                            int countU2 = dataLenU2 / 2;
+                            if (countU2 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToUInt16(new[] { node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new ushort[countU2];
+                                for (int j = 0; j < countU2; j++)
+                                    vals[j] = BitConverter.ToUInt16(new[] { node.Data[j * 2 + 1], node.Data[j * 2] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenU2;
+                            break;
+                        }
 
                     case DataType.I4:
-                        // 4字节有符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset] };
-                        offset += 4;
-                        node.Length = 4;
-                        node.TypedValue = BitConverter.ToInt32(node.Data, 0); // 自动转换为int
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 I4 数组（原来只处理单值）
+                            byte numLenI4 = (byte)(b & 0b00000011);
+                            int dataLenI4 = ReadDataLength(bytes, ref offset, numLenI4);
+                            node.Length = dataLenI4;
+                            node.Data = bytes.Skip(offset).Take(dataLenI4).ToArray();
+                            int countI4 = dataLenI4 / 4;
+                            if (countI4 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToInt32(new[] { node.Data[3], node.Data[2], node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new int[countI4];
+                                for (int j = 0; j < countI4; j++)
+                                    vals[j] = BitConverter.ToInt32(new[] { node.Data[j * 4 + 3], node.Data[j * 4 + 2], node.Data[j * 4 + 1], node.Data[j * 4] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenI4;
+                            break;
+                        }
 
                     case DataType.U4:
-                        // 4字节无符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset] };
-                        offset += 4;
-                        node.Length = 4;
-                        node.TypedValue = BitConverter.ToUInt32(node.Data, 0); // 自动转换为uint
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 U4 数组（原来只处理单值）
+                            byte numLenU4 = (byte)(b & 0b00000011);
+                            int dataLenU4 = ReadDataLength(bytes, ref offset, numLenU4);
+                            node.Length = dataLenU4;
+                            node.Data = bytes.Skip(offset).Take(dataLenU4).ToArray();
+                            int countU4 = dataLenU4 / 4;
+                            if (countU4 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToUInt32(new[] { node.Data[3], node.Data[2], node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new uint[countU4];
+                                for (int j = 0; j < countU4; j++)
+                                    vals[j] = BitConverter.ToUInt32(new[] { node.Data[j * 4 + 3], node.Data[j * 4 + 2], node.Data[j * 4 + 1], node.Data[j * 4] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenU4;
+                            break;
+                        }
 
                     case DataType.I8:
-                        // 8字节有符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 7], bytes[offset + 6], bytes[offset + 5], bytes[offset + 4],
-                                       bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset] };
-                        offset += 8;
-                        node.Length = 8;
-                        node.TypedValue = BitConverter.ToInt64(node.Data, 0); // 自动转换为long
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 I8 数组（原来只处理单值）
+                            byte numLenI8 = (byte)(b & 0b00000011);
+                            int dataLenI8 = ReadDataLength(bytes, ref offset, numLenI8);
+                            node.Length = dataLenI8;
+                            node.Data = bytes.Skip(offset).Take(dataLenI8).ToArray();
+                            int countI8 = dataLenI8 / 8;
+                            if (countI8 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToInt64(new[] { node.Data[7], node.Data[6], node.Data[5], node.Data[4], node.Data[3], node.Data[2], node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new long[countI8];
+                                for (int j = 0; j < countI8; j++)
+                                    vals[j] = BitConverter.ToInt64(new[] { node.Data[j*8+7], node.Data[j*8+6], node.Data[j*8+5], node.Data[j*8+4], node.Data[j*8+3], node.Data[j*8+2], node.Data[j*8+1], node.Data[j*8] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenI8;
+                            break;
+                        }
 
                     case DataType.U8:
-                        // 8字节无符号整数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 7], bytes[offset + 6], bytes[offset + 5], bytes[offset + 4],
-                                       bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset] };
-                        offset += 8;
-                        node.Length = 8;
-                        node.TypedValue = BitConverter.ToUInt64(node.Data, 0); // 自动转换为ulong
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 U8 数组（原来只处理单值）
+                            byte numLenU8 = (byte)(b & 0b00000011);
+                            int dataLenU8 = ReadDataLength(bytes, ref offset, numLenU8);
+                            node.Length = dataLenU8;
+                            node.Data = bytes.Skip(offset).Take(dataLenU8).ToArray();
+                            int countU8 = dataLenU8 / 8;
+                            if (countU8 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToUInt64(new[] { node.Data[7], node.Data[6], node.Data[5], node.Data[4], node.Data[3], node.Data[2], node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new ulong[countU8];
+                                for (int j = 0; j < countU8; j++)
+                                    vals[j] = BitConverter.ToUInt64(new[] { node.Data[j*8+7], node.Data[j*8+6], node.Data[j*8+5], node.Data[j*8+4], node.Data[j*8+3], node.Data[j*8+2], node.Data[j*8+1], node.Data[j*8] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenU8;
+                            break;
+                        }
 
                     case DataType.F4:
-                        // 4字节浮点数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset] };
-                        offset += 4;
-                        node.Length = 4;
-                        node.TypedValue = BitConverter.ToSingle(node.Data, 0); // 自动转换为float
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 F4 数组（原来只处理单值）
+                            byte numLenF4 = (byte)(b & 0b00000011);
+                            int dataLenF4 = ReadDataLength(bytes, ref offset, numLenF4);
+                            node.Length = dataLenF4;
+                            node.Data = bytes.Skip(offset).Take(dataLenF4).ToArray();
+                            int countF4 = dataLenF4 / 4;
+                            if (countF4 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToSingle(new[] { node.Data[3], node.Data[2], node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new float[countF4];
+                                for (int j = 0; j < countF4; j++)
+                                    vals[j] = BitConverter.ToSingle(new[] { node.Data[j*4+3], node.Data[j*4+2], node.Data[j*4+1], node.Data[j*4] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenF4;
+                            break;
+                        }
 
                     case DataType.F8:
-                        // 8字节浮点数
-                        offset++;
-                        node.Data = new[] { bytes[offset + 7], bytes[offset + 6], bytes[offset + 5], bytes[offset + 4],
-                                       bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset] };
-                        offset += 8;
-                        node.Length = 8;
-                        node.TypedValue = BitConverter.ToDouble(node.Data, 0); // 自动转换为double
-                        break;
+                        {
+                            // Bug4 Fix: 读实际长度，支持 F8 数组（原来只处理单值）
+                            byte numLenF8 = (byte)(b & 0b00000011);
+                            int dataLenF8 = ReadDataLength(bytes, ref offset, numLenF8);
+                            node.Length = dataLenF8;
+                            node.Data = bytes.Skip(offset).Take(dataLenF8).ToArray();
+                            int countF8 = dataLenF8 / 8;
+                            if (countF8 == 1)
+                            {
+                                node.TypedValue = BitConverter.ToDouble(new[] { node.Data[7], node.Data[6], node.Data[5], node.Data[4], node.Data[3], node.Data[2], node.Data[1], node.Data[0] }, 0);
+                            }
+                            else
+                            {
+                                var vals = new double[countF8];
+                                for (int j = 0; j < countF8; j++)
+                                    vals[j] = BitConverter.ToDouble(new[] { node.Data[j*8+7], node.Data[j*8+6], node.Data[j*8+5], node.Data[j*8+4], node.Data[j*8+3], node.Data[j*8+2], node.Data[j*8+1], node.Data[j*8] }, 0);
+                                node.TypedValue = vals;
+                            }
+                            offset += dataLenF8;
+                            break;
+                        }
 
                     default:
                         throw new NotSupportedException($"无法解析的SECS数据类型：{node.DataType}");
@@ -489,8 +615,26 @@ namespace PF.Infrastructure.SecsGem.Tools
                 _logService.Error($"反序列化SECS消息节点失败：偏移量{offset}，字节信息{BitConverter.ToString(bytes)} ", exception: ex);
                 return null;
             }
-
         }
+
+        /// <summary>
+        /// 读取 SECS 数据项的实际数据长度（Big-Endian，1~3 字节）。
+        /// 读取后 offset 前进 numLenBytes 位，指向数据起始位置。
+        /// </summary>
+        private static int ReadDataLength(byte[] bytes, ref int offset, byte numLenBytes)
+        {
+            if (numLenBytes == 0) return 0;
+
+            byte[] lenBytes = bytes.Skip(offset).Take(numLenBytes).ToArray();
+            Array.Reverse(lenBytes); // Big-Endian → Little-Endian
+            int dataLen = 0;
+            for (int i = 0; i < numLenBytes; i++)
+                dataLen += (int)(lenBytes[i] * Math.Pow(256, i));
+
+            offset += numLenBytes;
+            return dataLen;
+        }
+
         #endregion
 
 

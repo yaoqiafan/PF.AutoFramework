@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using PF.Infrastructure.SecsGem;
-using PF.Infrastructure.SecsGem.Entities;
-using PF.Infrastructure.SecsGem.Entities.Command;
-using PF.Infrastructure.SecsGem.Entities.System;
-using PF.Infrastructure.SecsGem.Entities.Variable;
+using PF.SecsGem.DataBase.Entities.Command;
+using PF.SecsGem.DataBase.Entities.System;
+using PF.SecsGem.DataBase.Entities.Variable;
 
-namespace PF.Infrastructure.SecsGem
+namespace PF.SecsGem.DataBase
 {
     /// <summary>
     /// SecsGem 独立数据库上下文

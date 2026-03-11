@@ -6,9 +6,9 @@ using PF.Core.Enums;
 using PF.Core.Interfaces.SecsGem.Command;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Core.Interfaces.SecsGem.Params;
-using PF.Infrastructure.SecsGem.Entities.Command;
-using PF.Infrastructure.SecsGem.Entities.System;
-using PF.Infrastructure.SecsGem.Entities.Variable;
+using PF.SecsGem.DataBase.Entities.Command;
+using PF.SecsGem.DataBase.Entities.System;
+using PF.SecsGem.DataBase.Entities.Variable;
 using System.Collections.Concurrent;
 
 namespace PF.Infrastructure.SecsGem.Param
