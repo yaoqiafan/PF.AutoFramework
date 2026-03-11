@@ -39,7 +39,6 @@
   </Folder>
   <Folder Name="/08.External Services(外部服务)/">
     <Project Path="ConsoleApp1/ConsoleApp1.csproj" Id="e29412e5-ad25-494b-95b5-905045aaf9d7" />
-    <Project Path="PF.SecsGem.Infrastructure/PF.SecsGem.Infrastructure.csproj" Id="ca346e12-b53d-485c-a9ec-cf965f805d1d" />
     <Project Path="PF.SecsGem.Service/PF.SecsGem.Service.csproj" Id="e5f18463-ab25-4308-9e0d-05911d98a7d8" />
   </Folder>
 </Solution>
