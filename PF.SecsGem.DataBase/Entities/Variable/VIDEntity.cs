@@ -37,7 +37,7 @@ namespace PF.SecsGem.DataBase.Entities.Variable
 
         public static VID ToVID(this VIDEntity entity)
         {
-            var dataType = Enum.Parse<DataType>(entity.Type);
+            var dataType = Enum.Parse<Core.Enums.DataType>(entity.Type);
             var vid = new VID(entity.Code, entity.Description, dataType);
             vid.Comment = entity.Comment;
             vid.SetValue(entity.Value);

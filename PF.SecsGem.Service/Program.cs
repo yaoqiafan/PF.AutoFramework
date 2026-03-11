@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PF.Core.Constants;
 using PF.Core.Interfaces.SecsGem.DataBase;
-using PF.Infrastructure.SecsGem;
-using PF.Infrastructure.SecsGem.DataBase;
-using PF.SecsGem.Service;
+using PF.SecsGem.DataBase;
 
 namespace PF.SecsGem.Service;
 
