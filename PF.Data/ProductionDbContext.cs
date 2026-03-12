@@ -23,17 +23,15 @@ namespace PF.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // 时间范围查询索引
             modelBuilder.Entity<ProductionDataEntity>()
                 .HasIndex(p => p.RecordTime)
                 .HasDatabaseName("IX_ProductionData_RecordTime");
 
+            // 记录类型索引
             modelBuilder.Entity<ProductionDataEntity>()
-                .HasIndex(p => new { p.DeviceId, p.RecordType })
-                .HasDatabaseName("IX_ProductionData_DeviceId_RecordType");
-
-            modelBuilder.Entity<ProductionDataEntity>()
-                .HasIndex(p => p.BatchId)
-                .HasDatabaseName("IX_ProductionData_BatchId");
+                .HasIndex(p => p.RecordType)
+                .HasDatabaseName("IX_ProductionData_RecordType");
         }
     }
 }

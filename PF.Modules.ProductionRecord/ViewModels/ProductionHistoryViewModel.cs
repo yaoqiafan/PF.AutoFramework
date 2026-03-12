@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
-using PF.Core.Entities.ProductionData;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
+using Prism.Commands;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 
@@ -9,7 +9,7 @@ namespace PF.Modules.Production.ViewModels
 {
     /// <summary>
     /// 生产数据历史查询 ViewModel。
-    /// 支持时间范围、设备、类型、批次、关键词过滤；结果直接返回集合，无分页。
+    /// 支持时间范围、记录类型、关键词过滤；结果直接返回集合，无分页。
     /// 支持导出 CSV / Excel。
     /// </summary>
     public class ProductionHistoryViewModel : RegionViewModelBase
@@ -34,25 +34,11 @@ namespace PF.Modules.Production.ViewModels
             set => SetProperty(ref _endTime, value);
         }
 
-        private string? _deviceId;
-        public string? DeviceId
-        {
-            get => _deviceId;
-            set => SetProperty(ref _deviceId, value);
-        }
-
         private string? _recordType;
         public string? RecordType
         {
             get => _recordType;
             set => SetProperty(ref _recordType, value);
-        }
-
-        private string? _batchId;
-        public string? BatchId
-        {
-            get => _batchId;
-            set => SetProperty(ref _batchId, value);
         }
 
         private string? _keyword;
@@ -173,9 +159,7 @@ namespace PF.Modules.Production.ViewModels
         {
             StartTime = DateTime.Today;
             EndTime = DateTime.Now;
-            DeviceId = null;
             RecordType = null;
-            BatchId = null;
             Keyword = null;
             MaxCount = 1000;
             QueryResults.Clear();
@@ -219,9 +203,7 @@ namespace PF.Modules.Production.ViewModels
         {
             StartTime = StartTime,
             EndTime = EndTime,
-            DeviceId = string.IsNullOrWhiteSpace(DeviceId) ? null : DeviceId,
             RecordType = string.IsNullOrWhiteSpace(RecordType) ? null : RecordType,
-            BatchId = string.IsNullOrWhiteSpace(BatchId) ? null : BatchId,
             Keyword = string.IsNullOrWhiteSpace(Keyword) ? null : Keyword,
             MaxCount = MaxCount
         };
