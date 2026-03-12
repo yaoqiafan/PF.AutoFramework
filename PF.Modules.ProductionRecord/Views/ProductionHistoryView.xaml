@@ -1,0 +1,167 @@
+<UserControl x:Class="PF.Modules.ProductionRecord.Views.ProductionHistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:attr="clr-namespace:PF.Core.Attributes;assembly=PF.Core"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <attr:ModuleNavigationAttribute.Metadata>
+        <attr:ModuleNavigationAttribute ViewName="ProductionHistoryView"
+                                        Title="历史查询"
+                                        GroupName="生产数据"
+                                        GroupOrder="20"
+                                        Order="2"
+                                        Icon="History" />
+    </attr:ModuleNavigationAttribute.Metadata>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <Border Grid.Row="0" Background="#FF2D2D30" Padding="12,8">
+            <TextBlock Text="生产数据历史查询" FontSize="16" FontWeight="Bold"
+                       Foreground="White" VerticalAlignment="Center" />
+        </Border>
+
+        <!-- 查询条件面板 -->
+        <Border Grid.Row="1" Background="#FF3E3E42" Padding="10,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="155" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="155" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="开始：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <DatePicker Grid.Column="1" SelectedDate="{Binding StartTime}"
+                            Background="#FF252526" Foreground="White" Margin="0,0,10,0" />
+
+                <TextBlock Grid.Column="2" Text="结束：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <DatePicker Grid.Column="3" SelectedDate="{Binding EndTime}"
+                            Background="#FF252526" Foreground="White" Margin="0,0,10,0" />
+
+                <TextBlock Grid.Column="4" Text="设备：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBox Grid.Column="5" Text="{Binding DeviceId, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="4,2" Background="#FF252526" Foreground="White"
+                         BorderBrush="#FF555555" Margin="0,0,10,0" />
+
+                <TextBlock Grid.Column="6" Text="类型：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBox Grid.Column="7" Text="{Binding RecordType, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="4,2" Background="#FF252526" Foreground="White"
+                         BorderBrush="#FF555555" Margin="0,0,10,0" />
+
+                <TextBlock Grid.Column="8" Text="批次：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBox Grid.Column="9" Text="{Binding BatchId, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="4,2" Background="#FF252526" Foreground="White"
+                         BorderBrush="#FF555555" Margin="0,0,10,0" />
+
+                <TextBlock Grid.Column="10" Text="关键词：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBox Grid.Column="11" Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="4,2" Background="#FF252526" Foreground="White"
+                         BorderBrush="#FF555555" Margin="0,0,10,0" />
+
+                <Button Grid.Column="12" Content="查询" Command="{Binding QueryCommand}"
+                        Padding="14,4" Margin="0,0,6,0"
+                        Background="#FF007ACC" Foreground="White" BorderThickness="0" />
+
+                <Button Grid.Column="13" Content="重置" Command="{Binding ResetCommand}"
+                        Padding="10,4" Background="#FF555555" Foreground="White" BorderThickness="0" />
+            </Grid>
+        </Border>
+
+        <!-- 主体区域：左侧结果列表 + 右侧 JSON 详情 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="1*" MinWidth="200" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 结果列表 -->
+            <ListView Grid.Column="0" ItemsSource="{Binding QueryResults}"
+                      SelectedItem="{Binding SelectedRecord}"
+                      Background="#FF1E1E1E" Foreground="#FFCCCCCC"
+                      BorderThickness="0" SelectionMode="Single">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="采集时间" Width="155"
+                                        DisplayMemberBinding="{Binding RecordTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
+                        <GridViewColumn Header="名称" Width="120" DisplayMemberBinding="{Binding Name}" />
+                        <GridViewColumn Header="设备" Width="90" DisplayMemberBinding="{Binding DeviceId}" />
+                        <GridViewColumn Header="类型" Width="90" DisplayMemberBinding="{Binding RecordType}" />
+                        <GridViewColumn Header="批次" Width="90" DisplayMemberBinding="{Binding BatchId}" />
+                        <GridViewColumn Header="分类" Width="80" DisplayMemberBinding="{Binding Category}" />
+                        <GridViewColumn Header="数据类型" Width="140" DisplayMemberBinding="{Binding TypeFullName}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
+                          Background="#FF555555" />
+
+            <!-- JSON 详情面板 -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="#FF2D2D30" Padding="8,4">
+                    <TextBlock Text="JSON 数据详情" Foreground="#FF999999" FontSize="12" />
+                </Border>
+                <TextBox Grid.Row="1" Text="{Binding DetailJson, Mode=OneWay}"
+                         IsReadOnly="True" AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="#FF1E1E1E" Foreground="#FF9CDCFE"
+                         FontFamily="Consolas" FontSize="12"
+                         BorderThickness="0" Padding="8" />
+            </Grid>
+        </Grid>
+
+        <!-- 状态栏 + 导出按钮 -->
+        <Border Grid.Row="3" Background="#FF2D2D30" Padding="10,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Foreground="#FF999999">
+                        <Run Text="共 " />
+                        <Run Text="{Binding TotalCount}" FontWeight="Bold" Foreground="White" />
+                        <Run Text=" 条记录" />
+                    </TextBlock>
+                    <ProgressBar IsIndeterminate="{Binding IsLoading}" Width="60"
+                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                                 Margin="12,0,0,0" Height="4" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="导出 Excel" Command="{Binding ExportCommand}" CommandParameter="excel"
+                            Padding="12,4" Margin="0,0,6,0"
+                            Background="#FF0E7A0E" Foreground="White" BorderThickness="0" />
+                    <Button Content="导出 CSV" Command="{Binding ExportCommand}" CommandParameter="csv"
+                            Padding="12,4"
+                            Background="#FF555555" Foreground="White" BorderThickness="0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

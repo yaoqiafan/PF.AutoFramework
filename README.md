@@ -67,7 +67,8 @@ PF.AutoFramework.slnx
 │   ├── PF.Modules.Logging            # 日志查看与管理
 │   ├── PF.Modules.Parameter          # 系统参数管理
 │   ├── PF.Modules.Debug              # 硬件调试面板（板卡层级树 + 轴/IO/Card调试视图，MechanismUI自动发现）
-│   └── PF.Modules.SecsGem            # 半导体设备 SECS/GEM 通信
+│   ├── PF.Modules.SecsGem            # 半导体设备 SECS/GEM 通信
+│   └── PF.Modules.ProductionRecord   # 生产数据记录与历史查询（实时监控 + 条件查询 + 导出）
 │
 ├── /06. 应用入口 (Application)
 │   └── PF.Application.Shell          # WPF App入口、Prism Bootstrapper、主题加载
@@ -124,6 +125,8 @@ PF.AutoFramework.slnx
 - `HardwareParam` — 硬件配置参数实体（存储 `HardwareConfig` 的 JSON 序列化结果）
 - `GenericRepository<T>` — 通用 CRUD 仓储
 - 数据库路径：`%APPDATA%\PFAutoFrameWork\SystemParamsCollection.db`
+- `ProductionDataEntity` — 生产数据实体（继承 ParamEntity，追加 DeviceId / RecordType / RecordTime / BatchId）
+- `ProductionDbContext` — 生产数据独立 DbContext，数据库路径：`%APPDATA%\PFAutoFrameWork\ProductionHistory.db`
 
 ### PF.Services — 业务逻辑层
 
@@ -143,6 +146,14 @@ PF.AutoFramework.slnx
 - 内存循环缓冲区（最大 1000 条）
 - `BlockingCollection<LogEntry>` 异步文件写入
 - 按小时/天自动滚动，历史日志自动清理（默认 30 天）
+
+**ProductionDataService** — 生产过程数据记录服务：
+- 泛型写入 `RecordAsync<TData>()`：任意 POCO → JSON 序列化，`Channel` 有界队列 + 单消费者线程，`RecordAsync` 非阻塞立即返回
+- 条件查询 `QueryAsync(filter)`：直接返回集合，所有过滤字段均可空（时间范围 / DeviceId / RecordType / BatchId / 关键词 / 数量上限）
+- 泛型查询 `QueryDataAsync<TData>(filter)`：自动反序列化 JsonValue 为目标类型
+- 导出 `ExportToCsvAsync()` / `ExportToExcelAsync()`：via NPOI
+- `DataRecorded` 事件：每条数据写入后触发，供 UI 实时订阅
+- 多数据库：仅需修改 `DbContextOptionsBuilder`（SQLite / SQL Server / MySQL），服务代码零改动
 
 ### PF.Infrastructure — 底层基础设施
 
@@ -953,6 +964,141 @@ SuperUser（超级用户）   ← UserManagementView、ParameterView_UserLoginPa
 5. **TCP 重连无上限**：启用 `AutoReconnect` 后无最大重试次数，网络永久中断时建议在业务层增加熔断逻辑。
 6. **日志 UI 线程安全**：`LogService` 从后台线程写入内存缓冲，UI 绑定集合需通过 `Dispatcher.Invoke` 确保线程安全。
 7. **仅支持 Windows**：基于 WPF，不支持跨平台部署。
+
+---
+
+## 📊 开发者指南九：生产数据记录（IProductionDataService）
+
+`IProductionDataService` 是一个与 SecsGem 完全解耦的通用生产数据记录服务，任何工站、设备均可使用。
+
+### Step 1: 定义数据模型（普通 POCO，无需数据库特性）
+
+```csharp
+// 任意位置定义，无需继承任何基类
+public class WeldingProcessData
+{
+    public string LotId { get; set; }
+    public double Temperature { get; set; }   // 焊接温度 (°C)
+    public double Pressure { get; set; }      // 焊接压力 (N)
+    public int DurationMs { get; set; }       // 焊接时长 (ms)
+    public bool Passed { get; set; }          // 是否合格
+}
+```
+
+### Step 2: 注入服务并写入数据
+
+```csharp
+public class WeldingStationViewModel : ViewModelBase
+{
+    private readonly IProductionDataService _productionService;
+
+    public WeldingStationViewModel(IProductionDataService productionService)
+    {
+        _productionService = productionService;
+    }
+
+    private async Task OnWeldingCompletedAsync(string lotId, WeldingProcessData data)
+    {
+        await _productionService.RecordAsync(
+            data,
+            name: $"Welding_{lotId}",      // 记录名称（可选）
+            deviceId: "WELDING_STATION_01", // 设备标识（可选）
+            recordType: "WeldingProcess",   // 记录类型（可选）
+            batchId: lotId                  // 批次（可选）
+        );
+        // RecordAsync 非阻塞，立即返回，不影响工艺流程
+    }
+}
+```
+
+### Step 3: 历史查询
+
+```csharp
+// 查询今日所有数据（不过滤设备、类型）
+var filter = new ProductionQueryFilter
+{
+    StartTime = DateTime.Today,
+    EndTime = DateTime.Now
+};
+var records = await _productionService.QueryAsync(filter);
+
+// 查询特定设备、特定批次的强类型数据
+var filter2 = new ProductionQueryFilter
+{
+    DeviceId = "WELDING_STATION_01",
+    BatchId = "LOT_20260312_001",
+    MaxCount = 500
+};
+var typedData = await _productionService.QueryDataAsync<WeldingProcessData>(filter2);
+foreach (var d in typedData)
+    Console.WriteLine($"温度: {d.Temperature}°C, 合格: {d.Passed}");
+
+// 关键词搜索（模糊匹配 Name 或 JsonValue 内容）
+var filter3 = new ProductionQueryFilter { Keyword = "LOT_2026" };
+var matchedRecords = await _productionService.QueryAsync(filter3);
+```
+
+### Step 4: 导出数据
+
+```csharp
+// 导出指定条件的数据到 Excel
+await _productionService.ExportToExcelAsync(filter, @"C:\Reports\Welding_20260312.xlsx");
+
+// 导出到 CSV
+await _productionService.ExportToCsvAsync(filter, @"C:\Reports\Welding_20260312.csv");
+```
+
+### Step 5: 实时监控（UI 订阅）
+
+```csharp
+// 在 ViewModel 构造函数中订阅
+_productionService.DataRecorded += OnDataRecorded;
+
+// 事件在后台线程触发，必须切换到 UI 线程
+private void OnDataRecorded(object? sender, ProductionDataRecordedEventArgs e)
+{
+    Application.Current?.Dispatcher.InvokeAsync(() =>
+    {
+        var record = e.Record;
+        // 反序列化为强类型
+        var data = record.Deserialize<WeldingProcessData>();
+        RecentRecords.Insert(0, record);  // 实时更新 UI 列表
+    });
+}
+
+// 销毁时取消订阅（避免内存泄漏）
+public override void Destroy()
+{
+    _productionService.DataRecorded -= OnDataRecorded;
+    base.Destroy();
+}
+```
+
+### Step 6: 切换数据库后端（仅改 App.xaml.cs 一处）
+
+```csharp
+// SQLite（默认，无需额外部署）
+var options = new DbContextOptionsBuilder<ProductionDbContext>()
+    .UseSqlite($"Data Source={filePath}")
+    .Options;
+
+// SQL Server（需添加 Microsoft.EntityFrameworkCore.SqlServer 包）
+var options = new DbContextOptionsBuilder<ProductionDbContext>()
+    .UseSqlServer("Server=192.168.1.100;Database=PFProduction;User Id=sa;Password=xxx;")
+    .Options;
+
+// MySQL（需添加 Pomelo.EntityFrameworkCore.MySql 包）
+var options = new DbContextOptionsBuilder<ProductionDbContext>()
+    .UseMySql("Server=192.168.1.100;Database=PFProduction;User=root;Password=xxx;",
+              ServerVersion.AutoDetect("Server=192.168.1.100;..."))
+    .Options;
+
+// 注册（三种后端写法完全相同）
+containerRegistry.RegisterInstance<DbContextOptions<ProductionDbContext>>(options);
+containerRegistry.RegisterSingleton<IProductionDataService, ProductionDataService>();
+```
+
+> **注意**：所有过滤字段均可空（null = 不过滤）。不同设备的生产数据类型完全不同，框架通过 JSON 序列化实现 Schema 无关存储。
 
 ---
 

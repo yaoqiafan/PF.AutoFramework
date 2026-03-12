@@ -27,6 +27,7 @@ using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
 using PF.Modules.SecsGem;
+using PF.Modules.ProductionRecord;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
@@ -34,6 +35,10 @@ using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
+using PF.Services.Production;
+using PF.Core.Interfaces.Production;
+using Microsoft.EntityFrameworkCore;
+using PF.Data;
 using PF.Services.Sync;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
@@ -195,6 +200,7 @@ namespace PF.Application.Shell
         {
             RegisterLogServiceTypes(containerRegistry);
             RegisterSystemParamsTypes(containerRegistry);
+            RegisterProductionDataService(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
 
             containerRegistry.RegisterSingleton<Splash>();
@@ -226,6 +232,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<UIModule>();
             moduleCatalog.AddModule<PF.WorkStation.AutoOcr.UI.AutoOcrUIModule>();
             moduleCatalog.AddModule<SecsGemModule>();
+            moduleCatalog.AddModule<ProductionRecordModule>();
         }
 
         #endregion
@@ -399,6 +406,35 @@ namespace PF.Application.Shell
         /// </summary>
         private void RegisterParamModels(IContainerRegistry containerRegistry)
         {
+        }
+
+        #endregion
+
+        #region 生产数据服务注册
+
+        /// <summary>
+        /// 注册生产数据服务（独立数据库，支持多后端）。
+        /// 切换数据库只需修改此处的 DbContextOptionsBuilder，其余代码零改动。
+        /// </summary>
+        private void RegisterProductionDataService(IContainerRegistry containerRegistry)
+        {
+            try
+            {
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "ProductionHistory.db");
+                var options = new DbContextOptionsBuilder<ProductionDbContext>()
+                    .UseSqlite($"Data Source={filePath}")
+                    .Options;
+
+                containerRegistry.RegisterInstance<DbContextOptions<ProductionDbContext>>(options);
+                containerRegistry.RegisterSingleton<IProductionDataService, ProductionDataService>();
+
+                _logService.Info("生产数据服务注册完成", "DependencyInjection");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error("生产数据服务注册失败", exception: ex);
+                throw;
+            }
         }
 
         #endregion
