@@ -1,12 +1,10 @@
 using PF.Core.Interfaces.Production;
-using PF.Modules.ProductionRecord.ViewModels;
-using PF.Modules.ProductionRecord.Views;
+using PF.Modules.Production.ViewModels;
+using PF.Modules.Production.Views;
 using PF.UI.Infrastructure.Navigation;
-using Prism.Ioc;
-using Prism.Modularity;
 using System.Reflection;
 
-namespace PF.Modules.ProductionRecord
+namespace PF.Modules.Production
 {
     /// <summary>
     /// 生产数据记录模块。

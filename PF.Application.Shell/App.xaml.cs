@@ -27,7 +27,6 @@ using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
 using PF.Modules.SecsGem;
-using PF.Modules.ProductionRecord;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
@@ -60,6 +59,7 @@ using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
+using PF.Modules.Production;
 
 namespace PF.Application.Shell
 {

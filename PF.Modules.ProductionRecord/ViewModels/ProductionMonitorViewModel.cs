@@ -1,11 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
+using PF.Core.Entities.ProductionData;
+using PF.Core.Events;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
 using System.Collections.ObjectModel;
 using System.Windows;
 
-namespace PF.Modules.ProductionRecord.ViewModels
+namespace PF.Modules.Production.ViewModels
 {
     /// <summary>
     /// 生产数据实时监控 ViewModel。
@@ -70,7 +71,7 @@ namespace PF.Modules.ProductionRecord.ViewModels
         //  事件处理
         // ══════════════════════════════════════════════════════
 
-        private void OnDataRecorded(object? sender, ProductionDataRecordedEventArgs e)
+        private void OnDataRecorded(object? sender,  ProductionDataRecordedEventArgs e)
         {
             var record = e.Record;
             if (!MatchesFilter(record)) return;
