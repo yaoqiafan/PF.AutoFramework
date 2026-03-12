@@ -5,6 +5,7 @@
 		<PackageReference Include="log4net" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+		<PackageReference Include="NPOI" />
 		<PackageReference Include="Prism.Core" />
 	</ItemGroup>
 
