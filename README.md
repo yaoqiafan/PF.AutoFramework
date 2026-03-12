@@ -105,7 +105,7 @@ PF.AutoFramework.slnx
 > 无任何外部依赖，所有项目均可安全引用。
 
 - `IHardwareDevice` — 硬件设备统一接口（连接/断开/复位/报警事件）
-- `IMotionCard` — 运动控制卡接口（15 个统一硬件操作方法：运动控制 7 个、轴状态读取 3 个、IO 读写 3 个）
+- `IMotionCard` — 运动控制卡接口（12 个统一硬件操作方法：运动控制 7 个、轴状态读取 2 个、IO 读写 3 个）
 - `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
 - `IParamService` — 泛型参数读写接口
 - `ILogService` — 统一日志接口（Info/Warn/Error/Debug/Success）
@@ -164,7 +164,7 @@ PF.AutoFramework.slnx
 
 **BaseIODevice**：IO 设备，`ReadInput`/`WriteOutput`/`ReadOutput` 均代理到 `ParentCard`
 
-**BaseMotionCard**：板卡基类，15 个操作方法声明为 `abstract`，由厂商子类调用具体 SDK
+**BaseMotionCard**：板卡基类，12 个操作方法声明为 `abstract`，由厂商子类调用具体 SDK
 
 **BaseMechanism**：聚合多硬件，自动订阅硬件 `AlarmTriggered` 事件，支持延迟注册设备
 
@@ -308,46 +308,77 @@ public class YourMotionCard : BaseMotionCard
     protected override Task InternalResetAsync(CancellationToken token) => Task.CompletedTask;
 
     // ===== 运动控制（7个）=====
-    public override Task<bool> EnableAxisAsync(int axisIndex, CancellationToken token)
+    public override Task<bool> EnableAxisAsync(int axisIndex)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        // VendorSDK.ServoOn(CardIndex, axisIndex);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> DisableAxisAsync(int axisIndex)
     {
         if (IsSimulated) return Task.FromResult(true);
         return Task.FromResult(true);
     }
 
-    public override Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token)
-    {
-        if (IsSimulated) { await Task.Delay(500, token); return Task.FromResult(true); }
-        return Task.FromResult(true);
-    }
-
-    public override Task<bool> MoveAbsoluteAsync(int axisIndex, double position, 
-        double speed, CancellationToken token)
+    public override Task<bool> StopAxisAsync(int axisIndex, bool isEmgStop = false)
     {
         if (IsSimulated) return Task.FromResult(true);
         return Task.FromResult(true);
     }
 
-    // ... 其他方法类似
-
-    // ===== 轴状态读取（3个）=====
-    public override double GetAxisCurrentPosition(int axisIndex)
+    public override async Task<bool> HomeAxisAsync(int axisIndex,
+        int homeModel, int homeVel, int homeAcc, int homeDec, int homeOffset,
+        CancellationToken token = default)
     {
-        if (IsSimulated) return 0;
-        return 0;
+        if (IsSimulated) { await Task.Delay(500, token); return true; }
+        // VendorSDK.HomeAxis(CardIndex, axisIndex, homeModel, ...);
+        return true;
+    }
+
+    public override async Task<bool> MoveAbsoluteAsync(int axisIndex, double position,
+        double velocity, double acc, double dec, double sTime,
+        CancellationToken token = default)
+    {
+        if (IsSimulated) { await Task.Delay(200, token); return true; }
+        // VendorSDK.MoveAbs(CardIndex, axisIndex, position, velocity, acc, dec);
+        return true;
+    }
+
+    public override Task<bool> MoveRelativeAsync(int axisIndex, double distance,
+        double velocity, double acc, double dec, double sTime,
+        CancellationToken token = default)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> JogAsync(int axisIndex,
+        double velocity, double acc, double dec, bool isPositive)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    // ===== 轴状态读取（2个）=====
+    public override double? GetAxisCurrentPosition(int axisIndex)
+    {
+        if (IsSimulated) return 0.0;
+        // return VendorSDK.GetCurrentPos(CardIndex, axisIndex);
+        return 0.0;
     }
 
     public override MotionIOStatus GetMotionIOStatus(int axisIndex)
     {
-        if (IsSimulated) return MotionIOStatus.Ready;
-        return MotionIOStatus.Ready;
+        if (IsSimulated) return new MotionIOStatus { MoveDone = true, SVO = true };
+        // 从厂商 SDK 读取轴 IO 状态并填充 MotionIOStatus
+        return new MotionIOStatus();
     }
 
-    public override bool IsAxisMoving(int axisIndex) => false;
-
     // ===== IO 读写（3个）=====
-    public override bool ReadInputPort(int portIndex) => false;
-    public override void WriteOutputPort(int portIndex, bool value) { }
-    public override bool ReadOutputPort(int portIndex) => false;
+    public override bool? ReadInputPort(int portIndex) => false;
+    public override bool WriteOutputPort(int portIndex, bool value) => true;
+    public override bool? ReadOutputPort(int portIndex) => false;
 }
 ```
 
@@ -501,7 +532,7 @@ public class YourMechanism : BaseMechanism
         // 3. 连接 + 使能 + 回零
         if (!await _xAxis.ConnectAsync(token)) return false;
         if (!await _vacuumIO.ConnectAsync(token)) return false;
-        if (!await _xAxis.EnableAsync(token)) return false;
+        if (!await _xAxis.EnableAsync()) return false;          // EnableAsync 无 token 参数
         if (!await _xAxis.HomeAsync(token)) return false;
         _vacuumIO.WriteOutput(0, false);
 
@@ -519,7 +550,9 @@ public class YourMechanism : BaseMechanism
     public async Task PickAsync(CancellationToken token)
     {
         CheckReady(); // 防呆保护
-        await _xAxis!.MoveAbsoluteAsync(100.0, 50.0, token);
+        // MoveAbsoluteAsync 签名：(position, velocity, acc, dec, sTime, token)
+        // 实际项目中 acc/dec/sTime 从 _xAxis.Param 或 IParamService 读取
+        await _xAxis!.MoveAbsoluteAsync(100.0, 50.0, 500.0, 500.0, 0, token);
         _vacuumIO!.WriteOutput(0, true);
         if (!await _vacuumIO.WaitInputAsync(0, true, 2000, token))
             throw new Exception("真空建立超时！");
@@ -528,7 +561,7 @@ public class YourMechanism : BaseMechanism
     public async Task PlaceAsync(CancellationToken token)
     {
         CheckReady();
-        await _xAxis!.MoveAbsoluteAsync(200.0, 50.0, token);
+        await _xAxis!.MoveAbsoluteAsync(200.0, 50.0, 500.0, 500.0, 0, token);
         _vacuumIO!.WriteOutput(0, false);
         await Task.Delay(100, token);
     }
@@ -722,9 +755,12 @@ public class YourMasterController : BaseMasterController
 {
     private readonly IStationSyncService _sync;
 
-    public YourMasterController(ILogService logger, IStationSyncService sync,
-                                IEnumerable<StationBase> stations)
-        : base(logger, stations)
+    public YourMasterController(
+        ILogService logger,
+        PhysicalButtonEventBus hardwareEventBus,   // 物理按键事件总线（必填）
+        IStationSyncService sync,
+        IEnumerable<StationBase> stations)
+        : base(logger, hardwareEventBus, stations)
     {
         _sync = sync;
 
@@ -738,13 +774,13 @@ public class YourMasterController : BaseMasterController
 ### 5.2 典型调用序列
 
 ```csharp
-await controller.InitializeAllAsync();  // 必须，否则无法 Start
-controller.SetMode(OperationMode.DryRun); // 仅 Idle 状态有效
-controller.StartAll();
-controller.PauseAll();
-controller.ResumeAll();
-controller.StopAll();
-await controller.ResetAllAsync();
+await controller.InitializeAllAsync();        // 必须，否则无法 Start
+controller.SetMode(OperationMode.DryRun);     // 仅 Idle 状态有效
+await controller.StartAllAsync();             // 异步：等待 Running.OnEntryAsync 完成
+controller.PauseAll();                        // 同步
+await controller.ResumeAllAsync();            // 异步
+controller.StopAll();                         // 同步
+await controller.ResetAllAsync();             // 异步
 ```
 
 ### 5.3 注册到 DI 容器
@@ -857,9 +893,26 @@ paramService.RegisterParamType<MotionParam, double>();
 
 ### 7.2 读写参数
 
+> **注意**：`IParamService` 的泛型约束为 `where T : class`，**不支持直接使用值类型**（`int`/`double`/`bool` 等）。
+> 推荐将参数数据封装为 POCO 类（如 Step 1 中定义的 `MotionParamValue`），再进行读写。
+
 ```csharp
-var speed = await _paramService.GetParamAsync<double>("Axis1_Speed");
-await _paramService.SetParamAsync("Axis1_Speed", 200.0, currentUser, "速度调整");
+// ① 定义包装类（仅需一层浅封装）
+public class MotionParamValue
+{
+    public double Speed { get; set; }
+}
+
+// ② 读取参数（T 必须是引用类型）
+var param = await _paramService.GetParamAsync<MotionParamValue>("Axis1_Speed");
+double speed = param?.Speed ?? 100.0;
+
+// ③ 写入参数
+await _paramService.SetParamAsync(
+    "Axis1_Speed",
+    new MotionParamValue { Speed = 200.0 },
+    currentUser,
+    "速度调整");
 ```
 
 ---
@@ -882,23 +935,19 @@ public class WeldingProcessData
 ### 8.2 写入数据
 
 ```csharp
-await _productionService.RecordAsync(
-    data,
-    name: $"Welding_{lotId}",
-    deviceId: "WELDING_STATION_01",
-    recordType: "WeldingProcess",
-    batchId: lotId
-);
+// RecordAsync 签名：RecordAsync<TData>(TData data, string? recordType = null)
+await _productionService.RecordAsync(data, recordType: "WeldingProcess");
 ```
 
 ### 8.3 历史查询
 
 ```csharp
+// ProductionQueryFilter 可用字段：StartTime / EndTime / RecordType / Keyword / MaxCount
 var filter = new ProductionQueryFilter
 {
     StartTime = DateTime.Today,
     EndTime = DateTime.Now,
-    DeviceId = "WELDING_STATION_01",
+    RecordType = "WeldingProcess",  // 精确匹配记录类型
     MaxCount = 500
 };
 var records = await _productionService.QueryAsync(filter);
