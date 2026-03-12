@@ -16,20 +16,18 @@
 ## ✨ 核心特性
 
 * **🧩 极致的模块化架构**：基于 Prism 9 实现 UI、核心逻辑与数据层的彻底解耦。支持插件式开发，子模块动态加载。
-* **🏭 完整的工控生命周期**：内置标准化 `Uninitialized → Initializing → Idle → Running` 状态机，配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
-* **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice`）。
-* **🎨 现代扁平化 UI**：内置海量高颜值自定义控件库（`Growl` 消息提示、`Drawer` 抽屉视图、步骤条等），支持极简的现代化工业 UI 设计风格。
-* **🔐 全局身份与权限管理**：内置完整身份认证模块（`IdentityModule`），支持细粒度（页面级/按钮级）权限管控及多级用户角色；`UserManagementViewModel` 提供完整 CRUD，新建用户时自动按角色等级赋予默认页面权限（累积模型）。
-* **💾 动态参数与持久化系统**：基于 EF Core 9 + SQLite 提供强大的泛型参数服务（`IParamService`），JSON 序列化存储，支持自动建表与审计追踪。
-* **🔌 高性能底层通信**：封装稳定可靠的 TCP 服务端/客户端通信基类（信号量锁 + 自动重连）。
-* **📊 工业级日志追踪**：内置高性能日志组件（`LogService`），生产者-消费者异步写入，支持分类日志与自动滚动。
+* **🏭 完整的工控生命周期**：内置标准化 7 状态机，配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
+* **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase`（工站），模板方法模式，子类仅实现业务钩子。
+* **🎨 现代扁平化 UI**：内置高颜值自定义控件库（`Growl`、`Drawer`、步骤条等），支持深色/浅色主题。
+* **🔐 全局身份与权限管理**：内置完整身份认证模块，支持细粒度权限管控及多级用户角色。
+* **💾 动态参数与持久化系统**：基于 EF Core 9 + SQLite 提供强大的泛型参数服务，JSON 序列化存储，支持审计追踪。
+* **📊 工业级日志追踪**：高性能日志组件，生产者-消费者异步写入，支持分类与自动滚动。
 
 ---
 
-
 ## 🏗️ 系统架构图
 
-<img width="2816" height="1536" alt="Gemini_Generated_Image_m74mdfm74mdfm74m" src="https://github.com/user-attachments/assets/f2de5424-777f-482e-9555-fed2dfadc1f5" />
+<img width="2816" height="1536" alt="Architecture" src="https://github.com/user-attachments/assets/f2de5424-777f-482e-9555-fed2dfadc1f5" />
 
 ---
 
@@ -41,41 +39,40 @@
 PF.AutoFramework.slnx
 │
 ├── /00. 全局配置
-│   ├── Common.props                  # 全局编译属性（TargetFramework、Nullable等）
+│   ├── Common.props                  # 全局编译属性
 │   ├── Common.Desktop.props          # 桌面 WPF 专属属性
-│   └── Directory.Packages.props      # 中央包版本管理（Central Package Management）
+│   └── Directory.Packages.props      # 中央包版本管理
 │
 ├── /01. 基础层 (Foundation)
-│   ├── PF.Core                       # 核心契约层（接口、枚举、实体基类、特性）
-│   └── PF.Infrastructure             # 底层实现（TCP通信、日志器、硬件/模组/工站基类）
+│   ├── PF.Core                       # 核心契约层（接口、枚举、特性）
+│   └── PF.Infrastructure             # 底层实现（硬件/模组/工站基类）
 │
 ├── /02. UI 组件库
-│   ├── PF.UI.Controls                # 自定义 WPF 控件（Growl、Drawer、Steps等）
-│   ├── PF.UI.Infrastructure          # UI 基础设施（ViewModel基类、对话框、导航服务）
-│   ├── PF.UI.Resources               # 主题资源字典（Dark/Light/Default皮肤）
+│   ├── PF.UI.Controls                # 自定义控件（Growl、Drawer、Steps）
+│   ├── PF.UI.Infrastructure          # UI 基础设施（ViewModel 基类）
+│   ├── PF.UI.Resources               # 主题资源字典
 │   └── PF.UI.Shared                  # UI 共享工具
 │
 ├── /03. 数据层 (Data)
-│   └── PF.Data                       # EF Core 模型、DbContextFactory、GenericRepository
+│   └── PF.Data                       # EF Core 模型、DbContext、Repository
 │
-├── /04. 工具与服务层 (Tools & Services)
-│   ├── PF.CommonTools                # 通用工具（JSON、反射、系统API）
-│   └── PF.Services                   # 业务服务（UserService、ParamService、HardwareManagerService）
+├── /04. 工具与服务层
+│   ├── PF.CommonTools                # 通用工具
+│   └── PF.Services                   # 业务服务（ParamService、HardwareManager）
 │
 ├── /05. 业务模块 (Modules)
-│   ├── PF.Modules.Identity           # 身份认证与权限管理
-│   ├── PF.Modules.Logging            # 日志查看与管理
-│   ├── PF.Modules.Parameter          # 系统参数管理
-│   ├── PF.Modules.Debug              # 硬件调试面板（板卡层级树 + 轴/IO/Card调试视图，MechanismUI自动发现）
-│   ├── PF.Modules.SecsGem            # 半导体设备 SECS/GEM 通信
-│   └── PF.Modules.ProductionRecord   # 生产数据记录与历史查询（实时监控 + 条件查询 + 导出）
+│   ├── PF.Modules.Identity           # 身份认证
+│   ├── PF.Modules.Logging            # 日志查看
+│   ├── PF.Modules.Parameter          # 参数管理
+│   ├── PF.Modules.Debug              # 硬件调试面板
+│   └── PF.Modules.SecsGem            # SECS/GEM 通信
 │
 ├── /06. 应用入口 (Application)
-│   └── PF.Application.Shell          # WPF App入口、Prism Bootstrapper、主题加载
+│   └── PF.Application.Shell          # WPF App 入口
 │
 └── /07. Demo 工站
-    ├── PF.Workstation.Demo           # 取放工站业务逻辑（MasterController、PickPlaceStation）
-    └── PF.Workstation.Demo.UI        # 取放工站 UI 模块（ViewModel、View、UIModule）
+    ├── PF.Workstation.Demo           # 取放工站业务逻辑
+    └── PF.Workstation.Demo.UI        # 取放工站 UI 模块
 ```
 
 ---
@@ -91,166 +88,952 @@ PF.AutoFramework.slnx
 | **ORM** | Entity Framework Core | 9.0.12 |
 | **数据库** | SQLite | EF Core Provider |
 | **日志** | log4net | 3.2.0 |
-| **主机** | Microsoft.Extensions.Hosting | 10.0.2 |
 | **状态机** | Stateless | 5.20.1 |
-| **Excel** | NPOI | 2.7.5 |
-| **JSON** | System.Text.Json | 内置 |
 
 ---
 
-## 📦 核心项目详解
+# 开发者指南
 
-### PF.Core — 核心契约层
-
-> 无任何外部依赖，所有项目均可安全引用。
-
-- `IHardwareDevice` — 硬件设备统一接口（连接/断开/复位/报警事件）
-- `IMotionCard` — 运动控制卡接口（继承 `IHardwareDevice`，增加 AxisCount/InputCount/OutputCount；定义 15 个统一硬件操作方法：运动控制 7 个、轴状态读取 3 个、IO 读写 3 个，以及 `MotionIOStatus` 状态结构体）
-- `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
-- `IParamService` — 泛型参数读写接口
-- `ILogService` — 统一日志接口（Info/Warn/Error/Debug）
-- `IUserService` — 用户认证与权限接口
-- `IHardwareManagerService` — 硬件生命周期管理接口
-- `IStationSyncService` — 工站流水线信号量协同接口
-- `MachineState` / `MachineTrigger` / `OperationMode` — 状态机枚举
-- `HardwareCategory` — 设备分类枚举（Axis / IOController / MotionCard / Camera 等）
-- `ModuleNavigationAttribute` — 声明式视图导航注册特性
-- `MechanismUIAttribute` — 模组调试 UI 自动发现特性
-- `UserLevel` — 角色层级：Null → Operator → Engineer → Administrator → SuperUser
-
-### PF.Data — 数据访问层
-
-- `DbContextFactory<TContext>` — 静态线程安全工厂，`ConcurrentDictionary` 缓存 DbContext 配置
-- `ParamEntity` — 所有参数实体的基类（Name, JsonValue, Category, Version, TypeFullName）
-- `HardwareParam` — 硬件配置参数实体（存储 `HardwareConfig` 的 JSON 序列化结果）
-- `GenericRepository<T>` — 通用 CRUD 仓储
-- 数据库路径：`%APPDATA%\PFAutoFrameWork\SystemParamsCollection.db`
-- `ProductionDataEntity` — 生产数据实体（继承 ParamEntity，追加 DeviceId / RecordType / RecordTime / BatchId）
-- `ProductionDbContext` — 生产数据独立 DbContext，数据库路径：`%APPDATA%\PFAutoFrameWork\ProductionHistory.db`
-
-### PF.Services — 业务逻辑层
-
-**ParamService** — 泛型参数持久化服务：
-- JSON 序列化存储，Schema 无关
-- 值未变更时跳过写库（优化写入频率）
-- `ParamChanged` 事件携带完整审计信息（旧值、新值、操作人、时间戳）
-- `RegisterParamType<TEntity, TModel>()` 注册自定义类型映射
-
-**HardwareManagerService** — 硬件生命周期管理：
-- `RegisterFactory()` 注册设备工厂函数
-- `LoadAndInitializeAsync()` 拓扑排序（父卡优先）初始化
-- `ImportConfigsAsync()` 批量写入配置到数据库
-- `GetDevice(deviceId)` 运行时按 ID 获取设备实例
-
-**LogService** — 高性能日志服务：
-- 内存循环缓冲区（最大 1000 条）
-- `BlockingCollection<LogEntry>` 异步文件写入
-- 按小时/天自动滚动，历史日志自动清理（默认 30 天）
-
-**ProductionDataService** — 生产过程数据记录服务：
-- 泛型写入 `RecordAsync<TData>()`：任意 POCO → JSON 序列化，`Channel` 有界队列 + 单消费者线程，`RecordAsync` 非阻塞立即返回
-- 条件查询 `QueryAsync(filter)`：直接返回集合，所有过滤字段均可空（时间范围 / DeviceId / RecordType / BatchId / 关键词 / 数量上限）
-- 泛型查询 `QueryDataAsync<TData>(filter)`：自动反序列化 JsonValue 为目标类型
-- 导出 `ExportToCsvAsync()` / `ExportToExcelAsync()`：via NPOI
-- `DataRecorded` 事件：每条数据写入后触发，供 UI 实时订阅
-- 多数据库：仅需修改 `DbContextOptionsBuilder`（SQLite / SQL Server / MySQL），服务代码零改动
-
-### PF.Infrastructure — 底层基础设施
-
-**BaseDevice**：模板方法模式，3 次重试连接（间隔 2s），模拟模式直通，`RaiseAlarm()` 触发事件链
-
-> **硬件代理层架构**：`IMotionCard` 是所有硬件操作的统一入口。`BaseAxisDevice` 和 `BaseIODevice` 均实现 `IAttachedDevice`，在 `HardwareManagerService` 拓扑初始化后通过 `AttachToCard()` 注入父板卡引用；其所有运动/IO 方法均为代理方法，委托至 `ParentCard.XxxAsync(axisIndex/portIndex, ...)`，实现与具体 SDK 的彻底解耦。
-
-**BaseAxisDevice**：继承 `BaseDevice`，实现 `IAxis + IAttachedDevice`。所有运动方法（`EnableAsync`、`HomeAsync`、`MoveAbsoluteAsync` 等）均为**代理方法**，通过 `ParentCard` 委托到 `IMotionCard` 统一执行；内置点表（`AxisPoint`）JSON 持久化；`EnsureCardAttached()` 防卫检查
-
-**BaseIODevice**：继承 `BaseDevice`，实现 `IIOController + IAttachedDevice`。`ReadInput`/`WriteOutput`/`ReadOutput` 均为**代理方法**委托到 `ParentCard`；`WaitInputAsync` 提供 20ms 轮询的通用实现，不依赖任何 SDK
-
-**BaseMotionCard**：继承 `BaseDevice`，实现 `IMotionCard`，`LoadConfigAsync` 带日志包装；15 个操作方法声明为 `abstract`，由厂商子类调用具体 SDK
-
-**BaseMechanism**：聚合多硬件，自动订阅所有硬件 `AlarmTriggered` 事件，`CheckReady()` 防呆；提供 `RegisterHardwareDevice(device)` 方法支持在初始化钩子中**延迟注册**设备（适用于延迟解析的代理模式）
-
-**StationBase**：`Stateless` 七状态机 + 后台线程管理，标准生命周期 `Uninitialized → Idle`
+本指南以**创建新项目**为主线，按开发顺序组织。当你开始一个新的自动化项目时，按以下步骤进行。
 
 ---
 
-## 🚀 开发者指南一：创建 Prism 业务模块
+## 0. 快速开始（5 分钟跑起来）
 
-在 `PF.AutoFramework` 中开发新功能，强烈建议以**独立 Module** 的形式进行。
+```bash
+# 1. 克隆仓库
+git clone https://github.com/your-org/PF.AutoFramework.git
 
-### Step 1: 实现 IModule 接口
+# 2. 打开解决方案
+# 使用 Visual Studio 2022 或 JetBrains Rider 打开 PF.AutoFramework.slnx
 
-新建类库项目（如 `PF.Modules.Print`），实现 `IModule`：
+# 3. 还原 NuGet 包
+dotnet restore
+
+# 4. 运行 Demo
+# 设置 PF.Application.Shell 为启动项目，F5 运行
+```
+
+运行后你将看到：
+- 深色主题主窗口
+- 左侧导航菜单
+- 系统调试 → 设备综合调试 / 业务模组调试 / 工站调试
+- 取放工站 Demo 正常运行
+
+---
+
+## 1. 新项目初始化
+
+### 1.1 必须创建的项目
+
+创建新工站项目需要以下结构：
+
+```
+PF.Workstation.YourProject/           # 业务逻辑层
+├── Hardware/                         # 硬件实现
+│   ├── YourMotionCard.cs            # 运动控制卡
+│   ├── YourAxis.cs                  # 轴设备
+│   └── YourIO.cs                    # IO 设备
+├── Mechanisms/                       # 机构层
+│   └── YourMechanism.cs
+├── Stations/                         # 工站层
+│   └── YourStation.cs
+├── Controllers/                      # 主控
+│   └── YourMasterController.cs
+└── YourProjectModule.cs             # Prism 模块注册
+
+PF.Workstation.YourProject.UI/        # UI 层
+├── Views/
+│   ├── YourMechanismView.xaml       # 机构调试视图
+│   └── YourStationDebugView.xaml    # 工站调试视图
+├── ViewModels/
+│   ├── YourMechanismViewModel.cs
+│   └── YourStationDebugViewModel.cs
+└── YourProjectUIModule.cs           # UI 模块注册
+```
+
+### 1.2 项目引用关系
+
+```
+PF.Workstation.YourProject
+├── → PF.Core
+├── → PF.Infrastructure
+├── → PF.Services
+└── → PF.Data
+
+PF.Workstation.YourProject.UI
+├── → PF.Core
+├── → PF.UI.Infrastructure
+├── → PF.Workstation.YourProject
+└── → Prism.DryIoc
+```
+
+### 1.3 命名规范
+
+| 类型 | 命名 | 示例 |
+|------|------|------|
+| 运动卡 | `{厂商}MotionCard` | `LeiSaiMotionCard` |
+| 轴设备 | `{功能}Axis` | `GantryXAxis` |
+| IO 设备 | `{功能}IO` | `VacuumIO` |
+| 机构 | `{功能}Mechanism` | `GantryMechanism` |
+| 工站 | `{功能}Station` | `PickPlaceStation` |
+| 主控 | `{项目}MasterController` | `DemoMasterController` |
+
+---
+
+## 2. 硬件层开发（Layer 1）
+
+硬件层是整个框架的基础，分为三个抽象层级：
+
+```
+BaseMotionCard（板卡）     ← 厂商 SDK 封装
+    ↓ AttachToCard()
+BaseAxisDevice（轴）       ← 代理到 ParentCard
+BaseIODevice（IO）         ← 代理到 ParentCard
+```
+
+### 2.1 新增运动控制卡
+
+继承 `BaseMotionCard`，实现 15 个抽象方法：
 
 ```csharp
-public class PrintModule : IModule
+// PF.Workstation.YourProject/Hardware/YourMotionCard.cs
+public class YourMotionCard : BaseMotionCard
+{
+    public override int CardIndex { get; }
+    public override int AxisCount => 4;
+    public override int InputCount => 32;
+    public override int OutputCount => 32;
+
+    public YourMotionCard(HardwareConfig config, ILogService logger)
+        : base(config.DeviceId, config.DeviceName, config.IsSimulated, logger)
+    {
+        Category = HardwareCategory.MotionCard;
+        CardIndex = int.Parse(config.ConnectionParameters["CardIndex"]);
+    }
+
+    protected override async Task<bool> InternalConnectAsync(CancellationToken token)
+    {
+        if (IsSimulated) return true;
+        
+        // 调用厂商 SDK 初始化
+        // var result = VendorSDK.Open(CardIndex);
+        // return result == 0;
+        return true;
+    }
+
+    protected override Task InternalDisconnectAsync()
+    {
+        if (!IsSimulated)
+        {
+            // VendorSDK.Close(CardIndex);
+        }
+        return Task.CompletedTask;
+    }
+
+    protected override Task InternalResetAsync(CancellationToken token)
+    {
+        return Task.CompletedTask;
+    }
+
+    // ===== 运动控制（7个）=====
+    public override Task<bool> EnableAxisAsync(int axisIndex, CancellationToken token)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        // return VendorSDK.EnableAxis(CardIndex, axisIndex);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> DisableAxisAsync(int axisIndex, CancellationToken token)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> StopAxisAsync(int axisIndex, CancellationToken token)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> HomeAxisAsync(int axisIndex, CancellationToken token)
+    {
+        if (IsSimulated)
+        {
+            await Task.Delay(500, token); // 模拟回零时间
+            return Task.FromResult(true);
+        }
+        // return VendorSDK.HomeAxis(CardIndex, axisIndex);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> MoveAbsoluteAsync(int axisIndex, double position, 
+        double speed, CancellationToken token)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        // return VendorSDK.MoveAbs(CardIndex, axisIndex, position, speed);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> MoveRelativeAsync(int axisIndex, double distance, 
+        double speed, CancellationToken token)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    public override Task<bool> JogAsync(int axisIndex, double speed, CancellationToken token)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    // ===== 轴状态读取（3个）=====
+    public override double GetAxisCurrentPosition(int axisIndex)
+    {
+        if (IsSimulated) return 0;
+        // return VendorSDK.GetPosition(CardIndex, axisIndex);
+        return 0;
+    }
+
+    public override MotionIOStatus GetMotionIOStatus(int axisIndex)
+    {
+        if (IsSimulated) return MotionIOStatus.Ready;
+        // return VendorSDK.GetStatus(CardIndex, axisIndex);
+        return MotionIOStatus.Ready;
+    }
+
+    public override bool IsAxisMoving(int axisIndex)
+    {
+        if (IsSimulated) return false;
+        return false;
+    }
+
+    // ===== IO 读写（3个）=====
+    public override bool ReadInputPort(int portIndex)
+    {
+        if (IsSimulated) return false;
+        // return VendorSDK.ReadInput(CardIndex, portIndex);
+        return false;
+    }
+
+    public override void WriteOutputPort(int portIndex, bool value)
+    {
+        if (IsSimulated) return;
+        // VendorSDK.WriteOutput(CardIndex, portIndex, value);
+    }
+
+    public override bool ReadOutputPort(int portIndex)
+    {
+        if (IsSimulated) return false;
+        return false;
+    }
+}
+```
+
+### 2.2 新增轴设备
+
+继承 `BaseAxisDevice`，**无需重写运动方法**（代理到 ParentCard）：
+
+```csharp
+// PF.Workstation.YourProject/Hardware/YourAxis.cs
+public class YourAxis : BaseAxisDevice
+{
+    public override int AxisIndex { get; }
+
+    public YourAxis(HardwareConfig config, ILogService logger)
+        : base(config.DeviceId, config.DeviceName, config.IsSimulated, logger,
+               dataDirectory: AppDomain.CurrentDomain.BaseDirectory)
+    {
+        Category = HardwareCategory.Axis;
+        AxisIndex = int.Parse(config.ConnectionParameters["AxisIndex"]);
+    }
+
+    // 轴设备不需要独立连接，父板卡连接后即可使用
+    protected override Task<bool> InternalConnectAsync(CancellationToken token)
+        => Task.FromResult(ParentCard != null);
+
+    protected override Task InternalDisconnectAsync() => Task.CompletedTask;
+    
+    protected override Task InternalResetAsync(CancellationToken token) => Task.CompletedTask;
+}
+```
+
+> **关键点**：`BaseAxisDevice` 的所有运动方法（`EnableAsync`、`HomeAsync`、`MoveAbsoluteAsync` 等）已经实现为代理方法，自动调用 `ParentCard.XxxAxisAsync(AxisIndex, ...)`。子类只需提供 `AxisIndex`。
+
+### 2.3 新增 IO 设备
+
+```csharp
+// PF.Workstation.YourProject/Hardware/YourIO.cs
+public class YourIO : BaseIODevice
+{
+    public YourIO(HardwareConfig config, ILogService logger)
+        : base(config.DeviceId, config.DeviceName, config.IsSimulated, logger)
+    {
+        Category = HardwareCategory.IOController;
+    }
+
+    protected override Task<bool> InternalConnectAsync(CancellationToken token)
+        => Task.FromResult(ParentCard != null);
+
+    protected override Task InternalDisconnectAsync() => Task.CompletedTask;
+    
+    protected override Task InternalResetAsync(CancellationToken token) => Task.CompletedTask;
+}
+```
+
+### 2.4 注册硬件工厂
+
+在 `App.xaml.cs` 中注册：
+
+```csharp
+private void RegisterHardwareFactories(IHardwareManagerService hwManager, ILogService logger)
+{
+    // 注册板卡
+    hwManager.RegisterFactory("YourMotionCard", 
+        cfg => new YourMotionCard(cfg, logger));
+    
+    // 注册轴设备
+    hwManager.RegisterFactory("YourAxis", 
+        cfg => new YourAxis(cfg, logger));
+    
+    // 注册 IO 设备
+    hwManager.RegisterFactory("YourIO", 
+        cfg => new YourIO(cfg, logger));
+}
+```
+
+### 2.5 添加硬件配置
+
+在 `DefaultParameters.cs` 中添加默认配置：
+
+```csharp
+// 板卡配置（顶层设备，ParentDeviceId 为空）
+["YOUR_CARD_0"] = new HardwareParam
+{
+    Name = "YOUR_CARD_0",
+    Category = "Hardware",
+    JsonValue = JsonSerializer.Serialize(new HardwareConfig
+    {
+        DeviceId = "YOUR_CARD_0",
+        DeviceName = "运动控制卡0",
+        ImplementationClassName = "YourMotionCard",
+        Category = "MotionCard",
+        ParentDeviceId = "",  // 顶层
+        IsSimulated = true,
+        IsEnabled = true,
+        ConnectionParameters = new Dictionary<string, string>
+        {
+            ["CardIndex"] = "0"
+        }
+    })
+},
+
+// 轴配置（子设备，ParentDeviceId 指向板卡）
+["YOUR_X_AXIS"] = new HardwareParam
+{
+    Name = "YOUR_X_AXIS",
+    Category = "Hardware",
+    JsonValue = JsonSerializer.Serialize(new HardwareConfig
+    {
+        DeviceId = "YOUR_X_AXIS",
+        DeviceName = "X轴",
+        ImplementationClassName = "YourAxis",
+        Category = "Axis",
+        ParentDeviceId = "YOUR_CARD_0",  // 挂载到板卡
+        IsSimulated = true,
+        IsEnabled = true,
+        ConnectionParameters = new Dictionary<string, string>
+        {
+            ["AxisIndex"] = "0"
+        }
+    })
+},
+```
+
+> **拓扑关系**：`HardwareManagerService.LoadAndInitializeAsync()` 会自动拓扑排序，先初始化板卡，再初始化子设备，并调用 `AttachToCard()` 注入父板卡引用。
+
+---
+
+## 3. 机构层开发（Layer 2）
+
+机构层聚合多个硬件，协调完成功能动作。
+
+### 3.1 创建机构类
+
+```csharp
+// PF.Workstation.YourProject/Mechanisms/YourMechanism.cs
+using PF.Core.Attributes;
+
+[MechanismUI("你的机构调试", "YourMechanismView", order: 1)]
+public class YourMechanism : BaseMechanism
+{
+    private readonly IHardwareManagerService _hwManager;
+    private readonly ILogService _logger;
+    
+    private IAxis? _xAxis;
+    private IIOController? _vacuumIO;
+
+    public YourMechanism(
+        IHardwareManagerService hwManager, 
+        ILogService logger)
+        : base("你的机构", logger)
+    {
+        _hwManager = hwManager ?? throw new ArgumentNullException(nameof(hwManager));
+        _logger = logger;
+    }
+
+    // 初始化：延迟解析硬件 → 注册 → 连接 → 回零
+    protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
+    {
+        _logger.Info($"[{MechanismName}] 开始初始化...");
+
+        // 1. 延迟解析硬件（确保板卡已初始化）
+        _xAxis = _hwManager.GetDevice("YOUR_X_AXIS") as IAxis
+            ?? throw new InvalidOperationException("未找到 X 轴设备");
+        
+        _vacuumIO = _hwManager.GetDevice("YOUR_VACUUM_IO") as IIOController
+            ?? throw new InvalidOperationException("未找到真空 IO 设备");
+
+        // 2. 延迟注册到 BaseMechanism（启用报警聚合）
+        RegisterHardwareDevice(_xAxis as IHardwareDevice);
+        RegisterHardwareDevice(_vacuumIO as IHardwareDevice);
+
+        // 3. 连接硬件
+        if (!await _xAxis.ConnectAsync(token))
+        {
+            _logger.Error($"[{MechanismName}] X轴连接失败");
+            return false;
+        }
+
+        if (!await _vacuumIO.ConnectAsync(token))
+        {
+            _logger.Error($"[{MechanismName}] 真空IO连接失败");
+            return false;
+        }
+
+        // 4. 使能 + 回零
+        if (!await _xAxis.EnableAsync(token))
+        {
+            _logger.Error($"[{MechanismName}] X轴使能失败");
+            return false;
+        }
+
+        if (!await _xAxis.HomeAsync(token))
+        {
+            _logger.Error($"[{MechanismName}] X轴回零失败");
+            return false;
+        }
+
+        // 5. 初始状态
+        _vacuumIO.WriteOutput(0, false); // 关真空
+
+        _logger.Success($"[{MechanismName}] 初始化完成");
+        return true;
+    }
+
+    // 紧急停止
+    protected override async Task InternalStopAsync()
+    {
+        _logger.Warn($"[{MechanismName}] 紧急停止");
+        
+        if (_xAxis != null) 
+            await _xAxis.StopAsync();
+        
+        if (_vacuumIO != null) 
+            _vacuumIO.WriteOutput(0, false);
+    }
+
+    // ===== 业务动作（供工站调用）=====
+    
+    public async Task PickAsync(CancellationToken token)
+    {
+        CheckReady(); // 防呆：未初始化或有报警时抛异常
+        
+        _logger.Info($"[{MechanismName}] 执行取料...");
+        
+        // 移动到取料位
+        await _xAxis!.MoveAbsoluteAsync(100.0, 50.0, token);
+        
+        // 开真空
+        _vacuumIO!.WriteOutput(0, true);
+        
+        // 等待真空建立
+        if (!await _vacuumIO.WaitInputAsync(0, true, 2000, token))
+        {
+            throw new Exception("真空建立超时！");
+        }
+        
+        _logger.Success($"[{MechanismName}] 取料完成");
+    }
+
+    public async Task PlaceAsync(CancellationToken token)
+    {
+        CheckReady();
+        
+        _logger.Info($"[{MechanismName}] 执行放料...");
+        
+        // 移动到放料位
+        await _xAxis!.MoveAbsoluteAsync(200.0, 50.0, token);
+        
+        // 关真空
+        _vacuumIO!.WriteOutput(0, false);
+        
+        await Task.Delay(100, token);
+        
+        _logger.Success($"[{MechanismName}] 放料完成");
+    }
+}
+```
+
+### 3.2 关键点说明
+
+| 要点 | 说明 |
+|------|------|
+| `[MechanismUI]` | 标记后自动在调试面板显示，View 名称必须与注册时一致 |
+| 延迟解析 | 构造函数不直接依赖设备，在 `InternalInitializeAsync` 中解析 |
+| `RegisterHardwareDevice` | 注册后自动聚合报警，批量复位 |
+| `CheckReady()` | 防呆保护，`HasAlarm` 或 `!IsInitialized` 时抛异常 |
+
+### 3.3 注册到 DI 容器
+
+在 `App.xaml.cs` 中：
+
+```csharp
+// 使用 RegisterMany 将同一实例注册为多个类型
+var container = containerRegistry.GetContainer();
+container.RegisterMany(
+    new[] { typeof(YourMechanism), typeof(IMechanism) },
+    typeof(YourMechanism),
+    reuse: DryIoc.Reuse.Singleton);
+```
+
+> **为什么用 RegisterMany？**  
+> `YourMechanism` 需要同时以两种类型被解析：
+> 1. `YourMechanism` — 被工站直接依赖
+> 2. `IMechanism` — 被调试模块通过 `IEnumerable<IMechanism>` 收集
+
+---
+
+## 4. 工站层开发（Layer 3）
+
+工站层是业务逻辑的核心，管理步序状态机和后台线程。
+
+### 4.1 工站 7 状态机
+
+```
+Uninitialized ──(Initialize)──► Initializing ──(InitDone)──► Idle
+                                     │                            │
+                                  (Error)                      (Start)
+                                     ▼                            ▼
+                                   Alarm ◄──(Error)─────────── Running
+                                     │                        ↕ (Pause/Resume)
+                                   (Reset)                     Paused
+                                     ▼
+                                 Resetting ──(ResetDone)──► Idle
+```
+
+| 状态 | 描述 |
+|------|------|
+| `Uninitialized` | 初始状态，硬件未就绪，**禁止启动** |
+| `Initializing` | 正在执行硬件连接/回零 |
+| `Idle` | 待机，就绪等待启动 |
+| `Running` | 后台线程执行 `ProcessLoopAsync` |
+| `Paused` | `_pauseEvent` 关闭，线程挂起 |
+| `Alarm` | 故障，等待人工干预 |
+| `Resetting` | 正在执行物理复位 |
+
+### 4.2 创建工站类
+
+```csharp
+// PF.Workstation.YourProject/Stations/YourStation.cs
+using PF.Core.Attributes;
+
+[StationUI("你的工站调试", "YourStationDebugView", order: 1)]
+public class YourStation : StationBase
+{
+    private readonly YourMechanism _mechanism;
+    private readonly IStationSyncService _sync;
+
+    // 步序枚举（间隔值，便于将来插入中间步）
+    private enum Step
+    {
+        WaitMaterial = 10,
+        Pick = 20,
+        Process = 30,
+        Place = 40,
+        NotifyDownstream = 50,
+    }
+    private Step _currentStep = Step.WaitMaterial;
+
+    public YourStation(
+        YourMechanism mechanism,
+        IStationSyncService sync,
+        ILogService logger)
+        : base("你的工站", logger)
+    {
+        _mechanism = mechanism;
+        _sync = sync;
+        
+        // 模组故障 → 工站报警
+        _mechanism.AlarmTriggered += (s, e) => TriggerAlarm();
+    }
+
+    // ===== 生命周期钩子 =====
+
+    // 初始化（由 MasterController.InitializeAllAsync 调用）
+    public override async Task ExecuteInitializeAsync(CancellationToken token)
+    {
+        Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
+        
+        try
+        {
+            if (!await _mechanism.InitializeAsync(token))
+                throw new Exception($"[{StationName}] 机构初始化失败！");
+            
+            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+        }
+        catch
+        {
+            Fire(MachineTrigger.Error); // Initializing → Alarm
+            throw;
+        }
+    }
+
+    // 工艺大循环（Running 状态下的后台线程）
+    protected override async Task ProcessLoopAsync(CancellationToken token)
+    {
+        // 路由到对应模式
+        if (CurrentMode == OperationMode.Normal)
+            await ProcessNormalAsync(token);
+        else
+            await ProcessDryRunAsync(token);
+    }
+
+    // 正常生产模式
+    private async Task ProcessNormalAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            switch (_currentStep)
+            {
+                case Step.WaitMaterial:
+                    _pauseEvent.Wait(token); // 暂停检查点
+                    await WaitForMaterialAsync(token);
+                    _currentStep = Step.Pick;
+                    break;
+
+                case Step.Pick:
+                    _pauseEvent.Wait(token);
+                    await _mechanism.PickAsync(token);
+                    _currentStep = Step.Process;
+                    break;
+
+                case Step.Process:
+                    _pauseEvent.Wait(token);
+                    // 等待下游就绪
+                    await _sync.WaitAsync("SlotEmpty", token);
+                    // 执行工艺...
+                    _currentStep = Step.Place;
+                    break;
+
+                case Step.Place:
+                    await _mechanism.PlaceAsync(token);
+                    _sync.Release("ProductReady"); // 通知下游
+                    _currentStep = Step.NotifyDownstream;
+                    break;
+
+                case Step.NotifyDownstream:
+                    await Task.Delay(50, token);
+                    _currentStep = Step.WaitMaterial;
+                    break;
+            }
+        }
+    }
+
+    // 空跑模式（跳过物料等待和信号量）
+    private async Task ProcessDryRunAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            _pauseEvent.Wait(token);
+            
+            // 简化流程：只执行轴运动
+            await _mechanism.PickAsync(token);
+            await Task.Delay(100, token);
+            await _mechanism.PlaceAsync(token);
+            await Task.Delay(100, token);
+        }
+    }
+
+    // 物理复位（由 MasterController.ResetAllAsync 调用）
+    public override async Task ExecuteResetAsync(CancellationToken token)
+    {
+        // 1. 清除硬件报警
+        await _mechanism.ResetAsync(token);
+        
+        // 2. 重新初始化
+        await _mechanism.InitializeAsync(token);
+
+        // 3. 智能步序恢复（根据故障现场决定从哪里恢复）
+        _currentStep = _currentStep >= Step.Place
+            ? Step.WaitMaterial   // 放料后故障：等新料
+            : Step.Pick;          // 取料中故障：重试
+
+        // 4. Alarm → Idle
+        ResetAlarm();
+    }
+
+    public override void Dispose()
+    {
+        _mechanism.AlarmTriggered -= (s, e) => TriggerAlarm();
+        _mechanism.Dispose();
+        base.Dispose();
+    }
+}
+```
+
+### 4.3 关键成员
+
+| 成员 | 类型 | 说明 |
+|------|------|------|
+| `_pauseEvent` | `ManualResetEventSlim` | 暂停闸门，`Pause()` 关，`Resume()` 开 |
+| `CurrentMode` | `OperationMode` | 当前模式（Normal/DryRun） |
+| `Fire(trigger)` | `void` | 安全触发状态机跳转 |
+| `TriggerAlarm()` | `void` | 触发 Error → Alarm |
+| `ResetAlarm()` | `void` | 触发 Reset → Idle |
+
+### 4.4 注册到 DI 容器
+
+```csharp
+var container = containerRegistry.GetContainer();
+container.RegisterMany(
+    new[] { typeof(YourStation), typeof(StationBase) },
+    typeof(YourStation),
+    reuse: DryIoc.Reuse.Singleton);
+```
+
+---
+
+## 5. 主控开发（Layer 4）
+
+主控管理所有工站的生命周期，协调流水线信号量。
+
+### 5.1 创建主控类
+
+```csharp
+// PF.Workstation.YourProject/Controllers/YourMasterController.cs
+public class YourMasterController : BaseMasterController
+{
+    private readonly IStationSyncService _sync;
+    private readonly IEnumerable<StationBase> _stations;
+
+    public YourMasterController(
+        ILogService logger,
+        IStationSyncService sync,
+        IEnumerable<StationBase> stations)
+        : base(logger, stations)
+    {
+        _sync = sync;
+        _stations = stations;
+
+        // 注册流水线信号量（初始计数决定"谁先行"）
+        // SlotEmpty=1：槽位初始空闲 → 上游工站可立即开始
+        // ProductReady=0：初始无产品 → 下游工站初始阻塞
+        _sync.Register("SlotEmpty", initialCount: 1, maxCount: 1);
+        _sync.Register("ProductReady", initialCount: 0, maxCount: 1);
+    }
+}
+```
+
+### 5.2 典型调用序列（UI 按钮绑定）
+
+```csharp
+// 程序启动 → 必须先初始化
+await controller.InitializeAllAsync();
+
+// 切换模式（仅 Idle 状态有效）
+controller.SetMode(OperationMode.DryRun);
+
+// 启动生产
+controller.StartAll();
+
+// 暂停/恢复
+controller.PauseAll();
+controller.ResumeAll();
+
+// 正常停止
+controller.StopAll();
+
+// 故障复位
+await controller.ResetAllAsync();
+```
+
+### 5.3 注册到 DI 容器
+
+```csharp
+containerRegistry.RegisterSingleton<IMasterController, YourMasterController>();
+```
+
+---
+
+## 6. UI 模块开发
+
+### 6.1 创建机构调试视图
+
+**View** (`YourMechanismView.xaml`):
+```xml
+<UserControl x:Class="PF.Workstation.YourProject.UI.Views.YourMechanismView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <StackPanel Margin="10">
+            <TextBlock Text="机构调试面板" FontSize="16" FontWeight="Bold"/>
+            
+            <Button Content="取料" Command="{Binding PickCommand}" Margin="0,10,0,0"/>
+            <Button Content="放料" Command="{Binding PlaceCommand}" Margin="0,5,0,0"/>
+            <Button Content="回零" Command="{Binding HomeCommand}" Margin="0,5,0,0"/>
+            
+            <TextBlock Text="{Binding Status}" Margin="0,10,0,0"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+```
+
+**ViewModel** (`YourMechanismViewModel.cs`):
+```csharp
+public class YourMechanismViewModel : BindableBase, INavigationAware
+{
+    private readonly YourMechanism _mechanism;
+    
+    private string _status = "就绪";
+    public string Status
+    {
+        get => _status;
+        set => SetProperty(ref _status, value);
+    }
+
+    public DelegateCommand PickCommand { get; }
+    public DelegateCommand PlaceCommand { get; }
+    public DelegateCommand HomeCommand { get; }
+
+    public YourMechanismViewModel(YourMechanism mechanism)
+    {
+        _mechanism = mechanism;
+        
+        PickCommand = new DelegateCommand(async () => await ExecutePickAsync());
+        PlaceCommand = new DelegateCommand(async () => await ExecutePlaceAsync());
+        HomeCommand = new DelegateCommand(async () => await ExecuteHomeAsync());
+    }
+
+    private async Task ExecutePickAsync()
+    {
+        Status = "取料中...";
+        await _mechanism.PickAsync(CancellationToken.None);
+        Status = "取料完成";
+    }
+
+    private async Task ExecutePlaceAsync()
+    {
+        Status = "放料中...";
+        await _mechanism.PlaceAsync(CancellationToken.None);
+        Status = "放料完成";
+    }
+
+    private async Task ExecuteHomeAsync()
+    {
+        Status = "回零中...";
+        await _mechanism.ResetAsync(CancellationToken.None);
+        await _mechanism.InitializeAsync(CancellationToken.None);
+        Status = "回零完成";
+    }
+
+    public void OnNavigatedTo(NavigationContext context) { }
+    public void OnNavigatedFrom(NavigationContext context) { }
+    public bool IsNavigationTarget(NavigationContext context) => true;
+}
+```
+
+### 6.2 创建工站调试视图
+
+**View** (`YourStationDebugView.xaml`):
+```xml
+<UserControl x:Class="PF.Workstation.YourProject.UI.Views.YourStationDebugView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <StackPanel Margin="10">
+            <TextBlock Text="工站调试面板" FontSize="16" FontWeight="Bold"/>
+            
+            <TextBlock Text="{Binding StationState}" Margin="0,10,0,0"/>
+            <TextBlock Text="{Binding CurrentStep}" Margin="0,5,0,0"/>
+            
+            <Button Content="启动" Command="{Binding StartCommand}" Margin="0,10,0,0"/>
+            <Button Content="暂停" Command="{Binding PauseCommand}" Margin="0,5,0,0"/>
+            <Button Content="复位" Command="{Binding ResetCommand}" Margin="0,5,0,0"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+```
+
+### 6.3 创建 UI 模块
+
+```csharp
+// PF.Workstation.YourProject.UI/YourProjectUIModule.cs
+public class YourProjectUIModule : IModule
 {
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        // 注册该模块专属服务
-        containerRegistry.RegisterSingleton<IPrintService, BarTenderPrintService>();
-        // 注册用于导航的视图
-        containerRegistry.RegisterForNavigation<LabelPrintView>();
+        // 注册机构调试视图（key 必须与 [MechanismUI] 中的 ViewName 一致）
+        containerRegistry.RegisterForNavigation<YourMechanismView, YourMechanismViewModel>(
+            "YourMechanismView");
+
+        // 注册工站调试视图（key 必须与 [StationUI] 中的 ViewName 一致）
+        containerRegistry.RegisterForNavigation<YourStationDebugView, YourStationDebugViewModel>(
+            "YourStationDebugView");
     }
 
     public void OnInitialized(IContainerProvider containerProvider)
     {
+        // 注册程序集到菜单自动发现
         var menuService = containerProvider.Resolve<INavigationMenuService>();
-        menuService.RegisterAssembly(typeof(PrintModule).Assembly);
+        menuService.RegisterAssembly(typeof(YourProjectUIModule).Assembly);
     }
 }
 ```
 
-### Step 2: 用特性声明导航路由
+### 6.4 添加侧边栏菜单
+
+在 View 上添加 `[ModuleNavigation]` 特性：
 
 ```csharp
-using PF.Core.Attributes;
-
-[ModuleNavigation("LabelPrintView", "标签打印",
-    GroupName = "生产操作", Icon = "Printer", Order = 1)]
-public partial class LabelPrintView : UserControl { }
+[ModuleNavigation("YourProductionView", "生产操作",
+    GroupName = "生产管理", Icon = "Production", Order = 1)]
+public partial class YourProductionView : UserControl { }
 ```
 
-### Step 3: ViewModel 注入全局服务
+### 6.5 注册模块到 Shell
 
-```csharp
-public class LabelPrintViewModel : BindableBase
-{
-    private readonly IParamService _paramService;
-    private readonly ILogService _logService;
-
-    public LabelPrintViewModel(IParamService paramService, ILogService logService)
-    {
-        _paramService = paramService;
-        _logService   = logService;
-    }
-
-    public async Task LoadConfigAsync()
-    {
-        var printerIp = await _paramService.GetParamAsync<SystemConfigParam>("PrinterIP");
-        _logService.Info($"已加载打印机IP: {printerIp?.JsonValue}");
-    }
-}
-```
-
-### Step 4: 在 Shell 中注册模块
+在 `App.xaml.cs` 中：
 
 ```csharp
 protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
 {
+    moduleCatalog.AddModule<IdentityModule>();
     moduleCatalog.AddModule<LoggingModule>();
     moduleCatalog.AddModule<ParameterModule>();
-    moduleCatalog.AddModule<IdentityModule>();
-    moduleCatalog.AddModule<PrintModule>(); // 新增
+    moduleCatalog.AddModule<DebugModule>();
+    moduleCatalog.AddModule<YourProjectUIModule>(); // 新增
 }
 ```
 
 ---
 
-## 📋 开发者指南二：扩展参数分类
+## 7. 参数扩展
 
-框架内置 `CommonParam`、`UserLoginParam`、`SystemConfigParam`、`HardwareParam` 四张参数表。新增独立参数分类（如运动参数）按以下步骤操作：
+### 7.1 新增参数分类
 
-### Step 1: 定义实体类（PF.Data）
+**Step 1: 定义实体类**
 
 ```csharp
 // PF.Data/Entity/Category/MotionParam.cs
@@ -262,7 +1045,7 @@ public class MotionParam : ParamEntity
 }
 ```
 
-### Step 2: 注册到 DbContext
+**Step 2: 注册到 DbContext**
 
 ```csharp
 // AppParamDbContext.cs
@@ -275,830 +1058,224 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 }
 ```
 
-### Step 3: 在 DefaultParameters 中添加初始值
+**Step 3: 添加默认值**
 
 ```csharp
-// DefaultParameters.cs — 新增方法（并在 IDefaultParam 接口中声明）
+// DefaultParameters.cs
 public Dictionary<string, MotionParam> GetMotionDefaults() => new()
 {
     ["Axis1_Speed"] = new MotionParam
     {
-        Name        = "Axis1_Speed",
+        Name = "Axis1_Speed",
         Description = "1轴运动速度 (mm/s)",
         TypeFullName = typeof(double).FullName,
-        JsonValue   = JsonSerializer.Serialize(100.0),
-        Category    = "运动参数",
-        Version     = 1,
+        JsonValue = JsonSerializer.Serialize(100.0),
+        Category = "运动参数",
+        Version = 1,
     }
 };
 ```
 
-在 `EnsureDefaultParametersCreatedAsync()` 中追加：
+**Step 4: 注册类型映射**
 
 ```csharp
-await EnsureParametersExistAsync(MotionParams, defaultParam.GetMotionDefaults(), cancellationToken);
+// App.xaml.cs
+var paramService = container.Resolve<IParamService>();
+paramService.RegisterParamType<MotionParam, double>();
 ```
 
-### Step 4: ViewModel 读写新分类
+### 7.2 读写参数
 
 ```csharp
 // 读取
-var param = await _paramService.GetParamAsync<MotionParam>("Axis1_Speed");
-double speed = JsonSerializer.Deserialize<double>(param.JsonValue);
+var speed = await _paramService.GetParamAsync<double>("Axis1_Speed");
 
-// 写入（自动存入 MotionParams 表）
-await _paramService.SetParamAsync<MotionParam>("Axis1_Speed", newSpeed, currentUser, "1轴速度");
+// 写入（自动审计追踪）
+await _paramService.SetParamAsync("Axis1_Speed", 200.0, currentUser, "速度调整");
 ```
 
 ---
 
-## ⚙️ 开发者指南三：硬件 → 模组 → 工站开发流程
+## 8. 核心概念
 
-框架将工业控制分为三个层次。每层有对应的抽象基类，子类只需实现业务钩子。
+### 8.1 三层硬件抽象
 
 ```
-MasterController          ← 主控：生命周期调度、状态机联动
-    └── StationBase       ← 工站：步序状态机 + 后台线程
-            └── BaseMechanism   ← 模组：协调多硬件完成功能动作
-                    └── BaseDevice  ← 设备：物理连接与通信
-                          ▲
-                    IMotionCard     ← 板卡（可选中间层，管理子轴/IO）
-                    BaseAxisDevice  ← 轴设备（实现 IAttachedDevice）
-                    BaseIODevice    ← IO设备（实现 IAttachedDevice）
+BaseDevice（设备）
+    ├── BaseMotionCard    ← 板卡，封装厂商 SDK
+    ├── BaseAxisDevice    ← 轴，代理到 ParentCard
+    └── BaseIODevice      ← IO，代理到 ParentCard
+
+BaseMechanism（机构）      ← 聚合多硬件，业务动作
+    └── RegisterHardwareDevice() → 报警聚合
+
+StationBase（工站）        ← 步序状态机 + 后台线程
+    ├── ProcessLoopAsync  ← 业务循环
+    └── ExecuteResetAsync ← 智能恢复
 ```
 
----
+### 8.2 代理模式
 
-### Layer 1: 硬件设备（继承 BaseDevice）
+`BaseAxisDevice` 和 `BaseIODevice` 是代理包装器：
+- 所有操作委托给 `ParentCard`（`IMotionCard`）
+- 新增厂商只需实现 `XXXMotionCard`
+- 轴/IO 代码零改动，完全解耦
 
-`BaseDevice` 封装了连接重试（3次，间隔2秒）、模拟模式拦截、报警事件。子类只需实现 3 个抽象钩子：
+### 8.3 自动发现机制
+
+| 特性 | 作用目标 | 消费者 |
+|------|----------|--------|
+| `[ModuleNavigation]` | 侧边栏菜单 | `NavigationMenuService` |
+| `[MechanismUI]` | 机构调试面板 | `MechanismDebugViewModel` |
+| `[StationUI]` | 工站调试面板 | `StationDebugViewModel` |
+
+**核心约束**：特性中的 `ViewName` 必须与 `RegisterForNavigation` 的 key 完全一致。
+
+### 8.4 流水线同步
 
 ```csharp
-// PF.Infrastructure/Hardware/Motor/MyServo.cs
-public class MyServo : BaseAxisDevice  // 轴设备继承 BaseAxisDevice
+// 上游工站
+await _sync.WaitAsync("SlotEmpty", token);  // 等槽位
+// ... 放料 ...
+_sync.Release("ProductReady");              // 通知下游
+
+// 下游工站
+await _sync.WaitAsync("ProductReady", token); // 等产品
+// ... 取料 ...
+_sync.Release("SlotEmpty");                   // 通知上游
+```
+
+---
+
+## 9. 最佳实践
+
+### 9.1 命名规范
+
+| 类型 | 前缀/后缀 | 示例 |
+|------|-----------|------|
+| 设备 ID | 大写下划线 | `SIM_X_AXIS_0` |
+| 实现类名 | 帕斯卡 | `SimMotionCard` |
+| 信号量 | 帕斯卡 | `SlotEmpty` |
+| 步序枚举 | 帕斯卡 + 整数值 | `Pick = 20` |
+
+### 9.2 错误处理
+
+```csharp
+// 设备层：抛异常 + 触发报警
+if (!result)
 {
-    // AxisIndex 由子类决定（从 HardwareConfig.ConnectionParameters 读取）
-    public override int AxisIndex { get; }
+    RaiseAlarm("ERR_001", "连接失败");
+    return false;
+}
 
-    public MyServo(HardwareConfig config, ILogService logger)
-        : base(config.DeviceId, config.DeviceName,
-               config.IsSimulated, logger,
-               dataDirectory: AppDomain.CurrentDomain.BaseDirectory)
-    {
-        Category  = HardwareCategory.Axis;
-        AxisIndex = int.Parse(config.ConnectionParameters["AxisIndex"]);
-    }
+// 机构层：CheckReady + 日志
+public async Task PickAsync(CancellationToken token)
+{
+    CheckReady(); // 未初始化或有报警时抛异常
+    _logger.Info("取料中...");
+}
 
-    // ① 建立物理连接（轴设备本身不需要独立连接——板卡连接后通过 AttachToCard 注入）
-    protected override Task<bool> InternalConnectAsync(CancellationToken token)
-        => Task.FromResult(ParentCard != null);  // 父板卡已连接即视为本轴就绪
-
-    // ② 断开连接
-    protected override Task InternalDisconnectAsync() => Task.CompletedTask;
-
-    // ③ 报警复位
-    protected override Task InternalResetAsync(CancellationToken token) => Task.CompletedTask;
+// 工站层：try-catch + 状态机
+try
+{
+    await _mechanism.PickAsync(token);
+}
+catch (Exception ex)
+{
+    _logger.Error($"取料失败: {ex.Message}");
+    TriggerAlarm();
 }
 ```
 
-> **所有运动方法无需在子类重写**：`EnableAsync()`、`HomeAsync()`、`MoveAbsoluteAsync()` 等均由 `BaseAxisDevice` 提供默认实现，通过 `ParentCard.EnableAxisAsync(AxisIndex, ...)` 代理调用，子类只需确认 `AxisIndex` 和连接状态即可。
-
-**关键要点**：
-- `IsSimulated = true` 时，`ConnectAsync()` 自动跳过物理连接，延迟 500ms 后返回 `true`
-- 调用 `RaiseAlarm(errorCode, message)` 触发 `AlarmTriggered` 事件链向上传递
-- `BaseAxisDevice` 实现了 `IAttachedDevice`：`HardwareManagerService` 拓扑初始化后自动调用 `AttachToCard(parentCard)`，子类通过 `ParentCard` 属性访问板卡实例，所有运动指令通过 `ParentCard.XxxAxisAsync(AxisIndex, ...)` 转发给厂商 SDK
-
----
-
-### Layer 1b: 运动控制卡中间件（继承 BaseMotionCard）
-
-当多个轴/IO设备共享同一物理板卡时，使用板卡中间件层统一管理：
+### 9.3 线程安全
 
 ```csharp
-// PF.Workstation.Demo/Hardware/SimMotionCard.cs
-public class SimMotionCard : BaseMotionCard
+// UI 更新必须使用 Dispatcher
+Dispatcher.InvokeAsync(() => 
 {
-    public override int CardIndex   { get; }        // 板卡槽位索引
-    public override int AxisCount   { get; } = 4;   // 管理4轴
-    public override int InputCount  { get; } = 32;  // 32路输入
-    public override int OutputCount { get; } = 32;  // 32路输出
+    Status = "更新状态";
+});
 
-    public SimMotionCard(HardwareConfig config, ILogService logger)
-        : base(config.DeviceId, config.DeviceName, config.IsSimulated, logger)
-    {
-        Category  = HardwareCategory.MotionCard;
-        CardIndex = int.Parse(config.ConnectionParameters["CardIndex"]);
-    }
-
-    protected override async Task<bool> InternalConnectAsync(CancellationToken token)
-    {
-        // 调用板卡初始化DLL（如 DMCNET_InitDll, GT_Open 等）
-        return true;
-    }
-
-    // ... InternalDisconnectAsync, InternalResetAsync
-
-    // 实现 IMotionCard 的 15 个 abstract 方法（由厂商 SDK 填充）
-    // 运动控制（7个）: EnableAxisAsync, DisableAxisAsync, StopAxisAsync,
-    //                  HomeAxisAsync, MoveAbsoluteAsync, MoveRelativeAsync, JogAsync
-    // 轴状态（3个）:  GetAxisCurrentPosition, GetMotionIOStatus
-    // IO读写（3个）:  ReadInputPort, WriteOutputPort, ReadOutputPort
-}
+// 后台线程不要直接访问 UI 控件
 ```
 
-**拓扑关系（HardwareConfig.ParentDeviceId）**：
+### 9.4 常见坑
 
-```
-HardwareConfig { DeviceId="SIM_CARD_0",    ParentDeviceId="" }        ← 顶层板卡
-HardwareConfig { DeviceId="SIM_X_AXIS_0",  ParentDeviceId="SIM_CARD_0" } ← 子轴
-HardwareConfig { DeviceId="SIM_VACUUM_IO", ParentDeviceId="SIM_CARD_0" } ← 子IO
-```
-
-`HardwareManagerService.LoadAndInitializeAsync()` 会自动拓扑排序：先初始化板卡（Phase 1），再初始化子设备（Phase 2），并调用 `IAttachedDevice.AttachToCard()` 注入父板卡引用。
-
----
-
-### Layer 2: 功能模组（继承 BaseMechanism）
-
-`BaseMechanism` 聚合多个 `BaseDevice`，自动订阅硬件报警并向上传递：
-
-```csharp
-[MechanismUI("龙门取放调试", "GantryMechanismView", order: 1)]  // 在调试面板自动显示
-public class GantryMechanism : BaseMechanism
-{
-    private readonly IHardwareManagerService _hwManager;
-    private IAxis?         _xAxis;
-    private IIOController? _vacuumIO;
-
-    // 构造函数仅注入 HardwareManagerService，不再直接依赖具体设备
-    // 硬件设备在 InternalInitializeAsync 中延迟解析（确保板卡已初始化）
-    public GantryMechanism(IHardwareManagerService hwManager, ILogService logger)
-        : base("龙门取放模组", logger)  // 此时硬件尚未可用，不传设备
-    {
-        _hwManager = hwManager ?? throw new ArgumentNullException(nameof(hwManager));
-    }
-
-    // ① 初始化：延迟解析设备 → 注册 → 连接 → 使能 → 回原点
-    protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
-    {
-        // 延迟解析（板卡已由 HardwareManagerService 初始化完毕）
-        _xAxis    = _hwManager.GetDevice("SIM_X_AXIS_0")  as IAxis
-                    ?? throw new InvalidOperationException("未找到 X 轴设备");
-        _vacuumIO = _hwManager.GetDevice("SIM_VACUUM_IO") as IIOController
-                    ?? throw new InvalidOperationException("未找到真空 IO 设备");
-
-        // 延迟注册到 BaseMechanism（启用报警聚合 + 批量复位）
-        RegisterHardwareDevice(_xAxis as IHardwareDevice);
-        RegisterHardwareDevice(_vacuumIO as IHardwareDevice);
-
-        if (!await _xAxis.ConnectAsync(token))    return false;
-        if (!await _vacuumIO.ConnectAsync(token)) return false;
-        if (!await _xAxis.HomeAsync(token))       return false;
-        _vacuumIO.WriteOutput(0, false); // 关真空
-        return true;
-    }
-
-    // ② 紧急停止
-    protected override async Task InternalStopAsync()
-    {
-        if (_xAxis    != null) await _xAxis.StopAsync();
-        if (_vacuumIO != null) _vacuumIO.WriteOutput(0, false);
-    }
-
-    // 业务动作：供工站层调用
-    public async Task PickAsync(CancellationToken token)
-    {
-        CheckReady(); // 报警或未初始化时直接抛异常
-        await _xAxis!.MoveAbsoluteAsync(PickX, FastSpeed, token);
-        _vacuumIO!.WriteOutput(VacuumValve, true);
-        if (!await _vacuumIO.WaitInputAsync(VacuumSensor, true, 2000, token))
-            throw new Exception("真空建立超时！");
-    }
-}
-```
-
-**关键要点**：
-- `[MechanismUI]` 特性标记后，调试模块（`PF.Modules.Debug`）会自动发现并在调试面板注册对应 View
-- 构造函数**不直接依赖具体设备**，通过 `IHardwareManagerService.GetDevice()` 在 `InternalInitializeAsync` 中延迟解析，确保板卡（`IMotionCard`）已完成拓扑初始化
-- `RegisterHardwareDevice()` 延迟注册到 `BaseMechanism`，等效于构造时传入，但兼容延迟解析场景
-- `CheckReady()` 是防呆保护：`HasAlarm == true` 或 `IsInitialized == false` 时直接抛异常
-- `ResetAsync()` 自动遍历所有注册硬件批量复位，无需手动实现
-
----
-
-### Layer 3: 生产工站（继承 StationBase）
-
-#### 完整生命周期状态机
-
-`StationBase` 使用 `Stateless` 管理 **7 个状态**：
-
-```
-Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)──► Idle
-                                     │                                │
-                                  (Error)                          (Start)
-                                     ▼                                ▼
-                                   Alarm ◄──(Error)────────────── Running
-                                     │                           ↕ (Pause/Resume)
-                                   (Reset)                        Paused
-                                     ▼
-                                 Resetting ──(ResetDone)──► Idle
-```
-
-| 状态 | 描述 | 进入条件 |
-|------|------|---------|
-| `Uninitialized` | 初始状态，硬件未就绪，**禁止启动** | 程序启动 |
-| `Initializing` | 正在执行硬件连接/回原点 | `Initialize` 触发器 |
-| `Idle` | 待机，就绪等待启动 | `InitializeDone` / `ResetDone` |
-| `Running` | 后台线程执行 `ProcessLoopAsync` | `Start` 触发器 |
-| `Paused` | `_pauseEvent` 关闭，线程挂起 | `Pause` 触发器 |
-| `Alarm` | 故障停线，等待人工干预 | `Error` 触发器 |
-| `Resetting` | 正在执行物理复位（主控级别） | `Reset` 触发器（仅主控机使用） |
-
-#### 实现工站类
-
-```csharp
-public class AssemblyStation : StationBase
-{
-    private readonly GantryMechanism _gantry;
-
-    // 步序枚举（间隔整数值，便于将来插入中间步）
-    private enum Step
-    {
-        WaitMaterial     = 10,
-        Pick             = 20,
-        WaitSlotEmpty    = 30,
-        Place            = 40,
-        NotifyDownstream = 50,
-    }
-    private Step _currentStep = Step.WaitMaterial;
-
-    public AssemblyStation(GantryMechanism gantry, ILogService logger)
-        : base("装配工站", logger)
-    {
-        _gantry = gantry;
-        _gantry.AlarmTriggered += (s, e) => TriggerAlarm(); // 模组故障 → 工站报警
-    }
-
-    // ★ 初始化钩子（生命周期第一阶段，由 MasterController.InitializeAllAsync() 调用）
-    public override async Task ExecuteInitializeAsync(CancellationToken token)
-    {
-        Fire(MachineTrigger.Initialize);   // Uninitialized → Initializing
-        try
-        {
-            if (!await _gantry.InitializeAsync(token))
-                throw new Exception($"[{StationName}] 模组初始化失败！");
-            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
-        }
-        catch
-        {
-            Fire(MachineTrigger.Error);    // Initializing → Alarm
-            throw;
-        }
-    }
-
-    // ★ 工艺大循环（Running 状态下的后台线程，由 StationBase 托管）
-    protected override async Task ProcessLoopAsync(CancellationToken token)
-    {
-        // 路由到对应模式（Normal / DryRun）
-        if (CurrentMode == OperationMode.Normal)
-            await ProcessNormalAsync(token);
-        else
-            await ProcessDryRunAsync(token);
-    }
-
-    private async Task ProcessNormalAsync(CancellationToken token)
-    {
-        while (!token.IsCancellationRequested)
-        {
-            switch (_currentStep)
-            {
-                case Step.WaitMaterial:
-                    _pauseEvent.Wait(token);         // ← 暂停检查点
-                    await WaitForMaterialAsync(token);
-                    _currentStep = Step.Pick;
-                    break;
-
-                case Step.Pick:
-                    _pauseEvent.Wait(token);
-                    await _gantry.PickAsync(token);
-                    _currentStep = Step.WaitSlotEmpty;
-                    break;
-
-                case Step.WaitSlotEmpty:
-                    _pauseEvent.Wait(token);
-                    await _sync.WaitAsync("SlotEmpty", token); // 流水线协同
-                    _currentStep = Step.Place;
-                    break;
-
-                case Step.Place:
-                    await _gantry.PlaceAsync(token);
-                    _sync.Release("ProductReady");   // 通知下游
-                    _currentStep = Step.NotifyDownstream;
-                    break;
-
-                case Step.NotifyDownstream:
-                    await Task.Delay(50, token);
-                    _currentStep = Step.WaitMaterial;
-                    break;
-            }
-        }
-    }
-
-    // ★ 物理复位钩子（由 MasterController.ResetAllAsync() 调用）
-    public override async Task ExecuteResetAsync(CancellationToken token)
-    {
-        await _gantry.ResetAsync(token);       // 清除硬件报警
-        await _gantry.InitializeAsync(token);  // 重新回原点
-
-        // 智能步序回跳（根据故障现场决定从哪里恢复）
-        _currentStep = _currentStep >= Step.Place
-            ? Step.WaitMaterial   // 放料后发生故障：跳过取料，等下一批
-            : Step.Pick;          // 取料中发生故障：重试取料
-
-        ResetAlarm(); // Alarm → Idle
-    }
-
-    public override void Dispose()
-    {
-        _gantry.AlarmTriggered -= ...;
-        _gantry.Dispose();
-        base.Dispose();
-    }
-}
-```
-
-**`StationBase` 提供的 protected 成员**：
-
-| 成员 | 类型 | 说明 |
+| 问题 | 原因 | 解决 |
 |------|------|------|
-| `_pauseEvent` | `ManualResetEventSlim` | 暂停闸门，`Pause()` 关闭，`Resume()` 打开 |
-| `_logger` | `ILogService` | 注入的日志服务 |
-| `_machine` | `StateMachine<...>` | 工站状态机实例 |
-| `CurrentMode` | `OperationMode` | 当前运行模式（Normal/DryRun） |
-| `Fire(trigger)` | `protected void` | 安全触发状态机跳转（CanFire 检查） |
-| `TriggerAlarm()` | `public void` | 触发 Error → Alarm |
-| `ResetAlarm()` | `public void` | 触发 Reset → Idle |
+| View 导航失败 | key 不匹配 | 检查特性 ViewName 与注册 key |
+| 设备未找到 | ID 拼写错误 | 检查 HardwareConfig.DeviceId |
+| 信号量死锁 | ResetAll 时线程未停 | 确保 StopAll 后再 ResetAll |
+| 重复实例 | RegisterSingleton 多次 | 使用 RegisterMany |
 
 ---
 
-### Layer 4: 主控（MasterController）
+## 10. 完整示例：创建"点胶工站"项目
 
-`MasterController` 管理所有工站的生命周期，驱动**全局状态机**，并协调流水线信号量：
+### 10.1 项目结构
+
+```
+PF.Workstation.Dispense/
+├── Hardware/
+│   └── SimMotionCard.cs          # 复用 Demo 的模拟卡
+├── Mechanisms/
+│   └── DispenseMechanism.cs      # 点胶机构
+├── Stations/
+│   └── DispenseStation.cs        # 点胶工站
+└── Controllers/
+    └── DispenseMasterController.cs
+
+PF.Workstation.Dispense.UI/
+├── Views/
+│   ├── DispenseMechanismView.xaml
+│   └── DispenseStationDebugView.xaml
+├── ViewModels/
+│   ├── DispenseMechanismViewModel.cs
+│   └── DispenseStationDebugViewModel.cs
+└── DispenseUIModule.cs
+```
+
+### 10.2 完整代码
+
+详见 `PF.Workstation.Demo` 项目，复制并修改即可。
+
+### 10.3 注册清单
 
 ```csharp
-public class MasterController
-{
-    // 构造时注册信号量（仅在 MasterController 内部执行）
-    public MasterController(ILogService logger, IStationSyncService sync,
-                            IEnumerable<StationBase> subStations)
-    {
-        // 注册流水线信号量（初始计数决定谁先行）
-        sync.Register(WorkstationSignals.SlotEmpty,    initialCount: 1, maxCount: 1);
-        sync.Register(WorkstationSignals.ProductReady, initialCount: 0, maxCount: 1);
-        // ...
-    }
+// App.xaml.cs
 
-    // ① 一次性全线初始化（程序启动后调用一次）
-    public async Task InitializeAllAsync()
-    {
-        // Uninitialized → Initializing → 顺序初始化各工站 → Idle
-    }
+// 1. 硬件工厂
+hwManager.RegisterFactory("SimMotionCard", cfg => new SimMotionCard(cfg, logger));
+hwManager.RegisterFactory("SimAxis", cfg => new SimAxis(cfg, logger));
+hwManager.RegisterFactory("SimIO", cfg => new SimIO(cfg, logger));
 
-    // ② 切换运行模式（仅 Idle 状态可切换，同时下发给所有工站）
-    public bool SetMode(OperationMode mode) { ... }
+// 2. 机构（RegisterMany）
+container.RegisterMany(
+    new[] { typeof(DispenseMechanism), typeof(IMechanism) },
+    typeof(DispenseMechanism),
+    reuse: DryIoc.Reuse.Singleton);
 
-    // ③ 启动/停止/暂停/恢复
-    public void StartAll()  => Fire(MachineTrigger.Start);
-    public void StopAll()   => Fire(MachineTrigger.Stop);
-    public void PauseAll()  => Fire(MachineTrigger.Pause);
-    public void ResumeAll() => Fire(MachineTrigger.Resume);
+// 3. 工站（RegisterMany）
+container.RegisterMany(
+    new[] { typeof(DispenseStation), typeof(StationBase) },
+    typeof(DispenseStation),
+    reuse: DryIoc.Reuse.Singleton);
 
-    // ④ 物理复位（故障后调用）
-    public async Task ResetAllAsync()
-    {
-        // Alarm → Resetting → 顺序复位各工站 → 重置信号量 → Idle
-    }
-}
-```
+// 4. 主控
+containerRegistry.RegisterSingleton<IMasterController, DispenseMasterController>();
 
-**典型调用序列（UI 按钮绑定）**：
-
-```
-程序启动     → await controller.InitializeAllAsync()  // 必须，否则无法 Start
-模式切换     → controller.SetMode(OperationMode.DryRun)  // 仅 Idle 状态有效
-生产启动     → controller.StartAll()
-生产暂停     → controller.PauseAll() / ResumeAll()
-正常停止     → controller.StopAll()
-故障复位     → await controller.ResetAllAsync()       // 执行硬件复位后回 Idle
-```
-
----
-
-### Step 4: 注册到 DI 容器（App.xaml.cs）
-
-```csharp
-private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
-{
-    var container = containerRegistry.GetContainer();
-
-    // 1. 获取 ParamService 并注册自定义类型映射
-    var paramService = container.Resolve<IParamService>();
-    paramService.RegisterParamType<HardwareParam, HardwareConfig>();
-
-    // 2. 构造 HardwareManagerService 并注册设备工厂
-    var logService = container.Resolve<ILogService>();
-    var hardwareManager = new HardwareManagerService(logService, paramService);
-    hardwareManager.RegisterFactory("SimMotionCard",
-        cfg => new SimMotionCard(cfg, logService));
-    hardwareManager.RegisterFactory("SimXAxis",
-        cfg => new SimXAxis(cfg, logService));
-    hardwareManager.RegisterFactory("SimVacuumIO",
-        cfg => new SimVacuumIO(cfg, logService));
-    containerRegistry.RegisterInstance<IHardwareManagerService>(hardwareManager);
-
-    // 3. 注册事件总线与同步服务
-    containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
-    containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();
-
-    // 4. 使用 DryIoc RegisterMany 将同一单例实例注册为多个服务类型
-    //    避免 RegisterSingleton 重复注册导致产生两个不同实例
-    container.RegisterMany(
-        new[] { typeof(GantryMechanism), typeof(IMechanism) },
-        typeof(GantryMechanism),
-        reuse: DryIoc.Reuse.Singleton);
-
-    container.RegisterMany(
-        new[] { typeof(PickPlaceStation), typeof(StationBase) },
-        typeof(PickPlaceStation),
-        reuse: DryIoc.Reuse.Singleton);
-
-    // 5. 主控（依赖 IEnumerable<StationBase> 自动收集所有工站）
-    containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
-}
-```
-
-> **为什么使用 `RegisterMany`？**
-> `GantryMechanism` 需要同时以 `GantryMechanism`（被 `PickPlaceStation` 直接依赖）和 `IMechanism`（被 `MechanismDebugViewModel` 通过 `IEnumerable<IMechanism>` 收集）两种类型被解析。`RegisterMany` 保证两种类型解析出**同一个单例实例**，而不是各自创建独立对象。
-
----
-
-## 🔀 开发者指南四：流水线同步（IStationSyncService）
-
-多工站流水线协同通过**双信号量互锁**实现，确保取放工站与点胶工站严格交替、无竞态：
-
-### 注册信号量（MasterController 构造函数中）
-
-```csharp
-// 初始计数决定"谁先行"
-// SlotEmpty=1：槽位初始空闲 → 取放工站可立即开始第一轮
-// ProductReady=0：初始无产品 → 点胶工站初始阻塞，等取放先放料
-_sync.Register(WorkstationSignals.SlotEmpty,    initialCount: 1, maxCount: 1);
-_sync.Register(WorkstationSignals.ProductReady, initialCount: 0, maxCount: 1);
-```
-
-### 工站内使用
-
-```csharp
-// 取放工站（生产者）
-await _sync.WaitAsync(WorkstationSignals.SlotEmpty, token);   // ← 等槽位
-await _gantry.PlaceAsync(token);
-_sync.Release(WorkstationSignals.ProductReady);                // → 通知下游
-
-// 点胶工站（消费者）
-await _sync.WaitAsync(WorkstationSignals.ProductReady, token); // ← 等产品
-await _dispenser.DispenseAsync(token);
-_sync.Release(WorkstationSignals.SlotEmpty);                   // → 通知上游
-```
-
-### 添加新信号
-
-1. 在 `WorkstationSignals` 中添加常量：`public const string NewSignal = "NewSignal";`
-2. 在 `MasterController` 构造函数中注册：`_sync.Register(WorkstationSignals.NewSignal, 0, 1);`
-3. 在对应工站循环中使用 `WaitAsync` / `Release`
-
-> ⚠️ **注意**：`ResetAll()` 会销毁并重建信号量对象。调用前必须确保所有工站线程已停止，否则仍持有旧信号量引用的线程将永远阻塞。
-
----
-
-## 🎛️ 开发者指南五：运行模式与空跑调试
-
-框架内置 `OperationMode` 枚举，通过 `MasterController.SetMode()` 统一下发至所有工站：
-
-| 模式 | 说明 | 适用场景 |
-|------|------|---------|
-| `Normal` | 等待真实 IO / 物料信号，完整流水线协同 | 生产环境 |
-| `DryRun` | 跳过物料等待和信号量协同，执行真实轴运动 | 调试轨迹、验证步序 |
-
-### 在工站中路由模式
-
-框架推荐将 Normal 和 DryRun 拆分为**独立方法**，彻底避免 `if/else` 耦合：
-
-```csharp
-protected override async Task ProcessLoopAsync(CancellationToken token)
-{
-    // 入口路由：CurrentMode 在 Idle 下固定，循环期间不会改变
-    if (CurrentMode == OperationMode.Normal)
-        await ProcessNormalLoopAsync(token);
-    else if (CurrentMode == OperationMode.DryRun)
-        await ProcessDryRunLoopAsync(token);
-}
-
-private async Task ProcessNormalLoopAsync(CancellationToken token)
-{
-    // 完整工艺：真实IO等待 + 信号量协同，无任何 DryRun 代码
-}
-
-private async Task ProcessDryRunLoopAsync(CancellationToken token)
-{
-    // 空跑专用：短延迟模拟物料 + 真实轴运动 + 跳过信号量
-}
-```
-
-### 切换模式（UI 按钮绑定示例）
-
-```csharp
-// 仅 Idle 状态可切换，返回 false 时说明当前不可切换
-bool ok = _masterController.SetMode(OperationMode.DryRun);
-if (!ok) ShowWarning("请先停止设备后再切换模式");
+// 5. UI 模块
+moduleCatalog.AddModule<DispenseUIModule>();
 ```
 
 ---
 
-## 🔩 开发者指南六：硬件配置管理（HardwareManagerService）
+## ⚠️ 已知限制
 
-所有硬件配置（设备 ID、类名、连接参数、父子关系）均持久化在 SQLite 数据库中（通过 `IParamService`），支持运行时动态增删：
-
-### HardwareConfig 核心字段
-
-| 字段 | 说明 | 示例 |
-|------|------|------|
-| `DeviceId` | 全局唯一 ID | `"SIM_X_AXIS_0"` |
-| `ImplementationClassName` | 工厂注册名 | `"SimXAxis"` |
-| `Category` | 设备分类 | `"Axis"` |
-| `ParentDeviceId` | 父设备 ID（空串 = 顶层）| `"SIM_CARD_0"` |
-| `IsSimulated` | 是否模拟模式 | `true` |
-| `ConnectionParameters` | 设备专属连接参数字典 | `{ "AxisIndex": "0" }` |
-
-### 运行时访问设备
-
-```csharp
-// 按 ID 获取设备实例
-var xAxis = hardwareManager.GetDevice("SIM_X_AXIS_0") as IAxis;
-
-// 遍历所有活跃设备
-foreach (var device in hardwareManager.ActiveDevices)
-    Console.WriteLine($"{device.DeviceName}: {(device.IsConnected ? "✓" : "✗")}");
-```
-
-### 添加新设备配置
-
-```csharp
-// 1. 在 DefaultParameters.GetHardwareDefaults() 中追加
-["MY_NEW_AXIS"] = new HardwareParam
-{
-    Name     = "MY_NEW_AXIS",
-    Category = "Hardware",
-    JsonValue = JsonSerializer.Serialize(new HardwareConfig
-    {
-        DeviceId               = "MY_NEW_AXIS",
-        ImplementationClassName = "MyAxisImpl",
-        ParentDeviceId         = "SIM_CARD_0",  // 挂载到已有板卡
-        IsSimulated            = true,
-        IsEnabled              = true,
-        ConnectionParameters   = new() { ["AxisIndex"] = "1" }
-    })
-},
-
-// 2. 在 App.xaml.cs 注册工厂
-hardwareManager.RegisterFactory("MyAxisImpl",
-    cfg => new MyAxisImpl(cfg, logService));
-```
-
----
-
-## 🖥️ 开发者指南七：硬件调试界面（PF.Modules.Debug）
-
-`HardwareDebugView` 通过 `IHardwareManagerService.ActiveDevices` 自动构建**两级硬件层级树**，无需额外配置：
-
-```
-HardwareDebugView（左侧设备树）
-│
-├── [卡0] SimMotionCard          ← IMotionCard 节点（CardIndex 排序）
-│   ├── SIM_X_AXIS_0  (Axis)    ← IAttachedDevice，按 ParentCard.DeviceId 分组
-│   └── SIM_VACUUM_IO (IO)
-│
-└── 独立设备                     ← 非板卡且未附属的设备（如独立相机）
-    └── ...
-```
-
-点击左侧节点，右侧区域导航到对应调试视图：
-
-| 设备类型 | 导航目标 |
-|----------|---------|
-| `IMotionCard` | `CardDebugView`（显示板卡规格：CardIndex / AxisCount / DI / DO）|
-| `IAxis` | `AxisDebugView`（轴参数、点位表、运动控制）|
-| `IIOController` | `IODebugView`（IO 状态矩阵、输出控制）|
-
-> `CardDebugView` **不作为独立侧边栏项**，仅从 `HardwareDebugView` 树节点导航进入，与 `AxisDebugView` / `IODebugView` 保持相同策略。
-
----
-
-## 🔐 开发者指南八：用户与权限管理（PF.Modules.Identity）
-
-### 用户管理后台（UserManagementViewModel）
-
-`UserManagementViewModel` 提供完整的用户 CRUD 功能，通过 `IUserService` 与数据库交互：
-
-| 命令 | 描述 |
-|------|------|
-| `LoadUsersCommand` | 刷新用户列表（`OnNavigatedTo` 自动触发） |
-| `AddCommand` | 新建草稿用户，自动按角色设置默认权限 |
-| `SaveCommand` | 持久化当前编辑用户（新增/修改均通过此命令） |
-| `DeleteCommand<UserInfo>` | 弹窗确认后删除，系统账户（superuser/system/admin）受保护 |
-
-### 默认权限分配（累积模型）
-
-新建用户时，`GetDefaultAccessibleViews(UserLevel)` 按角色等级**累积赋予**默认可访问视图：
-
-```
-Operator（操作员）      ← LoggingListView、ParameterView_CommonParam
-    +
-Engineer（工程师）      ← SystemConfigParam、HardwareDebugView、MechanismDebugView、StationDebugView
-    +
-Administrator（管理员） ← LogManagementView、ParameterView_HardwareParam、PagePermissionView
-    +
-SuperUser（超级用户）   ← UserManagementView、ParameterView_UserLoginParam
-```
-
-### 内置值转换器
-
-| 转换器 | 说明 |
-|--------|------|
-| `SystemUserToBoolConverter` | 保护系统账户（superuser/system/admin），删除按钮对其禁用 |
-| `ListToStringConverter` | `IEnumerable<string>` → 逗号分隔字符串，用于 AccessibleViews 展示 |
-| `UserBackGroundConverter` | 根据 `UserLevel` 返回对应背景色画刷 |
-
----
-
-## 🛠️ 第三方集成建议
-
-本框架的模块化特性非常适合集成工业自动化领域的第三方 SDK：
-
-| 场景 | 建议方案 |
-|------|---------|
-| **条码扫描** | 集成 `ZXing.Net`，封装为 `IScannerService`，注入扫描模块 |
-| **工业标签打印** | 接入 BarTender SDK，隔离在独立打印模块 |
-| **视觉检测** | 封装 HalconDotNet / OpenCvSharp，作为独立 VisionModule |
-| **PLC 通信** | 基于 `TCPClient` / Modbus 协议实现 `IPlcService` |
-| **运动控制卡** | 继承 `BaseMotionCard`，封装厂商 SDK（如 GT 系列、DMCNET 等） |
-| **报警管理** | 新建 `AlarmModule`，订阅 `BaseDevice.AlarmTriggered` 事件统一管理 |
-
----
-
-## ⚠️ 已知限制与注意事项
-
-1. **初始化必须先于启动**：状态机强制执行 `Uninitialized → Idle` 才能 `Start`，程序启动后必须调用 `MasterController.InitializeAllAsync()` 才能进入生产。
-2. **模式切换仅限 Idle**：`SetMode()` 会检查 `CurrentState == Idle`，非 Idle 状态下调用返回 `false` 并记录警告。
-3. **数据库迁移**：当前使用 `EnsureCreatedAsync()` + 手动 `CREATE TABLE IF NOT EXISTS` 处理 Schema 升级，不支持 EF Core Migrations。
-4. **信号量重置时序**：`IStationSyncService.ResetAll()` 必须在所有工站线程完全停止后调用，否则持有旧引用的线程将永久阻塞。
-5. **TCP 重连无上限**：启用 `AutoReconnect` 后无最大重试次数，网络永久中断时建议在业务层增加熔断逻辑。
-6. **日志 UI 线程安全**：`LogService` 从后台线程写入内存缓冲，UI 绑定集合需通过 `Dispatcher.Invoke` 确保线程安全。
-7. **仅支持 Windows**：基于 WPF，不支持跨平台部署。
-
----
-
-## 📊 开发者指南九：生产数据记录（IProductionDataService）
-
-`IProductionDataService` 是一个与 SecsGem 完全解耦的通用生产数据记录服务，任何工站、设备均可使用。
-
-### Step 1: 定义数据模型（普通 POCO，无需数据库特性）
-
-```csharp
-// 任意位置定义，无需继承任何基类
-public class WeldingProcessData
-{
-    public string LotId { get; set; }
-    public double Temperature { get; set; }   // 焊接温度 (°C)
-    public double Pressure { get; set; }      // 焊接压力 (N)
-    public int DurationMs { get; set; }       // 焊接时长 (ms)
-    public bool Passed { get; set; }          // 是否合格
-}
-```
-
-### Step 2: 注入服务并写入数据
-
-```csharp
-public class WeldingStationViewModel : ViewModelBase
-{
-    private readonly IProductionDataService _productionService;
-
-    public WeldingStationViewModel(IProductionDataService productionService)
-    {
-        _productionService = productionService;
-    }
-
-    private async Task OnWeldingCompletedAsync(string lotId, WeldingProcessData data)
-    {
-        await _productionService.RecordAsync(
-            data,
-            name: $"Welding_{lotId}",      // 记录名称（可选）
-            deviceId: "WELDING_STATION_01", // 设备标识（可选）
-            recordType: "WeldingProcess",   // 记录类型（可选）
-            batchId: lotId                  // 批次（可选）
-        );
-        // RecordAsync 非阻塞，立即返回，不影响工艺流程
-    }
-}
-```
-
-### Step 3: 历史查询
-
-```csharp
-// 查询今日所有数据（不过滤设备、类型）
-var filter = new ProductionQueryFilter
-{
-    StartTime = DateTime.Today,
-    EndTime = DateTime.Now
-};
-var records = await _productionService.QueryAsync(filter);
-
-// 查询特定设备、特定批次的强类型数据
-var filter2 = new ProductionQueryFilter
-{
-    DeviceId = "WELDING_STATION_01",
-    BatchId = "LOT_20260312_001",
-    MaxCount = 500
-};
-var typedData = await _productionService.QueryDataAsync<WeldingProcessData>(filter2);
-foreach (var d in typedData)
-    Console.WriteLine($"温度: {d.Temperature}°C, 合格: {d.Passed}");
-
-// 关键词搜索（模糊匹配 Name 或 JsonValue 内容）
-var filter3 = new ProductionQueryFilter { Keyword = "LOT_2026" };
-var matchedRecords = await _productionService.QueryAsync(filter3);
-```
-
-### Step 4: 导出数据
-
-```csharp
-// 导出指定条件的数据到 Excel
-await _productionService.ExportToExcelAsync(filter, @"C:\Reports\Welding_20260312.xlsx");
-
-// 导出到 CSV
-await _productionService.ExportToCsvAsync(filter, @"C:\Reports\Welding_20260312.csv");
-```
-
-### Step 5: 实时监控（UI 订阅）
-
-```csharp
-// 在 ViewModel 构造函数中订阅
-_productionService.DataRecorded += OnDataRecorded;
-
-// 事件在后台线程触发，必须切换到 UI 线程
-private void OnDataRecorded(object? sender, ProductionDataRecordedEventArgs e)
-{
-    Application.Current?.Dispatcher.InvokeAsync(() =>
-    {
-        var record = e.Record;
-        // 反序列化为强类型
-        var data = record.Deserialize<WeldingProcessData>();
-        RecentRecords.Insert(0, record);  // 实时更新 UI 列表
-    });
-}
-
-// 销毁时取消订阅（避免内存泄漏）
-public override void Destroy()
-{
-    _productionService.DataRecorded -= OnDataRecorded;
-    base.Destroy();
-}
-```
-
-### Step 6: 切换数据库后端（仅改 App.xaml.cs 一处）
-
-```csharp
-// SQLite（默认，无需额外部署）
-var options = new DbContextOptionsBuilder<ProductionDbContext>()
-    .UseSqlite($"Data Source={filePath}")
-    .Options;
-
-// SQL Server（需添加 Microsoft.EntityFrameworkCore.SqlServer 包）
-var options = new DbContextOptionsBuilder<ProductionDbContext>()
-    .UseSqlServer("Server=192.168.1.100;Database=PFProduction;User Id=sa;Password=xxx;")
-    .Options;
-
-// MySQL（需添加 Pomelo.EntityFrameworkCore.MySql 包）
-var options = new DbContextOptionsBuilder<ProductionDbContext>()
-    .UseMySql("Server=192.168.1.100;Database=PFProduction;User=root;Password=xxx;",
-              ServerVersion.AutoDetect("Server=192.168.1.100;..."))
-    .Options;
-
-// 注册（三种后端写法完全相同）
-containerRegistry.RegisterInstance<DbContextOptions<ProductionDbContext>>(options);
-containerRegistry.RegisterSingleton<IProductionDataService, ProductionDataService>();
-```
-
-> **注意**：所有过滤字段均可空（null = 不过滤）。不同设备的生产数据类型完全不同，框架通过 JSON 序列化实现 Schema 无关存储。
+1. **初始化必须先于启动**：必须调用 `InitializeAllAsync()` 才能 `StartAll()`
+2. **模式切换仅限 Idle**：`SetMode()` 在非 Idle 状态返回 `false`
+3. **数据库无迁移**：使用 `EnsureCreatedAsync()`，不支持 EF Core Migrations
+4. **仅支持 Windows**：基于 WPF
 
 ---
 
