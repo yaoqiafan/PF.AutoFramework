@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Recipe
 {
-    public abstract class BaseRecipe<T> : IRecipeService<T>, IRecipeManger<T> where T : ReceipeParamBase
+    public abstract class BaseRecipe<T> : IRecipeService<T>, IRecipeManger<T> where T : RecipeParamBase
     {
         public string RecipeDirPath => $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\Recipe";
 
@@ -91,6 +91,7 @@ namespace PF.Infrastructure.Recipe
             {
                 if (this.RecipeNames.Contains(RecipeParam.RecipeName))
                 {
+                    RecipeParam.UpdateTime = DateTime.Now;
                     if (!IsCover)
                     {
                         throw new Exception($"{RecipeParam.RecipeName}配方已存在");
@@ -105,6 +106,8 @@ namespace PF.Infrastructure.Recipe
                 }
                 else
                 {
+                    RecipeParam.UpdateTime = DateTime.Now;
+                    RecipeParam.CreateTime = DateTime.Now;
                     string recipefilepath = $"{this.RecipeDirPath}\\{RecipeParam.RecipeName}.json";
                     string str = System.Text.Json.JsonSerializer.Serialize(RecipeParam);
                     File.WriteAllText(recipefilepath, str);
@@ -213,5 +216,36 @@ namespace PF.Infrastructure.Recipe
             File.WriteAllText(filepath, str);
             return Task.FromResult(true);
         }
+
+        public Task<T> CopyRecipeAsync(string RecipeName, T RecipeParam, CancellationToken token = default)
+        {
+            var newrecipe = RecipeParam.DeepClone() as T;
+            if (newrecipe != null)
+            {
+                newrecipe.RecipeName = RecipeName;
+                this.RecipeParamWriteAsync(newrecipe, false, token);
+                return Task.FromResult(newrecipe);
+            }
+            else
+            {
+                return Task.FromResult<T>(null);
+            }
+        }
+
+        public Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default)
+        {
+            var newrecipe = RecipeParam.DeepClone() as T;
+            if (newrecipe != null)
+            {
+                newrecipe.RecipeName = NewRecipeName;
+                this.RecipeDeleteAsync(RecipeParam.RecipeName, token);
+                return this.RecipeParamWriteAsync(newrecipe, false, token);
+            }
+            else
+            {
+                return Task.FromResult(false);
+            }
+        }
+
     }
 }

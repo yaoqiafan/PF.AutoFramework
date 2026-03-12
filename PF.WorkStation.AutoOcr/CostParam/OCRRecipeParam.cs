@@ -2,23 +2,26 @@
 using PF.Workstation.AutoOcr.CostParam;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.CostParam
 {
-    public class OCRRecipeParam : ReceipeParamBase
+    public class OCRRecipeParam : RecipeParamBase
     {
         /// <summary>
         /// 条码个数
         /// </summary>
+        [Range(0, 3, ErrorMessage = "条码个数设置错误")]
         public int CodeCount { get; set; } = 2;
 
 
         /// <summary>
         /// 关联OCR相机配方名称
         /// </summary>
+        [Required(ErrorMessage = "相机程序号不能为空")]
         public string OCRRecipeName { get; set; } = string.Empty;
 
         /// <summary>
@@ -44,6 +47,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
         /// <summary>
         /// 客批比对开始索引
         /// </summary>
+        [Range(0, 100, ErrorMessage = "客批比对开始索引设置错误")]
         public int GuestStartIndex { get; set; } = 0;
 
 
@@ -51,6 +55,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
         /// <summary>
         /// 客批比对长度
         /// </summary>
+        [Range(0, 100, ErrorMessage = "客批比对长度设置错误")]
         public int GuestLength { get; set; } = 6;
 
 
@@ -64,6 +69,27 @@ namespace PF.WorkStation.AutoOcr.CostParam
         /// 关联工位配方名称列表（如有多个工位关联同一OCR配方，则在此列表中添加对应工位配方名称）
         /// </summary>
         public List<string> AssociateProduct { get; set; } = new List<string>();
+
+
+
+        public override OCRRecipeParam DeepClone()
+        {
+            // 先拷贝父类属性，再拷贝子类属性
+            var clone = (OCRRecipeParam)base.Clone();
+            clone.CodeCount = this.CodeCount;
+            clone.OCRRecipeName = this.OCRRecipeName;
+            clone.WafeSize = this.WafeSize;
+            clone.PosX = this.PosX;
+            clone.PosY = this.PosY;
+            clone.PosZ = this.PosZ;
+            clone.GuestStartIndex = this.GuestStartIndex;
+            clone.GuestLength = this.GuestLength;
+            clone.IsOCRCodePate = this.IsOCRCodePate;
+            clone.AssociateProduct = new List<string>(this.AssociateProduct);
+            return clone;
+        }
+
+
 
     }
 }
