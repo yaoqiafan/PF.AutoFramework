@@ -1,8 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
-using PF.Core.Entities.ProductionData;
-using PF.Core.Events;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
+using Prism.Commands;
 using System.Collections.ObjectModel;
 using System.Windows;
 
@@ -24,13 +23,6 @@ namespace PF.Modules.Production.ViewModels
         // ══════════════════════════════════════════════════════
 
         public ObservableCollection<ProductionRecord> RecentRecords { get; } = [];
-
-        private string? _filterDeviceId;
-        public string? FilterDeviceId
-        {
-            get => _filterDeviceId;
-            set => SetProperty(ref _filterDeviceId, value);
-        }
 
         private string? _filterRecordType;
         public string? FilterRecordType
@@ -71,7 +63,7 @@ namespace PF.Modules.Production.ViewModels
         //  事件处理
         // ══════════════════════════════════════════════════════
 
-        private void OnDataRecorded(object? sender,  ProductionDataRecordedEventArgs e)
+        private void OnDataRecorded(object? sender, ProductionDataRecordedEventArgs e)
         {
             var record = e.Record;
             if (!MatchesFilter(record)) return;
@@ -87,10 +79,6 @@ namespace PF.Modules.Production.ViewModels
 
         private bool MatchesFilter(ProductionRecord record)
         {
-            if (!string.IsNullOrEmpty(FilterDeviceId)
-                && record.DeviceId != FilterDeviceId)
-                return false;
-
             if (!string.IsNullOrEmpty(FilterRecordType)
                 && record.RecordType != FilterRecordType)
                 return false;
@@ -120,10 +108,9 @@ namespace PF.Modules.Production.ViewModels
 
             if (dlg.ShowDialog() != true) return;
 
-            // 导出当前显示数据（时间范围取最新 500 条的时间边界）
+            // 导出当前显示数据
             var filter = new ProductionQueryFilter
             {
-                DeviceId = string.IsNullOrEmpty(FilterDeviceId) ? null : FilterDeviceId,
                 RecordType = string.IsNullOrEmpty(FilterRecordType) ? null : FilterRecordType,
                 MaxCount = MaxRecords
             };

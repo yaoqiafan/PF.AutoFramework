@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
-using PF.Core.Entities.ProductionData;
-using PF.Core.Events;
 using PF.Core.Interfaces.Production;
 using PF.Data;
 using PF.Data.Entity.Category;
@@ -66,25 +64,16 @@ namespace PF.Services.Production
         //  写入
         // ══════════════════════════════════════════════════════
 
-        public async Task RecordAsync<TData>(TData data,
-                                              string? name = null,
-                                              string? deviceId = null,
-                                              string? recordType = null,
-                                              string? batchId = null)
+        public async Task RecordAsync<TData>(TData data, string? recordType = null)
         {
             var entity = new ProductionDataEntity
             {
                 ID = Guid.NewGuid().ToString(),
-                Name = name ?? typeof(TData).Name,
                 JsonValue = JsonSerializer.Serialize(data),
                 TypeFullName = typeof(TData).FullName,
-                Category = typeof(TData).Name,
-                DeviceId = deviceId,
                 RecordType = recordType,
-                BatchId = batchId,
                 RecordTime = DateTime.Now,
-                CreateTime = DateTime.Now,
-                UpdateTime = DateTime.Now
+                CreateTime = DateTime.Now
             };
 
             await _writeChannel.Writer.WriteAsync(entity, _cts.Token);
@@ -153,15 +142,10 @@ namespace PF.Services.Production
                 q = q.Where(x => x.RecordTime >= filter.StartTime.Value);
             if (filter.EndTime.HasValue)
                 q = q.Where(x => x.RecordTime <= filter.EndTime.Value);
-            if (!string.IsNullOrEmpty(filter.DeviceId))
-                q = q.Where(x => x.DeviceId == filter.DeviceId);
             if (!string.IsNullOrEmpty(filter.RecordType))
                 q = q.Where(x => x.RecordType == filter.RecordType);
-            if (!string.IsNullOrEmpty(filter.BatchId))
-                q = q.Where(x => x.BatchId == filter.BatchId);
             if (!string.IsNullOrEmpty(filter.Keyword))
-                q = q.Where(x => x.Name.Contains(filter.Keyword)
-                               || x.JsonValue.Contains(filter.Keyword));
+                q = q.Where(x => x.JsonValue.Contains(filter.Keyword));
             if (filter.MaxCount.HasValue)
                 q = q.Take(filter.MaxCount.Value);
 
@@ -182,21 +166,17 @@ namespace PF.Services.Production
             await using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
             // 标题行
             await writer.WriteLineAsync(
-                "ID,Name,DeviceId,RecordType,BatchId,RecordTime,Category,TypeFullName,JsonValue,Remarks");
+                "ID,RecordType,RecordTime,TypeFullName,JsonValue,CreateTime");
 
             foreach (var r in records)
             {
                 await writer.WriteLineAsync(string.Join(",",
                     EscapeCsv(r.Id),
-                    EscapeCsv(r.Name),
-                    EscapeCsv(r.DeviceId),
                     EscapeCsv(r.RecordType),
-                    EscapeCsv(r.BatchId),
                     r.RecordTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                    EscapeCsv(r.Category),
                     EscapeCsv(r.TypeFullName),
                     EscapeCsv(r.JsonValue),
-                    EscapeCsv(r.Remarks)));
+                    r.CreateTime.ToString("yyyy-MM-dd HH:mm:ss")));
             }
         }
 
@@ -220,8 +200,7 @@ namespace PF.Services.Production
 
                 string[] headers =
                 [
-                    "ID", "名称", "设备ID", "记录类型", "批次", "采集时间",
-                    "分类", "数据类型", "JSON数据", "备注"
+                    "ID", "记录类型", "采集时间", "数据类型", "JSON数据", "创建时间"
                 ];
                 var headerRow = sheet.CreateRow(0);
                 for (int i = 0; i < headers.Length; i++)
@@ -237,15 +216,11 @@ namespace PF.Services.Production
                 {
                     var row = sheet.CreateRow(rowIdx++);
                     row.CreateCell(0).SetCellValue(r.Id);
-                    row.CreateCell(1).SetCellValue(r.Name);
-                    row.CreateCell(2).SetCellValue(r.DeviceId ?? "");
-                    row.CreateCell(3).SetCellValue(r.RecordType ?? "");
-                    row.CreateCell(4).SetCellValue(r.BatchId ?? "");
-                    row.CreateCell(5).SetCellValue(r.RecordTime.ToString("yyyy-MM-dd HH:mm:ss"));
-                    row.CreateCell(6).SetCellValue(r.Category);
-                    row.CreateCell(7).SetCellValue(r.TypeFullName ?? "");
-                    row.CreateCell(8).SetCellValue(r.JsonValue);
-                    row.CreateCell(9).SetCellValue(r.Remarks ?? "");
+                    row.CreateCell(1).SetCellValue(r.RecordType ?? "");
+                    row.CreateCell(2).SetCellValue(r.RecordTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    row.CreateCell(3).SetCellValue(r.TypeFullName ?? "");
+                    row.CreateCell(4).SetCellValue(r.JsonValue);
+                    row.CreateCell(5).SetCellValue(r.CreateTime.ToString("yyyy-MM-dd HH:mm:ss"));
                 }
 
                 // 自动列宽（最多 255 字符宽）
@@ -282,16 +257,11 @@ namespace PF.Services.Production
         private static ProductionRecord MapToRecord(ProductionDataEntity e) => new()
         {
             Id = e.ID,
-            Name = e.Name,
             JsonValue = e.JsonValue,
             TypeFullName = e.TypeFullName,
-            Category = e.Category,
-            DeviceId = e.DeviceId,
             RecordType = e.RecordType,
             RecordTime = e.RecordTime,
-            BatchId = e.BatchId,
-            CreateTime = e.CreateTime,
-            Remarks = e.Remarks
+            CreateTime = e.CreateTime
         };
 
         private static string EscapeCsv(string? value)
