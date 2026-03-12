@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using PF.Core.Entities.ProductionData;
+using PF.Core.Events;
 using PF.Core.Interfaces.Production;
 using PF.Data;
 using PF.Data.Entity.Category;

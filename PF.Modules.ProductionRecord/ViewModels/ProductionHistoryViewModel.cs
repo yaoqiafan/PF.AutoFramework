@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
+using PF.Core.Entities.ProductionData;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 
-namespace PF.Modules.ProductionRecord.ViewModels
+namespace PF.Modules.Production.ViewModels
 {
     /// <summary>
     /// 生产数据历史查询 ViewModel。
