@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Recipe;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.SecsGem;
 using PF.Infrastructure.SecsGem;
 using PF.UI.Controls;
@@ -42,6 +43,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             CloneRecipeCommand = new DelegateCommand(ExecuteCloneRecipe, CanExecuteCloneRecipe).ObservesProperty(() => SelectedParameter);
 
+            ShowDebugViewCommand = new DelegateCommand(ExecuteShowRecipeDebugView, CanExecuteSaveRecipe).ObservesProperty(() => SelectedParameter);
+
             // 初始加载数据
             ExecuteLoadRecipes();
         }
@@ -67,6 +70,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand ChangeRecipeNameCommand { get; private set; }
 
         public DelegateCommand CloneRecipeCommand { get; private set; }
+
+        public DelegateCommand ShowDebugViewCommand { get; private set; }
 
         private async void ExecuteLoadRecipes()
         {
@@ -251,14 +256,32 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var newEntity = MapToEntity(cloneparam);
 
             Parameters.Add(newEntity);
-
-
-
         }
 
         private bool CanExecuteCloneRecipe()
         {
             return SelectedParameter != null;
+        }
+
+
+        private async void ExecuteShowRecipeDebugView()
+        {
+            var paramToSave = MapToParam(SelectedParameter);
+
+            if (!paramToSave.Validate(out string err))
+            {
+                MessageService.ShowMessage($"参数验证失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var param = new DialogParameters { { "CurrentRepice", paramToSave } };
+
+            DialogService.ShowDialog(nameof(RecipeDebugView), param, OnDialogCallback);
+        }
+
+        private void OnDialogCallback(IDialogResult result)
+        {
+           
         }
 
 

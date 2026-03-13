@@ -1,5 +1,6 @@
 ﻿using PF.Core.Constants;
 using PF.UI.Infrastructure.Navigation;
+using PF.WorkStation.AutoOcr.UI.UserControls;
 using PF.WorkStation.AutoOcr.UI.ViewModels;
 using PF.WorkStation.AutoOcr.UI.Views;
 using System.Reflection;
@@ -23,6 +24,10 @@ namespace PF.WorkStation.AutoOcr.UI
             containerRegistry.RegisterForNavigation<HomeView, MainViewModel>(NavigationConstants.Views.HomeView);
 
             containerRegistry.RegisterForNavigation<OcrRecipeManageView, OcrRecipeManageViewModel>(nameof(OcrRecipeManageView));
+
+
+            containerRegistry.RegisterForNavigation<RecipeDebugView, RecipeDebugViewModel>(nameof(RecipeDebugView));
+
         }
     }
 }
