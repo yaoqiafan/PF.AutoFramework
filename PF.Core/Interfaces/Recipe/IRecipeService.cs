@@ -90,7 +90,9 @@ namespace PF.Core.Interfaces.Recipe
         /// <param name="NewRecipeName"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default);
+       
+
+
 
         /// <summary>
         /// 删除指定配方
