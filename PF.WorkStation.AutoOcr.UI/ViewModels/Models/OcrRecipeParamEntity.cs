@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
 {
@@ -42,6 +43,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
         [CategoryAttribute("A.基本参数")]
         [DisplayNameAttribute("3.关联相机程式")]
         [BrowsableAttribute(true)]
+        [Editor(typeof(OCRRecipePropertyEditor), typeof(OCRRecipePropertyEditor))]
         public string OCRRecipeName
         {
             get { return _OCRRecipeName; }
@@ -205,6 +207,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
             set { SetProperty(ref _IsOCRCodePate, value); }
         }
 
+        [BrowsableAttribute(false)]
+        public List<string> CameraPrograms { get; set; } = new List<string>();
+
         private List<string> _AssociateProduct = new List<string>();
         [CategoryAttribute("E.关联参数")]
         [DisplayNameAttribute("1.关联工位配方名称列表")]
@@ -218,6 +223,28 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
     }
 
 
+
+    public class OCRRecipePropertyEditor : PropertyEditorBase
+    {
+        // 重写对应的控件构建类，用于返回UI需要显示的控件实例
+        public override FrameworkElement CreateElement(PropertyItem propertyItem)
+        {
+            var entity = propertyItem.Value as OcrRecipeParamEntity;
+            var programs = entity?.CameraPrograms ?? new List<string>();
+
+            return new SearchComboBox
+            {
+                IsEnabled = !propertyItem.IsReadOnly,
+                ItemsSource = programs
+            };
+        }
+
+        // 设置对应实体属性与控件关联的依赖属性
+        public override DependencyProperty GetDependencyProperty()
+        {
+            return ListBox.SelectedItemProperty;
+        }
+    }
 
     public class AssociateProductPropertyEditor : PropertyEditorBase
     {
