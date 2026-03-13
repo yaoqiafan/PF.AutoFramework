@@ -236,7 +236,7 @@
                         FontWeight="Bold"
                         Text="程式参数设定" />
 
-                    <pf:PropertyGrid Grid.Row="1" SelectedObject="{Binding SelectedParameter}" />
+                    <pf:PropertyGrid Grid.Row="1" SelectedObject="{Binding SelectedParameter}" Margin="0,5,0,5" />
 
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
 
@@ -263,10 +263,14 @@
                         Grid.Row="2"
                         HorizontalAlignment="Left"
                         Orientation="Horizontal">
-                        <Button Style="{DynamicResource ButtonPrimary}" pf:IconElement.Geometry="{StaticResource DebugIcon}"
+                        <Button Style="{DynamicResource ButtonPrimary}" 
+                                pf:IconElement.Geometry="{StaticResource DebugIcon}"
+                                pf:IconElement.Height="20"
+                                 pf:IconElement.Width="20"
+                                
                             MinHeight="35"
-                            Padding="25,0"
-                            Command="{Binding CloneRecipeCommand}"
+                            Padding="10,0"
+                            Command="{Binding ShowDebugViewCommand}"
                             Content="调试当前程式" />
                     </StackPanel>
 
