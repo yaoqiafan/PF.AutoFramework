@@ -30,19 +30,37 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public E_WafeSize WafeSize { get; set; } = E_WafeSize._12寸;
 
         /// <summary>
-        /// OCR相机X轴位置，单位mm
+        /// 工位1OCR相机X轴位置，单位mm
         /// </summary>
-        public double PosX { get; set; } = 0;
+        public double _1PosX { get; set; } = 0;
 
         /// <summary>
-        /// OCR相机X轴位置，单位mm
+        /// 工位1OCR相机X轴位置，单位mm
         /// </summary>
-        public double PosY { get; set; } = 0;
+        public double _1PosY { get; set; } = 0;
 
         /// <summary>
-        /// OCR相机Z轴位置，单位mm
+        /// 工位1OCR相机Z轴位置，单位mm
         /// </summary>
-        public double PosZ { get; set; } = 0;
+        public double _1PosZ { get; set; } = 0;
+
+
+        /// <summary>
+        /// 工位2OCR相机X轴位置，单位mm
+        /// </summary>
+        public double _2PosX { get; set; } = 0;
+
+        /// <summary>
+        /// 工位2OCR相机Y轴位置，单位mm
+        /// </summary>
+        public double _2PosY { get; set; } = 0;
+
+        /// <summary>
+        /// 工位2OCR相机Z轴位置，单位mm
+        /// </summary>
+        public double _2PosZ { get; set; } = 0;
+
+
 
         /// <summary>
         /// 客批比对开始索引
@@ -79,9 +97,12 @@ namespace PF.WorkStation.AutoOcr.CostParam
             clone.CodeCount = this.CodeCount;
             clone.OCRRecipeName = this.OCRRecipeName;
             clone.WafeSize = this.WafeSize;
-            clone.PosX = this.PosX;
-            clone.PosY = this.PosY;
-            clone.PosZ = this.PosZ;
+            clone._1PosX = this._1PosX;
+            clone._1PosY = this._1PosY;
+            clone._1PosZ = this._1PosZ;
+            clone._2PosX = this._2PosX;
+            clone._2PosY = this._2PosY;
+            clone._2PosZ = this._2PosZ;
             clone.GuestStartIndex = this.GuestStartIndex;
             clone.GuestLength = this.GuestLength;
             clone.IsOCRCodePate = this.IsOCRCodePate;
