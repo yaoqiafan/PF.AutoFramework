@@ -1,6 +1,8 @@
 ﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.SecsGem;
+using PF.Infrastructure.Hardware;
 using PF.Infrastructure.SecsGem;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.PrismBase;
@@ -23,11 +25,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         // 核心修改：改用接口抽象，不依赖具体实现类
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly ISecsGemManger _secsGemManger;
+        private readonly IHardwareManagerService _hardwareManagerService;
+        private readonly IIntelligentCamera _camera;
+
         // 通过 Prism 容器注入接口
-        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService,ISecsGemManger secsGemManger)
+        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService, ISecsGemManger secsGemManger, IHardwareManagerService hardwareManagerService)
         {
             _recipeService = recipeService ?? throw new ArgumentNullException(nameof(recipeService));
             _secsGemManger = secsGemManger ?? throw new ArgumentNullException(nameof(secsGemManger));
+            _hardwareManagerService = hardwareManagerService;
+            _camera = hardwareManagerService?.ActiveDevices.OfType<IIntelligentCamera>().FirstOrDefault();
 
             Parameters = new ObservableCollection<OcrRecipeParamEntity>();
 
@@ -97,7 +104,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 RecipeName = $"New_Recipe_{DateTime.Now:HHmmss}",
                 CodeCount = 2,
-                WafeSize = E_WafeSize._12寸
+                WafeSize = E_WafeSize._12寸,
+                CameraPrograms = _camera?.CameraProgram ?? new List<string>()
             };
 
             Parameters.Add(newEntity);
@@ -308,7 +316,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 GuestStartIndex = param.GuestStartIndex,
                 GuestLength = param.GuestLength,
                 IsOCRCodePate = param.IsOCRCodePate,
-                AssociateProduct = param.AssociateProduct != null ? new List<string>(param.AssociateProduct) : new List<string>()
+                AssociateProduct = param.AssociateProduct != null ? new List<string>(param.AssociateProduct) : new List<string>(),
+                CameraPrograms = _camera?.CameraProgram ?? new List<string>()
             };
         }
 
