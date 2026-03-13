@@ -492,6 +492,14 @@ namespace PF.Application.Shell
                 return new Infrastructure.Hardware.BarcodeScan.HKRobot.HKBarcodeScan(ip, tiggerport, userport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
+            hwManager.RegisterFactory("KeyenceIntelligentCamera", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
+                int tiggerport = cfg.ConnectionParameters.TryGetValue("TiggerPort", out var tig) ? int.Parse(tig) : 0;
+                int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutms", out var timeout) ? int.Parse(timeout) : 0;
+                return new Infrastructure.Hardware.Carame.IntelligentCamera.Keyence.KeyenceIntelligentCamera(ip, tiggerport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+            });
+
             containerRegistry.RegisterSingleton<IIOMappingService, IOMappingService>();
 
             // 注册 AutoOcr 工站的 IO 映射
