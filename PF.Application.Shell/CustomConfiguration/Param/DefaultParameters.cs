@@ -336,6 +336,20 @@ namespace PF.Application.Shell.CustomConfiguration.Param
             };
 
 
+            HardwareConfig camera1 = new HardwareConfig
+            {
+                DeviceId = E_Camera.OCR相机.ToString(),
+                DeviceName = "基恩士OCR智能相机",
+                Category = "Canera",
+                ImplementationClassName = "KeyenceIntelligentCamera",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9800", ["TimeOutms"] = "5000" },
+                Remarks = "基恩士OCR智能相机，用于开发/调试"
+            };
+
+
             return new Dictionary<string, HardwareParam>
             {
                 {
@@ -480,6 +494,18 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = scancode2.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(scancode2),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                }
+                ,
+                {
+                    camera1.DeviceId ,new HardwareParam
+                    {
+                         Name         = camera1.DeviceId,
+                        Description  = camera1.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(camera1),
                         Category     = "Hardware",
                         Version      = 1
                     }
