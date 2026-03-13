@@ -144,6 +144,17 @@ namespace PF.Workstation.AutoOcr.CostParam
         工位2扫码枪,
     }
 
+    public enum E_WorkSpace
+    {
+        工位1,
+        工位2,
+    }
+
+    public enum E_Camera
+    {
+       OCR相机,
+    }
+
     public enum E_WafeSize
     {
         _8寸,
