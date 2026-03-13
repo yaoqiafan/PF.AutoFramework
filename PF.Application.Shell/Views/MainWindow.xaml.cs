@@ -119,7 +119,7 @@ namespace PF.Application.Shell.Views
             var result = await _messageService.ShowMessageAsync("确定要退出系统吗？",
                 "退出提示",
                 MessageBoxButton.YesNo,
-                MessageBoxImage.None);
+                MessageBoxImage.Warning);
             if (result == ButtonResult.Yes)
             {
                 try

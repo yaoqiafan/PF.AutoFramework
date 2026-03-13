@@ -34,7 +34,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
         private OCRRecipeParam _currentRecipe;
-        private int _currentStationIndex;
+       
 
         public RecipeDebugViewModel(
             IHardwareManagerService hardwareManager,
@@ -60,11 +60,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             AxisList = new ObservableCollection<IAxis?>(
                 new[] { _axisX, _axisY, _axisZ }.Where(a => a != null));
 
-            // 初始化工位列表
-            StationList = new ObservableCollection<string> { "工位1", "工位2" };
-            _currentStationIndex = 0;
-            _selectedStation = StationList.First();
-
             // 默认运动参数
             AbsVelocity = 50.0;
             RelVelocity = 50.0;
@@ -74,7 +69,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             InitializeCommands();
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-            _pollingTimer.Tick += OnPollingTimerTick;
+            //_pollingTimer.Tick += OnPollingTimerTick;
+            SelectedAxis = AxisList.First();
         }
 
         #region Dialog 生命周期
@@ -151,21 +147,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
-        public ObservableCollection<string> StationList { get; }
+        
 
-        private string _selectedStation;
-        public string SelectedStation
-        {
-            get => _selectedStation;
-            set
-            {
-                if (SetProperty(ref _selectedStation, value))
-                    OnSelectedStationChanged();
-            }
-        }
-
-        private string _currentStation = "工位1";
-        public string CurrentStation { get => _currentStation; set => SetProperty(ref _currentStation, value); }
+        private E_WorkSpace _currentStation = E_WorkSpace.工位1;
+        public E_WorkSpace CurrentStation { get => _currentStation; set => SetProperty(ref _currentStation, value); }
 
         private string _currentRecipePosition = "(X=0.000, Y=0.000, Z=0.000)";
         public string CurrentRecipePosition { get => _currentRecipePosition; set => SetProperty(ref _currentRecipePosition, value); }
@@ -284,7 +269,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (_currentRecipe == null) return;
             try
             {
-                await _recipeService.RecipeChangedAsync(_currentRecipe);
+                var recipeManger = _recipeService as IRecipeManger<OCRRecipeParam>;
+                switch (CurrentStation)
+                {
+                    case E_WorkSpace.工位1:
+                        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位2.ToString(), _currentRecipe);
+                       CurrentStation = E_WorkSpace.工位2;
+                        break;
+                    case E_WorkSpace.工位2:
+                        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位1.ToString(), _currentRecipe);
+                        CurrentStation = E_WorkSpace.工位1;
+                        break;
+                    default:
+                        break;
+                }
+                OnSelectedStationChanged();
             }
             catch (Exception ex)
             {
@@ -294,10 +293,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private async void ExecuteTriggerScan()
         {
-            var scanner = _currentStationIndex == 0 ? _scanner1 : _scanner2;
+            var scanner = CurrentStation == 0 ? _scanner1 : _scanner2;
             if (scanner == null)
             {
-                MessageService.ShowMessage($"工位{_currentStationIndex + 1}扫码枪未连接", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageService.ShowMessage($"工位{CurrentStation + 1}扫码枪未连接", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             try
@@ -341,6 +340,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void ExecuteConfirm()
         {
+
+
+
+
+
             RequestClose.Invoke(ButtonResult.OK);
         }
 
@@ -374,8 +378,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnSelectedStationChanged()
         {
-            _currentStationIndex = StationList.IndexOf(SelectedStation);
-            CurrentStation = SelectedStation;
             UpdateRecipePositionDisplay();
         }
 
@@ -386,8 +388,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (_currentRecipe == null) return;
 
-            double x, y, z;
-            if (_currentStationIndex == 0)
+            double x=0, y = 0, z = 0;
+            if (CurrentStation == 0)
             {
                 x = _currentRecipe._1PosX;
                 y = _currentRecipe._1PosY;

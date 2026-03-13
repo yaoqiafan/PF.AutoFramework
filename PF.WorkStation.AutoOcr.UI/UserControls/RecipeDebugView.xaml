@@ -12,7 +12,7 @@
     <Grid Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
-            <RowDefinition Height="auto" />
+            <RowDefinition MaxHeight="740" />
             <RowDefinition Height="40" />
         </Grid.RowDefinitions>
 
@@ -22,20 +22,8 @@
                 Margin="0,0,0,0"
                 Padding="25,0"
                 Command="{Binding SwitchRecipeCommand}"
-                Content="切换当前程式" />
+                Content="切换工位" />
 
-            <Button
-                MinHeight="35"
-                Margin="25,0,0,0"
-                Padding="25,0"
-                Command="{Binding TriggerScanCommand}"
-                Content="触发扫码" />
-            <Button
-                MinHeight="35"
-                Margin="25,0,0,0"
-                Padding="25,0"
-                Command="{Binding TriggerOcrCommand}"
-                Content="触发OCR" />
             <Button
                 MinHeight="35"
                 Margin="25,0,0,0"
@@ -373,37 +361,122 @@
                             BorderThickness="1"
                             CornerRadius="6">
 
-                            <pf:Card>
-                                <pf:Card.Header>
-                                    <Grid>
-                                        <StackPanel Margin="10" Orientation="Horizontal">
-                                            <TextBlock
-                                                HorizontalAlignment="Left"
-                                                Style="{DynamicResource TextBlockLargeBold}"
-                                                Text="当前程式当前轴点位："
-                                                TextTrimming="CharacterEllipsis"
-                                                TextWrapping="NoWrap" />
+                            <ScrollViewer>
+                                <StackPanel>
+                                    <pf:Card Height="180" BorderBrush="{DynamicResource ControlDefultBrush}">
+                                        <pf:Card.Header>
+                                            <Grid>
+                                                <StackPanel Margin="10" Orientation="Horizontal">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Left"
+                                                        Style="{DynamicResource TextBlockLargeBold}"
+                                                        Text="当前程式当前轴点位："
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="NoWrap" />
 
-                                        </StackPanel>
-                                    </Grid>
-                                </pf:Card.Header>
+                                                </StackPanel>
+                                            </Grid>
+                                        </pf:Card.Header>
 
-                                <Border>
-                                    <TextBlock Text="{Binding RecipeAxisPosition, StringFormat={}{0:F3}}" />
-                                </Border>
+                                        <Border>
 
-                                <pf:Card.Footer>
-                                    <StackPanel Margin="10" Orientation="Horizontal">
-                                        <TextBlock
-                                            HorizontalAlignment="Left"
-                                            Style="{DynamicResource TextBlockLargeBold}"
-                                            Text="当前程式当前轴点位："
-                                            TextTrimming="CharacterEllipsis"
-                                            TextWrapping="NoWrap" />
+                                            <TextBox
+                                                Margin="5"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Stretch"
+                                                FontSize="40"
+                                                Text="{Binding RecipeAxisPosition, StringFormat={}{0:F3}}"
+                                                TextAlignment="Center" />
+                                        </Border>
 
-                                    </StackPanel>
-                                </pf:Card.Footer>
-                            </pf:Card>
+                                        <pf:Card.Footer>
+                                            <pf:ButtonGroup Margin="10">
+                                                <Button Content="移动到" />
+                                                <Button Content="获取当前轴位置" />
+                                                <Button Content="更新" />
+                                            </pf:ButtonGroup>
+                                        </pf:Card.Footer>
+                                    </pf:Card>
+
+                                    <pf:Card
+                                        Height="180"
+                                        Margin="0,10,0,0"
+                                        BorderBrush="{DynamicResource ControlDefultBrush}">
+                                        <pf:Card.Header>
+                                            <Grid>
+                                                <StackPanel Margin="10" Orientation="Horizontal">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Left"
+                                                        Style="{DynamicResource TextBlockLargeBold}"
+                                                        Text="扫码调试："
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="NoWrap" />
+
+                                                </StackPanel>
+                                            </Grid>
+                                        </pf:Card.Header>
+
+                                        <Border>
+
+                                            <TextBox
+                                                Margin="5"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Stretch"
+                                                FontSize="40"
+                                                IsReadOnly="True"
+                                                Text=""
+                                                TextAlignment="Center" />
+                                        </Border>
+
+                                        <pf:Card.Footer>
+                                            <pf:ButtonGroup Margin="10">
+                                                <Button Command="{Binding TriggerScanCommand}" Content="触发扫码" />
+                                            </pf:ButtonGroup>
+                                        </pf:Card.Footer>
+                                    </pf:Card>
+
+
+                                    <pf:Card
+                                        Height="180"
+                                        Margin="0,10,0,0"
+                                        BorderBrush="{DynamicResource ControlDefultBrush}">
+                                        <pf:Card.Header>
+                                            <Grid>
+                                                <StackPanel Margin="10" Orientation="Horizontal">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Left"
+                                                        Style="{DynamicResource TextBlockLargeBold}"
+                                                        Text="OCR调试："
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="NoWrap" />
+
+                                                </StackPanel>
+                                            </Grid>
+                                        </pf:Card.Header>
+
+                                        <Border>
+
+                                            <TextBox
+                                                Margin="5"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Stretch"
+                                                FontSize="40"
+                                                IsReadOnly="True"
+                                                Text=""
+                                                TextAlignment="Center" />
+                                        </Border>
+
+                                        <pf:Card.Footer>
+                                            <pf:ButtonGroup Margin="10">
+                                                <Button Command="{Binding TriggerOcrCommand}" Content="触发OCR" />
+                                            </pf:ButtonGroup>
+                                        </pf:Card.Footer>
+                                    </pf:Card>
+
+                                </StackPanel>
+                            </ScrollViewer>
+
+
                         </Border>
                     </Grid>
                 </Grid>
@@ -443,12 +516,14 @@
                                 Text="当前工位："
                                 TextTrimming="CharacterEllipsis"
                                 TextWrapping="NoWrap" />
-                            <ComboBox
+                            <TextBlock
                                 MinWidth="80"
-                                Margin="0,0,25,0"
+                                Margin="0,0,0,0"
                                 HorizontalAlignment="Left"
-                                ItemsSource="{Binding StationList}"
-                                SelectedItem="{Binding SelectedStation}" />
+                                Style="{DynamicResource TextBlockLargeBold}"
+                                Text="{Binding CurrentStation}"
+                                TextTrimming="CharacterEllipsis"
+                                TextWrapping="NoWrap" />
                         </StackPanel>
                     </StackPanel>
 
@@ -479,13 +554,10 @@
                                 TextTrimming="CharacterEllipsis"
                                 TextWrapping="NoWrap" />
                             <TextBlock
-                                Width="150"
                                 Margin="0,6,0,0"
                                 HorizontalAlignment="Left"
-                                Style="{DynamicResource TextBlockDefault}"
-                                Text="{Binding CurrentRecipePosition}"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
+                                Style="{DynamicResource TextBlockLargeBold}"
+                                Text="{Binding CurrentRecipePosition, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
 
 
