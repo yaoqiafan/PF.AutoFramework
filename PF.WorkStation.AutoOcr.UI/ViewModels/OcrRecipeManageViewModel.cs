@@ -1,4 +1,5 @@
 ﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.SecsGem;
