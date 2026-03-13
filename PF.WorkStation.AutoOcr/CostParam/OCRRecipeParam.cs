@@ -2,23 +2,26 @@
 using PF.Workstation.AutoOcr.CostParam;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.CostParam
 {
-    public class OCRRecipeParam : ReceipeParamBase
+    public class OCRRecipeParam : RecipeParamBase
     {
         /// <summary>
         /// 条码个数
         /// </summary>
+        [Range(0, 3, ErrorMessage = "条码个数设置错误")]
         public int CodeCount { get; set; } = 2;
 
 
         /// <summary>
         /// 关联OCR相机配方名称
         /// </summary>
+        [Required(ErrorMessage = "相机程序号不能为空")]
         public string OCRRecipeName { get; set; } = string.Empty;
 
         /// <summary>
@@ -27,23 +30,42 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public E_WafeSize WafeSize { get; set; } = E_WafeSize._12寸;
 
         /// <summary>
-        /// OCR相机X轴位置，单位mm
+        /// 工位1OCR相机X轴位置，单位mm
         /// </summary>
-        public double PosX { get; set; } = 0;
+        public double _1PosX { get; set; } = 0;
 
         /// <summary>
-        /// OCR相机X轴位置，单位mm
+        /// 工位1OCR相机X轴位置，单位mm
         /// </summary>
-        public double PosY { get; set; } = 0;
+        public double _1PosY { get; set; } = 0;
 
         /// <summary>
-        /// OCR相机Z轴位置，单位mm
+        /// 工位1OCR相机Z轴位置，单位mm
         /// </summary>
-        public double PosZ { get; set; } = 0;
+        public double _1PosZ { get; set; } = 0;
+
+
+        /// <summary>
+        /// 工位2OCR相机X轴位置，单位mm
+        /// </summary>
+        public double _2PosX { get; set; } = 0;
+
+        /// <summary>
+        /// 工位2OCR相机Y轴位置，单位mm
+        /// </summary>
+        public double _2PosY { get; set; } = 0;
+
+        /// <summary>
+        /// 工位2OCR相机Z轴位置，单位mm
+        /// </summary>
+        public double _2PosZ { get; set; } = 0;
+
+
 
         /// <summary>
         /// 客批比对开始索引
         /// </summary>
+        [Range(0, 100, ErrorMessage = "客批比对开始索引设置错误")]
         public int GuestStartIndex { get; set; } = 0;
 
 
@@ -51,6 +73,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
         /// <summary>
         /// 客批比对长度
         /// </summary>
+        [Range(0, 100, ErrorMessage = "客批比对长度设置错误")]
         public int GuestLength { get; set; } = 6;
 
 
@@ -64,6 +87,30 @@ namespace PF.WorkStation.AutoOcr.CostParam
         /// 关联工位配方名称列表（如有多个工位关联同一OCR配方，则在此列表中添加对应工位配方名称）
         /// </summary>
         public List<string> AssociateProduct { get; set; } = new List<string>();
+
+
+
+        public override OCRRecipeParam DeepClone()
+        {
+            // 先拷贝父类属性，再拷贝子类属性
+            var clone = (OCRRecipeParam)base.Clone();
+            clone.CodeCount = this.CodeCount;
+            clone.OCRRecipeName = this.OCRRecipeName;
+            clone.WafeSize = this.WafeSize;
+            clone._1PosX = this._1PosX;
+            clone._1PosY = this._1PosY;
+            clone._1PosZ = this._1PosZ;
+            clone._2PosX = this._2PosX;
+            clone._2PosY = this._2PosY;
+            clone._2PosZ = this._2PosZ;
+            clone.GuestStartIndex = this.GuestStartIndex;
+            clone.GuestLength = this.GuestLength;
+            clone.IsOCRCodePate = this.IsOCRCodePate;
+            clone.AssociateProduct = new List<string>(this.AssociateProduct);
+            return clone;
+        }
+
+
 
     }
 }

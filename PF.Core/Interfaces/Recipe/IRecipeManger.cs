@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Recipe
 {
-    public interface IRecipeManger<T> where T : Recipe.ReceipeParamBase
+    public interface IRecipeManger<T> where T : Recipe.RecipeParamBase
     {
 
 
