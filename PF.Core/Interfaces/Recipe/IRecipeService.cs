@@ -90,7 +90,7 @@ namespace PF.Core.Interfaces.Recipe
         /// <param name="NewRecipeName"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-       
+        Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default);
 
 
 
@@ -122,7 +122,7 @@ namespace PF.Core.Interfaces.Recipe
     /// <summary>
     /// 配方名称（唯一标识）
     /// </summary>
-    public class RecipeParamBase : ICloneable
+    public abstract class RecipeParamBase 
     {
         /// <summary>
         /// 配方参数
@@ -146,8 +146,9 @@ namespace PF.Core.Interfaces.Recipe
         /// 基础参数校验（验证必填项）
         /// </summary>
         /// <returns>校验结果（true=通过，false=失败）</returns>
-        public virtual bool Validate()
+        public virtual bool Validate(out string err)
         {
+            err = string.Empty;
             // 使用数据注解进行校验
             var validationContext = new ValidationContext(this);
             var validationResults = new System.Collections.Generic.List<System.ComponentModel.DataAnnotations.ValidationResult>();
@@ -157,7 +158,7 @@ namespace PF.Core.Interfaces.Recipe
             {
                 foreach (var error in validationResults)
                 {
-                    Console.WriteLine($"配方[{RecipeName}]校验失败：{error.ErrorMessage}");
+                    err+=($"配方[{RecipeName}]校验失败：{error.ErrorMessage}");
                 }
             }
             return isValid;
@@ -183,22 +184,13 @@ namespace PF.Core.Interfaces.Recipe
             return JsonSerializer.Deserialize<T>(json);
         }
 
-        public object Clone()
-        {
-            return new RecipeParamBase()
-            {
-                RecipeName = this.RecipeName
-            };
-        }
 
 
         /// <summary>
         /// 数据深拷贝（创建一个新的配方对象，属性值与当前对象相同，但引用类型属性会被复制）
         /// </summary>
         /// <returns></returns>
-        public virtual RecipeParamBase DeepClone()
-        {
-            return (RecipeParamBase)this.Clone();
-        }
+        public abstract RecipeParamBase DeepClone();
+        
     }
 }

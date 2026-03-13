@@ -1,4 +1,6 @@
 ﻿using PF.Core.Interfaces.Recipe;
+using PF.Core.Interfaces.SecsGem;
+using PF.Infrastructure.SecsGem;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
@@ -19,11 +21,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         // 核心修改：改用接口抽象，不依赖具体实现类
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
-
+        private readonly ISecsGemManger _secsGemManger;
         // 通过 Prism 容器注入接口
-        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService)
+        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService,ISecsGemManger secsGemManger)
         {
             _recipeService = recipeService ?? throw new ArgumentNullException(nameof(recipeService));
+            _secsGemManger = secsGemManger ?? throw new ArgumentNullException(nameof(secsGemManger));
+
             Parameters = new ObservableCollection<OcrRecipeParamEntity>();
 
             // 初始化命令
@@ -31,6 +35,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             NewRecipeCommand = new DelegateCommand(ExecuteNewRecipe);
             SaveRecipeCommand = new DelegateCommand(ExecuteSaveRecipe, CanExecuteSaveRecipe).ObservesProperty(() => SelectedParameter);
             DeleteRecipeCommand = new DelegateCommand(ExecuteDeleteRecipe, CanExecuteDeleteRecipe).ObservesProperty(() => SelectedParameter);
+
+            UPLoadRecipeCommand = new DelegateCommand(ExecuteUPLoadRecipe, CanExecuteUPLoadRecipe).ObservesProperty(() => SelectedParameter);
+
+            ChangeRecipeNameCommand = new DelegateCommand(ExecuteChangeRecipeName, CanExecuteSaveRecipe).ObservesProperty(() => SelectedParameter);
+
+            CloneRecipeCommand = new DelegateCommand(ExecuteCloneRecipe, CanExecuteCloneRecipe).ObservesProperty(() => SelectedParameter);
 
             // 初始加载数据
             ExecuteLoadRecipes();
@@ -51,6 +61,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand NewRecipeCommand { get; private set; }
         public DelegateCommand SaveRecipeCommand { get; private set; }
         public DelegateCommand DeleteRecipeCommand { get; private set; }
+
+        public DelegateCommand UPLoadRecipeCommand { get; private set; }
+
+        public DelegateCommand ChangeRecipeNameCommand { get; private set; }
+
+        public DelegateCommand CloneRecipeCommand { get; private set; }
 
         private async void ExecuteLoadRecipes()
         {
@@ -96,6 +112,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 var paramToSave = MapToParam(SelectedParameter);
 
+                if (!paramToSave.Validate( out string err))
+                {
+                    MessageService.ShowMessage($"参数验证失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return ;
+                }
+
                 // 调用接口：写入配方参数 (IsCover = true)
                 bool isSuccess = await _recipeService.RecipeParamWriteAsync(paramToSave, true);
 
@@ -124,7 +146,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (SelectedParameter == null) return;
 
             var result = await MessageService.ShowMessageAsync($"确定要彻底删除配方 [{SelectedParameter.RecipeName}] 吗？\n该操作将删除本地文件。", "警告", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (result ==  ButtonResult.Yes)
+            if (result == ButtonResult.Yes)
             {
                 // 调用接口：删除指定配方
                 bool isSuccess = await _recipeService.RecipeDeleteAsync(SelectedParameter.RecipeName);
@@ -143,6 +165,103 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
+
+        private async void ExecuteChangeRecipeName()
+        {
+            if (SelectedParameter == null) return;
+           var name = await  MessageService.ShowInputAsync("请输入程式名称：","重命名", " ");
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                var paramToSave = MapToParam(SelectedParameter);
+
+                if (!paramToSave.Validate(out string err))
+                {
+                    MessageService.ShowMessage($"参数验证失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                var isSuccess = await _recipeService.ChangeRecipeNameAsync(paramToSave, name);
+
+                if (isSuccess)
+                {
+                    ExecuteLoadRecipes();
+                    MessageService.ShowMessage($"配方 [{name}] 已成功保存到本地！", "重命名成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageService.ShowMessage($"配方 [{SelectedParameter.RecipeName}] 重命名失败，请查看日志。", "重命名失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                MessageService.ShowMessage($"未输入有效的程式名称！\r\n 重命名失败，请查看日志。", "重命名失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
+        private async void ExecuteUPLoadRecipe()
+        {
+            if (SelectedParameter == null) return;
+            //RecipeUpdateAsync
+
+            var paramToSave = MapToParam(SelectedParameter);
+
+            if (!paramToSave.Validate(out string err))
+            {
+                MessageService.ShowMessage($"参数验证失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var isSuccess = await _recipeService.RecipeUpdateAsync(paramToSave);
+
+            if (isSuccess)
+            {
+                MessageService.ShowMessage($"程式上传成功！", "上传成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageService.ShowMessage($"程式上传失败！", "上传失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+        }
+
+        private bool CanExecuteUPLoadRecipe()
+        {
+            return SelectedParameter != null&& _secsGemManger!=null && _secsGemManger.IsConnected;
+        }
+
+
+        private async void ExecuteCloneRecipe()
+        {
+            if (SelectedParameter == null) return;
+            var name = await MessageService.ShowInputAsync("请输入程式名称：", "复制程式", " ");
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            var paramToSave = MapToParam(SelectedParameter);
+
+            if (!paramToSave.Validate(out string err))
+            {
+                MessageService.ShowMessage($"参数验证失败: {err}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var cloneparam = await _recipeService.CopyRecipeAsync(name, paramToSave);
+
+            var newEntity = MapToEntity(cloneparam);
+
+            Parameters.Add(newEntity);
+
+
+
+        }
+
+        private bool CanExecuteCloneRecipe()
+        {
+            return SelectedParameter != null;
+        }
+
+
         #endregion
 
         #region 数据映射 (Mapping)
@@ -157,9 +276,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 CodeCount = param.CodeCount,
                 WafeSize = param.WafeSize,
                 OCRRecipeName = param.OCRRecipeName,
-                PosX = param.PosX,
-                PosY = param.PosY,
-                PosZ = param.PosZ,
+                PosX_1 = param._1PosX,
+                PosY_1 = param._1PosY,
+                PosZ_1 = param._1PosZ,
+                PosX_2 = param._1PosX,
+                PosY_2 = param._1PosY,
+                PosZ_2 = param._1PosZ,
                 GuestStartIndex = param.GuestStartIndex,
                 GuestLength = param.GuestLength,
                 IsOCRCodePate = param.IsOCRCodePate,
@@ -177,9 +299,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 CodeCount = entity.CodeCount,
                 WafeSize = entity.WafeSize,
                 OCRRecipeName = entity.OCRRecipeName ?? string.Empty,
-                PosX = entity.PosX,
-                PosY = entity.PosY,
-                PosZ = entity.PosZ,
+                _1PosX = entity.PosX_1,
+                _1PosY = entity.PosY_1,
+                _1PosZ = entity.PosZ_1,
+                _2PosX = entity.PosX_1,
+                _2PosY = entity.PosY_1,
+                _2PosZ = entity.PosZ_1,
                 GuestStartIndex = entity.GuestStartIndex,
                 GuestLength = entity.GuestLength,
                 IsOCRCodePate = entity.IsOCRCodePate,

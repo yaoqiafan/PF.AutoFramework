@@ -230,6 +230,10 @@ namespace PF.Infrastructure.Recipe
 
         public Task<T> CopyRecipeAsync(string RecipeName, T RecipeParam, CancellationToken token = default)
         {
+            if (this.RecipeNames.FindIndex(x => x == RecipeName) != -1)
+            {
+                return Task.FromResult<T>(null);
+            }
             var newrecipe = RecipeParam.DeepClone() as T;
             if (newrecipe != null)
             {
@@ -245,6 +249,10 @@ namespace PF.Infrastructure.Recipe
 
         public Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default)
         {
+            if (this.RecipeNames.FindIndex(x => x == NewRecipeName) != -1)
+            {
+                return Task.FromResult(false);
+            }
             var newrecipe = RecipeParam.DeepClone() as T;
             if (newrecipe != null)
             {

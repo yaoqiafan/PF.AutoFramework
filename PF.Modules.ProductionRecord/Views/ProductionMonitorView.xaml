@@ -1,67 +1,126 @@
-<UserControl x:Class="PF.Modules.Production.Views.ProductionMonitorView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
-             xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-             prism:ViewModelLocator.AutoWireViewModel="True">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+<UserControl
+    x:Class="PF.Modules.Production.Views.ProductionMonitorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <!-- 标题栏 -->
-        <Border Grid.Row="0" Background="#FF2D2D30" Padding="12,8">
-            <TextBlock Text="生产数据实时监控" FontSize="16" FontWeight="Bold"
-                       Foreground="White" VerticalAlignment="Center" />
-        </Border>
+            <!--  标题栏  -->
+            <Border
+                Grid.Row="0"
+                Padding="12,8"
+                Background="#FF2D2D30">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="16"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="生产数据实时监控" />
+            </Border>
 
-        <!-- 过滤条 -->
-        <Border Grid.Row="1" Background="#FF3E3E42" Padding="10,6">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="类型：" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,4,0" />
-                <TextBox Text="{Binding FilterRecordType, UpdateSourceTrigger=PropertyChanged}"
-                         Width="120" Padding="4,2" Background="#FF252526" Foreground="White"
-                         BorderBrush="#FF555555" Margin="0,0,16,0" />
+            <!--  过滤条  -->
+            <Border
+                Grid.Row="1"
+                Padding="10,6"
+                Background="#FF3E3E42">
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,4,0"
+                        VerticalAlignment="Center"
+                        Foreground="#FFCCCCCC"
+                        Text="类型：" />
+                    <TextBox
+                        Width="120"
+                        Margin="0,0,16,0"
+                        Padding="4,2"
+                        Background="#FF252526"
+                        BorderBrush="#FF555555"
+                        Foreground="White"
+                        Text="{Binding FilterRecordType, UpdateSourceTrigger=PropertyChanged}" />
 
-                <Button Content="清空" Command="{Binding ClearCommand}"
-                        Padding="12,4" Margin="0,0,8,0"
-                        Background="#FF555555" Foreground="White" BorderThickness="0" />
-
-                <Button Content="导出 Excel" Command="{Binding ExportCommand}" CommandParameter="excel"
-                        Padding="12,4" Margin="0,0,8,0"
-                        Background="#FF0E7A0E" Foreground="White" BorderThickness="0" />
-
-                <Button Content="导出 CSV" Command="{Binding ExportCommand}" CommandParameter="csv"
+                    <Button
+                        Margin="0,0,8,0"
                         Padding="12,4"
-                        Background="#FF555555" Foreground="White" BorderThickness="0" />
-            </StackPanel>
-        </Border>
+                        Background="#FF555555"
+                        BorderThickness="0"
+                        Command="{Binding ClearCommand}"
+                        Content="清空"
+                        Foreground="White" />
 
-        <!-- 数据列表 -->
-        <ListView Grid.Row="2" ItemsSource="{Binding RecentRecords}"
-                  Background="#FF1E1E1E" Foreground="#FFCCCCCC"
-                  BorderThickness="0" SelectionMode="Single">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="采集时间" Width="155"
-                                    DisplayMemberBinding="{Binding RecordTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
-                    <GridViewColumn Header="类型" Width="100" DisplayMemberBinding="{Binding RecordType}" />
-                    <GridViewColumn Header="数据类型" Width="200" DisplayMemberBinding="{Binding TypeFullName}" />
-                    <GridViewColumn Header="JSON 数据" Width="400" DisplayMemberBinding="{Binding JsonValue}" />
-                </GridView>
-            </ListView.View>
-        </ListView>
+                    <Button
+                        Margin="0,0,8,0"
+                        Padding="12,4"
+                        Background="#FF0E7A0E"
+                        BorderThickness="0"
+                        Command="{Binding ExportCommand}"
+                        CommandParameter="excel"
+                        Content="导出 Excel"
+                        Foreground="White" />
 
-        <!-- 状态栏 -->
-        <Border Grid.Row="3" Background="#FF2D2D30" Padding="10,4">
-            <TextBlock Foreground="#FF999999">
-                <Run Text="共 " />
-                <Run Text="{Binding TotalCount}" FontWeight="Bold" Foreground="White" />
-                <Run Text=" 条（最多保留 500 条）" />
-            </TextBlock>
-        </Border>
-    </Grid>
+                    <Button
+                        Padding="12,4"
+                        Background="#FF555555"
+                        BorderThickness="0"
+                        Command="{Binding ExportCommand}"
+                        CommandParameter="csv"
+                        Content="导出 CSV"
+                        Foreground="White" />
+                </StackPanel>
+            </Border>
+
+            <!--  数据列表  -->
+            <ListView
+                Grid.Row="2"
+                Background="#FF1E1E1E"
+                BorderThickness="0"
+                Foreground="#FFCCCCCC"
+                ItemsSource="{Binding RecentRecords}"
+                SelectionMode="Single">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn
+                            Width="155"
+                            DisplayMemberBinding="{Binding RecordTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
+                            Header="采集时间" />
+                        <GridViewColumn
+                            Width="100"
+                            DisplayMemberBinding="{Binding RecordType}"
+                            Header="类型" />
+                        <GridViewColumn
+                            Width="200"
+                            DisplayMemberBinding="{Binding TypeFullName}"
+                            Header="数据类型" />
+                        <GridViewColumn
+                            Width="400"
+                            DisplayMemberBinding="{Binding JsonValue}"
+                            Header="JSON 数据" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <!--  状态栏  -->
+            <Border
+                Grid.Row="3"
+                Padding="10,4"
+                Background="#FF2D2D30">
+                <TextBlock Foreground="#FF999999">
+                    <Run Text="共 " />
+                    <Run
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="{Binding TotalCount}" />
+                    <Run Text=" 条（最多保留 500 条）" />
+                </TextBlock>
+            </Border>
+        </Grid>
+    </pf:TransitioningContentControl>
 </UserControl>

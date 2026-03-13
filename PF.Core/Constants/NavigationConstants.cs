@@ -73,6 +73,12 @@ namespace PF.Core.Constants
             #endregion
 
 
+            #region 生产数据
+            public const string ProductionMonitorView = nameof(ProductionMonitorView);
+            public const string ProductionHistoryView = nameof(ProductionHistoryView);
+            #endregion
+
+
         }
 
     }

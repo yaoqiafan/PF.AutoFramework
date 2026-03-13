@@ -90,10 +90,13 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
 
 
-        public override OCRRecipeParam DeepClone()
+        public override  OCRRecipeParam DeepClone()
         {
             // 先拷贝父类属性，再拷贝子类属性
-            var clone = (OCRRecipeParam)base.Clone();
+            var clone = new OCRRecipeParam();
+            clone.RecipeName = this.RecipeName;
+            clone.CreateTime = this.CreateTime;
+            clone.UpdateTime = this.UpdateTime;
             clone.CodeCount = this.CodeCount;
             clone.OCRRecipeName = this.OCRRecipeName;
             clone.WafeSize = this.WafeSize;

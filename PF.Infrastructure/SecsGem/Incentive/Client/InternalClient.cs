@@ -63,6 +63,8 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 _client.DataReceived += Client_DataReceived;
                 _client.ErrorOccurred += Client_ErrorOccurred;
                 var systemparams = _paramConfig.GetParam<SecsGemSystemParam>(ParamType.System);
+
+                if (systemparams == null) { return false; }
                 _deviceId = BitConverter.GetBytes(Convert.ToInt16(systemparams.DeviceID));
                 // 连接到服务器
                 return await StartClient();

@@ -17,6 +17,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
         [DefaultValue("Test")]
         [CategoryAttribute("A.基本参数")]
         [DisplayNameAttribute("1.配方名称")]
+        [ReadOnly(true)]
         [BrowsableAttribute(true)]
         public string RecipeName
         {
@@ -58,60 +59,117 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
             set { SetProperty(ref _WafeSize, value); }
         }
 
-        private double _PosX = 0;
+        private double _1PosX = 0;
         [DefaultValue(0.0)]
-        [CategoryAttribute("B.坐标参数")]
-        [DisplayNameAttribute("1.OCR相机X轴位置(mm)")]
+        [CategoryAttribute("B.工位1OCR相机坐标参数")]
+        [DisplayNameAttribute("1.X轴位置(mm)")]
         [BrowsableAttribute(true)]
-        public double PosX
+        public double PosX_1
         {
-            get { return _PosX; }
+            get { return _1PosX; }
             set
             {
-                SetProperty(ref _PosX, value);
-                PosXYZ = $"({value}),({PosY}),({PosZ})";
+                SetProperty(ref _1PosX, value);
+                PosXYZ_1 = $"({value}),({PosY_1}),({PosZ_1})";
             }
         }
 
-        private double _PosY = 0;
+        private double _1PosY = 0;
         [DefaultValue(0.0)]
-        [CategoryAttribute("B.坐标参数")]
-        [DisplayNameAttribute("2.OCR相机Y轴位置(mm)")]
+        [CategoryAttribute("B.工位1OCR相机坐标参数")]
+        [DisplayNameAttribute("2.Y轴位置(mm)")]
         [BrowsableAttribute(true)]
-        public double PosY
+        public double PosY_1
         {
-            get { return _PosY; }
+            get { return _1PosY; }
             set
             {
-                SetProperty(ref _PosY, value);
-                PosXYZ = $"({PosX}),({value}),({PosZ})";
+                SetProperty(ref _1PosY, value);
+                PosXYZ_1 = $"({PosX_1}),({value}),({PosZ_1})";
             }
         }
 
-        private double _PosZ = 0;
+        private double _1PosZ = 0;
         [DefaultValue(0.0)]
-        [CategoryAttribute("B.坐标参数")]
-        [DisplayNameAttribute("3.OCR相机Z轴位置(mm)")]
+        [CategoryAttribute("B.工位1OCR相机坐标参数")]
+        [DisplayNameAttribute("3.Z轴位置(mm)")]
         [BrowsableAttribute(true)]
-        public double PosZ
+        public double PosZ_1
         {
-            get { return _PosZ; }
+            get { return _1PosZ; }
             set
             {
-                SetProperty(ref _PosZ, value);
-                PosXYZ = $"({PosX}),({PosY}),({value})";
+                SetProperty(ref _1PosZ, value);
+                PosXYZ_1 = $"({PosX_1}),({PosY_1}),({value})";
             }
         }
 
 
 
-        private string _PosXYZ = "(0),(0),(0)";
+        private double _2PosX = 0;
+        [DefaultValue(0.0)]
+        [CategoryAttribute("B.工位2OCR相机坐标参数")]
+        [DisplayNameAttribute("1.X轴位置(mm)")]
+        [BrowsableAttribute(true)]
+        public double PosX_2
+        {
+            get { return _2PosX; }
+            set
+            {
+                SetProperty(ref _2PosX, value);
+                PosXYZ_2 = $"({value}),({PosY_2}),({PosZ_2})";
+            }
+        }
+
+        private double _2PosY = 0;
+        [DefaultValue(0.0)]
+        [CategoryAttribute("B.工位2OCR相机坐标参数")]
+        [DisplayNameAttribute("2.Y轴位置(mm)")]
+        [BrowsableAttribute(true)]
+        public double PosY_2
+        {
+            get { return _2PosY; }
+            set
+            {
+                SetProperty(ref _2PosY, value);
+                PosXYZ_2 = $"({PosX_2}),({value}),({PosZ_2})";
+            }
+        }
+
+        private double _2PosZ = 0;
+        [DefaultValue(0.0)]
+        [CategoryAttribute("B.工位2OCR相机坐标参数")]
+        [DisplayNameAttribute("3.Z轴位置(mm)")]
+        [BrowsableAttribute(true)]
+        public double PosZ_2
+        {
+            get { return _2PosZ; }
+            set
+            {
+                SetProperty(ref _2PosZ, value);
+                PosXYZ_2 = $"({PosX_2}),({PosY_2}),({value})";
+            }
+        }
+
+
+
+        private string _1PosXYZ = "(0),(0),(0)";
         [DefaultValue(0.0)]
         [BrowsableAttribute(false)]
-        public string PosXYZ
+        public string PosXYZ_1
         {
-            get { return _PosXYZ; }
-            set { SetProperty(ref _PosXYZ, value); }
+            get { return _1PosXYZ; }
+            set { SetProperty(ref _1PosXYZ, value); }
+        }
+
+
+        private string _2PosXYZ = "(0),(0),(0)";
+        [DefaultValue(0.0)]
+        [BrowsableAttribute(false)]
+        public string PosXYZ_2
+        {
+            get { return _2PosXYZ; }
+            set { SetProperty(ref _2PosXYZ, value); }
         }
 
         private int _GuestStartIndex = 0;

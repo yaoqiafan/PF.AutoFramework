@@ -28,7 +28,7 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         {
             // 将用户输入的结果通过参数返回
             var parameters = new DialogParameters { { "InputText", InputText } };
-            RequestClose.Invoke(new DialogResult(ButtonResult.OK));
+            RequestClose.Invoke(new DialogResult(ButtonResult.OK) {  Parameters= parameters });
         }
 
         public override void OnDialogOpened(IDialogParameters parameters)
