@@ -22,12 +22,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IHardwareManagerService _hardwareManager;
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
 
-        private readonly IAxis _axisX;
-        private readonly IAxis _axisY;
-        private readonly IAxis _axisZ;
-        private readonly IBarcodeScan _scanner1;
-        private readonly IBarcodeScan _scanner2;
-        private readonly IIntelligentCamera _camera;
+        private readonly IAxis? _axisX;
+        private readonly IAxis? _axisY;
+        private readonly IAxis? _axisZ;
+        private readonly IBarcodeScan? _scanner1;
+        private readonly IBarcodeScan? _scanner2;
+        private readonly IIntelligentCamera? _camera;
 
         private IAxis _axis;
         private BaseDevice _baseDevice;
@@ -57,7 +57,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _camera = hardwareManager.ActiveDevices.OfType<IIntelligentCamera>().FirstOrDefault();
 
             // 初始化轴列表（只含三个 OCR 轴，过滤 null）
-            AxisList = new ObservableCollection<IAxis>(
+            AxisList = new ObservableCollection<IAxis?>(
                 new[] { _axisX, _axisY, _axisZ }.Where(a => a != null));
 
             // 初始化工位列表
@@ -138,7 +138,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 轴/工位选择属性
 
-        public ObservableCollection<IAxis> AxisList { get; }
+        public ObservableCollection<IAxis?> AxisList { get; }
 
         private IAxis _selectedAxis;
         public IAxis SelectedAxis
