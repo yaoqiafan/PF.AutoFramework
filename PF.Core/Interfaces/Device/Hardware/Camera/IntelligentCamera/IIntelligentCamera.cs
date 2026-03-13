@@ -38,5 +38,21 @@ namespace PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera
         /// <returns></returns>
         Task<bool> ChangeProgram(object ProgramNumber, CancellationToken token = default);
 
+
+        /// <summary>
+        /// 相机程式列表
+        /// </summary>
+        List<string> CameraProgram { get; }
+
+
+
+        /// <summary>
+        /// 判断相机程式是否存在
+        /// </summary>
+        /// <param name="programName"></param>
+        /// <returns></returns>
+        Task<bool> DetermineProgramExits(object programName,CancellationToken token =default );
+
+
     }
 }

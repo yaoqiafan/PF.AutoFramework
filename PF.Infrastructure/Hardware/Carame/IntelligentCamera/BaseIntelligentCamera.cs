@@ -19,7 +19,10 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
 
         public abstract int TiggerPort { get; }
 
-     
+        public abstract List <string > CameraProgram { get; }
+
+
+
 
         public abstract  int TimeOutMs { get; }
 
@@ -28,7 +31,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
 
         public abstract Task<string> Tigger(CancellationToken token = default);
 
-
+        public abstract Task<bool> DetermineProgramExits(object programName, CancellationToken token = default);
 
     }
 }
