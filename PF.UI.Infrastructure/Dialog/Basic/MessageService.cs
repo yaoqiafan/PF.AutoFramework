@@ -74,7 +74,9 @@ namespace PF.UI.Infrastructure.Dialog.Basic
                 {
                     if (result.Result == ButtonResult.OK)
                     {
-                        tcs.SetResult(result.Parameters.GetValue<string>("InputText"));
+                        var res = result.Parameters.GetValue<string>("InputText");
+
+                        tcs.SetResult(res);
                     }
                     else
                     {

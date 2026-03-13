@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Interfaces.Production;
 using PF.Modules.Production.ViewModels;
 using PF.Modules.Production.Views;
@@ -16,9 +17,9 @@ namespace PF.Modules.Production
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<ProductionMonitorView, ProductionMonitorViewModel>(
-                "ProductionMonitorView");
+                NavigationConstants.Views.ProductionMonitorView);
             containerRegistry.RegisterForNavigation<ProductionHistoryView, ProductionHistoryViewModel>(
-                "ProductionHistoryView");
+                NavigationConstants.Views.ProductionHistoryView);
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

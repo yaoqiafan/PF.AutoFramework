@@ -1,6 +1,7 @@
 using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Infrastructure.Station.Basic;
+using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
 using System.Reflection;
 
@@ -18,7 +19,7 @@ namespace PF.Modules.Debug.ViewModels
     ///   选中列表项后调用 IRegionManager.RequestNavigate，
     ///   将对应 ViewName 加载到 StationContentRegion 右侧内容区域。
     /// </summary>
-    public class StationDebugViewModel : BindableBase
+    public class StationDebugViewModel : RegionViewModelBase
     {
         private readonly IRegionManager _regionManager;
 

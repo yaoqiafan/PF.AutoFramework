@@ -12,7 +12,7 @@ namespace PF.Modules.Production.ViewModels
     /// 订阅 IProductionDataService.DataRecorded 事件，每条新数据写入后自动更新列表，无需轮询。
     /// 内存中最多保留 <see cref="MaxRecords"/> 条，防止无限增长。
     /// </summary>
-    public class ProductionMonitorViewModel : ViewModelBase
+    public class ProductionMonitorViewModel : RegionViewModelBase
     {
         private const int MaxRecords = 500;
 
