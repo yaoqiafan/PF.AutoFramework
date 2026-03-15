@@ -1,9 +1,7 @@
-using log4net;
 using Microsoft.Extensions.Hosting;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
-using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
@@ -198,8 +196,15 @@ namespace PF.Application.Shell
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            RegisterLogServiceTypes(containerRegistry);
-            RegisterSystemParamsTypes(containerRegistry);
+            // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
+            containerRegistry.AddLogging();
+            _logService = containerRegistry.GetContainer().Resolve<ILogService>();
+
+            // 参数数据库（AppParamDbContext 是应用层专属，保留在此）
+            RegisterParamDbContext(containerRegistry);
+            // 参数仓储和服务（委托到 ParameterServiceExtensions）
+            containerRegistry.AddParameterServices(new DefaultParameters());
+
             RegisterProductionDataService(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
 
@@ -238,104 +243,8 @@ namespace PF.Application.Shell
         #endregion
 
         #region 日志服务注册
-
-        public void RegisterLogServiceTypes(IContainerRegistry containerRegistry)
-        {
-            try
-            {
-                var logConfig = CreateLogConfiguration();
-                containerRegistry.RegisterInstance(logConfig);
-                _logService = new LogService(logConfig);
-                containerRegistry.RegisterInstance<ILogService>(_logService);
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError("日志模块类型注册失败", ex);
-                throw;
-            }
-        }
-
-        private LogConfiguration CreateLogConfiguration()
-        {
-            try
-            {
-                var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
-                var logBasePath = Path.Combine(appBasePath, "Logs");
-
-                var config = new LogConfiguration
-                {
-                    BasePath = logBasePath,
-                    HistoricalLogPath = logBasePath,
-                    EnableConsoleLogging = true,
-                    EnableFileLogging = true,
-                    EnableUiLogging = true,
-                    MinimumLevel = LogLevel.Debug,
-                    AutoDeleteLogs = true,
-                    AutoDeleteIntervalDays = 30,
-                    MaxUiEntries = 1000,
-                    SplitByHour = false
-                };
-
-                config.ConfigureDefaultCategories();
-                config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
-
-                EnsureLogDirectoryExists(logBasePath);
-                foreach (var category in config.GetFileLogCategories())
-                {
-                    EnsureLogDirectoryExists(Path.Combine(logBasePath, category));
-                }
-
-                return config;
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError("创建日志配置失败，使用默认配置", ex);
-                return CreateFallbackConfiguration();
-            }
-        }
-
-        private LogConfiguration CreateFallbackConfiguration()
-        {
-            return new LogConfiguration
-            {
-                BasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"),
-                EnableConsoleLogging = true,
-                EnableFileLogging = true,
-                EnableUiLogging = true,
-                MinimumLevel = LogLevel.Info,
-                AutoDeleteLogs = false,
-                AutoDeleteIntervalDays = 30,
-                MaxUiEntries = 500
-            }.ConfigureDefaultCategories();
-        }
-
-        private void EnsureLogDirectoryExists(string path)
-        {
-            try
-            {
-                if (!Directory.Exists(path))
-                    Directory.CreateDirectory(path);
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError($"创建目录失败: {path}", ex);
-            }
-        }
-
-        private void LogFallbackError(string message, Exception ex)
-        {
-            try
-            {
-                var logger = LogManager.GetLogger(typeof(LoggingModule));
-                logger.Error($"{message}: {ex.Message}", ex);
-                System.Diagnostics.Debug.WriteLine($"[LOG_FALLBACK] {message}: {ex.Message}");
-            }
-            catch
-            {
-                // 所有备用方案都失败时，静默处理
-            }
-        }
-
+        // 日志服务的配置和注册逻辑已迁移到 PF.Services.Logging.LoggingServiceExtensions。
+        // 调用入口：RegisterTypes 中的 containerRegistry.AddLogging()
         #endregion
 
         #region 参数数据库服务注册
@@ -365,9 +274,10 @@ namespace PF.Application.Shell
         }
 
         /// <summary>
-        /// 向容器注册参数仓储、数据库上下文及参数服务。
+        /// 注册应用专属的参数数据库上下文和开放泛型仓储（使用 DryIoc 专属 API）。
+        /// IParamService、IDefaultParam、CommonSettings 的注册委托到 ParameterServiceExtensions.AddParameterServices。
         /// </summary>
-        protected void RegisterSystemParamsTypes(IContainerRegistry containerRegistry)
+        private void RegisterParamDbContext(IContainerRegistry containerRegistry)
         {
             try
             {
@@ -383,29 +293,18 @@ namespace PF.Application.Shell
                         Arg.Of<Microsoft.EntityFrameworkCore.DbContextOptions<AppParamDbContext>>())),
                     reuse: Reuse.Scoped);
 
+                // 开放泛型仓储（DryIoc 专属 Setup/Reuse API，须在此处注册）
                 container.Register(typeof(IParamRepository<>), typeof(ParamRepository<>),
                     setup: Setup.With(condition: r => r.ServiceType.IsGenericType),
                     reuse: Reuse.ScopedOrSingleton);
 
-                RegisterParamModels(containerRegistry);
-
-                container.Register<IParamService, ParamService>(reuse: Reuse.Singleton);
-                container.Register<IDefaultParam, DefaultParameters>();
-
-                _logService.Info("系统参数服务注册完成", "DependencyInjection");
+                _logService.Info("参数数据库上下文注册完成", "DependencyInjection");
             }
             catch (Exception ex)
             {
-                _logService.Error("系统参数服务注册失败", exception: ex);
+                _logService.Error("参数数据库上下文注册失败", exception: ex);
                 throw;
             }
-        }
-
-        /// <summary>
-        /// 注册自定义参数模型（扩展点）。
-        /// </summary>
-        private void RegisterParamModels(IContainerRegistry containerRegistry)
-        {
         }
 
         #endregion
