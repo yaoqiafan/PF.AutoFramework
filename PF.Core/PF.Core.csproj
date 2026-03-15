@@ -1,3 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+	<ItemGroup>
+		<PackageReference Include="System.Configuration.ConfigurationManager" Version="8.*" />
+	</ItemGroup>
 </Project>
