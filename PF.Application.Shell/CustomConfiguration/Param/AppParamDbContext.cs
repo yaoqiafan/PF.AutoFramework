@@ -8,7 +8,6 @@ namespace PF.Application.Shell.CustomConfiguration.Param
 
     public enum ParamType
     {
-        CommonParams,
         UserLoginParams,
         SystemConfigParams,
         HardwareParams
@@ -19,7 +18,6 @@ namespace PF.Application.Shell.CustomConfiguration.Param
     {
         public AppParamDbContext(DbContextOptions<AppParamDbContext> options) : base(options) { }
 
-        public DbSet<CommonParam> CommonParams { get; set; }
         public DbSet<UserLoginParam> UserLoginParams { get; set; }
         public DbSet<SystemConfigParam> SystemConfigParams { get; set; }
         public DbSet<HardwareParam> HardwareParams { get; set; }
@@ -28,11 +26,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         {
             base.OnModelCreating(modelBuilder);
 
-            // 配置参数表的索引
-            modelBuilder.Entity<CommonParam>()
-                .HasIndex(p => p.Name)
-                .IsUnique();
-
+           
             modelBuilder.Entity<UserLoginParam>()
                 .HasIndex(p => new { p.Name})
                 .IsUnique();
@@ -95,12 +89,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_HardwareParams_Name ON HardwareParams (Name);",
                 cancellationToken);
 
-            // 初始化CommonParams
-            await EnsureParametersExistAsync(
-                CommonParams,
-                defaultParam.GetCommonDefaults(),
-                cancellationToken);
-
+         
             // 初始化UserLoginParams
             await EnsureParametersExistAsync(
                 UserLoginParams,

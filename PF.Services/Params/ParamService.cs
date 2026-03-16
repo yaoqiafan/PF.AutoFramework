@@ -32,7 +32,6 @@ namespace PF.Services.Params
             _logService = logService;
             _paramTypeMapping = new Dictionary<Type, Type>
             {
-                { typeof(CommonParam), typeof(CommonParam) },
                 { typeof(UserLoginParam), typeof(UserLoginParam) },
                 { typeof(SystemConfigParam), typeof(SystemConfigParam) }
             };
@@ -525,20 +524,20 @@ namespace PF.Services.Params
 
             return _paramTypeMapping.TryGetValue(type, out var entityType)
                 ? entityType
-                : typeof(CommonParam);
+                : typeof(SystemConfigParam);
         }
 
         private Type DetermineEntityType(string typename)
         {
             var type = GetTypeFromAnyAssembly(typename);
-            if (type == null) return typeof(CommonParam);
+            if (type == null) return typeof(SystemConfigParam);
 
             if (typeof(ParamEntity).IsAssignableFrom(type))
                 return type;
 
             return _paramTypeMapping.TryGetValue(type, out var entityType)
                 ? entityType
-                : typeof(CommonParam);
+                : typeof(SystemConfigParam);
         }
 
         private string GetCategoryFromType(Type type)
