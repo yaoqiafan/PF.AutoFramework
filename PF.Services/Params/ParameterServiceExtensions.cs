@@ -1,4 +1,3 @@
-using PF.Core.Configuration;
 using PF.Core.Interfaces.Configuration;
 using PF.Data.Entity.Category.Basic;
 using Prism.Ioc;
@@ -24,9 +23,6 @@ namespace PF.Services.Params
 
             if (defaultParam != null)
                 containerRegistry.RegisterInstance<IDefaultParam>(defaultParam);
-
-            containerRegistry.RegisterSingleton<CommonSettings>();
-
             return containerRegistry;
         }
     }

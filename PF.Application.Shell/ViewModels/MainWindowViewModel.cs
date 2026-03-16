@@ -1,7 +1,7 @@
 ﻿using DryIoc.ImTools;
 using log4net.Core;
 using Microsoft.Extensions.DependencyInjection;
-
+using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.Services;
 using PF.Core.Constants;
 using PF.Core.Entities.Identity;
@@ -34,6 +34,7 @@ namespace PF.Application.Shell.ViewModels
         private readonly IUserService _userService;
         private readonly INavigationMenuService _navigationMenuService;
         private ILogService _logService;
+        private CommonSettings _commonSettings;
 
         private CategoryLogger _dbLogger;
         private CategoryLogger _systemLogger;
@@ -51,12 +52,13 @@ namespace PF.Application.Shell.ViewModels
         #endregion
 
         #region 构造函数
-        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider)
+        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider,CommonSettings commonSettings)
         {
             _paramService = paramService;
             _userService = userService;
             _navigationMenuService = navigationMenuService;
             _containerProvider = containerProvider;
+            _commonSettings = commonSettings;
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
@@ -266,7 +268,6 @@ namespace PF.Application.Shell.ViewModels
         private bool IsParameterView(string viewName)
         {
             return viewName == NavigationConstants.Views.ParameterView_SystemConfigParam ||
-                   viewName == NavigationConstants.Views.ParameterView_CommonParam ||
                    viewName == NavigationConstants.Views.ParameterView_UserLoginParam ||
                    viewName == NavigationConstants.Views.ParameterView_HardwareParam;
         }
@@ -349,8 +350,8 @@ namespace PF.Application.Shell.ViewModels
 
             try
             {
-                SoftWareName = $"{await _paramService.GetParamAsync<string>("SoftWareName")}";
-                CoName = await _paramService.GetParamAsync<string>("COName");
+                SoftWareName = $"{_commonSettings.SoftWareName}";
+                CoName =  _commonSettings.COName;
             }
             catch { }
 

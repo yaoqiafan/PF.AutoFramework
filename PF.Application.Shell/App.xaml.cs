@@ -1,10 +1,11 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PF.Application.Shell.CustomConfiguration.Param;
+using PF.Application.Shell.ViewModels;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
-using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -12,30 +13,29 @@ using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Production;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
+using PF.Data;
 using PF.Data.Context;
 using PF.Data.Entity.Category;
-using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
 using PF.Infrastructure.Station.Basic;
 using PF.Modules.Debug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
-using PF.Modules.SecsGem;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Modules.Production;
+using PF.Modules.SecsGem;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
 using PF.Services.Production;
-using PF.Core.Interfaces.Production;
-using Microsoft.EntityFrameworkCore;
-using PF.Data;
 using PF.Services.Sync;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
@@ -51,13 +51,13 @@ using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Recipe;
+using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
-using PF.Modules.Production;
 
 namespace PF.Application.Shell
 {
@@ -79,8 +79,6 @@ namespace PF.Application.Shell
         {
             try
             {
-                await InitializeDatabaseAsync();
-
                 base.OnStartup(e);
 
                 if (RunningInstance() == null)
@@ -164,12 +162,12 @@ namespace PF.Application.Shell
             UpdateSkin("Dark");
 
             Splash splash = Container.Resolve<Splash>();
-            IParamService paramService = Container.Resolve<IParamService>();
+            var commonparam = Container.Resolve<CommonSettings>();
 
-            var name = paramService.GetParamAsync<string>("SoftWareName").GetAwaiter().GetResult();
+            var name = commonparam.SoftWareName;
             splash.WelcomeText = $"欢迎使用{name}";
 
-            var nameEN = paramService.GetParamAsync<string>("SoftWareName_EN").GetAwaiter().GetResult();
+            var nameEN = commonparam.SoftWareName_EN;
             splash.WelcomeText_small = $"Welcome to the {nameEN}";
 
             Assembly assembly = Assembly.GetEntryAssembly();
@@ -186,6 +184,11 @@ namespace PF.Application.Shell
 
         protected override void OnInitialized()
         {
+
+            // 解析导航服务并扫描当前程序集自动注册菜单
+            var navMenuService = Container.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
             var authService = Container.Resolve<IUserService>();
             // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
@@ -196,6 +199,16 @@ namespace PF.Application.Shell
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
+            CommonSettings commonSettings = CommonSettings.Load();
+            if (!File.Exists(CommonSettings.ConfigFilePath))
+            {
+                commonSettings.Save();
+            }
+            
+            containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
+            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(NavigationConstants.Views.CommonParamView);
+
+
             // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
             containerRegistry.AddLogging();
             _logService = containerRegistry.GetContainer().Resolve<ILogService>();
@@ -204,6 +217,7 @@ namespace PF.Application.Shell
             RegisterParamDbContext(containerRegistry);
             // 参数仓储和服务（委托到 ParameterServiceExtensions）
             containerRegistry.AddParameterServices(new DefaultParameters());
+            
 
             RegisterProductionDataService(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
@@ -211,6 +225,7 @@ namespace PF.Application.Shell
             containerRegistry.RegisterSingleton<Splash>();
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
+           
 
             RegisterUserIdentityTypes(containerRegistry);
 
@@ -250,34 +265,10 @@ namespace PF.Application.Shell
         #region 参数数据库服务注册
 
         /// <summary>
-        /// 初始化数据库：确保文件存在、表结构已创建、默认参数已写入。
-        /// </summary>
-        private async Task InitializeDatabaseAsync()
-        {
-            try
-            {
-                if (!Directory.Exists(ConstGlobalParam.ConfigPath))
-                    Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
-
-                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
-                DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
-
-                using var dbContext = DbContextFactory<AppParamDbContext>.CreateDbContext();
-                await dbContext.Database.EnsureCreatedAsync();
-                await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
-            }
-            catch (Exception ex)
-            {
-                _logService.Error("数据库初始化失败", exception: ex);
-                throw;
-            }
-        }
-
-        /// <summary>
         /// 注册应用专属的参数数据库上下文和开放泛型仓储（使用 DryIoc 专属 API）。
         /// IParamService、IDefaultParam、CommonSettings 的注册委托到 ParameterServiceExtensions.AddParameterServices。
         /// </summary>
-        private void RegisterParamDbContext(IContainerRegistry containerRegistry)
+        private async void RegisterParamDbContext(IContainerRegistry containerRegistry)
         {
             try
             {
@@ -285,6 +276,11 @@ namespace PF.Application.Shell
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
 
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
+
+                using var dbContext = DbContextFactory<AppParamDbContext>.CreateDbContext();
+                await dbContext.Database.EnsureCreatedAsync();
+                await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
+
                 var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
                 container.RegisterInstance(dbContextOptions);
 

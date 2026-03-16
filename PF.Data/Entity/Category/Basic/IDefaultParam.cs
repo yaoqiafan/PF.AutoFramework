@@ -9,8 +9,6 @@ namespace PF.Data.Entity.Category.Basic
 {
     public interface IDefaultParam
     {
-        Dictionary<string, CommonParam> GetCommonDefaults();
-
         Dictionary<string, UserLoginParam> GetUsersDefaults();
 
         Dictionary<string, SystemConfigParam> GetSystemDefaults();
