@@ -24,11 +24,6 @@ namespace PF.Modules.Parameter.Views
         Icon = "SettingIcon",                                      // 子节点矢量图
         NavigationParameter = "SystemConfigParam")]                // 传递的参数名
 
-    [ModuleNavigation(NavigationConstants.Views.ParameterView_CommonParam, "公共参数",
-        GroupName = "设备参数设置", Order = 2,
-        Icon = "AudioGeometry",
-        NavigationParameter = "CommonParam")]
-
     //[ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
     //    GroupName = "系统调试", Order = 3,
     //    Icon = "CurveIcon",

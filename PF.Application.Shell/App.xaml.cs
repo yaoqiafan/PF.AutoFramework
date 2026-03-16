@@ -1,12 +1,11 @@
-using log4net;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using PF.Application.Shell.CustomConfiguration.Param;
+using PF.Application.Shell.ViewModels;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
-using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
-using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -14,30 +13,29 @@ using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Production;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
+using PF.Data;
 using PF.Data.Context;
 using PF.Data.Entity.Category;
-using PF.Data.Entity.Category.Basic;
 using PF.Data.Repositories;
 using PF.Infrastructure.Station.Basic;
 using PF.Modules.Debug;
 using PF.Modules.Identity;
 using PF.Modules.Logging;
 using PF.Modules.Parameter;
-using PF.Modules.SecsGem;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Modules.Production;
+using PF.Modules.SecsGem;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
 using PF.Services.Params;
 using PF.Services.Production;
-using PF.Core.Interfaces.Production;
-using Microsoft.EntityFrameworkCore;
-using PF.Data;
 using PF.Services.Sync;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
@@ -53,13 +51,13 @@ using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Recipe;
+using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
-using PF.Modules.Production;
 
 namespace PF.Application.Shell
 {
@@ -81,8 +79,6 @@ namespace PF.Application.Shell
         {
             try
             {
-                await InitializeDatabaseAsync();
-
                 base.OnStartup(e);
 
                 if (RunningInstance() == null)
@@ -166,12 +162,12 @@ namespace PF.Application.Shell
             UpdateSkin("Dark");
 
             Splash splash = Container.Resolve<Splash>();
-            IParamService paramService = Container.Resolve<IParamService>();
+            var commonparam = Container.Resolve<CommonSettings>();
 
-            var name = paramService.GetParamAsync<string>("SoftWareName").GetAwaiter().GetResult();
+            var name = commonparam.SoftWareName;
             splash.WelcomeText = $"欢迎使用{name}";
 
-            var nameEN = paramService.GetParamAsync<string>("SoftWareName_EN").GetAwaiter().GetResult();
+            var nameEN = commonparam.SoftWareName_EN;
             splash.WelcomeText_small = $"Welcome to the {nameEN}";
 
             Assembly assembly = Assembly.GetEntryAssembly();
@@ -188,6 +184,11 @@ namespace PF.Application.Shell
 
         protected override void OnInitialized()
         {
+
+            // 解析导航服务并扫描当前程序集自动注册菜单
+            var navMenuService = Container.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
             var authService = Container.Resolve<IUserService>();
             // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
@@ -198,14 +199,33 @@ namespace PF.Application.Shell
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            RegisterLogServiceTypes(containerRegistry);
-            RegisterSystemParamsTypes(containerRegistry);
+            CommonSettings commonSettings = CommonSettings.Load();
+            if (!File.Exists(CommonSettings.ConfigFilePath))
+            {
+                commonSettings.Save();
+            }
+            
+            containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
+            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(NavigationConstants.Views.CommonParamView);
+
+
+            // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
+            containerRegistry.AddLogging();
+            _logService = containerRegistry.GetContainer().Resolve<ILogService>();
+
+            // 参数数据库（AppParamDbContext 是应用层专属，保留在此）
+            RegisterParamDbContext(containerRegistry);
+            // 参数仓储和服务（委托到 ParameterServiceExtensions）
+            containerRegistry.AddParameterServices(new DefaultParameters());
+            
+
             RegisterProductionDataService(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
 
             containerRegistry.RegisterSingleton<Splash>();
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
+           
 
             RegisterUserIdentityTypes(containerRegistry);
 
@@ -238,136 +258,17 @@ namespace PF.Application.Shell
         #endregion
 
         #region 日志服务注册
-
-        public void RegisterLogServiceTypes(IContainerRegistry containerRegistry)
-        {
-            try
-            {
-                var logConfig = CreateLogConfiguration();
-                containerRegistry.RegisterInstance(logConfig);
-                _logService = new LogService(logConfig);
-                containerRegistry.RegisterInstance<ILogService>(_logService);
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError("日志模块类型注册失败", ex);
-                throw;
-            }
-        }
-
-        private LogConfiguration CreateLogConfiguration()
-        {
-            try
-            {
-                var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
-                var logBasePath = Path.Combine(appBasePath, "Logs");
-
-                var config = new LogConfiguration
-                {
-                    BasePath = logBasePath,
-                    HistoricalLogPath = logBasePath,
-                    EnableConsoleLogging = true,
-                    EnableFileLogging = true,
-                    EnableUiLogging = true,
-                    MinimumLevel = LogLevel.Debug,
-                    AutoDeleteLogs = true,
-                    AutoDeleteIntervalDays = 30,
-                    MaxUiEntries = 1000,
-                    SplitByHour = false
-                };
-
-                config.ConfigureDefaultCategories();
-                config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
-
-                EnsureLogDirectoryExists(logBasePath);
-                foreach (var category in config.GetFileLogCategories())
-                {
-                    EnsureLogDirectoryExists(Path.Combine(logBasePath, category));
-                }
-
-                return config;
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError("创建日志配置失败，使用默认配置", ex);
-                return CreateFallbackConfiguration();
-            }
-        }
-
-        private LogConfiguration CreateFallbackConfiguration()
-        {
-            return new LogConfiguration
-            {
-                BasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs"),
-                EnableConsoleLogging = true,
-                EnableFileLogging = true,
-                EnableUiLogging = true,
-                MinimumLevel = LogLevel.Info,
-                AutoDeleteLogs = false,
-                AutoDeleteIntervalDays = 30,
-                MaxUiEntries = 500
-            }.ConfigureDefaultCategories();
-        }
-
-        private void EnsureLogDirectoryExists(string path)
-        {
-            try
-            {
-                if (!Directory.Exists(path))
-                    Directory.CreateDirectory(path);
-            }
-            catch (Exception ex)
-            {
-                LogFallbackError($"创建目录失败: {path}", ex);
-            }
-        }
-
-        private void LogFallbackError(string message, Exception ex)
-        {
-            try
-            {
-                var logger = LogManager.GetLogger(typeof(LoggingModule));
-                logger.Error($"{message}: {ex.Message}", ex);
-                System.Diagnostics.Debug.WriteLine($"[LOG_FALLBACK] {message}: {ex.Message}");
-            }
-            catch
-            {
-                // 所有备用方案都失败时，静默处理
-            }
-        }
-
+        // 日志服务的配置和注册逻辑已迁移到 PF.Services.Logging.LoggingServiceExtensions。
+        // 调用入口：RegisterTypes 中的 containerRegistry.AddLogging()
         #endregion
 
         #region 参数数据库服务注册
 
         /// <summary>
-        /// 初始化数据库：确保文件存在、表结构已创建、默认参数已写入。
+        /// 注册应用专属的参数数据库上下文和开放泛型仓储（使用 DryIoc 专属 API）。
+        /// IParamService、IDefaultParam、CommonSettings 的注册委托到 ParameterServiceExtensions.AddParameterServices。
         /// </summary>
-        private async Task InitializeDatabaseAsync()
-        {
-            try
-            {
-                if (!Directory.Exists(ConstGlobalParam.ConfigPath))
-                    Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
-
-                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
-                DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
-
-                using var dbContext = DbContextFactory<AppParamDbContext>.CreateDbContext();
-                await dbContext.Database.EnsureCreatedAsync();
-                await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
-            }
-            catch (Exception ex)
-            {
-                _logService.Error("数据库初始化失败", exception: ex);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// 向容器注册参数仓储、数据库上下文及参数服务。
-        /// </summary>
-        protected void RegisterSystemParamsTypes(IContainerRegistry containerRegistry)
+        private async void RegisterParamDbContext(IContainerRegistry containerRegistry)
         {
             try
             {
@@ -375,6 +276,11 @@ namespace PF.Application.Shell
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
 
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
+
+                using var dbContext = DbContextFactory<AppParamDbContext>.CreateDbContext();
+                await dbContext.Database.EnsureCreatedAsync();
+                await dbContext.EnsureDefaultParametersCreatedAsync(new DefaultParameters());
+
                 var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
                 container.RegisterInstance(dbContextOptions);
 
@@ -383,29 +289,18 @@ namespace PF.Application.Shell
                         Arg.Of<Microsoft.EntityFrameworkCore.DbContextOptions<AppParamDbContext>>())),
                     reuse: Reuse.Scoped);
 
+                // 开放泛型仓储（DryIoc 专属 Setup/Reuse API，须在此处注册）
                 container.Register(typeof(IParamRepository<>), typeof(ParamRepository<>),
                     setup: Setup.With(condition: r => r.ServiceType.IsGenericType),
                     reuse: Reuse.ScopedOrSingleton);
 
-                RegisterParamModels(containerRegistry);
-
-                container.Register<IParamService, ParamService>(reuse: Reuse.Singleton);
-                container.Register<IDefaultParam, DefaultParameters>();
-
-                _logService.Info("系统参数服务注册完成", "DependencyInjection");
+                _logService.Info("参数数据库上下文注册完成", "DependencyInjection");
             }
             catch (Exception ex)
             {
-                _logService.Error("系统参数服务注册失败", exception: ex);
+                _logService.Error("参数数据库上下文注册失败", exception: ex);
                 throw;
             }
-        }
-
-        /// <summary>
-        /// 注册自定义参数模型（扩展点）。
-        /// </summary>
-        private void RegisterParamModels(IContainerRegistry containerRegistry)
-        {
         }
 
         #endregion
