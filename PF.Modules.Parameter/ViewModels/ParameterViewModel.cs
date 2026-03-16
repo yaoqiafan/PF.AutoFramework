@@ -513,7 +513,8 @@ namespace PF.Modules.Parameter.ViewModels
             {
                 // 默认赋予操作员最基础的两个页面权限
                 NavigationConstants.Views.LoggingListView,
-                NavigationConstants.Views.ParameterView_CommonParam
+                NavigationConstants.Views.HomeView,
+                NavigationConstants.Views.MainView,
             }
                 };
                 defaultJson = JsonSerializer.Serialize(defaultUser);
@@ -593,10 +594,6 @@ namespace PF.Modules.Parameter.ViewModels
 
                 switch (SelectedParamType.TypeInstence.Name)
                 {
-                    case "CommonParam":
-                        var commonDict = DefaultParameters.GetCommonDefaults();
-                        success = await _paramService.BatchSetParamsAsync(commonDict, _userService.CurrentUser, "用户手动重置");
-                        break;
                     case "UserLoginParam":
                         var userDict = DefaultParameters.GetUsersDefaults();
                         success = await _paramService.BatchSetParamsAsync(userDict, _userService.CurrentUser, "用户手动重置");

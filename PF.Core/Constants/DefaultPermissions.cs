@@ -51,7 +51,7 @@ namespace PF.Core.Constants
            
             views.AddRange(new[]
             {
-                NavigationConstants.Views.ParameterView_CommonParam
+                NavigationConstants.Views.CommonParamView
             });
 
             return views;
