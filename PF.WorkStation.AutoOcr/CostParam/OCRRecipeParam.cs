@@ -90,7 +90,17 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
 
 
-        public override  OCRRecipeParam DeepClone()
+        /// <summary>
+        /// 光源通道1光源亮度(红外光)
+        /// </summary>
+        public int LightChanel1Value { get; set; } = 0;
+
+        /// <summary>
+        /// 光源通道2光源亮度(环光)
+        /// </summary>
+        public int LightChanel2Value { get; set; } = 0;
+
+        public override OCRRecipeParam DeepClone()
         {
             // 先拷贝父类属性，再拷贝子类属性
             var clone = new OCRRecipeParam();
@@ -110,6 +120,8 @@ namespace PF.WorkStation.AutoOcr.CostParam
             clone.GuestLength = this.GuestLength;
             clone.IsOCRCodePate = this.IsOCRCodePate;
             clone.AssociateProduct = new List<string>(this.AssociateProduct);
+            clone.LightChanel1Value = this.LightChanel1Value;
+            clone.LightChanel2Value = this.LightChanel2Value;
             return clone;
         }
 
