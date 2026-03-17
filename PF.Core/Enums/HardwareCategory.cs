@@ -20,6 +20,8 @@
         /// <summary> 仪表仪器 (万用表/测厚仪等) </summary>
         Instrument,
         /// <summary> 运动控制卡（管理多轴和IO的物理板卡）</summary>
-        MotionCard
+        MotionCard,
+        /// <summary> 光源控制器 </summary>
+        LightController,
     }
 }
