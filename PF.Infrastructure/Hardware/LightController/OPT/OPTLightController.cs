@@ -13,6 +13,18 @@ namespace PF.Infrastructure.Hardware.LightController.OPT
         {
         }
 
+        public override string ComName { get; }
+
+
+
+        public override string IPAdress { get; }
+
+
+
+        public override int Port { get; }
+
+
+
         public override Task SetLightValue(int Channel, int LightValue)
         {
             throw new NotImplementedException();

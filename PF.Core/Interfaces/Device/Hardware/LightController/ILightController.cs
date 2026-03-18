@@ -18,6 +18,22 @@ namespace PF.Core.Interfaces.Device.Hardware.LightController
 
         Task SetLightValue(int Channel, int LightValue);
 
+        /// <summary>
+        /// 串口名称
+        /// </summary>
+        string ComName { get; }
+
+
+        /// <summary>
+        /// IP地址
+        /// </summary>
+        string IPAdress { get; }
+
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        int Port { get; }
+
 
     }
 }
