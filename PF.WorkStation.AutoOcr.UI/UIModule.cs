@@ -2,7 +2,9 @@
 using PF.UI.Infrastructure.Navigation;
 using PF.WorkStation.AutoOcr.UI.UserControls;
 using PF.WorkStation.AutoOcr.UI.ViewModels;
+using PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.Views;
+using PF.WorkStation.AutoOcr.UI.Views.Mechanisms;
 using System.Reflection;
 
 namespace PF.WorkStation.AutoOcr.UI
@@ -27,6 +29,10 @@ namespace PF.WorkStation.AutoOcr.UI
 
 
             containerRegistry.RegisterForNavigation<RecipeDebugView, RecipeDebugViewModel>(nameof(RecipeDebugView));
+
+
+
+            containerRegistry.RegisterForNavigation<Workstation1FeedingModelDebugView, Workstation1FeedingModelDebugViewModel>(nameof(Workstation1FeedingModelDebugView));
 
         }
     }

@@ -35,8 +35,7 @@ namespace PF.Workstation.Demo.Mechanisms
     [MechanismUI("取放模组调试", "GantryMechanismView", 1)]
     public class GantryMechanism : BaseMechanism
     {
-        private readonly IHardwareManagerService _hwManager;
-
+       
         // 硬件实例：构造后为 null，在 InternalInitializeAsync 中通过 hwManager 延迟解析
         private IAxis         _xAxis;
         private IIOController _vacuumIO;
@@ -68,10 +67,9 @@ namespace PF.Workstation.Demo.Mechanisms
         /// 不在此处获取设备实例——设备需在 LoadAndInitializeAsync 完成后才可用，
         /// 通过 InternalInitializeAsync 延迟解析。
         /// </summary>
-        public GantryMechanism(IHardwareManagerService hwManager, ILogService logger)
-            : base("龙门取放模组", logger)  // 无设备参数；设备将在 InternalInitializeAsync 中注册
+        public GantryMechanism(IHardwareManagerService hardwareManagerService, ILogService logger)
+            : base("龙门取放模组",  hardwareManagerService, logger)  // 无设备参数；设备将在 InternalInitializeAsync 中注册
         {
-            _hwManager = hwManager ?? throw new ArgumentNullException(nameof(hwManager));
         }
 
         // ── BaseMechanism 钩子实现 ─────────────────────────────────────────
@@ -88,14 +86,14 @@ namespace PF.Workstation.Demo.Mechanisms
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
             // ① 延迟解析：DeviceId 与 DefaultParameters.GetHardwareDefaults() 保持一致
-            _xAxis = _hwManager.GetDevice("SIM_X_AXIS_0") as IAxis;
+            _xAxis = HardwareManagerService?.GetDevice("SIM_X_AXIS_0") as IAxis;
             if (_xAxis == null)
             {
                 _logger.Error("[GantryMechanism] 未找到X轴 'SIM_X_AXIS_0'，请确认硬件配置或 HardwareManagerService 已完成初始化。");
                 return false;
             }
 
-            _vacuumIO = _hwManager.GetDevice("SIM_VACUUM_IO") as IIOController;
+            _vacuumIO = HardwareManagerService?.GetDevice("SIM_VACUUM_IO") as IIOController;
             if (_vacuumIO == null)
             {
                 _logger.Error("[GantryMechanism] 未找到IO 'SIM_VACUUM_IO'，请确认硬件配置或 HardwareManagerService 已完成初始化。");

@@ -130,28 +130,31 @@
                 ClickMode="Release"
                 Focusable="False"
                 Foreground="{TemplateBinding BorderBrush}"
-                IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                 Style="{StaticResource ToggleButtonIconTransparent}" />
-            <Grid>
-                <pfcontrol:ToggleBlock
-                    Grid.Column="0"
-                    Grid.ColumnSpan="2"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    Background="Transparent"
-                    IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                    ToggleGesture="LeftClick" />
-                <pfcontrol:UniformSpacingPanel
-                    x:Name="PART_Panel"
-                    Margin="0"
-                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                    ChildWrapping="Wrap"
-                    Focusable="True"
-                    ItemVerticalAlignment="Center"
-                    Spacing="{TemplateBinding TagSpacing}" />
 
-            </Grid>
+            <ToggleButton
+                Grid.Column="0"
+                Grid.ColumnSpan="2"
+                Margin="2"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch"
+                Background="Transparent"
+                BorderThickness="0"
+                ClickMode="Release"
+                Focusable="False"
+                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+            <pfcontrol:UniformSpacingPanel
+                x:Name="PART_Panel"
+                Margin="1"
+                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                ChildWrapping="Wrap"
+                Focusable="True"
+                ItemVerticalAlignment="Center"
+                Spacing="{TemplateBinding TagSpacing}" />
 
             <Popup
                 x:Name="PART_Popup"
@@ -215,7 +218,7 @@
                             <pfcontrol:ToggleBlock
                                 Grid.Row="1"
                                 HorizontalContentAlignment="Stretch"
-                                VerticalContentAlignment="Stretch"
+                                VerticalContentAlignment="Center"
                                 IsChecked="{Binding HasItems, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}">
                                 <pfcontrol:ToggleBlock.CheckedContent>
                                     <ScrollViewer x:Name="DropDownScrollViewer" Margin="2">
