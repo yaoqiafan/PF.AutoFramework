@@ -4,6 +4,59 @@
     xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
+    <Style
+        x:Key="Tag4SearchComboBoxStyle"
+        BasedOn="{StaticResource TagBaseStyle}"
+        TargetType="pfcontrol:Tag">
+        <Setter Property="Padding" Value="6,2,4,2" />
+        <Setter Property="Height" Value="Auto" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="pfcontrol:Tag">
+                    <Border
+                        Padding="{TemplateBinding Padding}"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                        SnapsToDevicePixels="true">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                RecognizesAccessKey="True"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                            <Button
+                                Name="ButtonClose"
+                                Grid.Column="1"
+                                Width="16"
+                                Height="16"
+                                Margin="10,0,0,0"
+                                Padding="0,4"
+                                pfcontrol:IconElement.Geometry="{StaticResource CloseGeometry}"
+                                Command="pfcontrol:ControlCommands.Close"
+                                Focusable="False"
+                                Foreground="{TemplateBinding Foreground}"
+                                Style="{StaticResource ButtonIcon}"
+                                Visibility="{TemplateBinding ShowCloseButton,
+                                                             Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger SourceName="ButtonClose" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ButtonClose" Property="pfcontrol:IconElement.Geometry" Value="{StaticResource DeleteFillCircleGeometry}" />
+                            <Setter TargetName="ButtonClose" Property="Padding" Value="0" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="SearchComboBoxItemBaseStyle" TargetType="pfcontrol:SearchComboBoxItem">
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -19,7 +72,7 @@
                 <ControlTemplate TargetType="pfcontrol:SearchComboBoxItem">
                     <Border
                         x:Name="Bd"
-                        Padding="{TemplateBinding Padding}"
+                        Padding="{Binding Padding, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource ThicknessSplitConverter}, ConverterParameter='1,0,1,0'}"
                         Background="{TemplateBinding Background}"
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
@@ -46,18 +99,22 @@
     </Style>
 
     <ControlTemplate x:Key="SearchComboBoxTemplate" TargetType="pfcontrol:SearchComboBox">
-        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+        <Grid
+            x:Name="templateRoot"
+            Focusable="True"
+            SnapsToDevicePixels="true">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Border
-                x:Name="border"
+                x:Name="PART_Border"
                 Grid.ColumnSpan="2"
                 Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}"
                 BorderThickness="{TemplateBinding BorderThickness}"
-                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+                CornerRadius="{Binding Path=(pfcontrol:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                Focusable="True" />
             <ToggleButton
                 Grid.Column="1"
                 Width="Auto"
@@ -73,34 +130,42 @@
                 ClickMode="Release"
                 Focusable="False"
                 Foreground="{TemplateBinding BorderBrush}"
-                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
                 Style="{StaticResource ToggleButtonIconTransparent}" />
-            <Grid Grid.Column="0" Margin="{TemplateBinding Padding}">
-                <TextBlock
+            <Grid>
+                <pfcontrol:ToggleBlock
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    Background="Transparent"
+                    IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                    ToggleGesture="LeftClick" />
+                <pfcontrol:UniformSpacingPanel
+                    x:Name="PART_Panel"
+                    Margin="0"
                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                    Style="{StaticResource TextBlockDefaultThiLight}"
-                    Text="{Binding Path=(pfcontrol:InfoElement.Placeholder), RelativeSource={RelativeSource TemplatedParent}}"
-                    Visibility="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Object2VisibilityReConverter}}" />
-                <TextBlock
-                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                    Text="{TemplateBinding SelectedDisplayText}"
-                    Visibility="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Object2VisibilityConverter}}" />
+                    ChildWrapping="Wrap"
+                    Focusable="True"
+                    ItemVerticalAlignment="Center"
+                    Spacing="{TemplateBinding TagSpacing}" />
+
             </Grid>
+
             <Popup
                 x:Name="PART_Popup"
                 Grid.ColumnSpan="2"
                 AllowsTransparency="true"
-                IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
                 Placement="Bottom"
-                PlacementTarget="{Binding ElementName=border}"
+                PlacementTarget="{Binding ElementName=PART_Border}"
                 PopupAnimation="{StaticResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}"
                 StaysOpen="False">
                 <Decorator Margin="8,0">
                     <Border
                         x:Name="dropDownBorder"
-                        MinWidth="{Binding ActualWidth, ElementName=border}"
+                        MinWidth="{Binding ActualWidth, ElementName=PART_Border}"
                         MaxHeight="{TemplateBinding MaxDropDownHeight}"
                         Margin="0,0,0,8"
                         Background="{DynamicResource RegionBrush}"
@@ -174,8 +239,8 @@
                 <Setter TargetName="dropDownBorder" Property="Height" Value="95" />
             </Trigger>
             <Trigger Property="pfcontrol:DropDownElement.ConsistentWidth" Value="True">
-                <Setter TargetName="dropDownBorder" Property="MaxWidth" Value="{Binding ActualWidth, ElementName=border}" />
-                <Setter TargetName="dropDownBorder" Property="MinWidth" Value="{Binding ActualWidth, ElementName=border}" />
+                <Setter TargetName="dropDownBorder" Property="MaxWidth" Value="{Binding ActualWidth, ElementName=PART_Border}" />
+                <Setter TargetName="dropDownBorder" Property="MinWidth" Value="{Binding ActualWidth, ElementName=PART_Border}" />
             </Trigger>
             <MultiTrigger>
                 <MultiTrigger.Conditions>
@@ -207,13 +272,15 @@
         x:Key="SearchComboBoxBaseStyle"
         BasedOn="{StaticResource InputElementBaseStyle}"
         TargetType="pfcontrol:SearchComboBox">
+        <Setter Property="TagStyle" Value="{StaticResource Tag4SearchComboBoxStyle}" />
+        <Setter Property="TagSpacing" Value="4" />
         <Setter Property="SelectionMode" Value="Single" />
         <Setter Property="ItemContainerStyle" Value="{StaticResource SearchComboBoxItemBaseStyle}" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
         <Setter Property="ScrollViewer.CanContentScroll" Value="true" />
         <Setter Property="ScrollViewer.PanningMode" Value="Both" />
-        <Setter Property="Stylus.IsFlicksEnabled" Value="False" />
+        <Setter Property="Stylus.IsFlicksEnabled" Value="True" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="Template" Value="{StaticResource SearchComboBoxTemplate}" />
     </Style>

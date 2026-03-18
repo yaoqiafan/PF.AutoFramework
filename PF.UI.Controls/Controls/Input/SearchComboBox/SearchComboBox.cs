@@ -1,24 +1,31 @@
+using PF.UI.Shared.Data;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
-using PF.UI.Shared.Data;
 
 
 namespace PF.UI.Controls;
 
+[TemplatePart(Name = ElementPanel, Type = typeof(Panel))]
 [TemplatePart(Name = ElementSearchBox, Type = typeof(System.Windows.Controls.TextBox))]
 public class SearchComboBox : ListBox
 {
+    private const string ElementPanel = "PART_Panel";
     private const string ElementSearchBox = "PART_SearchBox";
+   
 
+    private Panel _panel;
+   
     private System.Windows.Controls.TextBox _searchBox;
 
     private bool _isInternalAction;
+    private bool _isPopupClosing;
 
     public static readonly DependencyProperty MaxDropDownHeightProperty =
         System.Windows.Controls.ComboBox.MaxDropDownHeightProperty.AddOwner(typeof(SearchComboBox),
@@ -34,18 +41,23 @@ public class SearchComboBox : ListBox
 
     public static readonly DependencyProperty IsDropDownOpenProperty = DependencyProperty.Register(
         nameof(IsDropDownOpen), typeof(bool), typeof(SearchComboBox),
-        new PropertyMetadata(ValueBoxes.FalseBox, OnIsDropDownOpenChanged));
+        new PropertyMetadata(false, OnIsDropDownOpenChanged));
 
     private static void OnIsDropDownOpenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        var ctl = (SearchComboBox) d;
+        var ctl = (SearchComboBox)d;
 
-        if (!(bool) e.NewValue)
+        if (!(bool)e.NewValue)
         {
+            // 标记正在执行 Popup 的自动关闭逻辑
+            ctl._isPopupClosing = true;
+
             ctl.Dispatcher.BeginInvoke(new Action(() =>
             {
                 Mouse.Capture(null);
-            }), DispatcherPriority.Send);
+                // 鼠标事件消化完毕后，恢复标志位
+                ctl._isPopupClosing = false;
+            }), DispatcherPriority.Input); // 注意这里优先级可以用 Input
 
             ctl._isInternalAction = true;
             ctl.SetCurrentValue(SearchTextProperty, string.Empty);
@@ -58,13 +70,34 @@ public class SearchComboBox : ListBox
                 ctl._searchBox?.Focus();
             }), DispatcherPriority.Input);
         }
+
     }
 
     public bool IsDropDownOpen
     {
         get => (bool) GetValue(IsDropDownOpenProperty);
-        set => SetValue(IsDropDownOpenProperty, ValueBoxes.BooleanBox(value));
+        set => SetValue(IsDropDownOpenProperty, value);
     }
+
+    public static readonly DependencyProperty TagStyleProperty = DependencyProperty.Register(
+       nameof(TagStyle), typeof(Style), typeof(SearchComboBox), new PropertyMetadata(default(Style)));
+
+    public Style TagStyle
+    {
+        get => (Style)GetValue(TagStyleProperty);
+        set => SetValue(TagStyleProperty, value);
+    }
+
+    public static readonly DependencyProperty TagSpacingProperty = DependencyProperty.Register(
+        nameof(TagSpacing), typeof(double), typeof(SearchComboBox), new PropertyMetadata(ValueBoxes.Double0Box));
+
+    public double TagSpacing
+    {
+        get => (double)GetValue(TagSpacingProperty);
+        set => SetValue(TagSpacingProperty, value);
+    }
+
+
 
     public static readonly DependencyProperty SearchTextProperty = DependencyProperty.Register(
         nameof(SearchText), typeof(string), typeof(SearchComboBox),
@@ -102,6 +135,8 @@ public class SearchComboBox : ListBox
 
     public SearchComboBox()
     {
+        AddHandler(PF.UI.Controls.Tag.ClosedEvent, new RoutedEventHandler(Tags_OnClosed));
+
         CommandBindings.Add(new CommandBinding(ControlCommands.Clear, (s, e) =>
         {
             SetCurrentValue(SelectedValueProperty, null);
@@ -111,33 +146,48 @@ public class SearchComboBox : ListBox
         }));
     }
 
+    private void Tags_OnClosed(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is Tag tag)
+        {
+            _panel.Children.Remove(tag);
+            SelectedItem = null;
+        }
+    }
+
     public override void OnApplyTemplate()
     {
         if (_searchBox != null)
         {
             _searchBox.TextChanged -= SearchBox_TextChanged;
         }
-
-        base.OnApplyTemplate();
-
+       
+        _panel = GetTemplateChild(ElementPanel) as Panel;
         _searchBox = GetTemplateChild(ElementSearchBox) as System.Windows.Controls.TextBox;
 
         if (_searchBox != null)
         {
             _searchBox.TextChanged += SearchBox_TextChanged;
         }
+        if (_panel != null)
+        {
+            UpdateTags();
+        }
+       
+        base.OnApplyTemplate();
     }
 
+    
+    
     protected override void OnSelectionChanged(SelectionChangedEventArgs e)
     {
-        base.OnSelectionChanged(e);
-
         UpdateSelectedDisplay();
 
         if (SelectedItem != null)
         {
             SetCurrentValue(IsDropDownOpenProperty, ValueBoxes.FalseBox);
         }
+        base.OnSelectionChanged(e);
     }
 
     protected override bool IsItemItsOwnContainerOverride(object item) => item is SearchComboBoxItem;
@@ -214,5 +264,43 @@ public class SearchComboBox : ListBox
     private void UpdateSelectedDisplay()
     {
         SelectedDisplayText = GetItemDisplayText(SelectedItem);
+        UpdateTags();
+    }
+
+
+
+
+    private void UpdateTags()
+    {
+        if (_panel == null || _isInternalAction) return;
+
+        //if (_selectAllItem != null)
+        //{
+        //    _isInternalAction = true;
+        //    _selectAllItem.SetCurrentValue(IsSelectedProperty, Items.Count > 0 && SelectedItems.Count == Items.Count);
+        //    _isInternalAction = false;
+        //}
+
+        _panel.Children.Clear();
+
+        foreach (var item in SelectedItems)
+        {
+            var tag = new Tag
+            {
+                Style = TagStyle,
+                Tag = item
+            };
+
+            if (ItemsSource != null)
+            {
+                tag.SetBinding(ContentControl.ContentProperty, new Binding(DisplayMemberPath) { Source = item });
+            }
+            else
+            {
+                tag.Content = IsItemItsOwnContainerOverride(item) ? ((SearchComboBoxItem)item).Content : item;
+            }
+
+            _panel.Children.Add(tag);
+        }
     }
 }
