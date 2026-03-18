@@ -50,6 +50,7 @@ using PF.Workstation.Demo;
 using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
 using PF.WorkStation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using System.Diagnostics;
 using System.IO;
@@ -418,6 +419,13 @@ namespace PF.Application.Shell
                 new[] { typeof(GantryMechanism), typeof(IMechanism) },
                 typeof(GantryMechanism),
                 reuse: DryIoc.Reuse.Singleton);
+
+            container.RegisterMany(
+                new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
+                typeof(WorkStation1FeedingModule),
+                reuse: DryIoc.Reuse.Singleton);
+
+
 
             // 工站层：PickPlaceStation 同时映射到自身类型和 StationBase
             container.RegisterMany(
