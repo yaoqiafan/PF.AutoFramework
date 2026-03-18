@@ -47,7 +47,6 @@ using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.Workstation.Demo;
-using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -415,10 +414,7 @@ namespace PF.Application.Shell
 
             // 机构层：GantryMechanism 同时映射到自身类型和 IMechanism 接口
             var container = containerRegistry.GetContainer();
-            container.RegisterMany(
-                new[] { typeof(GantryMechanism), typeof(IMechanism) },
-                typeof(GantryMechanism),
-                reuse: DryIoc.Reuse.Singleton);
+          
 
             container.RegisterMany(
                 new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
