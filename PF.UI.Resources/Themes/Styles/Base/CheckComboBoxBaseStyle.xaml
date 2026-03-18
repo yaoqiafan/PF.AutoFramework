@@ -5,7 +5,7 @@
     xmlns:local="clr-namespace:PF.UI.Resources"
     xmlns:pfcontrol="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:system="clr-namespace:System;assembly=mscorlib">
-    
+
     <Style
         x:Key="Tag4CheckComboBoxStyle"
         BasedOn="{StaticResource TagBaseStyle}"

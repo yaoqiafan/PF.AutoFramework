@@ -51,7 +51,6 @@ using PF.Workstation.Demo.Mechanisms;
 using PF.Workstation.Demo.UI;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Recipe;
-using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;

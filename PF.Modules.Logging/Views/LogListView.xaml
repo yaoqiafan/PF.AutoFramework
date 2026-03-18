@@ -61,7 +61,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource  LightInfoBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource LightInfoBrush}" />
                 </Trigger>
                 <MultiTrigger>
                     <MultiTrigger.Conditions>
@@ -105,12 +105,12 @@
                         Margin="0,0,8,0"
                         VerticalAlignment="Top"
                         FontSize="{DynamicResource FontSize.Body.Standard}"
-                        Text="{Binding Level, Converter={StaticResource LogLevelToSymbolConverter}}"
                         Foreground="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}"
+                        Text="{Binding Level, Converter={StaticResource LogLevelToSymbolConverter}}"
                         TextAlignment="Center"
                         ToolTip="{Binding Level}" />
 
-                  
+
 
                     <TextBlock
                         Grid.Column="3"
@@ -252,7 +252,10 @@
                                 SelectedItem="{Binding SelectedDateRange}" />
 
 
-                            <Button Content="测试" Visibility="Collapsed" Command="{Binding test}"></Button>
+                            <Button
+                                Command="{Binding test}"
+                                Content="测试"
+                                Visibility="Collapsed" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
