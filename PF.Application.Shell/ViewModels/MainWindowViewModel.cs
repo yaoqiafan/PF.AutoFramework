@@ -170,7 +170,7 @@ namespace PF.Application.Shell.ViewModels
 
             user ??= new UserInfo { Root = UserLevel.Null, AccessibleViews = DefaultPermissions. GetAccessibleViews(UserLevel.Null) };
 
-            bool isSuperAdmin = user.Root == UserLevel.SuperUser || user.Root == UserLevel.Administrator;
+            bool isSuperAdmin = user.Root == UserLevel.SuperUser;
             var allowedViews = user.AccessibleViews ?? DefaultPermissions.GetAccessibleViews(UserLevel.Null);
 
             foreach (var item in originalItems)
