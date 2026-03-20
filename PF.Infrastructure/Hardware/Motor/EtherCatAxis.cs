@@ -37,6 +37,7 @@ namespace PF.Infrastructure.Hardware.Motor
             return Task.FromResult(true);
         }
 
+
         protected override Task InternalResetAsync(CancellationToken token)
         {
             return Task.FromResult(true);
