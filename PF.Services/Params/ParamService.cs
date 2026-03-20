@@ -375,7 +375,7 @@ namespace PF.Services.Params
         /// <summary>
         /// 根据参数名获取参数
         /// </summary>
-        public async Task<T?> GetParamAsync<T>(string name) where T : class
+        public async Task<T?> GetParamAsync<T>(string name) 
         {
             using var scope = _containerProvider.CreateScope();
             try
@@ -398,7 +398,7 @@ namespace PF.Services.Params
             }
         }
 
-        public async Task<T> GetParamAsync<T>(string name, T defaultValue) where T : class
+        public async Task<T> GetParamAsync<T>(string name, T defaultValue) 
         {
             var result = await GetParamAsync<T>(name);
             return result ?? defaultValue;
@@ -514,7 +514,7 @@ namespace PF.Services.Params
             }
         }
 
-        private Type DetermineEntityType<T>() where T : class
+        private Type DetermineEntityType<T>() 
         {
             var type = typeof(T);
 

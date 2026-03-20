@@ -13,8 +13,8 @@ namespace PF.Core.Interfaces.Configuration
     /// </summary>
     public interface IParamService
     {
-        Task<T?> GetParamAsync<T>(string name) where T : class;
-        Task<T> GetParamAsync<T>(string name, T defaultValue) where T : class;
+        Task<T?> GetParamAsync<T>(string name);
+        Task<T> GetParamAsync<T>(string name, T defaultValue);
 
         // 设置参数（带用户信息）
         Task<bool> SetParamAsync<T>(string name, T value, UserInfo? userInfo = null,
