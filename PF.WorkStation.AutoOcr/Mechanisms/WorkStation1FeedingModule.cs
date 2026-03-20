@@ -14,7 +14,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// <summary>
     /// 工位1晶圆上料模组
     ///
-    /// 职责：封装工位1上料流程所需的三轴（Z上料轴、X挡料轴、Y拉料轴）与IO的联动控制，
+    /// 职责：封装工位1上料流程所需的三轴（Z上料轴、X挡料轴）与IO的联动控制，
     /// 对上层工站提供语义清晰的原子操作接口：
     ///   · InitializeFeedingStateAsync     — 初始化上料状态（各轴/气缸置于安全位）
     ///   · GetWaferBoxSizeAsync            — 识别料盒尺寸（8寸/12寸）
@@ -38,7 +38,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         // ── 硬件实例（InternalInitializeAsync 后可用）────────────────────────
         private IAxis _zAxis;      // 工位1上料Z轴：控制料盒升降对层
         private IAxis _xAxis;      // 工位1挡料X轴：控制挡料位置（8寸/12寸）
-        private IAxis _yAxis;      // 工位1拉料Y轴：控制晶圆拉出/回退
         private IIOController _io; // EtherCat IO 模块
 
         // ── 当前生产尺寸（SwitchProductionStateAsync 后记录）────────────────
@@ -73,7 +72,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         // ── 公开硬件访问（供 ViewModel 调试面板绑定）────────────────────────
         public IAxis ZAxis => _zAxis;
         public IAxis XAxis => _xAxis;
-        public IAxis YAxis => _yAxis;
         public IIOController IO => _io;
 
         public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, ILogService logger)
@@ -103,13 +101,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            _yAxis = HardwareManagerService?.GetDevice(E_AxisName.工位1拉料Y轴.ToString()) as IAxis;
-            if (_yAxis == null)
-            {
-                _logger.Error($"[{MechanismName}] 未找到Y轴 '{E_AxisName.工位1拉料Y轴}'，请确认硬件配置。");
-                return false;
-            }
-
             _io = HardwareManagerService?.GetDevice("IO_Collectorll") as IIOController;
             if (_io == null)
             {
@@ -120,32 +111,26 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // ② 注册到模组（报警事件聚合 + 批量复位，幂等）
             RegisterHardwareDevice(_zAxis as IHardwareDevice);
             RegisterHardwareDevice(_xAxis as IHardwareDevice);
-            RegisterHardwareDevice(_yAxis as IHardwareDevice);
             RegisterHardwareDevice(_io   as IHardwareDevice);
 
             // ③ 连接所有硬件（BaseDevice 内部有3次重试）
             if (!await _zAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
             if (!await _xAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] X轴连接失败"); return false; }
-            if (!await _yAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Y轴连接失败"); return false; }
             if (!await _io.ConnectAsync(token))    { _logger.Error($"[{MechanismName}] IO模块连接失败"); return false; }
 
             // ④ 使能伺服
             if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
-            if (!await _yAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
+            
 
             // ⑤ 回原点
             if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
             if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
-            if (!await _yAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Y轴回零失败"); return false; }
+            
 
             // ⑥ 安全初始输出：夹爪张开、轨道调宽气缸收回、X轴气缸缩回
             _io.WriteOutput(E_OutPutName.夹爪气缸左张开,          true);
-            _io.WriteOutput(E_OutPutName.夹爪气缸左闭合,          false);
-            _io.WriteOutput(E_OutPutName.夹爪左X轴气缸缩回,       true);
-            _io.WriteOutput(E_OutPutName.夹爪左X轴气缸伸出,       false);
-            _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸收回,  true);
-            _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸伸出,  false);
+          
 
             _logger.Success($"[{MechanismName}] 初始化完成，三轴已回零，输出已初始化。");
             return true;
@@ -158,7 +143,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             if (_zAxis != null) await _zAxis.StopAsync();
             if (_xAxis != null) await _xAxis.StopAsync();
-            if (_yAxis != null) await _yAxis.StopAsync();
+           
         }
 
         #region 晶圆上料模组业务流程方法
@@ -171,11 +156,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
-            // 夹爪张开、X轴气缸缩回
-            _io.WriteOutput(E_OutPutName.夹爪气缸左张开,    true);
-            _io.WriteOutput(E_OutPutName.夹爪气缸左闭合,    false);
-            _io.WriteOutput(E_OutPutName.夹爪左X轴气缸缩回, true);
-            _io.WriteOutput(E_OutPutName.夹爪左X轴气缸伸出, false);
+          
 
             // 等待夹爪张开到位
             bool jawOpen = await _io.WaitInputAsync(E_InPutName.晶圆夹爪左气缸张开, true, CylinderTimeoutMs, token);
@@ -476,13 +457,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            // Y轴报警检查
-            if (_yAxis.HasAlarm)
-            {
-                _logger.Warn($"[{MechanismName}] 拉料检查失败：Y轴处于报警状态。");
-                return false;
-            }
-
+          
             return true;
         }
 
