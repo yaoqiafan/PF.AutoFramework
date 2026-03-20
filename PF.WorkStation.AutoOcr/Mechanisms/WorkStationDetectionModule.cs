@@ -1,4 +1,5 @@
 ﻿using PF.Core.Attributes;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -22,15 +23,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     public class WorkStationDetectionModule : BaseMechanism
     {
 
-        private  IAxis XAxis;
+        private IAxis XAxis;
 
-        private  IAxis YAxis;
+        private IAxis YAxis;
 
-        private  IAxis ZAxis;
-       
-        public WorkStationDetectionModule(IHardwareManagerService hardwareManagerService, ILogService logger) : base(E_Mechanisms.OCR识别模组.ToString(), hardwareManagerService, logger)
+        private IAxis ZAxis;
+
+        public WorkStationDetectionModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger) : base(E_Mechanisms.OCR识别模组.ToString(), hardwareManagerService, paramService, logger)
         {
-           
+
         }
 
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)

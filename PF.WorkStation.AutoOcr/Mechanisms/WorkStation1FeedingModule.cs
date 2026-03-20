@@ -1,4 +1,5 @@
 ﻿using PF.Core.Attributes;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
@@ -12,8 +13,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     [MechanismUI("工位1上晶圆模组", "Workstation1FeedingModelDebugView", 1)]
     public class WorkStation1FeedingModule : BaseMechanism
     {
-        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, ILogService logger)
-            : base(E_Mechanisms.工位1上晶圆模组.ToString(), hardwareManagerService, logger)
+        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
+            : base(E_Mechanisms.工位1上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
         {
         }
 
