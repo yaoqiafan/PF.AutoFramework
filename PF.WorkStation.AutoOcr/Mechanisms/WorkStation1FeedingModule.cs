@@ -1,4 +1,6 @@
+using log4net.Appender;
 using PF.Core.Attributes;
+using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
@@ -7,6 +9,7 @@ using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,6 +39,40 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     [MechanismUI("工位1上晶圆模组", "Workstation1FeedingModelDebugView", 1)]
     public class WorkStation1FeedingModule : BaseMechanism
     {
+        #region 轴点位枚举
+        public enum ZAxisPoint
+        {
+            正极限位置,
+            待机位,
+            层1取料位,
+            层2取料位,
+            层3取料位,
+            层4取料位,
+            层5取料位,
+            层6取料位,
+            层7取料位,
+            层8取料位,
+            层9取料位,
+            层10取料位,
+            层11取料位,
+            层12取料位,
+            层13取料位,
+            负极限位置,
+        }
+
+        public enum XAxisPoint
+        {
+            待机位,
+            挡料位_8寸,
+            挡料位_12寸,
+        }
+        #endregion
+
+
+
+
+
+
         // ── 硬件实例（InternalInitializeAsync 后可用）────────────────────────
         private IAxis _zAxis;      // 工位1上料Z轴：控制料盒升降对层
         private IAxis _xAxis;      // 工位1挡料X轴：控制挡料位置（8寸/12寸）
@@ -43,42 +80,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         // ── 当前生产尺寸（SwitchProductionStateAsync 后记录）────────────────
         private E_WafeSize _currentWaferSize = E_WafeSize._8寸;
-
-        // ── 工艺参数常量（实际项目建议从 IParamService 读取以支持界面调参）───
-        // Z轴扫描
-        private const double ZScanStartPos  = 5.0;   // mm：扫描起始位（料盒底层上方）
-        private const double ZScanEndPos    = 260.0; // mm：扫描结束位（最大行程）
-        private const double ZScanSpeed     = 15.0;  // mm/s：扫层慢速
-        private const double ZFastSpeed     = 80.0;  // mm/s：快速空移
-        private const double LayerPitch_8   = 6.5;   // mm：8寸晶圆层间距
-        private const double LayerPitch_12  = 8.0;   // mm：12寸晶圆层间距
-        private const double ZFirstLayer_8  = 10.0;  // mm：8寸第0层Z轴绝对坐标
-        private const double ZFirstLayer_12 = 12.0;  // mm：12寸第0层Z轴绝对坐标
-
-        // X轴挡料位置
-        private const double XBlockPos_8   = 20.0;  // mm：8寸挡料位
-        private const double XBlockPos_12  = 36.0;  // mm：12寸挡料位
-
-        // 速度/加减速通用参数
-        private const double FastAcc = 500.0;
-        private const double FastDec = 500.0;
-        private const double SlowAcc = 200.0;
-        private const double SlowDec = 200.0;
-        private const double STime   = 0.1;
-
-        // 超时与轮询
-        private const int CylinderTimeoutMs = 3000; // 气缸动作超时
-        private const int PollIntervalMs    = 50;   // 等待轮询间隔
+        //── 轴阵列点位缓存── 
+        public  readonly ConcurrentDictionary<ZAxisPoint, AxisPoint> PickingPosition;
 
         // ── 公开硬件访问（供 ViewModel 调试面板绑定）────────────────────────
         public IAxis ZAxis => _zAxis;
         public IAxis XAxis => _xAxis;
         public IIOController IO => _io;
 
-        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService,ILogService logger)
+        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
             : base(E_Mechanisms.工位1上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
         {
+
+            PickingPosition = new ConcurrentDictionary<ZAxisPoint, AxisPoint>();
         }
+
 
         // ── BaseMechanism 钩子实现 ─────────────────────────────────────────
 
@@ -112,28 +128,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // ② 注册到模组（报警事件聚合 + 批量复位，幂等）
             RegisterHardwareDevice(_zAxis as IHardwareDevice);
             RegisterHardwareDevice(_xAxis as IHardwareDevice);
-            RegisterHardwareDevice(_io   as IHardwareDevice);
+            RegisterHardwareDevice(_io as IHardwareDevice);
+
+
+
+            await ConfirmEunmPoints();
 
             // ③ 连接所有硬件（BaseDevice 内部有3次重试）
             if (!await _zAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
             if (!await _xAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] X轴连接失败"); return false; }
-            if (!await _io.ConnectAsync(token))    { _logger.Error($"[{MechanismName}] IO模块连接失败"); return false; }
+            if (!await _io.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] IO模块连接失败"); return false; }
 
             // ④ 使能伺服
             if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
-            
+
 
             // ⑤ 回原点
             if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
             if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
-            
 
-            // ⑥ 安全初始输出：夹爪张开、轨道调宽气缸收回、X轴气缸缩回
-            _io.WriteOutput(E_OutPutName.夹爪气缸左张开,          true);
-          
-
-            _logger.Success($"[{MechanismName}] 初始化完成，三轴已回零，输出已初始化。");
+            _logger.Success($"[{MechanismName}] 初始化完成，轴已回零。");
             return true;
         }
 
@@ -144,25 +159,22 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             if (_zAxis != null) await _zAxis.StopAsync();
             if (_xAxis != null) await _xAxis.StopAsync();
-           
+
         }
 
         #region 晶圆上料模组业务流程方法
 
         /// <summary>
-        /// 0. 初始化上料状态：气缸复位至安全位，Z轴移到扫描起始位
+        /// 0. 初始化上料状态：Z轴移到扫描起始位,挡料移动到待机位
         /// </summary>
         public async Task InitializeFeedingStateAsync(CancellationToken token = default)
         {
             CheckReady();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
-          
+            await _xAxis.MoveToPointAsync(XAxisPoint.待机位.ToString());
 
 
-            // Z轴移到扫描起始位
-            if (!await _zAxis.MoveAbsoluteAsync(ZScanStartPos, ZFastSpeed, FastAcc, FastDec, STime, token))
-                throw new Exception($"[{MechanismName}] 初始化失败：Z轴移动到起始位失败。");
 
             _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
         }
@@ -178,9 +190,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             await Task.CompletedTask;
 
-           
+
             // 尺寸防反传感器
-            bool is8inch  = _io.ReadInput(E_InPutName.上晶圆左8寸铁环防反检测)  == true;
+            bool is8inch = _io.ReadInput(E_InPutName.上晶圆左8寸铁环防反检测) == true;
             bool is12inch = _io.ReadInput(E_InPutName.上晶圆左12寸铁环防反检测) == true;
 
             if (is8inch && !is12inch)
@@ -209,37 +221,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             if (waferSize == E_WafeSize._8寸)
             {
-                // 8寸：轨道调宽气缸收回（窄轨）
-                _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸伸出, false);
-                _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸收回, true);
 
-             
-
-                // X轴移至8寸挡料位
-                if (!await _xAxis.MoveAbsoluteAsync(XBlockPos_8, ZFastSpeed, FastAcc, FastDec, STime, token))
-                    throw new Exception($"[{MechanismName}] 8寸状态切换失败：X轴移动到8寸挡料位失败。");
-
-                if (_io.ReadInput(E_InPutName.上晶圆左8寸料盒挡杆检测) != true)
-                    _logger.Warn($"[{MechanismName}] 8寸挡杆检测未触发，请确认挡杆位置。");
             }
             else // 12寸
             {
-                // 12寸：轨道调宽气缸伸出（宽轨）
-                _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸收回, false);
-                _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸伸出, true);
 
-                bool extended = await _io.WaitInputAsync(E_InPutName.晶圆轨道左调宽气缸打开, true, CylinderTimeoutMs, token);
-                if (!extended)
-                    throw new Exception($"[{MechanismName}] 12寸状态切换失败：轨道调宽气缸伸出超时。");
-
-                // X轴移至12寸挡料位
-                if (!await _xAxis.MoveAbsoluteAsync(XBlockPos_12, ZFastSpeed, FastAcc, FastDec, STime, token))
-                    throw new Exception($"[{MechanismName}] 12寸状态切换失败：X轴移动到12寸挡料位失败。");
-
-                bool stopper1 = _io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测1) == true;
-                bool stopper2 = _io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测2) == true;
-                if (!stopper1 && !stopper2)
-                    _logger.Warn($"[{MechanismName}] 12寸挡杆检测均未触发，请确认挡杆位置。");
             }
 
             _currentWaferSize = waferSize;
@@ -260,7 +246,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-           
+
 
             if (_zAxis.HasAlarm)
             {
@@ -306,44 +292,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns>检测到的晶圆层总数（0 表示料盒为空）</returns>
         public async Task<int> SearchLayerAsync(CancellationToken token = default)
         {
-            CheckReady();
-            _logger.Info($"[{MechanismName}] 开始Z轴寻层扫描...");
 
-            // 先移到扫描起始位
-            if (!await _zAxis.MoveAbsoluteAsync(ZScanStartPos, ZFastSpeed, FastAcc, FastDec, STime, token))
-                throw new Exception($"[{MechanismName}] 寻层失败：Z轴移动到扫描起始位失败。");
-
-            int  layerCount = 0;
-            bool lastState  = false;
-
-            // 启动Z轴向下慢速点动
-            if (!await _zAxis.JogAsync(ZScanSpeed, true, SlowAcc, SlowDec))
-                throw new Exception($"[{MechanismName}] 寻层失败：Z轴点动启动失败。");
-
-            try
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    // 超出扫描范围则停止
-                    if (_zAxis.CurrentPosition.HasValue && _zAxis.CurrentPosition.Value >= ZScanEndPos)
-                        break;
-
-                   
-
-                 
-                }
-            }
-            finally
-            {
-                // 无论正常结束还是异常，都先停轴
-                await _zAxis.StopAsync();
-            }
-
-            // 扫描完毕，Z轴回到起始位
-            await _zAxis.MoveAbsoluteAsync(ZScanStartPos, ZFastSpeed, FastAcc, FastDec, STime, token);
-
-            _logger.Success($"[{MechanismName}] 寻层完成，共检测到 {layerCount} 层晶圆。");
-            return layerCount;
+            return 0;
         }
 
         /// <summary>
@@ -354,20 +304,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             CheckReady();
 
-            if (targetLayer < 0)
-                throw new ArgumentOutOfRangeException(nameof(targetLayer), "层序号不能为负数。");
 
-            double pitch    = _currentWaferSize == E_WafeSize._8寸 ? LayerPitch_8   : LayerPitch_12;
-            double firstPos = _currentWaferSize == E_WafeSize._8寸 ? ZFirstLayer_8  : ZFirstLayer_12;
-            double targetZ  = firstPos + targetLayer * pitch;
 
-            _logger.Info($"[{MechanismName}] 切换至第 {targetLayer} 层，目标Z = {targetZ:F2} mm。");
-
-            bool ok = await _zAxis.MoveAbsoluteAsync(targetZ, ZFastSpeed, FastAcc, FastDec, STime, token);
-            if (!ok)
-                throw new Exception($"[{MechanismName}] 切换层失败：Z轴移动到 {targetZ:F2} mm 失败。");
-
-            _logger.Success($"[{MechanismName}] 已到达第 {targetLayer} 层（Z={targetZ:F2} mm）。");
             return true;
         }
 
@@ -388,9 +326,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-           
 
-          
+
+
             return true;
         }
 
@@ -403,29 +341,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 等待物料拉出（超时={timeoutMilliseconds}ms）...");
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            cts.CancelAfter(timeoutMilliseconds);
-
-            try
-            {
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    bool inPos1 = _io.ReadInput(E_InPutName.晶圆轨道左晶圆在位检测1) == true;
-                    bool inPos2 = _io.ReadInput(E_InPutName.晶圆轨道左晶圆在位检测2) == true;
-
-                    if (inPos1 || inPos2)
-                    {
-                        _logger.Success($"[{MechanismName}] 物料已拉出到位（检测1={inPos1}, 检测2={inPos2}）。");
-                        return true;
-                    }
-
-                    await Task.Delay(PollIntervalMs, cts.Token);
-                }
-            }
-            catch (OperationCanceledException) when (!token.IsCancellationRequested)
-            {
-                // 超时取消，非外部取消 → 返回 false
-            }
 
             _logger.Warn($"[{MechanismName}] 等待物料拉出超时（{timeoutMilliseconds}ms），请检查Y轴动作或传感器。");
             return false;
@@ -440,33 +355,42 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 等待物料回退（超时={timeoutMilliseconds}ms）...");
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            cts.CancelAfter(timeoutMilliseconds);
 
-            try
-            {
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    bool inPos1 = _io.ReadInput(E_InPutName.晶圆轨道左晶圆在位检测1) == true;
-                    bool inPos2 = _io.ReadInput(E_InPutName.晶圆轨道左晶圆在位检测2) == true;
-
-                    // 两个传感器均为 false → 物料已完全离开
-                    if (!inPos1 && !inPos2)
-                    {
-                        _logger.Success($"[{MechanismName}] 物料已回退完成，轨道清空。");
-                        return true;
-                    }
-
-                    await Task.Delay(PollIntervalMs, cts.Token);
-                }
-            }
-            catch (OperationCanceledException) when (!token.IsCancellationRequested)
-            {
-                // 超时取消
-            }
 
             _logger.Warn($"[{MechanismName}] 等待物料回退超时（{timeoutMilliseconds}ms），请检查Y轴动作或传感器。");
             return false;
+        }
+
+        #endregion
+
+
+        #region 辅助方法
+        public async Task ConfirmEunmPoints()
+        {
+            // 检查 Z 轴点位
+            if (_zAxis != null)
+            {
+                EnsurePointsExist<ZAxisPoint>(_zAxis);
+            }
+
+            // 检查 X 轴点位
+            if (_xAxis != null)
+            {
+                EnsurePointsExist<XAxisPoint>(_xAxis);
+            }
+
+            // 因为你的方法签名是 async Task，但接口中 Add 和 Save 都是同步的
+            // 这里加一句 CompletedTask 消除编译器的 async 警告
+            await Task.CompletedTask;
+        }
+
+        
+
+
+        public async Task<Dictionary<ZAxisPoint, AxisPoint>> ArrayZAxisMaterialPickingPosition()
+        {
+
+            return default;
         }
 
         #endregion
