@@ -207,6 +207,7 @@ public class SearchComboBox : ListBox
         SetCurrentValue(SearchTextProperty, text);
         _isInternalAction = false;
         RefreshFilter();
+        e.Handled = true;
     }
 
     private void RefreshFilter()

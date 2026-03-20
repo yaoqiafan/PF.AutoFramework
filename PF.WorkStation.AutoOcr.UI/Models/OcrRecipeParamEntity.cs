@@ -1,16 +1,11 @@
 ﻿using PF.UI.Controls;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.UI.UserControls;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace PF.WorkStation.AutoOcr.UI.ViewModels.Models
+namespace PF.WorkStation.AutoOcr.UI.Models
 {
     public class OcrRecipeParamEntity : BindableBase
     {
