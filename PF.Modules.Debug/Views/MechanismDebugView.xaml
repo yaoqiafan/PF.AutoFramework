@@ -7,8 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">

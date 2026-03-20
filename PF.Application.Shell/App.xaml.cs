@@ -67,6 +67,11 @@ namespace PF.Application.Shell
     {
         #region 私有字段
 
+        // 定义全局唯一的互斥体名称（建议使用公司/程序唯一标识，避免冲突）
+        private static readonly string MutexName = "Global\\PFAutoFrameworkOCRAppID-12345678-ABCD-EFGH-IJKL-1234567890AB";
+        private static Mutex _appMutex = null;
+        private static bool IsNewInstance;
+
         private ILogService _logService;
         private HostApplicationBuilder? builder;
 
@@ -78,10 +83,9 @@ namespace PF.Application.Shell
         {
             try
             {
-                base.OnStartup(e);
-
-                if (RunningInstance() == null)
+                if (RunningInstance())
                 {
+                    base.OnStartup(e);
                     try
                     {
                         this.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(App_DispatcherUnhandledException);
@@ -99,8 +103,7 @@ namespace PF.Application.Shell
                 }
                 else
                 {
-                    IMessageService messageService = Container.Resolve<IMessageService>();
-                    messageService.ShowMessage("当前应用程序已经在运行！", "警告", MessageBoxButton.OK, MessageBoxImage.Asterisk);
+                    MessageBox.Show("当前应用程序已经在运行！", "警告", MessageBoxButton.OK, MessageBoxImage.Asterisk);
                     this.Shutdown();
                 }
             }
@@ -111,28 +114,45 @@ namespace PF.Application.Shell
             }
         }
 
-        /// <summary>
-        /// 检测是否已有同名进程在运行，防止重复启动。
-        /// </summary>
-        public static Process RunningInstance()
+        protected override void OnExit(ExitEventArgs e)
         {
-            Process current = System.Diagnostics.Process.GetCurrentProcess();
-            System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcesses();
-            foreach (System.Diagnostics.Process process in processes)
+            base.OnExit(e);
+
+            if (IsNewInstance)
             {
-                if (process.Id != current.Id)
-                {
-                    if (process.ProcessName == current.ProcessName)
-                    {
-                        if (Assembly.GetExecutingAssembly().Location.Replace(@"/", @"\") == current.MainModule.FileName)
-                        {
-                            return process;
-                        }
-                    }
-                }
+                // 释放互斥体（必须释放，否则下次启动会误判）
+                _appMutex.ReleaseMutex();
+                _appMutex.Dispose();
             }
-            return null;
         }
+
+
+
+
+        static bool RunningInstance()
+        {
+
+            try
+            {
+                // 尝试创建/获取互斥体的独占权
+                // isNewInstance 为 true 表示是新实例（程序未运行），false 表示已存在实例
+                _appMutex = new Mutex(true, MutexName, out IsNewInstance);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // 无权限访问全局互斥体（如非管理员运行），降级为本地互斥体
+                _appMutex = new Mutex(true, MutexName.Replace("Global\\", ""), out IsNewInstance);
+            }
+
+            if (IsNewInstance)
+                return true;
+            else
+                return false;
+
+        }
+
+
+
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
@@ -203,7 +223,7 @@ namespace PF.Application.Shell
             {
                 commonSettings.Save();
             }
-            
+
             containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
             containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(NavigationConstants.Views.CommonParamView);
 
@@ -216,7 +236,7 @@ namespace PF.Application.Shell
             RegisterParamDbContext(containerRegistry);
             // 参数仓储和服务（委托到 ParameterServiceExtensions）
             containerRegistry.AddParameterServices(new DefaultParameters());
-            
+
 
             RegisterProductionDataService(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
@@ -224,7 +244,7 @@ namespace PF.Application.Shell
             containerRegistry.RegisterSingleton<Splash>();
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
-           
+
 
             RegisterUserIdentityTypes(containerRegistry);
 
@@ -370,11 +390,11 @@ namespace PF.Application.Shell
             });
 
 
-            hwManager.RegisterFactory("EtherCatIO", cfg => 
+            hwManager.RegisterFactory("EtherCatIO", cfg =>
             {
                 int incount = cfg.ConnectionParameters.TryGetValue("InPutCount", out var tig) ? int.Parse(tig) : 0;
                 int outcount = cfg.ConnectionParameters.TryGetValue("OutPutCount", out var us) ? int.Parse(us) : 0;
-                return new Infrastructure.Hardware.IO.EtherCatIO(incount, outcount,cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+                return new Infrastructure.Hardware.IO.EtherCatIO(incount, outcount, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
@@ -414,12 +434,13 @@ namespace PF.Application.Shell
 
             // 机构层：GantryMechanism 同时映射到自身类型和 IMechanism 接口
             var container = containerRegistry.GetContainer();
-          
+
 
             container.RegisterMany(
-                new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
-                typeof(WorkStation1FeedingModule),
-                reuse: DryIoc.Reuse.Singleton);
+    new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
+    typeof(WorkStation1FeedingModule),
+    reuse: DryIoc.Reuse.Singleton,
+    serviceKey: nameof(WorkStation1FeedingModule));
 
 
 
@@ -484,6 +505,20 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 
+                SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
+                await Task.Delay(300);
+                if (await InitializeMechanism())
+                {
+                    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
+                }
+                else
+                {
+                    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                }
+
+
+                await Task.Delay(500);
+
                 SplashUpdateMessage(splash, logService, "初始化完成", msgType: MsgType.Success);
                 await Task.Delay(500);
                 return true;
@@ -494,6 +529,19 @@ namespace PF.Application.Shell
                 return false;
             }
         }
+
+
+
+        private async Task<bool> InitializeMechanism()
+        {
+            var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation1FeedingModule));
+            return await workStation1FeedingModule.InitializeAsync();
+
+        }
+
+
+
+
 
         private async Task<bool> LoadConfigurationAsync()
         {

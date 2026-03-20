@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -218,11 +219,72 @@ namespace PF.Workstation.AutoOcr.CostParam
     }
 
 
-    public enum E_TimeOut
+
+
+    #region 参数枚举
+
+    public enum E_Params
     {
-        电机回零超时,
+        #region 上下料模组参数
+
+        [Category("上下料模组参数")]
+        [Description("8寸晶圆层间距(mm)")]
+        [DefaultValue(10.0)]
+        LayerPitch_8,
+
+        [Category("上下料模组参数")]
+        [Description("12寸晶圆层间距")]
+        [DefaultValue(15.0)]
+        LayerPitch_12,
+
+        [Category("上下料模组参数")]
+        [Description("8寸晶圆扫描正偏移")]
+        [DefaultValue(0.0)]
+        WaferScanningPositiveOffset_8,
+
+        [Category("上下料模组参数")]
+        [Description("12寸晶圆扫描正偏移")]
+        [DefaultValue(0.0)]
+        WaferScanningPositiveOffset_12,
+
+        [Category("上下料模组参数")]
+        [Description("8寸晶圆扫描正偏移")]
+        [DefaultValue(0.0)]
+        WaferScanningNegativeOffset_8,
+
+        [Category("上下料模组参数")]
+        [Description("12寸晶圆扫描正偏移")]
+        [DefaultValue(0.0)]
+        WaferScanningNegativeOffset_12,
+
+        [Category("上下料模组参数")]
+        [Description("扫层速度")]
+        [DefaultValue(1.0)]
+        ZScanSpeed,
+        #endregion
+
+
+
+        #region 超时参数
+        [Category("超时参数")]
+        [Description("轴运动超时参数")]
+        [DefaultValue(5000)]
+        AxisMoveTimeout,
+
+        [Category("超时参数")]
+        [Description("轴回零超时参数")]
+        [DefaultValue(10000)]
+        AxisHomeTimeout,
+
+
+        #endregion
+
+
     }
 
 
+
+
+    #endregion
 
 }
