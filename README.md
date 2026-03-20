@@ -74,9 +74,8 @@ PF.AutoFramework.slnx
 │   └── PF.Application.Shell          # WPF App 入口
 │
 └── /07. Demo 工站
-    ├── PF.Workstation.Demo           # 取放工站业务逻辑（入门 Demo）
-    ├── PF.Workstation.Demo.UI        # 取放工站 UI 模块
-    └── PF.WorkStation.AutoOcr        # 晶圆 OCR 取放工站（生产级参考实现）
+    ├── PF.Workstation.yourapp           # 取放工站业务逻辑（入门 Demo）
+    └── PF.Workstation.yourapp         # 取放工站 UI 模块
 ```
 
 ---
