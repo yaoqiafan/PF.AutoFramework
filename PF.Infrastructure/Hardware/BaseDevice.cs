@@ -135,7 +135,7 @@ namespace PF.Infrastructure.Hardware
             return false;
         }
 
-        public async Task DisconnectAsync()
+        public async Task DisconnectAsync(CancellationToken token = default)
         {
             if (!IsConnected) return;
 

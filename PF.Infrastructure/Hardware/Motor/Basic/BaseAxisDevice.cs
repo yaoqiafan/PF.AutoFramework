@@ -158,21 +158,21 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         // ── IAxis 运动控制方法（委托给 ParentCard，替代原来的抽象方法）────────────
 
         /// <summary>伺服使能</summary>
-        public virtual async Task<bool> EnableAsync()
+        public virtual async Task<bool> EnableAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
             return await ParentCard!.EnableAxisAsync(AxisIndex).ConfigureAwait(false);
         }
 
         /// <summary>伺服断使能</summary>
-        public virtual async Task<bool> DisableAsync()
+        public virtual async Task<bool> DisableAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
             return await ParentCard!.DisableAxisAsync(AxisIndex).ConfigureAwait(false);
         }
 
         /// <summary>停止运动</summary>
-        public virtual async Task<bool> StopAsync()
+        public virtual async Task<bool> StopAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
             return await ParentCard!.StopAxisAsync(AxisIndex).ConfigureAwait(false);
