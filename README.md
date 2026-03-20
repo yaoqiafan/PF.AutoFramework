@@ -74,8 +74,9 @@ PF.AutoFramework.slnx
 │   └── PF.Application.Shell          # WPF App 入口
 │
 └── /07. Demo 工站
-    ├── PF.Workstation.Demo           # 取放工站业务逻辑
-    └── PF.Workstation.Demo.UI        # 取放工站 UI 模块
+    ├── PF.Workstation.Demo           # 取放工站业务逻辑（入门 Demo）
+    ├── PF.Workstation.Demo.UI        # 取放工站 UI 模块
+    └── PF.WorkStation.AutoOcr        # 晶圆 OCR 取放工站（生产级参考实现）
 ```
 
 ---
@@ -139,8 +140,12 @@ PF.AutoFramework.slnx
 
 **HardwareManagerService** — 硬件生命周期管理：
 - `RegisterFactory()` 注册设备工厂函数
-- `LoadAndInitializeAsync()` 拓扑排序（父卡优先）初始化
+- `ImportConfigsAsync(configs)` 批量写入默认硬件配置（首次启动时调用，upsert 语义）
+- `SaveConfigAsync(config)` / `DeleteConfigAsync(deviceId)` 单条配置的增删
+- `LoadAndInitializeAsync()` 拓扑排序（父卡优先）初始化；子设备无论父板卡是否连接成功均会实例化并保留在活跃列表，UI 可见
 - `GetDevice(deviceId)` 运行时按 ID 获取设备实例
+- `SetGlobalSimulationModeAsync(bool)` 原子切换全部设备的仿真模式并持久化，需配合 `ReloadAllAsync()` 生效
+- `ReloadAllAsync()` 热重载：断开全部设备 → 释放 → 重新从数据库加载配置并初始化
 
 **LogService** — 高性能日志服务：
 - 内存循环缓冲区（最大 1000 条）
@@ -166,9 +171,11 @@ PF.AutoFramework.slnx
 
 **BaseMotionCard**：板卡基类，12 个操作方法声明为 `abstract`，由厂商子类调用具体 SDK
 
-**BaseMechanism**：聚合多硬件，自动订阅硬件 `AlarmTriggered` 事件，支持延迟注册设备
+**BaseMechanism**：聚合多硬件，自动订阅硬件 `AlarmTriggered` 事件，支持延迟注册设备。构造函数签名为 `(string name, IHardwareManagerService, IParamService, ILogService)`。新增两个工具方法：
+- `WaitAxisMoveDone(IAxis, CancellationToken)` — 以 10ms 轮询等待轴运动完成（`MoveDone && !Moving`），支持取消
+- `EnsurePointsExist<TEnum>(IAxis)` — 泛型点位自动补全：将枚举所有成员与轴点表对比，缺失的自动插入并调用 `SavePointTable()` 持久化
 
-**StationBase**：`Stateless` 七状态机 + 后台线程管理
+**StationBase**：`Stateless` 七状态机 + 后台线程管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。
 
 ---
 
@@ -502,39 +509,41 @@ using PF.Core.Attributes;
 [MechanismUI("你的机构调试", "YourMechanismView", order: 1)]
 public class YourMechanism : BaseMechanism
 {
-    private readonly IHardwareManagerService _hwManager;
-    private readonly ILogService _logger;
-    
     private IAxis? _xAxis;
     private IIOController? _vacuumIO;
 
-    public YourMechanism(IHardwareManagerService hwManager, ILogService logger)
-        : base("你的机构", logger)
+    // BaseMechanism 构造函数必须传入 IHardwareManagerService、IParamService、ILogService
+    public YourMechanism(IHardwareManagerService hwManager, IParamService paramService, ILogService logger)
+        : base("你的机构", hwManager, paramService, logger)
     {
-        _hwManager = hwManager ?? throw new ArgumentNullException(nameof(hwManager));
-        _logger = logger;
     }
+
+    // 定义轴点位枚举（由 EnsurePointsExist<T> 自动校验/补全）
+    private enum XAxisPoint { 待机位, 取料位, 放料位 }
 
     protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
     {
         _logger.Info($"[{MechanismName}] 开始初始化...");
 
-        // 1. 延迟解析硬件（确保板卡已初始化）
-        _xAxis = _hwManager.GetDevice("YOUR_X_AXIS") as IAxis
+        // 1. 延迟解析硬件（确保板卡已初始化后再取设备引用）
+        _xAxis = HardwareManagerService.GetDevice("YOUR_X_AXIS") as IAxis
             ?? throw new InvalidOperationException("未找到 X 轴设备");
-        _vacuumIO = _hwManager.GetDevice("YOUR_VACUUM_IO") as IIOController
+        _vacuumIO = HardwareManagerService.GetDevice("YOUR_VACUUM_IO") as IIOController
             ?? throw new InvalidOperationException("未找到真空 IO 设备");
 
-        // 2. 延迟注册（启用报警聚合）
+        // 2. 延迟注册（报警聚合 + 批量复位）
         RegisterHardwareDevice(_xAxis as IHardwareDevice);
         RegisterHardwareDevice(_vacuumIO as IHardwareDevice);
 
         // 3. 连接 + 使能 + 回零
         if (!await _xAxis.ConnectAsync(token)) return false;
         if (!await _vacuumIO.ConnectAsync(token)) return false;
-        if (!await _xAxis.EnableAsync()) return false;          // EnableAsync 无 token 参数
+        if (!await _xAxis.EnableAsync()) return false;
         if (!await _xAxis.HomeAsync(token)) return false;
         _vacuumIO.WriteOutput(0, false);
+
+        // 4. 校验并补全点表（缺失点位自动插入并持久化，枚举即文档）
+        EnsurePointsExist<XAxisPoint>(_xAxis);
 
         _logger.Success($"[{MechanismName}] 初始化完成");
         return true;
@@ -638,6 +647,9 @@ public class YourStation : StationBase
         NotifyDownstream = 50,
     }
     private Step _currentStep = Step.WaitMaterial;
+
+    // 步序切换时赋值 CurrentStepDescription，UI 通过绑定自动刷新
+    // 例：CurrentStepDescription = "等待来料...";
 
     public YourStation(YourMechanism mechanism, IStationSyncService sync, ILogService logger)
         : base("你的工站", logger)
@@ -743,6 +755,9 @@ container.RegisterMany(
     reuse: DryIoc.Reuse.Singleton);
 ```
 
+> **并发安全说明**：`StationBase` 内置 `SemaphoreSlim(1,1)` 状态锁，所有 `Fire()` 调用均线程安全。
+> 触发 `Running` 状态入口（`Start` / `Resume`）必须通过 `await FireAsync(...)` 异步触发，以正确等待 `OnEntryAsync` 中旧任务的彻底终止，避免"幽灵线程"并发访问硬件。
+
 ---
 
 ## 5. 主控开发（Layer 4）
@@ -757,7 +772,7 @@ public class YourMasterController : BaseMasterController
 
     public YourMasterController(
         ILogService logger,
-        PhysicalButtonEventBus hardwareEventBus,   // 物理按键事件总线（必填）
+        PhysicalButtonEventBus hardwareEventBus,   // 物理按键事件总线（必填，可传 null 忽略）
         IStationSyncService sync,
         IEnumerable<StationBase> stations)
         : base(logger, hardwareEventBus, stations)
@@ -768,8 +783,17 @@ public class YourMasterController : BaseMasterController
         _sync.Register("SlotEmpty", initialCount: 1, maxCount: 1);
         _sync.Register("ProductReady", initialCount: 0, maxCount: 1);
     }
+
+    // 复位成功进入 Idle 之前执行（可选）：清理信号量、重置业务状态等
+    protected override void OnAfterResetSuccess()
+    {
+        _sync.Reset("SlotEmpty", initialCount: 1);
+        _sync.Reset("ProductReady", initialCount: 0);
+    }
 }
 ```
+
+> **PhysicalButtonEventBus 说明**：基类自动订阅物理面板按键事件（急停/启动/暂停/复位），并实现智能启动逻辑——`Uninitialized` 状态时先初始化再启动，`Paused` 时直接恢复，其他状态忽略。无物理面板时传入 `null` 即可。
 
 ### 5.2 典型调用序列
 
@@ -891,7 +915,53 @@ public Dictionary<string, MotionParam> GetMotionDefaults() => new()
 paramService.RegisterParamType<MotionParam, double>();
 ```
 
-### 7.2 读写参数
+### 7.2 枚举驱动的参数定义（推荐模式）
+
+`PF.CommonTools` 提供了 `EnumParameterExtensions`，可通过枚举配合标准 .NET 特性声明参数名称、描述和默认值，实现**枚举即文档**，并避免魔术字符串：
+
+```csharp
+// Step 1: 在工站项目中定义参数枚举
+using System.ComponentModel;
+
+public enum E_Params
+{
+    [Category("运动参数")]
+    [Description("X 轴运动速度 (mm/s)")]
+    [DefaultValue(100.0)]
+    XAxisSpeed,
+
+    [Category("运动参数")]
+    [Description("X 轴加速度 (mm/s²)")]
+    [DefaultValue(500.0)]
+    XAxisAcc,
+
+    [Category("超时参数")]
+    [Description("轴运动超时 (ms)")]
+    [DefaultValue(5000)]
+    AxisMoveTimeout,
+}
+```
+
+```csharp
+// Step 2: 利用扩展方法读取元信息（零装箱，线程安全缓存）
+using PF.CommonTools.EnumRelated;
+
+string desc    = E_Params.XAxisSpeed.GetDescription();   // "X 轴运动速度 (mm/s)"
+string cat     = E_Params.XAxisSpeed.GetCategory();      // "运动参数"
+double def     = E_Params.XAxisSpeed.GetDefaultValueAs<E_Params, double>(); // 100.0
+int timeout    = E_Params.AxisMoveTimeout.GetDefaultValueAs<E_Params, int>(); // 5000
+```
+
+```csharp
+// Step 3: 结合 IParamService 读写（枚举名称作为 key，避免硬编码字符串）
+double speed = (await _paramService.GetParamAsync<MotionParamValue>(
+    E_Params.XAxisSpeed.ToString()))?.Speed
+    ?? E_Params.XAxisSpeed.GetDefaultValueAs<E_Params, double>();
+```
+
+> **优势**：重命名参数时 IDE 自动检测所有引用；枚举成员即为参数目录，无需维护独立文档。
+
+### 7.4 读写参数
 
 > **注意**：`IParamService` 的泛型约束为 `where T : class`，**不支持直接使用值类型**（`int`/`double`/`bool` 等）。
 > 推荐将参数数据封装为 POCO 类（如 Step 1 中定义的 `MotionParamValue`），再进行读写。
@@ -1063,7 +1133,45 @@ catch (Exception ex) { _logger.Error($"取料失败: {ex.Message}"); TriggerAlar
 Dispatcher.InvokeAsync(() => { Status = "更新状态"; });
 ```
 
-### 10.4 常见坑
+### 10.4 步序描述 UI 绑定
+
+在工站 ViewModel 中绑定 `CurrentStepDescription`，实时显示当前步序：
+
+```xml
+<TextBlock Text="{Binding Station.CurrentStepDescription}" />
+```
+
+在工站类的 `ProcessLoopAsync` 中每次步序切换时赋值：
+
+```csharp
+case Step.WaitMaterial:
+    CurrentStepDescription = "等待来料...";
+    await WaitForMaterialAsync(token);
+    _currentStep = Step.Pick;
+    break;
+
+case Step.Pick:
+    CurrentStepDescription = "正在取料...";
+    await _mechanism.PickAsync(token);
+    _currentStep = Step.Place;
+    break;
+```
+
+### 10.5 硬件仿真模式切换
+
+开发阶段无需真实硬件，通过 `SetGlobalSimulationModeAsync` 一键切换：
+
+```csharp
+// 切换为全仿真模式（重载后生效）
+await _hwManager.SetGlobalSimulationModeAsync(true);
+await _hwManager.ReloadAllAsync();
+
+// 切换为真实硬件模式
+await _hwManager.SetGlobalSimulationModeAsync(false);
+await _hwManager.ReloadAllAsync();
+```
+
+### 10.6 常见坑
 
 | 问题 | 原因 | 解决 |
 |------|------|------|
@@ -1071,6 +1179,9 @@ Dispatcher.InvokeAsync(() => { Status = "更新状态"; });
 | 设备未找到 | ID 拼写错误 | 检查 HardwareConfig.DeviceId |
 | 信号量死锁 | ResetAll 时线程未停 | 确保 StopAll 后再 ResetAll |
 | 重复实例 | RegisterSingleton 多次 | 使用 RegisterMany |
+| Start 后旧任务仍在运行 | 使用了同步 Fire 触发 Running | 触发 Start/Resume 必须用 `await FireAsync` |
+| 机构初始化取不到设备 | 构造函数中调用了 GetDevice | 必须在 `InternalInitializeAsync` 中延迟解析 |
+| 点表丢失 | 未调用 EnsurePointsExist | 在 `InternalInitializeAsync` 末尾调用 `EnsurePointsExist<TEnum>(axis)` |
 
 ---
 
