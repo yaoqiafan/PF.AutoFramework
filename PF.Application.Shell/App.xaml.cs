@@ -131,7 +131,7 @@ namespace PF.Application.Shell
 
         static bool RunningInstance()
         {
-           
+
             try
             {
                 // 尝试创建/获取互斥体的独占权
@@ -437,9 +437,10 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-                new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
-                typeof(WorkStation1FeedingModule),
-                reuse: DryIoc.Reuse.Singleton);
+    new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
+    typeof(WorkStation1FeedingModule),
+    reuse: DryIoc.Reuse.Singleton,
+    serviceKey: nameof(WorkStation1FeedingModule));
 
 
 
@@ -504,6 +505,20 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 
+                SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
+                await Task.Delay(300);
+                if (await InitializeMechanism())
+                {
+                    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
+                }
+                else
+                {
+                    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                }
+
+
+                await Task.Delay(500);
+
                 SplashUpdateMessage(splash, logService, "初始化完成", msgType: MsgType.Success);
                 await Task.Delay(500);
                 return true;
@@ -514,6 +529,19 @@ namespace PF.Application.Shell
                 return false;
             }
         }
+
+
+
+        private async Task<bool> InitializeMechanism()
+        {
+            var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation1FeedingModule));
+            return await workStation1FeedingModule.InitializeAsync();
+
+        }
+
+
+
+
 
         private async Task<bool> LoadConfigurationAsync()
         {

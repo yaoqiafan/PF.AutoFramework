@@ -69,27 +69,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
 
-        private async Task<bool> WaitHomeDone(IAxis axis, CancellationToken token)
-        {
-            try
-            {
-                Task a = Task.Run(async () =>
-                {
-                    while (true)
-                    {
-                        await Task.Delay(10, token);
-                        if (axis.AxisIOStatus.MoveDone && !axis.AxisIOStatus.Moving)
-                        {
-                            return;
-                        }
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-        }
+        
 
 
 
