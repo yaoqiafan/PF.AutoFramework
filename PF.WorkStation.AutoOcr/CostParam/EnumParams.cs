@@ -217,4 +217,12 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     }
 
+
+    public enum E_TimeOut
+    {
+        电机回零超时,
+    }
+
+
+
 }
