@@ -57,13 +57,13 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         #region 轴控制指令
 
         /// <summary>伺服使能</summary>
-        Task<bool> EnableAsync();
+        Task<bool> EnableAsync(CancellationToken token = default);
 
         /// <summary>伺服断使能</summary>
-        Task<bool> DisableAsync();
+        Task<bool> DisableAsync(CancellationToken token = default);
 
         /// <summary>停止运动 (减速停止或急停，由具体实现决定)</summary>
-        Task<bool> StopAsync();
+        Task<bool> StopAsync(CancellationToken token = default);
 
         /// <summary>回原点动作 (Home)</summary>
         Task<bool> HomeAsync(CancellationToken token = default);
