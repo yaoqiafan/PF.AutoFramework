@@ -1,4 +1,5 @@
 ﻿using PF.Core.Events;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
@@ -10,6 +11,8 @@ namespace PF.Infrastructure.Mechanisms
         protected readonly ILogService _logger;
         private readonly List<IHardwareDevice> _internalHardwares;
         protected IHardwareManagerService HardwareManagerService { get; }
+
+        protected IParamService ParamService { get; }
         public string MechanismName { get; }
         public bool IsInitialized { get; protected set; }
         public bool HasAlarm { get; protected set; }
@@ -18,11 +21,12 @@ namespace PF.Infrastructure.Mechanisms
         public event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
 
         // 构造函数：删除了 IEventAggregator
-        protected BaseMechanism(string name, IHardwareManagerService hardwareManagerService, ILogService logger)
+        protected BaseMechanism(string name, IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
         {
             MechanismName = name;
             _logger = logger;
             HardwareManagerService = hardwareManagerService;
+            ParamService = paramService;
         }
 
         /// <summary>

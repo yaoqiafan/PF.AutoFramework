@@ -1,4 +1,5 @@
 using PF.Core.Attributes;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -35,19 +36,19 @@ namespace PF.Workstation.Demo.Mechanisms
     [MechanismUI("取放模组调试", "GantryMechanismView", 1)]
     public class GantryMechanism : BaseMechanism
     {
-       
+
         // 硬件实例：构造后为 null，在 InternalInitializeAsync 中通过 hwManager 延迟解析
-        private IAxis         _xAxis;
+        private IAxis _xAxis;
         private IIOController _vacuumIO;
 
         // ── 工艺坐标常量（实际项目从 IParamService 读取，支持界面调参）──────
-        private const double PickX     = 100.0;  // mm: 取料位 X 坐标
-        private const double PlaceX    = 350.0;  // mm: 放料位 X 坐标
-        private const double SafeX     = 50.0;   // mm: 安全缩回/提升量（相对）
+        private const double PickX = 100.0;  // mm: 取料位 X 坐标
+        private const double PlaceX = 350.0;  // mm: 放料位 X 坐标
+        private const double SafeX = 50.0;   // mm: 安全缩回/提升量（相对）
         private const double FastSpeed = 300.0;  // mm/s: 空移速度
         private const double SlowSpeed = 60.0;   // mm/s: 接触/离开物料慢速
 
-        private const int VacuumValve  = 0;      // OUT[0]: 真空阀
+        private const int VacuumValve = 0;      // OUT[0]: 真空阀
         private const int VacuumSensor = 0;      // IN[0]:  真空检测传感器
 
         /// <summary>
@@ -67,8 +68,8 @@ namespace PF.Workstation.Demo.Mechanisms
         /// 不在此处获取设备实例——设备需在 LoadAndInitializeAsync 完成后才可用，
         /// 通过 InternalInitializeAsync 延迟解析。
         /// </summary>
-        public GantryMechanism(IHardwareManagerService hardwareManagerService, ILogService logger)
-            : base("龙门取放模组",  hardwareManagerService, logger)  // 无设备参数；设备将在 InternalInitializeAsync 中注册
+        public GantryMechanism(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
+            : base("龙门取放模组", hardwareManagerService, paramService, logger)  // 无设备参数；设备将在 InternalInitializeAsync 中注册
         {
         }
 
@@ -101,11 +102,11 @@ namespace PF.Workstation.Demo.Mechanisms
             }
 
             // ② 注册到模组：报警事件聚合 + 批量复位（幂等，重复调用不会重复订阅）
-            RegisterHardwareDevice(_xAxis    as IHardwareDevice);
+            RegisterHardwareDevice(_xAxis as IHardwareDevice);
             RegisterHardwareDevice(_vacuumIO as IHardwareDevice);
 
             // ③ 连接所有硬件（BaseDevice 内部有3次重试）
-            if (!await _xAxis.ConnectAsync(token))    return false;
+            if (!await _xAxis.ConnectAsync(token)) return false;
             if (!await _vacuumIO.ConnectAsync(token)) return false;
 
             // ④ 使能 X 轴伺服
@@ -125,7 +126,7 @@ namespace PF.Workstation.Demo.Mechanisms
         /// </summary>
         protected override async Task InternalStopAsync()
         {
-            if (_xAxis    != null) await _xAxis.StopAsync();
+            if (_xAxis != null) await _xAxis.StopAsync();
             if (_vacuumIO != null) _vacuumIO.WriteOutput(VacuumValve, false);
         }
 
