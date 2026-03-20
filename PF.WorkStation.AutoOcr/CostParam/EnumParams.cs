@@ -161,4 +161,16 @@ namespace PF.Workstation.AutoOcr.CostParam
         _12寸
     }
 
+
+    public enum E_Mechanisms
+    {
+        工位1上晶圆模组,
+        工位2上晶圆模组,
+
+        工位1推拉晶圆模组,
+        工位2推拉晶圆模组,
+        OCR识别模组
+
+    }
+
 }

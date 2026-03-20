@@ -2,16 +2,14 @@
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Mechanisms
 {
     public abstract class BaseMechanism : IMechanism, IDisposable
     {
+        protected readonly ILogService _logger;
+        private readonly List<IHardwareDevice> _internalHardwares;
+        protected IHardwareManagerService HardwareManagerService { get; }
         public string MechanismName { get; }
         public bool IsInitialized { get; protected set; }
         public bool HasAlarm { get; protected set; }
@@ -19,24 +17,12 @@ namespace PF.Infrastructure.Mechanisms
         // 实现接口事件
         public event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
 
-        protected readonly ILogService _logger;
-        private readonly List<IHardwareDevice> _internalHardwares;
-
         // 构造函数：删除了 IEventAggregator
-        protected BaseMechanism(string name, ILogService logger, params IHardwareDevice[] hardwares)
+        protected BaseMechanism(string name, IHardwareManagerService hardwareManagerService, ILogService logger)
         {
             MechanismName = name;
             _logger = logger;
-            _internalHardwares = hardwares?.ToList() ?? new List<IHardwareDevice>();
-
-            // 自动订阅所有注入硬件的报警事件
-            foreach (var hw in _internalHardwares)
-            {
-                if (hw != null)
-                {
-                    hw.AlarmTriggered += OnHardwareAlarmTriggered;
-                }
-            }
+            HardwareManagerService = hardwareManagerService;
         }
 
         /// <summary>
