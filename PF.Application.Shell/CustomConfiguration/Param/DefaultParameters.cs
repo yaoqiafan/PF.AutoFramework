@@ -1,4 +1,5 @@
-﻿using PF.Core.Entities.Hardware;
+﻿using PF.CommonTools.EnumRelated;
+using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Data.Entity.Category;
@@ -388,73 +389,42 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         }
 
         /// <summary>
-        /// 获取系统默认配置
+        /// 获取系统默认配置（动态遍历枚举自动生成）
         /// </summary>
-        public  Dictionary<string, SystemConfigParam> GetSystemDefaults()
+        public Dictionary<string, SystemConfigParam> GetSystemDefaults()
         {
-            return new Dictionary<string, SystemConfigParam>
+            var defaultConfigDict = new Dictionary<string, SystemConfigParam>();
+
+           
+            foreach (E_Params param in Enum.GetValues(typeof(E_Params)))
             {
+                
+                string paramName = param.ToString();
+
+              
+                EnumParamInfo info = param.GetParamInfo();
+
+               
+                string typeFullName = info.TypeFullName ?? typeof(string).FullName;
+
+                
+                string jsonValue = info.DefaultValue != null
+                    ? JsonSerializer.Serialize(info.DefaultValue)
+                    : JsonSerializer.Serialize("");
+
+               
+                defaultConfigDict.Add(paramName, new SystemConfigParam
                 {
-                    "test1", new SystemConfigParam
-                    {
-                       Name = "test1",
-                       Description = "服务器IP",
-                       TypeFullName = typeof(string).FullName,
-                       JsonValue = JsonSerializer.Serialize("127.0.0.1"),
-                       Category = "测试string",
-                       Version = 1,
-                    }
-                },
+                    Name = paramName,
+                    Description = info.Description,
+                    Category = info.Category,
+                    TypeFullName = typeFullName,
+                    JsonValue = jsonValue,
+                    Version = 1 // 默认初始版本号为 1
+                });
+            }
 
-                 {
-                    "test2", new SystemConfigParam
-                    {
-                       Name = "test2",
-                       Description = "服务器IP",
-                       TypeFullName = typeof(int).FullName,
-                       JsonValue = JsonSerializer.Serialize(123),
-                       Category = "测试int",
-                       Version = 1,
-                    }
-                },
-
-                  {
-                    "test3", new SystemConfigParam
-                    {
-                       Name = "test3",
-                       Description = "服务器IP",
-                       TypeFullName = typeof(double).FullName,
-                       JsonValue = JsonSerializer.Serialize(3.14),
-                       Category = "测试double",
-                       Version = 1,
-                    }
-                },
-
-                  {
-                    "test4", new SystemConfigParam
-                    {
-                       Name = "test4",
-                       Description = "服务器IP",
-                       TypeFullName = typeof(float).FullName,
-                       JsonValue = JsonSerializer.Serialize(3.14f),
-                       Category = "测试float",
-                       Version = 1,
-                    }
-                },
-
-                   {
-                    "test5", new SystemConfigParam
-                    {
-                       Name = "test5",
-                       Description = "服务器IP",
-                       TypeFullName = typeof(long).FullName,
-                       JsonValue = JsonSerializer.Serialize(10000000000000000),
-                       Category = "测试long",
-                       Version = 1,
-                    }
-                },
-
-            };
+            return defaultConfigDict;
         }
 
     }

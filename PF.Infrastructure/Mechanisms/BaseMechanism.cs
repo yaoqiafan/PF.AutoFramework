@@ -1,6 +1,8 @@
-﻿using PF.Core.Events;
+﻿using PF.Core.Entities.Hardware;
+using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 
@@ -9,7 +11,7 @@ namespace PF.Infrastructure.Mechanisms
     public abstract class BaseMechanism : IMechanism, IDisposable
     {
         protected readonly ILogService _logger;
-        private readonly List<IHardwareDevice> _internalHardwares;
+        private readonly List<IHardwareDevice> _internalHardwares= new List<IHardwareDevice>();
         protected IHardwareManagerService HardwareManagerService { get; }
 
         protected IParamService ParamService { get; }
@@ -133,6 +135,80 @@ namespace PF.Infrastructure.Mechanisms
             foreach (var hw in _internalHardwares)
             {
                 if (hw != null) hw.AlarmTriggered -= OnHardwareAlarmTriggered;
+            }
+        }
+
+
+
+
+
+
+
+        
+
+
+        public async Task<bool> WaitAxisMoveDone(IAxis axis, CancellationToken token)
+        {
+            try
+            {
+                Task a = Task.Run(async () =>
+                {
+                    while (true)
+                    {
+                        await Task.Delay(10, token);
+                        if (axis.AxisIOStatus.MoveDone && !axis.AxisIOStatus.Moving)
+                        {
+                            return true;
+                        }
+                    }
+                });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+
+        /// <summary>
+        /// 通用泛型方法：校验并补齐指定轴的点位
+        /// </summary>
+        /// <typeparam name="TEnum">点位枚举类型</typeparam>
+        /// <param name="axis">目标轴实例</param>
+        public void EnsurePointsExist<TEnum>(IAxis axis) where TEnum : struct, Enum
+        {
+            bool isModified = false;
+
+            // 1. 将当前轴已有的点位名称提取成 HashSet，查询速度 O(1)
+            // 假设你的 AxisPoint 实体类中包含了 Name 属性 (通常点表都会有名字)
+            HashSet<string> existingPointNames = new HashSet<string>(axis.PointTable.Select(p => p.Name));
+            int index = 0;
+            // 2. 遍历枚举中的所有定义
+            foreach (TEnum enumValue in Enum.GetValues(typeof(TEnum)))
+            {
+                string expectedPointName = enumValue.ToString();
+
+                // 3. 检查是否缺失
+                if (!existingPointNames.Contains(expectedPointName))
+                {
+
+                    AxisPoint newPoint = new AxisPoint
+                    {
+                        Name = expectedPointName,
+                        SortOrder = index++,
+                    };
+
+                    // 4. 添加到内存点表
+                    axis.AddOrUpdatePoint(newPoint);
+                    isModified = true;
+                }
+            }
+
+            // 5. 如果发生了任何新增，触发一次持久化保存
+            if (isModified)
+            {
+                axis.SavePointTable();
             }
         }
     }

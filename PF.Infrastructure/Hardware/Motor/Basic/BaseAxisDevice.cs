@@ -31,6 +31,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
     /// </summary>
     public abstract class BaseAxisDevice : BaseDevice, IAxis, IAttachedDevice
     {
+        Random Random = new Random();
         private readonly List<AxisPoint> _pointTable = new();
         private readonly string _pointTableFilePath;
 
@@ -114,6 +115,10 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
                 ?? throw new KeyNotFoundException($"[{DeviceName}] 点表中未找到点位 '{pointName}'，请先在点表中添加。");
 
             _logger?.Info($"[{DeviceName}] MoveToPoint '{pointName}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
+
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
+
             return await MoveAbsoluteAsync(point.TargetPosition, point.Speed, point.Acc, point.Dec, point.STime, token).ConfigureAwait(false);
         }
 
@@ -136,6 +141,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             get
             {
                 EnsureCardAttached();
+                if (IsSimulated) {  return (double)Random.Next(1,100)+(double)Random.NextDouble(); }
                 return ParentCard!.GetAxisCurrentPosition(AxisIndex);
             }
         }
@@ -146,6 +152,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             get
             {
                 EnsureCardAttached();
+                if (IsSimulated) { return new MotionIOStatus(); }
+
+
                 return ParentCard?.GetMotionIOStatus(AxisIndex);
             }
 
@@ -161,6 +170,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> EnableAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
             return await ParentCard!.EnableAxisAsync(AxisIndex).ConfigureAwait(false);
         }
 
@@ -168,6 +179,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> DisableAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
             return await ParentCard!.DisableAxisAsync(AxisIndex).ConfigureAwait(false);
         }
 
@@ -175,6 +188,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> StopAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
             return await ParentCard!.StopAxisAsync(AxisIndex).ConfigureAwait(false);
         }
 
@@ -182,6 +197,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> HomeAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
             return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffest, token).ConfigureAwait(false);
         }
 
@@ -189,6 +206,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
             EnsureCardAttached();
+
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
             return await ParentCard!.MoveAbsoluteAsync(AxisIndex, targetPosition, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
         }
 
@@ -196,6 +216,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> MoveRelativeAsync(double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
             EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
             return await ParentCard!.MoveRelativeAsync(AxisIndex, distance, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
         }
 
@@ -203,6 +225,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> JogAsync(double velocity, bool isPositive, double Acc, double Dec)
         {
             EnsureCardAttached();
+
+            if (IsSimulated) { await Task.Delay(1000); return true; }
             return await ParentCard!.JogAsync(AxisIndex, velocity, Acc, Dec, isPositive).ConfigureAwait(false);
         }
 
