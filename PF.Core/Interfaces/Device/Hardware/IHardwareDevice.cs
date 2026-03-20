@@ -45,7 +45,7 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// <summary>
         /// 异步断开连接
         /// </summary>
-        Task DisconnectAsync();
+        Task DisconnectAsync(CancellationToken token = default);
 
         /// <summary>
         /// 异步复位设备（用于清除硬件报警状态）
