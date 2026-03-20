@@ -75,8 +75,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public IAxis XAxis => _xAxis;
         public IIOController IO => _io;
 
-        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, ILogService logger)
-            : base(E_Mechanisms.工位1上晶圆模组.ToString(), hardwareManagerService, logger)
+        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService,ILogService logger)
+            : base(E_Mechanisms.工位1上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
         {
         }
 
@@ -159,15 +159,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
           
 
-            // 等待夹爪张开到位
-            bool jawOpen = await _io.WaitInputAsync(E_InPutName.晶圆夹爪左气缸张开, true, CylinderTimeoutMs, token);
-            if (!jawOpen)
-                throw new Exception($"[{MechanismName}] 初始化失败：夹爪张开超时，请检查气缸。");
-
-            // 等待X轴气缸缩回到位
-            bool xRetracted = await _io.WaitInputAsync(E_InPutName.晶圆夹爪左X轴气缸缩回, true, CylinderTimeoutMs, token);
-            if (!xRetracted)
-                throw new Exception($"[{MechanismName}] 初始化失败：X轴气缸缩回超时，请检查气缸。");
 
             // Z轴移到扫描起始位
             if (!await _zAxis.MoveAbsoluteAsync(ZScanStartPos, ZFastSpeed, FastAcc, FastDec, STime, token))
@@ -187,16 +178,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             await Task.CompletedTask;
 
-            // 料盒铁环在位检测
-            if (_io.ReadInput(E_InPutName.上晶圆左铁环位置检测) != true)
-                throw new Exception($"[{MechanismName}] 未检测到料盒铁环，请确认料盒已放置到位。");
-
-            // 料盒倾斜安全校验
-            bool tilt1 = _io.ReadInput(E_InPutName.上晶圆左料盒倾斜检测1) == true;
-            bool tilt2 = _io.ReadInput(E_InPutName.上晶圆左料盒倾斜检测2) == true;
-            if (tilt1 || tilt2)
-                throw new Exception($"[{MechanismName}] 料盒倾斜（tilt1={tilt1}, tilt2={tilt2}），请重新放置后再检测。");
-
+           
             // 尺寸防反传感器
             bool is8inch  = _io.ReadInput(E_InPutName.上晶圆左8寸铁环防反检测)  == true;
             bool is12inch = _io.ReadInput(E_InPutName.上晶圆左12寸铁环防反检测) == true;
@@ -231,9 +213,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸伸出, false);
                 _io.WriteOutput(E_OutPutName.晶圆轨道左调宽气缸收回, true);
 
-                bool retracted = await _io.WaitInputAsync(E_InPutName.晶圆轨道左调宽气缸磁缩回, true, CylinderTimeoutMs, token);
-                if (!retracted)
-                    throw new Exception($"[{MechanismName}] 8寸状态切换失败：轨道调宽气缸缩回超时。");
+             
 
                 // X轴移至8寸挡料位
                 if (!await _xAxis.MoveAbsoluteAsync(XBlockPos_8, ZFastSpeed, FastAcc, FastDec, STime, token))
@@ -280,18 +260,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            if (_io.ReadInput(E_InPutName.上晶圆左铁环位置检测) != true)
-            {
-                _logger.Warn($"[{MechanismName}] Z轴运动检查失败：料盒铁环未在位。");
-                return false;
-            }
-
-            if (_io.ReadInput(E_InPutName.上晶圆左料盒倾斜检测1) == true ||
-                _io.ReadInput(E_InPutName.上晶圆左料盒倾斜检测2) == true)
-            {
-                _logger.Warn($"[{MechanismName}] Z轴运动检查失败：料盒倾斜，禁止Z轴运动。");
-                return false;
-            }
+           
 
             if (_zAxis.HasAlarm)
             {
@@ -359,18 +328,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     if (_zAxis.CurrentPosition.HasValue && _zAxis.CurrentPosition.Value >= ZScanEndPos)
                         break;
 
-                    // 任一错层传感器触发即认为检测到晶圆
-                    bool detected =
-                        _io.ReadInput(E_InPutName.上晶圆左错层检测1) == true ||
-                        _io.ReadInput(E_InPutName.上晶圆左错层检测2) == true ||
-                        _io.ReadInput(E_InPutName.上晶圆左错层检测3) == true;
+                   
 
-                    // 上升沿：无 → 有，计一层
-                    if (detected && !lastState)
-                        layerCount++;
-
-                    lastState = detected;
-                    await Task.Delay(PollIntervalMs, token);
+                 
                 }
             }
             finally
@@ -428,35 +388,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            // 叠片/叠料检测
-            if (_io.ReadInput(E_InPutName.晶圆夹爪左叠片检测) == true ||
-                _io.ReadInput(E_InPutName.夹爪左叠料检测)     == true)
-            {
-                _logger.Warn($"[{MechanismName}] 拉料检查失败：检测到叠片，禁止拉料。");
-                return false;
-            }
-
-            // 卡料检测
-            if (_io.ReadInput(E_InPutName.晶圆夹爪左卡料检测1) == true ||
-                _io.ReadInput(E_InPutName.晶圆夹爪左卡料检测2) == true)
-            {
-                _logger.Warn($"[{MechanismName}] 拉料检查失败：检测到卡料，禁止拉料。");
-                return false;
-            }
-
-            // 晶圆是否已在夹爪中
-            if (_io.ReadInput(E_InPutName.晶圆夹爪左铁环有无检测) != true)
-            {
-                _logger.Warn($"[{MechanismName}] 拉料检查失败：夹爪未检测到晶圆铁环。");
-                return false;
-            }
-
-            // X轴气缸打开（挡料已让开）
-            if (_io.ReadInput(E_InPutName.晶圆夹爪左X轴气缸打开) != true)
-            {
-                _logger.Warn($"[{MechanismName}] 拉料检查失败：X轴气缸未打开（挡料未让开）。");
-                return false;
-            }
+           
 
           
             return true;
