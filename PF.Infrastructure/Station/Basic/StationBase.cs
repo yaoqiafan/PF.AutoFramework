@@ -1,5 +1,7 @@
 using PF.Core.Enums;
+using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Sync;
 using Stateless;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -65,6 +67,10 @@ namespace PF.Infrastructure.Station.Basic
         private CancellationTokenSource _runCts;
         protected ManualResetEventSlim _pauseEvent;
         private Task _workflowTask;
+
+        // 标记当前业务线程是被"外部报警"打断（true），还是"正常停止"打断（false）。
+        // volatile 确保多线程可见性：TriggerAlarm 在状态机线程写入，ProcessWrapperAsync 在业务线程读取。
+        private volatile bool _alarmInterrupted = false;
 
         protected StationBase(string name, ILogService logger)
         {
@@ -151,6 +157,7 @@ namespace PF.Infrastructure.Station.Basic
             // 3. 重建令牌，启动新任务
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
+            _alarmInterrupted = false; // 每次启动前清除报警标志
             _pauseEvent.Set();
             _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token));
         }
@@ -177,7 +184,13 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (OperationCanceledException)
             {
-                _logger?.Warn($"[{StationName}] 子线程被安全打断并退出。");
+                // 由 TriggerAlarm() 取消：标志已在 TriggerAlarm 中置位，状态机已切到 Alarm，仅记录日志。
+                // 由 Stop/正常停止取消：记录安全退出日志即可。
+                if (_alarmInterrupted)
+                    _logger?.Warn($"[{StationName}] 业务流程被外部报警打断，线程安全退出。");
+                else
+                    _logger?.Warn($"[{StationName}] 子线程被安全打断并退出。");
+                _alarmInterrupted = false;
             }
             catch (Exception ex)
             {
@@ -250,7 +263,18 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         public async Task ResumeAsync() => await FireAsync(MachineTrigger.Resume);
 
-        public void TriggerAlarm() => Fire(MachineTrigger.Error);
+        /// <summary>
+        /// 外部触发工站报警（如主控急停、硬件异常事件）。
+        /// 同时执行两件事：
+        ///   1. 取消 _runCts → 打断当前所有正在阻塞的等待方法（含 Paused 状态下的等待）
+        ///   2. Fire(Error)  → 驱动状态机进入 Alarm 状态
+        /// </summary>
+        public void TriggerAlarm()
+        {
+            _alarmInterrupted = true;
+            _runCts?.Cancel(); // 打断业务线程（Running 或 Paused 均有效）
+            Fire(MachineTrigger.Error);
+        }
         public void ResetAlarm()   => Fire(MachineTrigger.Reset);
 
         /// <summary>
@@ -290,6 +314,154 @@ namespace PF.Infrastructure.Station.Basic
                 _stateLock.Release();
             }
         }
+
+        #region 工站业务等待辅助方法
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 所有等待方法均接受 CancellationToken。
+        // 当以下任一情况发生时，token 会被取消，方法立即抛出 OperationCanceledException：
+        //   · Stop() 被调用       → _runCts 由 OnStopRunning() 取消
+        //   · TriggerAlarm() 被调用 → _runCts 由 TriggerAlarm() 主动取消
+        // ProcessWrapperAsync 统一捕获该异常，业务代码无需处理取消逻辑。
+        // ─────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 显式暂停检查点：工站处于 Paused 状态时此处阻塞，恢复后继续执行。
+        /// 在业务循环的每个步序入口调用，确保暂停命令能及时生效。
+        /// </summary>
+        protected void CheckPause(CancellationToken token) => _pauseEvent.Wait(token);
+
+        /// <summary>
+        /// 工艺延时：支持暂停中断（每 50ms 检查一次暂停状态）和取消令牌。
+        /// 相比直接 await Task.Delay，此方法在暂停时会暂停计时，恢复后继续剩余延时。
+        /// </summary>
+        /// <param name="milliseconds">延时毫秒数</param>
+        /// <param name="token">取消令牌（Stop/TriggerAlarm 时自动取消）</param>
+        protected async Task WaitAsync(int milliseconds, CancellationToken token)
+        {
+            const int ChunkMs = 50;
+            int remaining = milliseconds;
+            while (remaining > 0)
+            {
+                _pauseEvent.Wait(token); // 暂停时阻塞，恢复或取消时继续
+                int chunk = Math.Min(ChunkMs, remaining);
+                await Task.Delay(chunk, token).ConfigureAwait(false);
+                remaining -= chunk;
+            }
+        }
+
+        /// <summary>
+        /// 等待任意 bool 条件成立（轮询模式）。
+        /// 超时返回 false 并记录错误日志；条件满足返回 true。
+        /// </summary>
+        /// <param name="condition">被轮询的条件委托（应为轻量级属性读取，不含阻塞操作）</param>
+        /// <param name="timeoutMs">超时毫秒数，默认 5 秒</param>
+        /// <param name="token">取消令牌</param>
+        /// <param name="pollIntervalMs">轮询间隔毫秒数，默认 20ms</param>
+        protected async Task<bool> WaitConditionAsync(
+            Func<bool> condition,
+            int timeoutMs = 5_000,
+            CancellationToken token = default,
+            int pollIntervalMs = 20)
+        {
+            using var timeoutCts = new CancellationTokenSource(timeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+            try
+            {
+                while (true)
+                {
+                    _pauseEvent.Wait(linked.Token);
+                    if (condition()) return true;
+                    await Task.Delay(pollIntervalMs, linked.Token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (timeoutCts.IsCancellationRequested)
+                    _logger?.Error($"[{StationName}] 等待条件超时（{timeoutMs} ms）");
+                throw; // 超时视为超时错误返回 false；外部取消则向上重新抛出打断流程
+            }
+        }
+
+        /// <summary>
+        /// 等待指定 IO 端口达到目标状态（按端口号）。
+        /// 委托给 IIOController.WaitInputAsync，超时后记录错误日志。
+        /// </summary>
+        /// <param name="io">IO 控制器</param>
+        /// <param name="portIndex">端口号</param>
+        /// <param name="targetState">期望状态（true=高电平，false=低电平）</param>
+        /// <param name="timeoutMs">超时毫秒数，默认 5 秒</param>
+        /// <param name="token">取消令牌</param>
+        protected async Task<bool> WaitIOAsync(
+            IIOController io,
+            int portIndex,
+            bool targetState,
+            int timeoutMs = 5_000,
+            CancellationToken token = default)
+        {
+            _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] → {targetState}");
+            _pauseEvent.Wait(token);
+            bool result = await io.WaitInputAsync(portIndex, targetState, timeoutMs, token).ConfigureAwait(false);
+            if (!result)
+                _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] = {targetState} 超时（{timeoutMs} ms）");
+            return result;
+        }
+
+        /// <summary>
+        /// 等待指定 IO 端口达到目标状态（按枚举信号名）。
+        /// </summary>
+        /// <typeparam name="T">IO 信号枚举类型</typeparam>
+        protected async Task<bool> WaitIOAsync<T>(
+            IIOController io,
+            T inputName,
+            bool targetState,
+            int timeoutMs = 5_000,
+            CancellationToken token = default)
+            where T : Enum
+        {
+            _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] → {targetState}");
+            _pauseEvent.Wait(token);
+            bool result = await io.WaitInputAsync(inputName, targetState, timeoutMs, token).ConfigureAwait(false);
+            if (!result)
+                _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] = {targetState} 超时（{timeoutMs} ms）");
+            return result;
+        }
+
+        /// <summary>
+        /// 等待工站间同步信号量（流水线节拍协同）。
+        /// 委托给 IStationSyncService.WaitAsync，带超时保护。
+        /// </summary>
+        /// <param name="sync">工站同步服务</param>
+        /// <param name="signalName">信号量名称</param>
+        /// <param name="timeoutMs">超时毫秒数，默认 30 秒</param>
+        /// <param name="token">取消令牌</param>
+        protected async Task<bool> WaitSyncAsync(
+            IStationSyncService sync,
+            string signalName,
+            int timeoutMs = 30_000,
+            CancellationToken token = default)
+        {
+            _logger?.Info($"[{StationName}] 等待同步信号 [{signalName}]...");
+            using var timeoutCts = new CancellationTokenSource(timeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+            try
+            {
+                await sync.WaitAsync(signalName, linked.Token).ConfigureAwait(false);
+                _logger?.Info($"[{StationName}] 同步信号 [{signalName}] 已触发，继续执行");
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                if (timeoutCts.IsCancellationRequested)
+                {
+                    _logger?.Error($"[{StationName}] 等待同步信号 [{signalName}] 超时（{timeoutMs} ms）");
+                    return false;
+                }
+                throw; // 外部取消（Stop/Alarm）→ 向上重新抛出
+            }
+        }
+
+        #endregion
 
         public virtual void Dispose()
         {
