@@ -38,7 +38,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         预留2 = 7,
         上晶圆左料盒公用到位检测 = 8,
         上晶圆左8寸料盒到位检测 = 9,
-        上晶圆左12寸到料盒位检测 = 10,
+        上晶圆左12寸料盒到位检测 = 10,
         [Browsable(false)]
         预留3 = 11,
         上晶圆左错层共用检测 = 12,
