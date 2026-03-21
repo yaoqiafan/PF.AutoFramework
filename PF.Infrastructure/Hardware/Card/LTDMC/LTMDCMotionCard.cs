@@ -41,10 +41,12 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         private int _outputcount = 0;
         public override int OutputCount => _outputcount;
 
-        public override Task<bool> DisableAxisAsync(int axisIndex)
+        public override  Task<bool> DisableAxisAsync(int axisIndex)
         {
             try
             {
+                if (IsSimulated) { return Task.FromResult(true); }
+
                 short ret = CardAPI.LTDMC.nmc_set_axis_disable((ushort)CardIndex, (ushort)axisIndex);
                 if (ret != 0)
                 {
@@ -64,6 +66,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) { return Task.FromResult(true); }
+
                 short ret = CardAPI.LTDMC.nmc_set_axis_enable((ushort)CardIndex, (ushort)axisIndex);
                 if (ret != 0)
                 {
@@ -80,6 +84,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         public override double? GetAxisCurrentPosition(int axisIndex)
         {
+            if (IsSimulated) { return 0; }
             try
             {
                 double pos = 0;
@@ -107,6 +112,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) { Task.Delay(3000); return Task.FromResult(true); }
+
                 double? equiv = this.GetCurEquiv(axisIndex);
                 if (equiv == null)
                 {
@@ -151,6 +158,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <returns></returns>
         private double? GetCurEquiv(int axisIndex)
         {
+            
+
             double equiv = 0;
             short ret = CardAPI.LTDMC.dmc_get_equiv((ushort)CardIndex, (ushort)axisIndex, ref equiv);
             if (ret != 0)
@@ -166,6 +175,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             MotionIOStatus iostatus = new MotionIOStatus();
             try
             {
+                if (IsSimulated) { Task.Delay(3000); return new MotionIOStatus(); }
+
+
                 uint psts = CardAPI.LTDMC.dmc_axis_io_status((ushort)CardIndex, (ushort)axisIndex);
                 iostatus.ALM = (psts & 0x01) == 0x01;
                 iostatus.PEL = (psts & 0x02) == 0x02;
@@ -222,6 +234,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) { Task.Delay(3000); return Task.FromResult(true); }
+
                 double tAcc = (velocity - velocity / 10.0) / Acc;
                 double tDec = (velocity - velocity / 10.0) / Dec;
                 ushort jogDir = isPositive ? (ushort)1 : (ushort)2;
@@ -249,6 +263,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if(IsSimulated) { Task.Delay(3000); return Task.FromResult(true); }
+
                 double? equiv = this.GetCurEquiv(axisIndex);
                 if (!equiv.HasValue)
                 {
@@ -290,6 +306,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) { Task.Delay(3000); return Task.FromResult(true); }
+
                 double? equiv = this.GetCurEquiv(axisIndex);
                 if (!equiv.HasValue)
                 {
@@ -330,6 +348,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) {  return true; }
+
                 ushort state = 0;
                 short ret = CardAPI.LTDMC.dmc_read_inbit_ex((ushort)CardIndex, (ushort)portIndex, ref state);
                 if (ret != 0)
@@ -349,6 +369,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) { return true; }
+
                 ushort state = 0;
                 short ret = CardAPI.LTDMC.dmc_read_outbit_ex((ushort)CardIndex, (ushort)portIndex, ref state);
                 if (ret != 0)
@@ -368,6 +390,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                if (IsSimulated) { return Task.FromResult(true); }
+
                 ushort stop_mode = IsEmgStop ? (ushort)1 : (ushort)0;//制动方式，0：减速停止，1：紧急停止
                 short ret = CardAPI.LTDMC.dmc_stop((ushort)CardIndex, (ushort)axisIndex, stop_mode);
                 if (ret != 0)
@@ -386,6 +410,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         public override bool WriteOutputPort(int portIndex, bool value)
         {
+            if (IsSimulated) { Task.FromResult(true); }
             try
             {
                 ushort uvalue = value ? (ushort)0 : (ushort)1;
