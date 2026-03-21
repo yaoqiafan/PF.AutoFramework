@@ -147,27 +147,96 @@ namespace PF.Infrastructure.Mechanisms
         
 
 
-        public async Task<bool> WaitAxisMoveDone(IAxis axis, CancellationToken token)
+        /// <summary>
+        /// 等待轴运动完成（轮询 AxisIOStatus.MoveDone）。
+        /// 自动处理模拟模式（IsSimulated 时直接返回 true）。
+        /// </summary>
+        /// <param name="axis">目标轴</param>
+        /// <param name="timeoutMs">超时毫秒数，默认 30 秒</param>
+        /// <param name="token">取消令牌</param>
+        public async Task<bool> WaitAxisMoveDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
         {
+            // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
+            if ((axis as IHardwareDevice)?.IsSimulated == true)
+                return true;
+
+            var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+
+            using var timeoutCts = new CancellationTokenSource(timeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+
             try
             {
-                Task a = Task.Run(async () =>
+                while (true)
                 {
-                    while (true)
+                    await Task.Delay(10, linked.Token).ConfigureAwait(false);
+                    var status = axis.AxisIOStatus;
+                    if (status != null && status.MoveDone && !status.Moving)
                     {
-                        await Task.Delay(10, token);
-                        if (axis.AxisIOStatus.MoveDone && !axis.AxisIOStatus.Moving)
-                        {
-                            return true;
-                        }
+                        _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 运动完成");
+                        return true;
                     }
-                });
-                return true;
+                }
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
             {
+                if (timeoutCts.IsCancellationRequested)
+                {
+                    HasAlarm = true;
+                    _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待运动完成超时（{timeoutMs} ms）");
+                }
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 绝对位置移动并等待完成（组合方法）。
+        /// </summary>
+        protected async Task<bool> MoveAbsAndWaitAsync(
+            IAxis axis, double position, double velocity,
+            double acc, double dec, double sTime,
+            int timeoutMs = 30_000, CancellationToken token = default)
+        {
+            var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+            _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 绝对移动 → {position:F2} mm @ {velocity} mm/s");
+
+            if (!await axis.MoveAbsoluteAsync(position, velocity, acc, dec, sTime, token).ConfigureAwait(false))
+                return false;
+
+            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 相对位置移动并等待完成（组合方法）。
+        /// </summary>
+        protected async Task<bool> MoveRelAndWaitAsync(
+            IAxis axis, double distance, double velocity,
+            double acc, double dec, double sTime,
+            int timeoutMs = 30_000, CancellationToken token = default)
+        {
+            var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+            _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 相对移动 {distance:+0.##;-0.##} mm @ {velocity} mm/s");
+
+            if (!await axis.MoveRelativeAsync(distance, velocity, acc, dec, sTime, token).ConfigureAwait(false))
+                return false;
+
+            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 按点表名称移动并等待完成（组合方法，速度/加速度从点表读取）。
+        /// </summary>
+        protected async Task<bool> MoveToPointAndWaitAsync(
+            IAxis axis, string pointName,
+            int timeoutMs = 30_000, CancellationToken token = default)
+        {
+            var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+            _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 移动到点位 [{pointName}]");
+
+            if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
+                return false;
+
+            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
         }
 
 
