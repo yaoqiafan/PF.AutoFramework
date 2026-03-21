@@ -239,6 +239,61 @@ namespace PF.Infrastructure.Mechanisms
             return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// 并发移动多个轴到各自指定点位，等待所有轴全部到位（Task.WhenAll 模式）。
+        ///
+        /// 用法示例：
+        ///   await MoveMultiAxesToPointsAsync(new[]
+        ///   {
+        ///       (_xAxis, nameof(XPoints.PickAbove)),
+        ///       (_yAxis, nameof(YPoints.PickAbove)),
+        ///   }, token: token);
+        ///
+        /// 注意：所有轴同时启动运动，适用于轴间无机械干涉的场景。
+        ///   若存在干涉风险，请分步调用 MoveToPointAndWaitAsync。
+        /// </summary>
+        /// <param name="moves">轴-点位对集合</param>
+        /// <param name="timeoutMs">等待单轴到位的超时毫秒数，默认 30 秒</param>
+        /// <param name="token">取消令牌</param>
+        protected async Task<bool> MoveMultiAxesToPointsAsync(
+            IEnumerable<(IAxis axis, string pointName)> moves,
+            int timeoutMs = 30_000,
+            CancellationToken token = default)
+        {
+            var moveList = moves.ToList();
+            if (moveList.Count == 0) return true;
+
+            // 1. 并发发出所有轴的运动指令
+            var startTasks = moveList.Select(m =>
+            {
+                var axisName = (m.axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+                _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 移动到点位 [{m.pointName}]（多轴并发）");
+                return m.axis.MoveToPointAsync(m.pointName, token);
+            }).ToList();
+
+            bool[] startResults = await Task.WhenAll(startTasks).ConfigureAwait(false);
+            if (startResults.Any(r => !r))
+            {
+                _logger?.Error($"[{MechanismName}] 多轴并发移动：部分轴指令发送失败");
+                return false;
+            }
+
+            // 2. 并发等待所有轴到位
+            var waitTasks = moveList
+                .Select(m => WaitAxisMoveDoneAsync(m.axis, timeoutMs, token))
+                .ToList();
+
+            bool[] waitResults = await Task.WhenAll(waitTasks).ConfigureAwait(false);
+            if (waitResults.Any(r => !r))
+            {
+                _logger?.Error($"[{MechanismName}] 多轴并发移动：部分轴未在超时内完成（{timeoutMs} ms）");
+                return false;
+            }
+
+            _logger?.Info($"[{MechanismName}] 多轴并发移动完成（共 {moveList.Count} 轴）");
+            return true;
+        }
+
 
         /// <summary>
         /// 通用泛型方法：校验并补齐指定轴的点位
