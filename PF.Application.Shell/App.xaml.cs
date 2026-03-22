@@ -443,6 +443,12 @@ namespace PF.Application.Shell
     serviceKey: nameof(WorkStation1FeedingModule));
 
 
+            container.RegisterMany(
+               new[] { typeof(WorkStationDetectionModule), typeof(IMechanism) },
+               typeof(WorkStationDetectionModule),
+               reuse: DryIoc.Reuse.Singleton,
+               serviceKey: nameof(WorkStationDetectionModule));
+
 
             // 工站层：PickPlaceStation 同时映射到自身类型和 StationBase
             container.RegisterMany(
