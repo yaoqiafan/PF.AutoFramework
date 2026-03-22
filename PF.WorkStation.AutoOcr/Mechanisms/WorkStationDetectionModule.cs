@@ -43,13 +43,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #endregion 轴点位定义
 
-        private IAxis XAxis;
+        private IAxis _xAxis;
 
-        private IAxis YAxis;
+        private IAxis _yAxis;
 
-        private IAxis ZAxis;
+        private IAxis _zAxis;
 
-        private IIntelligentCamera Camera;
+        private IIntelligentCamera _camera;
+
+
+        // ── 公开的硬件访问属性（主要提供给前端 ViewModel 绑定，用于调试面板的手动控制）──
+        public IAxis XAxis => _xAxis;
+        public IAxis YAxis => _yAxis;
+        public IAxis ZAxis => _zAxis;
+        public IIntelligentCamera Camera => _camera;
 
 
         private OCRRecipeParam _1StationRecipe;
@@ -84,74 +91,74 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
             // ① 延迟解析硬件实例：通过硬件管理器及配置名称查找具体硬件对象
-            XAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
-            if (XAxis == null)
+            _xAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
+            if (_xAxis == null)
             {
                 _logger.Error($"[{MechanismName}] 未找到X轴 '{E_AxisName.视觉X轴}'，请确认硬件配置。");
                 return false;
             }
-            YAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉Y轴.ToString()) as IAxis;
-            if (YAxis == null)
+            _yAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉Y轴.ToString()) as IAxis;
+            if (_yAxis == null)
             {
                 _logger.Error($"[{MechanismName}] 未找到Y轴 '{E_AxisName.视觉Y轴}'，请确认硬件配置。");
                 return false;
             }
-            ZAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉Z轴.ToString()) as IAxis;
+            _zAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉Z轴.ToString()) as IAxis;
 
-            if (ZAxis == null)
+            if (_zAxis == null)
             {
                 _logger.Error($"[{MechanismName}] 未找到Z轴 '{E_AxisName.视觉Z轴}'，请确认硬件配置。");
                 return false;
             }
-            Camera = HardwareManagerService?.GetDevice(E_Camera.OCR相机.ToString()) as IIntelligentCamera;
-            if (Camera == null)
+            _camera = HardwareManagerService?.GetDevice(E_Camera.OCR相机.ToString()) as IIntelligentCamera;
+            if (_camera == null)
             {
                 _logger.Error($"[{MechanismName}] 未找到相机 '{E_Camera.OCR相机}'，请确认硬件配置。");
                 return false;
             }
             // ② 将硬件注册到当前模组：这样当单一轴/IO发生报警时，整个模组的状态会自动同步为 Alarm
-            RegisterHardwareDevice(XAxis as IHardwareDevice);
-            RegisterHardwareDevice(YAxis as IHardwareDevice);
-            RegisterHardwareDevice(ZAxis as IHardwareDevice);
-            RegisterHardwareDevice(Camera as IHardwareDevice);
+            RegisterHardwareDevice(_xAxis as IHardwareDevice);
+            RegisterHardwareDevice(_yAxis as IHardwareDevice);
+            RegisterHardwareDevice(_zAxis as IHardwareDevice);
+            RegisterHardwareDevice(_camera as IHardwareDevice);
 
             // 确认点位枚举在轴配置中都已示教/创建
             await ConfirmEunmPoints();
             // ③ 并行/串行连接所有硬件通信
-            if (!await XAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] X轴连接失败"); return false; }
-            if (!await YAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Y轴连接失败"); return false; }
-            if (!await ZAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
+            if (!await _xAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] X轴连接失败"); return false; }
+            if (!await _yAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Y轴连接失败"); return false; }
+            if (!await _zAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
             // ④ 使能伺服电机（Power On）
-            if (!await XAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
-            if (!await YAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
-            if (!await ZAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
+            if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
+            if (!await _yAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
+            if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
 
 
             // ⑤ 执行回原点操作，建立机械绝对坐标系
-            if (!await ZAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
-            if (!await WaitHomeDoneAsync(ZAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] Z轴回零超时"); return false; }
-            if (!await XAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
-            if (!await YAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Y轴回零失败"); return false; }
-            if (!await WaitHomeDoneAsync(XAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] X轴回零超时"); return false; }
-            if (!await WaitHomeDoneAsync(YAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] Y轴回零超时"); return false; }
+            if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
+            if (!await WaitHomeDoneAsync(_zAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] Z轴回零超时"); return false; }
+            if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
+            if (!await _yAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Y轴回零失败"); return false; }
+            if (!await WaitHomeDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] X轴回零超时"); return false; }
+            if (!await WaitHomeDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] Y轴回零超时"); return false; }
 
 
             //电机使能
-            if (!await XAxis.EnableAsync(token))
+            if (!await _xAxis.EnableAsync(token))
             {
                 return false;
             }
 
-            if (!await YAxis.EnableAsync(token))
+            if (!await _yAxis.EnableAsync(token))
             {
                 return false;
             }
 
-            if (!await ZAxis.EnableAsync(token))
+            if (!await _zAxis.EnableAsync(token))
             {
                 return false;
             }
-            if (!await ZAxis.HomeAsync(token))
+            if (!await _zAxis.HomeAsync(token))
             {
                 return false;
             }
@@ -172,9 +179,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         protected override async Task InternalStopAsync()
         {
-            if (XAxis != null) await XAxis.StopAsync();
-            if (YAxis != null) await YAxis.StopAsync();
-            if (ZAxis != null) await ZAxis.StopAsync();
+            if (_xAxis != null) await _xAxis.StopAsync();
+            if (_yAxis != null) await _yAxis.StopAsync();
+            if (_zAxis != null) await _zAxis.StopAsync();
         }
 
 
@@ -199,13 +206,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<bool> MoveInitial(CancellationToken token = default)
         {
             CheckReady();
-            if (!await MoveToPointAndWaitAsync(ZAxis, nameof(ZAxisPoint.待机位), token: token))
+            if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
             {
                 _logger.Error($"[{MechanismName}] Z轴移动到待机位失败");
                 return false;
             }
-            if (!await MoveMultiAxesToPointsAsync(new[] {(XAxis, nameof(XAxisPoint.待机位)),
-                (YAxis, nameof(YAxisPoint.待机位))  }, token: token))
+            if (!await MoveMultiAxesToPointsAsync(new[] {(_xAxis, nameof(XAxisPoint.待机位)),
+                (_yAxis, nameof(YAxisPoint.待机位))  }, token: token))
             {
                 _logger.Error($"[{MechanismName}] XY轴移动到待机位失败");
                 return false;
@@ -227,20 +234,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             CheckReady();
             //先移动XY
-            if (!await XAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, XVel, XAcc, XDec, 0.08, token) || !await YAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, YVel, YAcc, YDec, 0.1, token))
+            if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, XVel, XAcc, XDec, 0.08, token) || !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, YVel, YAcc, YDec, 0.1, token))
             {
                 _logger.Error($"[{MechanismName}] 移动到工位1失败");
                 return false;
             }
             if (IsChangedOcrCamera())
             {
-                if (!await Camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
+                if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
                 {
                     _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
                     return false;
                 }
             }
-            if (!await WaitAxisMoveDoneAsync(XAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(YAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
+            if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
             {
                 _logger.Error($"[{MechanismName}] XY轴移动到工位1超时");
                 return false;
@@ -259,20 +266,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             CheckReady();
             //先移动XY
-            if (!await XAxis.MoveAbsoluteAsync(_2StationRecipe._2PosX, XVel, XAcc, XDec, 0.08, token) || !await YAxis.MoveAbsoluteAsync(_2StationRecipe._2PosY, YVel, YAcc, YDec, 0.1, token))
+            if (!await _xAxis.MoveAbsoluteAsync(_2StationRecipe._2PosX, XVel, XAcc, XDec, 0.08, token) || !await _yAxis.MoveAbsoluteAsync(_2StationRecipe._2PosY, YVel, YAcc, YDec, 0.1, token))
             {
                 _logger.Error($"[{MechanismName}] 移动到工位2失败");
                 return false;
             }
             if (IsChangedOcrCamera())
             {
-                if (!await Camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
+                if (!await _camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
                 {
                     _logger.Error($"[{MechanismName}] 切换到工位2的OCR配方失败");
                     return false;
                 }
             }
-            if (!await WaitAxisMoveDoneAsync(XAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(YAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
+            if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
             {
                 _logger.Error($"[{MechanismName}] XY轴移动到工位2超时");
                 return false;
@@ -289,7 +296,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         public async Task<string> CameraTigger(CancellationToken token)
         {
-            return await Camera.Tigger(token);
+            return await _camera.Tigger(token);
         }
 
 
@@ -318,9 +325,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task ConfirmEunmPoints()
         {
-            if (XAxis != null) EnsurePointsExist<XAxisPoint>(XAxis);
-            if (YAxis != null) EnsurePointsExist<YAxisPoint>(YAxis);
-            if (ZAxis != null) EnsurePointsExist<ZAxisPoint>(ZAxis);
+            if (_xAxis != null) EnsurePointsExist<XAxisPoint>(_xAxis);
+            if (_yAxis != null) EnsurePointsExist<YAxisPoint>(_yAxis);
+            if (_zAxis != null) EnsurePointsExist<ZAxisPoint>(_zAxis);
             await Task.CompletedTask; // 满足 async 签名要求
         }
 
