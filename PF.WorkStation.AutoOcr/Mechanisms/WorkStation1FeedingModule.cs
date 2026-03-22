@@ -142,7 +142,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
 
-            // ⑤ 执行回原点操作，建立机械绝对坐标系
+            // ⑤ 执行回原点操作，建立机械绝对坐标系----异常  回零前传感器检查，物料是否有一半放在盒子里，回零过程中监控传感器状态，确保安全；回零失败要有明确的报警信息提示
             if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
             if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
 
