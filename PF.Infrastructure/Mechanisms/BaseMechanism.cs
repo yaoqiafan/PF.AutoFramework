@@ -189,6 +189,41 @@ namespace PF.Infrastructure.Mechanisms
             }
         }
 
+
+
+        protected async Task<bool> WaitHomeDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
+        {
+            // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
+            if ((axis as IHardwareDevice)?.IsSimulated == true)
+                return true;
+            var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+
+            using var timeoutCts = new CancellationTokenSource(timeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+            try
+            {
+                while (true)
+                {
+                    await Task.Delay(10, linked.Token).ConfigureAwait(false);
+                    var status = axis.AxisIOStatus;
+                    if (status != null && status.HomeDone  && !status.Homing )
+                    {
+                        _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 回原点完成");
+                        return true;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (timeoutCts.IsCancellationRequested)
+                {
+                    HasAlarm = true;
+                    _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待回零完成超时（{timeoutMs} ms）");
+                }
+                return false;
+            }
+        }
+
         /// <summary>
         /// 绝对位置移动并等待完成（组合方法）。
         /// </summary>
