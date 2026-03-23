@@ -14,7 +14,12 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
         }
 
-        protected override Task ProcessLoopAsync(CancellationToken token)
+        protected override Task ProcessDryRunLoopAsync(CancellationToken token)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Task ProcessNormalLoopAsync(CancellationToken token)
         {
             throw new NotImplementedException();
         }
