@@ -233,6 +233,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<bool> MoveToStation1(CancellationToken token = default)
         {
             CheckReady();
+            if (_1StationRecipe ==null )
+            {
+                _logger.Error($"工位1未加载配方");
+                return false;
+            }
             //先移动XY
             if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, XVel, XAcc, XDec, 0.08, token) || !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, YVel, YAcc, YDec, 0.1, token))
             {
@@ -265,6 +270,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<bool> MoveToStation2(CancellationToken token = default)
         {
             CheckReady();
+            if (_2StationRecipe == null)
+            {
+                _logger.Error($"工位2未加载配方");
+                return false;
+            }
             //先移动XY
             if (!await _xAxis.MoveAbsoluteAsync(_2StationRecipe._2PosX, XVel, XAcc, XDec, 0.08, token) || !await _yAxis.MoveAbsoluteAsync(_2StationRecipe._2PosY, YVel, YAcc, YDec, 0.1, token))
             {
@@ -294,7 +304,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task<string> CameraTigger(CancellationToken token)
+        public async Task<string> CameraTigger(CancellationToken token =default )
         {
             return await _camera.Tigger(token);
         }
