@@ -56,7 +56,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <summary>停止指定轴运动（减速停止或急停，由具体实现决定）</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
         /// /// <param name="IsEmgStop">是否紧急停止（默认为减速停止）</param>
-        Task<bool> StopAxisAsync(int axisIndex,bool IsEmgStop=false );
+        Task<bool> StopAxisAsync(int axisIndex, bool IsEmgStop = false);
 
         /// <summary>
         /// 执行指定轴回原点动作（Home）
@@ -79,7 +79,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="Dec">运动减速度（工程单位）</param>
         ///  <param name="Dec">S段速度（工程单位）</param>
         /// <param name="token">取消令牌</param>
-        Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec,double STime, CancellationToken token = default);
+        Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <summary>指定轴相对位置定位</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>
@@ -126,13 +126,64 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <summary>设置指定输出端口的信号（true = 开启输出）</summary>
         /// <param name="portIndex">板卡内物理输出端口号</param>
         /// <param name="value">输出值</param>
-        bool  WriteOutputPort(int portIndex, bool value);
+        bool WriteOutputPort(int portIndex, bool value);
 
         /// <summary>读取指定输出端口的当前锁存状态（用于 UI 回显）</summary>
         /// <param name="portIndex">板卡内物理输出端口号</param>
         bool? ReadOutputPort(int portIndex);
 
         #endregion
+
+
+
+
+        #region 高级功能
+
+        #region 位置锁存
+
+
+
+        /// <summary>
+        /// 设置位置锁存参数
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="AxisNo">轴号</param>
+        /// <param name="InPutPort">输入端口号</param>
+        /// <param name="LtcMode">锁存模式</param>
+        /// <param name="LtcLogic">锁存逻辑</param>
+        /// <param name="Filter">滤波器</param>
+        /// <param name="LatchSource">锁存源</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort,int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 读取位置锁存个数
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="AxisNo">轴号</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 读取锁存位置
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="AxisNo">轴号</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+
+
+        #endregion 位置锁存
+
+
+        #endregion 高级功能
     }
 
 

@@ -69,15 +69,72 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         Task<bool> HomeAsync(CancellationToken token = default);
 
         /// <summary>绝对位置定位</summary>
-        Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity,double Acc,double Dec, double STime, CancellationToken token = default);
+        Task<bool> MoveAbsoluteAsync(double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <summary>相对位置定位</summary>
         Task<bool> MoveRelativeAsync(double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <summary>持续点动 (Jog)</summary>
-        Task<bool> JogAsync(double velocity, bool isPositive,double Acc, double Dec);
+        Task<bool> JogAsync(double velocity, bool isPositive, double Acc, double Dec);
+
+
+
+
+
+
+
 
         #endregion
+
+
+
+
+        #region 高级功能
+
+        #region 位置锁存
+
+
+
+        /// <summary>
+        /// 设置位置锁存参数
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="InPutPort">输入端口号</param>
+        /// <param name="LtcMode">锁存模式</param>
+        /// <param name="LtcLogic">锁存逻辑</param>
+        /// <param name="Filter">滤波器</param>
+        /// <param name="LatchSource">锁存源</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 读取位置锁存个数
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<int> GetLatchNumber(int LatchNo, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 读取锁存位置
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<double?> GetLatchPos(int LatchNo, CancellationToken token = default);
+
+
+        #endregion 位置锁存
+
+
+        #endregion 高级功能
+
+
     }
 
 
@@ -102,7 +159,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <summary>
         /// 运行减速度
         /// </summary>
-        public double Dec { get; set; } 
+        public double Dec { get; set; }
 
         /// <summary>
         /// 正极限硬限位启用标志
@@ -143,26 +200,26 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <summary>
         /// 回零减速度
         /// </summary>
-        public double HomeDec { get ; set; }
+        public double HomeDec { get; set; }
 
 
         /// <summary>
         /// 回零偏移
         /// </summary>
-        public double  HomeOffest { get ; set; }
+        public double HomeOffest { get; set; }
 
 
 
         /// <summary>
         /// 回零模式固定标志
         /// </summary>
-        public  bool HomeModelFixed { get ; set; }
+        public bool HomeModelFixed { get; set; }
 
 
         /// <summary>
         /// 正极限回零模式
         /// </summary>
-        public int  PelHomeModel { get; set; }
+        public int PelHomeModel { get; set; }
 
 
         /// <summary>

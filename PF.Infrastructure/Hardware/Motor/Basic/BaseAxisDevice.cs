@@ -141,7 +141,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             get
             {
                 EnsureCardAttached();
-                if (IsSimulated) {  return (double)Random.Next(1,100)+(double)Random.NextDouble(); }
+                if (IsSimulated) { return (double)Random.Next(1, 100) + (double)Random.NextDouble(); }
                 return ParentCard!.GetAxisCurrentPosition(AxisIndex);
             }
         }
@@ -229,6 +229,52 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             if (IsSimulated) { await Task.Delay(1000); return true; }
             return await ParentCard!.JogAsync(AxisIndex, velocity, Acc, Dec, isPositive).ConfigureAwait(false);
         }
+
+
+
+        #region 高级功能
+
+        #region 位置锁存
+
+
+
+        
+        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        {
+            EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+            return await ParentCard!.SetLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token);
+        }
+
+
+
+        
+        public virtual async Task<int> GetLatchNumber(int LatchNo, CancellationToken token = default)
+        {
+            EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return 1; }
+            return await ParentCard!.GetLatchNumber(LatchNo, this.AxisIndex, token);
+        }
+
+
+
+        public virtual async Task<double?> GetLatchPos(int LatchNo, CancellationToken token = default)
+        {
+            EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return 0; }
+            return await ParentCard!.GetLatchPos(LatchNo, this.AxisIndex, token);
+        }
+
+
+        #endregion 位置锁存
+
+
+        #endregion 高级功能
+
+
+
+
+
 
         // ── 私有工具 ────────────────────────────────────────────────────────────
 

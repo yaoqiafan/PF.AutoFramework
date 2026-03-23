@@ -33,16 +33,16 @@ namespace PF.Infrastructure.Hardware.Card
         #region IMotionCard 属性（由子类实现）
 
         /// <inheritdoc/>
-        public abstract int CardIndex { get;   }
+        public abstract int CardIndex { get; }
 
         /// <inheritdoc/>
         public abstract int AxisCount { get; }
 
         /// <inheritdoc/>
-        public abstract int InputCount { get;  }
+        public abstract int InputCount { get; }
 
         /// <inheritdoc/>
-        public abstract int OutputCount { get;  }
+        public abstract int OutputCount { get; }
 
         #endregion
 
@@ -107,13 +107,13 @@ namespace PF.Infrastructure.Hardware.Card
         public abstract Task<bool> DisableAxisAsync(int axisIndex);
 
         /// <inheritdoc/>
-        public abstract Task<bool> StopAxisAsync(int axisIndex,bool IsEmgStop=false );
+        public abstract Task<bool> StopAxisAsync(int axisIndex, bool IsEmgStop = false);
 
         /// <inheritdoc/>
         public abstract Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default);
 
         /// <inheritdoc/>
-        public abstract Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity,double Acc,double Dec,double STime, CancellationToken token = default);
+        public abstract Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
         /// <inheritdoc/>
         public abstract Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
@@ -129,7 +129,7 @@ namespace PF.Infrastructure.Hardware.Card
         public abstract double? GetAxisCurrentPosition(int axisIndex);
 
 
-        
+
         public abstract MotionIOStatus GetMotionIOStatus(int axisIndex);
 
         #endregion
@@ -140,11 +140,31 @@ namespace PF.Infrastructure.Hardware.Card
         public abstract bool? ReadInputPort(int portIndex);
 
         /// <inheritdoc/>
-        public abstract bool  WriteOutputPort(int portIndex, bool value);
+        public abstract bool WriteOutputPort(int portIndex, bool value);
 
         /// <inheritdoc/>
         public abstract bool? ReadOutputPort(int portIndex);
 
         #endregion
+
+
+        #region 高级功能
+
+
+        #region 位置锁存
+
+        public abstract Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+
+
+
+        public abstract Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
+
+
+        public abstract Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+
+        #endregion 位置锁存
+
+
+        #endregion 高级功能
     }
 }

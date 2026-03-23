@@ -18,11 +18,11 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
 
 
-        public LTMDCMotionCard(int cardIndex, string deviceId ,string deviceName, bool isSimulated, ILogService logger)
+        public LTMDCMotionCard(int cardIndex, string deviceId, string deviceName, bool isSimulated, ILogService logger)
             : base(
                 deviceId: deviceId,
                 deviceName: deviceName,
-                isSimulated: isSimulated  ,
+                isSimulated: isSimulated,
                 logger: logger)
         {
             CardIndex = cardIndex;
@@ -41,7 +41,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         private int _outputcount = 0;
         public override int OutputCount => _outputcount;
 
-        public override  Task<bool> DisableAxisAsync(int axisIndex)
+        public override Task<bool> DisableAxisAsync(int axisIndex)
         {
             try
             {
@@ -158,7 +158,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <returns></returns>
         private double? GetCurEquiv(int axisIndex)
         {
-            
+
 
             double equiv = 0;
             short ret = CardAPI.LTDMC.dmc_get_equiv((ushort)CardIndex, (ushort)axisIndex, ref equiv);
@@ -263,7 +263,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
-                if(IsSimulated) { Task.Delay(3000); return Task.FromResult(true); }
+                if (IsSimulated) { Task.Delay(3000); return Task.FromResult(true); }
 
                 double? equiv = this.GetCurEquiv(axisIndex);
                 if (!equiv.HasValue)
@@ -348,7 +348,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
-                if (IsSimulated) {  return true; }
+                if (IsSimulated) { return true; }
 
                 ushort state = 0;
                 short ret = CardAPI.LTDMC.dmc_read_inbit_ex((ushort)CardIndex, (ushort)portIndex, ref state);
@@ -622,5 +622,102 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         }
 
         #endregion 控制卡连接和初始化
+
+
+        #region 高级功能
+
+        #region 位置锁存
+
+        public override Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(true); }
+                if (LatchNo < 0 || LatchNo > 3)
+                {
+                    throw new Exception($"设置锁存位置参数错误：锁存器ID错误");
+                }
+                if (InPutPort < 0 || InPutPort > 7)
+                {
+                    throw new Exception($"设置锁存位置参数错误：输入参数ID错误");
+                }
+                short ret = CardAPI.LTDMC.dmc_softltc_set_mode((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)1, (ushort)LtcMode, (ushort)InPutPort, (ushort)LtcLogic, Filter);
+                if (ret != 0)
+                {
+                    throw new Exception($"配置锁存器 失败，函数 dmc_softltc_set_mode 返回值 {ret}");
+                }
+                ret = CardAPI.LTDMC.dmc_ltc_set_source((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)AxisNo, (ushort)1);
+                if (ret != 0)
+                {
+                    throw new Exception($"配置锁存源  失败，函数 dmc_ltc_set_source 返回值 {ret}");
+                }
+                ret = CardAPI.LTDMC.dmc_ltc_reset((ushort)(this.CardIndex), (ushort)LatchNo);
+                if (ret != 0)
+                {
+                    throw new Exception($"复位锁存器  失败，函数 dmc_ltc_reset 返回值 {ret}");
+                }
+                return Task.FromResult(true);
+
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+
+
+        }
+
+        public override Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(0); }
+
+                // 调用雷赛 SDK 获取位置锁存编号
+                int latchNumber = 0;
+                short ret = CardAPI.LTDMC.dmc_softltc_get_number((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref latchNumber);
+                if (ret != 0)
+                {
+                    throw new Exception($"读取锁存个数 ,dmc_softltc_get_number：{ret}");
+                }
+                return Task.FromResult(latchNumber);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(-1);
+            }
+
+        }
+
+
+
+        public override Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult((double?)0); }
+
+                // 调用雷赛 SDK 获取位置锁存编号
+                double pos = 0;
+                short ret = CardAPI.LTDMC.dmc_softltc_get_value_unit((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref pos);
+                if (ret != 0)
+                {
+                    throw new Exception($"读取锁存位置 ,dmc_softltc_get_value_unit：{ret}");
+                }
+                return Task.FromResult((double?)pos);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return null;
+            }
+
+        }
+
+        #endregion 位置锁存
+
+        #endregion 高级功能
     }
 }

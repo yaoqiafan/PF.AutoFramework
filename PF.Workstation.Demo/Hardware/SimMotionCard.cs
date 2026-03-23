@@ -169,6 +169,16 @@ namespace PF.Workstation.Demo.Hardware
             throw new NotImplementedException();
         }
 
+        public override Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
         public override MotionIOStatus GetMotionIOStatus(int axisIndex)
         {
             throw new NotImplementedException();
@@ -200,6 +210,11 @@ namespace PF.Workstation.Demo.Hardware
         }
 
         public override bool? ReadOutputPort(int portIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }
