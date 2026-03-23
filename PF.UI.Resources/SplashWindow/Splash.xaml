@@ -10,32 +10,87 @@
     Width="900"
     Height="500"
     DataContext="{Binding RelativeSource={RelativeSource Mode=Self}}"
+    Loaded="Window_Loaded"
     WindowStartupLocation="CenterScreen"
     WindowStyle="None"
-    mc:Ignorable="d"
-    Loaded="Window_Loaded">
+    mc:Ignorable="d">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="148*" />
             <RowDefinition Height="20*" />
             <RowDefinition Height="17*" />
         </Grid.RowDefinitions>
-        <Grid >
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="147*" />
                 <RowDefinition Height="60*" />
                 <RowDefinition Height="128*" />
                 <RowDefinition Height="65*" />
             </Grid.RowDefinitions>
-            <Image HorizontalAlignment="Center" VerticalAlignment="Top" Source="/PF.UI.Resources;component/Images/PNG/聚力LOGO.png" Height="115" Width="900"/>
-            <TextBlock Grid.Row="2" Foreground="{DynamicResource PrimaryBrush}"  HorizontalAlignment="Center" VerticalAlignment="Top" Height="15" Margin="0,5,0,0" Width="0"   ></TextBlock>
-            <TextBlock Grid.Row="2"   HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" Foreground="White" FontSize="30" Height="38" Margin="0,9,0,0" Width="900"  Text="{Binding WelcomeText}"></TextBlock>
-            <TextBlock Grid.Row="2"   HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" Foreground="White" FontSize="30" Height="38" Margin="0,45,0,0" Width="900"  Text="{Binding VersionNumber}"></TextBlock>
-            <TextBlock Grid.Row="2"   HorizontalAlignment="Center" VerticalAlignment="Top" TextAlignment="Center" Foreground="White" Height="14" Width="900" Margin="0,80,0,0"  Text="{Binding WelcomeText_small}"></TextBlock>
+            <Image
+                Width="900"
+                Height="115"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Source="/PF.UI.Resources;component/Images/PNG/聚力LOGO.png" />
+            <TextBlock
+                Grid.Row="2"
+                Width="0"
+                Height="15"
+                Margin="0,5,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Foreground="{DynamicResource PrimaryBrush}" />
+            <TextBlock
+                Grid.Row="2"
+                Width="900"
+                Height="38"
+                Margin="0,9,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                FontSize="30"
+                Foreground="White"
+                Text="{Binding WelcomeText}"
+                TextAlignment="Center" />
+            <TextBlock
+                Grid.Row="2"
+                Width="900"
+                Height="38"
+                Margin="0,45,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                FontSize="30"
+                Foreground="White"
+                Text="{Binding VersionNumber}"
+                TextAlignment="Center" />
+            <TextBlock
+                Grid.Row="2"
+                Width="900"
+                Height="14"
+                Margin="0,80,0,0"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Foreground="White"
+                Text="{Binding WelcomeText_small}"
+                TextAlignment="Center" />
         </Grid>
 
-        <TextBlock x:Name="showInfo"   Grid.Row="1" Foreground="{Binding TextBrush}"  FontSize="20" VerticalAlignment="Bottom"  HorizontalAlignment="Center" Margin="3" Text="{Binding  Messageinfo}" />
-        <pf:LoadingLine Grid.Row="2"  Foreground="OliveDrab" Style="{StaticResource LoadingLineLarge}" DotSpeed="2" DotCount="8" DotDiameter="12" />
+        <TextBlock
+            x:Name="showInfo"
+            Grid.Row="1"
+            Margin="3"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            FontSize="20"
+            Foreground="{Binding TextBrush}"
+            Text="{Binding Messageinfo}" />
+        <pf:LoadingLine
+            Grid.Row="2"
+            DotCount="8"
+            DotDiameter="12"
+            DotSpeed="2"
+            Foreground="OliveDrab"
+            Style="{StaticResource LoadingLineLarge}" />
     </Grid>
 
 </pf:Window>

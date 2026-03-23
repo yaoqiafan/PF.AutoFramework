@@ -272,9 +272,15 @@ namespace PF.Infrastructure.Station.Basic
         public void TriggerAlarm()
         {
             _alarmInterrupted = true;
-            _runCts?.Cancel(); // 打断业务线程（Running 或 Paused 均有效）
-            Fire(MachineTrigger.Error);
+            _runCts?.Cancel(); // 打断业务线程
+
+            // 🛡️ 防御性修复：如果是自己抛异常导致的 Alarm，主控反向调用时直接忽略
+            if (CurrentState != MachineState.Alarm)
+            {
+                Fire(MachineTrigger.Error);
+            }
         }
+ 
         public void ResetAlarm()   => Fire(MachineTrigger.Reset);
 
         /// <summary>
