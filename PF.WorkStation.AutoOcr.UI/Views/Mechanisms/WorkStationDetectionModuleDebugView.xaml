@@ -60,7 +60,7 @@
                         FontSize=" 16"
                         FontWeight="Bold"
                         Foreground="#00e676"
-                        Text="{Binding DetectionModule.IsInitial}" />
+                        Text="{Binding DetectionModule.IsInitialized}" />
                     <TextBlock
                         VerticalAlignment="Center"
                         FontSize=" 14"
@@ -198,7 +198,29 @@
                                     Margin="0,0,0,5"
                                     Command="{Binding InitializeModuleCommand}"
                                     Content=" 模组初始化" />
+
+                                <TextBlock Margin=" 0,0,0,5" Foreground="Gray" Text=" 动作流程"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding MoveInitialCommand}" Content=" 移到到初始位置"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding MoveStation1Command}" Content=" 移动到工位1检测位"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding MoveStation2Command}" Content=" 移动到工位2检测位"/>
+
+                                <TextBlock Margin=" 0,0,0,5" Foreground="Gray" Text=" 相机"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding CamTiggerCommand}" Content=" OCR相机触发"/>
+                                <Grid  Margin=" 0,20,0,5">
+                                    <Grid.ColumnDefinitions >
+                                        <ColumnDefinition Width=" auto"/>
+                                        <ColumnDefinition Width=" *"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock    Text=" 相机结果:"/>
+                                    <TextBlock Grid.Column=" 1" Margin=" 20,0,0,5" Text="{Binding  CamRec}"/>
+                                </Grid>
+                               
                             </StackPanel>
+
+
+                          
+                              
+                            
                         </ScrollViewer>
                     </GroupBox>
 
@@ -388,19 +410,14 @@
                                                     Header="速度" />
                                             </DataGrid.Columns>
                                         </DataGrid>
-                                      
-                                            <Button
-                                                Grid.Column=" 1"
-                                                Margin="10"
-                                                Style="{StaticResource  ButtonIcon}"
-                                                pf:IconElement.Geometry="{StaticResource SaveGeometry}"
-                                                pf:IconElement.Height="45"
-                                                pf:IconElement.Width="45"
-                                                Command="{Binding SaveXAxisPointsCommand}" > 
-                                                
-                                            </Button>
 
-                                       
+                                        <Button
+                                                Grid.Column=" 1"
+                                                Margin="3"
+                                                Command="{Binding SaveXAxisPointsCommand}"  Content=" 点位保存" >
+                                        </Button>
+
+
 
                                     </Grid>
                                 </GroupBox>
@@ -411,10 +428,10 @@
                                     Header=" Y轴 原始基准点位"
                                     >
                                     <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height=" *" />
-                                            <RowDefinition Height=" auto" />
-                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition  Width =" *" />
+                                            <ColumnDefinition  Width =" auto" />
+                                        </Grid.ColumnDefinitions>
                                         <DataGrid
                                             Margin="0,0,0,5"
                                             AutoGenerateColumns="False"
@@ -437,11 +454,11 @@
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <Button
-                                            Grid.Row=" 1"
+                                            Grid.Column=" 1"
                                             Height=" 30"
                                             Margin="0,0,0,5"
                                             Command="{Binding SaveYAxisPointsCommand}"
-                                            Content=" 保存Y轴点位" />
+                                            Content=" 保存点位" />
 
                                     </Grid>
                                 </GroupBox>
@@ -480,11 +497,11 @@
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <Button
-                                            Grid.Row=" 1"
+                                            Grid.Column =" 1"
                                             Height=" 30"
                                             Margin="0,0,0,5"
                                             Command="{Binding SaveZAxisPointsCommand}"
-                                            Content=" 保存Z轴点位" />
+                                            Content=" 保存点位" />
 
                                     </Grid>
                                 </GroupBox>

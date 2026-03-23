@@ -36,6 +36,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _targetLayer, value);
         }
 
+        private string _camRec = "NONE";
+
+        public string CamRec
+        {
+            get => _camRec;
+            set => SetProperty(ref _camRec, value);
+        }
+
+
         #region 状态监控属性
 
 
@@ -82,14 +91,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand StopCommand { get; }
 
 
-      
+
 
         //点位保存
         public DelegateCommand SaveXAxisPointsCommand { get; }
         public DelegateCommand SaveYAxisPointsCommand { get; }
         public DelegateCommand SaveZAxisPointsCommand { get; }
 
+        //工位操作
+        public DelegateCommand MoveInitialCommand { get; }
 
+        public DelegateCommand MoveStation1Command { get; }
+
+        public DelegateCommand MoveStation2Command { get; }
+
+
+        public DelegateCommand CamTiggerCommand { get; }
         #endregion Commands 定义
 
 
@@ -98,8 +115,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             // 依赖注入获取模组实例
             _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDetectionModule)) as WorkStationDetectionModule;
             // --- 绑定全局生命周期指令 ---
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.InitializeAsync()));
-            ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.ResetAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.InitializeAsync()));
+            ResetModuleCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.StopAsync()));
 
 
@@ -107,6 +124,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             SaveYAxisPointsCommand = new DelegateCommand(SaveYAxisPoints);
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
 
+            MoveInitialCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveInitial()));
+            MoveStation1Command = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveToStation1()));
+            MoveStation2Command = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveToStation2()));
+            CamTiggerCommand = new DelegateCommand(async () => await CamTiggerAsync());
             StartMonitor();
 
             LoadOriginalPoints();
@@ -136,8 +157,47 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
 
+        private async Task ExecuteResultAsync(Func<Task<bool>>? action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = "执行中...";
+                var flag = await action.Invoke();
+                DebugMessage =  flag ? "执行成功" : "执行失败";
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(ex.Message, "调试面板报错", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
 
+        private async Task CamTiggerAsync()
+        {
+            if (_detectionModule == null) return;
+            try
+            {
+                DebugMessage = "触发相机";
+                string rec = await _detectionModule.CameraTigger();
+                if (string.IsNullOrEmpty(rec))
+                {
+                    DebugMessage = "相机读取失败";
+                    CamRec = "ERROR";
+                }
+                else
+                {
+                    DebugMessage = "相机读取成功";
+                    CamRec = rec;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(ex.Message, "调试面板报错", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
 
 
@@ -198,18 +258,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
 
-       private void SaveXAxisPoints()
+        private void SaveXAxisPoints()
         {
             if (_detectionModule == null) return;
             try
             {
-                foreach (var pt in XAxisOriginalPoints) _detectionModule .XAxis.AddOrUpdatePoint(pt);
-                _detectionModule .XAxis.SavePointTable();
+                foreach (var pt in XAxisOriginalPoints) _detectionModule.XAxis.AddOrUpdatePoint(pt);
+                _detectionModule.XAxis.SavePointTable();
                 MessageService.ShowMessage("X轴点位保存成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageService .ShowMessage ($"X轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error); 
+                MessageService.ShowMessage($"X轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
