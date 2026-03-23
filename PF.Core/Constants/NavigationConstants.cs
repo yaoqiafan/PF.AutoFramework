@@ -64,6 +64,7 @@ namespace PF.Core.Constants
             public const string StationDebugView = nameof(StationDebugView);
             public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
             public const string CardDebugView = nameof(CardDebugView);
+            public const string CameraDebugView = nameof(CameraDebugView);
             #endregion
 
             #region 主界面

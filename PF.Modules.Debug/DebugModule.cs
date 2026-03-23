@@ -41,6 +41,8 @@ namespace PF.Modules.Debug
 
             // 4. 注册控制卡级调试视图
             containerRegistry.RegisterForNavigation<CardDebugView, CardDebugViewModel>(NavigationConstants.Views.CardDebugView);
+
+            containerRegistry.RegisterForNavigation<CameraDebugView, CameraDebugViewModel>(NavigationConstants.Views.CameraDebugView);
         }
     }
 }

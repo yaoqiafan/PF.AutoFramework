@@ -36,6 +36,8 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
+               
+
                 if (!int.TryParse(programid.ToString(), out int ProgramID) || ProgramID < 0 || ProgramID > 9999)
                 {
                     throw new Exception($"切换程序编号错误");
@@ -93,6 +95,8 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
+                if (IsSimulated) { return true; }
+
                 if (!ProgramNumber.ToString().Contains("_"))
                 {
                     throw new Exception("输入的程式名称错误");
@@ -113,6 +117,8 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
+                if (IsSimulated) { return "当前设备模拟模式中，触发测试！"; }
+
                 TiggerEvent.Reset();
                 string TiggerStr = "TRG";
                 TiggerRec = string.Empty;

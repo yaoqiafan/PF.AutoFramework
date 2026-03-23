@@ -1,4 +1,5 @@
-﻿using PF.UI.Infrastructure.PrismBase;
+﻿using Microsoft.EntityFrameworkCore.Query;
+using PF.UI.Infrastructure.PrismBase;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 {
     public class WorkStation1FeedingStationDebugViewModel: RegionViewModelBase
     {
-
+        
     }
 }
