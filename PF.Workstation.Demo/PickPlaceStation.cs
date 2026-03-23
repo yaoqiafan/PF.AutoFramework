@@ -133,7 +133,7 @@ namespace PF.Workstation.Demo
         /// · 通过 _sync.WaitAsync / _sync.Release 与点胶工站实现流水线节拍协同
         /// · 不含任何 DryRun 判断，逻辑简洁清晰
         /// </summary>
-        private async Task ProcessNormalLoopAsync(CancellationToken token)
+        protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -206,7 +206,7 @@ namespace PF.Workstation.Demo
         ///
         /// 共享 <see cref="PickPlaceStep"/> 枚举值，保证 ExecuteResetAsync 回跳策略对两种模式均有效。
         /// </summary>
-        private async Task ProcessDryRunLoopAsync(CancellationToken token)
+        protected override async Task ProcessDryRunLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -335,5 +335,7 @@ namespace PF.Workstation.Demo
             _gantry.Dispose();
             base.Dispose();
         }
+
+        
     }
 }
