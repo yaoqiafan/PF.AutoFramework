@@ -5,7 +5,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.Views.Mechanisms"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    d:DesignHeight="800"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    d:DesignHeight="1000"
     d:DesignWidth="1100"
     mc:Ignorable="d">
     <Grid Margin="10">
@@ -53,7 +54,7 @@
                         VerticalAlignment="Center"
                         FontSize=" 14"
                         Foreground=" #aab7b8"
-                        Text="已初始化（IsInitialized):" />
+                        Text="已初始化（IsInitial):" />
                     <TextBlock
                         Margin="5,0,0,0"
                         FontSize=" 16"
@@ -74,7 +75,7 @@
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="#00E676" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DetectionModule.HasAlarm}" Value="True">
+                                    <DataTrigger Binding="{Binding FeedingModule.HasAlarm}" Value="True">
                                         <Setter Property="Foreground" Value="#E74C3C" />
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -195,155 +196,332 @@
                                 <Button
                                     Height=" 35"
                                     Margin="0,0,0,5"
+                                    Command="{Binding InitializeModuleCommand}"
                                     Content=" 模组初始化" />
+
+                                <TextBlock Margin=" 0,0,0,5" Foreground="Gray" Text=" 动作流程"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding MoveInitialCommand}" Content=" 移到到初始位置"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding MoveStation1Command}" Content=" 移动到工位1检测位"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding MoveStation2Command}" Content=" 移动到工位2检测位"/>
+
+                                <TextBlock Margin=" 0,0,0,5" Foreground="Gray" Text=" 相机"/>
+                                <Button Height=" 35" Margin=" 0,0,0,5" Command="{Binding CamTiggerCommand}" Content=" OCR相机触发"/>
+                                <Grid  Margin=" 0,20,0,5">
+                                    <Grid.ColumnDefinitions >
+                                        <ColumnDefinition Width=" auto"/>
+                                        <ColumnDefinition Width=" *"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock    Text=" 相机结果:"/>
+                                    <TextBlock Grid.Column=" 1" Margin=" 20,0,0,5" Text="{Binding  CamRec}"/>
+                                </Grid>
+
                             </StackPanel>
+
+
+
+
+
                         </ScrollViewer>
                     </GroupBox>
 
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="auto" />
+                            <RowDefinition Height="3*" />
+                        </Grid.RowDefinitions>
+                        <GroupBox
+                            Grid.Row=" 0"
+                            FontSize=" 16 "
+                            FontWeight="Bold"
+                            Header=" 模组状态监控区">
+                            <StackPanel Margin="15">
+                                <TextBlock
+                                    Margin="0,0,0,10"
+                                    Foreground="Gray"
+                                    Text=" 机械轴实时坐标" />
+                                <Grid Margin="0,0,0,25">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width=" *" />
+                                        <ColumnDefinition Width=" *" />
+                                        <ColumnDefinition Width=" *" />
+                                    </Grid.ColumnDefinitions>
 
+                                    <Border
+                                        Grid.Column=" 0"
+                                        Margin="0,0,10,0"
+                                        Padding="15"
+                                        BorderBrush=" #d5dbdb"
+                                        BorderThickness="1"
+                                        CornerRadius=" 5">
+                                        <StackPanel>
+                                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
 
-                    <GroupBox
-                        Grid.Column=" 2"
-                        FontSize=" 16 "
-                        FontWeight="Bold"
-                        Header=" 模组状态监控区">
-                        <StackPanel Margin="15">
-                            <TextBlock
-                                Margin="0,0,0,10"
-                                Foreground="Gray"
-                                Text=" 机械轴实时坐标" />
-                            <Grid Margin="0,0,0,25">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width=" *" />
-                                    <ColumnDefinition Width=" *" />
-                                    <ColumnDefinition Width=" *" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border
-                                    Grid.Column=" 0"
-                                    Margin="0,0,10,0"
-                                    Padding="15"
-                                    BorderBrush=" #d5dbdb"
-                                    BorderThickness="1"
-                                    CornerRadius=" 5">
-                                    <StackPanel>
-                                        <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
-
+                                                <TextBlock
+                                                    FontSize="16"
+                                                    FontWeight="Bold"
+                                                    Text="X轴 坐标 :" />
+                                                <TextBlock Margin="10,0,0,0" Text="{Binding XAxisHasAlarm}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="Green" />
+                                                            <Setter Property="Text" Value="[正常]" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding XAxisHasAlarm}" Value="True">
+                                                                    <Setter Property="Foreground" Value="Red" />
+                                                                    <Setter Property="Text" Value="[报警]" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                             <TextBlock
-                                                FontSize="16"
+                                                HorizontalAlignment="Right"
+                                                FontSize="36"
                                                 FontWeight="Bold"
-                                                Text="X轴 坐标 :" />
-                                            <TextBlock Margin="10,0,0,0" Text="{Binding XAxisHasAlarm}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="Green" />
-                                                        <Setter Property="Text" Value="[正常]" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding XAxisHasAlarm}" Value="True">
-                                                                <Setter Property="Foreground" Value="Red" />
-                                                                <Setter Property="Text" Value="[报警]" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                                Foreground="#2980B9"
+                                                Text="{Binding XAxisPosition, StringFormat={}{0:F3} mm}" />
                                         </StackPanel>
-                                        <TextBlock
-                                            HorizontalAlignment="Right"
-                                            FontSize="36"
-                                            FontWeight="Bold"
-                                            Foreground="#2980B9"
-                                            Text="{Binding XAxisPosition, StringFormat={}{0:F3} mm}" />
-                                    </StackPanel>
-                                </Border>
+                                    </Border>
 
-                                <Border
-                                    Grid.Column=" 1"
-                                    Margin="0,0,10,0"
-                                    Padding="15"
-                                    BorderBrush=" #d5dbdb"
-                                    BorderThickness="1"
-                                    CornerRadius=" 5">
-                                    <StackPanel>
-                                        <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                    <Border
+                                        Grid.Column=" 1"
+                                        Margin="0,0,10,0"
+                                        Padding="15"
+                                        BorderBrush=" #d5dbdb"
+                                        BorderThickness="1"
+                                        CornerRadius=" 5">
+                                        <StackPanel>
+                                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
 
+                                                <TextBlock
+                                                    FontSize="16"
+                                                    FontWeight="Bold"
+                                                    Text="Y轴 坐标 :" />
+                                                <TextBlock Margin="10,0,0,0" Text="{Binding YAxisHasAlarm}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="Green" />
+                                                            <Setter Property="Text" Value="[正常]" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding YAxisHasAlarm}" Value="True">
+                                                                    <Setter Property="Foreground" Value="Red" />
+                                                                    <Setter Property="Text" Value="[报警]" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                             <TextBlock
-                                                FontSize="16"
+                                                HorizontalAlignment="Right"
+                                                FontSize="36"
                                                 FontWeight="Bold"
-                                                Text="Y轴 坐标 :" />
-                                            <TextBlock Margin="10,0,0,0" Text="{Binding YAxisHasAlarm}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="Green" />
-                                                        <Setter Property="Text" Value="[正常]" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding YAxisHasAlarm}" Value="True">
-                                                                <Setter Property="Foreground" Value="Red" />
-                                                                <Setter Property="Text" Value="[报警]" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                                Foreground="#2980B9"
+                                                Text="{Binding YAxisPosition, StringFormat={}{0:F3} mm}" />
                                         </StackPanel>
-                                        <TextBlock
-                                            HorizontalAlignment="Right"
-                                            FontSize="36"
-                                            FontWeight="Bold"
-                                            Foreground="#2980B9"
-                                            Text="{Binding YAxisPosition, StringFormat={}{0:F3} mm}" />
-                                    </StackPanel>
-                                </Border>
+                                    </Border>
 
 
-                                <Border
-                                    Grid.Column=" 2"
-                                    Margin="0,0,10,0"
-                                    Padding="15"
-                                    BorderBrush=" #d5dbdb"
-                                    BorderThickness="1"
-                                    CornerRadius=" 5">
-                                    <StackPanel>
-                                        <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                    <Border
+                                        Grid.Column=" 2"
+                                        Margin="0,0,10,0"
+                                        Padding="15"
+                                        BorderBrush=" #d5dbdb"
+                                        BorderThickness="1"
+                                        CornerRadius=" 5">
+                                        <StackPanel>
+                                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
 
+                                                <TextBlock
+                                                    FontSize="16"
+                                                    FontWeight="Bold"
+                                                    Text="Z轴 坐标 :" />
+                                                <TextBlock Margin="10,0,0,0" Text="{Binding XAxisHasAlarm}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="Green" />
+                                                            <Setter Property="Text" Value="[正常]" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ZAxisHasAlarm}" Value="True">
+                                                                    <Setter Property="Foreground" Value="Red" />
+                                                                    <Setter Property="Text" Value="[报警]" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                             <TextBlock
-                                                FontSize="16"
+                                                HorizontalAlignment="Right"
+                                                FontSize="36"
                                                 FontWeight="Bold"
-                                                Text="Z轴 坐标 :" />
-                                            <TextBlock Margin="10,0,0,0" Text="{Binding XAxisHasAlarm}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="Green" />
-                                                        <Setter Property="Text" Value="[正常]" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ZAxisHasAlarm}" Value="True">
-                                                                <Setter Property="Foreground" Value="Red" />
-                                                                <Setter Property="Text" Value="[报警]" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                                Foreground="#2980B9"
+                                                Text="{Binding ZAxisPosition, StringFormat={}{0:F3} mm}" />
                                         </StackPanel>
-                                        <TextBlock
-                                            HorizontalAlignment="Right"
-                                            FontSize="36"
-                                            FontWeight="Bold"
-                                            Foreground="#2980B9"
-                                            Text="{Binding ZAxisPosition, StringFormat={}{0:F3} mm}" />
-                                    </StackPanel>
-                                </Border>
+                                    </Border>
+                                </Grid>
+
+                            </StackPanel>
+                        </GroupBox>
+
+
+                        <GroupBox
+                            Grid.Row=" 1"
+                            pf:TitleElement.TitlePlacement="Left"
+                            FontSize=" 16"
+                            FontWeight="Bold"
+                            Header=" 点位管理">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <GroupBox
+                                    Grid.Row=" 0"
+                                    Margin="0,0,0,5"
+                                    pf:TitleElement.TitlePlacement="Left"
+                                    Header=" X轴 原始基准点位">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width=" *" />
+                                            <ColumnDefinition Width=" auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <DataGrid
+                                            Margin="0,0,0,5"
+                                            AutoGenerateColumns="False"
+                                            CanUserAddRows="False"
+                                            ItemsSource="{Binding XAxisOriginalPoints}"
+                                            Style="{StaticResource DataGrid.Small}">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn
+                                                    Width="1.5*"
+                                                    Binding="{Binding Name}"
+                                                    Header="点位名称"
+                                                    IsReadOnly="True" />
+                                                <DataGridTextColumn
+                                                    Width="*"
+                                                    Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
+                                                    Header="目标位置(mm)" />
+                                                <DataGridTextColumn
+                                                    Width="*"
+                                                    Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
+                                                    Header="速度" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <Button
+                                                Grid.Column=" 1"
+                                                Margin="3"
+                                                Command="{Binding SaveXAxisPointsCommand}"  Content=" 点位保存" >
+                                        </Button>
+
+
+
+                                    </Grid>
+                                </GroupBox>
+                                <GroupBox
+                                    Grid.Row=" 1"
+                                    Margin="0,0,0,5"
+                                    pf:TitleElement.TitlePlacement="Left"
+                                    Header=" Y轴 原始基准点位"
+                                    >
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition  Width =" *" />
+                                            <ColumnDefinition  Width =" auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <DataGrid
+                                            Margin="0,0,0,5"
+                                            AutoGenerateColumns="False"
+                                            CanUserAddRows="False"
+                                            ItemsSource="{Binding YAxisOriginalPoints}">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn
+                                                    Width="1.5*"
+                                                    Binding="{Binding Name}"
+                                                    Header="点位名称"
+                                                    IsReadOnly="True" />
+                                                <DataGridTextColumn
+                                                    Width="*"
+                                                    Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
+                                                    Header="目标位置(mm)" />
+                                                <DataGridTextColumn
+                                                    Width="*"
+                                                    Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
+                                                    Header="速度" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <Button
+                                            Grid.Column=" 1"
+                                            Height=" 30"
+                                            Margin="0,0,0,5"
+                                            Command="{Binding SaveYAxisPointsCommand}"
+                                            Content=" 保存点位" />
+
+                                    </Grid>
+                                </GroupBox>
+
+
+                                <GroupBox
+                                    Grid.Row=" 2"
+                                    Margin="0,0,0,5"
+                                    pf:TitleElement.TitlePlacement="Left"
+                                    Header=" Z轴 原始基准点位">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width=" *" />
+                                            <ColumnDefinition Width=" auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <DataGrid
+                                            Margin="0,0,0,5"
+                                            AutoGenerateColumns="False"
+                                            CanUserAddRows="False"
+                                            ItemsSource="{Binding ZAxisOriginalPoints}"
+                                            Style="{StaticResource DataGrid.Small}">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn
+                                                    Width="1.5*"
+                                                    Binding="{Binding Name}"
+                                                    Header="点位名称"
+                                                    IsReadOnly="True" />
+                                                <DataGridTextColumn
+                                                    Width="*"
+                                                    Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
+                                                    Header="目标位置(mm)" />
+                                                <DataGridTextColumn
+                                                    Width="*"
+                                                    Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
+                                                    Header="速度" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <Button
+                                            Grid.Column =" 1"
+                                            Height=" 30"
+                                            Margin="0,0,0,5"
+                                            Command="{Binding SaveZAxisPointsCommand}"
+                                            Content=" 保存点位" />
+
+                                    </Grid>
+                                </GroupBox>
+
+
                             </Grid>
+                        </GroupBox>
 
-                        </StackPanel>
-                    </GroupBox>
+
+
+                    </Grid>
+
+
 
                 </Grid>
             </TabItem>
 
 
 
-            <TabItem Header=" 点位管理" />
+
         </TabControl>
 
 

@@ -1,9 +1,11 @@
-﻿using PF.Core.Interfaces.Device.Mechanisms;
+﻿using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,6 +36,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _targetLayer, value);
         }
 
+        private string _camRec = "NONE";
+
+        public string CamRec
+        {
+            get => _camRec;
+            set => SetProperty(ref _camRec, value);
+        }
+
+
         #region 状态监控属性
 
 
@@ -63,12 +74,39 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #endregion 状态监控属性
 
 
+
+        #region 点位定义集合表
+
+        public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> YAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+
+        public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+
+        #endregion 点位定义集合表
+
+
         #region Commands 定义
         public DelegateCommand InitializeModuleCommand { get; }
         public DelegateCommand ResetModuleCommand { get; }
         public DelegateCommand StopCommand { get; }
 
 
+
+
+        //点位保存
+        public DelegateCommand SaveXAxisPointsCommand { get; }
+        public DelegateCommand SaveYAxisPointsCommand { get; }
+        public DelegateCommand SaveZAxisPointsCommand { get; }
+
+        //工位操作
+        public DelegateCommand MoveInitialCommand { get; }
+
+        public DelegateCommand MoveStation1Command { get; }
+
+        public DelegateCommand MoveStation2Command { get; }
+
+
+        public DelegateCommand CamTiggerCommand { get; }
         #endregion Commands 定义
 
 
@@ -77,13 +115,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             // 依赖注入获取模组实例
             _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDetectionModule)) as WorkStationDetectionModule;
             // --- 绑定全局生命周期指令 ---
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.InitializeAsync()));
-            ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.ResetAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.InitializeAsync()));
+            ResetModuleCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.StopAsync()));
 
 
+            SaveXAxisPointsCommand = new DelegateCommand(SaveXAxisPoints);
+            SaveYAxisPointsCommand = new DelegateCommand(SaveYAxisPoints);
+            SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
 
+            MoveInitialCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveInitial()));
+            MoveStation1Command = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveToStation1()));
+            MoveStation2Command = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveToStation2()));
+            CamTiggerCommand = new DelegateCommand(async () => await CamTiggerAsync());
             StartMonitor();
+
+            LoadOriginalPoints();
         }
 
 
@@ -110,8 +157,47 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
 
+        private async Task ExecuteResultAsync(Func<Task<bool>>? action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = "执行中...";
+                var flag = await action.Invoke();
+                DebugMessage =  flag ? "执行成功" : "执行失败";
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(ex.Message, "调试面板报错", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
 
+        private async Task CamTiggerAsync()
+        {
+            if (_detectionModule == null) return;
+            try
+            {
+                DebugMessage = "触发相机";
+                string rec = await _detectionModule.CameraTigger();
+                if (string.IsNullOrEmpty(rec))
+                {
+                    DebugMessage = "相机读取失败";
+                    CamRec = "ERROR";
+                }
+                else
+                {
+                    DebugMessage = "相机读取成功";
+                    CamRec = rec;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(ex.Message, "调试面板报错", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
 
 
@@ -143,6 +229,78 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
             };
             _monitorTimer.Start();
+        }
+
+
+
+
+        private void LoadOriginalPoints()
+        {
+            if (_detectionModule == null) return;
+            if (_detectionModule.XAxis?.PointTable != null)
+            {
+                XAxisOriginalPoints.Clear();
+                foreach (var pt in _detectionModule.XAxis.PointTable) XAxisOriginalPoints.Add(pt);
+            }
+            if (_detectionModule.YAxis?.PointTable != null)
+            {
+                YAxisOriginalPoints.Clear();
+                foreach (var pt in _detectionModule.YAxis.PointTable) YAxisOriginalPoints.Add(pt);
+            }
+
+            if (_detectionModule.ZAxis?.PointTable != null)
+            {
+                ZAxisOriginalPoints.Clear();
+                foreach (var pt in _detectionModule.ZAxis.PointTable) ZAxisOriginalPoints.Add(pt);
+            }
+        }
+
+
+
+
+        private void SaveXAxisPoints()
+        {
+            if (_detectionModule == null) return;
+            try
+            {
+                foreach (var pt in XAxisOriginalPoints) _detectionModule.XAxis.AddOrUpdatePoint(pt);
+                _detectionModule.XAxis.SavePointTable();
+                MessageService.ShowMessage("X轴点位保存成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"X轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveYAxisPoints()
+        {
+            if (_detectionModule == null) return;
+            try
+            {
+                foreach (var pt in YAxisOriginalPoints) _detectionModule.YAxis.AddOrUpdatePoint(pt);
+                _detectionModule.YAxis.SavePointTable();
+                MessageService.ShowMessage("Y轴点位保存成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"Y轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveZAxisPoints()
+        {
+            if (_detectionModule == null) return;
+            try
+            {
+                foreach (var pt in ZAxisOriginalPoints) _detectionModule.ZAxis.AddOrUpdatePoint(pt);
+                _detectionModule.ZAxis.SavePointTable();
+                MessageService.ShowMessage("Z轴点位保存成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"Z轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion 内部执行逻辑与状态更新
