@@ -39,6 +39,11 @@ namespace PF.Workstation.Demo
             _sync = sync;
         }
 
+        protected override Task ProcessDryRunLoopAsync(CancellationToken token)
+        {
+            throw new NotImplementedException();
+        }
+
         protected override async Task ProcessLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
@@ -70,6 +75,11 @@ namespace PF.Workstation.Demo
                 _sync.Release(WorkstationSignals.SlotEmpty);
                 _logger.Info($"[{StationName}] [3/3] 已通知取放工站：槽位已释放");
             }
+        }
+
+        protected override Task ProcessNormalLoopAsync(CancellationToken token)
+        {
+            throw new NotImplementedException();
         }
     }
 

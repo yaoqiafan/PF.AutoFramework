@@ -167,7 +167,9 @@ namespace PF.Infrastructure.Station
         {
             _logger.Fatal($"【主控接收到子站报警】: {errorMessage}");
             MasterAlarmTriggered?.Invoke(this, errorMessage);
-            Fire(MachineTrigger.Error);
+
+            // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
+            Task.Run(() => Fire(MachineTrigger.Error));
         }
 
         public async Task StartAllAsync() => await FireAsync(MachineTrigger.Start);

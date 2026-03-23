@@ -3,8 +3,10 @@ using PF.UI.Infrastructure.Navigation;
 using PF.WorkStation.AutoOcr.UI.UserControls;
 using PF.WorkStation.AutoOcr.UI.ViewModels;
 using PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms;
+using PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations;
 using PF.WorkStation.AutoOcr.UI.Views;
 using PF.WorkStation.AutoOcr.UI.Views.Mechanisms;
+using PF.WorkStation.AutoOcr.UI.Views.WorkStations;
 using System.Reflection;
 
 namespace PF.WorkStation.AutoOcr.UI
@@ -35,6 +37,11 @@ namespace PF.WorkStation.AutoOcr.UI
             containerRegistry.RegisterForNavigation<Workstation1FeedingModelDebugView, Workstation1FeedingModelDebugViewModel>(nameof(Workstation1FeedingModelDebugView));
 
             containerRegistry.RegisterForNavigation<WorkStationDetectionModuleDebugView, WorkStationDetectionModuleDebugViewModel>(nameof(WorkStationDetectionModuleDebugView));
+
+
+
+            containerRegistry.RegisterForNavigation<WorkStation1FeedingStationDebugView, WorkStation1FeedingStationDebugViewModel>(
+              nameof(WorkStation1FeedingStationDebugView));
 
         }
     }
