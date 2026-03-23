@@ -52,6 +52,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         {
             try
             {
+                if (IsSimulated) { return true; }
+
+
                 if (int.TryParse(UserInfo.ToString(), out int ID))
                 {
                     UserParmEvent.Reset();
@@ -138,6 +141,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         {
             try
             {
+                if (IsSimulated) { return "当前设备模拟模式中，触发测试！"; }
+
+
                 TiggerEvent.Reset();
                 string TiggerStr = "+";
                 if (await tiggerclient.SendStringAsync(TiggerStr))
