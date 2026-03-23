@@ -540,7 +540,10 @@ namespace PF.Application.Shell
         private async Task<bool> InitializeMechanism()
         {
             var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation1FeedingModule));
-            return await workStation1FeedingModule.InitializeAsync();
+            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
+
+
+            return await workStation1FeedingModule.InitializeAsync() && await workStation1DetectionModule.InitializeAsync();
 
         }
 
