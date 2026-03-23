@@ -46,11 +46,10 @@ using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
-using PF.Workstation.Demo;
-using PF.Workstation.Demo.UI;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
+using PF.WorkStation.AutoOcr.Stations;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -268,7 +267,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<IdentityModule>();
             moduleCatalog.AddModule<DebugModule>();
-            moduleCatalog.AddModule<UIModule>();
+            //moduleCatalog.AddModule<UIModule>();
             moduleCatalog.AddModule<PF.WorkStation.AutoOcr.UI.AutoOcrUIModule>();
             moduleCatalog.AddModule<SecsGemModule>();
             moduleCatalog.AddModule<ProductionRecordModule>();
@@ -450,14 +449,14 @@ namespace PF.Application.Shell
                serviceKey: nameof(WorkStationDetectionModule));
 
 
-            // 工站层：PickPlaceStation 同时映射到自身类型和 StationBase
+            // 工站层
             container.RegisterMany(
-                new[] { typeof(PickPlaceStation), typeof(StationBase) },
-                typeof(PickPlaceStation),
+                new[] { typeof(WorkStation1FeedingStation), typeof(StationBase) },
+                typeof(WorkStation1FeedingStation),
                 reuse: DryIoc.Reuse.Singleton);
 
             // 主控调度器
-            containerRegistry.RegisterSingleton<IMasterController, DemoMachineController>();
+            containerRegistry.RegisterSingleton<IMasterController, AutoOCRMachineController>();
         }
 
         #endregion
