@@ -12,13 +12,13 @@
     pf:WindowAttach.ExtendContentToNonClientArea="False"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Closing="Window_Closing"
+    FontSize="{DynamicResource FontSize.Body.Standard}"
     Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     NonClientAreaHeight="80"
     ShowNonClientArea="True"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
-    WindowState="Maximized"
-    FontSize="{DynamicResource FontSize.Body.Standard}">
+    WindowState="Maximized">
 
     <pf:Window.Resources>
         <userConverter:UserTextConnver x:Key="UserTextConnver" />
@@ -66,9 +66,10 @@
                                     Margin="0,0,3,0"
                                     Background="{DynamicResource BorderBrush}"
                                     CornerRadius="0,4,4,0" />
-                                <Path  Margin="0,0,10,0"
-                                       x:Name="UpDownGeometry"
+                                <Path
+                                    x:Name="UpDownGeometry"
                                     Width="14"
+                                    Margin="0,0,10,0"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Center"
                                     Data="{StaticResource DownGeometry}"
@@ -86,7 +87,6 @@
                                                 ContentSource="Icon" />
                                         </ContentControl>
                                         <ContentPresenter
-                                            
                                             Name="PresenterHeader"
                                             Margin="6,0,0,0"
                                             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -113,7 +113,7 @@
                             </Trigger>
 
                             <Trigger Property="IsExpanded" Value="True">
-                                <Setter TargetName="UpDownGeometry" Property="Data" Value="{StaticResource  UpGeometry}" />
+                                <Setter TargetName="UpDownGeometry" Property="Data" Value="{StaticResource UpGeometry}" />
                             </Trigger>
                             <Trigger SourceName="PanelHeader" Property="IsMouseOver" Value="true">
                                 <Setter TargetName="BorderBack" Property="Background" Value="{DynamicResource BackgroundBrush}" />
@@ -138,7 +138,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type pf:SideMenuItem}">
                         <ControlTemplate.Triggers>
-                            
+
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=pf:SideMenuItem}}" Value="True">
                                 <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
                             </DataTrigger>
@@ -184,7 +184,7 @@
 
     </pf:Window.Resources>
     <pf:Window.NonClientAreaContent>
-        <Grid >
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -298,53 +298,62 @@
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
 
-            <Border  Grid.Column="0" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1,0,1,1">
-                <Grid  Background="{DynamicResource RegionBrush}">
+            <Border
+                Grid.Column="0"
+                BorderBrush="{DynamicResource PrimaryBrush}"
+                BorderThickness="1,0,1,1">
+                <Grid Background="{DynamicResource RegionBrush}">
                     <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition Height="auto" />
-                </Grid.RowDefinitions>
-                <pf:SideMenu
-                    x:Name="MainSideMenu"
-                    Grid.Row="0"
-                    Width="200"
-                    Margin="5"
-                    AutoSelect="False"
-                    BorderThickness="1"
-                    ExpandMode="Freedom"
-                    ItemContainerStyle="{StaticResource SideMenuItemHeader}"
-                    SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}">
-                    <pf:Interaction.Triggers>
-                        <pf:EventTrigger EventName="SelectionChanged">
-                            <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
-                        </pf:EventTrigger>
-                    </pf:Interaction.Triggers>
-                </pf:SideMenu>
-            </Grid>
+                        <RowDefinition />
+                        <RowDefinition Height="auto" />
+                    </Grid.RowDefinitions>
+                    <pf:SideMenu
+                        x:Name="MainSideMenu"
+                        Grid.Row="0"
+                        Width="200"
+                        Margin="5"
+                        AutoSelect="False"
+                        BorderThickness="1"
+                        ExpandMode="Freedom"
+                        ItemContainerStyle="{StaticResource SideMenuItemHeader}"
+                        SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}">
+                        <pf:Interaction.Triggers>
+                            <pf:EventTrigger EventName="SelectionChanged">
+                                <pf:EventToCommand Command="{Binding SwitchItemCmd}" PassEventArgsToCommand="True" />
+                            </pf:EventTrigger>
+                        </pf:Interaction.Triggers>
+                    </pf:SideMenu>
+                </Grid>
             </Border>
-            <Border  Grid.Column="1" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1,0,1,1">
+            <Border
+                Grid.Column="1"
+                BorderBrush="{DynamicResource PrimaryBrush}"
+                BorderThickness="1,0,1,1">
                 <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="80*" />
-                    <RowDefinition Height="20*" />
-                </Grid.RowDefinitions>
-                <ContentControl Grid.Row="0" prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.SoftwareViewRegion}" />
-                <ContentControl BorderThickness="1" BorderBrush="{DynamicResource PrimaryBrush}"
-                    Grid.Row="1"
-                    Margin="5"
-                    prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.LoggingListRegion}" />
-            </Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="80*" />
+                        <RowDefinition Height="20*" />
+                    </Grid.RowDefinitions>
+                    <ContentControl Grid.Row="0" prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.SoftwareViewRegion}" />
+                    <ContentControl
+                        Grid.Row="1"
+                        Margin="5"
+                        prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.LoggingListRegion}"
+                        BorderBrush="{DynamicResource PrimaryBrush}"
+                        BorderThickness="1" />
+                </Grid>
             </Border>
 
         </Grid>
 
 
 
-        <StatusBar  FontSize="{DynamicResource FontSize.Body.Standard}"
+        <StatusBar
             Grid.Row="1"
             Background="{DynamicResource RegionBrush}"
-            BorderThickness="1">
-            <StatusBarItem >
+            BorderThickness="1"
+            FontSize="{DynamicResource FontSize.Body.Standard}">
+            <StatusBarItem>
                 <TextBlock Text="{Binding CoName}" />
             </StatusBarItem>
 

@@ -218,8 +218,37 @@ namespace PF.Infrastructure.Station.Basic
             }
         }
 
-        // --- 强制子类必须实现的工艺大循环 ---
-        protected abstract Task ProcessLoopAsync(CancellationToken token);
+        // --- 强制子类必须实现的工艺大循环（按模式细分） ---
+
+        /// <summary>
+        /// 正常生产模式工艺循环
+        /// </summary>
+        protected abstract Task ProcessNormalLoopAsync(CancellationToken token);
+
+        /// <summary>
+        /// 空跑验证模式工艺循环（跳过物料等待与部分外部协同）
+        /// </summary>
+        protected abstract Task ProcessDryRunLoopAsync(CancellationToken token);
+
+        /// <summary>
+        /// 核心工艺循环分发器。根据当前模式自动路由至对应的子类实现。
+        /// 子类通常无需重写此方法。
+        /// </summary>
+        protected virtual async Task ProcessLoopAsync(CancellationToken token)
+        {
+            switch (CurrentMode)
+            {
+                case OperationMode.Normal:
+                    await ProcessNormalLoopAsync(token);
+                    break;
+                case OperationMode.DryRun:
+                    await ProcessDryRunLoopAsync(token);
+                    break;
+                default:
+                    _logger?.Warn($"[{StationName}] 未知或不支持的运行模式: {CurrentMode}，工站业务线程安全退出。");
+                    break;
+            }
+        }
 
         /// <summary>
         /// 硬件初始化钩子，由 MasterController.InitializeAllAsync() 在 Initializing 阶段顺序调用。
@@ -272,9 +301,15 @@ namespace PF.Infrastructure.Station.Basic
         public void TriggerAlarm()
         {
             _alarmInterrupted = true;
-            _runCts?.Cancel(); // 打断业务线程（Running 或 Paused 均有效）
-            Fire(MachineTrigger.Error);
+            _runCts?.Cancel(); // 打断业务线程
+
+            // 🛡️ 防御性修复：如果是自己抛异常导致的 Alarm，主控反向调用时直接忽略
+            if (CurrentState != MachineState.Alarm)
+            {
+                Fire(MachineTrigger.Error);
+            }
         }
+ 
         public void ResetAlarm()   => Fire(MachineTrigger.Reset);
 
         /// <summary>
