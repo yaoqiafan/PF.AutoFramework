@@ -134,7 +134,9 @@ namespace PF.Infrastructure.Mechanisms
         {
             foreach (var hw in _internalHardwares)
             {
-                if (hw != null) hw.AlarmTriggered -= OnHardwareAlarmTriggered;
+                if (hw == null) continue;
+                hw.AlarmTriggered -= OnHardwareAlarmTriggered;
+                if (hw is IDisposable disposable) disposable.Dispose();  // 释放硬件持有的非托管资源
             }
         }
 
@@ -197,6 +199,13 @@ namespace PF.Infrastructure.Mechanisms
                 {
                     HasAlarm = true; 
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待运动完成超时（{timeoutMs} ms）");
+                    // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
+                    AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
+                    {
+                        MechanismName    = this.MechanismName,
+                        HardwareName     = axisName,
+                        ErrorMessage     = $"等待轴运动完成超时（{timeoutMs} ms）"
+                    });
                 }
 
                 return false;
@@ -233,6 +242,13 @@ namespace PF.Infrastructure.Mechanisms
                 {
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待回零完成超时（{timeoutMs} ms）");
+                    // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
+                    AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
+                    {
+                        MechanismName    = this.MechanismName,
+                        HardwareName     = axisName,
+                        ErrorMessage     = $"等待回零完成超时（{timeoutMs} ms）"
+                    });
                 }
                 return false;
             }
