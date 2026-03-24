@@ -131,7 +131,12 @@ namespace PF.Infrastructure.Station.Basic
                     _pauseEvent.Set();
                     StationAlarmTriggered?.Invoke(this, $"[{StationName}] 发生内部异常，进入报警状态！");
                 })
-                .Permit(MachineTrigger.Reset, MachineState.Idle);
+                .Permit(MachineTrigger.Reset, MachineState.Resetting); // Alarm → Resetting（对齐主控复位路径）
+
+            // --- 复位中状态 ---
+            _machine.Configure(MachineState.Resetting)
+                .Permit(MachineTrigger.ResetDone, MachineState.Idle)   // 复位成功 → Idle
+                .Permit(MachineTrigger.Error, MachineState.Alarm);     // 复位失败 → 回到 Alarm，允许再次复位
         }
 
         #region 线程生命周期管控
@@ -267,14 +272,29 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// 物理复位：先执行工站/模组级硬件复位，再将状态机从 Alarm 切回 Idle。
-        /// 基类默认实现仅复位状态机；子类可 override 以执行真实硬件清警 + 回原点动作。
-        /// 由 MasterController.ResetAllAsync() 在 Resetting 阶段顺序调用。
+        /// 物理复位模板：驱动本工站完整经历 Alarm → Resetting → Idle 的复位路径。
+        /// 由 MasterController.ResetAllAsync() 在其自身进入 Resetting 后顺序调用。
+        ///
+        /// 子类 override 规范：
+        ///   1. 调用 Fire(MachineTrigger.Reset) 将本工站推入 Resetting。
+        ///   2. 在 try 块中执行真实硬件清警 / 回原点动作。
+        ///   3. 成功后调用 await FireAsync(MachineTrigger.ResetDone) 进入 Idle；
+        ///      失败时在 catch 中调用 Fire(MachineTrigger.Error) 回到 Alarm，再 throw/rethrow。
+        /// 基类默认实现适用于无真实硬件的工站（纯软件复位）。
         /// </summary>
         public virtual async Task ExecuteResetAsync(CancellationToken token)
         {
-            await Task.CompletedTask;
-            ResetAlarm(); // Alarm → Idle
+            Fire(MachineTrigger.Reset);  // Alarm → Resetting
+            try
+            {
+                await Task.CompletedTask;  // 基类无硬件动作；子类 override 在此处插入硬件复位逻辑
+                await FireAsync(MachineTrigger.ResetDone);  // Resetting → Idle
+            }
+            catch (Exception)
+            {
+                Fire(MachineTrigger.Error);  // Resetting → Alarm，确保不卡死在 Resetting
+                throw;
+            }
         }
 
         // --- 供主控调用的公开方法 ---
@@ -310,7 +330,12 @@ namespace PF.Infrastructure.Station.Basic
             }
         }
  
-        public void ResetAlarm()   => Fire(MachineTrigger.Reset);
+        /// <summary>
+        /// 触发复位流程入口（Alarm → Resetting）。
+        /// ⚠️ 注意：此方法仅将状态机推入 Resetting，不会自动完成复位。
+        /// 完整复位路径请调用 ExecuteResetAsync()，它会在硬件复位成功后触发 FireAsync(ResetDone)。
+        /// </summary>
+        public void ResetAlarm() => Fire(MachineTrigger.Reset);
 
         /// <summary>
         /// 线程安全的同步状态跳转。
@@ -413,8 +438,11 @@ namespace PF.Infrastructure.Station.Basic
             catch (OperationCanceledException)
             {
                 if (timeoutCts.IsCancellationRequested)
+                {
                     _logger?.Error($"[{StationName}] 等待条件超时（{timeoutMs} ms）");
-                throw; // 超时视为超时错误返回 false；外部取消则向上重新抛出打断流程
+                    return false;  // 超时 → 返回 false（与 WaitIOAsync 行为对齐）
+                }
+                throw; // 外部取消（Stop/Alarm）→ 向上重新抛出打断流程
             }
         }
 
