@@ -139,17 +139,68 @@ namespace PF.Application.Shell.ViewModels
         #region 菜单刷新
         private void RefreshMenu()
         {
-            var allSystemMenus = _navigationMenuService.MenuItems;
+            var filtered = FilterMenuForDisplay(_navigationMenuService.MenuItems);
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 MenuItems.Clear();
-                foreach (var item in allSystemMenus)
+                foreach (var item in filtered)
                 {
                     MenuItems.Add(item);
                 }
             });
             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
+        }
+
+        /// <summary>
+        /// Administrator 及以下等级的页面始终在菜单中显示；
+        /// SuperUser 专属页面仅当当前登录用户为 SuperUser 时才显示。
+        /// </summary>
+        private ObservableCollection<NavigationItem> FilterMenuForDisplay(IEnumerable<NavigationItem> items)
+        {
+            var result = new ObservableCollection<NavigationItem>();
+            if (items == null) return result;
+
+            bool isSuperUser = CurrentUser?.Root == UserLevel.SuperUser;
+            var adminViews = DefaultPermissions.GetAccessibleViews(UserLevel.Administrator);
+
+            foreach (var item in items)
+            {
+                var cloned = new NavigationItem
+                {
+                    ViewName = item.ViewName,
+                    Title = item.Title,
+                    Icon = item.Icon,
+                    Order = item.Order,
+                    NavigationParameter = item.NavigationParameter,
+                    Children = new ObservableCollection<NavigationItem>()
+                };
+
+                if (item.Children?.Any() == true)
+                {
+                    var filteredChildren = FilterMenuForDisplay(item.Children);
+                    if (filteredChildren.Any())
+                    {
+                        cloned.Children = filteredChildren;
+                        result.Add(cloned);
+                    }
+                }
+                else
+                {
+                    bool isAdminVisible = adminViews.Contains(item.ViewName) || IsWhiteListView(item.ViewName);
+                    if (isAdminVisible || isSuperUser)
+                        result.Add(cloned);
+                }
+            }
+            return result;
+        }
+
+        private bool IsWhiteListView(string viewName)
+        {
+            if (string.IsNullOrEmpty(viewName)) return false;
+            if (NavigationConstantMapper.GetCategory(viewName) == nameof(NavigationConstants.Dialogs)) return true;
+            if (viewName == NavigationConstants.Views.MainView || viewName == NavigationConstants.Views.HomeView) return true;
+            return false;
         }
         #endregion
 
