@@ -18,12 +18,12 @@
             <Border
                 Grid.Row="0"
                 Padding="12,8"
-                Background="#FF2D2D30">
+                Background="{DynamicResource ThirdlyRegionBrush}">
                 <TextBlock
                     VerticalAlignment="Center"
                     FontSize="16"
                     FontWeight="Bold"
-                    Foreground="White"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
                     Text="生产数据实时监控" />
             </Border>
 
@@ -31,58 +31,52 @@
             <Border
                 Grid.Row="1"
                 Padding="10,6"
-                Background="#FF3E3E42">
+                Background="{DynamicResource BorderBrush}">
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <TextBlock
                         Margin="0,0,4,0"
                         VerticalAlignment="Center"
-                        Foreground="#FFCCCCCC"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
                         Text="类型：" />
                     <TextBox
                         Width="120"
                         Margin="0,0,16,0"
                         Padding="4,2"
-                        Background="#FF252526"
-                        BorderBrush="#FF555555"
-                        Foreground="White"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
                         Text="{Binding FilterRecordType, UpdateSourceTrigger=PropertyChanged}" />
 
                     <Button
                         Margin="0,0,8,0"
                         Padding="12,4"
-                        Background="#FF555555"
-                        BorderThickness="0"
+                        Style="{DynamicResource ButtonDefault}"
                         Command="{Binding ClearCommand}"
-                        Content="清空"
-                        Foreground="White" />
+                        Content="清空" />
 
                     <Button
                         Margin="0,0,8,0"
                         Padding="12,4"
-                        Background="#FF0E7A0E"
-                        BorderThickness="0"
+                        Style="{DynamicResource ButtonSuccess}"
                         Command="{Binding ExportCommand}"
                         CommandParameter="excel"
-                        Content="导出 Excel"
-                        Foreground="White" />
+                        Content="导出 Excel" />
 
                     <Button
                         Padding="12,4"
-                        Background="#FF555555"
-                        BorderThickness="0"
+                        Style="{DynamicResource ButtonDefault}"
                         Command="{Binding ExportCommand}"
                         CommandParameter="csv"
-                        Content="导出 CSV"
-                        Foreground="White" />
+                        Content="导出 CSV" />
                 </StackPanel>
             </Border>
 
             <!--  数据列表  -->
             <ListView
                 Grid.Row="2"
-                Background="#FF1E1E1E"
+                Background="{DynamicResource SecondaryRegionBrush}"
                 BorderThickness="0"
-                Foreground="#FFCCCCCC"
+                Foreground="{DynamicResource SecondaryTextBrush}"
                 ItemsSource="{Binding RecentRecords}"
                 SelectionMode="Single">
                 <ListView.View>
@@ -111,12 +105,12 @@
             <Border
                 Grid.Row="3"
                 Padding="10,4"
-                Background="#FF2D2D30">
-                <TextBlock Foreground="#FF999999">
+                Background="{DynamicResource ThirdlyRegionBrush}">
+                <TextBlock Foreground="{DynamicResource ThirdlyTextBrush}">
                     <Run Text="共 " />
                     <Run
                         FontWeight="Bold"
-                        Foreground="White"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
                         Text="{Binding TotalCount}" />
                     <Run Text=" 条（最多保留 500 条）" />
                 </TextBlock>

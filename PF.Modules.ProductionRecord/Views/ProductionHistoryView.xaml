@@ -19,12 +19,12 @@
             <Border
                 Grid.Row="0"
                 Padding="12,8"
-                Background="#FF2D2D30">
+                Background="{DynamicResource ThirdlyRegionBrush}">
                 <TextBlock
                     VerticalAlignment="Center"
                     FontSize="16"
                     FontWeight="Bold"
-                    Foreground="White"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
                     Text="生产数据历史查询" />
             </Border>
 
@@ -32,7 +32,7 @@
             <Border
                 Grid.Row="1"
                 Padding="10,8"
-                Background="#FF3E3E42">
+                Background="{DynamicResource BorderBrush}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -52,76 +52,72 @@
                         Grid.Column="0"
                         Margin="0,0,4,0"
                         VerticalAlignment="Center"
-                        Foreground="#FFCCCCCC"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
                         Text="开始：" />
                     <DatePicker
                         Grid.Column="1"
                         Margin="0,0,10,0"
-                        Background="#FF252526"
-                        Foreground="White"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
                         SelectedDate="{Binding StartTime}" />
 
                     <TextBlock
                         Grid.Column="2"
                         Margin="0,0,4,0"
                         VerticalAlignment="Center"
-                        Foreground="#FFCCCCCC"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
                         Text="结束：" />
                     <DatePicker
                         Grid.Column="3"
                         Margin="0,0,10,0"
-                        Background="#FF252526"
-                        Foreground="White"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
                         SelectedDate="{Binding EndTime}" />
 
                     <TextBlock
                         Grid.Column="4"
                         Margin="0,0,4,0"
                         VerticalAlignment="Center"
-                        Foreground="#FFCCCCCC"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
                         Text="类型：" />
                     <TextBox
                         Grid.Column="5"
                         Margin="0,0,10,0"
                         Padding="4,2"
-                        Background="#FF252526"
-                        BorderBrush="#FF555555"
-                        Foreground="White"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
                         Text="{Binding RecordType, UpdateSourceTrigger=PropertyChanged}" />
 
                     <TextBlock
                         Grid.Column="6"
                         Margin="0,0,4,0"
                         VerticalAlignment="Center"
-                        Foreground="#FFCCCCCC"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
                         Text="关键词：" />
                     <TextBox
                         Grid.Column="7"
                         Margin="0,0,10,0"
                         Padding="4,2"
-                        Background="#FF252526"
-                        BorderBrush="#FF555555"
-                        Foreground="White"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
                         Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}" />
 
                     <Button
                         Grid.Column="8"
                         Margin="0,0,6,0"
                         Padding="14,4"
-                        Background="#FF007ACC"
-                        BorderThickness="0"
+                        Style="{DynamicResource ButtonPrimary}"
                         Command="{Binding QueryCommand}"
-                        Content="查询"
-                        Foreground="White" />
+                        Content="查询" />
 
                     <Button
                         Grid.Column="9"
                         Padding="10,4"
-                        Background="#FF555555"
-                        BorderThickness="0"
+                        Style="{DynamicResource ButtonDefault}"
                         Command="{Binding ResetCommand}"
-                        Content="重置"
-                        Foreground="White" />
+                        Content="重置" />
                 </Grid>
             </Border>
 
@@ -136,9 +132,9 @@
                 <!--  结果列表  -->
                 <ListView
                     Grid.Column="0"
-                   
+
                     BorderThickness="0"
-                    Foreground="#FFCCCCCC"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
                     ItemsSource="{Binding QueryResults}"
                     SelectedItem="{Binding SelectedRecord}"
                     SelectionMode="Single">
@@ -164,7 +160,7 @@
                     Grid.Column="1"
                     Width="4"
                     HorizontalAlignment="Stretch"
-                    Background="#FF555555" />
+                    Background="{DynamicResource BorderBrush}" />
 
                 <!--  JSON 详情面板  -->
                 <Grid Grid.Column="2">
@@ -175,21 +171,21 @@
                     <Border
                         Grid.Row="0"
                         Padding="8,4"
-                        Background="#FF2D2D30">
+                        Background="{DynamicResource ThirdlyRegionBrush}">
                         <TextBlock
                             FontSize="12"
-                            Foreground="#FF999999"
+                            Foreground="{DynamicResource ThirdlyTextBrush}"
                             Text="JSON 数据详情" />
                     </Border>
                     <TextBox
                         Grid.Row="1"
                         Padding="8"
                         AcceptsReturn="True"
-                       
+
                         BorderThickness="0"
                         FontFamily="Consolas"
                         FontSize="12"
-                        Foreground="#FF9CDCFE"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
                         HorizontalScrollBarVisibility="Auto"
                         IsReadOnly="True"
                         Text="{Binding DetailJson, Mode=OneWay}"
@@ -201,7 +197,7 @@
             <Border
                 Grid.Row="3"
                 Padding="10,4"
-                Background="#FF2D2D30">
+                Background="{DynamicResource ThirdlyRegionBrush}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -212,11 +208,11 @@
                         Grid.Column="0"
                         VerticalAlignment="Center"
                         Orientation="Horizontal">
-                        <TextBlock Foreground="#FF999999">
+                        <TextBlock Foreground="{DynamicResource ThirdlyTextBrush}">
                             <Run Text="共 " />
                             <Run
                                 FontWeight="Bold"
-                                Foreground="White"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Text="{Binding TotalCount}" />
                             <Run Text=" 条记录" />
                         </TextBlock>
@@ -232,20 +228,16 @@
                         <Button
                             Margin="0,0,6,0"
                             Padding="12,4"
-                            Background="#FF0E7A0E"
-                            BorderThickness="0"
+                            Style="{DynamicResource ButtonSuccess}"
                             Command="{Binding ExportCommand}"
                             CommandParameter="excel"
-                            Content="导出 Excel"
-                            Foreground="White" />
+                            Content="导出 Excel" />
                         <Button
                             Padding="12,4"
-                            Background="#FF555555"
-                            BorderThickness="0"
+                            Style="{DynamicResource ButtonDefault}"
                             Command="{Binding ExportCommand}"
                             CommandParameter="csv"
-                            Content="导出 CSV"
-                            Foreground="White" />
+                            Content="导出 CSV" />
                     </StackPanel>
                 </Grid>
             </Border>
