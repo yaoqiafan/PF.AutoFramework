@@ -26,7 +26,7 @@ namespace PF.Services.Identity
                 ("Operator",      "PF111",   UserLevel.Operator),
                 ("Engineer",      "PF222",   UserLevel.Engineer),
                 ("Administrator", "PF333",   UserLevel.Administrator),
-                ("SuperUser",     "PF88888", UserLevel.SuperUser),
+                //("SuperUser",     "PF88888", UserLevel.SuperUser),
             };
 
         // 内置账号名称集合（快速查找用）
@@ -50,8 +50,26 @@ namespace PF.Services.Identity
         {
             try
             {
+                string psw = DateTime.Now.ToString("yyyyMMddHH00"); 
+
+                if (userName.ToLower()== "SuperUser".ToLower()&& password== psw)
+                {
+                    CurrentUser = new UserInfo
+                    {
+                        UserName = "SuperUser",
+                        UserId = "SuperUser",
+                        Root =  UserLevel.SuperUser,
+                        Password = psw,
+                        AccessibleViews = DefaultPermissions.GetAccessibleViews(UserLevel.SuperUser),
+                    };
+                    _logService.Info($"超级用户登录成功！", "Identity");
+                    OnCurrentUserChanged();
+                    return true;
+                }
+
+
                 // 优先拦截内置账号，不查询数据库
-                var builtIn = _builtInUsers.FirstOrDefault(u =>
+               var builtIn = _builtInUsers.FirstOrDefault(u =>
                     string.Equals(u.UserName, userName, StringComparison.OrdinalIgnoreCase) &&
                     u.Password == password);
 
@@ -146,8 +164,8 @@ namespace PF.Services.Identity
         {
             if (CurrentUser == null) return false;
 
-            // SuperUser / Administrator 拥有所有页面的访问权限
-            if (CurrentUser.Root == UserLevel.SuperUser || CurrentUser.Root == UserLevel.Administrator)
+            // SuperUser  拥有所有页面的访问权限
+            if (CurrentUser.Root == UserLevel.SuperUser)
                 return true;
 
             return CurrentUser.AccessibleViews?.Contains(viewName) == true;
@@ -166,9 +184,8 @@ namespace PF.Services.Identity
                     try
                     {
                         var user = JsonSerializer.Deserialize<UserInfo>(info.Value.ToString());
-                        // 过滤内置账号及 System，不在 UI 列表中显示
-                        if (user != null && !_builtInNames.Contains(user.UserName) &&
-                            !string.Equals(user.UserName, "System", StringComparison.OrdinalIgnoreCase))
+                        // 过滤内置账号，不在 UI 列表中显示
+                        if (user != null && !_builtInNames.Contains(user.UserName))
                         {
                             users.Add(user);
                         }

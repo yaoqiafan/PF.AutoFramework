@@ -211,7 +211,7 @@ namespace PF.Application.Shell
             // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
             // 使用默认的超级管理员账号进行静默登录
-            authService.LoginAsync("SuperUser", "PF88888").GetAwaiter().GetResult();
+            authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
             base.OnInitialized();
         }
 

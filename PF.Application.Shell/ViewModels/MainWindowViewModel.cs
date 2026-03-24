@@ -215,7 +215,7 @@ namespace PF.Application.Shell.ViewModels
                     string category = NavigationConstantMapper.GetCategory(viewName);
 
                     // ── 页面权限拦截（唯一检查点）────────────────────────────────
-                    if (category == nameof(NavigationConstants.Views) && !_userService.HasPagePermission(viewName))
+                    if ( !_userService.HasPagePermission(viewName))
                     {
                         _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
                         var displayName = PermissionHelper.GetViewDisplayName(viewName);
