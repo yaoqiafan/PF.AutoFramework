@@ -272,33 +272,42 @@ namespace PF.Workstation.Demo
         {
             _logger.Warn($"[{StationName}] 开始物理复位，故障步序: {_currentStep}");
 
-            // 1. 硬件复位：清除底层报警（轴卡、IO 卡等）
-            await _gantry.ResetAsync(token);
-
-            // 2. 重新初始化（回原点、关真空），使硬件回到安全初始状态
-            if (!await _gantry.InitializeAsync(token))
-                _logger.Warn($"[{StationName}] 复位后初始化未完全成功，请检查硬件！");
-
-            // 3. 智能回跳
-            if (_currentStep >= PickPlaceStep.Place)
+            Fire(MachineTrigger.Reset);  // Alarm → Resetting
+            try
             {
-                _currentStep = PickPlaceStep.WaitMaterial;
-                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（放料阶段故障，跳过取料）");
-            }
-            else if (_currentStep >= PickPlaceStep.Pick)
-            {
-                _currentStep = PickPlaceStep.Pick;
-                _logger.Info($"[{StationName}] 步序回跳 → Pick（取料阶段故障，重试取料）");
-            }
-            else
-            {
-                _currentStep = PickPlaceStep.WaitMaterial;
-                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（取料前故障，重新等待物料）");
-            }
+                // 1. 硬件复位：清除底层报警（轴卡、IO 卡等）
+                await _gantry.ResetAsync(token);
 
-            // 4. 工站状态机：Alarm → Idle
-            ResetAlarm();
-            _logger.Success($"[{StationName}] 物理复位完成，就绪。");
+                // 2. 重新初始化（回原点、关真空），使硬件回到安全初始状态
+                if (!await _gantry.InitializeAsync(token))
+                    _logger.Warn($"[{StationName}] 复位后初始化未完全成功，请检查硬件！");
+
+                // 3. 智能回跳
+                if (_currentStep >= PickPlaceStep.Place)
+                {
+                    _currentStep = PickPlaceStep.WaitMaterial;
+                    _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（放料阶段故障，跳过取料）");
+                }
+                else if (_currentStep >= PickPlaceStep.Pick)
+                {
+                    _currentStep = PickPlaceStep.Pick;
+                    _logger.Info($"[{StationName}] 步序回跳 → Pick（取料阶段故障，重试取料）");
+                }
+                else
+                {
+                    _currentStep = PickPlaceStep.WaitMaterial;
+                    _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（取料前故障，重新等待物料）");
+                }
+
+                // 4. 工站状态机：Resetting → Idle
+                await FireAsync(MachineTrigger.ResetDone);
+                _logger.Success($"[{StationName}] 物理复位完成，就绪。");
+            }
+            catch (Exception)
+            {
+                Fire(MachineTrigger.Error);  // Resetting → Alarm，确保不卡死在 Resetting
+                throw;
+            }
         }
 
         // ── 辅助方法 ────────────────────────────────────────────────────────
