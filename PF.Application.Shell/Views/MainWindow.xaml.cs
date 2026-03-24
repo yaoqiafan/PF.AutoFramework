@@ -1,7 +1,9 @@
-﻿using PF.Application.Shell.ViewModels;
+﻿using PF.Application.Shell.CustomConfiguration.Param;
+using PF.Application.Shell.ViewModels;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Shared.Data;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,11 +19,13 @@ namespace PF.Application.Shell.Views
     public partial class MainWindow : PF.UI.Controls.Window
     {
         private readonly IMessageService _messageService;
-        public MainWindow(IMessageService messageService)
+        private readonly CommonSettings _commonSettings;
+        public MainWindow(IMessageService messageService, CommonSettings commonSettings)
         {
             InitializeComponent();
             this.Loaded += MainWindow_Loaded; // 订阅 Loaded 事件
             _messageService = messageService;
+            _commonSettings = commonSettings;
         }
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -106,6 +110,19 @@ namespace PF.Application.Shell.Views
 
         private void ButtonSkins_OnClick(object sender, RoutedEventArgs e)
         {
+            Button button = e.OriginalSource as Button;
+            if (e.OriginalSource is Button)
+            {
+                PopupConfig.IsOpen = false;
+                if (button.Tag.Equals(_commonSettings.Skin.ToString()))
+                {
+                    return;
+                }
+
+                _commonSettings.Skin = (SkinType)Enum.Parse(typeof(SkinType), button.Tag.ToString());
+                ((App)System.Windows.Application.Current).UpdateSkin(button.Tag.ToString());
+                _commonSettings.Save();
+            }
         }
 
         private void ButtonConfig_OnClick(object sender, RoutedEventArgs e) => PopupConfig.IsOpen = true;
