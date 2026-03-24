@@ -20,6 +20,9 @@ namespace PF.WorkStation.AutoOcr.UI
 
 
             containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
+
+
+            DefaultPermissions.RegisterViews(Core.Enums.UserLevel.Administrator, nameof(OcrRecipeManageView));
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
