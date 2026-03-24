@@ -1,6 +1,7 @@
 ﻿using PF.UI.Shared.Data;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Security.Cryptography.X509Certificates;
@@ -55,17 +56,6 @@ namespace PF.UI.Resources
         }
 
 
-
-        public static readonly DependencyProperty TextBrushProperty = DependencyProperty.Register(
-          nameof(TextBrush), typeof(Brush), typeof(Splash), new PropertyMetadata(Brushes.White));
-        public Brush TextBrush
-        {
-            get => (Brush)GetValue(TextBrushProperty);
-            set => SetValue(TextBrushProperty, value);
-        }
-
-
-
         public static readonly DependencyProperty MessageinfoProperty = DependencyProperty.Register(
          nameof(Messageinfo), typeof(string), typeof(Splash), new PropertyMetadata("Loading..."));
         public string Messageinfo
@@ -73,6 +63,18 @@ namespace PF.UI.Resources
             get => (string)GetValue(MessageinfoProperty);
             set => SetValue(MessageinfoProperty, value);
         }
+
+
+      
+        public static readonly DependencyProperty MessageTypeProperty = DependencyProperty.Register(
+            nameof(MessageType), typeof(MsgType), typeof(Splash), new PropertyMetadata(default));
+
+        public MsgType MessageType
+        {
+            get => (MsgType)GetValue(MessageTypeProperty);
+            set => SetValue(MessageTypeProperty, value);
+        }
+
 
 
         public Func<Task<bool>> LoadingAction { get; set; } = () => Task.FromResult(true);
@@ -102,6 +104,36 @@ namespace PF.UI.Resources
         public void UpdateMessage(string status, MsgType msgType = MsgType.Info)
         {
             Messageinfo = status;
+            MessageType = msgType;
         }
     }
+
+
+    /// <summary>
+    /// 日志级别到颜色转换器
+    /// </summary>
+    public class MessageTypeToBrushConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is MsgType level)
+            {
+                return level switch
+                {
+                    MsgType.Info => new SolidColorBrush(Colors.White),
+                    MsgType.Success => new SolidColorBrush(Color.FromRgb(76, 175, 80)),
+                    MsgType.Error => new SolidColorBrush(Color.FromRgb(244, 67, 54)),
+                    MsgType.Fatal => new SolidColorBrush(Color.FromRgb(183, 28, 28)),
+                    _ => Brushes.Gray
+                };
+            }
+            return Brushes.Gray;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
 }
