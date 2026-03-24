@@ -136,7 +136,7 @@
                 <!--  结果列表  -->
                 <ListView
                     Grid.Column="0"
-                    Background="#FF1E1E1E"
+                   
                     BorderThickness="0"
                     Foreground="#FFCCCCCC"
                     ItemsSource="{Binding QueryResults}"
@@ -185,7 +185,7 @@
                         Grid.Row="1"
                         Padding="8"
                         AcceptsReturn="True"
-                        Background="#FF1E1E1E"
+                       
                         BorderThickness="0"
                         FontFamily="Consolas"
                         FontSize="12"
