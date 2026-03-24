@@ -142,7 +142,7 @@ namespace PF.Workstation.Demo
                     // ── WaitMaterial: 等待上游物料到位 ───────────────────────
                     case PickPlaceStep.WaitMaterial:
                         CurrentStepDescription = "等待上游物料到位...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
                         _logger.Info($"[{StationName}] ══ Cycle #{_cycleCount} 开始 ══");
@@ -154,7 +154,7 @@ namespace PF.Workstation.Demo
                     // ── Pick: 取料 ───────────────────────────────────────────
                     case PickPlaceStep.Pick:
                         CurrentStepDescription = "正在执行取料动作...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [2/5] 执行取料动作...");
                         await _gantry.PickAsync(token);
@@ -164,7 +164,7 @@ namespace PF.Workstation.Demo
                     // ── WaitSlotEmpty: 等待工作台槽位空闲（★ 流水线协同）────
                     case PickPlaceStep.WaitSlotEmpty:
                         CurrentStepDescription = "等待工作台槽位空闲...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ③ ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ③ ════
 
                         _logger.Info($"[{StationName}] [3/5] 等待工作台槽位空闲...");
                         await _sync.WaitAsync(WorkstationSignals.SlotEmpty, token);
@@ -215,7 +215,7 @@ namespace PF.Workstation.Demo
                     // ── WaitMaterial: 模拟物料到位（不等真实传感器）──────────
                     case PickPlaceStep.WaitMaterial:
                         CurrentStepDescription = "[DryRun] 模拟物料到位...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
                         _logger.Info($"[{StationName}] [DryRun] ══ Cycle #{_cycleCount} 开始 ══");
@@ -227,7 +227,7 @@ namespace PF.Workstation.Demo
                     // ── Pick: 执行真实取料轴运动（验证轨迹）────────────────
                     case PickPlaceStep.Pick:
                         CurrentStepDescription = "[DryRun] 正在验证取料轨迹...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [DryRun][2/4] 执行取料轴运动（验证轨迹）...");
                         await _gantry.PickAsync(token);
@@ -272,33 +272,42 @@ namespace PF.Workstation.Demo
         {
             _logger.Warn($"[{StationName}] 开始物理复位，故障步序: {_currentStep}");
 
-            // 1. 硬件复位：清除底层报警（轴卡、IO 卡等）
-            await _gantry.ResetAsync(token);
-
-            // 2. 重新初始化（回原点、关真空），使硬件回到安全初始状态
-            if (!await _gantry.InitializeAsync(token))
-                _logger.Warn($"[{StationName}] 复位后初始化未完全成功，请检查硬件！");
-
-            // 3. 智能回跳
-            if (_currentStep >= PickPlaceStep.Place)
+            Fire(MachineTrigger.Reset);  // Alarm → Resetting
+            try
             {
-                _currentStep = PickPlaceStep.WaitMaterial;
-                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（放料阶段故障，跳过取料）");
-            }
-            else if (_currentStep >= PickPlaceStep.Pick)
-            {
-                _currentStep = PickPlaceStep.Pick;
-                _logger.Info($"[{StationName}] 步序回跳 → Pick（取料阶段故障，重试取料）");
-            }
-            else
-            {
-                _currentStep = PickPlaceStep.WaitMaterial;
-                _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（取料前故障，重新等待物料）");
-            }
+                // 1. 硬件复位：清除底层报警（轴卡、IO 卡等）
+                await _gantry.ResetAsync(token);
 
-            // 4. 工站状态机：Alarm → Idle
-            ResetAlarm();
-            _logger.Success($"[{StationName}] 物理复位完成，就绪。");
+                // 2. 重新初始化（回原点、关真空），使硬件回到安全初始状态
+                if (!await _gantry.InitializeAsync(token))
+                    _logger.Warn($"[{StationName}] 复位后初始化未完全成功，请检查硬件！");
+
+                // 3. 智能回跳
+                if (_currentStep >= PickPlaceStep.Place)
+                {
+                    _currentStep = PickPlaceStep.WaitMaterial;
+                    _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（放料阶段故障，跳过取料）");
+                }
+                else if (_currentStep >= PickPlaceStep.Pick)
+                {
+                    _currentStep = PickPlaceStep.Pick;
+                    _logger.Info($"[{StationName}] 步序回跳 → Pick（取料阶段故障，重试取料）");
+                }
+                else
+                {
+                    _currentStep = PickPlaceStep.WaitMaterial;
+                    _logger.Info($"[{StationName}] 步序回跳 → WaitMaterial（取料前故障，重新等待物料）");
+                }
+
+                // 4. 工站状态机：Resetting → Idle
+                await FireAsync(MachineTrigger.ResetDone);
+                _logger.Success($"[{StationName}] 物理复位完成，就绪。");
+            }
+            catch (Exception)
+            {
+                Fire(MachineTrigger.Error);  // Resetting → Alarm，确保不卡死在 Resetting
+                throw;
+            }
         }
 
         // ── 辅助方法 ────────────────────────────────────────────────────────
