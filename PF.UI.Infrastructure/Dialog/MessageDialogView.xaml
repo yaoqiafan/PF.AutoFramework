@@ -5,6 +5,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.UI.Infrastructure.Dialog"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    Background="{DynamicResource BorderBrush}"
     MaxWidth="450"
     MinHeight="250"
     MaxHeight="600"
