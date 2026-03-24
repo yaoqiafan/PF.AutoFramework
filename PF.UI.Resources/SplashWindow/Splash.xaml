@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:PF.UI.Resources"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     Title="Splash"
     Width="900"
     Height="500"
@@ -14,6 +15,11 @@
     WindowStartupLocation="CenterScreen"
     WindowStyle="None"
     mc:Ignorable="d">
+
+    <pf:Window.Resources>
+        <local:MessageTypeToBrushConverter x:Key="MessageTypeToBrushConverter"></local:MessageTypeToBrushConverter>
+    </pf:Window.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="148*" />
@@ -82,14 +88,14 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Bottom"
             FontSize="20"
-            Foreground="{Binding TextBrush}"
+            Foreground="{Binding MessageType, Converter={StaticResource MessageTypeToBrushConverter}}"
             Text="{Binding Messageinfo}" />
         <pf:LoadingLine
             Grid.Row="2"
             DotCount="8"
             DotDiameter="12"
             DotSpeed="2"
-            Foreground="OliveDrab"
+            Foreground="{DynamicResource PrimaryBrush}"
             Style="{StaticResource LoadingLineLarge}" />
     </Grid>
 

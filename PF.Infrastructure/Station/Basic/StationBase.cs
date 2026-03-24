@@ -23,7 +23,7 @@ namespace PF.Infrastructure.Station.Basic
     ///     防止后台线程报警与 UI 线程发出的 Stop/Pause 同时修改状态机内部状态。
     ///   · Running 状态采用 OnEntryAsync，确保旧任务彻底终止后再启动新任务，消除"幽灵线程"。
     /// </summary>
-    public abstract class StationBase : IDisposable, INotifyPropertyChanged
+    public abstract class StationBase : IDisposable, IAsyncDisposable, INotifyPropertyChanged
     {
         // ── INotifyPropertyChanged ────────────────────────────────────────────
         public event PropertyChangedEventHandler PropertyChanged;
@@ -63,10 +63,13 @@ namespace PF.Infrastructure.Station.Basic
         // 使用 SemaphoreSlim 而非 lock，以支持 async/await 场景下的无死锁等待。
         private readonly SemaphoreSlim _stateLock = new(1, 1);
 
-        // 线程生命周期三剑客
+        // 线程生命周期管理
         private CancellationTokenSource _runCts;
-        protected ManualResetEventSlim _pauseEvent;
         private Task _workflowTask;
+
+        // 异步暂停门：volatile 保证多线程可见性；RunContinuationsAsynchronously 防止 TrySetResult 内联执行续体导致死锁。
+        // Paused.OnEntry 替换为新建未完成 TCS（关门），Paused.OnExit / Alarm.OnEntry 调用 TrySetResult(true)（开门）。
+        private volatile TaskCompletionSource<bool> _pauseGate;
 
         // 标记当前业务线程是被"外部报警"打断（true），还是"正常停止"打断（false）。
         // volatile 确保多线程可见性：TriggerAlarm 在状态机线程写入，ProcessWrapperAsync 在业务线程读取。
@@ -76,7 +79,10 @@ namespace PF.Infrastructure.Station.Basic
         {
             StationName = name;
             _logger = logger;
-            _pauseEvent = new ManualResetEventSlim(true);
+
+            // 初始状态：未暂停（gate 已完成，业务线程可直接通过）
+            _pauseGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _pauseGate.TrySetResult(true);
 
             // 初始状态：Uninitialized（硬件未就绪，禁止直接启动）
             _machine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
@@ -118,8 +124,12 @@ namespace PF.Infrastructure.Station.Basic
 
             // --- 暂停状态 ---
             _machine.Configure(MachineState.Paused)
-                .OnEntry(() => _pauseEvent.Reset())
-                .OnExit(() => _pauseEvent.Set())
+                .OnEntry(() =>
+                    // 关门：新建未完成 TCS，业务线程在 CheckPauseAsync 处挂起（不占用线程）
+                    _pauseGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously))
+                .OnExit(() =>
+                    // 开门：完成当前 TCS，释放所有挂起在 CheckPauseAsync 的续体
+                    _pauseGate.TrySetResult(true))
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
@@ -128,38 +138,50 @@ namespace PF.Infrastructure.Station.Basic
             _machine.Configure(MachineState.Alarm)
                 .OnEntry(() =>
                 {
-                    _pauseEvent.Set();
+                    // 开门：防止 Paused → Alarm 时业务续体永久阻塞在已关闭的门上
+                    _pauseGate.TrySetResult(true);
                     StationAlarmTriggered?.Invoke(this, $"[{StationName}] 发生内部异常，进入报警状态！");
                 })
-                .Permit(MachineTrigger.Reset, MachineState.Idle);
+                .Permit(MachineTrigger.Reset, MachineState.Resetting); // Alarm → Resetting（对齐主控复位路径）
+
+            // --- 复位中状态 ---
+            _machine.Configure(MachineState.Resetting)
+                .Permit(MachineTrigger.ResetDone, MachineState.Idle)   // 复位成功 → Idle
+                .Permit(MachineTrigger.Error, MachineState.Alarm);     // 复位失败 → 回到 Alarm，允许再次复位
         }
 
         #region 线程生命周期管控
 
         /// <summary>
-        /// Running 状态异步入口：
-        ///   1. 取消旧 CTS → 防止旧任务继续执行硬件指令
-        ///   2. 等待旧任务彻底死亡 → 消除"幽灵线程"导致的硬件指令冲突
-        ///   3. 释放旧 CTS → 建立新 CTS → 启动新任务
+        /// 取消旧任务并等待其彻底退出，在获取 _stateLock 之前调用。
+        ///
+        /// 【关键设计】此方法必须在 FireAsync(Start/Resume) 持锁之前完成：
+        ///   若在锁内等待旧任务，而旧任务的 catch(Exception) 路径调用 Fire(Error)
+        ///   尝试同步获取同一把锁，将形成循环等待 → 永久死锁。
+        ///   将等待移至锁外，可彻底消除该循环依赖。
         /// </summary>
-        private async Task OnStartRunningAsync()
+        private async Task CancelAndAwaitOldTaskAsync()
         {
-            // 1. 取消旧任务
             _runCts?.Cancel();
-
-            // 2. 等待旧任务彻底结束（捕获取消异常，正常退出即可）
             if (_workflowTask is { IsCompleted: false })
             {
-                try { await _workflowTask; }
-                catch { /* 旧任务被取消，忽略 OperationCanceledException 及其他退出异常 */ }
+                try { await _workflowTask.ConfigureAwait(false); }
+                catch { /* 旧任务取消或异常退出，均忽略 */ }
             }
+        }
 
-            // 3. 重建令牌，启动新任务
+        /// <summary>
+        /// Running 状态同步入口（已简化）：
+        ///   旧任务的取消与等待已由 StartAsync/ResumeAsync 在锁外完成，
+        ///   此处仅负责建立新 CTS、启动新任务。
+        /// </summary>
+        private Task OnStartRunningAsync()
+        {
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
-            _alarmInterrupted = false; // 每次启动前清除报警标志
-            _pauseEvent.Set();
+            _alarmInterrupted = false;
             _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token));
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -184,8 +206,6 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (OperationCanceledException)
             {
-                // 由 TriggerAlarm() 取消：标志已在 TriggerAlarm 中置位，状态机已切到 Alarm，仅记录日志。
-                // 由 Stop/正常停止取消：记录安全退出日志即可。
                 if (_alarmInterrupted)
                     _logger?.Warn($"[{StationName}] 业务流程被外部报警打断，线程安全退出。");
                 else
@@ -195,8 +215,21 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
-                // 使用线程安全的 Fire() 而非直接调用 _machine.Fire()
-                Fire(MachineTrigger.Error);
+
+                // 🚨 修复 P0 级死锁：
+                // 必须通过 Task.Run 脱离当前任务上下文，让 _workflowTask 立即结束
+                // 从而释放 OnStartRunningAsync 中的 await 锁等待，防止与 StartAsync 形成循环死锁。
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        Fire(MachineTrigger.Error);
+                    }
+                    catch (Exception fireEx)
+                    {
+                        _logger?.Fatal($"[{StationName}] 业务异常后尝试触发报警状态失败: {fireEx.Message}");
+                    }
+                });
             }
         }
 
@@ -267,30 +300,56 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// 物理复位：先执行工站/模组级硬件复位，再将状态机从 Alarm 切回 Idle。
-        /// 基类默认实现仅复位状态机；子类可 override 以执行真实硬件清警 + 回原点动作。
-        /// 由 MasterController.ResetAllAsync() 在 Resetting 阶段顺序调用。
+        /// 物理复位模板：驱动本工站完整经历 Alarm → Resetting → Idle 的复位路径。
+        /// 由 MasterController.ResetAllAsync() 在其自身进入 Resetting 后顺序调用。
+        ///
+        /// 子类 override 规范：
+        ///   1. 调用 Fire(MachineTrigger.Reset) 将本工站推入 Resetting。
+        ///   2. 在 try 块中执行真实硬件清警 / 回原点动作。
+        ///   3. 成功后调用 await FireAsync(MachineTrigger.ResetDone) 进入 Idle；
+        ///      失败时在 catch 中调用 Fire(MachineTrigger.Error) 回到 Alarm，再 throw/rethrow。
+        /// 基类默认实现适用于无真实硬件的工站（纯软件复位）。
         /// </summary>
         public virtual async Task ExecuteResetAsync(CancellationToken token)
         {
-            await Task.CompletedTask;
-            ResetAlarm(); // Alarm → Idle
+            Fire(MachineTrigger.Reset);  // Alarm → Resetting
+            try
+            {
+                await Task.CompletedTask;  // 基类无硬件动作；子类 override 在此处插入硬件复位逻辑
+                await FireAsync(MachineTrigger.ResetDone);  // Resetting → Idle
+            }
+            catch (Exception)
+            {
+                Fire(MachineTrigger.Error);  // Resetting → Alarm，确保不卡死在 Resetting
+                throw;
+            }
         }
 
         // --- 供主控调用的公开方法 ---
 
         /// <summary>
-        /// 异步启动工站。因 Running 状态配置了 OnEntryAsync，必须使用 FireAsync 触发跳转。
+        /// 异步启动工站。
+        ///   1. 锁外：取消并等待旧任务退出（消除 Fire/FireAsync 持锁期间的循环等待死锁）。
+        ///   2. 持锁：触发 Start 状态跳转，Running.OnEntryAsync 启动新任务。
         /// </summary>
-        public async Task StartAsync() => await FireAsync(MachineTrigger.Start);
+        public async Task StartAsync()
+        {
+            await CancelAndAwaitOldTaskAsync().ConfigureAwait(false);
+            await FireAsync(MachineTrigger.Start);
+        }
 
         public void Stop() => Fire(MachineTrigger.Stop);
         public void Pause() => Fire(MachineTrigger.Pause);
 
         /// <summary>
-        /// 异步恢复工站（Paused → Running）。因 Running 状态配置了 OnEntryAsync，必须使用 FireAsync。
+        /// 异步恢复工站（Paused → Running）。
+        ///   同 StartAsync，先在锁外等待旧任务退出，再持锁触发 Resume 跳转。
         /// </summary>
-        public async Task ResumeAsync() => await FireAsync(MachineTrigger.Resume);
+        public async Task ResumeAsync()
+        {
+            await CancelAndAwaitOldTaskAsync().ConfigureAwait(false);
+            await FireAsync(MachineTrigger.Resume);
+        }
 
         /// <summary>
         /// 外部触发工站报警（如主控急停、硬件异常事件）。
@@ -310,7 +369,12 @@ namespace PF.Infrastructure.Station.Basic
             }
         }
  
-        public void ResetAlarm()   => Fire(MachineTrigger.Reset);
+        /// <summary>
+        /// 触发复位流程入口（Alarm → Resetting）。
+        /// ⚠️ 注意：此方法仅将状态机推入 Resetting，不会自动完成复位。
+        /// 完整复位路径请调用 ExecuteResetAsync()，它会在硬件复位成功后触发 FireAsync(ResetDone)。
+        /// </summary>
+        public void ResetAlarm() => Fire(MachineTrigger.Reset);
 
         /// <summary>
         /// 线程安全的同步状态跳转。
@@ -361,10 +425,24 @@ namespace PF.Infrastructure.Station.Basic
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 显式暂停检查点：工站处于 Paused 状态时此处阻塞，恢复后继续执行。
-        /// 在业务循环的每个步序入口调用，确保暂停命令能及时生效。
+        /// 异步暂停检查点：工站处于 Paused 状态时挂起当前 async 流程（不占用线程），恢复后继续执行。
+        /// 在业务循环的每个步序入口 await 此方法，确保暂停命令能及时生效。
         /// </summary>
-        protected void CheckPause(CancellationToken token) => _pauseEvent.Wait(token);
+        protected Task CheckPauseAsync(CancellationToken token)
+        {
+            // 捕获当前 gate 引用，避免与 Paused.OnEntry 的赋值产生竞争
+            var gate = _pauseGate;
+            return gate.Task.IsCompleted
+                ? Task.CompletedTask
+                : gate.Task.WaitAsync(token);
+        }
+
+        /// <summary>
+        /// 同步暂停检查点（已过时）。
+        /// 此方法会同步阻塞调用线程；在 async 业务方法中请改用 await CheckPauseAsync(token)。
+        /// </summary>
+        [Obsolete("请在 async 方法中改用 await CheckPauseAsync(token)，避免同步阻塞线程池线程。")]
+        protected void CheckPause(CancellationToken token) => _pauseGate.Task.Wait(token);
 
         /// <summary>
         /// 工艺延时：支持暂停中断（每 50ms 检查一次暂停状态）和取消令牌。
@@ -378,7 +456,7 @@ namespace PF.Infrastructure.Station.Basic
             int remaining = milliseconds;
             while (remaining > 0)
             {
-                _pauseEvent.Wait(token); // 暂停时阻塞，恢复或取消时继续
+                await CheckPauseAsync(token).ConfigureAwait(false); // 暂停时异步挂起，不占线程
                 int chunk = Math.Min(ChunkMs, remaining);
                 await Task.Delay(chunk, token).ConfigureAwait(false);
                 remaining -= chunk;
@@ -405,7 +483,7 @@ namespace PF.Infrastructure.Station.Basic
             {
                 while (true)
                 {
-                    _pauseEvent.Wait(linked.Token);
+                    await CheckPauseAsync(linked.Token).ConfigureAwait(false);
                     if (condition()) return true;
                     await Task.Delay(pollIntervalMs, linked.Token).ConfigureAwait(false);
                 }
@@ -413,8 +491,11 @@ namespace PF.Infrastructure.Station.Basic
             catch (OperationCanceledException)
             {
                 if (timeoutCts.IsCancellationRequested)
+                {
                     _logger?.Error($"[{StationName}] 等待条件超时（{timeoutMs} ms）");
-                throw; // 超时视为超时错误返回 false；外部取消则向上重新抛出打断流程
+                    return false;  // 超时 → 返回 false（与 WaitIOAsync 行为对齐）
+                }
+                throw; // 外部取消（Stop/Alarm）→ 向上重新抛出打断流程
             }
         }
 
@@ -435,7 +516,7 @@ namespace PF.Infrastructure.Station.Basic
             CancellationToken token = default)
         {
             _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] → {targetState}");
-            _pauseEvent.Wait(token);
+            await CheckPauseAsync(token).ConfigureAwait(false);
             bool result = await io.WaitInputAsync(portIndex, targetState, timeoutMs, token).ConfigureAwait(false);
             if (!result)
                 _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] = {targetState} 超时（{timeoutMs} ms）");
@@ -455,7 +536,7 @@ namespace PF.Infrastructure.Station.Basic
             where T : Enum
         {
             _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] → {targetState}");
-            _pauseEvent.Wait(token);
+            await CheckPauseAsync(token).ConfigureAwait(false);
             bool result = await io.WaitInputAsync(inputName, targetState, timeoutMs, token).ConfigureAwait(false);
             if (!result)
                 _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] = {targetState} 超时（{timeoutMs} ms）");
@@ -498,20 +579,57 @@ namespace PF.Infrastructure.Station.Basic
 
         #endregion
 
-        public virtual void Dispose()
+        /// <summary>
+        /// 异步清理（推荐路径）：正确等待业务任务退出，不阻塞调用方线程。
+        /// 在支持 IAsyncDisposable 的 DI 容器 / using await 语句中自动调用。
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
         {
             _runCts?.Cancel();
-            _pauseEvent?.Set();
+            _pauseGate.TrySetResult(true); // 释放任何挂起在 CheckPauseAsync 的续体
 
-            // 等待后台任务安全退出（最多 5 秒），防止 Dispose 后幽灵线程继续访问已释放资源
-            var task = _workflowTask;
-            if (task is { IsCompleted: false })
+            if (_workflowTask is { IsCompleted: false })
             {
-                try { task.Wait(TimeSpan.FromSeconds(5)); } catch { }
+                try
+                {
+                    await _workflowTask.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    _logger?.Warn($"[{StationName}] DisposeAsync 等待业务任务退出超时（5s）");
+                }
+                catch { }
             }
 
             _runCts?.Dispose();
-            _pauseEvent?.Dispose();
+            _stateLock?.Dispose();
+        }
+
+        /// <summary>
+        /// 同步清理（兼容路径）：发出取消信号后，将等待卸载到线程池，
+        /// 切断 SynchronizationContext 捕获，防止 UI 线程调用时发生 Sync-over-Async 死锁。
+        /// 推荐优先使用 DisposeAsync()。
+        /// </summary>
+        public virtual void Dispose()
+        {
+            _runCts?.Cancel();
+            _pauseGate.TrySetResult(true);
+
+            // 卸载到线程池，切断 SynchronizationContext，防止 UI 线程死锁
+            var task = _workflowTask;
+            if (task is { IsCompleted: false })
+            {
+                try
+                {
+                    Task.Run(async () =>
+                    {
+                        await task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                    }).GetAwaiter().GetResult();
+                }
+                catch { }
+            }
+
+            _runCts?.Dispose();
             _stateLock?.Dispose();
         }
     }
