@@ -136,73 +136,20 @@ namespace PF.Application.Shell.ViewModels
         }
         #endregion
 
-        #region 菜单刷新与权限过滤
+        #region 菜单刷新
         private void RefreshMenu()
         {
             var allSystemMenus = _navigationMenuService.MenuItems;
-            var filteredMenus = FilterMenuTree(allSystemMenus, CurrentUser);
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 MenuItems.Clear();
-                foreach (var item in filteredMenus)
+                foreach (var item in allSystemMenus)
                 {
                     MenuItems.Add(item);
                 }
             });
             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
-        }
-
-        private bool IsWhiteListView(string viewName)
-        {
-            if (string.IsNullOrEmpty(viewName)) return false;
-            if (NavigationConstantMapper.GetCategory(viewName) == nameof(NavigationConstants.Dialogs)) return true;
-            if (viewName== NavigationConstants.Views.MainView|| viewName == NavigationConstants.Views.HomeView) return true;
-            
-            return false;
-        }
-
-        private ObservableCollection<NavigationItem> FilterMenuTree(IEnumerable<NavigationItem> originalItems, UserInfo user)
-        {
-            var filteredCollection = new ObservableCollection<NavigationItem>();
-
-            if (originalItems == null || !originalItems.Any()) return filteredCollection;
-
-            user ??= new UserInfo { Root = UserLevel.Null, AccessibleViews = DefaultPermissions. GetAccessibleViews(UserLevel.Null) };
-
-            bool isSuperAdmin = user.Root == UserLevel.SuperUser;
-            var allowedViews = user.AccessibleViews ?? DefaultPermissions.GetAccessibleViews(UserLevel.Null);
-
-            foreach (var item in originalItems)
-            {
-                var clonedItem = new NavigationItem
-                {
-                    ViewName = item.ViewName,
-                    Title = item.Title,
-                    Icon = item.Icon,
-                    Order = item.Order,
-                    NavigationParameter = item.NavigationParameter,
-                    Children = new ObservableCollection<NavigationItem>()
-                };
-
-                if (item.Children != null && item.Children.Any())
-                {
-                    var filteredChildren = FilterMenuTree(item.Children, user);
-                    if (filteredChildren.Any())
-                    {
-                        clonedItem.Children = filteredChildren;
-                        filteredCollection.Add(clonedItem);
-                    }
-                }
-                else
-                {
-                    if (isSuperAdmin || allowedViews.Contains(clonedItem.ViewName) || IsWhiteListView(clonedItem.ViewName))
-                    {
-                        filteredCollection.Add(clonedItem);
-                    }
-                }
-            }
-            return filteredCollection;
         }
         #endregion
 
@@ -216,14 +163,13 @@ namespace PF.Application.Shell.ViewModels
                     string viewName = navItem.ViewName;
                     string category = NavigationConstantMapper.GetCategory(viewName);
 
-                    // ── Per-User 页面权限纵深拦截 ──────────────────────────────────
-                    // 菜单已按 AccessibleViews 过滤作为第一道防线；
-                    // 此处在实际导航前再做二次校验，防止绕过菜单层直接触发的访问。
+                    // ── 页面权限拦截（唯一检查点）────────────────────────────────
                     if (category == nameof(NavigationConstants.Views) && !_userService.HasPagePermission(viewName))
                     {
                         _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
-                        MessageService .ShowMessage(
-                            $"您无权访问该页面。\n\n页面路由: {viewName}\n当前用户: {CurrentUser?.UserName}\n\n请联系管理员在「权限管控 → 窗体权限更改」中配置相应权限。",
+                        var displayName = PermissionHelper.GetViewDisplayName(viewName);
+                        MessageService.ShowMessage(
+                            $"您无权访问「{displayName}」页面，请联系管理员在「权限管控 → 窗体权限更改」中配置相应权限。",
                             "权限不足",
                             System.Windows.MessageBoxButton.OK,
                             System.Windows.MessageBoxImage.Warning);
