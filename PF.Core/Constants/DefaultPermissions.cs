@@ -49,6 +49,8 @@ namespace PF.Core.Constants
                 NavigationConstants.Views.HomeView,
                 NavigationConstants.Dialogs.LoginView,
                 NavigationConstants.Views.LogManagementView,
+                 NavigationConstants.Views.ProductionHistoryView,
+                  NavigationConstants.Views.ProductionMonitorView,
             };
 
             if (level >= UserLevel.Engineer)
@@ -67,7 +69,7 @@ namespace PF.Core.Constants
                 {
                     NavigationConstants.Views.MechanismDebugView,
                     NavigationConstants.Views.StationDebugView,
-                    NavigationConstants.Views.PagePermissionView,
+                   
                 });
             }
 
@@ -75,7 +77,9 @@ namespace PF.Core.Constants
             {
                 views.AddRange(new[]
                 {
-                    NavigationConstants.Views.CommonParamView
+                    NavigationConstants.Views.CommonParamView,
+                     NavigationConstants.Views.PagePermissionView,
+
                 });
             }
 
