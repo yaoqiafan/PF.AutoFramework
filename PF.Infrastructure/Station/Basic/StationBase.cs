@@ -206,8 +206,6 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (OperationCanceledException)
             {
-                // 由 TriggerAlarm() 取消：标志已在 TriggerAlarm 中置位，状态机已切到 Alarm，仅记录日志。
-                // 由 Stop/正常停止取消：记录安全退出日志即可。
                 if (_alarmInterrupted)
                     _logger?.Warn($"[{StationName}] 业务流程被外部报警打断，线程安全退出。");
                 else
@@ -217,8 +215,21 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
-                // 使用线程安全的 Fire() 而非直接调用 _machine.Fire()
-                Fire(MachineTrigger.Error);
+
+                // 🚨 修复 P0 级死锁：
+                // 必须通过 Task.Run 脱离当前任务上下文，让 _workflowTask 立即结束
+                // 从而释放 OnStartRunningAsync 中的 await 锁等待，防止与 StartAsync 形成循环死锁。
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        Fire(MachineTrigger.Error);
+                    }
+                    catch (Exception fireEx)
+                    {
+                        _logger?.Fatal($"[{StationName}] 业务异常后尝试触发报警状态失败: {fireEx.Message}");
+                    }
+                });
             }
         }
 
