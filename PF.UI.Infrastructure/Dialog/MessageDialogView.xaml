@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:PF.UI.Infrastructure.Dialog"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    Background="{DynamicResource BorderBrush}"
+    Background="{DynamicResource BackgroundBrush}"
     MaxWidth="450"
     MinHeight="250"
     MaxHeight="600"
