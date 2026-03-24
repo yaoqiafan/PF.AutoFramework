@@ -1,5 +1,7 @@
+using DryIoc.ImTools;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using NPOI.POIFS.Storage;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.ViewModels;
 using PF.Application.Shell.Views;
@@ -88,7 +90,6 @@ namespace PF.Application.Shell
                     try
                     {
                         this.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(App_DispatcherUnhandledException);
-                        ApplyConfiguration();
                     }
                     catch (Exception ex)
                     {
@@ -177,10 +178,11 @@ namespace PF.Application.Shell
         protected override Window CreateShell()
         {
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            UpdateSkin("Dark");
+            var commonparam = Container.Resolve<CommonSettings>();
+
+            ApplyConfiguration(commonparam.Skin);
 
             Splash splash = Container.Resolve<Splash>();
-            var commonparam = Container.Resolve<CommonSettings>();
 
             var name = commonparam.SoftWareName;
             splash.WelcomeText = $"欢迎使用{name}";
@@ -195,6 +197,16 @@ namespace PF.Application.Shell
             if (splash.ShowDialog() == true)
             {
                 splash.Close();
+            }
+            else
+            {
+                IMessageService messageService = Container.Resolve<IMessageService>();
+              var res =  messageService.ShowMessageAsync("软件加载失败,是否退出系统?", "系统错误", MessageBoxButton.YesNo, MessageBoxImage.Error).GetAwaiter().GetResult();
+                if (res== ButtonResult.Yes)
+                {
+                    splash.Close();
+                    Environment.Exit(0);
+                }
             }
 
             return Container.Resolve<MainWindow>();
@@ -494,6 +506,8 @@ namespace PF.Application.Shell
 
         private async Task<bool> PerformInitializationAsync()
         {
+            bool loadErr = false;
+
             Splash splash = Container.Resolve<Splash>();
             ILogService logService = Container.Resolve<ILogService>();
 
@@ -506,12 +520,14 @@ namespace PF.Application.Shell
                 if (!configLoaded)
                 {
                     SplashUpdateMessage(splash, logService, "配置文件加载失败", msgType: MsgType.Error);
+                    loadErr = true;
                     return false;
                 }
                 SplashUpdateMessage(splash, logService, "配置文件加载成功。。。", msgType: MsgType.Success);
                 await Task.Delay(500);
 
                 SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
+                await Task.Delay(500);
                 var hwManager = Container.Resolve<IHardwareManagerService>();
                 await hwManager.LoadAndInitializeAsync();
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
@@ -526,14 +542,23 @@ namespace PF.Application.Shell
                 else
                 {
                     SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                    loadErr = true;
                 }
 
 
                 await Task.Delay(500);
 
-                SplashUpdateMessage(splash, logService, "初始化完成", msgType: MsgType.Success);
+                if (!loadErr)
+                {
+                    SplashUpdateMessage(splash, logService, "软件初始化成功！", msgType: MsgType.Success);
+                }
+                else
+                {
+                    SplashUpdateMessage(splash, logService, "软件初始化失败！", msgType: MsgType.Error);
+                }
+
                 await Task.Delay(500);
-                return true;
+                return !loadErr;
             }
             catch (Exception ex)
             {
@@ -585,9 +610,14 @@ namespace PF.Application.Shell
         /// <summary>
         /// 应用初始皮肤与窗口样式配置。
         /// </summary>
-        private void ApplyConfiguration()
+        private void ApplyConfiguration(SkinType skinType)
         {
-            UpdateSkin(SkinType.Dark.ToString());
+            var commonparam = Container.Resolve<CommonSettings>();
+            if (commonparam.Skin != skinType)
+            {
+                UpdateSkin(skinType.ToString());
+            }
+            
             ConfigHelper.Instance.SetWindowDefaultStyle();
             ConfigHelper.Instance.SetNavigationWindowDefaultStyle();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;

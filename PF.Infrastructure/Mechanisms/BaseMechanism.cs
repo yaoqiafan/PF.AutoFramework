@@ -134,7 +134,9 @@ namespace PF.Infrastructure.Mechanisms
         {
             foreach (var hw in _internalHardwares)
             {
-                if (hw != null) hw.AlarmTriggered -= OnHardwareAlarmTriggered;
+                if (hw == null) continue;
+                hw.AlarmTriggered -= OnHardwareAlarmTriggered;
+                if (hw is IDisposable disposable) disposable.Dispose();  // 释放硬件持有的非托管资源
             }
         }
 
@@ -144,7 +146,7 @@ namespace PF.Infrastructure.Mechanisms
 
 
 
-        
+
 
 
         /// <summary>
@@ -156,6 +158,9 @@ namespace PF.Infrastructure.Mechanisms
         /// <param name="token">取消令牌</param>
         public async Task<bool> WaitAxisMoveDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
         {
+            // 修复 2：前置非空校验，尽早暴露错误
+            ArgumentNullException.ThrowIfNull(axis);
+
             // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
             if ((axis as IHardwareDevice)?.IsSimulated == true)
                 return true;
@@ -169,7 +174,9 @@ namespace PF.Infrastructure.Mechanisms
             {
                 while (true)
                 {
-                    await Task.Delay(10, linked.Token).ConfigureAwait(false);
+                    // 修复 3：建议将轮询间隔稍微拉长，50ms 通常对机械轴运动来说足够灵敏
+                    await Task.Delay(50, linked.Token).ConfigureAwait(false);
+
                     var status = axis.AxisIOStatus;
                     if (status != null && status.MoveDone && !status.Moving)
                     {
@@ -180,11 +187,27 @@ namespace PF.Infrastructure.Mechanisms
             }
             catch (OperationCanceledException)
             {
+                // 修复 1：优先判断是否是外部主动取消。如果是，将异常继续往上抛！
+                if (token.IsCancellationRequested)
+                {
+                    _logger?.Warn($"[{MechanismName}] 轴 [{axisName}] 等待被外部手动取消");
+                    token.ThrowIfCancellationRequested();
+                }
+
+                // 走到这里，说明外部没有取消，纯粹是 timeoutCts 触发的超时
                 if (timeoutCts.IsCancellationRequested)
                 {
-                    HasAlarm = true;
+                    HasAlarm = true; 
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待运动完成超时（{timeoutMs} ms）");
+                    // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
+                    AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
+                    {
+                        MechanismName    = this.MechanismName,
+                        HardwareName     = axisName,
+                        ErrorMessage     = $"等待轴运动完成超时（{timeoutMs} ms）"
+                    });
                 }
+
                 return false;
             }
         }
@@ -219,6 +242,13 @@ namespace PF.Infrastructure.Mechanisms
                 {
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待回零完成超时（{timeoutMs} ms）");
+                    // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
+                    AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
+                    {
+                        MechanismName    = this.MechanismName,
+                        HardwareName     = axisName,
+                        ErrorMessage     = $"等待回零完成超时（{timeoutMs} ms）"
+                    });
                 }
                 return false;
             }

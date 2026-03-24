@@ -1,4 +1,5 @@
 using PF.Core.Constants;
+using PF.UI.Shared.Data;
 using System.ComponentModel;
 using System.Configuration;
 using System.IO;
@@ -44,7 +45,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("6.软件主题")]
         [BrowsableAttribute(true)]
-        public string Skin { get; set; } = "Dark";
+        public SkinType Skin { get; set; } =  SkinType.Dark;
 
 
         // ==========================================

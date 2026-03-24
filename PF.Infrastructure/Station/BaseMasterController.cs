@@ -106,7 +106,8 @@ namespace PF.Infrastructure.Station
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
             _globalMachine.Configure(MachineState.Resetting)
-                .Permit(MachineTrigger.ResetDone, MachineState.Idle);
+                .Permit(MachineTrigger.ResetDone, MachineState.Idle)
+                .Permit(MachineTrigger.Error, MachineState.Alarm);  // 复位失败可退回 Alarm，允许再次复位
         }
 
         // ── 物理按键智能路由 ──────────────────────────────────────────────
@@ -169,7 +170,17 @@ namespace PF.Infrastructure.Station
             MasterAlarmTriggered?.Invoke(this, errorMessage);
 
             // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
-            Task.Run(() => Fire(MachineTrigger.Error));
+            Task.Run(() =>
+            {
+                try
+                {
+                    Fire(MachineTrigger.Error);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Fatal($"【主控】尝试切入报警状态时发生致命异常: {ex.Message}");
+                }
+            });
         }
 
         public async Task StartAllAsync() => await FireAsync(MachineTrigger.Start);
@@ -198,10 +209,11 @@ namespace PF.Infrastructure.Station
             // 1. 软件切入 Alarm 状态（打断逻辑协同）
             Fire(MachineTrigger.Error);
 
-            // 2. 强制底层硬件下电制动
+            // 2. 强制底层硬件下电制动（已处于 Alarm 的工站通过 TriggerAlarm 已取消业务线程，无需重复调用 Stop）
             foreach (var station in _subStations)
             {
-                 station.Stop();
+                if (station.CurrentState != MachineState.Alarm)
+                    station.Stop();
             }
         }
 
@@ -247,7 +259,8 @@ namespace PF.Infrastructure.Station
             }
             catch (Exception ex)
             {
-                _logger.Error($"【主控】复位失败: {ex.Message}，保持报警状态。");
+                _logger.Error($"【主控】复位失败: {ex.Message}，重新回到报警状态。");
+                Fire(MachineTrigger.Error);  // Resetting → Alarm，确保系统不永久卡死在 Resetting
                 return;
             }
 
