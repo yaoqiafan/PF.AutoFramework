@@ -75,7 +75,7 @@
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="#00E676" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding FeedingModule.HasAlarm}" Value="True">
+                                    <DataTrigger Binding="{Binding DetectionModule.HasAlarm}" Value="True">
                                         <Setter Property="Foreground" Value="#E74C3C" />
                                     </DataTrigger>
                                 </Style.Triggers>
