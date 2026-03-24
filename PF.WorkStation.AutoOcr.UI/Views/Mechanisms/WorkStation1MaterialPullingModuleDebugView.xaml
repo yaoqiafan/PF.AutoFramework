@@ -1,0 +1,572 @@
+﻿<UserControl
+    x:Class="PF.WorkStation.AutoOcr.UI.Views.Mechanisms.WorkStation1MaterialPullingModuleDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.Views.Mechanisms"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="800"
+    d:DesignWidth="1100"
+    mc:Ignorable="d">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height=" auto" />
+            <RowDefinition Height=" *" />
+        </Grid.RowDefinitions>
+
+        <Border
+            Grid.Row="0"
+            Margin="0,0,0,10"
+            Padding="15,10"
+            Background="#2C3E50"
+            CornerRadius="6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel
+                    Grid.Column="0"
+                    Margin="0,0,30,0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#AAB7B8"
+                        Text="当前模组：" />
+                    <TextBlock
+                        Margin="5,0,0,0"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="{Binding FeedingModule.MechanismName}" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#AAB7B8"
+                        Text="已初始化 (IsInitialized)：" />
+                    <TextBlock
+                        Margin="5,0,0,0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="#00E676"
+                        Text="{Binding FeedingModule.IsInitialized}" />
+
+                    <TextBlock
+                        Margin="15,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#AAB7B8"
+                        Text=" | 报警状态 (HasAlarm)：" />
+                    <TextBlock
+                        Margin="5,0,0,0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="{Binding MaterialPullingModule.HasAlarm}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#00E676" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MaterialPullingModule.HasAlarm}" Value="True">
+                                        <Setter Property="Foreground" Value="#E74C3C" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="2"
+                    Margin="0,0,20,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#AAB7B8"
+                        Text="最后反馈：" />
+                    <TextBlock
+                        MaxWidth="300"
+                        Margin="5,0,0,0"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="#F1C40F"
+                        Text="{Binding DebugMessage}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="3"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <Button
+                        Height="35"
+                        Margin="0,0,10,0"
+                        Padding="15,0"
+                        Background="#3498DB"
+                        BorderThickness="0"
+                        Command="{Binding InitializeModuleCommand}"
+                        Content=" 🔄 初始化 (Init) "
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <Button
+                        Height="35"
+                        Margin="0,0,10,0"
+                        Padding="15,0"
+                        Background="#F39C12"
+                        BorderThickness="0"
+                        Command="{Binding ResetModuleCommand}"
+                        Content=" ⚠️ 报警复位 (Reset) "
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <Button
+                        Height="35"
+                        Padding="15,0"
+                        Background="#E74C3C"
+                        BorderThickness="0"
+                        Command="{Binding StopCommand}"
+                        Content=" ⏹ 模组停止 (Stop) "
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <TabControl Grid.Row=" 1">
+            <TabItem FontSize=" 14" Header=" 模组运行调试">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="380" />
+                        <ColumnDefinition Width="15" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <GroupBox
+                        Grid.Column=" 0"
+                        FontSize=" 16"
+                        FontWeight="Bold"
+                        Header=" 模组指令区">
+                        <ScrollViewer Padding="5,10" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,5"
+                                    Foreground="Gray"
+                                    Text=" 基础初始化" />
+                                <Button
+                                    Height=" 35"
+                                    Margin="0,0,0,5"
+                                    Command="{Binding IsCanResetCommand}"
+                                    Content=" 检查是否可以初始化" />
+                                <Button
+                                    Height=" 35"
+                                    Margin="0,0,0,5"
+                                    Command="{Binding InitializeGipper}"
+                                    Content=" 初始化拉料夹爪" />
+
+                                <TextBlock
+                                    Margin="0,10,0,5"
+                                    Foreground="Gray"
+                                    Text=" 生产配方操作" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width=" *" />
+                                        <ColumnDefinition Width=" 5" />
+                                        <ColumnDefinition Width=" *" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column=" 0"
+                                        Height=" 35"
+                                        Command="{Binding Change_8StatusCommand}"
+                                        Content="切换到8寸状态" />
+                                    <Button
+                                        Grid.Column=" 2"
+                                        Height=" 35"
+                                        Command="{Binding Change_12StatusCommand}"
+                                        Content="切换到12寸状态" />
+                                </Grid>
+                                <TextBlock
+                                    Margin="0,10,0,5"
+                                    Foreground="Gray"
+                                    Text=" 夹爪气缸操作" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width=" *" />
+                                        <ColumnDefinition Width=" 5" />
+                                        <ColumnDefinition Width=" *" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column=" 0"
+                                        Height=" 35"
+                                        Command="{Binding OpenGipperCommand}"
+                                        Content="打开夹爪" />
+                                    <Button
+                                        Grid.Column=" 2"
+                                        Height=" 35"
+                                        Command="{Binding CloseGipperCommand}"
+                                        Content="闭合夹爪" />
+                                </Grid>
+
+                                <TextBlock
+                                    Margin="0,10,0,5"
+                                    Foreground="Gray"
+                                    Text=" 拉料操作" />
+
+                                <Button
+                                    Height=" 35"
+                                    Margin="0,0,0,5"
+                                    Command="{Binding MoveFeedingCommand}"
+                                    Content=" 移动到拉料位" />
+                                <Button
+                                    Height=" 35"
+                                    Margin="0,0,0,5"
+                                    Command="{Binding MoveDetcetionCommand}"
+                                    Content=" 移动到检测" />
+                                <Button
+                                    Height=" 35"
+                                    Margin="0,0,0,5"
+                                    Command="{Binding MoveInitialCommand}"
+                                    Content=" 移动到待机位" />
+
+                                <TextBlock
+                                    Margin="0,10,0,5"
+                                    Foreground="Gray"
+                                    Text=" 扫码枪操作" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width=" *" />
+                                        <ColumnDefinition Width=" 10" />
+                                        <ColumnDefinition Width=" *" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column=" 0"
+                                        Height=" 35"
+                                        Command="{Binding CodeTiggerCommand}"
+                                        Content="扫码" />
+                                    <TextBlock
+                                        Grid.Column=" 2"
+                                        Height=" 35"
+                                        Text="{Binding Coderec}" />
+                                </Grid>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </GroupBox>
+
+                    <Grid Grid.Column=" 2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height=" auto" />
+                            <RowDefinition Height=" *" />
+                            <RowDefinition Height=" 40" />
+                        </Grid.RowDefinitions>
+                        <GroupBox
+                            Grid.Row=" 0"
+                            FontSize=" 16"
+                            FontWeight="Bold"
+                            Header=" 硬件状态实时监控">
+                            <StackPanel Margin="10">
+                                <TextBlock
+                                    Margin="0,0,0,10"
+                                    Foreground="Gray"
+                                    Text="机械轴实时坐标" />
+                                <Border
+                                    Margin="70,5,70,5"
+                                    Padding="15"
+                                    BorderBrush=" #d5dbdb"
+                                    BorderThickness="1"
+                                    CornerRadius=" 5">
+                                    <StackPanel>
+                                        <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                            <TextBlock
+                                                FontSize="16"
+                                                FontWeight="Bold"
+                                                Text="Y轴 坐标 :" />
+                                            <TextBlock Margin="10,0,0,0" Text="{Binding YAxisHasAlarm}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="Green" />
+                                                        <Setter Property="Text" Value="[正常]" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding YAxisHasAlarm}" Value="True">
+                                                                <Setter Property="Foreground" Value="Red" />
+                                                                <Setter Property="Text" Value="[报警]" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock
+                                            HorizontalAlignment="Right"
+                                            FontSize="36"
+                                            FontWeight="Bold"
+                                            Foreground="#2980B9"
+                                            Text="{Binding YAxisPosition, StringFormat={}{0:F3} mm}" />
+                                    </StackPanel>
+                                </Border>
+
+
+                                <TextBlock
+                                    Margin="0,0,0,10"
+                                    Foreground="Gray"
+                                    Text=" 关键 IO 状态" />
+
+                                <Border
+                                    Padding="20"
+                                    BorderBrush="#D5DBDB"
+                                    BorderThickness="1"
+                                    CornerRadius="5">
+                                    <StackPanel>
+                                        <StackPanel.Resources>
+                                            <Style x:Key="IoLightBaseStyle" TargetType="Ellipse">
+                                                <Setter Property="Width" Value="24" />
+                                                <Setter Property="Height" Value="24" />
+                                                <Setter Property="Fill" Value="#E5E7E9" />
+                                                <Setter Property="Stroke" Value="#BDC3C7" />
+                                                <Setter Property="StrokeThickness" Value="1" />
+                                            </Style>
+                                        </StackPanel.Resources>
+
+                                        <WrapPanel ItemHeight="40" ItemWidth="220">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding GipperOpen}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆夹爪左气缸张开" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding GipperClose}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆夹爪左气缸闭合" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding AdjustedOpen}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆轨道左调宽气缸打开" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding AdjustedClose}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆轨道左调宽气缸缩回" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsIronTested}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆夹爪左铁环有无检测" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Stackingdetection}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="夹爪左叠料检测" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding WafeInPlace1}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆轨道左晶圆在位检测1" />
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse>
+                                                    <Ellipse.Style>
+                                                        <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding WafeInPlace1}" Value="True">
+                                                                    <Setter Property="Fill" Value="#2ECC71" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock
+                                                    Margin="10,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="15"
+                                                    Text="晶圆轨道左晶圆在位检测2" />
+                                            </StackPanel>
+
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+
+
+                        </GroupBox>
+                        <GroupBox
+                            Grid.Row=" 1"
+                            FontSize=" 16"
+                            FontWeight="Bold"
+                            Header=" 点位管理">
+                            <ScrollViewer Padding="5,10" VerticalScrollBarVisibility="Auto">
+                                <DataGrid
+                                    Margin="0,0,0,5"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    ItemsSource="{Binding YAxisOriginalPoints}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                            Width="1.5*"
+                                            Binding="{Binding Name}"
+                                            Header="点位名称"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="*"
+                                            Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
+                                            Header="目标坐标(mm)" />
+                                        <DataGridTextColumn
+                                            Width="*"
+                                            Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
+                                            Header="速度" />
+
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                            </ScrollViewer>
+
+
+
+                        </GroupBox>
+                        <Button
+                            Grid.Row=" 2"
+                            Height=" 35"
+                            Command="{Binding SavePointCommand}"
+                            Content=" 保存点位" />
+
+                    </Grid>
+
+
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+    </Grid>
+</UserControl>
