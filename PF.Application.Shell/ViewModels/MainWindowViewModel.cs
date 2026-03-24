@@ -136,16 +136,15 @@ namespace PF.Application.Shell.ViewModels
         }
         #endregion
 
-        #region 菜单刷新与权限过滤
+        #region 菜单刷新
         private void RefreshMenu()
         {
-            var allSystemMenus = _navigationMenuService.MenuItems;
-            var filteredMenus = FilterMenuTree(allSystemMenus, CurrentUser);
+            var filtered = FilterMenuForDisplay(_navigationMenuService.MenuItems);
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 MenuItems.Clear();
-                foreach (var item in filteredMenus)
+                foreach (var item in filtered)
                 {
                     MenuItems.Add(item);
                 }
@@ -153,29 +152,21 @@ namespace PF.Application.Shell.ViewModels
             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
         }
 
-        private bool IsWhiteListView(string viewName)
+        /// <summary>
+        /// Administrator 及以下等级的页面始终在菜单中显示；
+        /// SuperUser 专属页面仅当当前登录用户为 SuperUser 时才显示。
+        /// </summary>
+        private ObservableCollection<NavigationItem> FilterMenuForDisplay(IEnumerable<NavigationItem> items)
         {
-            if (string.IsNullOrEmpty(viewName)) return false;
-            if (NavigationConstantMapper.GetCategory(viewName) == nameof(NavigationConstants.Dialogs)) return true;
-            if (viewName== NavigationConstants.Views.MainView|| viewName == NavigationConstants.Views.HomeView) return true;
-            
-            return false;
-        }
+            var result = new ObservableCollection<NavigationItem>();
+            if (items == null) return result;
 
-        private ObservableCollection<NavigationItem> FilterMenuTree(IEnumerable<NavigationItem> originalItems, UserInfo user)
-        {
-            var filteredCollection = new ObservableCollection<NavigationItem>();
+            bool isSuperUser = CurrentUser?.Root == UserLevel.SuperUser;
+            var adminViews = DefaultPermissions.GetAccessibleViews(UserLevel.Administrator);
 
-            if (originalItems == null || !originalItems.Any()) return filteredCollection;
-
-            user ??= new UserInfo { Root = UserLevel.Null, AccessibleViews = DefaultPermissions. GetAccessibleViews(UserLevel.Null) };
-
-            bool isSuperAdmin = user.Root == UserLevel.SuperUser;
-            var allowedViews = user.AccessibleViews ?? DefaultPermissions.GetAccessibleViews(UserLevel.Null);
-
-            foreach (var item in originalItems)
+            foreach (var item in items)
             {
-                var clonedItem = new NavigationItem
+                var cloned = new NavigationItem
                 {
                     ViewName = item.ViewName,
                     Title = item.Title,
@@ -185,24 +176,31 @@ namespace PF.Application.Shell.ViewModels
                     Children = new ObservableCollection<NavigationItem>()
                 };
 
-                if (item.Children != null && item.Children.Any())
+                if (item.Children?.Any() == true)
                 {
-                    var filteredChildren = FilterMenuTree(item.Children, user);
+                    var filteredChildren = FilterMenuForDisplay(item.Children);
                     if (filteredChildren.Any())
                     {
-                        clonedItem.Children = filteredChildren;
-                        filteredCollection.Add(clonedItem);
+                        cloned.Children = filteredChildren;
+                        result.Add(cloned);
                     }
                 }
                 else
                 {
-                    if (isSuperAdmin || allowedViews.Contains(clonedItem.ViewName) || IsWhiteListView(clonedItem.ViewName))
-                    {
-                        filteredCollection.Add(clonedItem);
-                    }
+                    bool isAdminVisible = adminViews.Contains(item.ViewName) || IsWhiteListView(item.ViewName);
+                    if (isAdminVisible || isSuperUser)
+                        result.Add(cloned);
                 }
             }
-            return filteredCollection;
+            return result;
+        }
+
+        private bool IsWhiteListView(string viewName)
+        {
+            if (string.IsNullOrEmpty(viewName)) return false;
+            if (NavigationConstantMapper.GetCategory(viewName) == nameof(NavigationConstants.Dialogs)) return true;
+            if (viewName == NavigationConstants.Views.MainView || viewName == NavigationConstants.Views.HomeView) return true;
+            return false;
         }
         #endregion
 
@@ -216,14 +214,13 @@ namespace PF.Application.Shell.ViewModels
                     string viewName = navItem.ViewName;
                     string category = NavigationConstantMapper.GetCategory(viewName);
 
-                    // ── Per-User 页面权限纵深拦截 ──────────────────────────────────
-                    // 菜单已按 AccessibleViews 过滤作为第一道防线；
-                    // 此处在实际导航前再做二次校验，防止绕过菜单层直接触发的访问。
-                    if (category == nameof(NavigationConstants.Views) && !_userService.HasPagePermission(viewName))
+                    // ── 页面权限拦截（唯一检查点）────────────────────────────────
+                    if ( !_userService.HasPagePermission(viewName))
                     {
                         _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
-                        MessageService .ShowMessage(
-                            $"您无权访问该页面。\n\n页面路由: {viewName}\n当前用户: {CurrentUser?.UserName}\n\n请联系管理员在「权限管控 → 窗体权限更改」中配置相应权限。",
+                        var displayName = PermissionHelper.GetViewDisplayName(viewName);
+                        MessageService.ShowMessage(
+                            $"您无权访问「{displayName}」页面，请联系管理员在「权限管控 → 窗体权限更改」中配置相应权限。",
                             "权限不足",
                             System.Windows.MessageBoxButton.OK,
                             System.Windows.MessageBoxImage.Warning);
