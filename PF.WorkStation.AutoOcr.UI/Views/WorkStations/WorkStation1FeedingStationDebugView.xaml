@@ -1,12 +1,222 @@
-﻿<UserControl x:Class="PF.WorkStation.AutoOcr.UI.Views.WorkStations.WorkStation1FeedingStationDebugView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.Views.WorkStations"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-       
-    </Grid>
+<UserControl
+    x:Class="PF.WorkStation.AutoOcr.UI.Views.WorkStations.WorkStation1FeedingStationDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations"
+    d:DataContext="{d:DesignInstance vm:WorkStation1FeedingStationDebugViewModel, IsDesignTimeCreatable=False}"
+    d:DesignHeight="700"
+    d:DesignWidth="760"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ThirdlyRegionColorBrush}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="14,10" />
+        </Style>
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextColorBrush}" />
+            <Setter Property="Margin" Value="0,0,0,3" />
+        </Style>
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColorBrush}" />
+        </Style>
+        <Style x:Key="CtrlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="MinWidth" Value="88" />
+            <Setter Property="Margin" Value="4,3" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource CtrlButton}">
+            <Setter Property="Background" Value="{DynamicResource DangerColorBrush}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16" Width="720">
+
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!--  状态看板                                                      -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <TextBlock
+                Margin="0,0,0,8"
+                FontSize="{DynamicResource FontSize.Body.Standard}"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource PrimaryColorBrush}"
+                Text="● 工站状态看板" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <!-- 状态机状态 -->
+                <Border Grid.Column="0" Margin="0,0,6,0" Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource LabelText}" Text="状态机状态" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse
+                                Width="10"
+                                Height="10"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                Fill="{Binding StatusBrush}" />
+                            <TextBlock Style="{StaticResource ValueText}" Text="{Binding CurrentState}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 运行模式 -->
+                <Border Grid.Column="1" Margin="3,0,3,0" Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource LabelText}" Text="运行模式" />
+                        <TextBlock Style="{StaticResource ValueText}" Text="{Binding CurrentMode}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 当前步序 -->
+                <Border Grid.Column="2" Margin="6,0,0,0" Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource LabelText}" Text="当前步序" />
+                        <TextBlock
+                            Style="{StaticResource ValueText}"
+                            FontSize="13"
+                            Text="{Binding CurrentStepDescription}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!--  手动控制区域（仅 SuperUser 可操作）                            -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <TextBlock
+                Margin="0,20,0,8"
+                FontSize="{DynamicResource FontSize.Body.Standard}"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource PrimaryColorBrush}"
+                Text="● 手动控制" />
+
+            <Border
+                Background="{DynamicResource SecondaryRegionColorBrush}"
+                BorderBrush="{DynamicResource BorderColorBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                IsEnabled="{Binding CanManualControl}"
+                Padding="14,12">
+
+                <StackPanel>
+                    <!-- 权限提示条 -->
+                    <Border
+                        Margin="0,0,0,10"
+                        Padding="10,6"
+                        CornerRadius="4">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanManualControl}" Value="True">
+                                        <Setter Property="Background" Value="#1a2db84d" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CanManualControl}" Value="False">
+                                        <Setter Property="Background" Value="#1adb3340" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock VerticalAlignment="Center" FontSize="13">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanManualControl}" Value="True">
+                                            <Setter Property="Text" Value="✓  当前用户已具备手动控制权限（SuperUser）" />
+                                            <Setter Property="Foreground" Value="#2db84d" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CanManualControl}" Value="False">
+                                            <Setter Property="Text" Value="✗  当前用户无手动控制权限，需 SuperUser 级别" />
+                                            <Setter Property="Foreground" Value="#db3340" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+
+                    <!-- 控制按钮行 1：初始化 / 运行控制 -->
+                    <StackPanel Margin="0,0,0,6" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource CtrlButton}"
+                            Command="{Binding InitializeCommand}"
+                            Content="初始化"
+                            ToolTip="执行硬件初始化：连接设备 → 回原点 → Idle" />
+                        <Separator Width="1" Margin="8,4" Background="{DynamicResource BorderColorBrush}" />
+                        <Button
+                            Style="{StaticResource CtrlButton}"
+                            Command="{Binding StartCommand}"
+                            Content="▶ 启动" />
+                        <Button
+                            Style="{StaticResource CtrlButton}"
+                            Command="{Binding PauseCommand}"
+                            Content="⏸ 暂停" />
+                        <Button
+                            Style="{StaticResource CtrlButton}"
+                            Command="{Binding ResumeCommand}"
+                            Content="▶ 恢复" />
+                        <Button
+                            Style="{StaticResource CtrlButton}"
+                            Command="{Binding StopCommand}"
+                            Content="⏹ 停止" />
+                    </StackPanel>
+
+                    <!-- 控制按钮行 2：故障处理 -->
+                    <StackPanel Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource CtrlButton}"
+                            Command="{Binding ResetCommand}"
+                            Content="⟳ 复位"
+                            ToolTip="执行硬件复位：清警 → 回原点 → Idle" />
+                        <Button
+                            Style="{StaticResource DangerButton}"
+                            Command="{Binding TriggerAlarmCommand}"
+                            Content="⚡ 手动触发报警"
+                            ToolTip="模拟触发报警状态（仅用于调试测试）" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!--  状态流转说明                                                  -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <Border
+                Margin="0,16,0,0"
+                Padding="12,10"
+                Background="{DynamicResource SecondaryRegionColorBrush}"
+                BorderBrush="{DynamicResource PrimaryColorBrush}"
+                BorderThickness="0"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource PrimaryColorBrush}"
+                        Text="状态流转说明" />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                        Foreground="{DynamicResource SecondaryTextColorBrush}"
+                        Text="Uninitialized → [初始化] → Idle → [启动] → Running ⇄ [暂停/恢复] ⇄ Paused → [停止] → Idle  |  任意状态 → [触发报警] → Alarm → [复位] → Idle"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
