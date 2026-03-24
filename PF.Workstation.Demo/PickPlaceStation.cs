@@ -142,7 +142,7 @@ namespace PF.Workstation.Demo
                     // ── WaitMaterial: 等待上游物料到位 ───────────────────────
                     case PickPlaceStep.WaitMaterial:
                         CurrentStepDescription = "等待上游物料到位...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
                         _logger.Info($"[{StationName}] ══ Cycle #{_cycleCount} 开始 ══");
@@ -154,7 +154,7 @@ namespace PF.Workstation.Demo
                     // ── Pick: 取料 ───────────────────────────────────────────
                     case PickPlaceStep.Pick:
                         CurrentStepDescription = "正在执行取料动作...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [2/5] 执行取料动作...");
                         await _gantry.PickAsync(token);
@@ -164,7 +164,7 @@ namespace PF.Workstation.Demo
                     // ── WaitSlotEmpty: 等待工作台槽位空闲（★ 流水线协同）────
                     case PickPlaceStep.WaitSlotEmpty:
                         CurrentStepDescription = "等待工作台槽位空闲...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ③ ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ③ ════
 
                         _logger.Info($"[{StationName}] [3/5] 等待工作台槽位空闲...");
                         await _sync.WaitAsync(WorkstationSignals.SlotEmpty, token);
@@ -215,7 +215,7 @@ namespace PF.Workstation.Demo
                     // ── WaitMaterial: 模拟物料到位（不等真实传感器）──────────
                     case PickPlaceStep.WaitMaterial:
                         CurrentStepDescription = "[DryRun] 模拟物料到位...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ① ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ① ════
 
                         _cycleCount++;
                         _logger.Info($"[{StationName}] [DryRun] ══ Cycle #{_cycleCount} 开始 ══");
@@ -227,7 +227,7 @@ namespace PF.Workstation.Demo
                     // ── Pick: 执行真实取料轴运动（验证轨迹）────────────────
                     case PickPlaceStep.Pick:
                         CurrentStepDescription = "[DryRun] 正在验证取料轨迹...";
-                        _pauseEvent.Wait(token); // ════ 暂停检查点 ② ════
+                        await CheckPauseAsync(token).ConfigureAwait(false); // ════ 暂停检查点 ② ════
 
                         _logger.Info($"[{StationName}] [DryRun][2/4] 执行取料轴运动（验证轨迹）...");
                         await _gantry.PickAsync(token);
