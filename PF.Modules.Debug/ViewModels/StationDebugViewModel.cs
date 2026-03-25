@@ -37,13 +37,13 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
-        public StationDebugViewModel(IEnumerable<StationBase> stations, IRegionManager regionManager)
+        public StationDebugViewModel(IEnumerable<StationBase<StationMemoryBaseParam>> stations, IRegionManager regionManager)
         {
             _regionManager = regionManager;
             BuildNavItems(stations);
         }
 
-        private void BuildNavItems(IEnumerable<StationBase> stations)
+        private void BuildNavItems(IEnumerable<StationBase<StationMemoryBaseParam>> stations)
         {
             var items = new List<(StationNavItem Item, int Order)>();
 

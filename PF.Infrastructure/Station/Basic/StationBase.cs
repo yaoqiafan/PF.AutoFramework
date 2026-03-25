@@ -23,7 +23,7 @@ namespace PF.Infrastructure.Station.Basic
     ///     防止后台线程报警与 UI 线程发出的 Stop/Pause 同时修改状态机内部状态。
     ///   · Running 状态采用 OnEntryAsync，确保旧任务彻底终止后再启动新任务，消除"幽灵线程"。
     /// </summary>
-    public abstract class StationBase : IDisposable, IAsyncDisposable, INotifyPropertyChanged
+    public abstract class StationBase<T> : IDisposable, IAsyncDisposable, INotifyPropertyChanged where T : StationMemoryBaseParam
     {
         // ── INotifyPropertyChanged ────────────────────────────────────────────
         public event PropertyChangedEventHandler PropertyChanged;
@@ -87,6 +87,7 @@ namespace PF.Infrastructure.Station.Basic
             // 初始状态：Uninitialized（硬件未就绪，禁止直接启动）
             _machine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
             ConfigureStateMachine();
+            ReadMemoryParam();
         }
 
         private void ConfigureStateMachine()
@@ -368,7 +369,7 @@ namespace PF.Infrastructure.Station.Basic
                 Fire(MachineTrigger.Error);
             }
         }
- 
+
         /// <summary>
         /// 触发复位流程入口（Alarm → Resetting）。
         /// ⚠️ 注意：此方法仅将状态机推入 Resetting，不会自动完成复位。
@@ -628,9 +629,69 @@ namespace PF.Infrastructure.Station.Basic
                 }
                 catch { }
             }
-
+            WriteMemoryParam();
             _runCts?.Dispose();
             _stateLock?.Dispose();
         }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public virtual T MemoryParam { get; set; }
+
+
+
+        private void ReadMemoryParam()
+        {
+            string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\{this.StationName}.json";
+            try
+            {
+                if (File.Exists(filepath))
+                {
+                    var json = File.ReadAllText(filepath);
+                    MemoryParam = System.Text.Json.JsonSerializer.Deserialize<T>(json);
+                    MemoryParam.IsWrite = false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+        }
+
+
+
+        private void WriteMemoryParam()
+        {
+            string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam";
+            if (!Directory.Exists(filepath))
+            {
+                Directory.CreateDirectory(filepath);
+            }
+            MemoryParam.IsWrite = true;
+            string json = System.Text.Json.JsonSerializer.Serialize(MemoryParam);
+            File.WriteAllText($"{filepath}\\{this.StationName}.json", json);
+        }
+
+
+
     }
+
+
+    public class StationMemoryBaseParam
+    {
+
+
+        public bool IsWrite { get; set; }
+
+
+
+
+    }
+
+
+
 }
