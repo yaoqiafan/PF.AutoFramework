@@ -470,10 +470,17 @@ namespace PF.Application.Shell
                serviceKey: nameof(WorkStation1MaterialPullingModule));
 
 
+            container.RegisterMany(
+               new[] { typeof(WorkStationDataModule  ), typeof(IMechanism) },
+               typeof(WorkStationDataModule),
+               reuse: DryIoc.Reuse.Singleton,
+               serviceKey: nameof(WorkStationDataModule));
+
+
             // 工站层
             container.RegisterMany(
-                new[] { typeof(WorkStation1FeedingStation), typeof(StationBase) },
-                typeof(WorkStation1FeedingStation),
+                new[] { typeof(WorkStation1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WorkStation1FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton);
 
             // 主控调度器
@@ -577,7 +584,11 @@ namespace PF.Application.Shell
             var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
 
             var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule));
-            return await workStation1FeedingModule.InitializeAsync() && await workStation1DetectionModule.InitializeAsync() && await workStation1MaterialPullingModule.InitializeAsync();
+
+            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
+
+
+            return await workStation1FeedingModule.InitializeAsync() && await workStation1DetectionModule.InitializeAsync() && await workStation1MaterialPullingModule.InitializeAsync()  && await workStationDataModule.InitializeAsync();
 
         }
 
