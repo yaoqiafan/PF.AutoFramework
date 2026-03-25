@@ -1,6 +1,5 @@
 ﻿using PF.Core.Constants;
 using PF.Infrastructure.Station;
-using PF.UI.Infrastructure.Extensions;
 using PF.UI.Infrastructure.Navigation;
 using PF.WorkStation.AutoOcr.Stations;
 using PF.WorkStation.AutoOcr.UI.UserControls;
@@ -10,7 +9,6 @@ using PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations;
 using PF.WorkStation.AutoOcr.UI.Views;
 using PF.WorkStation.AutoOcr.UI.Views.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.Views.WorkStations;
-using Prism.Navigation.Regions;
 using System.Reflection;
 
 namespace PF.WorkStation.AutoOcr.UI
@@ -51,16 +49,7 @@ namespace PF.WorkStation.AutoOcr.UI
             containerRegistry.RegisterForNavigation<WorkStation1FeedingStationDebugView, WorkStation1FeedingStationDebugViewModel>(
               nameof(WorkStation1FeedingStationDebugView));
 
-            //containerRegistry.RegisterForNavigation<AutoOCRMachineControllerDebugView, AutoOCRMachineControllerDebugViewModel>(
-            //  nameof(AutoOCRMachineControllerDebugView));
-
-            // 完美解耦：在此处桥接逻辑层和 UI 层
-            containerRegistry.RegisterMasterControllerView(
-                controllerAssembly: typeof(AutoOCRMachineController).Assembly, 
-                viewAssembly: typeof(AutoOCRMachineControllerDebugView).Assembly,             
-                baseControllerType: typeof(BaseMasterController)
-            );
-
+            
         }
 
 
