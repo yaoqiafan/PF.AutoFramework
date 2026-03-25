@@ -26,8 +26,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync = sync;
 
             
-            _sync.Register("WorkstationSignals.SlotEmpty", initialCount: 1, maxCount: 1);
-            _sync.Register("WorkstationSignals.ProductReady", initialCount: 0, maxCount: 1);
+            _sync.Register("测试1", initialCount: 1, maxCount: 1);
+            _sync.Register("测试2", initialCount: 0, maxCount: 1);
         }
 
 
