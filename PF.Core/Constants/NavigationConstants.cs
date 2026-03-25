@@ -62,10 +62,10 @@ namespace PF.Core.Constants
             public const string IODebugView = nameof(IODebugView);
             public const string BarcodeScanDebugView = nameof(BarcodeScanDebugView);
             public const string StationDebugView = nameof(StationDebugView);
-            public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
+           
             public const string CardDebugView = nameof(CardDebugView);
             public const string CameraDebugView = nameof(CameraDebugView);
-            public const string MasterControllerView = nameof(MasterControllerView);
+         
             #endregion
 
             #region 主界面

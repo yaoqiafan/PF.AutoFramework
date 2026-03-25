@@ -122,6 +122,7 @@ namespace PF.Application.Shell.Views
                 _commonSettings.Skin = (SkinType)Enum.Parse(typeof(SkinType), button.Tag.ToString());
                 ((App)System.Windows.Application.Current).UpdateSkin(button.Tag.ToString());
                 _commonSettings.Save();
+
             }
         }
 
