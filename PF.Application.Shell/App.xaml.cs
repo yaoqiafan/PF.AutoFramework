@@ -226,7 +226,6 @@ namespace PF.Application.Shell
             // 使用默认的超级管理员账号进行静默登录
             authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
 
-            Container.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.StationControllerContentRegion, NavigationConstants.Views.MasterControllerView);
             base.OnInitialized();
         }
 
