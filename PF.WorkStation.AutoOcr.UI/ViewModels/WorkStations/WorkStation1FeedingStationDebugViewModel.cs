@@ -1,6 +1,7 @@
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
+using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
 using PF.WorkStation.AutoOcr.Stations;
 using Prism.Commands;
@@ -13,7 +14,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 {
     public class WorkStation1FeedingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
-        private readonly WorkStation1FeedingStation _station;
+        private readonly WorkStation1FeedingStation<StationMemoryBaseParam> _station;
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
 
@@ -63,7 +64,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
-            _station = containerProvider.Resolve<WorkStation1FeedingStation>();
+            _station = containerProvider.Resolve<WorkStation1FeedingStation<StationMemoryBaseParam>>();
             _userService = containerProvider.Resolve<IUserService>();
 
             _statusBrush = StateToBrush(MachineState.Uninitialized);
