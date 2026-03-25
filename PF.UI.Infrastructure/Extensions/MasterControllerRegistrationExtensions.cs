@@ -60,8 +60,11 @@ namespace PF.UI.Infrastructure.Extensions
                 // ① 正常注册 View 导航
                 containerRegistry.RegisterForNavigation(viewType, NavigationConstants.Views.MasterControllerView);
 
-                // ② 显式告知 Prism：这个 View 对应的 ViewModel 就是它 (需要 using Prism.Mvvm;)
-                Prism.Mvvm.ViewModelLocationProvider.Register(viewType.ToString(), viewModelType);
+                // ② 显式告知 Prism：这个 View 对应的 ViewModel 就是它。
+                // 必须通过容器解析而非 Activator.CreateInstance，因为 ViewModel 依赖注入参数。
+                Prism.Mvvm.ViewModelLocationProvider.Register(
+                    viewType.ToString(),
+                    () => ContainerLocator.Current.Resolve(viewModelType));
             }
             else
             {

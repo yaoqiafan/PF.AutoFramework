@@ -23,11 +23,15 @@ namespace PF.Modules.Debug.Views
 
             InitializeComponent();
 
-            // StationControllerContentRegion 是本视图内的嵌套 Region，InitializeComponent 后才存在。
-            // 在此处触发导航，确保 MasterControllerView 在视图每次创建时都能正确加载。
-            regionManager.RequestNavigate(
-                NavigationConstants.Regions.StationControllerContentRegion,
-                NavigationConstants.Views.MasterControllerView);
+            // StationControllerContentRegion 是嵌套 Region，Prism 在 Loaded 事件后才将其注册到
+            // RegionManager（DelayedRegionCreationBehavior）。必须在 Loaded 之后才能 RequestNavigate，
+            // 否则 Region 尚不存在，导航会静默失败。
+            Loaded += (_, _) =>
+            {
+                regionManager.RequestNavigate(
+                    NavigationConstants.Regions.StationControllerContentRegion,
+                    NavigationConstants.Views.MasterControllerView);
+            };
         }
     }
 }
