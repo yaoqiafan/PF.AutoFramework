@@ -17,7 +17,14 @@ namespace PF.Modules.Debug.Views
             if (regionManager.Regions.ContainsRegionWithName(regionName))
                 regionManager.Regions.Remove(regionName);
 
+             regionName = NavigationConstants.Regions.StationControllerContentRegion;
+            if (regionManager.Regions.ContainsRegionWithName(regionName))
+                regionManager.Regions.Remove(regionName);
+
+
             InitializeComponent();
+
+           
         }
     }
 }

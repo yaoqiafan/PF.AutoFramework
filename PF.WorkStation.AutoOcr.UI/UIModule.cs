@@ -1,5 +1,8 @@
 ﻿using PF.Core.Constants;
+using PF.Infrastructure.Station;
+using PF.UI.Infrastructure.Extensions;
 using PF.UI.Infrastructure.Navigation;
+using PF.WorkStation.AutoOcr.Stations;
 using PF.WorkStation.AutoOcr.UI.UserControls;
 using PF.WorkStation.AutoOcr.UI.ViewModels;
 using PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms;
@@ -7,6 +10,7 @@ using PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations;
 using PF.WorkStation.AutoOcr.UI.Views;
 using PF.WorkStation.AutoOcr.UI.Views.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.Views.WorkStations;
+using Prism.Navigation.Regions;
 using System.Reflection;
 
 namespace PF.WorkStation.AutoOcr.UI
@@ -21,8 +25,9 @@ namespace PF.WorkStation.AutoOcr.UI
 
             containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
 
-
             DefaultPermissions.RegisterViews(Core.Enums.UserLevel.Administrator, nameof(OcrRecipeManageView));
+
+           
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
@@ -46,9 +51,25 @@ namespace PF.WorkStation.AutoOcr.UI
             containerRegistry.RegisterForNavigation<WorkStation1FeedingStationDebugView, WorkStation1FeedingStationDebugViewModel>(
               nameof(WorkStation1FeedingStationDebugView));
 
-            containerRegistry.RegisterForNavigation<AutoOCRMachineControllerDebugView, AutoOCRMachineControllerDebugViewModel>(
-              nameof(AutoOCRMachineControllerDebugView));
+            //containerRegistry.RegisterForNavigation<AutoOCRMachineControllerDebugView, AutoOCRMachineControllerDebugViewModel>(
+            //  nameof(AutoOCRMachineControllerDebugView));
 
+            // 完美解耦：在此处桥接逻辑层和 UI 层
+            containerRegistry.RegisterMasterControllerView(
+                controllerAssembly: typeof(AutoOCRMachineController).Assembly, 
+                viewAssembly: typeof(AutoOCRMachineControllerDebugView).Assembly,             
+                baseControllerType: typeof(BaseMasterController)
+            );
+
+        }
+
+
+        private void NavigationComplete(NavigationResult result)
+        {
+            if (result.Success == false && result.Exception != null)
+            {
+               
+            }
         }
     }
 }
