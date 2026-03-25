@@ -101,7 +101,7 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         public StationDebugViewModel(
-            IEnumerable<StationBase> stations,
+            IEnumerable<StationBase<StationMemoryBaseParam>> stations,
             IMasterController controller,
             IStationSyncService syncService,
             IRegionManager regionManager)
@@ -285,7 +285,7 @@ namespace PF.Modules.Debug.ViewModels
         public string Title       { get; init; }
         public string ViewName    { get; init; }
         public string StationName { get; init; }
-        internal StationBase Station { get; init; }
+        internal StationBase<StationMemoryBaseParam> Station { get; init; }
 
         private MachineState _state;
         public MachineState State
