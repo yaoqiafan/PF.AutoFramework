@@ -20,7 +20,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         public AutoOCRMachineController(ILogService logger,
             PhysicalButtonEventBus hardwareEventBus,
             IStationSyncService sync,
-            IEnumerable<StationBase> subStations)
+            IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
             : base(logger, hardwareEventBus, subStations)
         {
             _sync = sync;

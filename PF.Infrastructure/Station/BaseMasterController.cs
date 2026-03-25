@@ -26,7 +26,7 @@ namespace PF.Infrastructure.Station
 
         protected readonly ILogService _logger;
         protected readonly PhysicalButtonEventBus _hardwareEventBus;
-        protected readonly List<StationBase> _subStations;
+        protected readonly List<StationBase<StationMemoryBaseParam>> _subStations;
         protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
 
         // 并发安全：所有状态机跳转均通过此信号量独占执行
@@ -35,11 +35,11 @@ namespace PF.Infrastructure.Station
         protected BaseMasterController(
             ILogService logger,
             PhysicalButtonEventBus hardwareEventBus,
-            IEnumerable<StationBase> subStations)
+            IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
         {
             _logger = logger;
             _hardwareEventBus = hardwareEventBus;
-            _subStations = new List<StationBase>(subStations);
+            _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
             // 监听所有子工站的软件报警事件
             foreach (var station in _subStations)

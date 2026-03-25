@@ -152,7 +152,7 @@ namespace PF.Modules.Debug.ViewModels
             _pollTimer.Start();
         }
 
-        private void BuildNavItems(IEnumerable<StationBase> stations)
+        private void BuildNavItems(IEnumerable<StationBase<StationMemoryBaseParam>> stations)
         {
             var items = new List<(StationNavItem Item, int Order)>();
 
