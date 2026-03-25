@@ -202,8 +202,8 @@ namespace PF.Application.Shell
             else
             {
                 IMessageService messageService = Container.Resolve<IMessageService>();
-              var res =  messageService.ShowMessageAsync("软件加载失败,是否退出系统?", "系统错误", MessageBoxButton.YesNo, MessageBoxImage.Error).GetAwaiter().GetResult();
-                if (res== ButtonResult.Yes)
+                var res = messageService.ShowMessageAsync("软件加载失败,是否退出系统?", "系统错误", MessageBoxButton.YesNo, MessageBoxImage.Error).GetAwaiter().GetResult();
+                if (res == ButtonResult.Yes)
                 {
                     splash.Close();
                     Environment.Exit(0);
@@ -471,7 +471,7 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationDataModule  ), typeof(IMechanism) },
+               new[] { typeof(WorkStationDataModule), typeof(IMechanism) },
                typeof(WorkStationDataModule),
                reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WorkStationDataModule));
@@ -581,14 +581,29 @@ namespace PF.Application.Shell
         private async Task<bool> InitializeMechanism()
         {
             var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation1FeedingModule));
+            if (!await workStation1FeedingModule.InitializeAsync())
+            {
+                return false;
+            }
             var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
-
+            if (!await workStation1DetectionModule.InitializeAsync())
+            {
+                return false;
+            }
             var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule));
 
+            if (!await workStation1MaterialPullingModule.InitializeAsync())
+            {
+                return false;
+            }
+
             var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
+            if (!await workStationDataModule.InitializeAsync())
+            {
+                return false;
+            }
 
-
-            return await workStation1FeedingModule.InitializeAsync() && await workStation1DetectionModule.InitializeAsync() && await workStation1MaterialPullingModule.InitializeAsync()  && await workStationDataModule.InitializeAsync();
+            return true;
 
         }
 
@@ -630,7 +645,7 @@ namespace PF.Application.Shell
             {
                 UpdateSkin(skinType.ToString());
             }
-            
+
             ConfigHelper.Instance.SetWindowDefaultStyle();
             ConfigHelper.Instance.SetNavigationWindowDefaultStyle();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
