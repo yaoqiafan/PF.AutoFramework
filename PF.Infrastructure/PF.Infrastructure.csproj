@@ -6,7 +6,6 @@
 		<PackageReference Include="log4net" />
 		<PackageReference Include="Stateless" />
 		<PackageReference Include="NPOI" />
-		
 	</ItemGroup>
 
 

@@ -30,7 +30,7 @@ namespace PF.Core.Constants
 
             /// <summary>工站调试模块右侧内容区域</summary>
             public const string StationContentRegion = nameof(StationContentRegion);
-
+            public const string StationControllerContentRegion = nameof(StationControllerContentRegion);
         }
 
         public static class Views
@@ -65,6 +65,7 @@ namespace PF.Core.Constants
             public const string PickPlaceStationDebugView = nameof(PickPlaceStationDebugView);
             public const string CardDebugView = nameof(CardDebugView);
             public const string CameraDebugView = nameof(CameraDebugView);
+            public const string MasterControllerView = nameof(MasterControllerView);
             #endregion
 
             #region 主界面

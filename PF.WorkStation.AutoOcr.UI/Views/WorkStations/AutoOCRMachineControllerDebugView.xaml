@@ -5,7 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations"
-    d:DataContext="{d:DesignInstance vm:AutoOCRMachineControllerDebugViewModel, IsDesignTimeCreatable=False}"
     d:DesignHeight="800"
     d:DesignWidth="820"
     mc:Ignorable="d">
@@ -98,7 +97,6 @@
                     <StackPanel>
                         <TextBlock Style="{StaticResource LabelText}" Text="最近报警" />
                         <TextBlock
-                            Style="{StaticResource ValueText}"
                             FontSize="11"
                             Text="{Binding LastAlarmMessage}"
                             TextTrimming="CharacterEllipsis"

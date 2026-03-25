@@ -52,6 +52,7 @@ using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
+using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -224,6 +225,8 @@ namespace PF.Application.Shell
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
             // 使用默认的超级管理员账号进行静默登录
             authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
+
+            Container.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.StationControllerContentRegion, NavigationConstants.Views.MasterControllerView);
             base.OnInitialized();
         }
 

@@ -18,36 +18,39 @@
                 <ColumnDefinition Width="280" />
                 <ColumnDefinition Width="15" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- ── 左侧工站导航列表 ──────────────────────────────────────────── -->
-            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="3"
+            <!--  ── 左侧工站导航列表 ────────────────────────────────────────────  -->
+            <Border
                 Grid.Column="0"
                 Background="{DynamicResource RegionBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="3"
                 CornerRadius="6">
                 <DockPanel>
                     <TextBlock
-                        DockPanel.Dock="Top"
                         Margin="12,12,12,8"
+                        DockPanel.Dock="Top"
                         FontSize="13"
                         FontWeight="SemiBold"
                         Text="工站列表" />
                     <Separator
-                        DockPanel.Dock="Top"
                         Margin="8,0"
-                        Background="{DynamicResource BorderColorBrush}" />
+                        Background="{DynamicResource BorderColorBrush}"
+                        DockPanel.Dock="Top" />
                     <ListBox
                         Margin="4,4"
                         Background="Transparent"
                         BorderThickness="0"
                         ItemsSource="{Binding NavItems}"
-                        SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                       
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:StationNavItem}">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <!-- 状态指示条 -->
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <!--  状态指示条  -->
                                     <Border
                                         Width="3"
                                         Height="20"
@@ -59,9 +62,7 @@
                                             FontSize="13"
                                             FontWeight="Medium"
                                             Text="{Binding Title}" />
-                                        <TextBlock
-                                            FontSize="{DynamicResource FontSize.Caption.Mini}"
-                                            Text="{Binding StationName}" />
+                                        <TextBlock FontSize="{DynamicResource FontSize.Caption.Mini}" Text="{Binding StationName}" />
                                     </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
@@ -70,10 +71,8 @@
                 </DockPanel>
             </Border>
 
-            <!-- ── 右侧内容区域 ─────────────────────────────────────────────── -->
-            <Border
-                Grid.Column="2"
-                CornerRadius="6">
+            <!--  ── 右侧内容区域 ───────────────────────────────────────────────  -->
+            <Border Grid.Column="2" CornerRadius="6">
                 <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.StationContentRegion}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
@@ -82,9 +81,7 @@
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ContentControl">
-                                                <StackPanel
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center">
+                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
                                                         FontSize="36"
@@ -104,6 +101,15 @@
                     </ContentControl.Style>
                 </ContentControl>
             </Border>
+
+
+
+            <Border Grid.Column="3" CornerRadius="6" Background="AliceBlue">
+                <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.StationControllerContentRegion}">
+                  
+                </ContentControl>
+            </Border>
+
         </Grid>
     </pf:TransitioningContentControl>
 </UserControl>

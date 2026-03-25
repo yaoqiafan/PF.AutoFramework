@@ -1,4 +1,5 @@
-﻿using PF.Core.Events;
+﻿using PF.Core.Attributes;
+using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Stations
 {
+    [MasterControllerUI("AutoOCRMachineControllerDebugView")]
     public class AutoOCRMachineController : BaseMasterController
     {
         private readonly IStationSyncService _sync;

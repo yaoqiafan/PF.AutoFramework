@@ -90,7 +90,7 @@ namespace PF.Services.Sync
         ///   1. 广播取消：Cancel 旧 _resetCts，使所有尚在阻塞的 WaitAsync 调用
         ///      立即抛出 OperationCanceledException 并退出，保证旧信号量无人持有。
         ///   2. 重建信号量：Dispose 旧 SemaphoreSlim，以注册时的初始参数新建一个。
-        /// 前提：此方法由 MasterController.ResetAllAsync() 在所有子工站成功复位后调用。
+        /// 前提：此方法由 MasterControllerView.ResetAllAsync() 在所有子工站成功复位后调用。
         ///       结合熔断机制，确保调用时子工站业务线程已停止或正在退出。
         /// </remarks>
         public void ResetAll()
