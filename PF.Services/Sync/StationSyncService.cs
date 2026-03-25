@@ -130,6 +130,16 @@ namespace PF.Services.Sync
             _signals.Clear();
         }
 
+        // ── 状态快照（供监控 UI 轮询）────────────────────────────────────────
+
+        /// <inheritdoc/>
+        public IReadOnlyDictionary<string, (int InitialCount, int CurrentCount)> GetSnapshot()
+        {
+            return _signals.ToDictionary(
+                kv => kv.Key,
+                kv => (kv.Value.InitialCount, kv.Value.Sem.CurrentCount));
+        }
+
         // ── 私有辅助 ──────────────────────────────────────────────────────────
 
         private SignalEntry GetEntry(string name)

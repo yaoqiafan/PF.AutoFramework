@@ -40,5 +40,11 @@ namespace PF.Core.Interfaces.Sync
         /// 应在 MasterController.ResetAll() 中调用，确保下一次启动状态正确。
         /// </summary>
         void ResetAll();
+
+        /// <summary>
+        /// 快照读取所有已注册信号量的当前状态（只读，供监控 UI 轮询）。
+        /// 返回字典：Key = 信号量名称，Value = (初始计数, 当前可用计数)。
+        /// </summary>
+        IReadOnlyDictionary<string, (int InitialCount, int CurrentCount)> GetSnapshot();
     }
 }

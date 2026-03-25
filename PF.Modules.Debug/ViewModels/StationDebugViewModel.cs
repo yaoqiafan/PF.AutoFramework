@@ -2,6 +2,7 @@ using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Station;
+using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
@@ -9,6 +10,7 @@ using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -25,6 +27,7 @@ namespace PF.Modules.Debug.ViewModels
     {
         private readonly IRegionManager _regionManager;
         private readonly IMasterController _controller;
+        private readonly IStationSyncService _syncService;
         private readonly DispatcherTimer _pollTimer;
 
         // ── 主控状态属性 ─────────────────────────────────────────────────────
@@ -78,6 +81,10 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand ResetAllCommand      { get; }
         public DelegateCommand EmergencyStopCommand { get; }
 
+        // ── 流水线信号量列表 ──────────────────────────────────────────────────
+
+        public ObservableCollection<SignalStatusItem> SignalItems { get; } = new();
+
         // ── 工站导航列表 ─────────────────────────────────────────────────────
 
         public ObservableCollection<StationNavItem> NavItems { get; } = new();
@@ -96,10 +103,12 @@ namespace PF.Modules.Debug.ViewModels
         public StationDebugViewModel(
             IEnumerable<StationBase> stations,
             IMasterController controller,
+            IStationSyncService syncService,
             IRegionManager regionManager)
         {
             _regionManager = regionManager;
             _controller    = controller;
+            _syncService   = syncService;
 
             _controller.MasterAlarmTriggered += OnMasterAlarmTriggered;
 
@@ -188,6 +197,8 @@ namespace PF.Modules.Debug.ViewModels
             foreach (var item in NavItems)
                 item.Refresh();
 
+            RefreshSignals();
+
             InitializeAllCommand.RaiseCanExecuteChanged();
             StartAllCommand.RaiseCanExecuteChanged();
             PauseAllCommand.RaiseCanExecuteChanged();
@@ -195,6 +206,28 @@ namespace PF.Modules.Debug.ViewModels
             StopAllCommand.RaiseCanExecuteChanged();
             ResetAllCommand.RaiseCanExecuteChanged();
             EmergencyStopCommand.RaiseCanExecuteChanged();
+        }
+
+        private void RefreshSignals()
+        {
+            var snapshot = _syncService.GetSnapshot();
+
+            // 新增在快照中但不在列表中的条目
+            foreach (var kv in snapshot)
+            {
+                var existing = SignalItems.FirstOrDefault(s => s.Name == kv.Key);
+                if (existing == null)
+                    SignalItems.Add(new SignalStatusItem { Name = kv.Key, InitialCount = kv.Value.InitialCount });
+                else
+                    existing.Update(kv.Value.CurrentCount);
+            }
+
+            // 移除已不存在于快照的条目（信号量注销场景）
+            for (int i = SignalItems.Count - 1; i >= 0; i--)
+            {
+                if (!snapshot.ContainsKey(SignalItems[i].Name))
+                    SignalItems.RemoveAt(i);
+            }
         }
 
         private void OnMasterAlarmTriggered(object sender, string message) =>
@@ -210,6 +243,29 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         public override void Destroy() => Dispose();
+    }
+
+    /// <summary>流水线信号量状态条目</summary>
+    public class SignalStatusItem : BindableBase
+    {
+        public string Name         { get; init; }
+        public int    InitialCount { get; init; }
+
+        private int _currentCount;
+        public int CurrentCount
+        {
+            get => _currentCount;
+            private set
+            {
+                SetProperty(ref _currentCount, value);
+                RaisePropertyChanged(nameof(StatusText));
+            }
+        }
+
+        /// <summary>显示文本：当前可用计数 / 最大计数</summary>
+        public string StatusText => CurrentCount > 0 ? $"可用 ({CurrentCount})" : "阻塞 (0)";
+
+        internal void Update(int currentCount) => CurrentCount = currentCount;
     }
 
     /// <summary>工站导航条目，持有实时状态供左侧列表展示</summary>
