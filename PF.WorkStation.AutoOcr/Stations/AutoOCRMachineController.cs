@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Stations
 {
-    [MasterControllerUI("AutoOCRMachineControllerDebugView")]
+    
     public class AutoOCRMachineController : BaseMasterController
     {
         private readonly IStationSyncService _sync;
@@ -26,8 +26,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync = sync;
 
             
-            //_sync.Register(WorkstationSignals.SlotEmpty, initialCount: 1, maxCount: 1);
-            //_sync.Register(WorkstationSignals.ProductReady, initialCount: 0, maxCount: 1);
+            _sync.Register("WorkstationSignals.SlotEmpty", initialCount: 1, maxCount: 1);
+            _sync.Register("WorkstationSignals.ProductReady", initialCount: 0, maxCount: 1);
         }
 
 
