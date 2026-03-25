@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace PF.WorkStation.AutoOcr.Stations
 {
     [StationUI("工位1上下料工站", "WorkStation1FeedingStationDebugView", order: 1)]
-    public class WorkStation1FeedingStation : StationBase
+    public class WorkStation1FeedingStation<T> : StationBase<T> where T : StationMemoryBaseParam
     {
         private readonly WorkStation1FeedingModule? _feedingModule;
         private readonly IStationSyncService _sync;
