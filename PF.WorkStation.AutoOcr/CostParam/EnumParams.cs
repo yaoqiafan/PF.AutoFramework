@@ -316,6 +316,12 @@ namespace PF.Workstation.AutoOcr.CostParam
         AxisHomeTimeout,
 
 
+
+        [Category("超时参数")]
+        [Description("气缸超时参数")]
+        [DefaultValue(10000)]
+        CylinderTimeout,
+
         #endregion
 
 

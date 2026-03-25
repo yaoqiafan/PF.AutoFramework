@@ -299,10 +299,7 @@
                         FontWeight="Bold"
                         Header="硬件状态实时监控">
                         <StackPanel Margin="15">
-                            <TextBlock
-                                Margin="0,0,0,10"
-                                Foreground="Gray"
-                                Text="机械轴实时坐标" />
+                          
                             <Grid Margin="0,0,0,25">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
