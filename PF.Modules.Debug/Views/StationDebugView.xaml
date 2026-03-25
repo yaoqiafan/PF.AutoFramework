@@ -12,16 +12,44 @@
     d:DesignWidth="1000"
     mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ThirdlyRegionColorBrush}" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="10,7" />
+        </Style>
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextColorBrush}" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+        </Style>
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColorBrush}" />
+        </Style>
+        <Style x:Key="CtrlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Margin" Value="2,2" />
+        </Style>
+        <Style x:Key="EStopButton" TargetType="Button" BasedOn="{StaticResource CtrlButton}">
+            <Setter Property="Background" Value="{DynamicResource DangerColorBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Resources>
+
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280" />
                 <ColumnDefinition Width="15" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!--  ── 左侧工站导航列表 ────────────────────────────────────────────  -->
+            <!--  ── 左侧面板 ──────────────────────────────────────────────────  -->
             <Border
                 Grid.Column="0"
                 Background="{DynamicResource RegionBrush}"
@@ -29,50 +57,159 @@
                 BorderThickness="3"
                 CornerRadius="6">
                 <DockPanel>
+
+                    <!--  标题  -->
                     <TextBlock
-                        Margin="12,12,12,8"
+                        Margin="12,12,12,6"
                         DockPanel.Dock="Top"
                         FontSize="13"
                         FontWeight="SemiBold"
+                        Text="工站调试" />
+
+                    <!--  主控状态卡片  -->
+                    <Grid Margin="8,0,8,0" DockPanel.Dock="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Margin="0,0,3,0" Style="{StaticResource CardBorder}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource LabelText}" Text="主控状态" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse
+                                        Width="8"
+                                        Height="8"
+                                        Margin="0,0,5,0"
+                                        VerticalAlignment="Center"
+                                        Fill="{Binding StatusBrush}" />
+                                    <TextBlock Style="{StaticResource ValueText}" Text="{Binding ControllerState}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Margin="3,0,0,0" Style="{StaticResource CardBorder}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource LabelText}" Text="运行模式" />
+                                <TextBlock Style="{StaticResource ValueText}" Text="{Binding CurrentMode}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!--  最近报警  -->
+                    <TextBlock
+                        Margin="12,5,12,0"
+                        DockPanel.Dock="Top"
+                        FontSize="10"
+                        Foreground="{DynamicResource SecondaryTextColorBrush}"
+                        Text="{Binding LastAlarmMessage, StringFormat='报警: {0}'}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding LastAlarmMessage}" />
+
+                    <Separator Margin="8,6" Background="{DynamicResource BorderColorBrush}" DockPanel.Dock="Top" />
+
+                    <!--  控制指令  -->
+                    <TextBlock
+                        Margin="12,0,12,4"
+                        DockPanel.Dock="Top"
+                        FontSize="10"
+                        Foreground="{DynamicResource SecondaryTextColorBrush}"
+                        Text="全局控制指令" />
+
+                    <WrapPanel Margin="8,0,8,0" DockPanel.Dock="Top">
+                        <Button Style="{StaticResource CtrlButton}" Command="{Binding InitializeAllCommand}" Content="全线初始化" />
+                        <Button Style="{StaticResource CtrlButton}" Command="{Binding StartAllCommand}"      Content="▶ 启动" />
+                        <Button Style="{StaticResource CtrlButton}" Command="{Binding PauseAllCommand}"     Content="⏸ 暂停" />
+                        <Button Style="{StaticResource CtrlButton}" Command="{Binding ResumeAllCommand}"    Content="▶ 恢复" />
+                        <Button Style="{StaticResource CtrlButton}" Command="{Binding StopAllCommand}"      Content="⏹ 停止" />
+                        <Button Style="{StaticResource CtrlButton}" Command="{Binding ResetAllCommand}"     Content="⟳ 复位" />
+                        <Button Style="{StaticResource EStopButton}" Command="{Binding EmergencyStopCommand}" Content="⚠ 急停" />
+                    </WrapPanel>
+
+                    <Separator Margin="8,6" Background="{DynamicResource BorderColorBrush}" DockPanel.Dock="Top" />
+
+                    <!--  工站列表标题  -->
+                    <TextBlock
+                        Margin="12,0,12,4"
+                        DockPanel.Dock="Top"
+                        FontSize="10"
+                        Foreground="{DynamicResource SecondaryTextColorBrush}"
                         Text="工站列表" />
-                    <Separator
-                        Margin="8,0"
-                        Background="{DynamicResource BorderColorBrush}"
-                        DockPanel.Dock="Top" />
+
+                    <!--  可点击工站列表  -->
                     <ListBox
-                        Margin="4,4"
+                        Margin="4,0,4,4"
                         Background="Transparent"
                         BorderThickness="0"
                         ItemsSource="{Binding NavItems}"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+                        SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                        Style="{StaticResource {x:Type ListBox}}">
+
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,2" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
 
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:StationNavItem}">
-                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                    <!--  状态指示条  -->
-                                    <Border
-                                        Width="3"
-                                        Height="20"
-                                        Margin="0,0,8,0"
-                                        Background="{DynamicResource PrimaryColorBrush}"
-                                        CornerRadius="1.5" />
-                                    <StackPanel>
+                                <Border
+                                    Padding="10,8"
+                                    Background="{DynamicResource ThirdlyRegionColorBrush}"
+                                    CornerRadius="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!--  状态指示点  -->
+                                        <Ellipse
+                                            Grid.Column="0"
+                                            Width="8"
+                                            Height="8"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding StateBrush}" />
+
+                                        <!--  工站名 + 步序  -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="12"
+                                                FontWeight="Medium"
+                                                Foreground="{DynamicResource PrimaryTextColorBrush}"
+                                                Text="{Binding Title}" />
+                                            <TextBlock
+                                                FontSize="10"
+                                                Foreground="{DynamicResource SecondaryTextColorBrush}"
+                                                Text="{Binding StepDescription}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <!--  状态标签  -->
                                         <TextBlock
-                                            FontSize="13"
-                                            FontWeight="Medium"
-                                            Text="{Binding Title}" />
-                                        <TextBlock FontSize="{DynamicResource FontSize.Caption.Mini}" Text="{Binding StationName}" />
-                                    </StackPanel>
-                                </StackPanel>
+                                            Grid.Column="2"
+                                            Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="10"
+                                            FontWeight="SemiBold"
+                                            Foreground="{Binding StateBrush}"
+                                            Text="{Binding State}" />
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
+
                 </DockPanel>
             </Border>
 
             <!--  ── 右侧内容区域 ───────────────────────────────────────────────  -->
-            <Border Grid.Column="2" CornerRadius="6">
+            <Border Grid.Column="2" CornerRadius="5">
                 <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.StationContentRegion}">
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
@@ -99,14 +236,6 @@
                             </Style.Triggers>
                         </Style>
                     </ContentControl.Style>
-                </ContentControl>
-            </Border>
-
-
-
-            <Border Grid.Column="3" CornerRadius="6" Background="AliceBlue">
-                <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.StationControllerContentRegion}">
-                  
                 </ContentControl>
             </Border>
 

@@ -1,29 +1,85 @@
 using PF.Core.Attributes;
 using PF.Core.Constants;
+using PF.Core.Enums;
+using PF.Core.Interfaces.Station;
 using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
+using Prism.Commands;
+using Prism.Mvvm;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
 {
     /// <summary>
     /// 工站调试主视图 ViewModel
     ///
-    /// 发现机制：
-    ///   通过注入的 IEnumerable&lt;StationBase&gt; 获取所有已注册工站实例，
-    ///   对每个实例的运行时类型反射读取 [StationUIAttribute]，
-    ///   提取 Title / ViewName / Order 后填充左侧导航列表。
-    ///
-    /// 导航机制：
-    ///   选中列表项后调用 IRegionManager.RequestNavigate，
-    ///   将对应 ViewName 加载到 StationContentRegion 右侧内容区域。
+    /// 左侧面板集成主控状态（状态、模式、报警、控制指令）+ 可点击工站列表；
+    /// 点击工站条目后，右侧 StationContentRegion 加载对应工站调试视图。
     /// </summary>
-    public class StationDebugViewModel : RegionViewModelBase
+    public class StationDebugViewModel : RegionViewModelBase, IDisposable
     {
         private readonly IRegionManager _regionManager;
+        private readonly IMasterController _controller;
+        private readonly DispatcherTimer _pollTimer;
 
-        /// <summary>左侧工站导航条目列表</summary>
+        // ── 主控状态属性 ─────────────────────────────────────────────────────
+
+        private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
+        {
+            { MachineState.Running,      new SolidColorBrush(Color.FromRgb(0x2d, 0xb8, 0x4d)) },
+            { MachineState.Paused,       new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)) },
+            { MachineState.Alarm,        new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
+            { MachineState.Initializing, new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
+            { MachineState.Resetting,    new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)) },
+            { MachineState.Idle,         new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
+        };
+        private static readonly Brush _defaultBrush = new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75));
+
+        private MachineState _controllerState;
+        public MachineState ControllerState
+        {
+            get => _controllerState;
+            private set
+            {
+                SetProperty(ref _controllerState, value);
+                RaisePropertyChanged(nameof(StatusBrush));
+            }
+        }
+
+        private OperationMode _currentMode;
+        public OperationMode CurrentMode
+        {
+            get => _currentMode;
+            private set => SetProperty(ref _currentMode, value);
+        }
+
+        private string _lastAlarmMessage = "无";
+        public string LastAlarmMessage
+        {
+            get => _lastAlarmMessage;
+            private set => SetProperty(ref _lastAlarmMessage, value);
+        }
+
+        public Brush StatusBrush =>
+            _stateBrushMap.TryGetValue(_controllerState, out var b) ? b : _defaultBrush;
+
+        // ── 主控指令 ─────────────────────────────────────────────────────────
+
+        public DelegateCommand InitializeAllCommand { get; }
+        public DelegateCommand StartAllCommand      { get; }
+        public DelegateCommand PauseAllCommand      { get; }
+        public DelegateCommand ResumeAllCommand     { get; }
+        public DelegateCommand StopAllCommand       { get; }
+        public DelegateCommand ResetAllCommand      { get; }
+        public DelegateCommand EmergencyStopCommand { get; }
+
+        // ── 工站导航列表 ─────────────────────────────────────────────────────
+
         public ObservableCollection<StationNavItem> NavItems { get; } = new();
 
         private StationNavItem _selectedItem;
@@ -37,10 +93,54 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
-        public StationDebugViewModel(IEnumerable<StationBase> stations, IRegionManager regionManager)
+        public StationDebugViewModel(
+            IEnumerable<StationBase> stations,
+            IMasterController controller,
+            IRegionManager regionManager)
         {
             _regionManager = regionManager;
+            _controller    = controller;
+
+            _controller.MasterAlarmTriggered += OnMasterAlarmTriggered;
+
             BuildNavItems(stations);
+
+            InitializeAllCommand = new DelegateCommand(
+                async () => { try { await _controller.InitializeAllAsync(); } catch (Exception ex) { Log(ex); } },
+                () => _controller.CurrentState == MachineState.Uninitialized);
+
+            StartAllCommand = new DelegateCommand(
+                async () => { try { await _controller.StartAllAsync(); } catch (Exception ex) { Log(ex); } },
+                () => _controller.CurrentState == MachineState.Idle);
+
+            PauseAllCommand = new DelegateCommand(
+                () => _controller.PauseAll(),
+                () => _controller.CurrentState == MachineState.Running);
+
+            ResumeAllCommand = new DelegateCommand(
+                async () => { try { await _controller.ResumeAllAsync(); } catch (Exception ex) { Log(ex); } },
+                () => _controller.CurrentState == MachineState.Paused);
+
+            StopAllCommand = new DelegateCommand(
+                () => _controller.StopAll(),
+                () => _controller.CurrentState == MachineState.Running
+                   || _controller.CurrentState == MachineState.Paused);
+
+            ResetAllCommand = new DelegateCommand(
+                async () => { try { await _controller.ResetAllAsync(); } catch (Exception ex) { Log(ex); } },
+                () => _controller.CurrentState == MachineState.Alarm);
+
+            EmergencyStopCommand = new DelegateCommand(
+                () => _controller.EmergencyStop(),
+                () => _controller.CurrentState != MachineState.Alarm
+                   && _controller.CurrentState != MachineState.Uninitialized);
+
+            _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
+            {
+                Interval = TimeSpan.FromMilliseconds(200)
+            };
+            _pollTimer.Tick += OnPollTick;
+            _pollTimer.Start();
         }
 
         private void BuildNavItems(IEnumerable<StationBase> stations)
@@ -54,9 +154,10 @@ namespace PF.Modules.Debug.ViewModels
 
                 items.Add((new StationNavItem
                 {
-                    Title    = attr.Title,
-                    ViewName = attr.ViewName,
-                    StationName = station.StationName
+                    Title       = attr.Title,
+                    ViewName    = attr.ViewName,
+                    StationName = station.StationName,
+                    Station     = station,
                 }, attr.Order));
             }
 
@@ -78,13 +179,85 @@ namespace PF.Modules.Debug.ViewModels
                             $"[StationDebug] 导航失败: {result.Exception?.Message}");
                 });
         }
+
+        private void OnPollTick(object sender, EventArgs e)
+        {
+            ControllerState = _controller.CurrentState;
+            CurrentMode     = _controller.CurrentMode;
+
+            foreach (var item in NavItems)
+                item.Refresh();
+
+            InitializeAllCommand.RaiseCanExecuteChanged();
+            StartAllCommand.RaiseCanExecuteChanged();
+            PauseAllCommand.RaiseCanExecuteChanged();
+            ResumeAllCommand.RaiseCanExecuteChanged();
+            StopAllCommand.RaiseCanExecuteChanged();
+            ResetAllCommand.RaiseCanExecuteChanged();
+            EmergencyStopCommand.RaiseCanExecuteChanged();
+        }
+
+        private void OnMasterAlarmTriggered(object sender, string message) =>
+            LastAlarmMessage = message;
+
+        private static void Log(Exception ex) =>
+            System.Diagnostics.Debug.WriteLine($"[StationDebug] 指令执行失败: {ex.Message}");
+
+        public void Dispose()
+        {
+            _pollTimer.Stop();
+            _controller.MasterAlarmTriggered -= OnMasterAlarmTriggered;
+        }
+
+        public override void Destroy() => Dispose();
     }
 
-    /// <summary>工站导航条目数据模型</summary>
-    public class StationNavItem
+    /// <summary>工站导航条目，持有实时状态供左侧列表展示</summary>
+    public class StationNavItem : BindableBase
     {
+        private static readonly Dictionary<MachineState, Brush> _brushMap = new()
+        {
+            { MachineState.Running,      new SolidColorBrush(Color.FromRgb(0x2d, 0xb8, 0x4d)) },
+            { MachineState.Paused,       new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)) },
+            { MachineState.Alarm,        new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
+            { MachineState.Initializing, new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
+            { MachineState.Resetting,    new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)) },
+            { MachineState.Idle,         new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
+        };
+        private static readonly Brush _defaultBrush = new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75));
+
         public string Title       { get; init; }
         public string ViewName    { get; init; }
         public string StationName { get; init; }
+        internal StationBase Station { get; init; }
+
+        private MachineState _state;
+        public MachineState State
+        {
+            get => _state;
+            private set
+            {
+                SetProperty(ref _state, value);
+                RaisePropertyChanged(nameof(StateBrush));
+            }
+        }
+
+        private string _stepDescription = string.Empty;
+        public string StepDescription
+        {
+            get => _stepDescription;
+            private set => SetProperty(ref _stepDescription, value);
+        }
+
+        public Brush StateBrush =>
+            _brushMap.TryGetValue(_state, out var b) ? b : _defaultBrush;
+
+        /// <summary>由定时器调用，从 StationBase 拉取最新状态</summary>
+        internal void Refresh()
+        {
+            if (Station == null) return;
+            State           = Station.CurrentState;
+            StepDescription = Station.CurrentStepDescription;
+        }
     }
 }
