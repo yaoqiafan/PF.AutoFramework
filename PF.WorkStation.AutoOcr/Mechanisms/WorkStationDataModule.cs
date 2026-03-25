@@ -196,7 +196,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     WriteIndented = true,
                     IncludeFields = true // 确保包含标记了 JsonInclude 的字段
                 };
-
+                FileInfo fileinfo = new FileInfo (filePath);
+                string folderPath = fileinfo.DirectoryName;
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
                 string json = JsonSerializer.Serialize(this, options);
                 File.WriteAllText(filePath, json);
                 _logger?.Info($"{this.MechanismName} 数据已保存至: {filePath}");
