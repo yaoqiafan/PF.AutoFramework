@@ -21,10 +21,13 @@ namespace PF.Modules.Debug.Views
             if (regionManager.Regions.ContainsRegionWithName(regionName))
                 regionManager.Regions.Remove(regionName);
 
-
             InitializeComponent();
 
-           
+            // StationControllerContentRegion 是本视图内的嵌套 Region，InitializeComponent 后才存在。
+            // 在此处触发导航，确保 MasterControllerView 在视图每次创建时都能正确加载。
+            regionManager.RequestNavigate(
+                NavigationConstants.Regions.StationControllerContentRegion,
+                NavigationConstants.Views.MasterControllerView);
         }
     }
 }
