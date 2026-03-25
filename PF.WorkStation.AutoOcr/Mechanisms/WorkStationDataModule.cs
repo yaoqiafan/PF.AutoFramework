@@ -1,4 +1,5 @@
-﻿using PF.Core.Events;
+﻿using PF.Core.Attributes;
+using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
@@ -20,7 +21,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// <summary>
     /// 数据模块，所有交互数据基于此模块（工位配方、检测数据、原始数据）
     /// </summary>
-    public  class WorkStationDataModule : BaseMechanism
+    [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 1)]
+    public class WorkStationDataModule : BaseMechanism
     {
         public WorkStationDataModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger) : base("数据模块", hardwareManagerService, paramService, logger)
         {
@@ -31,7 +33,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\MemoryData.json";
         protected override Task<bool> InternalInitializeAsync(CancellationToken token)
         {
-           Load(filepath);
+            Load(filepath);
             return Task.FromResult(true);
         }
 
@@ -45,7 +47,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region 工位配方参数
         [JsonInclude]
-        private OCRRecipeParam _Station1ReciepParam =new OCRRecipeParam ();
+        private OCRRecipeParam _Station1ReciepParam = new OCRRecipeParam();
 
 
         /// <summary>
@@ -53,7 +55,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public OCRRecipeParam Station1ReciepParam => _Station1ReciepParam;
         [JsonInclude]
-        private OCRRecipeParam _Station2ReciepParam=new OCRRecipeParam ();
+        private OCRRecipeParam _Station2ReciepParam = new OCRRecipeParam();
 
 
         /// <summary>
@@ -94,14 +96,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region 检测数据
         [JsonInclude]
-        private MesDetectionParam _Station1MesDetectionData=new MesDetectionParam ();
+        private MesDetectionParam _Station1MesDetectionData = new MesDetectionParam();
 
         /// <summary>
         /// 工位1检测MES返回数据
         /// </summary>
         public MesDetectionParam Station1MesDetectionData => _Station1MesDetectionData;
         [JsonInclude]
-        private MesDetectionParam _Station2MesDetectionData=new MesDetectionParam ();
+        private MesDetectionParam _Station2MesDetectionData = new MesDetectionParam();
         /// <summary>
         /// 工位2检测MES返回数据
         /// </summary>
@@ -134,19 +136,19 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
         [JsonInclude]
-        private List<MachineDetectionData> _Sation1MachineDetectionData=new List<MachineDetectionData> ();
+        private List<MachineDetectionData> _Sation1MachineDetectionData = new List<MachineDetectionData>();
 
 
         public List<MachineDetectionData> Sation1MachineDetectionData => _Sation1MachineDetectionData;
 
         [JsonInclude]
-        private List<MachineDetectionData> _Sation2MachineDetectionData=new List<MachineDetectionData> ();
+        private List<MachineDetectionData> _Sation2MachineDetectionData = new List<MachineDetectionData>();
 
 
         public List<MachineDetectionData> Sation2MachineDetectionData => _Sation2MachineDetectionData;
 
         [JsonInclude]
-        private Dictionary<string, MachineDetectionData> _MachineDetectionDataDic=new Dictionary<string, MachineDetectionData> ();
+        private Dictionary<string, MachineDetectionData> _MachineDetectionDataDic = new Dictionary<string, MachineDetectionData>();
 
         public Dictionary<string, MachineDetectionData> MachineDetectionDataDic => _MachineDetectionDataDic;
 
@@ -196,7 +198,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     WriteIndented = true,
                     IncludeFields = true // 确保包含标记了 JsonInclude 的字段
                 };
-                FileInfo fileinfo = new FileInfo (filePath);
+                FileInfo fileinfo = new FileInfo(filePath);
                 string folderPath = fileinfo.DirectoryName;
                 if (!Directory.Exists(folderPath))
                 {
@@ -222,7 +224,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             if (!File.Exists(filePath))
             {
-                Save (filePath ); // 如果文件不存在，先保存一个默认的空数据文件
+                Save(filePath); // 如果文件不存在，先保存一个默认的空数据文件
                 return false;
             }
 
