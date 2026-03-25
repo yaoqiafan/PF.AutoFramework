@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
 using PF.Services.Hardware;
@@ -82,11 +83,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private double ZAcc;
         private double ZDec;
 
+        private IContainerProvider Provider;
 
-        public WorkStationDetectionModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger) : base(E_Mechanisms.OCR识别模组.ToString(), hardwareManagerService, paramService, logger)
+
+        public WorkStationDetectionModule(IHardwareManagerService hardwareManagerService, IParamService paramService, IContainerProvider provider, ILogService logger) : base(E_Mechanisms.OCR识别模组.ToString(), hardwareManagerService, paramService, logger)
         {
-
+            Provider = provider;
         }
+
+
+        private WorkStationDataModule _dataModule;
 
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
@@ -116,6 +122,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Error($"[{MechanismName}] 未找到相机 '{E_Camera.OCR相机}'，请确认硬件配置。");
                 return false;
             }
+
+
+            _dataModule = Provider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+
+            if (_dataModule == null)
+            {
+                _logger.Error($"[{MechanismName}] 未找到 WorkStationDataModule 模块，请检查软件。");
+                return false;
+            }
+
             // ② 将硬件注册到当前模组：这样当单一轴/IO发生报警时，整个模组的状态会自动同步为 Alarm
             RegisterHardwareDevice(_xAxis as IHardwareDevice);
             RegisterHardwareDevice(_yAxis as IHardwareDevice);
@@ -233,7 +249,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<bool> MoveToStation1(CancellationToken token = default)
         {
             CheckReady();
-            if (_1StationRecipe ==null )
+            _1StationRecipe = _dataModule.Station1ReciepParam;
+            if (_1StationRecipe == null)
             {
                 _logger.Error($"工位1未加载配方");
                 return false;
@@ -270,6 +287,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<bool> MoveToStation2(CancellationToken token = default)
         {
             CheckReady();
+            _2StationRecipe = _dataModule.Station2ReciepParam;
             if (_2StationRecipe == null)
             {
                 _logger.Error($"工位2未加载配方");
@@ -304,7 +322,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task<string> CameraTigger(CancellationToken token =default )
+        public async Task<string> CameraTigger(CancellationToken token = default)
         {
             return await _camera.Tigger(token);
         }
