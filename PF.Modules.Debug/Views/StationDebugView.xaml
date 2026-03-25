@@ -136,6 +136,63 @@
                         Foreground="{DynamicResource SecondaryTextColorBrush}"
                         Text="工站列表" />
 
+                    <!--  流水线信号量  -->
+                    <Separator Margin="8,4" Background="{DynamicResource BorderColorBrush}" DockPanel.Dock="Bottom" />
+                    <ItemsControl
+                        DockPanel.Dock="Bottom"
+                        Margin="4,0,4,4"
+                        ItemsSource="{Binding SignalItems}">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SignalItems.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:SignalStatusItem}">
+                                <Border
+                                    Margin="0,1"
+                                    Padding="10,6"
+                                    Background="{DynamicResource ThirdlyRegionColorBrush}"
+                                    CornerRadius="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource PrimaryTextColorBrush}"
+                                            Text="{Binding Name}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="10"
+                                                Foreground="{DynamicResource SecondaryTextColorBrush}"
+                                                Text="{Binding InitialCount, StringFormat='初始:{0} '}" />
+                                            <TextBlock
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                Foreground="{DynamicResource PrimaryColorBrush}"
+                                                Text="{Binding StatusText}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock
+                        DockPanel.Dock="Bottom"
+                        Margin="12,0,12,6"
+                        FontSize="10"
+                        Foreground="{DynamicResource SecondaryTextColorBrush}"
+                        Text="流水线信号量" />
+
                     <!--  可点击工站列表  -->
                     <ListBox
                         Margin="4,0,4,4"
