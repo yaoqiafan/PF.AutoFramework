@@ -22,7 +22,7 @@ using static NPOI.HSSF.UserModel.HeaderFooter;
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
 
-    /// <summary>
+     /// <summary>
     /// 数据模块，所有交互数据基于此模块（工位配方、检测数据、原始数据）
     /// </summary>
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 1)]
@@ -246,14 +246,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             public MesDetectionParam Station2MesDetectionData { get; set; } = new MesDetectionParam();
 
-            public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } =
-                new List<MachineDetectionData>();
+        #endregion  检测数据
 
-            public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } =
-                new List<MachineDetectionData>();
 
-            public List<MachineDetectionData> AllMachineDetectionData { get; set; } =
-                new List<MachineDetectionData>();
+        #region 序列化与反序列化
 
             public Dictionary<string, MachineDetectionData> MachineDetectionDataDic { get; set; } =
                 new Dictionary<string, MachineDetectionData>();
@@ -289,10 +285,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     Directory.CreateDirectory(folderPath);
                 }
-
-                var json = JsonSerializer.Serialize(snapshot, options);
-                System.IO.File.WriteAllText(filePath, json);
-                _logger?.Info($"{MechanismName} 数据已保存至: {filePath}");
+                string json = JsonSerializer.Serialize(this, options);
+                File.WriteAllText(filePath, json);
+                _logger?.Info($"{this.MechanismName} 数据已保存至: {filePath}");
             }
             catch (Exception ex)
             {
@@ -319,21 +314,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var snapshot = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
                 if (snapshot == null)
                 {
-                    return false;
-                }
-
-                _Station1ReciepParam = snapshot.Station1ReciepParam ?? new OCRRecipeParam();
-                _Station2ReciepParam = snapshot.Station2ReciepParam ?? new OCRRecipeParam();
-                _Station1MesDetectionData = snapshot.Station1MesDetectionData ?? new MesDetectionParam();
-                _Station2MesDetectionData = snapshot.Station2MesDetectionData ?? new MesDetectionParam();
-                _Sation1MachineDetectionData = snapshot.Sation1MachineDetectionData
-                                               ?? new List<MachineDetectionData>();
-                _Sation2MachineDetectionData = snapshot.Sation2MachineDetectionData
-                                               ?? new List<MachineDetectionData>();
-                _AllMachineDetectionData = snapshot.AllMachineDetectionData
-                                            ?? new List<MachineDetectionData>();
-                _MachineDetectionDataDic = snapshot.MachineDetectionDataDic
-                                           ?? new Dictionary<string, MachineDetectionData>();
+                    // 手动将数据同步到当前经过 DI 初始化的实例
+                    this._Station1ReciepParam = tempModule._Station1ReciepParam;
+                    this._Station2ReciepParam = tempModule._Station2ReciepParam;
+                    this._Station1MesDetectionData = tempModule._Station1MesDetectionData;
+                    this._Station2MesDetectionData = tempModule._Station2MesDetectionData;
+                    this._Sation1MachineDetectionData = tempModule._Sation1MachineDetectionData;
+                    this._Sation2MachineDetectionData = tempModule._Sation2MachineDetectionData;
+                    this._MachineDetectionDataDic = tempModule._MachineDetectionDataDic;
 
                 _logger?.Info($"{MechanismName} 数据加载成功");
                 OnDataChanged();
