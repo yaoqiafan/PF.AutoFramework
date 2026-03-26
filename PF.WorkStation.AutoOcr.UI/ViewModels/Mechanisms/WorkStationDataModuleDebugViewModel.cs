@@ -298,10 +298,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     InternalBatches = Station1InternalBatches,
                     CustomerBatches = kkk.CustomerBatch,
                     WaferID = kkk.WaferID,
-                    OCRValue = kkk.CustomerBatch,
-                    CodeValue1 = kkk.CustomerBatch,
-                    CodeValue2 = kkk.CustomerBatch,
-                    OcrCodeValue = kkk.CustomerBatch,
+                    OCRValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
+                    CodeValue1 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
+                    CodeValue2 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
+                    OcrCodeValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
                 };
                 _dataModule.AddMachineDetectionData(E_WorkSpace.工位1, info);
             }
@@ -325,10 +325,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     InternalBatches = Station1InternalBatches,
                     CustomerBatches = kkk.CustomerBatch,
                     WaferID = kkk.WaferID,
-                    OCRValue = kkk.CustomerBatch,
-                    CodeValue1 = kkk.CustomerBatch,
-                    CodeValue2 = kkk.CustomerBatch,
-                    OcrCodeValue = kkk.CustomerBatch,
+                    OCRValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
+                    CodeValue1 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
+                    CodeValue2 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
+                    OcrCodeValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
                 };
                 _dataModule.AddMachineDetectionData(E_WorkSpace.工位2, info);
             }

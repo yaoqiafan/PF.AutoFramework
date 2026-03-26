@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Device.Mechanisms;
+﻿using NPOI.SS.Formula.Functions;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -9,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
@@ -152,8 +154,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatches ?? string.Empty;
             Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
-            Station1RecipeName = _dataModule.Station1ReciepParam.RecipeName;
-            Station2RecipeName = _dataModule.Station2ReciepParam.RecipeName;
+            Station1RecipeName = _dataModule.Station1MesDetectionData .RecipeName;
+            Station2RecipeName = _dataModule.Station2MesDetectionData.RecipeName;
             Station1DetStatus = _dataModule.Station1MesDetectionData.DetectionStatus;
             Station2DetStatus = _dataModule.Station2MesDetectionData.DetectionStatus;
             return Task.CompletedTask;
@@ -173,15 +175,72 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
 
-        private void OnDialogCallbackStation1(IDialogResult result)
+        private async void OnDialogCallbackStation1(IDialogResult result)
         {
+            if (result.Result == ButtonResult.OK)
+            {
+                var param = result.Parameters as DialogParameters;
+                if (param != null && param.ContainsKey("Lotid") && param.ContainsKey("Userid"))
+                {
+                    string Userid = param.GetValue<string>("Userid");
+                    string lotid = param.GetValue<string>("Lotid");
+                    var info = await _dataModule?.QueryFromMes(lotid, Userid);
+                    if (info == null)
+                    {
+
+                        MessageService.ShowMessage($"{lotid}获取检测数据错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    if (await _dataModule.ChangedStationMesDetectionData(E_WorkSpace.工位1, info))
+                    {
+                        MessageService.ShowMessage($"工位1切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageService.ShowMessage($"工位1切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+                else
+                {
+                    MessageService.ShowMessage($"参数传递错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+
+
 
         }
 
 
-        private void OnDialogCallbackStation2(IDialogResult result)
+        private async  void OnDialogCallbackStation2(IDialogResult result)
         {
+            if (result.Result == ButtonResult.OK)
+            {
+                var param = result.Parameters as DialogParameters;
+                if (param != null && param.ContainsKey("Lotid") && param.ContainsKey("Userid"))
+                {
+                    string Userid = param.GetValue<string>("Userid");
+                    string lotid = param.GetValue<string>("Lotid");
+                    var info = await _dataModule?.QueryFromMes(lotid, Userid);
+                    if (info == null)
+                    {
 
+                        MessageService.ShowMessage($"{lotid}获取检测数据错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    if (await _dataModule.ChangedStationMesDetectionData(E_WorkSpace.工位2, info))
+                    {
+                        MessageService.ShowMessage($"工位2切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageService.ShowMessage($"工位2切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+                else
+                {
+                    MessageService.ShowMessage($"参数传递错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
         }
     }
 }
