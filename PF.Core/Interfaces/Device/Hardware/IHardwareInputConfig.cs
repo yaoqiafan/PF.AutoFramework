@@ -30,6 +30,12 @@ namespace PF.Core.Interfaces.Device.Hardware
 
         /// <summary>所属扫描分组，决定该输入在哪个线程中被轮询。</summary>
         InputScanGroup ScanGroup { get; }
+
+        /// <summary>
+        /// 是否屏蔽此输入点的扫描。
+        /// true = 屏蔽（跳过事件发布）；false = 正常扫描（默认值）。
+        /// </summary>
+        bool IsMuted { get; }
     }
 
     /// <summary>
