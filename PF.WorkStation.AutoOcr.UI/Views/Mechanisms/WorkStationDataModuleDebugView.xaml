@@ -88,6 +88,7 @@
                     </TextBlock>
                 </StackPanel>
 
+                <!--  最后反馈信息  -->
                 <StackPanel
                     Grid.Column="2"
                     Margin="0,0,20,0"
@@ -109,6 +110,7 @@
                         TextTrimming="CharacterEllipsis" />
                 </StackPanel>
 
+                <!--  操作按钮  -->
                 <StackPanel
                     Grid.Column="3"
                     VerticalAlignment="Center"
@@ -168,5 +170,279 @@
                 </StackPanel>
             </Grid>
         </Border>
+
+        <!--  主 Tab 区域  -->
+        <TabControl Grid.Row="1">
+            <TabItem FontSize="14" Header="模组运行调试">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="380" />
+                        <ColumnDefinition Width="15" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!--  左侧：原子指令区  -->
+                    <GroupBox
+                        Grid.Column="0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Header="模组原子指令区">
+                        <ScrollViewer Padding="5,10" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,5"
+                                    Foreground="Gray"
+                                    Text="基础初始化" />
+                                <Button
+                                    Height="35"
+                                    Margin="0,0,0,5"
+                                    Command="{Binding InitializeModuleCommand}"
+                                    Content="模组初始化" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </GroupBox>
+
+                    <!--  右侧：数据状态监控区  -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="3*" />
+                        </Grid.RowDefinitions>
+
+                        <GroupBox
+                            Grid.Row="0"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Header="数据状态监控区">
+                            <!--  内部主 TabControl：MES / 机台检测 / 总数据  -->
+                            <TabControl>
+                                <!--  Tab1: MES 返回数据监控  -->
+                                <TabItem FontSize="14" Header="MES 返回数据监控">
+                                    <Grid Margin="10">
+                                        <TabControl>
+                                            <!--  工位1 MES  -->
+                                            <TabItem Header="工位1">
+                                                <Grid Margin="5">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            VerticalAlignment="Center"
+                                                            FontSize="14"
+                                                            Foreground="#AAB7B8"
+                                                            Text="内部批次号：" />
+                                                        <TextBox
+                                                            Width="250"
+                                                            Margin="5,0,0,0"
+                                                            IsReadOnly="True"
+                                                            Text="{Binding Station1InternalBatches}" />
+                                                    </StackPanel>
+
+                                                    <DataGrid
+                                                        Grid.Row="1"
+                                                        Margin="0,5,0,0"
+                                                        AutoGenerateColumns="False"
+                                                        CanUserAddRows="False"
+                                                        ItemsSource="{Binding Station1MesDetection}">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn
+                                                                Width="*"
+                                                                Binding="{Binding CustomerBatch}"
+                                                                Header="客户批次" />
+                                                            <DataGridTextColumn
+                                                                Width="*"
+                                                                Binding="{Binding WaferID}"
+                                                                Header="晶圆ID" />
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </Grid>
+                                            </TabItem>
+
+                                            <!--  工位2 MES  -->
+                                            <TabItem Header="工位2">
+                                                <Grid Margin="5">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            VerticalAlignment="Center"
+                                                            FontSize="14"
+                                                            Foreground="#AAB7B8"
+                                                            Text="内部批次号：" />
+                                                        <TextBox
+                                                            Width="250"
+                                                            Margin="5,0,0,0"
+                                                            IsReadOnly="True"
+                                                            Text="{Binding Station2InternalBatches}" />
+                                                    </StackPanel>
+
+                                                    <DataGrid
+                                                        Grid.Row="1"
+                                                        Margin="0,5,0,0"
+                                                        AutoGenerateColumns="False"
+                                                        CanUserAddRows="False"
+                                                        ItemsSource="{Binding Station2MesDetection}">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn
+                                                                Width="*"
+                                                                Binding="{Binding CustomerBatch}"
+                                                                Header="客户批次" />
+                                                            <DataGridTextColumn
+                                                                Width="*"
+                                                                Binding="{Binding WaferID}"
+                                                                Header="晶圆ID" />
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </Grid>
+                                            </TabItem>
+                                        </TabControl>
+                                    </Grid>
+                                </TabItem>
+
+                                <!--  Tab2: 机台检测数据监控  -->
+                                <TabItem FontSize="14" Header="机台检测数据监控">
+                                    <Grid Margin="10">
+                                        <TabControl>
+                                            <!--  工位1 检测数据  -->
+                                            <TabItem Header="工位1">
+                                                <DataGrid
+                                                    Margin="5"
+                                                    AutoGenerateColumns="False"
+                                                    CanUserAddRows="False"
+                                                    ItemsSource="{Binding Station1MachineDetection}">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding InternalBatches}"
+                                                            Header="内部批次" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding CustomerBatches}"
+                                                            Header="客户批次" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding WaferID}"
+                                                            Header="晶圆ID" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding OCRValue}"
+                                                            Header="OCR值" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding CodeValue1}"
+                                                            Header="条码1" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding CodeValue2}"
+                                                            Header="条码2" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding OcrCodeValue}"
+                                                            Header="OCR条码" />
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </TabItem>
+
+                                            <!--  工位2 检测数据  -->
+                                            <TabItem Header="工位2">
+                                                <DataGrid
+                                                    Margin="5"
+                                                    AutoGenerateColumns="False"
+                                                    CanUserAddRows="False"
+                                                    ItemsSource="{Binding Station2MachineDetection}">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding InternalBatches}"
+                                                            Header="内部批次" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding CustomerBatches}"
+                                                            Header="客户批次" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding WaferID}"
+                                                            Header="晶圆ID" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding OCRValue}"
+                                                            Header="OCR值" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding CodeValue1}"
+                                                            Header="条码1" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding CodeValue2}"
+                                                            Header="条码2" />
+                                                        <DataGridTextColumn
+                                                            Width="*"
+                                                            Binding="{Binding OcrCodeValue}"
+                                                            Header="OCR条码" />
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </TabItem>
+                                        </TabControl>
+                                    </Grid>
+                                </TabItem>
+
+                                <!--  Tab3: 检测总数据（汇总）  -->
+                                <TabItem FontSize="14" Header="检测总数据">
+                                    <Grid Margin="10">
+                                        <GroupBox
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Header="检测缓存数据 汇总">
+                                            <DataGrid
+                                                Margin="5"
+                                                AutoGenerateColumns="False"
+                                                CanUserAddRows="False"
+                                                ItemsSource="{Binding AllMachineDetection}">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding InternalBatches}"
+                                                        Header="内部批次" />
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding CustomerBatches}"
+                                                        Header="客户批次" />
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding WaferID}"
+                                                        Header="晶圆ID" />
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding OCRValue}"
+                                                        Header="OCR值" />
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding CodeValue1}"
+                                                        Header="条码1" />
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding CodeValue2}"
+                                                        Header="条码2" />
+                                                    <DataGridTextColumn
+                                                        Width="*"
+                                                        Binding="{Binding OcrCodeValue}"
+                                                        Header="OCR条码" />
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </GroupBox>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
+                        </GroupBox>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>
