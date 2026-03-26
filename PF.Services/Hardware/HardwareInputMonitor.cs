@@ -155,8 +155,8 @@ namespace PF.Services.Hardware
 
             bool current = raw.Value;
 
-            // 下降沿：上一次为高电平，本次为低电平
-            if (state.LastValue && !current)
+            // 下降沿：上一次为高电平，本次为低电平；IsMuted 时跳过事件发布，但仍更新 LastValue 防止恢复后产生虚假触发
+            if (!state.Config.IsMuted && state.LastValue && !current)
             {
                 if (state.Config.DebounceMs > 0)
                 {
