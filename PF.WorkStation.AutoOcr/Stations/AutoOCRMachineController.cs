@@ -32,7 +32,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         private readonly IStationSyncService _sync;
         public AutoOCRMachineController(ILogService logger,
-            PhysicalButtonEventBus hardwareEventBus,
+            HardwareInputEventBus hardwareEventBus,
             IStationSyncService sync,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
             : base(logger, hardwareEventBus, subStations)

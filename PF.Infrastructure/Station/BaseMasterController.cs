@@ -1,4 +1,4 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Constants;
 using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
@@ -25,7 +25,7 @@ namespace PF.Infrastructure.Station
         public event EventHandler<string> MasterAlarmTriggered;
 
         protected readonly ILogService _logger;
-        protected readonly PhysicalButtonEventBus _hardwareEventBus;
+        protected readonly HardwareInputEventBus _hardwareEventBus;
         protected readonly List<StationBase<StationMemoryBaseParam>> _subStations;
         protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
 
@@ -34,7 +34,7 @@ namespace PF.Infrastructure.Station
 
         protected BaseMasterController(
             ILogService logger,
-            PhysicalButtonEventBus hardwareEventBus,
+            HardwareInputEventBus hardwareEventBus,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
         {
             _logger = logger;
@@ -50,7 +50,7 @@ namespace PF.Infrastructure.Station
             // 🌟 监听底层事件总线广播的物理按键事件
             if (_hardwareEventBus != null)
             {
-                _hardwareEventBus.PhysicalButtonPressed += OnPhysicalButtonPressed;
+                _hardwareEventBus.HardwareInputTriggered += OnHardwareInputReceived;
             }
 
             _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
@@ -112,20 +112,20 @@ namespace PF.Infrastructure.Station
 
         // ── 物理按键智能路由 ──────────────────────────────────────────────
 
-        private void OnPhysicalButtonPressed(PhysicalButtonType buttonType)
+        private void OnHardwareInputReceived(string inputType)
         {
-            switch (buttonType)
+            switch (inputType)
             {
-                case PhysicalButtonType.EStop:
+                case HardwareInputType.EStop:
                     EmergencyStop();
                     break;
-                case PhysicalButtonType.Start:
+                case HardwareInputType.Start:
                     _ = ExecuteSmartStartAsync();
                     break;
-                case PhysicalButtonType.Pause:
+                case HardwareInputType.Pause:
                     PauseAll();
                     break;
-                case PhysicalButtonType.Reset:
+                case HardwareInputType.Reset:
                     _ = ResetAllAsync();
                     break;
             }
@@ -318,7 +318,7 @@ namespace PF.Infrastructure.Station
             // 必须移除事件订阅，防止内存泄漏
             if (_hardwareEventBus != null)
             {
-                _hardwareEventBus.PhysicalButtonPressed -= OnPhysicalButtonPressed;
+                _hardwareEventBus.HardwareInputTriggered -= OnHardwareInputReceived;
             }
 
             foreach (var station in _subStations)

@@ -439,8 +439,14 @@ namespace PF.Application.Shell
 
         private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
         {
-            // 事件总线
-            containerRegistry.RegisterSingleton<PhysicalButtonEventBus>();
+            // 硬件输入事件总线（取代 PhysicalButtonEventBus）
+            containerRegistry.RegisterSingleton<HardwareInputEventBus>();
+
+            // 硬件输入面板配置（AutoOcr 工站实现）
+            containerRegistry.RegisterSingleton<IPanelIoConfig, PF.WorkStation.AutoOcr.CostParam.PanelIoConfig>();
+
+            // 硬件输入监控服务（双线程分组扫描）
+            containerRegistry.RegisterSingleton<HardwareInputMonitor>();
 
             // 工站同步服务
             containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();
