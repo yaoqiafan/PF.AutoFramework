@@ -49,11 +49,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         public ObservableCollection<WaferInfo> Station2MesDetection = new ObservableCollection<WaferInfo>();
 
-
         public ObservableCollection<MachineDetectionData> Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
 
         public ObservableCollection<MachineDetectionData> Station2MachineDetection = new ObservableCollection<MachineDetectionData>();
-
 
         public ObservableCollection<MachineDetectionData> AllMachineDetection = new ObservableCollection<MachineDetectionData>();
 
@@ -137,10 +135,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             Station1MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation1MachineDetectionData);
             Station2MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation2MachineDetectionData);
 
-            //AllMachineDetection = 
-
-            //Station1InternalBatches =       _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
+            AllMachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.MachineDetectionDataDic.Select(x => x.Value).ToList());
             Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatches ?? string.Empty;
+            Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
 
             return Task.CompletedTask;
         }

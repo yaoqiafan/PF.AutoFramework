@@ -22,7 +22,7 @@ using static NPOI.HSSF.UserModel.HeaderFooter;
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
 
-     /// <summary>
+    /// <summary>
     /// 数据模块，所有交互数据基于此模块（工位配方、检测数据、原始数据）
     /// </summary>
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 1)]
@@ -252,12 +252,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             public Dictionary<string, MachineDetectionData> AllMachineDetectionDataDic { get; set; } = new Dictionary<string, MachineDetectionData>();
 
-        #endregion  检测数据
+            #endregion  检测数据
 
 
             #region 序列化与反序列化
 
-          
+
         }
 
         /// <summary>
@@ -290,7 +290,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     Directory.CreateDirectory(folderPath);
                 }
                 string json = JsonSerializer.Serialize(this, options);
-               System .IO . File.WriteAllText(filePath, json);
+                System.IO.File.WriteAllText(filePath, json);
                 _logger?.Info($"{this.MechanismName} 数据已保存至: {filePath}");
             }
             catch (Exception ex)
