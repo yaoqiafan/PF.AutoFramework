@@ -1,45 +1,50 @@
 ﻿using PF.Core.Events;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station;
 using PF.Infrastructure.Station.Basic;
+using PF.WorkStation.AutoOcr.CostParam;
 
 namespace PF.WorkStation.AutoOcr.Stations
 {
-    
+    public enum WorkstationSignals
+    {
+        工位1启动按钮按下,
+        工位1允许拉料,
+        工位1拉料完成,
+        工位1允许退料,
+        工位1退料完成,
+
+
+
+
+
+
+        工位2启动按钮按下,
+        工位2允许拉料,
+        工位2拉料完成,
+        工位2允许退料,
+        工位2退料完成,
+
+
+    }
     public class AutoOCRMachineController : BaseMasterController
     {
-        public enum WorkstationSignals
-        {
-           工位1允许拉料,
-           工位1拉料完成,
-           工位1允许退料,
-           工位1退料完成,
 
-
-
-
-
-
-
-            工位2允许拉料,
-            工位2拉料完成,
-            工位2允许退料,
-            工位2退料完成,
-
-
-        }
-
+        private readonly IHardwareInputMonitor _hardwareInputMonitor;
         private readonly IStationSyncService _sync;
         public AutoOCRMachineController(ILogService logger,
-            PhysicalButtonEventBus hardwareEventBus,
+            HardwareInputEventBus hardwareEventBus,
+            IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
             : base(logger, hardwareEventBus, subStations)
         {
+            _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
 
-            
+            _sync.Register(WorkstationSignals.工位1启动按钮按下.ToString());
             _sync.Register(WorkstationSignals.工位1允许拉料.ToString());
             _sync.Register(WorkstationSignals.工位1拉料完成.ToString());
             _sync.Register(WorkstationSignals.工位1允许退料.ToString());
@@ -49,12 +54,36 @@ namespace PF.WorkStation.AutoOcr.Stations
 
 
 
-
+            _sync.Register(WorkstationSignals.工位2启动按钮按下.ToString());
             _sync.Register(WorkstationSignals.工位2允许拉料.ToString());
             _sync.Register(WorkstationSignals.工位2拉料完成.ToString());
             _sync.Register(WorkstationSignals.工位2允许退料.ToString());
             _sync.Register(WorkstationSignals.工位2退料完成.ToString());
 
+        }
+
+
+
+        protected override void OnHardwareInputReceived(string inputType)
+        {
+            base.OnHardwareInputReceived(inputType);
+
+            switch (inputType)
+            {
+                case HardwareInputTypeExtension.WorkStation1Start:
+                    _sync.Release(WorkstationSignals.工位1启动按钮按下.ToString());
+                    _hardwareInputMonitor.StartSafetyMonitoring();
+                    break;
+
+                case HardwareInputTypeExtension.WorkStation2Start:
+                    _sync.Release(WorkstationSignals.工位2启动按钮按下.ToString());
+                    _hardwareInputMonitor.StartSafetyMonitoring();
+
+                    break;
+
+                default:
+                    break;
+            }
         }
 
 

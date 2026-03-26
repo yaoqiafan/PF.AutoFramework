@@ -1,23 +1,21 @@
-﻿using PF.Core.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 
 namespace PF.Core.Events
 {
     /// <summary>
-    /// 硬件事件总线的默认实现 (需在 DI 容器中注册为 Singleton)
+    /// 硬件输入事件总线（需在 DI 容器中注册为 Singleton）。
+    /// 接收来自 HardwareInputMonitor 的字符串类型事件，
+    /// 广播给 BaseMasterController 等订阅者进行业务路由。
     /// </summary>
-    public class PhysicalButtonEventBus
+    public class HardwareInputEventBus
     {
-        public event Action<PhysicalButtonType> PhysicalButtonPressed;
+        /// <summary>任意硬件输入被触发时广播，参数为 HardwareInputType 常量或自定义字符串。</summary>
+        public event Action<string> HardwareInputTriggered;
 
-        public void PublishPhysicalButton(PhysicalButtonType buttonType)
+        /// <summary>线程安全地发布一次硬件输入事件。</summary>
+        public void PublishInputEvent(string inputType)
         {
-            // 线程安全地触发事件
-            PhysicalButtonPressed?.Invoke(buttonType);
+            HardwareInputTriggered?.Invoke(inputType);
         }
     }
 }

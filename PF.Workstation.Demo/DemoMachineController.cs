@@ -1,4 +1,3 @@
-using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
@@ -39,7 +38,7 @@ namespace PF.Workstation.Demo
 
         public DemoMachineController(
             ILogService logger,
-            PhysicalButtonEventBus hardwareEventBus,
+            HardwareInputEventBus hardwareEventBus,
             IStationSyncService sync,
             IEnumerable<StationBase> subStations)
             : base(logger, hardwareEventBus, subStations)

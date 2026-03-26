@@ -1,6 +1,7 @@
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
+using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
 using PF.WorkStation.AutoOcr.Stations;
@@ -15,6 +16,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
     public class WorkStation1FeedingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
         private readonly WorkStation1FeedingStation<StationMemoryBaseParam> _station;
+        private readonly IStationSyncService _sync;
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
 
@@ -61,10 +63,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand ResumeCommand { get; }
         public DelegateCommand ResetCommand { get; }
         public DelegateCommand TriggerAlarmCommand { get; }
-
+        public DelegateCommand TriggerStartCommand { get; }
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
             _station = containerProvider.Resolve<WorkStation1FeedingStation<StationMemoryBaseParam>>();
+            _sync= containerProvider.Resolve<IStationSyncService>();
             _userService = containerProvider.Resolve<IUserService>();
 
             _statusBrush = StateToBrush(MachineState.Uninitialized);
@@ -85,6 +88,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
                 () => CanManualControl && _station.CurrentState == MachineState.Alarm);
             TriggerAlarmCommand = new DelegateCommand(ExecuteTriggerAlarm,
                 () => CanManualControl && _station.CurrentState != MachineState.Alarm);
+
+            TriggerStartCommand=new DelegateCommand(ExecuteTriggerStart,
+                () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
             {
@@ -110,6 +116,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResumeCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
+            TriggerStartCommand.RaiseCanExecuteChanged();
         }
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
@@ -170,6 +177,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private void ExecuteTriggerAlarm() => _station.TriggerAlarm();
+
+        private void ExecuteTriggerStart()
+        {
+            _sync.Release(WorkstationSignals.工位1启动按钮按下.ToString());
+        }
 
         // ── 销毁 ─────────────────────────────────────────────────────────────
 
