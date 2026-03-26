@@ -14,6 +14,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public int DebounceMs { get; }
         public string Name { get; }
         public InputScanGroup ScanGroup { get; }
+        public bool IsMuted { get; set; } = false;
 
         public HardwareInputConfig(
             string inputType,
