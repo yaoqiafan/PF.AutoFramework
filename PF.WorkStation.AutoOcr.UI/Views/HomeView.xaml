@@ -49,16 +49,16 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="内批："  Margin=" 20,0,0,0"/>
+                            <TextBlock Grid.Column="0" Text="内批："  Margin=" 20,0,5,0"/>
                             <TextBlock Grid.Column=" 1" Text="{Binding Station1InternalBatches}" />
                             <TextBlock
                                 Grid.Column="2"
-                                Margin="40,0,0,0"
+                                Margin="40,0,5,0"
                                 Text="状态：" />
                             <TextBlock Grid.Column="3" Text="{Binding Station1DetStatus}" />
                             <TextBlock
                                 Grid.Column=" 4"
-                                Margin="40,0,0,0"
+                                Margin="40,0,5,0"
                                 Text=" 程式名称:" />
                             <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
@@ -153,18 +153,18 @@
                             <TextBlock Grid.Column=" 1" Text="{Binding Station2InternalBatches}" />
                             <TextBlock
                                 Grid.Column="2"
-                                Margin="40,0,0,0"
+                                Margin="40,0,5,0"
                                 Text="状态：" />
                             <TextBlock Grid.Column="3" Text="{Binding Station2DetStatus}" />
                             <TextBlock
                                 Grid.Column=" 4"
-                                Margin="40,0,0,0"
+                                Margin="40,0,5,0"
                                 Text=" 程式名称:" />
                             <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
                             <Button
                                 Grid.Column="6"
-                                Margin="60,0,0,0"
+                                Margin="60,0,5,0"
                                 Command="{Binding Station2ChangeLotCommand}" FontSize="{DynamicResource FontSize.H3.Subtitle}"  Height="40"
                                 Content="切换批次" />
                         </Grid>

@@ -262,8 +262,9 @@ namespace PF.Workstation.AutoOcr.CostParam
     /// </summary>
     public enum E_DetectionStatus
     {
+        待检测,
         检测中,
-        上传OK,
+        检测完成,
         上传NG,
 
     }
