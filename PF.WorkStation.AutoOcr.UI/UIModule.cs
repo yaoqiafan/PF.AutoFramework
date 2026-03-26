@@ -31,12 +31,14 @@ namespace PF.WorkStation.AutoOcr.UI
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<MainView, MainViewModel>(NavigationConstants.Views.MainView);
-            containerRegistry.RegisterForNavigation<HomeView, MainViewModel>(NavigationConstants.Views.HomeView);
+            containerRegistry.RegisterForNavigation<HomeView, HomeViewModel >(NavigationConstants.Views.HomeView);
 
             containerRegistry.RegisterForNavigation<OcrRecipeManageView, OcrRecipeManageViewModel>(nameof(OcrRecipeManageView));
 
 
             containerRegistry.RegisterForNavigation<RecipeDebugView, RecipeDebugViewModel>(nameof(RecipeDebugView));
+
+           containerRegistry.RegisterForNavigation<ChangeLotView , ChangeLotViewModel>(nameof(ChangeLotView));
 
 
 
@@ -50,6 +52,7 @@ namespace PF.WorkStation.AutoOcr.UI
               nameof(WorkStation1FeedingStationDebugView));
 
             containerRegistry .RegisterForNavigation <WorkStationDataModuleDebugView , WorkStationDataModuleDebugViewModel>(nameof(WorkStationDataModuleDebugView));
+
         }
 
 
