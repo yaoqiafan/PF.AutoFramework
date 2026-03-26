@@ -35,6 +35,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
         }
 
+        public override void Dispose()
+        {
+            base.Dispose();
+           Save(filepath);
+        }
+
+
         private readonly string filepath =
             $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\MemoryData.json";
 
@@ -140,24 +147,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public List<MachineDetectionData> Sation2MachineDetectionData =>
             _Sation2MachineDetectionData;
 
-        /// <summary>
-        /// 所有机台检测数据汇总（便于 UI 统一查看）
-        /// </summary>
-        [JsonInclude]
-        private List<MachineDetectionData> _AllMachineDetectionData =
-            new List<MachineDetectionData>();
-
-        public List<MachineDetectionData> AllMachineDetectionData =>
-            _AllMachineDetectionData;
+        
 
         /// <summary>
         /// 根据内部批次号索引的检测数据字典
         /// </summary>
         [JsonInclude]
-        private Dictionary<string, MachineDetectionData> _MachineDetectionDataDic =
-            new Dictionary<string, MachineDetectionData>();
+        private Dictionary<string, List<MachineDetectionData>> _MachineDetectionDataDic =
+            new Dictionary<string, List<MachineDetectionData>>();
 
-        public Dictionary<string, MachineDetectionData> MachineDetectionDataDic =>
+        public Dictionary<string, List<MachineDetectionData>> MachineDetectionDataDic =>
             _MachineDetectionDataDic;
 
         /// <summary>
@@ -213,15 +212,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _Sation2MachineDetectionData.Add(Data);
             }
 
-            _AllMachineDetectionData.Add(Data);
-
             if (!_MachineDetectionDataDic.ContainsKey(Data.InternalBatches))
             {
-                _MachineDetectionDataDic.Add(Data.InternalBatches, Data);
+                _MachineDetectionDataDic.Add(Data.InternalBatches, new List<MachineDetectionData>() { Data });
             }
             else
             {
-                _MachineDetectionDataDic[Data.InternalBatches] = Data;
+                _MachineDetectionDataDic[Data.InternalBatches].Add(Data);
             }
 
             OnDataChanged();
@@ -249,7 +246,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } = new List<MachineDetectionData>();
             public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = new List<MachineDetectionData>();
 
-            public Dictionary<string, MachineDetectionData> AllMachineDetectionDataDic { get; set; } = new Dictionary<string, MachineDetectionData>();
+            public Dictionary<string, List < MachineDetectionData>> AllMachineDetectionDataDic { get; set; } = new Dictionary<string, List<MachineDetectionData>>();
 
             #endregion  检测数据
 
@@ -274,7 +271,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     Station2MesDetectionData = _Station2MesDetectionData,
                     Sation1MachineDetectionData = _Sation1MachineDetectionData,
                     Sation2MachineDetectionData = _Sation2MachineDetectionData,
-                    AllMachineDetectionDataDic = _MachineDetectionDataDic,
+                 AllMachineDetectionDataDic = _MachineDetectionDataDic,
                 };
 
                 var options = new JsonSerializerOptions
@@ -315,7 +312,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var options = new JsonSerializerOptions();
 
                 var tempModule = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
-                if (tempModule == null)
+                if (tempModule != null)
                 {
                     //手动将数据同步到当前经过 DI 初始化的实例
                     this._Station1ReciepParam = tempModule.Station1ReciepParam;
