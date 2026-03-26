@@ -44,8 +44,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _station2InternalBatches, value);
         }
 
+        #region 数据集合
+        public ObservableCollection<WaferInfo> Station1MesDetection = new ObservableCollection<WaferInfo>();
 
-       
+        public ObservableCollection<WaferInfo> Station2MesDetection = new ObservableCollection<WaferInfo>();
+
+
+        public ObservableCollection<MachineDetectionData> Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
+
+        public ObservableCollection<MachineDetectionData> Station2MachineDetection = new ObservableCollection<MachineDetectionData>();
+
+
+        public ObservableCollection<MachineDetectionData> AllMachineDetection = new ObservableCollection<MachineDetectionData>();
+
+        #endregion 数据集合
+
 
 
 
@@ -118,7 +131,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 return Task.CompletedTask;
             }
 
-            Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
+            Station1MesDetection = new ObservableCollection<WaferInfo>(_dataModule.Station1MesDetectionData.CustomerWaferIDBatches);
+            Station2MesDetection = new ObservableCollection<WaferInfo>(_dataModule.Station2MesDetectionData.CustomerWaferIDBatches);
+
+            Station1MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation1MachineDetectionData);
+            Station2MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation2MachineDetectionData);
+
+            //AllMachineDetection = 
+
+            //Station1InternalBatches =       _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
             Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatches ?? string.Empty;
 
             return Task.CompletedTask;
