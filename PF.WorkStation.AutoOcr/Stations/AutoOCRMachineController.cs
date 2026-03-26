@@ -1,21 +1,35 @@
-﻿using PF.Core.Attributes;
-using PF.Core.Events;
+﻿using PF.Core.Events;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station;
 using PF.Infrastructure.Station.Basic;
-using PF.WorkStation.AutoOcr.Sync;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Stations
 {
     
     public class AutoOCRMachineController : BaseMasterController
     {
+        public enum WorkstationSignals
+        {
+           工位1允许拉料,
+           工位1拉料完成,
+           工位1允许退料,
+           工位1退料完成,
+
+
+
+
+
+
+
+            工位2允许拉料,
+            工位2拉料完成,
+            工位2允许退料,
+            工位2退料完成,
+
+
+        }
+
         private readonly IStationSyncService _sync;
         public AutoOCRMachineController(ILogService logger,
             PhysicalButtonEventBus hardwareEventBus,
@@ -26,8 +40,21 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync = sync;
 
             
-            _sync.Register("测试1", initialCount: 1, maxCount: 1);
-            _sync.Register("测试2", initialCount: 0, maxCount: 1);
+            _sync.Register(WorkstationSignals.工位1允许拉料.ToString());
+            _sync.Register(WorkstationSignals.工位1拉料完成.ToString());
+            _sync.Register(WorkstationSignals.工位1允许退料.ToString());
+            _sync.Register(WorkstationSignals.工位1退料完成.ToString());
+
+
+
+
+
+
+            _sync.Register(WorkstationSignals.工位2允许拉料.ToString());
+            _sync.Register(WorkstationSignals.工位2拉料完成.ToString());
+            _sync.Register(WorkstationSignals.工位2允许退料.ToString());
+            _sync.Register(WorkstationSignals.工位2退料完成.ToString());
+
         }
 
 

@@ -17,7 +17,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using static NPOI.HSSF.UserModel.HeaderFooter;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
@@ -318,7 +317,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var tempModule = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
                 if (tempModule == null)
                 {
-                    // 手动将数据同步到当前经过 DI 初始化的实例
+                    //手动将数据同步到当前经过 DI 初始化的实例
                     this._Station1ReciepParam = tempModule.Station1ReciepParam;
                     this._Station2ReciepParam = tempModule.Station2ReciepParam;
                     this._Station1MesDetectionData = tempModule.Station1MesDetectionData;
