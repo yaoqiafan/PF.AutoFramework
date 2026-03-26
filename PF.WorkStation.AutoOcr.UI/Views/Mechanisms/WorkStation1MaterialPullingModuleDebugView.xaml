@@ -43,7 +43,7 @@
                         FontSize="18"
                         FontWeight="Bold"
                         Foreground="White"
-                        Text="{Binding FeedingModule.MechanismName}" />
+                        Text="{Binding MaterialPullingModule.MechanismName}" />
                 </StackPanel>
 
                 <StackPanel
@@ -60,7 +60,7 @@
                         FontSize="16"
                         FontWeight="Bold"
                         Foreground="#00E676"
-                        Text="{Binding FeedingModule.IsInitialized}" />
+                        Text="{Binding MaterialPullingModule.IsInitialized}" />
 
                     <TextBlock
                         Margin="15,0,0,0"
