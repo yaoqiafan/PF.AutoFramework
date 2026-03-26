@@ -67,23 +67,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _Station2RecipeName, value);
 
         }
-
+        #endregion 工位 1/2 MES 派生属性（简单文本）
 
         #region 数据集合
         private ObservableCollection<WaferInfo> _Station1MesDetection = new ObservableCollection<WaferInfo>();
         public ObservableCollection<WaferInfo> Station1MesDetection
         {
             get => _Station1MesDetection;
-            set =>SetProperty(ref _Station1MesDetection, value);
+            set => SetProperty(ref _Station1MesDetection, value);
         }
 
 
-        private ObservableCollection<WaferInfo> _Station2MesDetection = new ObservableCollection<WaferInfo> ();
+        private ObservableCollection<WaferInfo> _Station2MesDetection = new ObservableCollection<WaferInfo>();
 
         public ObservableCollection<WaferInfo> Station2MesDetection
         {
             get => _Station2MesDetection;
-            set =>SetProperty (ref _Station2MesDetection, value);
+            set => SetProperty(ref _Station2MesDetection, value);
         }
         private ObservableCollection<MachineDetectionData> _Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
         public ObservableCollection<MachineDetectionData> Station1MachineDetection
@@ -112,7 +112,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
 
-        #endregion
+
 
         #region Commands
 
@@ -121,7 +121,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand ResetModuleCommand { get; }
         public DelegateCommand StopCommand { get; }
 
-     
+
 
 
         /// <summary>
@@ -131,10 +131,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
 
-        public DelegateCommand Station1ChangeLotCommand { get ; }
+        public DelegateCommand Station1ChangeLotCommand { get; }
 
 
-        public DelegateCommand Station2ChangeLotCommand { get ; }
+        public DelegateCommand Station2ChangeLotCommand { get; }
 
 
         public DelegateCommand AddStation1DetCommand { get; set; }
@@ -241,7 +241,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         private void ChangeStation1Lot()
         {
-            if (_dataModule != null )
+            if (_dataModule != null)
             {
                 MesDetectionParam info = new MesDetectionParam();
                 info.QtyCount = 13;
@@ -255,7 +255,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                         WaferID = i.ToString("D2")
                     });
                 }
-                _dataModule .ChangedStationMesDetectionData (E_WorkSpace.工位1 ,info );
+                _dataModule.ChangedStationMesDetectionData(E_WorkSpace.工位1, info);
             }
         }
 
@@ -284,8 +284,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         {
 
             var kk = Station1MachineDetection.Select(x => x.WaferID).ToList();
-            var kkk = Station1MesDetection.Where(x => !kk.Contains(x.WaferID)).FirstOrDefault ();
-            if (kkk ==null )
+            var kkk = Station1MesDetection.Where(x => !kk.Contains(x.WaferID)).FirstOrDefault();
+            if (kkk == null)
             {
                 DebugMessage = $"工位1数据已满";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -297,11 +297,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 {
                     InternalBatches = Station1InternalBatches,
                     CustomerBatches = kkk.CustomerBatch,
-                     WaferID  = kkk.WaferID ,
-                     OCRValue = kkk .CustomerBatch ,
-                     CodeValue1 =kkk .CustomerBatch ,
-                     CodeValue2 =kkk .CustomerBatch ,
-                     OcrCodeValue = kkk.CustomerBatch,
+                    WaferID = kkk.WaferID,
+                    OCRValue = kkk.CustomerBatch,
+                    CodeValue1 = kkk.CustomerBatch,
+                    CodeValue2 = kkk.CustomerBatch,
+                    OcrCodeValue = kkk.CustomerBatch,
                 };
                 _dataModule.AddMachineDetectionData(E_WorkSpace.工位1, info);
             }

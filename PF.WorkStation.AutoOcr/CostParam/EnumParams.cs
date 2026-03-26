@@ -257,8 +257,16 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     }
 
+    /// <summary>
+    /// 物料检测状态枚举
+    /// </summary>
+    public enum E_DetectionStatus
+    {
+        检测中,
+        上传OK,
+        上传NG,
 
-
+    }
 
     #region 参数枚举
 

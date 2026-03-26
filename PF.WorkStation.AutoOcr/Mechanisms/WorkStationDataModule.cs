@@ -38,7 +38,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public override void Dispose()
         {
             base.Dispose();
-           Save(filepath);
+            Save(filepath);
         }
 
 
@@ -147,7 +147,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public List<MachineDetectionData> Sation2MachineDetectionData =>
             _Sation2MachineDetectionData;
 
-        
+
 
         /// <summary>
         /// 根据内部批次号索引的检测数据字典
@@ -246,7 +246,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } = new List<MachineDetectionData>();
             public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = new List<MachineDetectionData>();
 
-            public Dictionary<string, List < MachineDetectionData>> AllMachineDetectionDataDic { get; set; } = new Dictionary<string, List<MachineDetectionData>>();
+            public Dictionary<string, List<MachineDetectionData>> AllMachineDetectionDataDic { get; set; } = new Dictionary<string, List<MachineDetectionData>>();
 
             #endregion  检测数据
 
@@ -271,7 +271,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     Station2MesDetectionData = _Station2MesDetectionData,
                     Sation1MachineDetectionData = _Sation1MachineDetectionData,
                     Sation2MachineDetectionData = _Sation2MachineDetectionData,
-                 AllMachineDetectionDataDic = _MachineDetectionDataDic,
+                    AllMachineDetectionDataDic = _MachineDetectionDataDic,
                 };
 
                 var options = new JsonSerializerOptions
@@ -350,6 +350,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
 
         /// <summary>
+        /// 检测产品型号
+        /// </summary>
+        public string ProDuctModel { get; set; } = "";
+
+
+        /// <summary>
         /// 客批和刻号集合
         /// </summary>
         public List<WaferInfo> CustomerWaferIDBatches { get; set; } = new List<WaferInfo>();
@@ -359,6 +365,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 当前批次产品个数
         /// </summary>
         public int QtyCount { get; set; } = 0;
+
+
+        /// <summary>
+        /// 检测状态
+        /// </summary>
+        public E_DetectionStatus DetectionStatus { get; set; } = E_DetectionStatus.检测中;
+
+
+        /// <summary>
+        /// 检测人工号
+        /// </summary>
+        public string UserID { get; set; } = "NONE";
 
     }
 
@@ -405,6 +423,28 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 条码3值
         /// </summary>
         public string OcrCodeValue { get; set; } = "";
+
+
+        /// <summary>
+        /// 比对结果
+        /// </summary>
+        public bool DetResult { get; set; }
+
+        /// <summary>
+        /// 比对异常输出
+        /// </summary>
+        public string OutError { get; set; } = "NONE";
+
+        /// <summary>
+        /// 检测产品型号
+        /// </summary>
+        public string ProDuctModel { get; set; } = "";
+
+
+        /// <summary>
+        /// 检测人工号
+        /// </summary>
+        public string UserID { get; set; } = "NONE";
 
     }
 
