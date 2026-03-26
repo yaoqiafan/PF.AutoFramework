@@ -277,10 +277,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     AllMachineDetectionDataDic = _MachineDetectionDataDic,
                 };
 
-            //    var options = new JsonSerializerOptions
-            //    {
-            //        WriteIndented = true
-            //    };
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
 
                 var fileInfo = new FileInfo(filePath);
                 var folderPath = fileInfo.DirectoryName;
@@ -303,21 +303,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public bool Load(string filePath)
         {
-            //if (!System.IO.File.Exists(filePath))
-            //{
-            //    Save(filePath); // 如果文件不存在，先保存一个默认的空数据文件
-            //    return false;
-            //}
+            if (!System.IO.File.Exists(filePath))
+            {
+                Save(filePath); // 如果文件不存在，先保存一个默认的空数据文件
+                return false;
+            }
 
-            //try
-            //{
-            //    var json = System.IO.File.ReadAllText(filePath);
-            //    var options = new JsonSerializerOptions();
+            try
+            {
+                var json = System.IO.File.ReadAllText(filePath);
+                var options = new JsonSerializerOptions();
 
                 var tempModule = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
                 if (tempModule == null)
                 {
-                    // 手动将数据同步到当前经过 DI 初始化的实例
+                    //手动将数据同步到当前经过 DI 初始化的实例
                     this._Station1ReciepParam = tempModule.Station1ReciepParam;
                     this._Station2ReciepParam = tempModule.Station2ReciepParam;
                     this._Station1MesDetectionData = tempModule.Station1MesDetectionData;
@@ -330,12 +330,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     OnDataChanged();
                 }
                 return true;
-            //}
-            //catch (Exception ex)
-            //{
-            //    _logger?.Error($"{MechanismName} 加载失败: {ex.Message}");
-            //    return false;
-            //}
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"{MechanismName} 加载失败: {ex.Message}");
+                return false;
+            }
         }
 
         #endregion 序列化与反序列化

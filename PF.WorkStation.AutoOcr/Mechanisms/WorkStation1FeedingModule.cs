@@ -31,7 +31,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     ///   · SwitchToLayerAsync              — 切换到指定层
     ///   · CanPullOutMaterialAsync         — 判断是否具备拉出物料条件
     ///   · WaitUntilMaterialPulledOutAsync — 阻塞等待物料拉出完成 (带超时防死等)
-    ///   · WaitUntilMaterialReturnedAsync  — 阻塞等待物料回退完成 (带超时防死等)
+    ///   · WaitUntilMaterialReturnedAsync  — 等待物料回退完成 (带超时防死等)
     ///
     /// 硬件获取策略（代理委托模式）：
     ///   构造函数仅注入 IHardwareManagerService 和 ILogService，
