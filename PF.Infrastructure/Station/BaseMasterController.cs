@@ -80,6 +80,8 @@ namespace PF.Infrastructure.Station
             _globalMachine.Configure(MachineState.Running)
                 .OnEntryAsync(async () =>
                 {
+
+
                     foreach (var s in _subStations) await s.StartAsync();
                 })
                 .OnExit(() =>
@@ -113,7 +115,7 @@ namespace PF.Infrastructure.Station
 
         // ── 物理按键智能路由 ──────────────────────────────────────────────
 
-        private void OnHardwareInputReceived(string inputType)
+        protected virtual void OnHardwareInputReceived(string inputType)
         {
             switch (inputType)
             {

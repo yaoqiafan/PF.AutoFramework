@@ -10,18 +10,7 @@ using System.Threading.Tasks;
 
 namespace PF.Services.Hardware
 {
-    /// <summary>
-    /// 硬件输入监控服务（重构版，取代 OperationPanelMonitor）
-    ///
-    /// 职责：轮询 IO 状态 → 下降沿检测 → 条件防抖 → 发布 HardwareInputEventBus 事件。
-    ///
-    /// 分组扫描机制：
-    ///   · Standard 组（普通按键）：30ms 轮询周期，支持 DebounceMs 防抖。
-    ///   · Safety   组（急停/安全门）：10ms 轮询周期，DebounceMs = 0，零延迟响应。
-    ///
-    /// 通过 IPanelIoConfig 注入配置，不依赖任何具体的工站配置类。
-    /// </summary>
-    public class HardwareInputMonitor : IDisposable
+    public class HardwareInputMonitor : IHardwareInputMonitor
     {
         private readonly IPanelIoConfig _config;
         private readonly HardwareInputEventBus _eventBus;
@@ -30,8 +19,16 @@ namespace PF.Services.Hardware
 
         private IIOController _ioCard;
 
-        private List<InputScanState> _standardInputs;
-        private List<InputScanState> _safetyInputs;
+        private readonly List<InputScanState> _standardInputs;
+        private readonly List<InputScanState> _safetyInputs;
+
+        // --- Standard 组独立线程控制 ---
+        private CancellationTokenSource _standardCts;
+        private Task _standardTask;
+
+        // --- Safety 组独立线程控制 ---
+        private CancellationTokenSource _safetyCts;
+        private Task _safetyTask;
 
         public HardwareInputMonitor(
             IPanelIoConfig config,
@@ -39,12 +36,11 @@ namespace PF.Services.Hardware
             IHardwareManagerService hardwareManager,
             ILogService logger)
         {
-            _config          = config;
-            _eventBus        = eventBus;
+            _config = config;
+            _eventBus = eventBus;
             _hardwareManager = hardwareManager;
-            _logger          = logger;
+            _logger = logger;
 
-            // 按 ScanGroup 分组，构建状态跟踪对象
             _standardInputs = _config.MonitoredInputs
                 .Where(c => c.ScanGroup == InputScanGroup.Standard)
                 .Select(c => new InputScanState(c))
@@ -57,29 +53,128 @@ namespace PF.Services.Hardware
         }
 
         /// <summary>
-        /// 启动监控：解析 IO 卡，然后在两个独立线程上分别启动 Standard / Safety 扫描循环。
+        /// 确保 IO 板卡已正确获取
         /// </summary>
-        public void StartMonitoring(CancellationToken token)
+        private bool TryInitializeIoCard()
         {
+            if (_ioCard != null) return true;
+
             var device = _hardwareManager.GetDevice(_config.IoDeviceId);
             if (device is not IIOController ioCard)
             {
-                _logger.Error($"【硬件输入监控】未找到 DeviceId='{_config.IoDeviceId}' 的 IO 板卡，监控启动失败！");
-                return;
+                _logger.Error($"【硬件输入监控】未找到 DeviceId='{_config.IoDeviceId}' 的 IO 板卡！");
+                return false;
             }
 
             _ioCard = ioCard;
-
-            // 普通按键扫描线程（30ms 轮询）
-            Task.Run(() => StandardMonitorLoopAsync(token), token);
-
-            // 安全传感器扫描线程（10ms 轮询，零防抖）
-            Task.Run(() => SafetyMonitorLoopAsync(token), token);
-
-            _logger.Info($"【硬件输入监控】已启动。Standard 组 {_standardInputs.Count} 个，Safety 组 {_safetyInputs.Count} 个。");
+            return true;
         }
 
-        // ── 扫描循环 ──────────────────────────────────────────────────────────
+        // ==========================================
+        // Standard (普通按键) 控制
+        // ==========================================
+
+        public void StartStandardMonitoring(CancellationToken externalToken = default)
+        {
+            if (_standardCts != null && !_standardCts.IsCancellationRequested)
+            {
+                _logger.Info("【硬件输入监控】Standard 扫描线程已经在运行中。");
+                return;
+            }
+
+            if (!TryInitializeIoCard()) return;
+
+            _standardCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+            var token = _standardCts.Token;
+
+            _standardTask = Task.Run(() => StandardMonitorLoopAsync(token), token);
+            _logger.Info($"【硬件输入监控】Standard 组已启动（{_standardInputs.Count} 个）。");
+        }
+
+        public void StopStandardMonitoring()
+        {
+            if (_standardCts == null || _standardCts.IsCancellationRequested) return;
+
+            _logger.Info("【硬件输入监控】正在停止 Standard 扫描线程...");
+            _standardCts.Cancel();
+
+            try
+            {
+                if (_standardTask != null)
+                    Task.WaitAll(new[] { _standardTask }, TimeSpan.FromSeconds(2));
+            }
+            catch (Exception ex) { /* 忽略 Task 取消或超时异常 */ }
+            finally
+            {
+                _standardCts.Dispose();
+                _standardCts = null;
+                _standardTask = null;
+            }
+        }
+
+        // ==========================================
+        // Safety (安全装置) 控制
+        // ==========================================
+
+        public void StartSafetyMonitoring(CancellationToken externalToken = default)
+        {
+            if (_safetyCts != null && !_safetyCts.IsCancellationRequested)
+            {
+                _logger.Info("【硬件输入监控】Safety 扫描线程已经在运行中。");
+                return;
+            }
+
+            if (!TryInitializeIoCard()) return;
+
+            // 每次启动 Safety 时，重置 LastValue，防止启动瞬间由于状态不一致产生误触发
+            foreach (var state in _safetyInputs)
+            {
+                state.LastValue = true; // 安全传感器(NC常闭)默认导通状态为 true
+            }
+
+            _safetyCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+            var token = _safetyCts.Token;
+
+            _safetyTask = Task.Run(() => SafetyMonitorLoopAsync(token), token);
+            _logger.Info($"【硬件输入监控】Safety 组已启动（{_safetyInputs.Count} 个）。");
+        }
+
+        public void StopSafetyMonitoring()
+        {
+            if (_safetyCts == null || _safetyCts.IsCancellationRequested) return;
+
+            _logger.Info("【硬件输入监控】正在停止 Safety 扫描线程...");
+            _safetyCts.Cancel();
+
+            try
+            {
+                if (_safetyTask != null)
+                    Task.WaitAll(new[] { _safetyTask }, TimeSpan.FromSeconds(2));
+            }
+            catch (Exception ex) { /* 忽略 Task 取消或超时异常 */ }
+            finally
+            {
+                _safetyCts.Dispose();
+                _safetyCts = null;
+                _safetyTask = null;
+            }
+        }
+
+        // ==========================================
+        // 全局控制 & 扫描循环
+        // ==========================================
+
+        public void StopAll()
+        {
+            StopSafetyMonitoring();
+            StopStandardMonitoring();
+            _logger.Info("【硬件输入监控】所有扫描线程已停止。");
+        }
+
+        public void Dispose()
+        {
+            StopAll();
+        }
 
         private async Task StandardMonitorLoopAsync(CancellationToken token)
         {
@@ -98,10 +193,7 @@ namespace PF.Services.Hardware
 
                     await Task.Delay(30, token).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
+                catch (OperationCanceledException) { break; }
                 catch (Exception ex)
                 {
                     _logger.Error($"【硬件输入监控/Standard】扫描异常：{ex.Message}");
@@ -127,10 +219,7 @@ namespace PF.Services.Hardware
 
                     await Task.Delay(10, token).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
+                catch (OperationCanceledException) { break; }
                 catch (Exception ex)
                 {
                     _logger.Error($"【硬件输入监控/Safety】扫描异常：{ex.Message}");
@@ -139,15 +228,6 @@ namespace PF.Services.Hardware
             }
         }
 
-        // ── 通用检测方法 ──────────────────────────────────────────────────────
-
-        /// <summary>
-        /// 对单个输入点执行一次扫描：
-        ///   1. 读取当前电平
-        ///   2. 检测下降沿（True → False）
-        ///   3. 若 DebounceMs > 0，等待后确认稳定；若已弹回则忽略
-        ///   4. 确认后发布事件
-        /// </summary>
         private async Task ProcessSingleInputAsync(InputScanState state, CancellationToken token)
         {
             bool? raw = _ioCard.ReadInput(state.Config.Port);
@@ -155,19 +235,15 @@ namespace PF.Services.Hardware
 
             bool current = raw.Value;
 
-            // 下降沿：上一次为高电平，本次为低电平；IsMuted 时跳过事件发布，但仍更新 LastValue 防止恢复后产生虚假触发
             if (!state.Config.IsMuted && state.LastValue && !current)
             {
                 if (state.Config.DebounceMs > 0)
                 {
-                    // 等待防抖窗口
                     await Task.Delay(state.Config.DebounceMs, token).ConfigureAwait(false);
 
-                    // 重新读取确认信号已稳定（仍为低电平）
                     bool? confirmed = _ioCard.ReadInput(state.Config.Port);
                     if (confirmed == null || confirmed.Value)
                     {
-                        // 弹跳干扰，不触发事件
                         state.LastValue = current;
                         return;
                     }
@@ -180,21 +256,14 @@ namespace PF.Services.Hardware
             state.LastValue = current;
         }
 
-        public void Dispose() { /* CancellationToken 由调用方管理，此处无内部资源需释放 */ }
-
-        // ── 内部状态跟踪 ──────────────────────────────────────────────────────
-
         private class InputScanState
         {
             public IHardwareInputConfig Config { get; }
-
-            /// <summary>上一次读取到的电平值。Safety（NC）类接触器初始值为 true（常闭导通）。</summary>
             public bool LastValue { get; set; }
 
             public InputScanState(IHardwareInputConfig config)
             {
                 Config = config;
-                // 常闭（NC）安全传感器通电初始状态为 true；常开（NO）普通按钮初始为 false
                 LastValue = config.ScanGroup == InputScanGroup.Safety;
             }
         }
