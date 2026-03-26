@@ -1,5 +1,6 @@
 using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Workstation.AutoOcr.CostParam;
 using System.Collections.Generic;
 
 namespace PF.WorkStation.AutoOcr.CostParam
@@ -39,20 +40,18 @@ namespace PF.WorkStation.AutoOcr.CostParam
     /// </summary>
     public class PanelIoConfig : IPanelIoConfig
     {
-        public string IoDeviceId { get; } = "MAIN_IO_CARD";
+        public string IoDeviceId { get; } = "IO_Collectorll";
 
         public IEnumerable<IHardwareInputConfig> MonitoredInputs { get; } =
             new List<IHardwareInputConfig>
             {
                 // ── 普通按键（Standard 组，20ms 防抖）────────────────────────
-                new HardwareInputConfig(HardwareInputType.Start, port: 0, debounceMs: 20,
-                    name: "启动按钮", InputScanGroup.Standard),
+                new HardwareInputConfig(HardwareInputType.Start, port: (int)E_InPutName.上晶圆左启动按钮, debounceMs: 20,
+                    name: "工位1启动按钮", InputScanGroup.Standard),
 
-                new HardwareInputConfig(HardwareInputType.Pause, port: 1, debounceMs: 20,
+                new HardwareInputConfig(HardwareInputType.Pause, port: (int)E_InPutName.上晶圆右启动按钮, debounceMs: 20,
                     name: "暂停按钮", InputScanGroup.Standard),
 
-                new HardwareInputConfig(HardwareInputType.Reset, port: 2, debounceMs: 20,
-                    name: "复位按钮", InputScanGroup.Standard),
 
                 // ── 安全传感器（Safety 组，零延迟）───────────────────────────
                 new HardwareInputConfig(HardwareInputType.EStop, port: 3, debounceMs: 0,

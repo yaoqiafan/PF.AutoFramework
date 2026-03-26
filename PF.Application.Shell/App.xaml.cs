@@ -198,6 +198,7 @@ namespace PF.Application.Shell
             if (splash.ShowDialog() == true)
             {
                 splash.Close();
+                Container.Resolve<IHardwareInputMonitor>().StartStandardMonitoring();
             }
             else
             {
@@ -446,7 +447,7 @@ namespace PF.Application.Shell
             containerRegistry.RegisterSingleton<IPanelIoConfig, PF.WorkStation.AutoOcr.CostParam.PanelIoConfig>();
 
             // 硬件输入监控服务（双线程分组扫描）
-            containerRegistry.RegisterSingleton<HardwareInputMonitor>();
+            containerRegistry.RegisterSingleton<IHardwareInputMonitor, HardwareInputMonitor>();
 
             // 工站同步服务
             containerRegistry.RegisterSingleton<IStationSyncService, StationSyncService>();

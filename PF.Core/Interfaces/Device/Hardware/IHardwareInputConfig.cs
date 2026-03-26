@@ -39,10 +39,42 @@ namespace PF.Core.Interfaces.Device.Hardware
     }
 
     /// <summary>
-    /// 实体操作面板的 IO 监控配置接口。
-    /// PF.Services 层依赖此接口而非具体实现类，实现依赖倒置。
+    /// 硬件输入监控服务接口
     /// </summary>
-    public interface IPanelIoConfig
+    public interface IHardwareInputMonitor : IDisposable
+    {
+        /// <summary>
+        /// 启动普通按键监控（系统启动时调用，全局常驻运行）
+        /// </summary>
+        void StartStandardMonitoring(CancellationToken externalToken = default);
+
+        /// <summary>
+        /// 停止普通按键监控
+        /// </summary>
+        void StopStandardMonitoring();
+
+        /// <summary>
+        /// 启动安全装置监控（工站开始运行时调用）
+        /// </summary>
+        void StartSafetyMonitoring(CancellationToken externalToken = default);
+
+        /// <summary>
+        /// 停止安全装置监控（工站停止运行时调用）
+        /// </summary>
+        void StopSafetyMonitoring();
+
+        /// <summary>
+        /// 停止所有监控线程
+        /// </summary>
+        void StopAll();
+    }
+
+
+/// <summary>
+/// 实体操作面板的 IO 监控配置接口。
+/// PF.Services 层依赖此接口而非具体实现类，实现依赖倒置。
+/// </summary>
+public interface IPanelIoConfig
     {
         /// <summary>绑定的 IO 板卡 DeviceId，用于从 IHardwareManagerService 解析设备。</summary>
         string IoDeviceId { get; }
