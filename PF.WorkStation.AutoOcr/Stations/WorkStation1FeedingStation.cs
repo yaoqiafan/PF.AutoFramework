@@ -54,7 +54,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             错层检测 = 140,
 
             等待物料拉出完成 = 150,
-            阻塞等待物料回退完成 = 160,
+            等待物料回退完成 = 160,
 
             计算下一层位置 = 170,
 
@@ -72,8 +72,22 @@ namespace PF.WorkStation.AutoOcr.Stations
 
 
             #region 异常
+
+            // 业务与数据校验异常
             批次产品个数不正确 = 100001,
             料盒尺寸与配方不匹配 = 100002,
+            工位1配方获取失败 = 100003,
+            料盒尺寸识别失败 = 100004,
+
+            // 轴状态与运动异常 (合并后)
+            Z轴运动条件不满足 = 100010,
+            X轴运动条件不满足 = 100011,
+            Z轴运动超时 = 100020,
+            X轴运动超时 = 100021,
+
+            // 流程特定检测异常
+            Z轴寻层扫描异常 = 100030,
+            检测到物料错层 = 100031,
 
             #endregion
 
@@ -168,7 +182,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         break;
                     case Station1FeedingStep.等待物料拉出完成:
                         break;
-                    case Station1FeedingStep.阻塞等待物料回退完成:
+                    case Station1FeedingStep.等待物料回退完成:
                         break;
                     case Station1FeedingStep.计算下一层位置:
                         break;
