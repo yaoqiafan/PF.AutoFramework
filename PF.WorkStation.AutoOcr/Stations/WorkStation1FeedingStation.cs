@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using System;
@@ -167,8 +168,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "等待按下工位1启动按钮...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待操作员按下工位1启动按钮...");
-                        await _sync.WaitAsync("Station1Start", token).ConfigureAwait(false);
+                        await  _sync.WaitAsync("Station1Start", token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 检测到启动信号，开始执行上料流程。");
+
+
                         _currentStep = Station1FeedingStep.验证当前批次产品个数;
                         break;
 
