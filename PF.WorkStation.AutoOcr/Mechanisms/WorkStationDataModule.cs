@@ -245,13 +245,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             public MesDetectionParam Station2MesDetectionData { get; set; } = new MesDetectionParam();
 
+
+            public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } = new List<MachineDetectionData>();
+            public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = new List<MachineDetectionData>();
+
+            public Dictionary<string, MachineDetectionData> AllMachineDetectionDataDic { get; set; } = new Dictionary<string, MachineDetectionData>();
+
         #endregion  检测数据
 
 
-        #region 序列化与反序列化
+            #region 序列化与反序列化
 
-            public Dictionary<string, MachineDetectionData> MachineDetectionDataDic { get; set; } =
-                new Dictionary<string, MachineDetectionData>();
+          
         }
 
         /// <summary>
@@ -259,39 +264,38 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public void Save(string filePath)
         {
-            //try
-            //{
-            //    var snapshot = new WorkStationDataModuleSnapshot
-            //    {
-            //        Station1ReciepParam = _Station1ReciepParam,
-            //        Station2ReciepParam = _Station2ReciepParam,
-            //        Station1MesDetectionData = _Station1MesDetectionData,
-            //        Station2MesDetectionData = _Station2MesDetectionData,
-            //        Sation1MachineDetectionData = _Sation1MachineDetectionData,
-            //        Sation2MachineDetectionData = _Sation2MachineDetectionData,
-            //        AllMachineDetectionData = _AllMachineDetectionData,
-            //        MachineDetectionDataDic = _MachineDetectionDataDic
-            //    };
+            try
+            {
+                var snapshot = new WorkStationDataModuleSnapshot
+                {
+                    Station1ReciepParam = _Station1ReciepParam,
+                    Station2ReciepParam = _Station2ReciepParam,
+                    Station1MesDetectionData = _Station1MesDetectionData,
+                    Station2MesDetectionData = _Station2MesDetectionData,
+                    Sation1MachineDetectionData = _Sation1MachineDetectionData,
+                    Sation2MachineDetectionData = _Sation2MachineDetectionData,
+                    AllMachineDetectionDataDic = _MachineDetectionDataDic,
+                };
 
             //    var options = new JsonSerializerOptions
             //    {
             //        WriteIndented = true
             //    };
 
-            //    var fileInfo = new FileInfo(filePath);
-            //    var folderPath = fileInfo.DirectoryName;
-            //    if (!string.IsNullOrEmpty(folderPath) && !Directory.Exists(folderPath))
-            //    {
-            //        Directory.CreateDirectory(folderPath);
-            //    }
-            //    string json = JsonSerializer.Serialize(this, options);
-            //    File.WriteAllText(filePath, json);
-            //    _logger?.Info($"{this.MechanismName} 数据已保存至: {filePath}");
-            //}
-            //catch (Exception ex)
-            //{
-            //    _logger?.Error($"{MechanismName} 保存失败: {ex.Message}");
-            //}
+                var fileInfo = new FileInfo(filePath);
+                var folderPath = fileInfo.DirectoryName;
+                if (!string.IsNullOrEmpty(folderPath) && !Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+                string json = JsonSerializer.Serialize(this, options);
+               System .IO . File.WriteAllText(filePath, json);
+                _logger?.Info($"{this.MechanismName} 数据已保存至: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"{MechanismName} 保存失败: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -310,21 +314,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             //    var json = System.IO.File.ReadAllText(filePath);
             //    var options = new JsonSerializerOptions();
 
-            //    var snapshot = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
-            //    if (snapshot == null)
-            //    {
-            //        // 手动将数据同步到当前经过 DI 初始化的实例
-            //        this._Station1ReciepParam = tempModule._Station1ReciepParam;
-            //        this._Station2ReciepParam = tempModule._Station2ReciepParam;
-            //        this._Station1MesDetectionData = tempModule._Station1MesDetectionData;
-            //        this._Station2MesDetectionData = tempModule._Station2MesDetectionData;
-            //        this._Sation1MachineDetectionData = tempModule._Sation1MachineDetectionData;
-            //        this._Sation2MachineDetectionData = tempModule._Sation2MachineDetectionData;
-            //        this._MachineDetectionDataDic = tempModule._MachineDetectionDataDic;
-            //    }
+                var tempModule = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
+                if (tempModule == null)
+                {
+                    // 手动将数据同步到当前经过 DI 初始化的实例
+                    this._Station1ReciepParam = tempModule.Station1ReciepParam;
+                    this._Station2ReciepParam = tempModule.Station2ReciepParam;
+                    this._Station1MesDetectionData = tempModule.Station1MesDetectionData;
+                    this._Station2MesDetectionData = tempModule.Station2MesDetectionData;
+                    this._Sation1MachineDetectionData = tempModule.Sation1MachineDetectionData;
+                    this._Sation2MachineDetectionData = tempModule.Sation2MachineDetectionData;
+                    this._MachineDetectionDataDic = tempModule.AllMachineDetectionDataDic;
 
-            //    _logger?.Info($"{MechanismName} 数据加载成功");
-            //    OnDataChanged();
+                    _logger?.Info($"{MechanismName} 数据加载成功");
+                    OnDataChanged();
+                }
                 return true;
             //}
             //catch (Exception ex)
