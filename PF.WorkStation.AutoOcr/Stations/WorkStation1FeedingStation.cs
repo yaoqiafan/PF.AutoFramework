@@ -198,9 +198,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.验证当前批次产品个数:
                         CurrentStepDescription = "验证当前批次产品个数...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (_dataModule.Station1MesDetectionData.QtyCount != 0)
+                        if (_dataModule.Station1MesDetectionData.Quantity != 0)
                         {
-                            _logger.Info($"[{StationName}] 批次产品个数验证通过，数量：{_dataModule.Station1MesDetectionData.QtyCount}。");
+                            _logger.Info($"[{StationName}] 批次产品个数验证通过，数量：{_dataModule.Station1MesDetectionData.Quantity}。");
                             _currentStep = Station1FeedingStep.获取工位1配方参数;
                         }
                         else

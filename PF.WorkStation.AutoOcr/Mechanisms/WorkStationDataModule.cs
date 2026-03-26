@@ -39,62 +39,61 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public override void Dispose()
         {
             base.Dispose();
-            Save(filepath);
+            Save(_filepath);
         }
 
 
-        private readonly string filepath =
-            $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\MemoryData.json";
+        private readonly string _filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\MemoryData.json";
 
         /// <summary>
         /// 数据变化事件（供上层 ViewModel / UI 订阅）
         /// </summary>
         public event EventHandler? DataChanged;
 
-        private void OnDataChanged()
+        private void RaiseDataChanged()
         {
             DataChanged?.Invoke(this, EventArgs.Empty);
         }
 
         protected override Task<bool> InternalInitializeAsync(CancellationToken token)
         {
-            Load(filepath);
+            Load(_filepath);
             return Task.FromResult(true);
         }
 
         protected override Task InternalStopAsync()
         {
-            Save(filepath);
+            Save(_filepath);
             return Task.CompletedTask;
         }
 
         #region MES数据交互
 
         /// <summary>
-        /// 根据工单号获取相关比对信息
+        /// 查询 MES（示例实现，当前为模拟数据）
         /// </summary>
-        /// <param name="LotID">内部批号</param>
-        /// <param name="UserID">人员工号</param>
+        /// <param name="lotId">内部批次号</param>
+        /// <param name="operatorId">检测人工号</param>
         /// <param name="token">取消令牌</param>
-        /// <returns></returns>
-        public async Task<MesDetectionParam> QueryFromMes(string LotID, string UserID, CancellationToken token = default)
+        /// <returns>MesDetectionInfo 或 null（失败时）</returns>
+        public async Task<MesDetectionParam> QueryMesAsync(string LotID, string UserID, CancellationToken token = default)
         {
             try
             {
                 MesDetectionParam param = new MesDetectionParam();
-                param.InternalBatches = LotID;
-                param.UserID = UserID;
-                param.ProDuctModel = "PF-Work";
-                param.QtyCount = 25; // 假设每批次25片
+                param.InternalBatchId = LotID;
+                param.OperatorId = UserID;
+                param.ProductModel = "PF-Work";
+                param.Quantity = 25; // 假设每批次25片
                 param.DetectionStatus = E_DetectionStatus.待检测;
-                param.CustomerWaferIDBatches = new List<WaferInfo>();
+                param.CustomerWafers = new List<WaferInfo>();
                 param.RecipeName = "TestRecipe";
                 for (int i = 1; i <= 25; i++)
                 {
-                    param.CustomerWaferIDBatches.Add(new WaferInfo()
+                    param.CustomerWafers.Add(new WaferInfo()
                     {
                         CustomerBatch = $"PB237Z",
-                        WaferID = $"{i:D2}"
+                        WaferId = $"{i:D2}"
                     });
                 }
                 return param;
@@ -114,37 +113,37 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region 工位配方参数
 
         [JsonInclude]
-        private OCRRecipeParam _Station1ReciepParam = new OCRRecipeParam();
+        private OCRRecipeParam _station1ReciepParam = new OCRRecipeParam();
 
         /// <summary>
         /// 工位1配方参数
         /// </summary>
-        public OCRRecipeParam Station1ReciepParam => _Station1ReciepParam;
+        public OCRRecipeParam Station1ReciepParam => _station1ReciepParam;
 
         [JsonInclude]
-        private OCRRecipeParam _Station2ReciepParam = new OCRRecipeParam();
+        private OCRRecipeParam _station2ReciepParam = new OCRRecipeParam();
 
         /// <summary>
         /// 工位2配方参数
         /// </summary>
-        public OCRRecipeParam Station2ReciepParam => _Station2ReciepParam;
+        public OCRRecipeParam Station2ReciepParam => _station2ReciepParam;
 
         /// <summary>
-        /// 切换工位配方参数
+        /// 更新指定工位的配方参数并触发数据变更通知
         /// </summary>
-        public bool ChangedStationRecipeParam(E_WorkSpace Station, OCRRecipeParam Param)
+        public bool UpdateStationRecipeParam(E_WorkSpace Station, OCRRecipeParam Param)
         {
             if (Station == E_WorkSpace.工位1)
             {
-                _Station1ReciepParam = Param;
-                OnDataChanged();
+                _station1ReciepParam = Param;
+                RaiseDataChanged();
                 return true;
             }
 
             if (Station == E_WorkSpace.工位2)
             {
-                _Station2ReciepParam = Param;
-                OnDataChanged();
+                _station2ReciepParam = Param;
+                RaiseDataChanged();
                 return true;
             }
 
@@ -156,46 +155,46 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region 检测数据
 
         [JsonInclude]
-        private MesDetectionParam _Station1MesDetectionData = new MesDetectionParam();
+        private MesDetectionParam _station1MesDetectionData = new MesDetectionParam();
 
         /// <summary>
         /// 工位1检测MES返回数据
         /// </summary>
-        public MesDetectionParam Station1MesDetectionData => _Station1MesDetectionData;
+        public MesDetectionParam Station1MesDetectionData => _station1MesDetectionData;
 
         [JsonInclude]
-        private MesDetectionParam _Station2MesDetectionData = new MesDetectionParam();
+        private MesDetectionParam _station2MesDetectionData = new MesDetectionParam();
 
         /// <summary>
         /// 工位2检测MES返回数据
         /// </summary>
-        public MesDetectionParam Station2MesDetectionData => _Station2MesDetectionData;
+        public MesDetectionParam Station2MesDetectionData => _station2MesDetectionData;
 
         /// <summary>
         /// 批次数量
         /// </summary>
         [JsonInclude]
-        private ConcurrentDictionary<string, int> BathQuantityDic = new ConcurrentDictionary<string, int>();
+        private ConcurrentDictionary<string, int> _batchQuantityMap = new ConcurrentDictionary<string, int>();
 
         /// <summary>
         /// 工位1机台检测数据列表
         /// </summary>
         [JsonInclude]
-        private List<MachineDetectionData> _Sation1MachineDetectionData =
+        private List<MachineDetectionData> _sation1MachineDetectionData =
             new List<MachineDetectionData>();
 
         public List<MachineDetectionData> Sation1MachineDetectionData =>
-            _Sation1MachineDetectionData;
+            _sation1MachineDetectionData;
 
         /// <summary>
         /// 工位2机台检测数据列表
         /// </summary>
         [JsonInclude]
-        private List<MachineDetectionData> _Sation2MachineDetectionData =
+        private List<MachineDetectionData> _sation2MachineDetectionData =
             new List<MachineDetectionData>();
 
         public List<MachineDetectionData> Sation2MachineDetectionData =>
-            _Sation2MachineDetectionData;
+            _sation2MachineDetectionData;
 
 
 
@@ -203,130 +202,140 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 根据内部批次号索引的检测数据字典
         /// </summary>
         [JsonInclude]
-        private ConcurrentDictionary<string, List<MachineDetectionData>> _MachineDetectionDataDic =
+        private ConcurrentDictionary<string, List<MachineDetectionData>> _machineDataByBatch =
             new ConcurrentDictionary<string, List<MachineDetectionData>>();
 
-        public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDetectionDataDic =>
-            _MachineDetectionDataDic;
+        public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch =>
+            _machineDataByBatch;
 
         /// <summary>
-        /// 切换工位MES检测数据（同时清空对应工位的检测列表）
+        ///  更新指定工位的 MES 检测信息，并清空对应工位的机台检测列表（以便开始新批次）
         /// </summary>
-        public async Task<bool> ChangedStationMesDetectionData(E_WorkSpace Station, MesDetectionParam Data)
+        public async Task<bool> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data,CancellationToken token =default )
         {
             if (Station == E_WorkSpace.工位1)
             {
                 // 为了不破坏绑定，优先同步字段内容而非直接替换对象引用
-                //_Station1MesDetectionData.InternalBatches = Data.InternalBatches;
+                //_station1MesDetectionData.InternalBatchId = Data.InternalBatchId;
 
-                //_Station1MesDetectionData.CustomerWaferIDBatches.Clear();
-                //foreach (var w in Data.CustomerWaferIDBatches)
+                //_station1MesDetectionData.CustomerWafers.Clear();
+                //foreach (var w in Data.CustomerWafers)
                 //{
-                //    _Station1MesDetectionData.CustomerWaferIDBatches.Add(w);
+                //    _station1MesDetectionData.CustomerWafers.Add(w);
                 //}
-                _Station1MesDetectionData = Data;
-                _Sation1MachineDetectionData.Clear();
+                _station1MesDetectionData = Data;
+                _sation1MachineDetectionData.Clear();
             }
             else if (Station == E_WorkSpace.工位2)
             {
-                //_Station2MesDetectionData.InternalBatches = Data.InternalBatches;
+                //_station2MesDetectionData.InternalBatchId = Data.InternalBatchId;
 
-                //_Station2MesDetectionData.CustomerWaferIDBatches.Clear();
-                //foreach (var w in Data.CustomerWaferIDBatches)
+                //_station2MesDetectionData.CustomerWafers.Clear();
+                //foreach (var w in Data.CustomerWafers)
                 //{
-                //    _Station2MesDetectionData.CustomerWaferIDBatches.Add(w);
+                //    _station2MesDetectionData.CustomerWafers.Add(w);
                 //}
-                _Station2MesDetectionData = Data;
-                _Sation2MachineDetectionData.Clear();
+                _station2MesDetectionData = Data;
+                _sation2MachineDetectionData.Clear();
             }
             else
             {
                 return false;
             }
 
-            OnDataChanged();
+            RaiseDataChanged();
             return true;
         }
 
         /// <summary>
-        /// 新增一条机台检测数据
+        /// 新增一条机台检测数据（根据工位维护不同列表），并尝试将数据加入批次字典以判断批次完成
         /// </summary>
-        public async Task<bool> AddMachineDetectionData(E_WorkSpace Station, MachineDetectionData Data)
+        public async Task<bool> AddMachineDetectionAsync(E_WorkSpace Station, MachineDetectionData Data)
         {
             if (Station == E_WorkSpace.工位1)
             {
-                var kk = _Sation1MachineDetectionData.Where(x => x.CodeValue1 == Data.CodeValue1).FirstOrDefault();
+                var kk = _sation1MachineDetectionData.Where(x => x.Barcode1 == Data.Barcode1).FirstOrDefault();
                 if (kk != null)
                 {
-                    if (Data.DetResult || !kk.DetResult)
+                    if (Data.IsMatch || !kk.IsMatch)
                     {
-                        _Sation1MachineDetectionData.Remove(kk);
-                        _Sation1MachineDetectionData.Add(Data);
+                        _sation1MachineDetectionData.Remove(kk);
+                        _sation1MachineDetectionData.Add(Data);
                     }
                 }
                 else
                 {
-                    _Sation1MachineDetectionData.Add(Data);
+                    _sation1MachineDetectionData.Add(Data);
                 }
 
 
             }
             else if (Station == E_WorkSpace.工位2)
             {
-                var kk = _Sation2MachineDetectionData.Where(x => x.CodeValue1 == Data.CodeValue1).FirstOrDefault();
+                var kk = _sation2MachineDetectionData.Where(x => x.Barcode1 == Data.Barcode1).FirstOrDefault();
                 if (kk != null)
                 {
-                    if (Data.DetResult || !kk.DetResult)
+                    if (Data.IsMatch || !kk.IsMatch)
                     {
-                        _Sation2MachineDetectionData.Remove(kk);
-                        _Sation2MachineDetectionData.Add(Data);
+                        _sation2MachineDetectionData.Remove(kk);
+                        _sation2MachineDetectionData.Add(Data);
                     }
                 }
                 else
                 {
-                    _Sation2MachineDetectionData.Add(Data);
+                    _sation2MachineDetectionData.Add(Data);
                 }
             }
             await AddAllDic(Station, Data);
-            OnDataChanged();
+            RaiseDataChanged();
             return true;
         }
 
 
-
-        private async Task AddAllDic(E_WorkSpace Station, MachineDetectionData Data)
+      
+        private async Task AddAllDic(E_WorkSpace station, MachineDetectionData data)
         {
-            if (!_MachineDetectionDataDic.ContainsKey(Data.InternalBatches))
-            {
-                _MachineDetectionDataDic.TryAdd (Data.InternalBatches, new List<MachineDetectionData>() { Data });
-            }
-            else
-            {
-                _MachineDetectionDataDic[Data.InternalBatches].Add(Data);
-            }
-            if (!BathQuantityDic.ContainsKey(Data.InternalBatches))
-            {
-                BathQuantityDic.TryAdd(Data.InternalBatches, Station == E_WorkSpace.工位1 ? _Station1MesDetectionData.QtyCount : _Station2MesDetectionData.QtyCount);
-            }
-            await CheckAllDic();
+            _machineDataByBatch.AddOrUpdate(
+               data.InternalBatchId ,
+               _ => new List<MachineDetectionData> { data },
+               (_, list) =>
+               {
+                   list.Add(data);
+                   return list;
+               });
+
+            // 如果批次期望数量尚未记录，则以当前工位的 MES 信息为准进行记录
+            _batchQuantityMap.TryAdd(data.InternalBatchId ,
+                station == E_WorkSpace.工位1 ? _station1MesDetectionData .Quantity : _station2MesDetectionData.Quantity );
+
+            await CheckBatchCompletionAsync();
         }
 
 
-        private Task CheckAllDic()
+        private Task CheckBatchCompletionAsync()
         {
             return Task.Run(() =>
                {
-                   foreach (var kvp in _MachineDetectionDataDic)
+                   foreach (var kvp in _machineDataByBatch .ToList())
                    {
-                       if (BathQuantityDic.ContainsKey(kvp.Key))
+                       if (_batchQuantityMap.TryGetValue(kvp.Key, out var expected))
                        {
-                           if (kvp.Value.Count == BathQuantityDic[kvp.Key])
+                           if (kvp.Value.Count == expected)
                            {
-                               /***********数据上传**********/
+                               /*********** 批次数据已收集完整：触发上传或后处理逻辑 ***********/
+                               try
+                               {
+                                   // TODO: 在此处调用上传/上报逻辑，例如：UploadBatch(kvp.Key, kvp.Value);
+                                   _logger?.Info($"{MechanismName} 批次 {kvp.Key} 收集完成，准备上报。");
+                               }
+                               catch (Exception ex)
+                               {
+                                   _logger?.Error($"{MechanismName} 上报批次 {kvp.Key} 失败: {ex.Message}");
+                               }
 
-
-                               _MachineDetectionDataDic.TryRemove(kvp);
-                               BathQuantityDic.Remove(kvp.Key, out var value);
+                               // 从内存字典中移除已处理批次
+                               _machineDataByBatch.TryRemove(kvp.Key, out _);
+                               _batchQuantityMap.TryRemove(kvp.Key, out _);
                            }
                        }
                    }
@@ -354,8 +363,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } = new List<MachineDetectionData>();
             public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = new List<MachineDetectionData>();
 
-            public ConcurrentDictionary<string, List<MachineDetectionData>> AllMachineDetectionDataDic { get; set; } = new ConcurrentDictionary<string, List<MachineDetectionData>>();
-            public ConcurrentDictionary<string, int> BathQuantityDic { get; set; } = new ConcurrentDictionary<string, int>();
+            public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch { get; set; } = new ConcurrentDictionary<string, List<MachineDetectionData>>();
+            public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new ConcurrentDictionary<string, int>();
             #endregion  检测数据
 
 
@@ -373,14 +382,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 var snapshot = new WorkStationDataModuleSnapshot
                 {
-                    Station1ReciepParam = _Station1ReciepParam,
-                    Station2ReciepParam = _Station2ReciepParam,
-                    Station1MesDetectionData = _Station1MesDetectionData,
-                    Station2MesDetectionData = _Station2MesDetectionData,
-                    Sation1MachineDetectionData = _Sation1MachineDetectionData,
-                    Sation2MachineDetectionData = _Sation2MachineDetectionData,
-                    AllMachineDetectionDataDic = _MachineDetectionDataDic,
-                    BathQuantityDic = BathQuantityDic,
+                    Station1ReciepParam = _station1ReciepParam,
+                    Station2ReciepParam = _station2ReciepParam,
+                    Station1MesDetectionData = _station1MesDetectionData,
+                    Station2MesDetectionData = _station2MesDetectionData,
+                    Sation1MachineDetectionData = _sation1MachineDetectionData,
+                    Sation2MachineDetectionData = _sation2MachineDetectionData,
+                    MachineDataByBatch = _machineDataByBatch,
+                    BatchQuantityMap = _batchQuantityMap,
                 };
 
                 var options = new JsonSerializerOptions
@@ -424,17 +433,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 if (tempModule != null)
                 {
                     //手动将数据同步到当前经过 DI 初始化的实例
-                    this._Station1ReciepParam = tempModule.Station1ReciepParam;
-                    this._Station2ReciepParam = tempModule.Station2ReciepParam;
-                    this._Station1MesDetectionData = tempModule.Station1MesDetectionData;
-                    this._Station2MesDetectionData = tempModule.Station2MesDetectionData;
-                    this._Sation1MachineDetectionData = tempModule.Sation1MachineDetectionData;
-                    this._Sation2MachineDetectionData = tempModule.Sation2MachineDetectionData;
-                    this._MachineDetectionDataDic = tempModule.AllMachineDetectionDataDic;
-                    this.BathQuantityDic = tempModule.BathQuantityDic;
+                    this._station1ReciepParam = tempModule.Station1ReciepParam;
+                    this._station2ReciepParam = tempModule.Station2ReciepParam;
+                    this._station1MesDetectionData = tempModule.Station1MesDetectionData;
+                    this._station2MesDetectionData = tempModule.Station2MesDetectionData;
+                    this._sation1MachineDetectionData = tempModule.Sation1MachineDetectionData;
+                    this._sation2MachineDetectionData = tempModule.Sation2MachineDetectionData;
+                    this._machineDataByBatch = tempModule.MachineDataByBatch;
+                    this._batchQuantityMap = tempModule.BatchQuantityMap;
 
                     _logger?.Info($"{MechanismName} 数据加载成功");
-                    OnDataChanged();
+                    RaiseDataChanged();
                 }
                 return true;
             }
@@ -456,25 +465,25 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 内部批次号
         /// </summary>
-        public string InternalBatches { get; set; } = "";
+        public string InternalBatchId { get; set; } = "";
 
 
         /// <summary>
         /// 检测产品型号
         /// </summary>
-        public string ProDuctModel { get; set; } = "";
+        public string ProductModel { get; set; } = "";
 
 
         /// <summary>
         /// 客批和刻号集合
         /// </summary>
-        public List<WaferInfo> CustomerWaferIDBatches { get; set; } = new List<WaferInfo>();
+        public List<WaferInfo> CustomerWafers { get; set; } = new List<WaferInfo>();
 
 
         /// <summary>
         /// 当前批次产品个数
         /// </summary>
-        public int QtyCount { get; set; } = 0;
+        public int Quantity { get; set; } = 0;
 
 
         /// <summary>
@@ -486,7 +495,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 检测人工号
         /// </summary>
-        public string UserID { get; set; } = "NONE";
+        public string OperatorId { get; set; } = "NONE";
 
         /// <summary>
         /// 配方名称
@@ -506,60 +515,60 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 内部批次号
         /// </summary>
-        public string InternalBatches { get; set; } = "";
+        public string InternalBatchId { get; set; } = "";
 
         /// <summary>
         /// 客户批次
         /// </summary>
-        public string CustomerBatches { get; set; } = "";
+        public string CustomerBatch { get; set; } = "";
 
         /// <summary>
         /// 晶圆ID号
         /// </summary>
-        public string WaferID { get; set; } = "";
+        public string WaferId { get; set; } = "";
 
         /// <summary>
         /// 读取OCR值
         /// </summary>
-        public string OCRValue { get; set; } = "";
+        public string OcrText { get; set; } = "";
 
         /// <summary>
         /// 条码1值
         /// </summary>
-        public string CodeValue1 { get; set; } = "";
+        public string Barcode1 { get; set; } = "";
 
         /// <summary>
         /// 条码2值
         /// </summary>
-        public string CodeValue2 { get; set; } = "";
+        public string Barcode2 { get; set; } = "";
 
 
         /// <summary>
         /// 条码3值
         /// </summary>
-        public string OcrCodeValue { get; set; } = "";
+        public string Barcode3 { get; set; } = "";
 
 
         /// <summary>
         /// 比对结果
         /// </summary>
-        public bool DetResult { get; set; }
+        public bool IsMatch { get; set; }
 
         /// <summary>
         /// 比对异常输出
         /// </summary>
-        public string OutError { get; set; } = "NONE";
+        public string ErrorMessage { get; set; } = "NONE";
 
         /// <summary>
         /// 检测产品型号
         /// </summary>
-        public string ProDuctModel { get; set; } = "";
+        public string ProductModel { get; set; } = "";
 
 
         /// <summary>
         /// 检测人工号
         /// </summary>
-        public string UserID { get; set; } = "NONE";
+        public string OperatorId { get; set; } = "NONE";
 
         /// <summary>
         /// 配方名称
@@ -584,7 +593,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 晶圆的ID号
         /// </summary>
-        public string WaferID { get; set; }
+        public string WaferId { get; set; }
     }
 
 }
