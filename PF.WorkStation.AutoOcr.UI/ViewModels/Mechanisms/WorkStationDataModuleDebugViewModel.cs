@@ -209,15 +209,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 return Task.CompletedTask;
             }
 
-            Station1MesDetection = new ObservableCollection<WaferInfo>(_dataModule.Station1MesDetectionData.CustomerWaferIDBatches);
-            Station2MesDetection = new ObservableCollection<WaferInfo>(_dataModule.Station2MesDetectionData.CustomerWaferIDBatches);
+            Station1MesDetection = new ObservableCollection<WaferInfo>(_dataModule.Station1MesDetectionData.CustomerWafers);
+            Station2MesDetection = new ObservableCollection<WaferInfo>(_dataModule.Station2MesDetectionData.CustomerWafers);
 
             Station1MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation1MachineDetectionData);
             Station2MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation2MachineDetectionData);
 
-            AllMachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.MachineDetectionDataDic.Values.SelectMany(x => x).ToList());
-            Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatches ?? string.Empty;
-            Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
+            AllMachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.MachineDataByBatch.Values.SelectMany(x => x).ToList());
+            Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatchId ?? string.Empty;
+            Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatchId ?? string.Empty;
             Station1RecipeName = _dataModule.Station1ReciepParam.RecipeName;
             Station2RecipeName = _dataModule.Station2ReciepParam.RecipeName;
             return Task.CompletedTask;
@@ -244,18 +244,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             if (_dataModule != null)
             {
                 MesDetectionParam info = new MesDetectionParam();
-                info.QtyCount = 13;
-                info.InternalBatches = "TestLot1ID";
-                info.CustomerWaferIDBatches = new List<WaferInfo>();
+                info.Quantity = 13;
+                info.InternalBatchId = "TestLot1ID";
+                info.CustomerWafers = new List<WaferInfo>();
                 for (int i = 0; i < 13; i++)
                 {
-                    info.CustomerWaferIDBatches.Add(new WaferInfo()
+                    info.CustomerWafers.Add(new WaferInfo()
                     {
                         CustomerBatch = $"Guest1ID{i}",
-                        WaferID = i.ToString("D2")
+                        WaferId = i.ToString("D2")
                     });
                 }
-                _dataModule.ChangedStationMesDetectionData(E_WorkSpace.工位1, info);
+                _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位1, info);
             }
         }
 
@@ -264,18 +264,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             if (_dataModule != null)
             {
                 MesDetectionParam info = new MesDetectionParam();
-                info.QtyCount = 13;
-                info.InternalBatches = "TestLot2ID";
-                info.CustomerWaferIDBatches = new List<WaferInfo>();
+                info.Quantity = 13;
+                info.InternalBatchId = "TestLot2ID";
+                info.CustomerWafers = new List<WaferInfo>();
                 for (int i = 0; i < 13; i++)
                 {
-                    info.CustomerWaferIDBatches.Add(new WaferInfo()
+                    info.CustomerWafers.Add(new WaferInfo()
                     {
                         CustomerBatch = $"Guest2ID{i}",
-                        WaferID = i.ToString("D2")
+                        WaferId = i.ToString("D2")
                     });
                 }
-                _dataModule.ChangedStationMesDetectionData(E_WorkSpace.工位2, info);
+                _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位2, info);
             }
         }
 
@@ -283,8 +283,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         private void AddStation1Det()
         {
 
-            var kk = Station1MachineDetection.Select(x => x.WaferID).ToList();
-            var kkk = Station1MesDetection.Where(x => !kk.Contains(x.WaferID)).FirstOrDefault();
+            var kk = Station1MachineDetection.Select(x => x.WaferId).ToList();
+            var kkk = Station1MesDetection.Where(x => !kk.Contains(x.WaferId)).FirstOrDefault();
             if (kkk == null)
             {
                 DebugMessage = $"工位1数据已满";
@@ -295,23 +295,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             {
                 MachineDetectionData info = new MachineDetectionData()
                 {
-                    InternalBatches = Station1InternalBatches,
-                    CustomerBatches = kkk.CustomerBatch,
-                    WaferID = kkk.WaferID,
-                    OCRValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
-                    CodeValue1 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
-                    CodeValue2 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
-                    OcrCodeValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
+                    InternalBatchId = Station1InternalBatches,
+                    CustomerBatch = kkk.CustomerBatch,
+                    WaferId = kkk.WaferId,
+                    OcrText = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",
+                    Barcode1 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
+                    Barcode2 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
+                    Barcode3 = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",
                 };
-                _dataModule.AddMachineDetectionData(E_WorkSpace.工位1, info);
+                _dataModule.AddMachineDetectionAsync(E_WorkSpace.工位1, info);
             }
         }
 
         private void AddStation2Det()
         {
 
-            var kk = Station2MachineDetection.Select(x => x.WaferID).ToList();
-            var kkk = Station2MesDetection.Where(x => !kk.Contains(x.WaferID)).FirstOrDefault();
+            var kk = Station2MachineDetection.Select(x => x.WaferId).ToList();
+            var kkk = Station2MesDetection.Where(x => !kk.Contains(x.WaferId)).FirstOrDefault();
             if (kkk == null)
             {
                 DebugMessage = $"工位2数据已满";
@@ -322,15 +322,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             {
                 MachineDetectionData info = new MachineDetectionData()
                 {
-                    InternalBatches = Station1InternalBatches,
-                    CustomerBatches = kkk.CustomerBatch,
-                    WaferID = kkk.WaferID,
-                    OCRValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
-                    CodeValue1 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
-                    CodeValue2 = $"{kkk.CustomerBatch}-{kkk.WaferID}",
-                    OcrCodeValue = $"{kkk.CustomerBatch}-{kkk.WaferID}-A0",
+                    InternalBatchId = Station1InternalBatches,
+                    CustomerBatch = kkk.CustomerBatch,
+                    WaferId = kkk.WaferId,
+                    OcrText = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",
+                    Barcode1 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
+                    Barcode2 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
+                    Barcode3 = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",
                 };
-                _dataModule.AddMachineDetectionData(E_WorkSpace.工位2, info);
+                _dataModule.AddMachineDetectionAsync(E_WorkSpace.工位2, info);
             }
         }
 
