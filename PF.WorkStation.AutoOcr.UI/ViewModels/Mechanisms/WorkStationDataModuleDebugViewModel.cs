@@ -1,5 +1,7 @@
-﻿using PF.Core.Interfaces.Device.Mechanisms;
+﻿using NPOI.SS.UserModel.Charts;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using System;
 using System.Collections.Generic;
@@ -15,6 +17,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
     public class WorkStationDataModuleDebugViewModel : RegionViewModelBase
     {
         private readonly WorkStationDataModule? _dataModule;
+
+        private DispatcherTimer _monitorTimer;
+
 
         /// <summary>
         /// 供 XAML 直接绑定底层数据集合
@@ -44,16 +49,62 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _station2InternalBatches, value);
         }
 
+
+        private string _Station1RecipeName = string.Empty;
+
+        public string Station1RecipeName
+        {
+            get => _Station1RecipeName;
+            set => SetProperty(ref _Station1RecipeName, value);
+
+        }
+
+        private string _Station2RecipeName = string.Empty;
+
+        public string Station2RecipeName
+        {
+            get => _Station2RecipeName;
+            set => SetProperty(ref _Station2RecipeName, value);
+
+        }
+
+
         #region 数据集合
-        public ObservableCollection<WaferInfo> Station1MesDetection = new ObservableCollection<WaferInfo>();
+        private ObservableCollection<WaferInfo> _Station1MesDetection = new ObservableCollection<WaferInfo>();
+        public ObservableCollection<WaferInfo> Station1MesDetection
+        {
+            get => _Station1MesDetection;
+            set =>SetProperty(ref _Station1MesDetection, value);
+        }
 
-        public ObservableCollection<WaferInfo> Station2MesDetection = new ObservableCollection<WaferInfo>();
 
-        public ObservableCollection<MachineDetectionData> Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
+        private ObservableCollection<WaferInfo> _Station2MesDetection = new ObservableCollection<WaferInfo> ();
 
-        public ObservableCollection<MachineDetectionData> Station2MachineDetection = new ObservableCollection<MachineDetectionData>();
+        public ObservableCollection<WaferInfo> Station2MesDetection
+        {
+            get => _Station2MesDetection;
+            set =>SetProperty (ref _Station2MesDetection, value);
+        }
+        private ObservableCollection<MachineDetectionData> _Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
+        public ObservableCollection<MachineDetectionData> Station1MachineDetection
+        {
+            get => _Station1MachineDetection;
+            set => SetProperty(ref _Station1MachineDetection, value);
+        }
 
-        public ObservableCollection<MachineDetectionData> AllMachineDetection = new ObservableCollection<MachineDetectionData>();
+        private ObservableCollection<MachineDetectionData> _Station2MachineDetection = new ObservableCollection<MachineDetectionData>();
+        public ObservableCollection<MachineDetectionData> Station2MachineDetection
+        {
+            get => _Station2MachineDetection;
+            set => SetProperty(ref _Station2MachineDetection, value);
+        }
+
+        private ObservableCollection<MachineDetectionData> _AllMachineDetection = new ObservableCollection<MachineDetectionData>();
+        public ObservableCollection<MachineDetectionData> AllMachineDetection
+        {
+            get => _AllMachineDetection;
+            set => SetProperty(ref _AllMachineDetection, value);
+        }
 
         #endregion 数据集合
 
@@ -65,10 +116,30 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         #region Commands
 
+        // 1. 顶部全局生命周期控制
+        public DelegateCommand InitializeModuleCommand { get; }
+        public DelegateCommand ResetModuleCommand { get; }
+        public DelegateCommand StopCommand { get; }
+
+     
+
+
         /// <summary>
         /// 手动刷新数据（从 DataModule 重新拉取一次派生字段）
         /// </summary>
         public DelegateCommand RefreshDataCommand { get; }
+
+
+
+        public DelegateCommand Station1ChangeLotCommand { get ; }
+
+
+        public DelegateCommand Station2ChangeLotCommand { get ; }
+
+
+        public DelegateCommand AddStation1DetCommand { get; set; }
+
+        public DelegateCommand AddStation2DetCommand { get; set; }
 
         #endregion
 
@@ -77,8 +148,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule))
                 as WorkStationDataModule;
 
-            RefreshDataCommand = new DelegateCommand(async () => await ExecuteAsync(RefreshAllAsync));
-
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.InitializeAsync()));
+            ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.ResetAsync()));
+            StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.StopAsync()));
+            Station1ChangeLotCommand = new DelegateCommand(ChangeStation1Lot);
+            Station2ChangeLotCommand = new DelegateCommand(ChangeStation2Lot);
+            AddStation1DetCommand = new DelegateCommand(AddStation1Det);
+            AddStation2DetCommand = new DelegateCommand(AddStation2Det);
             if (_dataModule != null)
             {
                 // 订阅底层模块的数据变化事件
@@ -98,9 +174,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             {
                 DebugMessage = "未解析到 WorkStationDataModule 实例";
             }
-
-            _ = RefreshAllAsync();
+            RefreshAllAsync();
+            //StartMonitor();
         }
+
+
+        #region 内部执行逻辑与状态更新
+
 
         private async Task ExecuteAsync(Func<Task> action)
         {
@@ -135,11 +215,125 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             Station1MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation1MachineDetectionData);
             Station2MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation2MachineDetectionData);
 
-            AllMachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.MachineDetectionDataDic.Select(x => x.Value).ToList());
+            AllMachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.MachineDetectionDataDic.Values.SelectMany(x => x).ToList());
             Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatches ?? string.Empty;
             Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatches ?? string.Empty;
-
+            Station1RecipeName = _dataModule.Station1ReciepParam.RecipeName;
+            Station2RecipeName = _dataModule.Station2ReciepParam.RecipeName;
             return Task.CompletedTask;
         }
+
+
+        /// <summary>
+        /// 后台轮询线程，用于更新坐标和IO状态指示灯
+        /// </summary>
+        private void StartMonitor()
+        {
+            _monitorTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _monitorTimer.Tick += (s, e) =>
+            {
+                RefreshAllAsync();
+            };
+            _monitorTimer.Start();
+        }
+
+
+
+        private void ChangeStation1Lot()
+        {
+            if (_dataModule != null )
+            {
+                MesDetectionParam info = new MesDetectionParam();
+                info.QtyCount = 13;
+                info.InternalBatches = "TestLot1ID";
+                info.CustomerWaferIDBatches = new List<WaferInfo>();
+                for (int i = 0; i < 13; i++)
+                {
+                    info.CustomerWaferIDBatches.Add(new WaferInfo()
+                    {
+                        CustomerBatch = $"Guest1ID{i}",
+                        WaferID = i.ToString("D2")
+                    });
+                }
+                _dataModule .ChangedStationMesDetectionData (E_WorkSpace.工位1 ,info );
+            }
+        }
+
+        private void ChangeStation2Lot()
+        {
+            if (_dataModule != null)
+            {
+                MesDetectionParam info = new MesDetectionParam();
+                info.QtyCount = 13;
+                info.InternalBatches = "TestLot2ID";
+                info.CustomerWaferIDBatches = new List<WaferInfo>();
+                for (int i = 0; i < 13; i++)
+                {
+                    info.CustomerWaferIDBatches.Add(new WaferInfo()
+                    {
+                        CustomerBatch = $"Guest2ID{i}",
+                        WaferID = i.ToString("D2")
+                    });
+                }
+                _dataModule.ChangedStationMesDetectionData(E_WorkSpace.工位2, info);
+            }
+        }
+
+
+        private void AddStation1Det()
+        {
+
+            var kk = Station1MachineDetection.Select(x => x.WaferID).ToList();
+            var kkk = Station1MesDetection.Where(x => !kk.Contains(x.WaferID)).FirstOrDefault ();
+            if (kkk ==null )
+            {
+                DebugMessage = $"工位1数据已满";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (_dataModule != null)
+            {
+                MachineDetectionData info = new MachineDetectionData()
+                {
+                    InternalBatches = Station1InternalBatches,
+                    CustomerBatches = kkk.CustomerBatch,
+                     WaferID  = kkk.WaferID ,
+                     OCRValue = kkk .CustomerBatch ,
+                     CodeValue1 =kkk .CustomerBatch ,
+                     CodeValue2 =kkk .CustomerBatch ,
+                     OcrCodeValue = kkk.CustomerBatch,
+                };
+                _dataModule.AddMachineDetectionData(E_WorkSpace.工位1, info);
+            }
+        }
+
+        private void AddStation2Det()
+        {
+
+            var kk = Station2MachineDetection.Select(x => x.WaferID).ToList();
+            var kkk = Station2MesDetection.Where(x => !kk.Contains(x.WaferID)).FirstOrDefault();
+            if (kkk == null)
+            {
+                DebugMessage = $"工位2数据已满";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (_dataModule != null)
+            {
+                MachineDetectionData info = new MachineDetectionData()
+                {
+                    InternalBatches = Station1InternalBatches,
+                    CustomerBatches = kkk.CustomerBatch,
+                    WaferID = kkk.WaferID,
+                    OCRValue = kkk.CustomerBatch,
+                    CodeValue1 = kkk.CustomerBatch,
+                    CodeValue2 = kkk.CustomerBatch,
+                    OcrCodeValue = kkk.CustomerBatch,
+                };
+                _dataModule.AddMachineDetectionData(E_WorkSpace.工位2, info);
+            }
+        }
+
+        #endregion  内部执行逻辑与状态更新
     }
 }

@@ -11,7 +11,7 @@ namespace PF.Core.Interfaces.Device.Mechanisms
     /// 工业机构模组基础接口
     /// 代表一个由多个底层硬件（轴、IO等）组合而成的逻辑功能单元
     /// </summary>
-    public interface IMechanism
+    public interface IMechanism :IDisposable 
     {
         /// <summary>模组名称（如：上料取料模组）</summary>
         string MechanismName { get; }

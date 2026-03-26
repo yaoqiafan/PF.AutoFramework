@@ -1,5 +1,6 @@
 ﻿using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.ViewModels;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Navigation;
@@ -20,12 +21,15 @@ namespace PF.Application.Shell.Views
     {
         private readonly IMessageService _messageService;
         private readonly CommonSettings _commonSettings;
-        public MainWindow(IMessageService messageService, CommonSettings commonSettings)
+
+        private readonly IEnumerable<IMechanism> _mechanismslist;
+        public MainWindow(IMessageService messageService, CommonSettings commonSettings,IEnumerable <IMechanism> mechanisms)
         {
             InitializeComponent();
             this.Loaded += MainWindow_Loaded; // 订阅 Loaded 事件
             _messageService = messageService;
             _commonSettings = commonSettings;
+            _mechanismslist = mechanisms;
         }
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -142,6 +146,11 @@ namespace PF.Application.Shell.Views
             {
                 try
                 {
+
+                    foreach (var item in _mechanismslist)
+                    {
+                        item.Dispose();
+                    }
                     // [可选] 在这里执行资源清理，例如记录退出日志
                     // var logService = Prism.Ioc.ContainerLocator.Container.Resolve<ILogService>();
                     // logService?.Info("用户关闭了主程序，系统退出。", "System");
