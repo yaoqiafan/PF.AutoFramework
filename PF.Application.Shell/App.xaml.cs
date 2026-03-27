@@ -507,7 +507,6 @@ namespace PF.Application.Shell
                 new[]
                 {
                     typeof(IRecipeService<OCRRecipeParam>),
-                    typeof(IRecipeManger<OCRRecipeParam>),
                     typeof(OCRRecipe<OCRRecipeParam>)
                 },
                 typeof(OCRRecipe<OCRRecipeParam>),

@@ -1,3 +1,4 @@
+using PF.Core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,7 +92,7 @@ namespace PF.Core.Entities.SecsGem.Message
             string count = node.SubNode?.Count > 0 ? $" [{node.SubNode.Count}]" : "";
             string value = node.TypedValue != null ? $" {node.TypedValue}" : "";
 
-            if (node.DataType == SecsGem.Common.Const.DataType.LIST) // 列表类型
+            if (node.DataType ==DataType.LIST) // 列表类型
             {
                 sb.AppendLine($"{indentStr}<{type}{count}");
                 foreach (var child in node?.SubNode)

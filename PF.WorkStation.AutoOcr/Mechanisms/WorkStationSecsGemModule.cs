@@ -1,15 +1,19 @@
 ﻿using NPOI.POIFS.Crypt.Dsig.Facets;
 using NPOI.SS.Formula.Functions;
+using Org.BouncyCastle.Pkcs;
 using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params.ValidateParam;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.Params;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.CostParam;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,13 +29,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         private readonly IParams _secsGemParam;
 
+        private readonly IRecipeService<OCRRecipeParam> _recipeService;
+
+
+        private WorkStationDataModule _workStationDataModule;
 
         private readonly Infrastructure.Logging.CategoryLogger _secsGemlog;
-        public WorkStationSecsGemModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ISecsGemManger secsGemManger, PF.Core.Interfaces.SecsGem.Params.IParams secsGemParam, icon，ILogService logger) : base(E_Mechanisms.SECSGEM通讯模组.ToString(), hardwareManagerService, paramService, logger)
+
+        private readonly IContainerProvider _containerProvider;
+        public WorkStationSecsGemModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ISecsGemManger secsGemManger, PF.Core.Interfaces.SecsGem.Params.IParams secsGemParam, IRecipeService<OCRRecipeParam> recipeService, IContainerProvider containerProvider, ILogService logger) : base(E_Mechanisms.SECSGEM通讯模组.ToString(), hardwareManagerService, paramService, logger)
         {
             _secsGemManger = secsGemManger;
             _secsGemParam = secsGemParam;
             _secsGemlog = Infrastructure.Logging.CategoryLoggerFactory.SecsGem(logger);
+            _recipeService = recipeService;
+            _containerProvider = containerProvider;
         }
 
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
@@ -46,6 +58,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _secsGemlog.Error("设备连接SecsGem服务端失败");
                 return false;
             }
+            _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _secsGemlog.Error("SecsGem连接成功");
             _secsGemManger.MessageReceived += SecsGemManger_MessageReceived;
             return true;
@@ -110,27 +123,33 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 case "S7F1":
                     //处理S7F1消息
+                    HandleS7F1Message(message).ConfigureAwait(false);
                     break;
 
 
                 case "S7F3":
                     //处理S7F3消息
+                    HandleS7F3Message(message).ConfigureAwait(false);
                     break;
 
                 case "S7F5":
                     //处理S7F5消息
+                    HandleS7F5Message(message).ConfigureAwait(false);
                     break;
 
                 case "S7F17":
                     //处理S7F17消息
+                    HandleS7F17Message(message).ConfigureAwait(false);
                     break;
 
                 case "S7F19":
                     //处理S7F19消息
+                    HandleS7F19Message(message).ConfigureAwait(false);
                     break;
 
                 case "S10F3":
                     //处理S10F3消息
+                    HandleS10F3Message(message).ConfigureAwait(false);
                     break;
 
                 default:
@@ -477,7 +496,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #endregion S2F41---->S2F42
 
 
-        #region  S7F1-->S7F2 （正式下发配方数据之前的一个“预问询”环节。它的逻辑是：主机问设备“我有个配方要传给你，你现在有地方存吗？”，设备回答“可以传”或“现在不行）
+      #region  S7F1-->S7F2 （正式下发配方数据之前的一个“预问询”环节。它的逻辑是：主机问设备“我有个配方要传给你，你现在有地方存吗？”，设备回答“可以传”或“现在不行）
 
 
         /// <summary>
@@ -560,10 +579,33 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region S7F5-->S7F6  (主机请求配方上传)
 
-
-        private SecsGemMessage CreateS7F5Request(SecsGemMessage s7f5Request, string ppid, byte[] ppBody)
+        /// <summary>
+        /// 上传配方请求处理，主机通过 S7F5 请求设备上传指定 PPID 的配方数据，设备回复 S7F6 消息，如果配方存在则包含配方内容，如果配方不存在则回复一个空的列表或特定错误码。
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        private async Task HandleS7F5Message(SecsGemMessage message, CancellationToken token = default)
         {
-            string requestedPpid = s7f5Request.RootNode.TypedValue.ToString();
+            // 1. 获取请求的配方名 (假设 RootNode 是 ASCII)
+            string requestedPpid = message.RootNode.TypedValue.ToString();
+            var recipe = await _recipeService.RecipeParam(requestedPpid);
+            if (recipe == null)
+            {
+                var response = CreateS7F6EmptyResponse(message);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+            else
+            {
+                string recipestr = System.Text.Json.JsonSerializer.Serialize(recipe);
+                byte[] recipedata = Encoding.UTF8.GetBytes(recipestr);
+                var response = CreateS7F6Response(message, requestedPpid, recipedata);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
         }
 
 
@@ -601,6 +643,202 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
         #endregion S7F5-->S7F6  (主机请求配方上传)
+
+
+
+
+        #region S7F17-->S7F18 (设备请求删除配方)
+
+        /// <summary>
+        /// 当接收到 S7F17 (Process Program Delete Request) 时调用(删除指定配方)
+        /// </summary>
+        /// <param name="s7f17Request"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        private async Task HandleS7F17Message(SecsGemMessage s7f17Request, CancellationToken token = default)
+        {
+            // 1. 解析数据：S7F17 的 RootNode 是一个包含多个 ASCII 节点的 LIST
+            var ppidNodes = s7f17Request.RootNode.SubNode;
+
+            // 如果列表为空，某些标准定义为“删除所有配方”，此处需根据你的协议文档处理
+            if (ppidNodes == null || ppidNodes.Count == 0)
+            {
+                // 示例：拒绝删除所有请求
+                ReplyS7F18(s7f17Request, 0x01);
+                return;
+            }
+
+            byte ackc7 = 0; // 0=成功, 1=拒绝, 3=至少一个没找到
+
+            foreach (var node in ppidNodes)
+            {
+                string ppid = node.TypedValue?.ToString();
+                if (string.IsNullOrEmpty(ppid)) continue;
+
+                // 2. 安全检查：正在运行的配方禁止删除
+                //if (IsRecipeCurrentlyRunning(ppid))
+                //{
+                //    ackc7 = 1; // 只要有一个正在跑，就整体拒绝（或按文档部分删除）
+                //    break;
+                //}
+
+                // 3. 执行物理删除
+                var recipe = await _recipeService.RecipeParam(ppid);
+                if (recipe == null)
+                {
+                    ackc7 = 3; // 至少一个配方没找到
+
+                }
+                else
+                {
+                    bool deleted = await _recipeService.RecipeDeleteAsync(ppid);
+                    if (!deleted)
+                    {
+                        ackc7 = 1; // 删除失败，拒绝请求
+                        break;
+                    }
+
+                }
+
+                // 4. 回复主机
+                ReplyS7F18(s7f17Request, ackc7);
+
+                // 5. 如果删除成功，触发 GEM 事件上报 (S6F11)
+                if (ackc7 == 0)
+                {
+
+                }
+            }
+
+        }
+
+
+        /// <summary>
+        /// 构造并发送 S7F18 回复
+        /// </summary>
+        private SecsGemMessage ReplyS7F18(SecsGemMessage request, byte ackc7)
+        {
+            // 触发你的 case DataType.Binary 分支
+            var rootNode = new SecsGemNodeMessage(DataType.Binary, new byte[] { ackc7 });
+
+            return new SecsGemMessage
+            {
+                Stream = 7,
+                Function = 18,
+                WBit = false,
+                SystemBytes = request.SystemBytes, // 必须原样返回
+                RootNode = rootNode
+            };
+        }
+
+        #endregion S7F17-->S7F18 (设备请求删除配方)
+
+
+        #region S7F19-->S7F20 (主机请求当前配方)
+
+
+        /// <summary>
+        /// S7F19-->S7F20 (主机请求当前配方)
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        private async Task HandleS7F19Message(SecsGemMessage message, CancellationToken token = default)
+        {
+            string currentPpid = $"{_workStationDataModule.Station1ReciepParam.RecipeName ?? ""}&{_workStationDataModule.Station2ReciepParam.RecipeName ?? ""}"; // 从数据模块获取当前配方名
+            var s7f20Response = CreateS7F20Response(message, currentPpid);
+            s7f20Response.IsIncoming = false;
+            _secsGemlog.Info($"发送SecsGem消息: {s7f20Response}");
+            await _secsGemManger.SendMessageAsync(s7f20Response);
+        }
+
+
+        /// <summary>
+        /// 构造 S7F20 响应消息
+        /// </summary>
+        private SecsGemMessage CreateS7F20Response(SecsGemMessage s7f19Request, string currentPpid)
+        {
+            // 触发您的 case DataType.ASCII 分支
+            // 如果没有配方，传入 string.Empty 即可
+            var rootNode = new SecsGemNodeMessage(DataType.ASCII, currentPpid ?? string.Empty);
+
+            return new SecsGemMessage
+            {
+                Stream = 7,
+                Function = 20,
+                WBit = false,
+                SystemBytes = s7f19Request.SystemBytes, // 必须匹配请求
+                RootNode = rootNode
+            };
+        }
+
+
+        #endregion S7F19-->S7F20 (主机请求当前配方)
+
+
+
+        #region S10F3-->S10F4 主机下发通知到设备
+
+
+        /// <summary>
+        /// S10F3-->S10F4 主机下发通知到设备
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        private async Task HandleS10F3Message(SecsGemMessage message, CancellationToken token = default)
+        {
+            // 1. 解析数据
+            try
+            {
+                // 1. 解析数据
+                var subNodes = message.RootNode.SubNode;
+                byte tid = ((byte[])subNodes[0].Data)[0]; // 终端 ID
+                string text = subNodes[1].TypedValue.ToString(); // 文本内容
+
+                // 2. 在 UI 线程弹出对话框 (示例代码)
+
+
+                // 3. 回复主机：0x00 表示已成功接收并尝试显示
+                var s10f4Response = ReplyS10F4(message, 0x00);
+                s10f4Response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {s10f4Response}");
+                await _secsGemManger.SendMessageAsync(s10f4Response);
+            }
+            catch (Exception ex)
+            {
+                _secsGemlog.Error($"处理 S10F3 失败: {ex.Message}");
+                var s10f4Response = ReplyS10F4(message, 0x01);
+                s10f4Response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {s10f4Response}");
+                await _secsGemManger.SendMessageAsync(s10f4Response);
+            }
+        }
+
+
+        /// <summary>
+        /// 生成S10F4回复信息
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="ackc10"></param>
+        /// <returns></returns>
+        private SecsGemMessage ReplyS10F4(SecsGemMessage request, byte ackc10)
+        {
+            // 触发您的 case DataType.Binary 分支
+            var rootNode = new SecsGemNodeMessage(DataType.Binary, new byte[] { ackc10 });
+
+            var response = new SecsGemMessage
+            {
+                Stream = 10,
+                Function = 4,
+                WBit = false,
+                SystemBytes = request.SystemBytes, // 必须匹配请求
+                RootNode = rootNode
+            };
+
+            return response;
+        }
+        #endregion S10F3-->S10F4 主机下发通知到设备
 
 
         #endregion SecsGem消息处理
