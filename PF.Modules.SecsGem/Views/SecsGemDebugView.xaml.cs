@@ -16,11 +16,11 @@ using System.Windows.Shapes;
 namespace PF.Modules.SecsGem.Views
 {
     /// <summary>
-    /// Interaction logic for ViewA.xaml
+    /// SecsGemDebugView.xaml 的交互逻辑
     /// </summary>
-    public partial class ViewA : UserControl
+    public partial class SecsGemDebugView : UserControl
     {
-        public ViewA()
+        public SecsGemDebugView()
         {
             InitializeComponent();
         }

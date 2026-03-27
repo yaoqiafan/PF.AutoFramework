@@ -40,7 +40,7 @@ namespace PF.Modules.SecsGem
             containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
             containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
 
-            containerRegistry.RegisterForNavigation<ViewA, ViewModels.ViewAViewModel>("SecsGemView");
+           
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

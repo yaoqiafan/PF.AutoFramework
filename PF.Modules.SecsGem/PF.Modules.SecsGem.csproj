@@ -9,4 +9,7 @@
 	  <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="ViewModels\" />
+	</ItemGroup>
 </Project>
