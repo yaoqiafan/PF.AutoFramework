@@ -1,3 +1,5 @@
+using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Modules.SecsGem.ViewModels;
 using System;
 using System.Collections.Specialized;
@@ -9,6 +11,7 @@ namespace PF.Modules.SecsGem.Views
     /// <summary>
     /// SecsGemDebugView 的交互逻辑
     /// </summary>
+    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView, "SecsGem手动调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 4, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
     public partial class SecsGemDebugView : UserControl
     {
         public SecsGemDebugView()

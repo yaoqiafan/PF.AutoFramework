@@ -17,12 +17,22 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Production;
 using PF.Core.Interfaces.Recipe;
+using PF.Core.Interfaces.SecsGem;
+using PF.Core.Interfaces.SecsGem.Command;
+using PF.Core.Interfaces.SecsGem.Communication;
+using PF.Core.Interfaces.SecsGem.DataBase;
+using PF.Core.Interfaces.SecsGem.Params;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Data;
 using PF.Data.Context;
 using PF.Data.Entity.Category;
 using PF.Data.Repositories;
+using PF.Infrastructure.SecsGem;
+using PF.Infrastructure.SecsGem.Command;
+using PF.Infrastructure.SecsGem.Incentive;
+using PF.Infrastructure.SecsGem.Param;
+using PF.Infrastructure.SecsGem.Tools;
 using PF.Infrastructure.Station.Basic;
 using PF.Modules.Debug;
 using PF.Modules.Identity;
@@ -33,6 +43,7 @@ using PF.Modules.Parameter.Dialog.Mappers;
 using PF.Modules.Parameter.ViewModels.Models;
 using PF.Modules.Production;
 using PF.Modules.SecsGem;
+using PF.SecsGem.DataBase;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
@@ -251,8 +262,10 @@ namespace PF.Application.Shell
             // 参数仓储和服务（委托到 ParameterServiceExtensions）
             containerRegistry.AddParameterServices(new DefaultParameters());
 
-
             RegisterProductionDataService(containerRegistry);
+
+            RegisterSecsGemSever(containerRegistry);
+
             RegisterHardwareTypes(containerRegistry);
 
             containerRegistry.RegisterSingleton<Splash>();
@@ -372,6 +385,42 @@ namespace PF.Application.Shell
         private void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<IUserService, UserService>();
+        }
+
+        #endregion
+
+
+        #region 参数数据库服务注册
+
+        /// <summary>
+        /// 注册应用专属的参数数据库上下文和开放泛型仓储（使用 DryIoc 专属 API）。
+        /// IParamService、IDefaultParam、CommonSettings 的注册委托到 ParameterServiceExtensions.AddParameterServices。
+        /// </summary>
+        private async void RegisterSecsGemSever(IContainerRegistry containerRegistry)
+        {
+            try
+            {
+                var filePath = System.IO.Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemConfig.db");
+
+                var dbContextOptions = new DbContextOptionsBuilder<SecsGemDbContext>()
+                    .UseSqlite($"Data Source={filePath}")
+                    .Options;
+                containerRegistry.RegisterInstance<DbContextOptions<SecsGemDbContext>>(dbContextOptions);
+                containerRegistry.RegisterSingleton<SecsGemDbContext>();
+
+                containerRegistry.RegisterSingleton<ISecsGemDataBase, SecsGemDataBaseManger>();
+                containerRegistry.RegisterSingleton<ICommandManager, SecsGemCommandManger>();
+                containerRegistry.RegisterSingleton<SecsGemMessageProcessor>();
+                containerRegistry.RegisterSingleton<IParams, ParamsManger>();
+                containerRegistry.RegisterSingleton<IinternalClient, InternalClient>();
+                containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
+                containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
+            }
+            catch (Exception ex)
+            {
+                _logService.Error("SecsGem据库上下文注册失败", exception: ex);
+                throw;
+            }
         }
 
         #endregion
