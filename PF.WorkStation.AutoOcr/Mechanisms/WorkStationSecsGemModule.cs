@@ -22,14 +22,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         private readonly ISecsGemManger _secsGemManger;
 
-        private readonly IParams _secsGemParam;
 
 
         private readonly Infrastructure.Logging.CategoryLogger _secsGemlog;
-        public WorkStationSecsGemModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ISecsGemManger secsGemManger, PF.Core.Interfaces.SecsGem.Params.IParams secsGemParam, ILogService logger) : base(E_Mechanisms.SECSGEM通讯模组.ToString(), hardwareManagerService, paramService, logger)
+        public WorkStationSecsGemModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ISecsGemManger secsGemManger, ILogService logger) : base(E_Mechanisms.SECSGEM通讯模组.ToString(), hardwareManagerService, paramService, logger)
         {
             _secsGemManger = secsGemManger;
-            _secsGemParam = secsGemParam;
             _secsGemlog = Infrastructure.Logging.CategoryLoggerFactory.SecsGem(logger);
         }
 
