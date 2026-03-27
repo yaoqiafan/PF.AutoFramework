@@ -250,10 +250,11 @@ namespace PF.Workstation.AutoOcr.CostParam
     {
         工位1上晶圆模组,
         工位2上晶圆模组,
-
         工位1推拉晶圆模组,
         工位2推拉晶圆模组,
-        OCR识别模组
+        OCR识别模组,
+        检测数据模组,
+        SECSGEM通讯模组,
 
     }
 

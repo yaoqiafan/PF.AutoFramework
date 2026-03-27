@@ -31,5 +31,9 @@ namespace PF.Infrastructure.Logging
 
         public static CategoryLogger Recipe (ILogService logService) =>
           new CategoryLogger(logService, LogCategories.Recipe );
+
+
+        public static CategoryLogger SecsGem(ILogService logService) =>
+            new CategoryLogger(logService, LogCategories.SecsGem);
     }
 }

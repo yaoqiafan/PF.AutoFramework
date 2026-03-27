@@ -1,5 +1,6 @@
 ﻿using NPOI.SS.Formula.Functions;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Interfaces.Identity;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -19,6 +20,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
 
         private readonly WorkStationDataModule? _dataModule;
+
+        private readonly IUserService _userService;
 
         private DispatcherTimer _monitorTimer;
 
@@ -110,9 +113,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
 
-        public HomeViewModel(IContainerProvider containerProvider)
+        public HomeViewModel(IContainerProvider containerProvider, IUserService userService)
         {
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _userService = userService;
 
             Station1ChangeLotCommand = new DelegateCommand(Station1ShowChangeLotView);
 
@@ -154,7 +158,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             Station2InternalBatches = _dataModule.Station2MesDetectionData?.InternalBatchId ?? string.Empty;
             Station1InternalBatches = _dataModule.Station1MesDetectionData?.InternalBatchId ?? string.Empty;
-            Station1RecipeName = _dataModule.Station1MesDetectionData .RecipeName;
+            Station1RecipeName = _dataModule.Station1MesDetectionData.RecipeName;
             Station2RecipeName = _dataModule.Station2MesDetectionData.RecipeName;
             Station1DetStatus = _dataModule.Station1MesDetectionData.DetectionStatus;
             Station2DetStatus = _dataModule.Station2MesDetectionData.DetectionStatus;
@@ -184,6 +188,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     string Userid = param.GetValue<string>("Userid");
                     string lotid = param.GetValue<string>("Lotid");
+                    if ((await _userService.GetUserListAsync()).ToList().FindIndex(x => x.UserId == Userid) == -1)
+                    {
+                        MessageService.ShowMessage($"{Userid}用户不存在 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
                     var info = await _dataModule?.QueryMesAsync(lotid, Userid);
                     if (info == null)
                     {
@@ -211,7 +220,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
 
-        private async  void OnDialogCallbackStation2(IDialogResult result)
+        private async void OnDialogCallbackStation2(IDialogResult result)
         {
             if (result.Result == ButtonResult.OK)
             {
@@ -220,10 +229,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     string Userid = param.GetValue<string>("Userid");
                     string lotid = param.GetValue<string>("Lotid");
+
                     var info = await _dataModule?.QueryMesAsync(lotid, Userid);
                     if (info == null)
                     {
-
                         MessageService.ShowMessage($"{lotid}获取检测数据错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
