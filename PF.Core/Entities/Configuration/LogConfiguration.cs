@@ -92,6 +92,10 @@ namespace PF.Core.Entities.Configuration
             //硬件日志 - 记录硬件调试
             AddCategory(LogCategories.HaraWare, LogLevel.Debug, LogCategories.HaraWare);
 
+            AddCategory(LogCategories.Recipe, LogLevel.Debug, LogCategories.Recipe);
+
+            AddCategory(LogCategories.SecsGem, LogLevel.Debug, LogCategories.SecsGem);
+
             return this;
         }
 
