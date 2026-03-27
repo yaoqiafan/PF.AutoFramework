@@ -24,6 +24,8 @@ namespace PF.Core.Constants
 
 
         public const string Recipe = "Recipe";
+
+        public const string SecsGem = "SecsGem";
         /// <summary>
         /// 获取所有内置分类
         /// </summary>
@@ -38,6 +40,7 @@ namespace PF.Core.Constants
                Custom,
                HaraWare,
                Recipe,
+               SecsGem,
             };
         }
     }
