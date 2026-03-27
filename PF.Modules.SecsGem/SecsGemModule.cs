@@ -12,6 +12,7 @@ using PF.Infrastructure.SecsGem.Command;
 using PF.Infrastructure.SecsGem.Incentive;
 using PF.Infrastructure.SecsGem.Param;
 using PF.Infrastructure.SecsGem.Tools;
+using PF.Core.Constants;
 using PF.Modules.SecsGem.ViewModels;
 using PF.Modules.SecsGem.Views;
 using PF.SecsGem.DataBase;
@@ -29,13 +30,13 @@ namespace PF.Modules.SecsGem
             
 
             // View + ViewModel 注册（支持 Prism 导航）
-            containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>();
+            containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>(
+                NavigationConstants.Views.SecsGemDebugView);
         }
 
         public void OnInitialized(IContainerProvider containerProvider)
         {
-            // 解析导航菜单服务，自动扫描当前程序集
-            // 这样 DeviceDebugView 上的 [ModuleNavigation] 特性就会被识别，自动添加到系统侧边栏菜单中
+            // 注册导航菜单（扫描 [ModuleNavigation] 特性）
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
 
