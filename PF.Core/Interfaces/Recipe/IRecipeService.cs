@@ -110,7 +110,7 @@ namespace PF.Core.Interfaces.Recipe
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
         Task<bool> DownLoadRecipe(T RecipeParam, CancellationToken token = default);
-
+        Task<T> RecipeParam(string? requestedPpid);
     }
 
 
