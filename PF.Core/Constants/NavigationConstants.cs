@@ -56,6 +56,7 @@ namespace PF.Core.Constants
             #endregion
 
             #region 调试
+            public const string SecsGemDebugView = nameof(SecsGemDebugView);
             public const string HardwareDebugView = nameof(HardwareDebugView);
             public const string MechanismDebugView = nameof(MechanismDebugView);
             public const string AxisDebugView = nameof(AxisDebugView);

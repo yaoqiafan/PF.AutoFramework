@@ -15,8 +15,10 @@ using PF.Infrastructure.SecsGem.Tools;
 using PF.Modules.SecsGem.ViewModels;
 using PF.Modules.SecsGem.Views;
 using PF.SecsGem.DataBase;
+using PF.UI.Infrastructure.Navigation;
 using Prism.Ioc;
 using Prism.Modularity;
+using System.Reflection;
 
 namespace PF.Modules.SecsGem
 {
@@ -24,22 +26,7 @@ namespace PF.Modules.SecsGem
     {
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            var filePath = System.IO.Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemConfig.db");
-
-            var dbContextOptions = new DbContextOptionsBuilder<SecsGemDbContext>()
-                .UseSqlite($"Data Source={filePath}")
-                .Options;
-            containerRegistry.RegisterInstance<DbContextOptions<SecsGemDbContext>>(dbContextOptions);
-            containerRegistry.RegisterSingleton<SecsGemDbContext>();
-
-            containerRegistry.RegisterSingleton<ISecsGemDataBase, SecsGemDataBaseManger>();
-            containerRegistry.RegisterSingleton<ICommandManager, SecsGemCommandManger>();
-            containerRegistry.RegisterSingleton<SecsGemMessageProcessor>();
-            containerRegistry.RegisterSingleton<IParams, ParamsManger>();
-            containerRegistry.RegisterSingleton<IClient, TCPClient>();
-            containerRegistry.RegisterSingleton<IinternalClient, InternalClient>();
-            containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
-            containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
+            
 
             // View + ViewModel 注册（支持 Prism 导航）
             containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>();
@@ -47,6 +34,11 @@ namespace PF.Modules.SecsGem
 
         public void OnInitialized(IContainerProvider containerProvider)
         {
+            // 解析导航菜单服务，自动扫描当前程序集
+            // 这样 DeviceDebugView 上的 [ModuleNavigation] 特性就会被识别，自动添加到系统侧边栏菜单中
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
             Task.Run(async () =>
             {
                 var db = containerProvider.Resolve<ISecsGemDataBase>();
