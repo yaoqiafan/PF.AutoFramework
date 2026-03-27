@@ -1,3 +1,5 @@
+using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Modules.SecsGem.ViewModels;
 using System;
 using System.Collections.Specialized;
@@ -6,9 +8,12 @@ using System.Windows.Controls;
 
 namespace PF.Modules.SecsGem.Views
 {
-    /// <summary>
-    /// SecsGemDebugView 的交互逻辑
-    /// </summary>
+    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView,
+        "SECS/GEM 调试",
+        GroupName = "通信调试",
+        Icon = "PlugConnected24",
+        GroupOrder = 6,
+        Order = 1)]
     public partial class SecsGemDebugView : UserControl
     {
         public SecsGemDebugView()
