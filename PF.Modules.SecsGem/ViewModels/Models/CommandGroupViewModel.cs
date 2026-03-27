@@ -4,7 +4,6 @@ using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Collections.ObjectModel;
-using System.Windows;
 
 namespace PF.Modules.SecsGem.ViewModels
 {
@@ -41,48 +40,15 @@ namespace PF.Modules.SecsGem.ViewModels
         /// </summary>
         public DelegateCommand AddCommandCommand { get; }
 
-        private async void ExecuteAddCommand()
-        {
-            try
-            {
-                // 传入当前组的 S 和 F 作为默认值
-                var dialog = new CommandEditDialog(Stream, Function);
-                if (dialog.ShowDialog() == true)
-                {
-                    var newCommand = new SFCommand
-                    {
-                        Stream = dialog.Stream,
-                        Function = dialog.Function,
-                        Name = dialog.CommandName,
-                        ID = Guid.NewGuid().ToString("N")[..8],
-                        Message = new PF.Core.Entities.SecsGem.Message.SecsGemMessage
-                        {
-                            Stream = (int)dialog.Stream,
-                            Function = (int)dialog.Function,
-                            WBit = dialog.Function % 2 == 1,
-                            SystemBytes = new System.Collections.Generic.List<byte> { 0, 0, 0, 0 },
-                            MessageId = Guid.NewGuid().ToString(),
-                            RootNode = new PF.Core.Entities.SecsGem.Message.SecsGemNodeMessage
-                            {
-                                DataType = PF.Core.Enums.DataType.LIST,
-                                Length = 0,
-                                SubNode = new System.Collections.Generic.List<PF.Core.Entities.SecsGem.Message.SecsGemNodeMessage>()
-                            }
-                        }
-                    };
+        /// <summary>
+        /// 请求由外部（SecsGemDebugViewModel）弹出命令编辑对话框并处理添加逻辑。
+        /// 参数：defaultStream, defaultFunction
+        /// </summary>
+        public event Action<uint, uint> AddCommandFromGroupRequested;
 
-                    bool added = await _commandStore.AddCommand(newCommand);
-                    if (added)
-                    {
-                        Application.Current?.Dispatcher.Invoke(() =>
-                            Children.Add(new CommandLeafViewModel(newCommand)));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"添加命令失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+        private void ExecuteAddCommand()
+        {
+            AddCommandFromGroupRequested?.Invoke(Stream, Function);
         }
     }
 }

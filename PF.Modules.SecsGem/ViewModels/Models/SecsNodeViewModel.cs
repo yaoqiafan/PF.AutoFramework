@@ -254,6 +254,19 @@ namespace PF.Modules.SecsGem.ViewModels
             NodeAddRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// 直接设置变量绑定字段，不触发 VidSelectionRequested 事件（用于从 Dialog 回调中赋值）。
+        /// </summary>
+        public void SetVariableBinding(uint code, string description)
+        {
+            _isVariableNode = true;
+            _variableCode = code;
+            _variableDescription = description;
+            RaisePropertyChanged(nameof(IsVariableNode));
+            RaisePropertyChanged(nameof(VariableCode));
+            RaisePropertyChanged(nameof(VariableDescription));
+        }
+
         private void ExecuteRemoveNode()
         {
             _parent?.Children.Remove(this);
