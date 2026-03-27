@@ -12,11 +12,14 @@ using PF.Infrastructure.SecsGem.Command;
 using PF.Infrastructure.SecsGem.Incentive;
 using PF.Infrastructure.SecsGem.Param;
 using PF.Infrastructure.SecsGem.Tools;
+using PF.Core.Constants;
 using PF.Modules.SecsGem.ViewModels;
 using PF.Modules.SecsGem.Views;
 using PF.SecsGem.DataBase;
+using PF.UI.Infrastructure.Navigation;
 using Prism.Ioc;
 using Prism.Modularity;
+using System.Reflection;
 
 namespace PF.Modules.SecsGem
 {
@@ -42,11 +45,16 @@ namespace PF.Modules.SecsGem
             containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
 
             // View + ViewModel 注册（支持 Prism 导航）
-            containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>();
+            containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>(
+                NavigationConstants.Views.SecsGemDebugView);
         }
 
         public void OnInitialized(IContainerProvider containerProvider)
         {
+            // 注册导航菜单（扫描 [ModuleNavigation] 特性）
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
             Task.Run(async () =>
             {
                 var db = containerProvider.Resolve<ISecsGemDataBase>();
