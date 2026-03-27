@@ -1,28 +1,61 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using PF.Core.Attributes;
+using PF.Core.Constants;
+using PF.Modules.SecsGem.ViewModels;
+using System;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace PF.Modules.SecsGem.Views
 {
-    /// <summary>
-    /// SecsGemDebugView.xaml 的交互逻辑
-    /// </summary>
+    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView,
+        "SECS/GEM 调试",
+        GroupName = "通信调试",
+        Icon = "PlugConnected24",
+        GroupOrder = 6,
+        Order = 1)]
     public partial class SecsGemDebugView : UserControl
     {
         public SecsGemDebugView()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            // 订阅日志集合变更以实现自动滚动
+            if (DataContext is SecsGemDebugViewModel vm)
+            {
+                vm.TransactionLogs.CollectionChanged += OnTransactionLogsChanged;
+            }
+        }
+
+        private void OnTransactionLogsChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (DataContext is not SecsGemDebugViewModel vm || !vm.AutoScrollLog) return;
+            if (e.Action != NotifyCollectionChangedAction.Add) return;
+
+            // 自动滚动到底部
+            if (LogListBox.Items.Count > 0)
+            {
+                LogListBox.ScrollIntoView(LogListBox.Items[^1]);
+            }
+        }
+
+        /// <summary>
+        /// 命令树节点点击处理：将叶子节点选中事件传递给 ViewModel
+        /// </summary>
+        private void OnCommandTreeItemClicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (DataContext is not SecsGemDebugViewModel vm) return;
+
+            // 获取点击的 TreeViewItem 数据上下文
+            if (sender is TreeViewItem item && item.DataContext is CommandLeafViewModel leaf)
+            {
+                vm.SelectCommandLeafCommand.Execute(leaf);
+                e.Handled = true;
+            }
         }
     }
 }
