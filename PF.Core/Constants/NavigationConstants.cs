@@ -81,11 +81,7 @@ namespace PF.Core.Constants
             public const string ProductionHistoryView = nameof(ProductionHistoryView);
             #endregion
 
-            #region SECS/GEM
-            public const string SecsGemDebugView = nameof(SecsGemDebugView);
-            #endregion
-
-
+         
         }
 
     }

@@ -533,6 +533,12 @@ namespace PF.Application.Shell
                serviceKey: nameof(WorkStationDataModule));
 
 
+            container.RegisterMany(
+               new[] { typeof(WorkStationSecsGemModule), typeof(IMechanism) },
+               typeof(WorkStationSecsGemModule),
+               reuse: DryIoc.Reuse.Singleton,
+               serviceKey: nameof(WorkStationSecsGemModule));
+
             // 工站层
             container.RegisterMany(
                 new[] { typeof(WorkStation1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
@@ -654,6 +660,13 @@ namespace PF.Application.Shell
 
             var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
             if (!await workStationDataModule.InitializeAsync())
+            {
+                return false;
+            }
+
+
+             var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule ));
+            if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;
             }

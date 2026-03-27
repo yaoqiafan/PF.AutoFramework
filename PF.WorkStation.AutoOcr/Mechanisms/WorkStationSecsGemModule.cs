@@ -44,22 +44,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _secsGemlog = Infrastructure.Logging.CategoryLoggerFactory.SecsGem(logger);
             _recipeService = recipeService;
             _containerProvider = containerProvider;
+
         }
 
-        protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
+        protected override async Task<bool> InternalInitializeAsync(CancellationToken token=default)
         {
             if (_secsGemManger == null)
             {
                 _secsGemlog.Error("SecsGem实例未创建，检查软件配置逻辑");
                 return false;
             }
-            if (await _secsGemManger.ConnectAsync())
+            if (!await _secsGemManger.ConnectAsync())
             {
                 _secsGemlog.Error("设备连接SecsGem服务端失败");
                 return false;
             }
             _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
-            _secsGemlog.Error("SecsGem连接成功");
+            _secsGemlog.Info("SecsGem连接成功");
             _secsGemManger.MessageReceived += SecsGemManger_MessageReceived;
             return true;
         }
