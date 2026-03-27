@@ -2,8 +2,9 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
-using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.Mechanisms;
+using PF.WorkStation.AutoOcr.UI.Models;
 using Prism.Commands;
 using System;
 using System.Collections.ObjectModel;
@@ -68,6 +69,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
         public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
         public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = new ObservableCollection<AxisPoint>();
+
+
+        // 分开定义两个传感器的 UI 绑定集合
+        public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = new ObservableCollection<RawMappingItem>();
+        public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = new ObservableCollection<RawMappingItem>();
+        public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = new ObservableCollection<FilteredMappingItem>();
         #endregion
 
         #region Commands 定义
@@ -187,12 +194,50 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "开始寻层扫描...";
-                int count = await _feedingModule.SearchLayerAsync();
-                DebugMessage = $"寻层完成: 共识别到 {count} 层";
+
+                // 1. 获取硬件原始锁存数据
+                var rawMap = await _feedingModule.SearchLayerAsync();
+
+                // 清空旧数据
+                RawMappingPoints1.Clear();
+                RawMappingPoints2.Clear();
+
+                // 将数据分别推入对应的集合
+                var keys = rawMap.Keys.ToList();
+                if (keys.Count > 0)
+                {
+                    int index1 = 1;
+                    foreach (var z in rawMap[keys[0]])
+                        RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
+                }
+
+                if (keys.Count > 1)
+                {
+                    int index2 = 1;
+                    foreach (var z in rawMap[keys[1]])
+                        RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
+                }
+
+                // 2. 调用算法过滤并应用防呆验证
+                DebugMessage = "数据获取完成，正在进行算法过滤...";
+                var filteredMap = _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+
+                // 刷新过滤后有效数据到 UI
+                FilteredMappingPoints.Clear();
+                foreach (var kvp in filteredMap.OrderBy(k => k.Key))
+                {
+                    // kvp.Key 是索引(0起)，界面展示 +1 转为常规的 1~25 层
+                    FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
+                }
+
+                DebugMessage = $"寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex) { DebugMessage = $"寻层异常: {ex.Message}";
-                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning); }
+            catch (Exception ex)
+            {
+                DebugMessage = $"寻层/过滤异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private async Task ExecuteSwitchProductionAsync(string sizeStr)

@@ -326,35 +326,193 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
         /// <summary>
-        /// 4. 寻层扫描（Mapping）：Z轴从上到下慢速移动，通过传感器记录实际有晶圆的层数
-        /// 用于处理半盒料或跳层（空槽位）的情况。
+        /// 4. 双传感器寻层扫描（Mapping）：Z轴从下到上移动，通过两个传感器独立进行硬件锁存记录。
         /// </summary>
-        public async Task<int> SearchLayerAsync(CancellationToken token = default)
+        /// <param name="latchNo1">1号传感器的锁存器ID（通道号），默认为0</param>
+        /// <param name="inputPort1">1号传感器的硬件输入端口号，默认为0</param>
+        /// <param name="latchNo2">2号传感器的锁存器ID（通道号），默认为1</param>
+        /// <param name="inputPort2">2号传感器的硬件输入端口号，默认为1</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns>返回一个字典：Key为锁存器ID，Value为该传感器触发的所有Z轴坐标列表</returns>
+        public async Task<Dictionary<int, List<double>>> SearchLayerAsync(
+            int latchNo1 = 0, int inputPort1 = 0,
+            int latchNo2 = 1, int inputPort2 = 1,
+            CancellationToken token = default)
         {
             CheckReady();
-            _logger.Info($"[{MechanismName}] 开始执行Z轴寻层扫描...");
+            _logger.Info($"[{MechanismName}] 开始执行Z轴双传感器高速锁存寻层扫描...");
 
-            /* * 【注：复杂的自动化扫描逻辑实现指引】
-             * 实际工程中，此处通常依赖运动控制卡底层的 "高速位置锁存 (Position Capture)" 功能：
-             * 当错层传感器的信号发生上升沿跳变时，底层硬件立刻记录当前Z轴实际编码器坐标。
-             * 这里提供一个概念性的占位返回逻辑，你需要接入对应框架的 mapping 功能。
-             */
+            // 初始化返回的字典
+            var resultMap = new Dictionary<int, List<double>>
+    {
+        { latchNo1, new List<double>() },
+        { latchNo2, new List<double>() }
+    };
 
-            int foundLayers = 0;
+            try
+            {
+                // 第一步：将Z轴移动到扫描起始点（负极限/底部位置）
+                _logger.Info($"[{MechanismName}] 正在移动至扫描起点（负极限）...");
+                await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.负极限位置), token: token);
 
-            // 第一步：先将Z轴抬升到料盒上方或扫描起始点
-            await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.待机位), token: token);
+                // 第二步：同时配置并开启两个通道的位置锁存
+                _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
 
-            // 第二步：触发硬件锁存或开始软件轮询扫描
-            // var scanTask = _zAxis.MoveToPointAsync(nameof(ZAxisPoint.负极限位置), speed: 10.0, token: token);
-            // 扫描过程中计算出有效片数...
+                bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 0, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
+                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 0, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
 
-            // 第三步：假设满盒返回
-            foundLayers = _maxLayerCount;
+                if (!latch1Set || !latch2Set)
+                {
+                    throw new Exception("底层运动控制卡位置锁存(Position Capture)配置失败！请检查传感器端口或板卡状态。");
+                }
 
-            _logger.Success($"[{MechanismName}] 寻层扫描完成，共识别到 {foundLayers} 层有效晶圆。");
-            return foundLayers;
+                // 第三步：开始匀速扫描，从底部(负极限)移动到顶部(正极限)
+                _logger.Info($"[{MechanismName}] 开始向上匀速扫描...");
+                await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.正极限位置), token: token);
+
+                // 第四步：运动完成，遍历读取两个锁存通道的结果
+                int[] latchChannels = { latchNo1, latchNo2 };
+
+                foreach (var latchId in latchChannels)
+                {
+                    // 获取当前通道触发的总次数
+                    int latchCount = await _zAxis.GetLatchNumber(latchId, token);
+                    _logger.Info($"[{MechanismName}] 锁存通道 {latchId} 共捕获到 {latchCount} 个信号点。");
+
+                    // 循环读取底层 FIFO 缓存中的所有坐标
+                    for (int i = 0; i < latchCount; i++)
+                    {
+                        double? pos = await _zAxis.GetLatchPos(latchId, token);
+                        if (pos.HasValue)
+                        {
+                            resultMap[latchId].Add(pos.Value);
+                        }
+                        else
+                        {
+                            _logger.Warn($"[{MechanismName}] 通道 {latchId} 尝试读取第 {i + 1} 个锁存位置失败(返回值为null)。");
+                        }
+                    }
+                }
+
+                _logger.Success($"[{MechanismName}] 双传感器扫描完成。通道 {latchNo1} 识别 {resultMap[latchNo1].Count} 层，通道 {latchNo2} 识别 {resultMap[latchNo2].Count} 层。");
+
+                return resultMap;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{MechanismName}] 双传感器寻层扫描发生异常: {ex.Message}");
+                // 异常处理：停止Z轴运动
+                // await _zAxis.StopAsync(token); 
+                throw;
+            }
         }
+
+
+        /// <summary>
+        /// 4.1 寻层数据过滤与防呆验证：处理双传感器原始数据，匹配至理论槽位
+        /// 依赖前置动作：必须先执行 SwitchProductionStateAsync 以生成对应的理论层坐标字典。
+        /// </summary>
+        /// <param name="rawMappingData">SearchLayerAsync 返回的双传感器原始锁存数据</param>
+        /// <returns>返回有效的晶圆层级字典：Key为层级索引(0 ~ _maxLayerCount-1)，Value为经过补偿的实际Z轴坐标</returns>
+        public Dictionary<int, double> AnalyzeAndFilterMappingData(Dictionary<int, List<double>> rawMappingData)
+        {
+            CheckReady();
+            _logger.Info($"[{MechanismName}] 开始执行寻层数据的过滤与防呆验证...");
+
+            var validWafers = new Dictionary<int, double>();
+
+            // 1. 获取当前配方对应的理论坐标字典
+            var theoreticalPositions = _currentWaferSize == E_WafeSize._8寸 ? PickingPosition_8 : PickingPosition_12;
+
+            if (theoreticalPositions == null || theoreticalPositions.Count == 0)
+            {
+                throw new Exception("理论层坐标未初始化，请先执行 SwitchProductionStateAsync 切换生产状态或计算阵列！");
+            }
+
+            // 安全提取两个传感器的数据（假设键值按传入顺序，或者容错处理）
+            var sensor1Data = rawMappingData.Keys.ElementAtOrDefault(0) != default ? rawMappingData[rawMappingData.Keys.ElementAt(0)] : new List<double>();
+            var sensor2Data = rawMappingData.Keys.ElementAtOrDefault(1) != default ? rawMappingData[rawMappingData.Keys.ElementAt(1)] : new List<double>();
+
+            // 防呆1：检查两个传感器识别到的总数是否差异过大
+            if (Math.Abs(sensor1Data.Count - sensor2Data.Count) > 1)
+            {
+                _logger.Warn($"[{MechanismName}] 双传感器识别数量差异过大(Sensor1: {sensor1Data.Count}, Sensor2: {sensor2Data.Count})，可能存在斜片或传感器故障！");
+            }
+
+            // 设定容差阈值 (依赖动态读取的 LayerPitch)
+            if (LayerPitch <= 0)
+            {
+                throw new Exception("工艺参数 LayerPitch 异常，必须大于0！");
+            }
+            double crossSlotTolerance = LayerPitch * 0.3; // 传感器比对容差：防止斜片 Cross-slot
+            double slotMatchTolerance = LayerPitch * 0.4; // 槽位匹配容差：防止错位或飞片
+
+            // 第一阶段：双传感器数据融合与斜片(Cross-slot)防呆
+            List<double> mergedRawPositions = new List<double>();
+            foreach (var z1 in sensor1Data)
+            {
+                // 在 Sensor2 中寻找最接近 z1 的触发点
+                var closestZ2 = sensor2Data.OrderBy(z2 => Math.Abs(z2 - z1)).FirstOrDefault();
+
+                if (closestZ2 != 0 && Math.Abs(z1 - closestZ2) <= crossSlotTolerance)
+                {
+                    // 两个传感器都识别到了，取平均值作为该片的原始中心高度
+                    mergedRawPositions.Add((z1 + closestZ2) / 2.0);
+                    sensor2Data.Remove(closestZ2); // 匹配过的移除
+                }
+                else
+                {
+                    // 防呆2：单边触发或高低差过大
+                    _logger.Error($"[{MechanismName}] 检测到疑似斜片(Cross-slot)或单边假触发！Sensor1 Z:{z1}，Sensor2附近无匹配或差异过大。");
+                    throw new Exception("Mapping 失败：检测到斜片(Cross-slot)异常，为防撞机已中止流程！");
+                }
+            }
+
+            // 第二阶段：应用补偿并匹配至标准层位 (基于类中 0 到 _maxLayerCount - 1 的索引逻辑)
+            foreach (var rawZ in mergedRawPositions)
+            {
+                // 应用扫描补偿 (从下往上扫通常应用正向补偿 WaferScanningPositiveOffset，抵消传感器响应延迟)
+                double actualZ = rawZ + WaferScanningPositiveOffset;
+                bool matched = false;
+
+                // 遍历理论槽位坐标，寻找归属
+                for (int layerIndex = 0; layerIndex < _maxLayerCount; layerIndex++)
+                {
+                    if (theoreticalPositions.TryGetValue(layerIndex, out var theoreticalPoint))
+                    {
+                        // 提取理论Z坐标
+                        double theoreticalZ = theoreticalPoint.TargetPosition;
+
+                        if (Math.Abs(actualZ - theoreticalZ) <= slotMatchTolerance)
+                        {
+                            // 防呆3：重叠片(Double-wafer)防呆 —— 同一个槽位塞了两片晶圆
+                            if (validWafers.ContainsKey(layerIndex))
+                            {
+                                _logger.Error($"[{MechanismName}] 检测到疑似重叠片(Double-wafer)！第 {layerIndex + 1} 层被多次匹配。");
+                                throw new Exception($"Mapping 失败：第 {layerIndex + 1} 层发生重叠片异常！");
+                            }
+
+                            validWafers.Add(layerIndex, actualZ);
+                            matched = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!matched)
+                {
+                    // 防呆4：晶圆处于两层之间，无法匹配到任何标准层
+                    _logger.Error($"[{MechanismName}] 坐标 Z:{actualZ} 无法匹配到任何理论层位，超出容差({slotMatchTolerance})。");
+                    throw new Exception("Mapping 失败：检测到晶圆严重偏离标准槽位(可能未插到位)！");
+                }
+            }
+
+            _logger.Success($"[{MechanismName}] 数据过滤完成，实际有效晶圆共 {validWafers.Count} 片。");
+            return validWafers;
+        }
+
+
+
 
         /// <summary>
         /// 5. 切换目标层：将Z轴精准定位到计算好的指定层绝对坐标，方便后续水平取料

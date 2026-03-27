@@ -1,3 +1,4 @@
+using NPOI.SS.Formula.Functions;
 using PF.Core.Attributes;
 using PF.Core.Enums;
 using PF.Core.Events;
@@ -31,6 +32,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         // ── 跨步序缓存字段 ──────────────────────────────────────────────────────
         private OCRRecipeParam? _cachedRecipe;
         private E_WafeSize _detectedWaferSize;
+        private Dictionary<int, List<double>> _rawMappingData = new Dictionary<int, List<double>>();
         private int _totalLayerCount;
         private List<int> _layersToProcess = new();
         private int _currentLayerIndex;
@@ -98,7 +100,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             // 流程特定检测异常
             Z轴寻层扫描异常 = 100030,
             检测到物料错层 = 100031,
-
+            寻层算法过滤异常 = 100032,
+            寻层算法空值判定 = 100033,
             #endregion
 
         }
@@ -276,8 +279,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
-                            _totalLayerCount = await _feedingModule.SearchLayerAsync(token).ConfigureAwait(false);
-                            if (_totalLayerCount > 0)
+                            _rawMappingData = await _feedingModule.SearchLayerAsync(token:token).ConfigureAwait(false);
+                            if (_rawMappingData.Count > 0)
                             {
                                 _logger.Info($"[{StationName}] 寻层扫描完成，识别到有效层数：{_totalLayerCount}。");
                                 _currentStep = Station1FeedingStep.到初始层点;
@@ -320,14 +323,38 @@ namespace PF.WorkStation.AutoOcr.Stations
                         break;
 
                     case Station1FeedingStep.算法过滤层数:
-                        CurrentStepDescription = "算法过滤有效层数...";
+                        CurrentStepDescription = "算法过滤与防呆验证...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        // 根据寻层扫描结果构建待加工层列表（索引从0开始）
-                        // 此处保留所有扫描到的有效层；实际工程可在此插入空层过滤逻辑
-                        _layersToProcess = Enumerable.Range(0, _totalLayerCount).ToList();
-                        _currentLayerIndex = 0;
-                        _logger.Info($"[{StationName}] 过滤后待加工层数：{_layersToProcess.Count}，开始进入运动流程。");
-                        _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
+
+                        try
+                        {
+                            var validWafersDict = _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
+                            _layersToProcess = validWafersDict.Keys.OrderBy(layerIndex => layerIndex).ToList();
+
+                            _totalLayerCount = _layersToProcess.Count;
+                            _currentLayerIndex = 0;
+
+                            if (_layersToProcess.Count == 0)
+                            {
+                                _logger.Warn($"[{StationName}] 寻层过滤结果为空，料盒内未检测到任何有效晶圆！");
+
+                                _currentStep = Station1FeedingStep.寻层算法空值判定;
+                            }
+                            else
+                            {
+                                // 5. 正常流转
+                                _logger.Info($"[{StationName}] 过滤完成！共识别到 {_totalLayerCount} 片有效晶圆。实际存在的层级索引为：{string.Join(", ", _layersToProcess)}");
+                                _logger.Info($"[{StationName}] 开始进入后续运动流程...");
+
+                                _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // 捕获到底层抛出的严重防呆错误（斜片 Cross-slot、重叠片 Double-wafer 等）
+                            _logger.Error($"[{StationName}] 寻层算法过滤发生异常: {ex.Message}");
+                            _currentStep = Station1FeedingStep.寻层算法过滤异常;
+                        }
                         break;
 
                     // ══════════════════════════════════════════════════════════
@@ -402,6 +429,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         if (await _feedingModule.CanPullOutMaterialAsync(token).ConfigureAwait(false))
                         {
                             _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层错层检测通过，可执行拉料。");
+
+                            _sync.Release(WorkstationSignals.工位1允许拉料.ToString());
                             _currentStep = Station1FeedingStep.等待物料拉出完成;
                         }
                         else
@@ -410,6 +439,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentStep = Station1FeedingStep.检测到物料错层;
                         }
                         break;
+
+
+
 
                     case Station1FeedingStep.等待物料拉出完成:
                         CurrentStepDescription = "等待物料拉出完成...";
@@ -449,6 +481,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         {
                             _logger.Info($"[{StationName}] 所有层（共{_layersToProcess.Count}层）取料完毕，进入收尾流程。");
                             _currentStep = Station1FeedingStep.物料全部生产完毕;
+
                         }
                         else
                         {
@@ -632,6 +665,17 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Error($"[{StationName}] X轴运动超时！请确认轴无卡阻后复位，将重新检查 X 轴条件并重试运动。");
                         // 偶发性超时，退回 X 轴条件检查重试
                         _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
+                        TriggerAlarm();
+                        break;
+
+                    case Station1FeedingStep.寻层算法空值判定:
+                        _logger.Error($"[{StationName}] 寻层算法判定为0层！请确认是否正确放置物料。");
+                        _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
+                        TriggerAlarm();
+                        break;
+                    case Station1FeedingStep.寻层算法过滤异常:
+                        _logger.Error($"[{StationName}] 寻层算法出现异常！");
+                        _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
                         TriggerAlarm();
                         break;
 
