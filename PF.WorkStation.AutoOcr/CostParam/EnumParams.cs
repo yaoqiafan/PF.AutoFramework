@@ -250,15 +250,25 @@ namespace PF.Workstation.AutoOcr.CostParam
     {
         工位1上晶圆模组,
         工位2上晶圆模组,
-
         工位1推拉晶圆模组,
         工位2推拉晶圆模组,
-        OCR识别模组
+        OCR识别模组,
+        检测数据模组,
+        SECSGEM通讯模组,
 
     }
 
+    /// <summary>
+    /// 物料检测状态枚举
+    /// </summary>
+    public enum E_DetectionStatus
+    {
+        待检测,
+        检测中,
+        检测完成,
+        上传NG,
 
-
+    }
 
     #region 参数枚举
 
