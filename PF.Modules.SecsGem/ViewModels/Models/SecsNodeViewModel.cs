@@ -28,6 +28,8 @@ namespace PF.Modules.SecsGem.ViewModels
         private string _validationErrorMessage;
         private bool _isExpanded = true;
 
+
+        public event EventHandler NodeAddRequested;
         // 父节点引用，用于 RemoveNodeCommand
         private SecsNodeViewModel _parent;
 
@@ -249,16 +251,7 @@ namespace PF.Modules.SecsGem.ViewModels
 
         private void ExecuteAddChild()
         {
-            // 添加一个默认 ASCII 子节点，用户可以改类型
-            var child = new SecsNodeViewModel
-            {
-                _parent = this,
-                _dataType = DataType.ASCII,
-                _length = 0,
-                _value = string.Empty,
-            };
-            child.AddChildCommand.RaiseCanExecuteChanged();
-            Children.Add(child);
+            NodeAddRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void ExecuteRemoveNode()

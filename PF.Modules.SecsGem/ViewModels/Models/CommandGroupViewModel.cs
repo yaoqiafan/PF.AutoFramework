@@ -45,33 +45,38 @@ namespace PF.Modules.SecsGem.ViewModels
         {
             try
             {
-                var newCommand = new SFCommand
+                // 传入当前组的 S 和 F 作为默认值
+                var dialog = new CommandEditDialog(Stream, Function);
+                if (dialog.ShowDialog() == true)
                 {
-                    Stream = Stream,
-                    Function = Function,
-                    Name = $"新命令_{DateTime.Now:HHmmss}",
-                    ID = Guid.NewGuid().ToString("N")[..8],
-                    Message = new PF.Core.Entities.SecsGem.Message.SecsGemMessage
+                    var newCommand = new SFCommand
                     {
-                        Stream = (int)Stream,
-                        Function = (int)Function,
-                        WBit = Function % 2 == 1,
-                        SystemBytes = new System.Collections.Generic.List<byte> { 0, 0, 0, 0 },
-                        MessageId = Guid.NewGuid().ToString(),
-                        RootNode = new PF.Core.Entities.SecsGem.Message.SecsGemNodeMessage
+                        Stream = dialog.Stream,
+                        Function = dialog.Function,
+                        Name = dialog.CommandName,
+                        ID = Guid.NewGuid().ToString("N")[..8],
+                        Message = new PF.Core.Entities.SecsGem.Message.SecsGemMessage
                         {
-                            DataType = PF.Core.Enums.DataType.LIST,
-                            Length = 0,
-                            SubNode = new System.Collections.Generic.List<PF.Core.Entities.SecsGem.Message.SecsGemNodeMessage>()
+                            Stream = (int)dialog.Stream,
+                            Function = (int)dialog.Function,
+                            WBit = dialog.Function % 2 == 1,
+                            SystemBytes = new System.Collections.Generic.List<byte> { 0, 0, 0, 0 },
+                            MessageId = Guid.NewGuid().ToString(),
+                            RootNode = new PF.Core.Entities.SecsGem.Message.SecsGemNodeMessage
+                            {
+                                DataType = PF.Core.Enums.DataType.LIST,
+                                Length = 0,
+                                SubNode = new System.Collections.Generic.List<PF.Core.Entities.SecsGem.Message.SecsGemNodeMessage>()
+                            }
                         }
-                    }
-                };
+                    };
 
-                bool added = await _commandStore.AddCommand(newCommand);
-                if (added)
-                {
-                    Application.Current?.Dispatcher.Invoke(() =>
-                        Children.Add(new CommandLeafViewModel(newCommand)));
+                    bool added = await _commandStore.AddCommand(newCommand);
+                    if (added)
+                    {
+                        Application.Current?.Dispatcher.Invoke(() =>
+                            Children.Add(new CommandLeafViewModel(newCommand)));
+                    }
                 }
             }
             catch (Exception ex)

@@ -51,10 +51,7 @@
         </Style>
 
         <!--  命令树：分组节点模板  -->
-        <HierarchicalDataTemplate
-            x:Key="CommandGroupTemplate"
-            DataType="{x:Type vm:CommandGroupViewModel}"
-            ItemsSource="{Binding Children}">
+        <HierarchicalDataTemplate DataType="{x:Type vm:CommandGroupViewModel}" ItemsSource="{Binding Children}">
             <StackPanel Margin="2,2" Orientation="Horizontal">
                 <TextBlock FontSize="12" Text="📁 " />
                 <TextBlock
@@ -73,7 +70,7 @@
         </HierarchicalDataTemplate>
 
         <!--  命令树：叶子节点模板  -->
-        <DataTemplate x:Key="CommandLeafTemplate" DataType="{x:Type vm:CommandLeafViewModel}">
+        <DataTemplate DataType="{x:Type vm:CommandLeafViewModel}">
             <TextBlock
                 Margin="4,2"
                 Text="{Binding DisplayName}"
@@ -149,14 +146,14 @@
 
                 <Button
                     Width="90"
-                     Margin="5"
+                    Margin="5"
                     Command="{Binding ConnectCommand}"
                     Content="🔗 连接"
                     Style="{StaticResource PrimaryButtonStyle}" />
 
                 <Button
                     Width="90"
-                     Margin="5"
+                    Margin="5"
                     Command="{Binding DisconnectCommand}"
                     Content="✖ 断开"
                     Style="{StaticResource DangerButtonStyle}" />
@@ -190,7 +187,7 @@
                         <ColumnDefinition Width="290" MinWidth="200" />
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="300" />
-                       
+
                     </Grid.ColumnDefinitions>
 
                     <!--  ───────────────────────────────────────  -->
@@ -222,6 +219,12 @@
                                     Command="{Binding ReloadCommandsCommand}"
                                     Content="重载"
                                     Style="{StaticResource ToolbarButtonStyle}" />
+                                <Button
+                                    Width="90"
+                                    Margin="0,0,4,0"
+                                    Command="{Binding AddNewCommandCommand}"
+                                    Content="➕ 新建命令"
+                                    Style="{StaticResource ToolbarButtonStyle}" />
                             </WrapPanel>
 
                             <!--  主动/应答 Tab  -->
@@ -230,10 +233,10 @@
                                     <TreeView
                                         Background="Transparent"
                                         BorderThickness="0"
-                                        ItemTemplate="{StaticResource CommandGroupTemplate}"
-                                        ItemsSource="{Binding IncentiveCommandsTree}">
+                                        ItemsSource="{Binding IncentiveCommandsTree}"
+                                        Style="{DynamicResource TreeViewBaseStyle}">
                                         <TreeView.ItemContainerStyle>
-                                            <Style TargetType="TreeViewItem">
+                                            <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
                                                 <Setter Property="IsExpanded" Value="True" />
                                                 <!--  点击叶子节点  -->
                                                 <EventSetter Event="MouseLeftButtonUp" Handler="OnCommandTreeItemClicked" />
@@ -245,7 +248,6 @@
                                     <TreeView
                                         Background="Transparent"
                                         BorderThickness="0"
-                                        ItemTemplate="{StaticResource CommandGroupTemplate}"
                                         ItemsSource="{Binding ResponseCommandsTree}">
                                         <TreeView.ItemContainerStyle>
                                             <Style TargetType="TreeViewItem">
@@ -259,7 +261,7 @@
                         </Grid>
                     </GroupBox>
 
-                    
+
 
                     <!--  ───────────────────────────────────────  -->
                     <!--  中间面板：报文编辑器  -->
@@ -299,31 +301,32 @@
                                                 MinWidth="32"
                                                 Margin="0,0,6,0"
                                                 Padding="5,2"
-                                                Background="#E8EAF6"
+                                                HorizontalAlignment="Center"
                                                 CornerRadius="3">
                                                 <TextBlock
                                                     HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
                                                     FontSize="12"
                                                     FontWeight="Bold"
-                                                    Foreground="#283593"
+                                                    Foreground="{DynamicResource TextIconBrush}"
                                                     Text="{Binding ItemFormat}" />
                                             </Border>
 
                                             <!--  长度标签  -->
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="#78909C"
+                                                Foreground="{DynamicResource TextIconBrush}"
                                                 Text="[" />
                                             <TextBlock
-                                                MinWidth="20"
+                                                Margin="5,0,5,0"
                                                 VerticalAlignment="Center"
                                                 FontWeight="SemiBold"
-                                                Foreground="#2E7D32"
+                                                Foreground="{DynamicResource TextIconBrush}"
                                                 Text="{Binding Length}" />
                                             <TextBlock
                                                 Margin="0,0,6,0"
                                                 VerticalAlignment="Center"
-                                                Foreground="#78909C"
+                                                Foreground="{DynamicResource TextIconBrush}"
                                                 Text="]" />
 
                                             <!--  值输入框（LIST 节点隐藏）  -->
@@ -336,7 +339,7 @@
                                                 Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
                                                 Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}">
                                                 <TextBox.Style>
-                                                    <Style TargetType="TextBox">
+                                                    <Style BasedOn="{StaticResource TextBoxBaseStyle}" TargetType="TextBox">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding HasValidationError}" Value="True">
                                                                 <Setter Property="BorderBrush" Value="#E53935" />
@@ -366,7 +369,8 @@
                                                 Margin="0,0,6,0"
                                                 VerticalAlignment="Center"
                                                 Content="VID"
-                                                IsChecked="{Binding IsVariableNode}" />
+                                                IsChecked="{Binding IsVariableNode}"
+                                                Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
 
                                             <!--  已绑定的 VID 说明  -->
                                             <Border
@@ -395,7 +399,7 @@
                                     </HierarchicalDataTemplate>
                                 </TreeView.Resources>
                                 <TreeView.ItemContainerStyle>
-                                    <Style TargetType="TreeViewItem">
+                                    <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
                                         <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                     </Style>
                                 </TreeView.ItemContainerStyle>
@@ -415,7 +419,6 @@
                                     IsChecked="{Binding WaitReply}" />
 
                                 <Button
-                                  
                                     Command="{Binding UpdateVariablesCommand}"
                                     Content="🔄 更新变量节点"
                                     Style="{StaticResource ToolbarButtonStyle}" />
@@ -430,7 +433,7 @@
                         </Grid>
                     </GroupBox>
 
-                   
+
 
 
                 </Grid>
@@ -438,8 +441,11 @@
 
 
             <TabItem Header="参数管理">
-            
-                <GroupBox Grid.Column="4" Header="⚙ 参数配置 (Parameters)" Margin="5">
+
+                <GroupBox
+                    Grid.Column="4"
+                    Margin="5"
+                    Header="⚙ 参数配置 (Parameters)">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -525,7 +531,6 @@
                                 Content="导出"
                                 Style="{StaticResource ToolbarButtonStyle}" />
                             <Button
-                               
                                 Command="{Binding SaveParamCommand}"
                                 Content="💾 保存参数"
                                 Style="{StaticResource ToolbarButtonStyle}" />
@@ -537,7 +542,7 @@
         </TabControl>
 
 
-       
+
         <!--  ═══════════════════════════════════════════════════════════  -->
         <!--  Row 4: 实时通信日志  -->
         <!--  ═══════════════════════════════════════════════════════════  -->
@@ -648,7 +653,6 @@
                         Foreground="#546E7A"
                         IsChecked="{Binding AutoScrollLog}" />
                     <Button
-                       
                         Command="{Binding ClearLogCommand}"
                         Content="🗑 清空日志"
                         Style="{StaticResource ToolbarButtonStyle}" />
