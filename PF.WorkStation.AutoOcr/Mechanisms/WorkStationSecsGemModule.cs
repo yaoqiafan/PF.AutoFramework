@@ -27,7 +27,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         private readonly ISecsGemManger _secsGemManger;
 
-        private readonly IParams _secsGemParam;
+
 
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
 
@@ -37,10 +37,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private readonly Infrastructure.Logging.CategoryLogger _secsGemlog;
 
         private readonly IContainerProvider _containerProvider;
-        public WorkStationSecsGemModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ISecsGemManger secsGemManger, PF.Core.Interfaces.SecsGem.Params.IParams secsGemParam, IRecipeService<OCRRecipeParam> recipeService, IContainerProvider containerProvider, ILogService logger) : base(E_Mechanisms.SECSGEM通讯模组.ToString(), hardwareManagerService, paramService, logger)
+        public WorkStationSecsGemModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ISecsGemManger secsGemManger, IRecipeService<OCRRecipeParam> recipeService, IContainerProvider containerProvider, ILogService logger) : base(E_Mechanisms.SECSGEM通讯模组.ToString(), hardwareManagerService, paramService, logger)
         {
             _secsGemManger = secsGemManger;
-            _secsGemParam = secsGemParam;
             _secsGemlog = Infrastructure.Logging.CategoryLoggerFactory.SecsGem(logger);
             _recipeService = recipeService;
             _containerProvider = containerProvider;
@@ -71,6 +70,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             await _secsGemManger.DisconnectAsync();
         }
+
+        #region 动态数据快照表
+
+        // 存储 RPTID -> List<VID> 的映射 (S2F33 定义)
+        private Dictionary<uint, List<uint>> _reportDefinitions = new Dictionary<uint, List<uint>>();
+
+        // 存储 CEID -> List<RPTID> 的映射 (S2F35 定义)
+        private Dictionary<uint, List<uint>> _eventLinks = new Dictionary<uint, List<uint>>();
+
+
+
+
+        #endregion 动态数据快照表
+
 
 
 
@@ -106,7 +119,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     HandleS1F17Message(message).ConfigureAwait(false);
                     //处理S1F17消息
                     break;
+                case "S2F33":
+                    //处理S2F33消息
+                    HandleS2F33Message(message).ConfigureAwait(false);
+                    break;
 
+                case "S2F35":
+                    //处理S2F35消息
+                    HandleS2F35Message(message).ConfigureAwait(false);
+                    break;
 
                 case "S2F41":
                     //处理S2F41消息
@@ -290,7 +311,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             foreach (var item in statusValues)
             {
-                if (item.type == DataType.LIST )
+                if (item.type == DataType.LIST)
                 {
                     // 根据实际数据类型构建节点（如 ASCII 字符串、U4 数字等）
                     subNodes.Add(new SecsGemNodeMessage() { DataType = item.type, Length = 0 });
@@ -454,6 +475,139 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #endregion S1F17-->S1F18(设备在线)
 
 
+        #region S2F33-->S2F34 数据快照（报表）
+
+
+        /// <summary>
+        /// S2F33 主机发送数据快照（报表）
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        private async Task HandleS2F33Message(SecsGemMessage request)
+        {
+            try
+            {
+                // S2F33 结构: <L [2] <U4 DATAID> <L [n] <L [2] <U4 RPTID> <L [m] <U4 VID>...>>>>
+                var dataId = Convert.ToUInt32(request.RootNode.SubNode[0].TypedValue);
+                var reportList = request.RootNode.SubNode[1].SubNode;
+                if (reportList.Count == 0)
+                {
+                    _reportDefinitions.Clear();
+                }
+                else
+                {
+                    foreach (var reportNode in reportList)
+                    {
+                        uint rptid = Convert.ToUInt32(reportNode.SubNode[0].TypedValue);
+                        var vids = reportNode.SubNode[1].SubNode.Select(v => Convert.ToUInt32(v.TypedValue)).ToList();
+
+                        // 更新或新增报表定义
+                        _reportDefinitions[rptid] = vids;
+                    }
+                }
+                var response = CreateS2F34Response(request, drack: 0x00);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+            catch (Exception ex)
+            {
+                var response = CreateS2F34Response(request, drack: 0x01);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+
+        }
+        /// <summary>
+        /// 构造 S2F34 回复消息
+        /// </summary>
+        /// <param name="s2f33Request">收到的 S2F33 请求对象</param>
+        /// <param name="drack">确认码 (0=成功, 1-4=错误)</param>
+        private SecsGemMessage CreateS2F34Response(SecsGemMessage s2f33Request, byte drack)
+        {
+            // 根据你的构造函数逻辑：DataType.Binary 对应 byte[]
+            var rootNode = new SecsGemNodeMessage(DataType.Binary, new byte[] { drack });
+
+            return new SecsGemMessage
+            {
+                Stream = 2,
+                Function = 34,
+                WBit = false, // 响应消息不带 WBit
+                SystemBytes = s2f33Request.SystemBytes, // 必须匹配请求的系统字节
+                RootNode = rootNode
+            };
+        }
+
+        #endregion S2F33-->S2F34 数据快照（报表）
+
+
+
+
+        #region S2F35-->S2F36 当某个事件（CEID）发生时，把哪些报表（RPTID）发出来
+
+        /// <summary>
+        /// 它定义了哪个 CEID（事件 ID）触发时，需要发送哪些 RPTID
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        private async Task HandleS2F35Message(SecsGemMessage request)
+        {
+            try
+            {
+                // S2F35 结构: <L [2] <U4 DATAID> <L [n] <L [2] <U4 CEID> <L [m] <U4 RPTID>...>>>>
+                var dataId = Convert.ToUInt32(request.RootNode.SubNode[0].TypedValue);
+                var eventList = request.RootNode.SubNode[1].SubNode;
+
+                // 如果 eventList 长度为 0，通常是解除所有事件链接
+                if (eventList.Count == 0)
+                {
+                    _eventLinks.Clear();
+                }
+                else
+                {
+                    foreach (var eventNode in eventList)
+                    {
+                        uint ceid = Convert.ToUInt32(eventNode.SubNode[0].TypedValue);
+                        var rptids = eventNode.SubNode[1].SubNode.Select(r => Convert.ToUInt32(r.TypedValue)).ToList();
+
+                        // 建立 CEID 到 RPTID 的链接
+                        _eventLinks[ceid] = rptids;
+                    }
+                }
+
+                // 回复 S2F36: <B [1] 0x00>
+                var response = CreateS2F34Response(request, drack: 0x00);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+            catch(Exception ex)
+            {
+                var response = CreateS2F34Response(request, drack: 0x01);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+        }
+
+
+        private SecsGemMessage CreateS2F36Response(SecsGemMessage s2f33Request, byte drack)
+        {
+            // 根据你的构造函数逻辑：DataType.Binary 对应 byte[]
+            var rootNode = new SecsGemNodeMessage(DataType.Binary, new byte[] { drack });
+
+            return new SecsGemMessage
+            {
+                Stream = 2,
+                Function = 36,
+                WBit = false, // 响应消息不带 WBit
+                SystemBytes = s2f33Request.SystemBytes, // 必须匹配请求的系统字节
+                RootNode = rootNode
+            };
+        }
+
+        #endregion S2F35-->S2F36 当某个事件（CEID）发生时，把哪些报表（RPTID）发出来
 
         #region S2F41---->S2F42（待完善消息处理）
 
@@ -548,14 +702,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private async Task HandleS7F3Message(SecsGemMessage message, CancellationToken token = default)
         {
 
-            if (message .RootNode == null )
+            if (message.RootNode == null)
             {
                 SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
                 response.IsIncoming = false;
                 _secsGemlog.Info($"发送SecsGem消息: {response}");
                 await _secsGemManger.SendMessageAsync(response);
             }
-            else if (message.RootNode.SubNode .Count !=2)
+            else if (message.RootNode.SubNode.Count != 2)
             {
                 SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
                 response.IsIncoming = false;
@@ -570,16 +724,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     var data = message.RootNode.SubNode[1].Data;
                     string recipestr = Encoding.UTF8.GetString(data);
                     var recipe = System.Text.Json.JsonSerializer.Deserialize<OCRRecipeParam>(recipestr);
-                    if (recipe != null )
+                    if (recipe != null)
                     {
-                     if ( await   _recipeService .RecipeParamWriteAsync (recipe))
+                        if (await _recipeService.RecipeParamWriteAsync(recipe))
                         {
                             SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
                             response.IsIncoming = false;
                             _secsGemlog.Info($"发送SecsGem消息: {response}");
                             await _secsGemManger.SendMessageAsync(response);
                         }
-                     else
+                        else
                         {
                             throw new Exception($"配方保存本地失败");
                         }
@@ -594,9 +748,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     _secsGemlog.Info($"发送SecsGem消息: {response}");
                     await _secsGemManger.SendMessageAsync(response);
                 }
-               
+
             }
-           
+
         }
 
         /// <summary>
@@ -636,6 +790,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             // 1. 获取请求的配方名 (假设 RootNode 是 ASCII)
             string requestedPpid = message.RootNode.TypedValue.ToString();
+            if (string .IsNullOrEmpty ( requestedPpid ))
+            {
+                var response = CreateS7F6EmptyResponse(message);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+                return;
+            }
             var recipe = await _recipeService.RecipeParam(requestedPpid);
             if (recipe == null)
             {
@@ -708,7 +870,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             var ppidNodes = s7f17Request.RootNode.SubNode;
 
             // 如果列表为空，某些标准定义为“删除所有配方”，此处需根据你的协议文档处理
-            if (ppidNodes == null || ppidNodes.Count == 0)
+            if (ppidNodes == null || ppidNodes.Count == 0 )
             {
                 // 示例：拒绝删除所有请求
                 ReplyS7F18(s7f17Request, 0x01);
@@ -746,16 +908,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     }
 
                 }
-
+            }
                 // 4. 回复主机
-                ReplyS7F18(s7f17Request, ackc7);
-
-                // 5. 如果删除成功，触发 GEM 事件上报 (S6F11)
-                if (ackc7 == 0)
+             var respsone=   ReplyS7F18(s7f17Request, ackc7);
+            respsone.IsIncoming = false;
+            _secsGemlog.Info($"发送SecsGem消息: {respsone}");
+            await _secsGemManger.SendMessageAsync(respsone);
+            // 5. 如果删除成功，触发 GEM 事件上报 (S6F11)
+            if (ackc7 == 0)
                 {
 
                 }
-            }
+            
 
         }
 
@@ -889,6 +1053,114 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
 
         #endregion SecsGem消息处理
+
+
+
+        #region 共用方法处理
+
+
+        /// <summary>
+        /// 触发事件引用
+        /// </summary>
+        /// <param name="ceid"></param>
+        /// <returns></returns>
+        public async Task TriggerDynamicEvent(uint ceid)
+        {
+            // 1. 检查该事件是否有绑定的报表
+            if (!_eventLinks.ContainsKey(ceid))
+            {
+                return;
+            }
+            var s6f11 = CreateS6F11(ceid);
+            s6f11.IsIncoming = false;
+            _secsGemlog.Info($"发送SecsGem消息: {s6f11}");
+            await _secsGemManger.SendMessageAsync(s6f11);
+        }
+        /// <summary>
+        /// 生成 S6F11 (事件上报) 消息
+        /// </summary>
+        /// <param name="ceid">事件 ID (例如: 500 代表配方切换)</param>
+        /// <param name="dataId">数据标识符，默认 0</param>
+        /// <returns>封装好的 SecsGemMessage</returns>
+        private SecsGemMessage CreateS6F11(uint ceid, uint dataId = 0)
+        {
+            // 1. 获取该事件关联的报表列表
+            if (!_eventLinks.TryGetValue(ceid, out List<uint> linkedRptIds))
+            {
+                linkedRptIds = new List<uint>(); // 若无绑定，按标准发送空列表
+            }
+
+            var reportListNode = new List<SecsGemNodeMessage>();
+
+            // 2. 组装报表内容
+            foreach (var rptid in linkedRptIds)
+            {
+                if (_reportDefinitions.TryGetValue(rptid, out List<uint> vids))
+                {
+                    var vValueNodes = new List<SecsGemNodeMessage>();
+
+                    foreach (var vid in vids)
+                    {
+                        var VID = _secsGemManger?.ParamsManager?.GetParam<ValidateConfiguration>(ParamType.Validate).GetVID(vid);
+
+                        // 获取变量的具体数值节点 (见下方辅助方法)
+                        vValueNodes.Add(new SecsGemNodeMessage(DataType.U4, VID));
+                    }
+
+                    // 构建单条报表: [RPTID, [V1, V2, ...]]
+                    var rptItem = new List<SecsGemNodeMessage>
+                          {
+                              new SecsGemNodeMessage(DataType.U4, rptid),
+                              new SecsGemNodeMessage(DataType.LIST, vValueNodes)
+                          };
+                    reportListNode.Add(new SecsGemNodeMessage(DataType.LIST, rptItem));
+                }
+            }
+
+            // 3. 构建 S6F11 根结构: [DATAID, CEID, [Reports]]
+            var s6f11Root = new List<SecsGemNodeMessage>
+            {
+                     new SecsGemNodeMessage(DataType.U4, dataId),
+                     new SecsGemNodeMessage(DataType.U4, ceid),
+                     new SecsGemNodeMessage(DataType.LIST, reportListNode)
+                 };
+
+            return new SecsGemMessage
+            {
+                Stream = 6,
+                Function = 11,
+                WBit = true, // 主机需回复 S6F12
+                RootNode = new SecsGemNodeMessage(DataType.LIST, s6f11Root),
+                SystemBytes = GenerateSystemBytes()
+            };
+        }
+
+
+
+        private uint _systemByteCounter = 0;
+
+        /// <summary>
+        /// 生成唯一的系统字节 (System Bytes)
+        /// 用于设备端主动发起消息（如 S6F11, S1F1）时填充 Header
+        /// </summary>
+        /// <returns>4 字节的唯一标识符</returns>
+        public List<byte> GenerateSystemBytes()
+        {
+            // 1. 原子递增，确保多线程下生成的 ID 唯一
+            uint nextId = (uint)Interlocked.Increment(ref _systemByteCounter);
+
+            // 2. 将 uint 转换为 SECS 标准的大端序 (Big-Endian) 字节数组
+            // SECS 协议在传输层通常要求大端序
+            byte[] bytes = BitConverter.GetBytes(nextId);
+
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+
+            return bytes.ToList();
+        }
+        #endregion 公用方法处理
 
 
     }
