@@ -12,6 +12,7 @@ using PF.Infrastructure.SecsGem.Command;
 using PF.Infrastructure.SecsGem.Incentive;
 using PF.Infrastructure.SecsGem.Param;
 using PF.Infrastructure.SecsGem.Tools;
+using PF.Modules.SecsGem.ViewModels;
 using PF.Modules.SecsGem.Views;
 using PF.SecsGem.DataBase;
 using Prism.Ioc;
@@ -40,7 +41,8 @@ namespace PF.Modules.SecsGem
             containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
             containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
 
-           
+            // View + ViewModel 注册（支持 Prism 导航）
+            containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>();
         }
 
         public void OnInitialized(IContainerProvider containerProvider)
