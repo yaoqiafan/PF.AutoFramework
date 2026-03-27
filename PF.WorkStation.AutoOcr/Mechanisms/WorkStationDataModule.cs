@@ -211,7 +211,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         ///  更新指定工位的 MES 检测信息，并清空对应工位的机台检测列表（以便开始新批次）
         /// </summary>
-        public async Task<bool> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data,CancellationToken token =default )
+        public async Task<bool> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data, CancellationToken token = default)
         {
             if (Station == E_WorkSpace.工位1)
             {
@@ -292,11 +292,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
 
-      
+
         private async Task AddAllDic(E_WorkSpace station, MachineDetectionData data)
         {
             _machineDataByBatch.AddOrUpdate(
-               data.InternalBatchId ,
+               data.InternalBatchId,
                _ => new List<MachineDetectionData> { data },
                (_, list) =>
                {
@@ -305,8 +305,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                });
 
             // 如果批次期望数量尚未记录，则以当前工位的 MES 信息为准进行记录
-            _batchQuantityMap.TryAdd(data.InternalBatchId ,
-                station == E_WorkSpace.工位1 ? _station1MesDetectionData .Quantity : _station2MesDetectionData.Quantity );
+            _batchQuantityMap.TryAdd(data.InternalBatchId,
+                station == E_WorkSpace.工位1 ? _station1MesDetectionData.Quantity : _station2MesDetectionData.Quantity);
 
             await CheckBatchCompletionAsync();
         }
@@ -316,7 +316,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             return Task.Run(() =>
                {
-                   foreach (var kvp in _machineDataByBatch .ToList())
+                   foreach (var kvp in _machineDataByBatch.ToList())
                    {
                        if (_batchQuantityMap.TryGetValue(kvp.Key, out var expected))
                        {
@@ -365,10 +365,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch { get; set; } = new ConcurrentDictionary<string, List<MachineDetectionData>>();
             public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new ConcurrentDictionary<string, int>();
-            #endregion  检测数据
 
 
-            #region 序列化与反序列化
+
 
 
         }
