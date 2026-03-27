@@ -74,7 +74,15 @@
             <TextBlock
                 Margin="4,2"
                 Text="{Binding DisplayName}"
-                ToolTip="{Binding DisplayName}" />
+                ToolTip="{Binding DisplayName}">
+                <TextBlock.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem
+                            Command="{Binding DeleteCommand}"
+                            Header="🗑 删除命令" />
+                    </ContextMenu>
+                </TextBlock.ContextMenu>
+            </TextBlock>
         </DataTemplate>
     </UserControl.Resources>
 

@@ -18,9 +18,9 @@ namespace PF.Modules.SecsGem
         {
 
 
-            containerRegistry.RegisterDialog<CommandEditDialog, CommandEditDialogViewModel>("MessageDialog");
-            containerRegistry.RegisterDialog<SecsNodeConfigDialog, SecsNodeConfigDialogViewModel>("MessageDialog");
-            containerRegistry.RegisterDialog<VidSelectDialog, VidSelectDialogViewModel>("MessageDialog");
+            containerRegistry.RegisterDialog<CommandEditDialog,    CommandEditDialogViewModel>("CommandEditDialog");
+            containerRegistry.RegisterDialog<SecsNodeConfigDialog, SecsNodeConfigDialogViewModel>("SecsNodeConfigDialog");
+            containerRegistry.RegisterDialog<VidSelectDialog,      VidSelectDialogViewModel>("VidSelectDialog");
 
             // View + ViewModel 注册（支持 Prism 导航）
             containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>(

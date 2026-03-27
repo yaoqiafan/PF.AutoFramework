@@ -20,6 +20,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using PF.Core.Interfaces.SecsGem.Command;
 
 namespace PF.Modules.SecsGem.ViewModels
 {
@@ -72,6 +73,7 @@ namespace PF.Modules.SecsGem.ViewModels
             ClearLogCommand = new DelegateCommand(() => TransactionLogs.Clear());
 
             SelectCommandLeafCommand = new DelegateCommand<CommandLeafViewModel>(OnCommandLeafSelected);
+            AddNewCommandCommand = new DelegateCommand(ExecuteAddNewCommand);
         }
 
         // ──────────────────────────────────────────────
@@ -206,6 +208,7 @@ namespace PF.Modules.SecsGem.ViewModels
         public DelegateCommand SaveParamCommand { get; }
         public DelegateCommand ClearLogCommand { get; }
         public DelegateCommand<CommandLeafViewModel> SelectCommandLeafCommand { get; }
+        public DelegateCommand AddNewCommandCommand { get; }
 
         // ──────────────────────────────────────────────
         // 导航生命周期
@@ -553,7 +556,7 @@ namespace PF.Modules.SecsGem.ViewModels
 
         private List<CommandGroupViewModel> BuildCommandGroups(
             List<SFCommand> commands,
-            PF.Core.Interfaces.SecsGem.Command.ISFCommand commandStore)
+            ISFCommand commandStore)
         {
             return commands
                 .GroupBy(c => $"S{c.Stream}F{c.Function}")
@@ -562,11 +565,149 @@ namespace PF.Modules.SecsGem.ViewModels
                 {
                     var first = g.First();
                     var group = new CommandGroupViewModel(first.Stream, first.Function, commandStore);
+                    SubscribeGroupEvents(group);
                     foreach (var cmd in g)
-                        group.Children.Add(new CommandLeafViewModel(cmd));
+                    {
+                        var leaf = new CommandLeafViewModel(cmd);
+                        var tree = commandStore == _manager.CommandManager.IncentiveCommands
+                            ? IncentiveCommandsTree : ResponseCommandsTree;
+                        SubscribeLeafEvents(leaf, group, tree);
+                        group.Children.Add(leaf);
+                    }
                     return group;
                 })
                 .ToList();
+        }
+
+        // ──────────────────────────────────────────────
+        // 命令编辑 & 路由
+        // ──────────────────────────────────────────────
+
+        private void ExecuteAddNewCommand()
+        {
+            var p = new DialogParameters();
+            p.Add("DefaultStream",   (uint)1);
+            p.Add("DefaultFunction", (uint)1);
+            p.Add("LockSF",         false);
+
+            DialogService.ShowDialog("CommandEditDialog", p, result =>
+            {
+                if (result.Result != ButtonResult.OK) return;
+                var stream = result.Parameters.GetValue<uint>("Stream");
+                var func   = result.Parameters.GetValue<uint>("Function");
+                var name   = result.Parameters.GetValue<string>("CommandName");
+                _ = RouteAndAddCommandAsync(stream, func, name);
+            });
+        }
+
+        private void SubscribeGroupEvents(CommandGroupViewModel group)
+        {
+            group.AddCommandFromGroupRequested += (defaultStream, defaultFunc) =>
+            {
+                var p = new DialogParameters();
+                p.Add("DefaultStream",   defaultStream);
+                p.Add("DefaultFunction", defaultFunc);
+                p.Add("LockSF",         false);
+
+                DialogService.ShowDialog("CommandEditDialog", p, result =>
+                {
+                    if (result.Result != ButtonResult.OK) return;
+                    var stream = result.Parameters.GetValue<uint>("Stream");
+                    var func   = result.Parameters.GetValue<uint>("Function");
+                    var name   = result.Parameters.GetValue<string>("CommandName");
+                    _ = RouteAndAddCommandAsync(stream, func, name);
+                });
+            };
+        }
+
+        private void SubscribeLeafEvents(
+            CommandLeafViewModel leaf,
+            CommandGroupViewModel parentGroup,
+            ObservableCollection<CommandGroupViewModel> tree)
+        {
+            leaf.DeleteRequested += async vm =>
+            {
+                var confirm = await MessageService.ShowMessageAsync(
+                    $"确定要删除命令 [{vm.Command.Name}] 吗？",
+                    "警告", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (confirm != ButtonResult.Yes) return;
+
+                var commandStore = tree == IncentiveCommandsTree
+                    ? _manager.CommandManager.IncentiveCommands
+                    : _manager.CommandManager.ResponseCommands;
+
+                bool removed = await commandStore.RemoveCommand(vm.Command.ID);
+                if (!removed)
+                {
+                    await MessageService.ShowMessageAsync(
+                        $"删除命令 [{vm.Command.Name}] 失败，请稍后重试。",
+                        "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    parentGroup.Children.Remove(vm);
+                    if (parentGroup.Children.Count == 0)
+                        tree.Remove(parentGroup);
+                });
+            };
+        }
+
+        private async Task RouteAndAddCommandAsync(uint stream, uint function, string name)
+        {
+            var commandStore = function % 2 == 1
+                ? _manager.CommandManager.IncentiveCommands
+                : _manager.CommandManager.ResponseCommands;
+            var tree = function % 2 == 1
+                ? IncentiveCommandsTree
+                : ResponseCommandsTree;
+
+            var newCommand = new SFCommand
+            {
+                Stream   = stream,
+                Function = function,
+                Name     = name,
+                ID       = Guid.NewGuid().ToString("N")[..8],
+                Message  = new SecsGemMessage
+                {
+                    Stream      = (int)stream,
+                    Function    = (int)function,
+                    WBit        = function % 2 == 1,
+                    SystemBytes = new List<byte> { 0, 0, 0, 0 },
+                    MessageId   = Guid.NewGuid().ToString(),
+                    IsIncoming  = false,
+                    RootNode    = new SecsGemNodeMessage
+                    {
+                        DataType = DataType.LIST,
+                        Length   = 0,
+                        SubNode  = new List<SecsGemNodeMessage>()
+                    }
+                }
+            };
+
+            bool added = await commandStore.AddCommand(newCommand);
+            if (!added)
+            {
+                await MessageService.ShowMessageAsync(
+                    $"添加命令失败，该命令可能已存在。", "提示",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                var group = tree.FirstOrDefault(g => g.Stream == stream && g.Function == function);
+                if (group == null)
+                {
+                    group = new CommandGroupViewModel(stream, function, commandStore);
+                    SubscribeGroupEvents(group);
+                    tree.Add(group);
+                }
+                var leaf = new CommandLeafViewModel(newCommand);
+                SubscribeLeafEvents(leaf, group, tree);
+                group.Children.Add(leaf);
+            });
         }
 
         /// <summary>
@@ -625,8 +766,51 @@ namespace PF.Modules.SecsGem.ViewModels
         {
             if (vm == null) return;
             vm.VidSelectionRequested += OnVidSelectionRequested;
+            vm.NodeAddRequested      += OnNodeAddRequested;
             foreach (var child in vm.Children)
                 SubscribeVidEvents(child);
+        }
+
+        private void OnNodeAddRequested(object sender, EventArgs e)
+        {
+            if (sender is not SecsNodeViewModel parentNode) return;
+
+            List<VIDEntity> vids;
+            try
+            {
+                var vidRepo = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
+                vids = vidRepo.GetAllAsync().GetAwaiter().GetResult().ToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"读取变量库失败: {ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var p = new DialogParameters();
+            p.Add("Vids", (IEnumerable<VIDEntity>)vids);
+
+            DialogService.ShowDialog("SecsNodeConfigDialog", p, result =>
+            {
+                if (result.Result != ButtonResult.OK) return;
+
+                var dt    = result.Parameters.GetValue<DataType>("DataType");
+                var isVar = result.Parameters.GetValue<bool>("IsVariableNode");
+                var code  = result.Parameters.GetValue<uint>("VariableCode");
+                var desc  = result.Parameters.GetValue<string>("VariableDescription");
+                var val   = result.Parameters.GetValue<string>("Value");
+
+                var newNode = new SecsNodeViewModel { DataType = dt, Value = val };
+                if (isVar)
+                    newNode.SetVariableBinding(code, desc);
+
+                Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    SubscribeVidEvents(newNode);
+                    parentNode.Children.Add(newNode);
+                });
+            });
         }
 
         private void OnVidSelectionRequested(object sender, EventArgs e)
