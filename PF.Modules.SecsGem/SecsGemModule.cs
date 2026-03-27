@@ -27,7 +27,7 @@ namespace PF.Modules.SecsGem
     {
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            
+
 
             // View + ViewModel 注册（支持 Prism 导航）
             containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>(
@@ -44,8 +44,7 @@ namespace PF.Modules.SecsGem
             {
                 var db = containerProvider.Resolve<ISecsGemDataBase>();
                 await db.InitializationDataBase();
-                var mgr = containerProvider.Resolve<ISecsGemManger>();
-                await mgr.InitializeAsync();
+
             });
         }
     }

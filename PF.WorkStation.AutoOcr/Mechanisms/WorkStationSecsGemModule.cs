@@ -47,16 +47,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         }
 
-        protected override async Task<bool> InternalInitializeAsync(CancellationToken token=default)
+        protected override async Task<bool> InternalInitializeAsync(CancellationToken token = default)
         {
             if (_secsGemManger == null)
             {
                 _secsGemlog.Error("SecsGem实例未创建，检查软件配置逻辑");
                 return false;
             }
-            if (!await _secsGemManger.ConnectAsync())
+            if (!await _secsGemManger.InitializeAsync())
             {
-                _secsGemlog.Error("设备连接SecsGem服务端失败");
+                _secsGemlog.Error("SecsGem初始化失败");
                 return false;
             }
             _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
@@ -290,7 +290,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             foreach (var item in statusValues)
             {
-                if (item.type == DataType.ASCII)
+                if (item.type == DataType.LIST )
                 {
                     // 根据实际数据类型构建节点（如 ASCII 字符串、U4 数字等）
                     subNodes.Add(new SecsGemNodeMessage() { DataType = item.type, Length = 0 });
@@ -497,7 +497,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #endregion S2F41---->S2F42
 
 
-      #region  S7F1-->S7F2 （正式下发配方数据之前的一个“预问询”环节。它的逻辑是：主机问设备“我有个配方要传给你，你现在有地方存吗？”，设备回答“可以传”或“现在不行）
+        #region  S7F1-->S7F2 （正式下发配方数据之前的一个“预问询”环节。它的逻辑是：主机问设备“我有个配方要传给你，你现在有地方存吗？”，设备回答“可以传”或“现在不行）
 
 
         /// <summary>
@@ -547,10 +547,56 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         private async Task HandleS7F3Message(SecsGemMessage message, CancellationToken token = default)
         {
-            SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x00);
-            response.IsIncoming = false;
-            _secsGemlog.Info($"发送SecsGem消息: {response}");
-            await _secsGemManger.SendMessageAsync(response);
+
+            if (message .RootNode == null )
+            {
+                SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+            else if (message.RootNode.SubNode .Count !=2)
+            {
+                SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
+                response.IsIncoming = false;
+                _secsGemlog.Info($"发送SecsGem消息: {response}");
+                await _secsGemManger.SendMessageAsync(response);
+            }
+            else
+            {
+                try
+                {
+                    string PPID = message.RootNode.SubNode[0].TypedValue.ToString();
+                    var data = message.RootNode.SubNode[1].Data;
+                    string recipestr = Encoding.UTF8.GetString(data);
+                    var recipe = System.Text.Json.JsonSerializer.Deserialize<OCRRecipeParam>(recipestr);
+                    if (recipe != null )
+                    {
+                     if ( await   _recipeService .RecipeParamWriteAsync (recipe))
+                        {
+                            SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
+                            response.IsIncoming = false;
+                            _secsGemlog.Info($"发送SecsGem消息: {response}");
+                            await _secsGemManger.SendMessageAsync(response);
+                        }
+                     else
+                        {
+                            throw new Exception($"配方保存本地失败");
+                        }
+                    }
+                    throw new Exception($"返回配方数据错误");
+                }
+                catch (Exception ex)
+                {
+                    _secsGemlog.Error($"SecsGem S7F3下载配方失败{ex.Message}");
+                    SecsGemMessage response = CreateS7F4Response(message, ackc7: 0x04);
+                    response.IsIncoming = false;
+                    _secsGemlog.Info($"发送SecsGem消息: {response}");
+                    await _secsGemManger.SendMessageAsync(response);
+                }
+               
+            }
+           
         }
 
         /// <summary>
