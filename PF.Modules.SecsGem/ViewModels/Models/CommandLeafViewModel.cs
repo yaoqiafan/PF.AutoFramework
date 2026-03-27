@@ -18,7 +18,7 @@ namespace PF.Modules.SecsGem.ViewModels
         /// <summary>
         /// 显示名称格式: "S{Stream}F{Function} {Name}"
         /// </summary>
-        public string DisplayName => $"S{Command.Stream}F{Command.Function}  {Command.Name}";
+        public string DisplayName => $"{Command.Name}";
 
         public uint Stream => Command.Stream;
         public uint Function => Command.Function;

@@ -8,12 +8,8 @@ using System.Windows.Controls;
 
 namespace PF.Modules.SecsGem.Views
 {
-    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView,
-        "SECS/GEM 调试",
-        GroupName = "通信调试",
-        Icon = "PlugConnected24",
-        GroupOrder = 6,
-        Order = 1)]
+    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView, "SECS/GEM 调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 4, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
+
     public partial class SecsGemDebugView : UserControl
     {
         public SecsGemDebugView()

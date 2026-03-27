@@ -1,0 +1,43 @@
+﻿<UserControl x:Class="PF.Modules.SecsGem.Dialogs.VidSelectDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:PF.Modules.SecsGem.Dialogs"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                 Text="请从列表中选择要绑定的变量 (VID)："
+                 FontWeight="SemiBold"
+                 Margin="0,0,0,8"/>
+
+        <ListBox Grid.Row="1"
+               x:Name="VidListBox"
+               DisplayMemberPath="DisplayText"
+               MouseDoubleClick="OnListBoxDoubleClick"
+               BorderBrush="#CFD8DC"
+               BorderThickness="1"/>
+
+        <StackPanel Grid.Row="2"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Right"
+                  Margin="0,10,0,0">
+            <Button Content="确定 (OK)"
+                  Width="90" Height="32"
+                  Margin="0,0,8,0"
+                  IsDefault="True"
+                  Click="OnOkClick"/>
+            <Button Content="取消"
+                  Width="90" Height="32"
+                  IsCancel="True"
+                  Click="OnCancelClick"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
