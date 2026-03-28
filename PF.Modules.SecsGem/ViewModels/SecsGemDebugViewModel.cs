@@ -298,7 +298,7 @@ namespace PF.Modules.SecsGem.ViewModels
             set => SetProperty(ref _serviceExePath, value);
         }
 
-        private string _serviceNameForManagement = "SecsGemService";
+        private string _serviceNameForManagement = "MyDotNet8Service";
         public string ServiceNameForManagement
         {
             get => _serviceNameForManagement;
@@ -562,7 +562,7 @@ namespace PF.Modules.SecsGem.ViewModels
                 IsWBitWarningVisible = msg.Function % 2 == 1 && !WaitReply;
 
                 // 记录发送日志
-                AppendLog(msg, direction: "→", isSystem: false);
+                AppendLog(msg, message: "→", isSystem: false);
 
                 if (WaitReply && msg.WBit)
                 {
@@ -908,7 +908,7 @@ namespace PF.Modules.SecsGem.ViewModels
                     : _manager.CommandManager.ResponseCommands;
 
                 // 使用 Key (S{n}F{n}) 从内存字典中删除
-                bool removed = await commandStore.RemoveCommand(vm.Command.Key);
+                bool removed = await commandStore.RemoveCommand(vm.Command.ID);
                 if (!removed)
                 {
                     await MessageService.ShowMessageAsync(
@@ -1428,7 +1428,7 @@ namespace PF.Modules.SecsGem.ViewModels
         // 日志工具
         // ──────────────────────────────────────────────
 
-        private void AppendLog(SecsGemMessage msg, string direction = null, bool isSystem = false)
+        private void AppendLog(SecsGemMessage msg, string message = null, bool isSystem = false)
         {
             TransactionLogEntry entry;
             if (isSystem || msg == null)
@@ -1436,16 +1436,16 @@ namespace PF.Modules.SecsGem.ViewModels
                 entry = new TransactionLogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Direction = direction ?? "ℹ",
-                    Header = direction ?? "SYS",
+                    Direction =  "ℹ",
+                    Header = message ?? "SYS",
                     RawHex = string.Empty,
-                    SmlText = msg?.ToString() ?? direction,
+                    SmlText = msg?.ToString() ?? message,
                     IsIncoming = false
                 };
             }
             else
             {
-                entry = CreateLogEntry(msg, direction ?? "→");
+                entry = CreateLogEntry(msg, message ?? "→");
             }
             TransactionLogs.Add(entry);
         }

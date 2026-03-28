@@ -764,9 +764,9 @@
                             <Grid Margin="2,1">
                                 <Grid.ColumnDefinitions>
                                     <!--  方向箭头  -->
-                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="30" />
                                     <!--  时间 + 报文头  -->
-                                    <ColumnDefinition Width="190" />
+                                    <ColumnDefinition Width="auto" />
                                     <!--  Raw Hex  -->
                                     <ColumnDefinition Width="280" />
                                     <!--  SML 文本  -->
