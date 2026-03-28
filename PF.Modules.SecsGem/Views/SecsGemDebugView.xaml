@@ -77,9 +77,7 @@
                 ToolTip="{Binding DisplayName}">
                 <TextBlock.ContextMenu>
                     <ContextMenu>
-                        <MenuItem
-                            Command="{Binding DeleteCommand}"
-                            Header="🗑 删除命令" />
+                        <MenuItem Command="{Binding DeleteCommand}" Header="🗑 删除命令" />
                     </ContextMenu>
                 </TextBlock.ContextMenu>
             </TextBlock>
@@ -192,7 +190,7 @@
 
                 <Grid Grid.Row="2" Margin="5">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="500"  />
+                        <ColumnDefinition Width="500" />
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="300" />
 
@@ -228,7 +226,6 @@
                                     Content="重载"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                                 <Button
-                                   
                                     Margin="0,0,4,0"
                                     Command="{Binding AddNewCommandCommand}"
                                     Content="➕ 新建命令"
@@ -242,11 +239,11 @@
                                         Background="Transparent"
                                         BorderThickness="0"
                                         ItemsSource="{Binding IncentiveCommandsTree}"
+                                        MouseRightButtonDown="TreeView_MouseRightButtonDown"
                                         Style="{DynamicResource TreeViewBaseStyle}">
                                         <TreeView.ItemContainerStyle>
                                             <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
                                                 <Setter Property="IsExpanded" Value="True" />
-                                                <!--  点击叶子节点  -->
                                                 <EventSetter Event="MouseLeftButtonUp" Handler="OnCommandTreeItemClicked" />
                                             </Style>
                                         </TreeView.ItemContainerStyle>
@@ -256,7 +253,8 @@
                                     <TreeView
                                         Background="Transparent"
                                         BorderThickness="0"
-                                        ItemsSource="{Binding ResponseCommandsTree}">
+                                        ItemsSource="{Binding ResponseCommandsTree}"
+                                        MouseRightButtonDown="TreeView_MouseRightButtonDown">
                                         <TreeView.ItemContainerStyle>
                                             <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
                                                 <Setter Property="IsExpanded" Value="True" />
@@ -299,111 +297,115 @@
                                 Grid.Row="1"
                                 BorderThickness="1"
                                 ItemsSource="{Binding CurrentMessageNodes}"
+                                MouseRightButtonDown="TreeView_MouseRightButtonDown"
                                 VirtualizingStackPanel.IsVirtualizing="False">
                                 <TreeView.Resources>
                                     <HierarchicalDataTemplate DataType="{x:Type vm:SecsNodeViewModel}" ItemsSource="{Binding Children}">
-                                        <StackPanel Margin="2,2" Orientation="Horizontal">
+                                        <Grid>
+                                            <StackPanel Margin="2,2" Orientation="Horizontal">
 
-                                            <!--  类型标签 (如 L / A / U4)  -->
-                                            <Border
-                                                MinWidth="32"
-                                                Margin="0,0,6,0"
-                                                Padding="5,2"
-                                                HorizontalAlignment="Center"
-                                                CornerRadius="3">
-                                                <TextBlock
+                                                <!--  类型标签 (如 L / A / U4)  -->
+                                                <Border
+                                                    MinWidth="32"
+                                                    Margin="0,0,6,0"
+                                                    Padding="5,2"
                                                     HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="12"
-                                                    FontWeight="Bold"
-                                                    Foreground="{DynamicResource TextIconBrush}"
-                                                    Text="{Binding ItemFormat}" />
-                                            </Border>
+                                                    CornerRadius="3">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12"
+                                                        FontWeight="Bold"
+                                                        Foreground="{DynamicResource TextIconBrush}"
+                                                        Text="{Binding ItemFormat}" />
+                                                </Border>
 
-                                            <!--  长度标签  -->
-                                            <TextBlock
-                                                VerticalAlignment="Center"
-                                                Foreground="{DynamicResource TextIconBrush}"
-                                                Text="[" />
-                                            <TextBlock
-                                                Margin="5,0,5,0"
-                                                VerticalAlignment="Center"
-                                                FontWeight="SemiBold"
-                                                Foreground="{DynamicResource TextIconBrush}"
-                                                Text="{Binding Length}" />
-                                            <TextBlock
-                                                Margin="0,0,6,0"
-                                                VerticalAlignment="Center"
-                                                Foreground="{DynamicResource TextIconBrush}"
-                                                Text="]" />
-
-                                            <!--  值输入框（LIST 节点隐藏）  -->
-                                            <TextBox
-                                                MinWidth="140"
-                                                MaxWidth="240"
-                                                Margin="0,0,6,0"
-                                                Padding="4,2"
-                                                VerticalContentAlignment="Center"
-                                                Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}">
-                                                <TextBox.Style>
-                                                    <Style BasedOn="{StaticResource TextBoxBaseStyle}" TargetType="TextBox">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding HasValidationError}" Value="True">
-                                                                <Setter Property="BorderBrush" Value="#E53935" />
-                                                                <Setter Property="BorderThickness" Value="1.5" />
-                                                                <Setter Property="Background" Value="#FFEBEE" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBox.Style>
-                                                <TextBox.ToolTip>
-                                                    <ToolTip Content="{Binding ValidationErrorMessage}" Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
-                                                </TextBox.ToolTip>
-                                            </TextBox>
-
-                                            <!--  校验错误警告图标  -->
-                                            <TextBlock
-                                                Margin="0,0,6,0"
-                                                VerticalAlignment="Center"
-                                                FontSize="14"
-                                                Foreground="#E53935"
-                                                Text="⚠"
-                                                ToolTip="{Binding ValidationErrorMessage}"
-                                                Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
-
-                                            <!--  VID 勾选框  -->
-                                            <CheckBox
-                                                Margin="0,0,6,0"
-                                                VerticalAlignment="Center"
-                                                Content="VID"
-                                                IsChecked="{Binding IsVariableNode}"
-                                                Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
-
-                                            <!--  已绑定的 VID 说明  -->
-                                            <Border
-                                                Padding="4,1"
-                                                Background="#E8F5E9"
-                                                CornerRadius="3"
-                                                Visibility="{Binding VariableDescription, Converter={StaticResource StringNotEmptyToVis}}">
+                                                <!--  长度标签  -->
                                                 <TextBlock
                                                     VerticalAlignment="Center"
-                                                    FontSize="11"
-                                                    Foreground="#2E7D32"
-                                                    Text="{Binding VariableDescription}" />
-                                            </Border>
+                                                    Foreground="{DynamicResource TextIconBrush}"
+                                                    Text="[" />
+                                                <TextBlock
+                                                    Margin="5,0,5,0"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{DynamicResource TextIconBrush}"
+                                                    Text="{Binding Length}" />
+                                                <TextBlock
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{DynamicResource TextIconBrush}"
+                                                    Text="]" />
 
-                                            <StackPanel.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem
-                                                        Command="{Binding AddChildCommand}"
-                                                        Header="➕ 添加子节点 (LIST)"
-                                                        Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
-                                                    <Separator Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
-                                                    <MenuItem Command="{Binding RemoveNodeCommand}" Header="🗑 删除此节点" />
-                                                </ContextMenu>
-                                            </StackPanel.ContextMenu>
-                                        </StackPanel>
+                                                <!--  值输入框（LIST 节点隐藏）  -->
+                                                <TextBox
+                                                    MinWidth="140"
+                                                    MaxWidth="240"
+                                                    Margin="0,0,6,0"
+                                                    Padding="4,2"
+                                                    VerticalContentAlignment="Center"
+                                                    Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                    Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}">
+                                                    <TextBox.Style>
+                                                        <Style BasedOn="{StaticResource TextBoxBaseStyle}" TargetType="TextBox">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasValidationError}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="#E53935" />
+                                                                    <Setter Property="BorderThickness" Value="1.5" />
+                                                                    <Setter Property="Background" Value="#FFEBEE" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                    <TextBox.ToolTip>
+                                                        <ToolTip Content="{Binding ValidationErrorMessage}" Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
+                                                    </TextBox.ToolTip>
+                                                </TextBox>
+
+                                                <!--  校验错误警告图标  -->
+                                                <TextBlock
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="14"
+                                                    Foreground="#E53935"
+                                                    Text="⚠"
+                                                    ToolTip="{Binding ValidationErrorMessage}"
+                                                    Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
+
+                                                <!--  VID 勾选框  -->
+                                                <CheckBox
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    Content="VID"
+                                                    IsChecked="{Binding IsVariableNode}"
+                                                    Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
+
+                                                <!--  已绑定的 VID 说明  -->
+                                                <Border
+                                                    Padding="4,1"
+                                                    Background="#E8F5E9"
+                                                    CornerRadius="3"
+                                                    Visibility="{Binding VariableDescription, Converter={StaticResource StringNotEmptyToVis}}">
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="#2E7D32"
+                                                        Text="{Binding VariableDescription}" />
+                                                </Border>
+
+                                                <StackPanel.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem
+                                                            Command="{Binding AddChildCommand}"
+                                                            Header="➕ 添加子节点 (LIST)"
+                                                            Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
+                                                        <Separator Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
+                                                        <MenuItem Command="{Binding RemoveNodeCommand}" Header="🗑 删除此节点" />
+                                                    </ContextMenu>
+                                                </StackPanel.ContextMenu>
+                                            </StackPanel>
+                                        </Grid>
+
                                     </HierarchicalDataTemplate>
                                 </TreeView.Resources>
                                 <TreeView.ItemContainerStyle>
