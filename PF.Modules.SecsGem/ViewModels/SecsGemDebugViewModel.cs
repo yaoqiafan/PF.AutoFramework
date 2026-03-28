@@ -831,17 +831,34 @@ namespace PF.Modules.SecsGem.ViewModels
                     return;
                 }
 
-                // 使用 VID 选择对话框
-                var dialog = new VidSelectDialog(vids);
-                if (dialog.ShowDialog() != true || dialog.SelectedVid == null)
-                {
-                    nodeVm.IsVariableNode = false;
-                    return;
-                }
+                var p = new DialogParameters();
+                p.Add("Vids", (IEnumerable<VIDEntity>)vids);
 
-                var selectedVid = dialog.SelectedVid;
-                nodeVm.VariableCode = selectedVid.Code;
-                nodeVm.VariableDescription = $"VID:{selectedVid.Code} [{selectedVid.Description}]";
+                DialogService.ShowDialog("VidSelectDialog", p, result =>
+                {
+                    if (result.Result != ButtonResult.OK)
+                    {
+                        nodeVm.IsVariableNode = false;
+                        return;
+                    }
+                    
+
+                    var selectedVid = result.Parameters.GetValue<VIDEntity>("SelectedVid");
+                    if (selectedVid != null)
+                    {
+                        nodeVm.VariableCode = selectedVid.Code;
+                        nodeVm.VariableDescription = $"VID:{selectedVid.Code} [{selectedVid.Description}]";
+                    }
+                    else 
+                    {
+                        nodeVm.IsVariableNode = false;
+                    }
+                   
+                });
+
+                
+
+               
             }
             catch (Exception ex)
             {

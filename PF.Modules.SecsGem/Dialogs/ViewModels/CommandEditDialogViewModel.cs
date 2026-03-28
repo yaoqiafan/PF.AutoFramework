@@ -95,12 +95,12 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
             p.Add("Stream",      _stream);
             p.Add("Function",    _function);
             p.Add("CommandName", _commandName);
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, p));
+            RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters=p });
         }
 
         private void ExecuteCancel()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
         }
     }
 }

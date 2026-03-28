@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:PF.Modules.SecsGem.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     MinWidth="360"
-    mc:Ignorable="d">
+    mc:Ignorable="d" FontSize="{DynamicResource FontSize.Body.Standard}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
@@ -21,7 +21,7 @@
         </Grid.RowDefinitions>
 
         <!--  Stream / Function 行  -->
-        <StackPanel
+        <StackPanel 
             Grid.Row="0"
             Margin="0,0,0,12"
             Orientation="Horizontal">
