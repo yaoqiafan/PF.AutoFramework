@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Interfaces.SecsGem.Communication;
+using PF.Infrastructure.Communication.TCP;
 
 namespace PF.Infrastructure.SecsGem.Incentive
 {
@@ -45,9 +46,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
 
         public bool SecsGemStatus => _status;
 
-        public InternalClient(IClient client, IParams @params, ICommandManager commandManager, SecsGemMessageProcessor secsGemMessageProcessor)
+        public InternalClient(IParams @params, ICommandManager commandManager, SecsGemMessageProcessor secsGemMessageProcessor)
         {
-            _client = client;
+            _client = new TCPClient();
             _paramConfig = @params;
             _commandManager = commandManager;
             _secsGemMessageProcessor= secsGemMessageProcessor;

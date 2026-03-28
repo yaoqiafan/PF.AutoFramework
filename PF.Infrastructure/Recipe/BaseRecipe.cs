@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Recipe
 {
-    public abstract class BaseRecipe<T> : IRecipeService<T>, IRecipeManger<T> where T : RecipeParamBase
+    public abstract class BaseRecipe<T> : IRecipeService<T> where T : RecipeParamBase
     {
         public string RecipeDirPath => $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\Recipe";
 
@@ -29,15 +29,6 @@ namespace PF.Infrastructure.Recipe
             {
                 DirectoryInfo di = Directory.CreateDirectory(BackUpRecipeDirPath);
                 di.Attributes |= FileAttributes.Hidden;
-            }
-            if (File.Exists(filepath))
-            {
-                string str = File.ReadAllText(filepath);
-                _stationRecipeDic = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, T>>(str);
-            }
-            else
-            {
-                _stationRecipeDic = new Dictionary<string, T>();
             }
         }
 
@@ -76,24 +67,7 @@ namespace PF.Infrastructure.Recipe
 
 
 
-        public Task<T> RecipeParam(string RecipeName, CancellationToken token = default)
-        {
-            try
-            {
-                string recipefilepath = $"{this.RecipeDirPath}\\{RecipeName}.json";
-                if (!File.Exists(recipefilepath))
-                {
-                    throw new FileNotFoundException($"配方{RecipeName}不存在");
-                }
-                string str = File.ReadAllText(recipefilepath);
-                return Task.FromResult(System.Text.Json.JsonSerializer.Deserialize<T>(str));
-            }
-            catch (Exception ex)
-            {
-                RecipeLogger.Debug(ex.Message, ex);
-                return null;
-            }
-        }
+     
 
 
         public Task<bool> RecipeParamWriteAsync(T RecipeParam, bool IsCover = false, CancellationToken token = default)
@@ -155,7 +129,7 @@ namespace PF.Infrastructure.Recipe
             for (int i = 0; i < this.RecipeNames?.Count; i++)
             {
                 await Task.Delay(1, token);
-                var recipe = await RecipeParam(this.RecipeNames[i], token);
+                var recipe = await RecipeParam(RecipeNames[i]);
                 if (recipe != null)
                 {
                     list.Add(recipe);
@@ -186,47 +160,16 @@ namespace PF.Infrastructure.Recipe
         }
 
 
-        private readonly Dictionary<string, T> _stationRecipeDic = new Dictionary<string, T>();
-
-        public Dictionary<string, T> StationRecipeDic => _stationRecipeDic;
-
-        private string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationRecipe.json";
 
         public abstract Task<bool> RecipeUpdateAsync(T RecipeParam, CancellationToken token = default);
 
         public abstract Task<bool> DownLoadRecipe(T RecipeParam, CancellationToken token = default);
 
-        public virtual Task<bool> ChangedStationRecipe(string StationName, T RecipeParam, CancellationToken token = default)
-        {
-            if (_stationRecipeDic.ContainsKey(StationName))
-            {
-                _stationRecipeDic[StationName] = RecipeParam;
-            }
-            else
-            {
-                _stationRecipeDic.TryAdd(StationName, RecipeParam);
-            }
-            return Task.FromResult(true);
-        }
 
-        public virtual Task<T> GetStationRecipe(string StationName, CancellationToken token = default)
-        {
-            if (_stationRecipeDic.TryGetValue(StationName, out T recipeParam))
-            {
-                return Task.FromResult(recipeParam);
-            }
-            else
-            {
-                return null;
-            }
-        }
 
-        public Task<bool> WriteRecipeManger()
-        {
-            string str = System.Text.Json.JsonSerializer.Serialize(StationRecipeDic);
-            File.WriteAllText(filepath, str);
-            return Task.FromResult(true);
-        }
+
+
+
 
         public Task<T> CopyRecipeAsync(string RecipeName, T RecipeParam, CancellationToken token = default)
         {
@@ -266,5 +209,42 @@ namespace PF.Infrastructure.Recipe
             }
         }
 
+        Task<T> IRecipeService<T>.RecipeParam(string RecipeName, CancellationToken token)
+        {
+            try
+            {
+                string recipefilepath = $"{this.RecipeDirPath}\\{RecipeName}.json";
+                if (!File.Exists(recipefilepath))
+                {
+                    throw new FileNotFoundException($"配方{RecipeName}不存在");
+                }
+                string str = File.ReadAllText(recipefilepath);
+                return Task.FromResult(System.Text.Json.JsonSerializer.Deserialize<T>(str));
+            }
+            catch (Exception ex)
+            {
+                RecipeLogger.Debug(ex.Message, ex);
+                return null;
+            }
+        }
+
+        public Task<T> RecipeParam(string? requestedPpid)
+        {
+            try
+            {
+                string recipefilepath = $"{this.RecipeDirPath}\\{requestedPpid}.json";
+                if (!File.Exists(recipefilepath))
+                {
+                    throw new FileNotFoundException($"配方{requestedPpid}不存在");
+                }
+                string str = File.ReadAllText(recipefilepath);
+                return Task.FromResult(System.Text.Json.JsonSerializer.Deserialize<T>(str));
+            }
+            catch (Exception ex)
+            {
+                RecipeLogger.Debug(ex.Message, ex);
+                return null;
+            }
+        }
     }
 }
