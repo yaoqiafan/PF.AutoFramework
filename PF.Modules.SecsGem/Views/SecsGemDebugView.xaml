@@ -429,6 +429,12 @@
                                     IsChecked="{Binding WaitReply}" />
 
                                 <Button
+                                    Margin="0,0,4,0"
+                                    Command="{Binding SaveMessageCommand}"
+                                    Content="💾 保存报文"
+                                    Style="{StaticResource ToolbarButtonStyle}" />
+
+                                <Button
                                     Command="{Binding UpdateVariablesCommand}"
                                     Content="🔄 更新变量节点"
                                     Style="{StaticResource ToolbarButtonStyle}" />
@@ -483,80 +489,128 @@
 
                         <!--  VID  -->
                         <TabItem Header="📋 VID">
-                            <DataGrid
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                CanUserDeleteRows="False"
-                                GridLinesVisibility="Horizontal"
-                                HeadersVisibility="Column"
-                                ItemsSource="{Binding VidRows}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description}" Header="描述" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="80" Binding="{Binding DataType}" Header="类型" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="120" Binding="{Binding Value}" Header="值" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment}" Header="备注" IsReadOnly="True" />
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
+                                    <Button Margin="0,0,4,0" Command="{Binding AddVidCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button Margin="0,0,4,0" Command="{Binding DeleteVidCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
+                                </WrapPanel>
+                                <DataGrid
+                                    Grid.Row="1"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    CanUserDeleteRows="False"
+                                    GridLinesVisibility="Horizontal"
+                                    HeadersVisibility="Column"
+                                    ItemsSource="{Binding VidRows}"
+                                    SelectedItem="{Binding SelectedVidRow}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
+                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
+                                        <DataGridTextColumn Width="80" Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}" Header="类型" />
+                                        <DataGridTextColumn Width="120" Binding="{Binding Value, UpdateSourceTrigger=LostFocus}" Header="值" />
+                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
                         </TabItem>
 
                         <!--  CEID  -->
                         <TabItem Header="📡 CEID">
-                            <DataGrid
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                CanUserDeleteRows="False"
-                                GridLinesVisibility="Horizontal"
-                                HeadersVisibility="Column"
-                                ItemsSource="{Binding CeidRows}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description}" Header="描述" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs}" Header="关联 ReportID" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment}" Header="备注" IsReadOnly="True" />
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
+                                    <Button Margin="0,0,4,0" Command="{Binding AddCeidCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button Margin="0,0,4,0" Command="{Binding DeleteCeidCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
+                                </WrapPanel>
+                                <DataGrid
+                                    Grid.Row="1"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    CanUserDeleteRows="False"
+                                    GridLinesVisibility="Horizontal"
+                                    HeadersVisibility="Column"
+                                    ItemsSource="{Binding CeidRows}"
+                                    SelectedItem="{Binding SelectedCeidRow}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
+                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
+                                        <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}" Header="关联 ReportID" />
+                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
                         </TabItem>
 
                         <!--  ReportID  -->
                         <TabItem Header="📄 ReportID">
-                            <DataGrid
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                CanUserDeleteRows="False"
-                                GridLinesVisibility="Horizontal"
-                                HeadersVisibility="Column"
-                                ItemsSource="{Binding ReportIdRows}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description}" Header="描述" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs}" Header="关联 VID" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment}" Header="备注" IsReadOnly="True" />
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
+                                    <Button Margin="0,0,4,0" Command="{Binding AddReportIdCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button Margin="0,0,4,0" Command="{Binding DeleteReportIdCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
+                                </WrapPanel>
+                                <DataGrid
+                                    Grid.Row="1"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    CanUserDeleteRows="False"
+                                    GridLinesVisibility="Horizontal"
+                                    HeadersVisibility="Column"
+                                    ItemsSource="{Binding ReportIdRows}"
+                                    SelectedItem="{Binding SelectedReportIdRow}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
+                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
+                                        <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
+                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
                         </TabItem>
 
                         <!--  CommandID  -->
                         <TabItem Header="⌨ CommandID">
-                            <DataGrid
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                CanUserDeleteRows="False"
-                                GridLinesVisibility="Horizontal"
-                                HeadersVisibility="Column"
-                                ItemsSource="{Binding CommandIdRows}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description}" Header="描述" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="80" Binding="{Binding RCMD}" Header="RCMD" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs}" Header="关联 VID" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment}" Header="备注" IsReadOnly="True" />
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
+                                    <Button Margin="0,0,4,0" Command="{Binding AddCommandIdCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button Margin="0,0,4,0" Command="{Binding DeleteCommandIdCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
+                                </WrapPanel>
+                                <DataGrid
+                                    Grid.Row="1"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    CanUserDeleteRows="False"
+                                    GridLinesVisibility="Horizontal"
+                                    HeadersVisibility="Column"
+                                    ItemsSource="{Binding CommandIdRows}"
+                                    SelectedItem="{Binding SelectedCommandIdRow}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
+                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
+                                        <DataGridTextColumn Width="80" Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}" Header="RCMD" />
+                                        <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
+                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
                         </TabItem>
 
                     </TabControl>
@@ -567,10 +621,14 @@
                         Margin="0,6,0,0"
                         HorizontalAlignment="Right">
                         <Button
-                            Width="70"
                             Margin="0,0,4,0"
-                            Command="{Binding ImportParamsCommand}"
-                            Content="导入"
+                            Command="{Binding ImportSystemParamCommand}"
+                            Content="📂 导入系统参数(JSON)"
+                            Style="{StaticResource ToolbarButtonStyle}" />
+                        <Button
+                            Margin="0,0,4,0"
+                            Command="{Binding ImportValidateParamCommand}"
+                            Content="📊 导入变量参数(Excel)"
                             Style="{StaticResource ToolbarButtonStyle}" />
                         <Button
                             Width="70"
@@ -593,7 +651,6 @@
                 <Grid Margin="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
                     <!--  区域 A：Windows 服务管控  -->
@@ -657,170 +714,6 @@
                                     Content="🔄 刷新状态"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                             </WrapPanel>
-                        </Grid>
-                    </GroupBox>
-
-                    <!--  区域 B：数据库管理  -->
-                    <GroupBox Grid.Row="1" Header="🗄 数据库管理">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <!--  导入按钮  -->
-                            <WrapPanel Grid.Row="0" Margin="4,4,4,6">
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding ImportSystemParamCommand}"
-                                    Content="📂 导入系统参数 (JSON)"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding ImportValidateParamCommand}"
-                                    Content="📊 导入变量参数 (Excel)"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding ImportFormulaParamCommand}"
-                                    Content="📋 导入配方参数 (Excel)"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Command="{Binding RefreshDbViewCommand}"
-                                    Content="🔄 从数据库刷新"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
-                            </WrapPanel>
-
-                            <!--  数据库数据查看 TabControl  -->
-                            <TabControl Grid.Row="1">
-
-                                <TabItem Header="系统参数">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbSystemRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="160" Binding="{Binding Name}" Header="名称" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Value}" Header="值" />
-                                            <DataGridTextColumn Width="80" Binding="{Binding DataType}" Header="类型" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="说明" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                                <TabItem Header="CommandID">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbCommandIdRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="描述" />
-                                            <DataGridTextColumn Width="80" Binding="{Binding RCMD}" Header="RCMD" />
-                                            <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs}" Header="关联 VID" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Comment}" Header="备注" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                                <TabItem Header="CEID">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbCeidRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="描述" />
-                                            <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs}" Header="关联 ReportID" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Comment}" Header="备注" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                                <TabItem Header="ReportID">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbReportIdRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="描述" />
-                                            <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs}" Header="关联 VID" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Comment}" Header="备注" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                                <TabItem Header="VID">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbVidRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="60" Binding="{Binding Code}" Header="Code" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="描述" />
-                                            <DataGridTextColumn Width="80" Binding="{Binding DataType}" Header="类型" />
-                                            <DataGridTextColumn Width="120" Binding="{Binding Value}" Header="值" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Comment}" Header="备注" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                                <TabItem Header="主动命令">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbIncentiveRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="80" Binding="{Binding Name}" Header="Key" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Value}" Header="命令名称" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="ID" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                                <TabItem Header="应答命令">
-                                    <DataGrid
-                                        AutoGenerateColumns="False"
-                                        CanUserAddRows="False"
-                                        CanUserDeleteRows="False"
-                                        GridLinesVisibility="Horizontal"
-                                        HeadersVisibility="Column"
-                                        IsReadOnly="True"
-                                        ItemsSource="{Binding DbResponseRows}">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Width="80" Binding="{Binding Name}" Header="Key" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Value}" Header="命令名称" />
-                                            <DataGridTextColumn Width="*" Binding="{Binding Description}" Header="ID" />
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </TabItem>
-
-                            </TabControl>
                         </Grid>
                     </GroupBox>
 
