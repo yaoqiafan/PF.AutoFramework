@@ -168,12 +168,12 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
             p.Add("VariableCode",       _variableCode);
             p.Add("VariableDescription", _variableDescription);
             p.Add("Value",              _value);
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, p));
+            RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters=p });
         }
 
         private void ExecuteCancel()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
         }
     }
 }

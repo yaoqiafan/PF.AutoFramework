@@ -60,12 +60,12 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
             if (SelectedVidItem == null) return;
             var p = new DialogParameters();
             p.Add("SelectedVid", SelectedVidItem.Entity);
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, p));
+            RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters=p });
         }
 
         private void ExecuteCancel()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
         }
 
         // ──────────────────────────────────────────────
