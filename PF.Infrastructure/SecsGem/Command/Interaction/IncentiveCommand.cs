@@ -110,12 +110,20 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
         }
 
         /// <summary>
-        /// 移除命令
+        /// 移除命令（支持按 ID 或按 Key 查找）
         /// </summary>
-        public Task<bool> RemoveCommand(string key)
+        public Task<bool> RemoveCommand(string idOrKey)
         {
-        
-            return Task.FromResult(_commandDictionary.TryRemove(key, out _));
+            // 先尝试直接按字典 Key (S{n}F{n}) 删除
+            if (_commandDictionary.TryRemove(idOrKey, out _))
+                return Task.FromResult(true);
+
+            // 回退：按命令 ID 扫描删除
+            var pair = _commandDictionary.FirstOrDefault(kvp => kvp.Value.ID == idOrKey);
+            if (pair.Value != null)
+                return Task.FromResult(_commandDictionary.TryRemove(pair.Key, out _));
+
+            return Task.FromResult(false);
         }
 
         /// <summary>

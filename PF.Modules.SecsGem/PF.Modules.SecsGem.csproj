@@ -6,6 +6,7 @@
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\PF.CommonTools\PF.CommonTools.csproj" />
 	  <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	</ItemGroup>
