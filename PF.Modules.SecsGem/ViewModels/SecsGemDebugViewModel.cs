@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using PF.CommonTools.ServeTool;
+using System.Windows.Threading;
 using System.Collections.Concurrent;
 using PF.Core.Entities.SecsGem.Command;
 using PF.Core.Entities.SecsGem.Message;
@@ -38,6 +39,7 @@ namespace PF.Modules.SecsGem.ViewModels
     {
         private readonly ISecsGemManger _manager;
         private readonly ISecsGemDataBase _db;
+        private readonly DispatcherTimer _connectionStatusTimer;
 
         // ──────────────────────────────────────────────
         // 构造
@@ -47,6 +49,14 @@ namespace PF.Modules.SecsGem.ViewModels
         {
             _manager = manager;
             _db = db;
+
+            _connectionStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            _connectionStatusTimer.Tick += (_, _) =>
+            {
+                bool actual = _manager.IsConnected;
+                if (actual != IsConnected)
+                    IsConnected = actual;
+            };
 
             IncentiveCommandsTree = new ObservableCollection<CommandGroupViewModel>();
             ResponseCommandsTree = new ObservableCollection<CommandGroupViewModel>();
@@ -365,8 +375,9 @@ namespace PF.Modules.SecsGem.ViewModels
         {
             base.OnNavigatedTo(navigationContext);
 
-            // 同步连接状态
+            // 同步连接状态并启动轮询定时器
             IsConnected = _manager.IsConnected;
+            _connectionStatusTimer.Start();
 
             // 订阅报文接收事件
             _manager.SecsGemClient.MessageReceived += OnMessageReceived;
@@ -384,6 +395,7 @@ namespace PF.Modules.SecsGem.ViewModels
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
+            _connectionStatusTimer.Stop();
             _manager.SecsGemClient.MessageReceived -= OnMessageReceived;
             _manager.ParamsManager.FormulaValidateError -= OnFormulaValidateError;
         }
@@ -391,6 +403,7 @@ namespace PF.Modules.SecsGem.ViewModels
         public override void Destroy()
         {
             base.Destroy();
+            _connectionStatusTimer.Stop();
             _manager.SecsGemClient.MessageReceived -= OnMessageReceived;
             _manager.ParamsManager.FormulaValidateError -= OnFormulaValidateError;
         }
