@@ -1,15 +1,20 @@
 using Microsoft.Win32;
+using PF.CommonTools.ServeTool;
 using PF.Core.Entities.SecsGem.Command;
 using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params;
+using PF.Core.Entities.SecsGem.Params.FormulaParam;
 using PF.Core.Entities.SecsGem.Params.ValidateParam;
 using PF.Core.Enums;
 using PF.Core.Interfaces.SecsGem;
+using PF.Core.Interfaces.SecsGem.Command;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Core.Interfaces.SecsGem.Params;
 using PF.Infrastructure.SecsGem.Tools;
-using PF.SecsGem.DataBase.Entities.Variable;
 using PF.Modules.SecsGem.Views;
+using PF.SecsGem.DataBase.Entities.Command;
+using PF.SecsGem.DataBase.Entities.System;
+using PF.SecsGem.DataBase.Entities.Variable;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using Prism.Navigation.Regions;
@@ -17,10 +22,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.Versioning;
+using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using PF.Core.Interfaces.SecsGem.Command;
 
 namespace PF.Modules.SecsGem.ViewModels
 {
@@ -47,6 +53,19 @@ namespace PF.Modules.SecsGem.ViewModels
             TransactionLogs = new ObservableCollection<TransactionLogEntry>();
             ParamRows = new ObservableCollection<ParamRowViewModel>();
 
+            VidRows = new ObservableCollection<VidRowViewModel>();
+            CeidRows = new ObservableCollection<CeidRowViewModel>();
+            ReportIdRows = new ObservableCollection<ReportIdRowViewModel>();
+            CommandIdRows = new ObservableCollection<CommandIdRowViewModel>();
+
+            DbSystemRows = new ObservableCollection<ParamRowViewModel>();
+            DbCommandIdRows = new ObservableCollection<CommandIdRowViewModel>();
+            DbCeidRows = new ObservableCollection<CeidRowViewModel>();
+            DbReportIdRows = new ObservableCollection<ReportIdRowViewModel>();
+            DbVidRows = new ObservableCollection<VidRowViewModel>();
+            DbIncentiveRows = new ObservableCollection<ParamRowViewModel>();
+            DbResponseRows = new ObservableCollection<ParamRowViewModel>();
+
             InitializeCommand = new DelegateCommand(async () => await ExecuteInitializeAsync(), () => !IsInitializing)
                 .ObservesProperty(() => IsInitializing);
 
@@ -69,11 +88,21 @@ namespace PF.Modules.SecsGem.ViewModels
 
             ImportParamsCommand = new DelegateCommand(async () => await ExecuteImportParamsAsync());
             ExportParamsCommand = new DelegateCommand(async () => await ExecuteExportParamsAsync());
-            SaveParamCommand = new DelegateCommand(ExecuteSaveParam);
+            SaveParamCommand = new DelegateCommand(async () => await ExecuteSaveParamAsync());
             ClearLogCommand = new DelegateCommand(() => TransactionLogs.Clear());
 
             SelectCommandLeafCommand = new DelegateCommand<CommandLeafViewModel>(OnCommandLeafSelected);
             AddNewCommandCommand = new DelegateCommand(ExecuteAddNewCommand);
+
+            RefreshServiceStatusCommand = new DelegateCommand(ExecuteRefreshServiceStatus);
+            InstallServiceCommand = new DelegateCommand(ExecuteInstallService);
+            UninstallServiceCommand = new DelegateCommand(async () => await ExecuteUninstallServiceAsync());
+            StartServiceCommand = new DelegateCommand(ExecuteStartService);
+
+            ImportSystemParamCommand = new DelegateCommand(async () => await ExecuteImportSystemParamToDbAsync());
+            ImportValidateParamCommand = new DelegateCommand(async () => await ExecuteImportValidateParamToDbAsync());
+            ImportFormulaParamCommand = new DelegateCommand(async () => await ExecuteImportFormulaParamToDbAsync());
+            RefreshDbViewCommand = new DelegateCommand(async () => await ExecuteRefreshDbViewAsync());
         }
 
         // ──────────────────────────────────────────────
@@ -176,6 +205,22 @@ namespace PF.Modules.SecsGem.ViewModels
             }
         }
 
+        /// <summary>
+        /// 参数管理 Tab 内嵌 TabControl 的选中索引：
+        /// 0=系统参数, 1=VID, 2=CEID, 3=ReportID, 4=CommandID
+        /// </summary>
+        private int _selectedParamTabIndex;
+        public int SelectedParamTabIndex
+        {
+            get => _selectedParamTabIndex;
+            set
+            {
+                SetProperty(ref _selectedParamTabIndex, value);
+                // 0 → System(0), 1~4 → Validate(1)
+                SelectedParamIndex = value == 0 ? 0 : 1;
+            }
+        }
+
         public ObservableCollection<ParamRowViewModel> ParamRows { get; }
 
         // ──────────────────────────────────────────────
@@ -195,6 +240,63 @@ namespace PF.Modules.SecsGem.ViewModels
         // 命令
         // ──────────────────────────────────────────────
 
+        // ──────────────────────────────────────────────
+        // 参数分类视图集合
+        // ──────────────────────────────────────────────
+
+        public ObservableCollection<VidRowViewModel> VidRows { get; }
+        public ObservableCollection<CeidRowViewModel> CeidRows { get; }
+        public ObservableCollection<ReportIdRowViewModel> ReportIdRows { get; }
+        public ObservableCollection<CommandIdRowViewModel> CommandIdRows { get; }
+
+        // ──────────────────────────────────────────────
+        // 外围服务管理：Windows 服务状态
+        // ──────────────────────────────────────────────
+
+        private string _serviceStatusText = "未知";
+        public string ServiceStatusText
+        {
+            get => _serviceStatusText;
+            set => SetProperty(ref _serviceStatusText, value);
+        }
+
+        private string _serviceStatusColor = "#9E9E9E";
+        public string ServiceStatusColor
+        {
+            get => _serviceStatusColor;
+            set => SetProperty(ref _serviceStatusColor, value);
+        }
+
+        private string _serviceExePath = string.Empty;
+        public string ServiceExePath
+        {
+            get => _serviceExePath;
+            set => SetProperty(ref _serviceExePath, value);
+        }
+
+        private string _serviceNameForManagement = "SecsGemService";
+        public string ServiceNameForManagement
+        {
+            get => _serviceNameForManagement;
+            set => SetProperty(ref _serviceNameForManagement, value);
+        }
+
+        // ──────────────────────────────────────────────
+        // 外围服务管理：数据库视图集合
+        // ──────────────────────────────────────────────
+
+        public ObservableCollection<ParamRowViewModel> DbSystemRows { get; }
+        public ObservableCollection<CommandIdRowViewModel> DbCommandIdRows { get; }
+        public ObservableCollection<CeidRowViewModel> DbCeidRows { get; }
+        public ObservableCollection<ReportIdRowViewModel> DbReportIdRows { get; }
+        public ObservableCollection<VidRowViewModel> DbVidRows { get; }
+        public ObservableCollection<ParamRowViewModel> DbIncentiveRows { get; }
+        public ObservableCollection<ParamRowViewModel> DbResponseRows { get; }
+
+        // ──────────────────────────────────────────────
+        // 命令
+        // ──────────────────────────────────────────────
+
         public DelegateCommand InitializeCommand { get; }
         public DelegateCommand ConnectCommand { get; }
         public DelegateCommand DisconnectCommand { get; }
@@ -209,6 +311,16 @@ namespace PF.Modules.SecsGem.ViewModels
         public DelegateCommand ClearLogCommand { get; }
         public DelegateCommand<CommandLeafViewModel> SelectCommandLeafCommand { get; }
         public DelegateCommand AddNewCommandCommand { get; }
+
+        public DelegateCommand RefreshServiceStatusCommand { get; }
+        public DelegateCommand InstallServiceCommand { get; }
+        public DelegateCommand UninstallServiceCommand { get; }
+        public DelegateCommand StartServiceCommand { get; }
+
+        public DelegateCommand ImportSystemParamCommand { get; }
+        public DelegateCommand ImportValidateParamCommand { get; }
+        public DelegateCommand ImportFormulaParamCommand { get; }
+        public DelegateCommand RefreshDbViewCommand { get; }
 
         // ──────────────────────────────────────────────
         // 导航生命周期
@@ -458,6 +570,7 @@ namespace PF.Modules.SecsGem.ViewModels
                 }
 
                 await NPOIHelper.LoadValidateFromExcel(dlg.FileName, validateConfig);
+                await SaveValidateToDbAsync(validateConfig);
                 LoadParamRows(_selectedParamIndex);
                 await CheckDbEmptyAsync();
                 AppendLog(null, $"参数导入完成: {dlg.FileName}", isSystem: true);
@@ -505,7 +618,7 @@ namespace PF.Modules.SecsGem.ViewModels
             }
         }
 
-        private void ExecuteSaveParam()
+        private async Task ExecuteSaveParamAsync()
         {
             var paramType = _selectedParamIndex switch
             {
@@ -514,12 +627,33 @@ namespace PF.Modules.SecsGem.ViewModels
                 _ => ParamType.System
             };
 
-            // 如果是 System 参数，先将编辑中的 ParamRows 写回 SystemParam 对象
-            if (paramType == ParamType.System)
-                ApplySystemParamEdits();
+            try
+            {
+                if (paramType == ParamType.System)
+                {
+                    ApplySystemParamEdits();
+                    _manager.ParamsManager.SaveParam(paramType);
+                    var sys = _manager.ParamsManager.GetParamOrDefault<SecsGemSystemParam>(ParamType.System, null);
+                    if (sys != null) await SaveSystemToDbAsync(sys);
+                }
+                else if (paramType == ParamType.Validate)
+                {
+                    _manager.ParamsManager.SaveParam(paramType);
+                    var cfg = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null);
+                    if (cfg != null) await SaveValidateToDbAsync(cfg);
+                }
+                else if (paramType == ParamType.Formula)
+                {
+                    _manager.ParamsManager.SaveParam(paramType);
+                    await SaveFormulaToDbAsync();
+                }
 
-            _manager.ParamsManager.SaveParam(paramType);
-            AppendLog(null, $"参数已保存 ({paramType})", isSystem: true);
+                AppendLog(null, $"参数已保存 ({paramType})", isSystem: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"保存参数失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // ──────────────────────────────────────────────
@@ -636,7 +770,8 @@ namespace PF.Modules.SecsGem.ViewModels
                     ? _manager.CommandManager.IncentiveCommands
                     : _manager.CommandManager.ResponseCommands;
 
-                bool removed = await commandStore.RemoveCommand(vm.Command.ID);
+                // 使用 Key (S{n}F{n}) 从内存字典中删除
+                bool removed = await commandStore.RemoveCommand(vm.Command.Key);
                 if (!removed)
                 {
                     await MessageService.ShowMessageAsync(
@@ -644,6 +779,10 @@ namespace PF.Modules.SecsGem.ViewModels
                         "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
+
+                // 从数据库删除
+                bool isIncentive = tree == IncentiveCommandsTree;
+                await PersistRemoveCommandFromDbAsync(vm.Command.ID, isIncentive);
 
                 Application.Current?.Dispatcher.Invoke(() =>
                 {
@@ -694,6 +833,9 @@ namespace PF.Modules.SecsGem.ViewModels
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
+            // 持久化到数据库
+            await PersistAddCommandToDbAsync(newCommand, function % 2 == 1);
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
@@ -896,7 +1038,80 @@ namespace PF.Modules.SecsGem.ViewModels
                         Description = "加载参数失败"
                     });
                 }
+
+                // 同步刷新分类集合
+                var cfg = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null);
+                LoadVidRows(cfg);
+                LoadCeidRows(cfg);
+                LoadReportIdRows(cfg);
+                LoadCommandIdRows(cfg);
             });
+        }
+
+        private void LoadVidRows(ValidateConfiguration cfg)
+        {
+            VidRows.Clear();
+            if (cfg == null) return;
+            foreach (var vid in cfg.VIDS?.Values ?? Enumerable.Empty<VID>())
+            {
+                VidRows.Add(new VidRowViewModel
+                {
+                    Code = vid.ID,
+                    Description = vid.Description,
+                    DataType = vid.DataType.ToString(),
+                    Value = vid.Value?.ToString() ?? string.Empty,
+                    Comment = vid.Comment ?? string.Empty
+                });
+            }
+        }
+
+        private void LoadCeidRows(ValidateConfiguration cfg)
+        {
+            CeidRows.Clear();
+            if (cfg == null) return;
+            foreach (var ceid in cfg.CEIDS?.Values ?? Enumerable.Empty<CEID>())
+            {
+                CeidRows.Add(new CeidRowViewModel
+                {
+                    Code = ceid.ID,
+                    Description = ceid.Description,
+                    LinkReportIDs = string.Join(", ", ceid.LinkReportID),
+                    Comment = ceid.Comment ?? string.Empty
+                });
+            }
+        }
+
+        private void LoadReportIdRows(ValidateConfiguration cfg)
+        {
+            ReportIdRows.Clear();
+            if (cfg == null) return;
+            foreach (var report in cfg.ReportIDS?.Values ?? Enumerable.Empty<ReportID>())
+            {
+                ReportIdRows.Add(new ReportIdRowViewModel
+                {
+                    Code = report.ID,
+                    Description = report.Description,
+                    LinkVIDs = string.Join(", ", report.LinkVID),
+                    Comment = report.Comment ?? string.Empty
+                });
+            }
+        }
+
+        private void LoadCommandIdRows(ValidateConfiguration cfg)
+        {
+            CommandIdRows.Clear();
+            if (cfg == null) return;
+            foreach (var cmd in cfg.CommandIDS?.Values ?? Enumerable.Empty<CommandID>())
+            {
+                CommandIdRows.Add(new CommandIdRowViewModel
+                {
+                    Code = cmd.ID,
+                    Description = cmd.Description,
+                    RCMD = cmd.RCMD ?? string.Empty,
+                    LinkVIDs = string.Join(", ", cmd.LinkVID),
+                    Comment = cmd.Comment ?? string.Empty
+                });
+            }
         }
 
         private void LoadSystemParamRows()
@@ -1115,6 +1330,391 @@ namespace PF.Modules.SecsGem.ViewModels
                 SmlText = msg.ToString(),
                 IsIncoming = msg.IsIncoming,
             };
+        }
+
+        // ──────────────────────────────────────────────
+        // 数据库持久化辅助方法
+        // ──────────────────────────────────────────────
+
+        private async Task PersistAddCommandToDbAsync(SFCommand cmd, bool isIncentive)
+        {
+            try
+            {
+                if (isIncentive)
+                {
+                    var repo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    await repo.AddAsync(cmd.GetIncentiveEntityFormSFCommand());
+                }
+                else
+                {
+                    var repo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    await repo.AddAsync(cmd.GetResponseEntityFormSFCommand());
+                }
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                AppendLog(null, $"命令持久化失败: {ex.Message}", isSystem: true);
+            }
+        }
+
+        private async Task PersistRemoveCommandFromDbAsync(string cmdId, bool isIncentive)
+        {
+            try
+            {
+                if (isIncentive)
+                {
+                    var repo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    var entity = (await repo.FindAsync(e => e.ID == cmdId)).FirstOrDefault();
+                    if (entity != null)
+                    {
+                        await repo.RemoveAsync(entity);
+                        await _db.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    var repo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    var entity = (await repo.FindAsync(e => e.ID == cmdId)).FirstOrDefault();
+                    if (entity != null)
+                    {
+                        await repo.RemoveAsync(entity);
+                        await _db.SaveChangesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog(null, $"命令删除持久化失败: {ex.Message}", isSystem: true);
+            }
+        }
+
+        private async Task SaveValidateToDbAsync(ValidateConfiguration cfg)
+        {
+            try
+            {
+                var vidRepo = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
+                var allVids = await vidRepo.GetAllAsync();
+                await vidRepo.RemoveRangeAsync(allVids);
+                await vidRepo.AddRangeAsync(cfg.VIDS.Values.Select(v => v.ToEntity()));
+
+                var ceidRepo = _db.GetRepository<CEIDEntity>(SecsDbSet.CEIDs);
+                var allCeids = await ceidRepo.GetAllAsync();
+                await ceidRepo.RemoveRangeAsync(allCeids);
+                await ceidRepo.AddRangeAsync(cfg.CEIDS.Values.Select(c => c.ToEntity()));
+
+                var reportRepo = _db.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs);
+                var allReports = await reportRepo.GetAllAsync();
+                await reportRepo.RemoveRangeAsync(allReports);
+                await reportRepo.AddRangeAsync(cfg.ReportIDS.Values.Select(r => r.ToEntity()));
+
+                var cmdRepo = _db.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs);
+                var allCmds = await cmdRepo.GetAllAsync();
+                await cmdRepo.RemoveRangeAsync(allCmds);
+                await cmdRepo.AddRangeAsync(cfg.CommandIDS.Values.Select(c => c.ToEntity()));
+
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                AppendLog(null, $"Validate 参数持久化失败: {ex.Message}", isSystem: true);
+            }
+        }
+
+        private async Task SaveSystemToDbAsync(SecsGemSystemParam sys)
+        {
+            try
+            {
+                var repo = _db.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
+                var all = await repo.GetAllAsync();
+                await repo.RemoveRangeAsync(all);
+                await repo.AddAsync(sys.ToEntity());
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                AppendLog(null, $"System 参数持久化失败: {ex.Message}", isSystem: true);
+            }
+        }
+
+        private async Task SaveFormulaToDbAsync()
+        {
+            try
+            {
+                var formula = _manager.CommandManager.FormulaConfiguration;
+                if (formula == null) return;
+
+                var incRepo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                var allInc = await incRepo.GetAllAsync();
+                await incRepo.RemoveRangeAsync(allInc);
+                await incRepo.AddRangeAsync(formula.IncentiveCommandDictionary.Values
+                    .Select(c => c.GetIncentiveEntityFormSFCommand()));
+
+                var resRepo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                var allRes = await resRepo.GetAllAsync();
+                await resRepo.RemoveRangeAsync(allRes);
+                await resRepo.AddRangeAsync(formula.ResponseCommandDictionary.Values
+                    .Select(c => c.GetResponseEntityFormSFCommand()));
+
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                AppendLog(null, $"Formula 参数持久化失败: {ex.Message}", isSystem: true);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // 外围服务管理：Windows 服务操作
+        // ──────────────────────────────────────────────
+
+        [SupportedOSPlatform("windows")]
+        private void ExecuteRefreshServiceStatus()
+        {
+            try
+            {
+                bool installed = ServerMangerTool.IsWindowsServiceInstalled(ServiceNameForManagement);
+                if (!installed)
+                {
+                    ServiceStatusText = "未安装";
+                    ServiceStatusColor = "#9E9E9E";
+                    return;
+                }
+                bool running = ServerMangerTool.IsServiceRunning(ServiceNameForManagement);
+                ServiceStatusText = running ? "运行中" : "已停止";
+                ServiceStatusColor = running ? "#4CAF50" : "#F44336";
+            }
+            catch (Exception ex)
+            {
+                ServiceStatusText = $"查询失败: {ex.Message}";
+                ServiceStatusColor = "#9E9E9E";
+            }
+        }
+
+        [SupportedOSPlatform("windows")]
+        private void ExecuteInstallService()
+        {
+            if (string.IsNullOrWhiteSpace(ServiceExePath))
+            {
+                MessageBox.Show("请先填写服务 EXE 文件路径。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!ServerMangerTool.IsAdministrator())
+            {
+                MessageBox.Show("需要管理员权限才能安装服务，请以管理员身份运行程序。", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            bool ok = ServerMangerTool.InstallService(ServiceNameForManagement, ServiceNameForManagement, ServiceExePath);
+            AppendLog(null, ok ? $"服务 [{ServiceNameForManagement}] 安装成功" : $"服务 [{ServiceNameForManagement}] 安装失败", isSystem: true);
+            ExecuteRefreshServiceStatus();
+        }
+
+        [SupportedOSPlatform("windows")]
+        private async Task ExecuteUninstallServiceAsync()
+        {
+            var confirm = await MessageService.ShowMessageAsync(
+                $"确定要卸载服务 [{ServiceNameForManagement}] 吗？",
+                "警告", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != ButtonResult.Yes) return;
+
+            if (!ServerMangerTool.IsAdministrator())
+            {
+                MessageBox.Show("需要管理员权限才能卸载服务，请以管理员身份运行程序。", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 若服务正在运行，先停止
+            try
+            {
+                if (ServerMangerTool.IsServiceRunning(ServiceNameForManagement))
+                {
+                    using var sc = new ServiceController(ServiceNameForManagement);
+                    sc.Stop();
+                    sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
+                }
+            }
+            catch { /* 停止失败时仍尝试卸载 */ }
+
+            bool ok = ServerMangerTool.UninstallService(ServiceNameForManagement);
+            AppendLog(null, ok ? $"服务 [{ServiceNameForManagement}] 卸载成功" : $"服务 [{ServiceNameForManagement}] 卸载失败", isSystem: true);
+            ExecuteRefreshServiceStatus();
+        }
+
+        [SupportedOSPlatform("windows")]
+        private void ExecuteStartService()
+        {
+            if (!ServerMangerTool.IsAdministrator())
+            {
+                MessageBox.Show("需要管理员权限才能启动服务，请以管理员身份运行程序。", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            bool ok = ServerMangerTool.StartWindowsService(ServiceNameForManagement);
+            AppendLog(null, ok ? $"服务 [{ServiceNameForManagement}] 已启动" : $"服务 [{ServiceNameForManagement}] 启动失败", isSystem: true);
+            ExecuteRefreshServiceStatus();
+        }
+
+        // ──────────────────────────────────────────────
+        // 外围服务管理：数据库导入操作
+        // ──────────────────────────────────────────────
+
+        private async Task ExecuteImportSystemParamToDbAsync()
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "导入系统参数 (JSON)",
+                Filter = "JSON 文件 (*.json)|*.json"
+            };
+            if (dlg.ShowDialog() != true) return;
+            try
+            {
+                var param = new SecsGemSystemParam();
+                if (await param.Load(dlg.FileName))
+                {
+                    _manager.ParamsManager.SetParam(ParamType.System, param);
+                    await SaveSystemToDbAsync(param);
+                    await ExecuteRefreshDbViewAsync();
+                    AppendLog(null, $"系统参数导入完成: {dlg.FileName}", isSystem: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ExecuteImportValidateParamToDbAsync()
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "导入变量参数 (Excel)",
+                Filter = "Excel 文件 (*.xlsx;*.xls)|*.xlsx;*.xls"
+            };
+            if (dlg.ShowDialog() != true) return;
+            try
+            {
+                var cfg = new ValidateConfiguration();
+                await NPOIHelper.LoadValidateFromExcel(dlg.FileName, cfg);
+                _manager.ParamsManager.SetParam(ParamType.Validate, cfg);
+                await SaveValidateToDbAsync(cfg);
+                LoadParamRows(_selectedParamIndex);
+                await ExecuteRefreshDbViewAsync();
+                AppendLog(null, $"变量参数导入完成: {dlg.FileName}", isSystem: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ExecuteImportFormulaParamToDbAsync()
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "导入配方参数 (Excel)",
+                Filter = "Excel 文件 (*.xlsx;*.xls)|*.xlsx;*.xls"
+            };
+            if (dlg.ShowDialog() != true) return;
+            try
+            {
+                var formula = _manager.CommandManager.FormulaConfiguration ?? new FormulaConfiguration();
+                await NPOIHelper.LoadIncentiveCommandFromExcel(dlg.FileName, formula.IncentiveCommandDictionary);
+                await NPOIHelper.LoadResponseCommandFromExcel(dlg.FileName, formula.ResponseCommandDictionary);
+                await _manager.CommandManager.UPDataCommondCollection(formula);
+                await SaveFormulaToDbAsync();
+                await LoadCommandTreesAsync();
+                await ExecuteRefreshDbViewAsync();
+                AppendLog(null, $"配方参数导入完成: {dlg.FileName}", isSystem: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ExecuteRefreshDbViewAsync()
+        {
+            try
+            {
+                var sysRepo = _db.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
+                var sysEntities = await sysRepo.GetAllAsync();
+
+                var cmdIdRepo = _db.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs);
+                var cmdIdEntities = await cmdIdRepo.GetAllAsync();
+
+                var ceidRepo = _db.GetRepository<CEIDEntity>(SecsDbSet.CEIDs);
+                var ceidEntities = await ceidRepo.GetAllAsync();
+
+                var reportRepo = _db.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs);
+                var reportEntities = await reportRepo.GetAllAsync();
+
+                var vidRepo = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
+                var vidEntities = await vidRepo.GetAllAsync();
+
+                var incRepo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                var incEntities = await incRepo.GetAllAsync();
+
+                var resRepo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                var resEntities = await resRepo.GetAllAsync();
+
+                Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    DbSystemRows.Clear();
+                    foreach (var e in sysEntities)
+                    {
+                        var p = e.ToParam();
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = p.ServiceName, DataType = "String", Description = "服务名称" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "IPAddress", Value = p.IPAddress, DataType = "String", Description = "IP 地址" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "Port", Value = p.Port.ToString(), DataType = "Int", Description = "端口" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "DeviceID", Value = p.DeviceID, DataType = "String", Description = "设备ID" });
+                    }
+
+                    DbCommandIdRows.Clear();
+                    foreach (var e in cmdIdEntities)
+                    {
+                        var c = e.ToCommandID();
+                        DbCommandIdRows.Add(new CommandIdRowViewModel { Code = c.ID, Description = c.Description, RCMD = c.RCMD, LinkVIDs = string.Join(", ", c.LinkVID), Comment = c.Comment ?? string.Empty });
+                    }
+
+                    DbCeidRows.Clear();
+                    foreach (var e in ceidEntities)
+                    {
+                        var c = e.ToCEID();
+                        DbCeidRows.Add(new CeidRowViewModel { Code = c.ID, Description = c.Description, LinkReportIDs = string.Join(", ", c.LinkReportID), Comment = c.Comment ?? string.Empty });
+                    }
+
+                    DbReportIdRows.Clear();
+                    foreach (var e in reportEntities)
+                    {
+                        var r = e.ToReportID();
+                        DbReportIdRows.Add(new ReportIdRowViewModel { Code = r.ID, Description = r.Description, LinkVIDs = string.Join(", ", r.LinkVID), Comment = r.Comment ?? string.Empty });
+                    }
+
+                    DbVidRows.Clear();
+                    foreach (var e in vidEntities)
+                    {
+                        var v = e.ToVID();
+                        DbVidRows.Add(new VidRowViewModel { Code = v.ID, Description = v.Description, DataType = v.DataType.ToString(), Value = v.Value?.ToString() ?? string.Empty, Comment = v.Comment ?? string.Empty });
+                    }
+
+                    DbIncentiveRows.Clear();
+                    foreach (var e in incEntities)
+                    {
+                        var c = e.GetSFCommandFormIncentiveEntity();
+                        DbIncentiveRows.Add(new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Incentive", Description = c.ID });
+                    }
+
+                    DbResponseRows.Clear();
+                    foreach (var e in resEntities)
+                    {
+                        var c = e.GetSFCommandFormResponseEntity();
+                        DbResponseRows.Add(new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Response", Description = c.ID });
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                AppendLog(null, $"数据库视图刷新失败: {ex.Message}", isSystem: true);
+            }
         }
     }
 }

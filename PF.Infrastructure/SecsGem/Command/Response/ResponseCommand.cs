@@ -120,16 +120,27 @@ namespace PF.Infrastructure.SecsGem.Command.Response
         }
 
         /// <summary>
-        /// 移除命令
+        /// 移除命令（支持按 ID 或按 Key 查找）
         /// </summary>
-        public Task<bool> RemoveCommand(string key)
+        public Task<bool> RemoveCommand(string idOrKey)
         {
-            var removed = _commandDictionary.TryRemove(key, out _);
-            if (removed)
+            // 先尝试直接按字典 Key (S{n}F{n}) 删除
+            if (_commandDictionary.TryRemove(idOrKey, out _))
             {
-                Console.WriteLine($"移除应答命令成功: {key}");
+                Console.WriteLine($"移除应答命令成功: {idOrKey}");
+                return Task.FromResult(true);
             }
-            return Task.FromResult(removed);
+
+            // 回退：按命令 ID 扫描删除
+            var pair = _commandDictionary.FirstOrDefault(kvp => kvp.Value.ID == idOrKey);
+            if (pair.Value != null)
+            {
+                bool removed = _commandDictionary.TryRemove(pair.Key, out _);
+                if (removed) Console.WriteLine($"移除应答命令成功: {pair.Key}");
+                return Task.FromResult(removed);
+            }
+
+            return Task.FromResult(false);
         }
 
         /// <summary>
