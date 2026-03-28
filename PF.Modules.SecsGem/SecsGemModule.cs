@@ -1,21 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using PF.Core.Constants;
-using PF.Core.Interfaces.Communication.TCP;
 using PF.Core.Interfaces.SecsGem;
-using PF.Core.Interfaces.SecsGem.Command;
-using PF.Core.Interfaces.SecsGem.Communication;
 using PF.Core.Interfaces.SecsGem.DataBase;
-using PF.Core.Interfaces.SecsGem.Params;
-using PF.Infrastructure.Communication.TCP;
-using PF.Infrastructure.SecsGem;
-using PF.Infrastructure.SecsGem.Command;
-using PF.Infrastructure.SecsGem.Incentive;
-using PF.Infrastructure.SecsGem.Param;
-using PF.Infrastructure.SecsGem.Tools;
+using PF.Modules.SecsGem.Dialogs;
+using PF.Modules.SecsGem.Dialogs.ViewModels;
+using PF.Modules.SecsGem.ViewModels;
 using PF.Modules.SecsGem.Views;
-using PF.SecsGem.DataBase;
-using Prism.Ioc;
-using Prism.Modularity;
+using PF.UI.Infrastructure.Dialog;
+using PF.UI.Infrastructure.Dialog.ViewModels;
+using PF.UI.Infrastructure.Navigation;
+using System.Reflection;
 
 namespace PF.Modules.SecsGem
 {
@@ -23,28 +16,25 @@ namespace PF.Modules.SecsGem
     {
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            var filePath = System.IO.Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemConfig.db");
 
-            var dbContextOptions = new DbContextOptionsBuilder<SecsGemDbContext>()
-                .UseSqlite($"Data Source={filePath}")
-                .Options;
-            containerRegistry.RegisterInstance<DbContextOptions<SecsGemDbContext>>(dbContextOptions);
-            containerRegistry.RegisterSingleton<SecsGemDbContext>();
 
-            containerRegistry.RegisterSingleton<ISecsGemDataBase, SecsGemDataBaseManger>();
-            containerRegistry.RegisterSingleton<ICommandManager, SecsGemCommandManger>();
-            containerRegistry.RegisterSingleton<SecsGemMessageProcessor>();
-            containerRegistry.RegisterSingleton<IParams, ParamsManger>();
-            containerRegistry.RegisterSingleton<IClient, TCPClient>();
-            containerRegistry.RegisterSingleton<IinternalClient, InternalClient>();
-            containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
-            containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
+            containerRegistry.RegisterDialog<CommandEditDialog,    CommandEditDialogViewModel>("CommandEditDialog");
+            containerRegistry.RegisterDialog<SecsNodeConfigDialog, SecsNodeConfigDialogViewModel>("SecsNodeConfigDialog");
+            containerRegistry.RegisterDialog<VidSelectDialog,      VidSelectDialogViewModel>("VidSelectDialog");
 
-           
+            // View + ViewModel 注册（支持 Prism 导航）
+            containerRegistry.RegisterForNavigation<SecsGemDebugView, SecsGemDebugViewModel>(
+                NavigationConstants.Views.SecsGemDebugView);
+
+
         }
 
         public void OnInitialized(IContainerProvider containerProvider)
         {
+            // 注册导航菜单（扫描 [ModuleNavigation] 特性）
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
             Task.Run(async () =>
             {
                 var db = containerProvider.Resolve<ISecsGemDataBase>();

@@ -269,20 +269,20 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (_currentRecipe == null) return;
             try
             {
-                var recipeManger = _recipeService as IRecipeManger<OCRRecipeParam>;
-                switch (CurrentStation)
-                {
-                    case E_WorkSpace.工位1:
-                        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位2.ToString(), _currentRecipe);
-                       CurrentStation = E_WorkSpace.工位2;
-                        break;
-                    case E_WorkSpace.工位2:
-                        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位1.ToString(), _currentRecipe);
-                        CurrentStation = E_WorkSpace.工位1;
-                        break;
-                    default:
-                        break;
-                }
+                ////var recipeManger = _recipeService as IRecipeManger<OCRRecipeParam>;
+                //switch (CurrentStation)
+                //{
+                //    case E_WorkSpace.工位1:
+                //        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位2.ToString(), _currentRecipe);
+                //       CurrentStation = E_WorkSpace.工位2;
+                //        break;
+                //    case E_WorkSpace.工位2:
+                //        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位1.ToString(), _currentRecipe);
+                //        CurrentStation = E_WorkSpace.工位1;
+                //        break;
+                //    default:
+                //        break;
+                //}
                 OnSelectedStationChanged();
             }
             catch (Exception ex)
