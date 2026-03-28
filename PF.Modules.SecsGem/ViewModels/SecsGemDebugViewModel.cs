@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using PF.CommonTools.ServeTool;
+using System.Collections.Concurrent;
 using PF.Core.Entities.SecsGem.Command;
 using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params;
@@ -103,6 +104,17 @@ namespace PF.Modules.SecsGem.ViewModels
             ImportValidateParamCommand = new DelegateCommand(async () => await ExecuteImportValidateParamToDbAsync());
             ImportFormulaParamCommand = new DelegateCommand(async () => await ExecuteImportFormulaParamToDbAsync());
             RefreshDbViewCommand = new DelegateCommand(async () => await ExecuteRefreshDbViewAsync());
+
+            SaveMessageCommand = new DelegateCommand(async () => await ExecuteSaveMessageAsync());
+
+            AddVidCommand = new DelegateCommand(() => VidRows.Add(new VidRowViewModel { Description = "新VID", DataType = "U4", Value = "0", Comment = string.Empty }));
+            DeleteVidCommand = new DelegateCommand(() => { if (SelectedVidRow != null) VidRows.Remove(SelectedVidRow); });
+            AddCeidCommand = new DelegateCommand(() => CeidRows.Add(new CeidRowViewModel { Description = "新CEID", LinkReportIDs = string.Empty, Comment = string.Empty }));
+            DeleteCeidCommand = new DelegateCommand(() => { if (SelectedCeidRow != null) CeidRows.Remove(SelectedCeidRow); });
+            AddReportIdCommand = new DelegateCommand(() => ReportIdRows.Add(new ReportIdRowViewModel { Description = "新ReportID", LinkVIDs = string.Empty, Comment = string.Empty }));
+            DeleteReportIdCommand = new DelegateCommand(() => { if (SelectedReportIdRow != null) ReportIdRows.Remove(SelectedReportIdRow); });
+            AddCommandIdCommand = new DelegateCommand(() => CommandIdRows.Add(new CommandIdRowViewModel { Description = "新CommandID", RCMD = string.Empty, LinkVIDs = string.Empty, Comment = string.Empty }));
+            DeleteCommandIdCommand = new DelegateCommand(() => { if (SelectedCommandIdRow != null) CommandIdRows.Remove(SelectedCommandIdRow); });
         }
 
         // ──────────────────────────────────────────────
@@ -249,6 +261,18 @@ namespace PF.Modules.SecsGem.ViewModels
         public ObservableCollection<ReportIdRowViewModel> ReportIdRows { get; }
         public ObservableCollection<CommandIdRowViewModel> CommandIdRows { get; }
 
+        private VidRowViewModel _selectedVidRow;
+        public VidRowViewModel SelectedVidRow { get => _selectedVidRow; set => SetProperty(ref _selectedVidRow, value); }
+
+        private CeidRowViewModel _selectedCeidRow;
+        public CeidRowViewModel SelectedCeidRow { get => _selectedCeidRow; set => SetProperty(ref _selectedCeidRow, value); }
+
+        private ReportIdRowViewModel _selectedReportIdRow;
+        public ReportIdRowViewModel SelectedReportIdRow { get => _selectedReportIdRow; set => SetProperty(ref _selectedReportIdRow, value); }
+
+        private CommandIdRowViewModel _selectedCommandIdRow;
+        public CommandIdRowViewModel SelectedCommandIdRow { get => _selectedCommandIdRow; set => SetProperty(ref _selectedCommandIdRow, value); }
+
         // ──────────────────────────────────────────────
         // 外围服务管理：Windows 服务状态
         // ──────────────────────────────────────────────
@@ -321,6 +345,17 @@ namespace PF.Modules.SecsGem.ViewModels
         public DelegateCommand ImportValidateParamCommand { get; }
         public DelegateCommand ImportFormulaParamCommand { get; }
         public DelegateCommand RefreshDbViewCommand { get; }
+
+        public DelegateCommand SaveMessageCommand { get; }
+
+        public DelegateCommand AddVidCommand { get; }
+        public DelegateCommand DeleteVidCommand { get; }
+        public DelegateCommand AddCeidCommand { get; }
+        public DelegateCommand DeleteCeidCommand { get; }
+        public DelegateCommand AddReportIdCommand { get; }
+        public DelegateCommand DeleteReportIdCommand { get; }
+        public DelegateCommand AddCommandIdCommand { get; }
+        public DelegateCommand DeleteCommandIdCommand { get; }
 
         // ──────────────────────────────────────────────
         // 导航生命周期
@@ -546,6 +581,50 @@ namespace PF.Modules.SecsGem.ViewModels
             }
         }
 
+        private async Task ExecuteSaveMessageAsync()
+        {
+            if (_currentCommand == null) return;
+            try
+            {
+                var updatedMsg = BuildSecsGemMessage();
+                updatedMsg.WBit = WaitReply;
+                _currentCommand.Message = updatedMsg;
+
+                bool isIncentive = _currentCommand.Function % 2 == 1;
+                var commandStore = isIncentive
+                    ? _manager.CommandManager.IncentiveCommands
+                    : _manager.CommandManager.ResponseCommands;
+
+                await commandStore.UpdateCommandInfo(_currentCommand.Key, _currentCommand.Key, _currentCommand);
+
+                if (isIncentive)
+                {
+                    var repo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    var all = (await repo.GetAllAsync()).ToList();
+                    var entity = all.FirstOrDefault(e => e.ID == _currentCommand.ID);
+                    if (entity != null)
+                        await repo.RemoveAsync(entity);
+                    await repo.AddAsync(_currentCommand.GetIncentiveEntityFormSFCommand());
+                }
+                else
+                {
+                    var repo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    var all = (await repo.GetAllAsync()).ToList();
+                    var entity = all.FirstOrDefault(e => e.ID == _currentCommand.ID);
+                    if (entity != null)
+                        await repo.RemoveAsync(entity);
+                    await repo.AddAsync(_currentCommand.GetResponseEntityFormSFCommand());
+                }
+
+                await _db.SaveChangesAsync();
+                AppendLog(null, $"报文已保存: {_currentCommand.Key} {_currentCommand.Name}", isSystem: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"保存报文失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         // ──────────────────────────────────────────────
         // 命令实现：右侧参数配置
         // ──────────────────────────────────────────────
@@ -638,7 +717,7 @@ namespace PF.Modules.SecsGem.ViewModels
                 }
                 else if (paramType == ParamType.Validate)
                 {
-                    _manager.ParamsManager.SaveParam(paramType);
+                    SyncValidateRowsToConfig();
                     var cfg = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null);
                     if (cfg != null) await SaveValidateToDbAsync(cfg);
                 }
@@ -654,6 +733,64 @@ namespace PF.Modules.SecsGem.ViewModels
             {
                 MessageBox.Show($"保存参数失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void SyncValidateRowsToConfig()
+        {
+            var cfg = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null);
+            if (cfg == null) return;
+
+            cfg.VIDS = new ConcurrentDictionary<string, VID>(
+                VidRows
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Description))
+                    .Select(r =>
+                    {
+                        var dt = Enum.TryParse<DataType>(r.DataType, out var parsed) ? parsed : DataType.U4;
+                        var vid = new VID(r.Code, r.Description, dt) { Comment = r.Comment ?? string.Empty };
+                        if (!string.IsNullOrWhiteSpace(r.Value)) vid.SetValue(r.Value);
+                        return vid;
+                    })
+                    .ToDictionary(v => v.Description));
+
+            cfg.CEIDS = new ConcurrentDictionary<string, CEID>(
+                CeidRows
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Description))
+                    .Select(r =>
+                    {
+                        var links = (r.LinkReportIDs ?? string.Empty)
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => uint.TryParse(s.Trim(), out var n) ? n : 0u)
+                            .Where(n => n > 0).ToArray();
+                        return new CEID(r.Code, r.Description, links) { Comment = r.Comment ?? string.Empty };
+                    })
+                    .ToDictionary(c => c.Description));
+
+            cfg.ReportIDS = new ConcurrentDictionary<string, ReportID>(
+                ReportIdRows
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Description))
+                    .Select(r =>
+                    {
+                        var links = (r.LinkVIDs ?? string.Empty)
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => uint.TryParse(s.Trim(), out var n) ? n : 0u)
+                            .Where(n => n > 0).ToArray();
+                        return new ReportID(r.Code, r.Description, links) { Comment = r.Comment ?? string.Empty };
+                    })
+                    .ToDictionary(r => r.Description));
+
+            cfg.CommandIDS = new ConcurrentDictionary<string, CommandID>(
+                CommandIdRows
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Description))
+                    .Select(r =>
+                    {
+                        var links = (r.LinkVIDs ?? string.Empty)
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => uint.TryParse(s.Trim(), out var n) ? n : 0u)
+                            .Where(n => n > 0).ToArray();
+                        return new CommandID(r.Code, r.Description, links, r.RCMD ?? string.Empty, r.Description)
+                               { Comment = r.Comment ?? string.Empty };
+                    })
+                    .ToDictionary(c => c.Description));
         }
 
         // ──────────────────────────────────────────────
