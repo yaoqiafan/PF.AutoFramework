@@ -39,6 +39,8 @@ namespace PF.Modules.SecsGem
             {
                 var db = containerProvider.Resolve<ISecsGemDataBase>();
                 await db.InitializationDataBase();
+                var mgr = containerProvider.Resolve<ISecsGemManger>();
+                await mgr.InitializeAsync();
             });
         }
     }
