@@ -1,4 +1,4 @@
-namespace PF.Modules.SecsGem.ViewModels
+namespace PF.Modules.SecsGem.ViewModels.Models.RowViewModel
 {
     public class ReportIdRowViewModel : BaseParamRowViewModel
     {

@@ -29,6 +29,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using PF.Modules.SecsGem.ViewModels.Models.RowViewModel;
 
 namespace PF.Modules.SecsGem.ViewModels
 {

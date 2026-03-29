@@ -1,6 +1,6 @@
 using Prism.Mvvm;
 
-namespace PF.Modules.SecsGem.ViewModels
+namespace PF.Modules.SecsGem.ViewModels.Models.RowViewModel
 {
     /// <summary>
     /// VID / CEID / ReportID / CommandID 行视图模型的公共基类。
