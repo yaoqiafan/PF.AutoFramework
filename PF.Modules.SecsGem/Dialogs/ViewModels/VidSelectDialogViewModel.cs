@@ -77,7 +77,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
             public VidDisplayItem(VIDEntity entity)
             {
                 Entity = entity;
-                DisplayText = $"[{entity.Code}]  {entity.Description}  ({entity.Type})";
+                DisplayText = $"[{entity.Code}]  {entity.Comment}  ({entity.Type})  [{entity.Description}]";
             }
 
             public VIDEntity Entity { get; }

@@ -215,13 +215,13 @@
                 Margin="4,0,0,0"
                 Status="1.0.0"
                 Subject="V"
-                Color="#1182c3" />
+                Color="{DynamicResource PrimaryBrush}" />
             <pf:Shield
                 Grid.Column="3"
                 Margin="4,0,0,0"
                 Status="8.0"
                 Subject=".net"
-                Color="#1182c3" />
+                Color="{DynamicResource PrimaryBrush}" />
 
 
             <Button

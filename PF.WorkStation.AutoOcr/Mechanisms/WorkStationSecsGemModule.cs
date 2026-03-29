@@ -52,7 +52,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _secsGemlog.Error("SecsGem实例未创建，检查软件配置逻辑");
                 return false;
             }
-            if (!await _secsGemManger.ConnectAsync())
+            if (!await _secsGemManger.InitializeAsync())
             {
                 _secsGemlog.Error("设备连接SecsGem服务端失败");
                 return false;
@@ -80,6 +80,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             message.IsIncoming = true;
             _secsGemlog.Info($"收到SecsGem消息: {message}");
             string str = $"S{message.Stream}F{message.Function}";
+            if (message.Function % 2==0)
+            {
+                return;
+            }
+
             switch (str)
             {
                 case "S1F1":

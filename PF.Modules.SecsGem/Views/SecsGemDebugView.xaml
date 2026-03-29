@@ -2,11 +2,12 @@
     x:Class="PF.Modules.SecsGem.Views.SecsGemDebugView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:PF.Modules.SecsGem.Views.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:vm="clr-namespace:PF.Modules.SecsGem.ViewModels"
-    xmlns:controls="clr-namespace:PF.Modules.SecsGem.Views.Controls"
     d:DesignHeight="1080"
     d:DesignWidth="1920"
     prism:ViewModelLocator.AutoWireViewModel="True"
@@ -94,9 +95,7 @@
             <!--  主内容区  -->
             <RowDefinition Height="*" />
             <!--  分隔线  -->
-            <RowDefinition Height="5" />
-            <!--  底部日志  -->
-            <RowDefinition Height="230" />
+
         </Grid.RowDefinitions>
 
         <!--  ═══════════════════════════════════════════════════════════  -->
@@ -194,6 +193,8 @@
                         <ColumnDefinition Width="500" />
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="300" />
+                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition Width="auto" />
 
                     </Grid.ColumnDefinitions>
 
@@ -377,22 +378,22 @@
                                                 <CheckBox
                                                     Margin="0,0,6,0"
                                                     VerticalAlignment="Center"
-                                                    Content="VID"
+                                                    Content="绑定变量"
                                                     IsChecked="{Binding IsVariableNode}"
                                                     Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
 
                                                 <!--  已绑定的 VID 说明  -->
-                                                <Border
+
+
+                                                <pf:Shield
+                                                    Grid.Column="2"
+                                                    Margin="5"
                                                     Padding="4,1"
-                                                    Background="#E8F5E9"
-                                                    CornerRadius="3"
-                                                    Visibility="{Binding VariableDescription, Converter={StaticResource StringNotEmptyToVis}}">
-                                                    <TextBlock
-                                                        VerticalAlignment="Center"
-                                                        FontSize="11"
-                                                        Foreground="#2E7D32"
-                                                        Text="{Binding VariableDescription}" />
-                                                </Border>
+                                                    Status="{Binding VariableDescription}"
+                                                    Subject="VID"
+                                                    Visibility="{Binding VariableDescription, Converter={StaticResource StringNotEmptyToVis}}"
+                                                    Color="{DynamicResource PrimaryBrush}" />
+                                               
 
                                                 <StackPanel.ContextMenu>
                                                     <ContextMenu>
@@ -451,7 +452,103 @@
                     </GroupBox>
 
 
+                    <!--  ═══════════════════════════════════════════════════════════  -->
+                    <!--  Row 4: 实时通信日志  -->
+                    <!--  ═══════════════════════════════════════════════════════════  -->
+                    <GroupBox Grid.Column="4" Header="📋 实时通信日志 (Transaction Logs)">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
+                            <!--  日志列表 (双列：Raw Hex + SML)  -->
+                            <ListBox
+                                x:Name="LogListBox"
+                                Grid.Row="0"
+                                BorderThickness="0"
+                                ItemsSource="{Binding Log.TransactionLogs}"
+                                ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                VirtualizingStackPanel.IsVirtualizing="True"
+                                VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                <ListBox.ItemContainerStyle>
+                                    <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:TransactionLogEntry}">
+                                        <Grid Margin="2,1">
+                                            <Grid.RowDefinitions>
+                                                <!--  方向箭头  -->
+                                                <RowDefinition />
+                                                <!--  时间 + 报文头  -->
+                                                <RowDefinition />
+                                                <!--  Raw Hex  -->
+                                                <RowDefinition />
+                                                <RowDefinition />
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                FontFamily="Consolas"
+                                                FontSize="20"
+                                                FontWeight="Bold"
+                                                Foreground="{Binding DirectionColor}"
+                                                Text="{Binding Direction}" />
+
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Margin="4,0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                Text="{Binding TimestampHeader}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding TimestampHeader}" />
+
+                                            <TextBlock
+                                                Grid.Row="2"
+                                                Margin="6,0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="Consolas"
+                                                FontSize="11"
+                                                Text="{Binding RawHex}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding RawHex}" />
+
+                                            <TextBlock
+                                                Grid.Row="3"
+                                                Margin="6,0"
+                                                VerticalAlignment="Center"
+                                                FontFamily="Consolas"
+                                                FontSize="12"
+                                                Text="{Binding SmlText}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap"
+                                                ToolTip="{Binding SmlText}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!--  日志底部操作栏  -->
+                            <StackPanel
+                                Grid.Row="1"
+                                Margin="0,4,0,0"
+                                HorizontalAlignment="Right"
+                                Orientation="Horizontal">
+                                <Button
+                                    Command="{Binding Log.ClearLogCommand}"
+                                    Content="🗑 清空日志"
+                                    Style="{StaticResource ToolbarButtonStyle}" />
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
 
                 </Grid>
             </TabItem>
@@ -480,10 +577,27 @@
                                 ItemsSource="{Binding Parameter.ParamRows}"
                                 SelectionMode="Single">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Width="*" MinWidth="100" Binding="{Binding Name}" Header="名称" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="160" Binding="{Binding Value, UpdateSourceTrigger=LostFocus}" Header="值" />
-                                    <DataGridTextColumn Width="70" Binding="{Binding DataType}" Header="类型" IsReadOnly="True" />
-                                    <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description}" Header="说明" IsReadOnly="True" />
+                                    <DataGridTextColumn
+                                        Width="*"
+                                        MinWidth="100"
+                                        Binding="{Binding Name}"
+                                        Header="名称"
+                                        IsReadOnly="True" />
+                                    <DataGridTextColumn
+                                        Width="160"
+                                        Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                        Header="值" />
+                                    <DataGridTextColumn
+                                        Width="70"
+                                        Binding="{Binding DataType}"
+                                        Header="类型"
+                                        IsReadOnly="True" />
+                                    <DataGridTextColumn
+                                        Width="*"
+                                        MinWidth="80"
+                                        Binding="{Binding Description}"
+                                        Header="说明"
+                                        IsReadOnly="True" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
@@ -496,8 +610,14 @@
                                 ItemsSource="{Binding Parameter.VidRows}"
                                 SelectedItem="{Binding Parameter.SelectedVidRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn Width="80" Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}" Header="类型" />
-                                    <DataGridTextColumn Width="120" Binding="{Binding Value, UpdateSourceTrigger=LostFocus}" Header="值" />
+                                    <DataGridTextColumn
+                                        Width="80"
+                                        Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}"
+                                        Header="类型" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                        Header="值" />
                                 </controls:ParamDataGridControl.ExtraColumns>
                             </controls:ParamDataGridControl>
                         </TabItem>
@@ -510,7 +630,10 @@
                                 ItemsSource="{Binding Parameter.CeidRows}"
                                 SelectedItem="{Binding Parameter.SelectedCeidRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}" Header="关联 ReportID" />
+                                    <DataGridTextColumn
+                                        Width="150"
+                                        Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}"
+                                        Header="关联 ReportID" />
                                 </controls:ParamDataGridControl.ExtraColumns>
                             </controls:ParamDataGridControl>
                         </TabItem>
@@ -523,7 +646,10 @@
                                 ItemsSource="{Binding Parameter.ReportIdRows}"
                                 SelectedItem="{Binding Parameter.SelectedReportIdRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
+                                    <DataGridTextColumn
+                                        Width="150"
+                                        Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
+                                        Header="关联 VID" />
                                 </controls:ParamDataGridControl.ExtraColumns>
                             </controls:ParamDataGridControl>
                         </TabItem>
@@ -536,8 +662,14 @@
                                 ItemsSource="{Binding Parameter.CommandIdRows}"
                                 SelectedItem="{Binding Parameter.SelectedCommandIdRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn Width="80" Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}" Header="RCMD" />
-                                    <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
+                                    <DataGridTextColumn
+                                        Width="80"
+                                        Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}"
+                                        Header="RCMD" />
+                                    <DataGridTextColumn
+                                        Width="150"
+                                        Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
+                                        Header="关联 VID" />
                                 </controls:ParamDataGridControl.ExtraColumns>
                             </controls:ParamDataGridControl>
                         </TabItem>
@@ -574,7 +706,7 @@
             </TabItem>
 
             <!--  ═══════════════════════════════════════════════════════════  -->
-            <!--  外围服务管理 Tab                                              -->
+            <!--  外围服务管理 Tab  -->
             <!--  ═══════════════════════════════════════════════════════════  -->
             <TabItem Header="外围服务管理">
                 <Grid Margin="5">
@@ -583,7 +715,10 @@
                     </Grid.RowDefinitions>
 
                     <!--  区域 A：Windows 服务管控  -->
-                    <GroupBox Grid.Row="0" Header="🔧 Windows 服务管控" Margin="0,0,0,6">
+                    <GroupBox
+                        Grid.Row="0"
+                        Margin="0,0,0,6"
+                        Header="🔧 Windows 服务管控">
                         <Grid Margin="4">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -592,7 +727,10 @@
                             </Grid.RowDefinitions>
 
                             <!--  服务名称 + 状态  -->
-                            <StackPanel Grid.Row="0" Margin="0,0,0,6" Orientation="Horizontal">
+                            <StackPanel
+                                Grid.Row="0"
+                                Margin="0,0,0,6"
+                                Orientation="Horizontal">
                                 <TextBlock VerticalAlignment="Center" Text="服务名称: " />
                                 <TextBox
                                     Width="200"
@@ -612,7 +750,10 @@
                             </StackPanel>
 
                             <!--  EXE 路径  -->
-                            <StackPanel Grid.Row="1" Margin="0,0,0,6" Orientation="Horizontal">
+                            <StackPanel
+                                Grid.Row="1"
+                                Margin="0,0,0,6"
+                                Orientation="Horizontal">
                                 <TextBlock VerticalAlignment="Center" Text="服务 EXE 路径: " />
                                 <TextBox
                                     Width="400"
@@ -653,121 +794,6 @@
 
 
 
-        <!--  ═══════════════════════════════════════════════════════════  -->
-        <!--  Row 4: 实时通信日志  -->
-        <!--  ═══════════════════════════════════════════════════════════  -->
-        <GroupBox Grid.Row="4" Header="📋 实时通信日志 (Transaction Logs)">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
 
-                <!--  日志列表 (双列：Raw Hex + SML)  -->
-                <ListBox
-                    x:Name="LogListBox"
-                    Grid.Row="0"
-                    Background="#263238"
-                    BorderThickness="0"
-                    ItemsSource="{Binding Log.TransactionLogs}"
-                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                    ScrollViewer.VerticalScrollBarVisibility="Auto"
-                    VirtualizingStackPanel.IsVirtualizing="True"
-                    VirtualizingStackPanel.VirtualizationMode="Recycling">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="0" />
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                            <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#37474F" />
-                                </Trigger>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#2E3C43" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:TransactionLogEntry}">
-                            <Grid Margin="2,1">
-                                <Grid.ColumnDefinitions>
-                                    <!--  方向箭头  -->
-                                    <ColumnDefinition Width="30" />
-                                    <!--  时间 + 报文头  -->
-                                    <ColumnDefinition Width="auto" />
-                                    <!--  Raw Hex  -->
-                                    <ColumnDefinition Width="280" />
-                                    <!--  SML 文本  -->
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock
-                                    Grid.Column="0"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    FontFamily="Consolas"
-                                    FontSize="14"
-                                    FontWeight="Bold"
-                                    Foreground="{Binding DirectionColor}"
-                                    Text="{Binding Direction}" />
-
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Margin="4,0"
-                                    VerticalAlignment="Center"
-                                    FontFamily="Consolas"
-                                    FontSize="12"
-                                    Foreground="#B0BEC5"
-                                    Text="{Binding TimestampHeader}"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTip="{Binding TimestampHeader}" />
-
-                                <TextBlock
-                                    Grid.Column="2"
-                                    Margin="6,0"
-                                    VerticalAlignment="Center"
-                                    FontFamily="Consolas"
-                                    FontSize="11"
-                                    Foreground="#78909C"
-                                    Text="{Binding RawHex}"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTip="{Binding RawHex}" />
-
-                                <TextBlock
-                                    Grid.Column="3"
-                                    Margin="6,0"
-                                    VerticalAlignment="Center"
-                                    FontFamily="Consolas"
-                                    FontSize="12"
-                                    Foreground="#E0F2F1"
-                                    Text="{Binding SmlText}"
-                                    TextTrimming="CharacterEllipsis"
-                                    TextWrapping="NoWrap"
-                                    ToolTip="{Binding SmlText}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-
-                <!--  日志底部操作栏  -->
-                <StackPanel
-                    Grid.Row="1"
-                    Margin="0,4,0,0"
-                    HorizontalAlignment="Right"
-                    Orientation="Horizontal">
-                    <CheckBox
-                        Margin="0,0,12,0"
-                        VerticalAlignment="Center"
-                        Content="自动滚动"
-                        Foreground="#546E7A"
-                        IsChecked="{Binding Log.AutoScrollLog}" />
-                    <Button
-                        Command="{Binding Log.ClearLogCommand}"
-                        Content="🗑 清空日志"
-                        Style="{StaticResource ToolbarButtonStyle}" />
-                </StackPanel>
-            </Grid>
-        </GroupBox>
     </Grid>
 </UserControl>

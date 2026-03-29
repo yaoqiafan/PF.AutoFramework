@@ -28,18 +28,36 @@ namespace PF.Modules.SecsGem.ViewModels
         private string _validationErrorMessage;
         private bool _isExpanded = true;
 
-
         public event EventHandler NodeAddRequested;
+        /// <summary>
+        /// 当 IsVariableNode = true 时触发，外部 ViewModel 订阅后弹出 VID 选择对话框
+        /// </summary>
+        public event EventHandler VidSelectionRequested;
+
         // 父节点引用，用于 RemoveNodeCommand
         private SecsNodeViewModel _parent;
 
         public SecsNodeViewModel()
         {
             Children = new ObservableCollection<SecsNodeViewModel>();
+
+            // 【修复 1】：在此处统一监听集合变化，自动维护长度和父子节点关系
             Children.CollectionChanged += (s, e) =>
             {
                 if (_dataType == DataType.LIST)
                     RaisePropertyChanged(nameof(Length));
+
+                // 自动维护父节点引用，确保外部手动 Add 进来的节点也能正常调用 Remove
+                if (e.NewItems != null)
+                {
+                    foreach (SecsNodeViewModel child in e.NewItems)
+                        child._parent = this;
+                }
+                if (e.OldItems != null)
+                {
+                    foreach (SecsNodeViewModel child in e.OldItems)
+                        if (child._parent == this) child._parent = null;
+                }
             };
 
             AddChildCommand = new DelegateCommand(ExecuteAddChild, () => IsListNode);
@@ -160,10 +178,6 @@ namespace PF.Modules.SecsGem.ViewModels
             set => SetProperty(ref _validationErrorMessage, value);
         }
 
-        // ──────────────────────────────────────────────
-        // 子节点集合
-        // ──────────────────────────────────────────────
-
         public ObservableCollection<SecsNodeViewModel> Children { get; }
 
         // ──────────────────────────────────────────────
@@ -175,12 +189,9 @@ namespace PF.Modules.SecsGem.ViewModels
         public DelegateCommand SelectVariableCommand { get; }
 
         // ──────────────────────────────────────────────
-        // 工厂：SecsGemNodeMessage → SecsNodeViewModel
+        // 工厂：SecsGemNodeMessage ↔ SecsNodeViewModel
         // ──────────────────────────────────────────────
 
-        /// <summary>
-        /// 递归将 SecsGemNodeMessage 转换为 ViewModel 树
-        /// </summary>
         public static SecsNodeViewModel FromNodeMessage(SecsGemNodeMessage node, SecsNodeViewModel parent = null)
         {
             if (node == null) return null;
@@ -198,7 +209,7 @@ namespace PF.Modules.SecsGem.ViewModels
             vm._value = NodeValueToString(node);
 
             if (node.IsVariableNode && node.VariableCode > 0)
-                vm._variableDescription = $"VID:{node.VariableCode}";
+                vm._variableDescription = $"{node.VariableCode}";
 
             // 递归子节点（LIST 类型）
             if (node.DataType == DataType.LIST && node.SubNode != null)
@@ -213,9 +224,6 @@ namespace PF.Modules.SecsGem.ViewModels
             return vm;
         }
 
-        /// <summary>
-        /// 递归将 ViewModel 树序列化回 SecsGemNodeMessage
-        /// </summary>
         public SecsGemNodeMessage ToNodeMessage()
         {
             if (_dataType == DataType.LIST)
@@ -254,9 +262,6 @@ namespace PF.Modules.SecsGem.ViewModels
             NodeAddRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>
-        /// 直接设置变量绑定字段，不触发 VidSelectionRequested 事件（用于从 Dialog 回调中赋值）。
-        /// </summary>
         public void SetVariableBinding(uint code, string description)
         {
             _isVariableNode = true;
@@ -274,15 +279,8 @@ namespace PF.Modules.SecsGem.ViewModels
 
         private void ExecuteSelectVariable()
         {
-            // VID 选择逻辑由外部（ViewModel/对话框服务）注入回调处理。
-            // 这里触发一个外部可订阅的事件，具体弹窗由 SecsGemDebugViewModel 负责。
             VidSelectionRequested?.Invoke(this, EventArgs.Empty);
         }
-
-        /// <summary>
-        /// 当 IsVariableNode = true 时触发，外部 ViewModel 订阅后弹出 VID 选择对话框
-        /// </summary>
-        public event EventHandler VidSelectionRequested;
 
         // ──────────────────────────────────────────────
         // 数据校验
@@ -332,34 +330,35 @@ namespace PF.Modules.SecsGem.ViewModels
                     ValidationErrorMessage = HasValidationError ? "值必须为有符号64位整数" : string.Empty;
                     break;
                 case DataType.F4:
-                    HasValidationError = !float.TryParse(val, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out _);
+                    HasValidationError = !float.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _);
                     ValidationErrorMessage = HasValidationError ? "值必须为单精度浮点数 (如 3.14)" : string.Empty;
                     break;
                 case DataType.F8:
-                    HasValidationError = !double.TryParse(val, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out _);
+                    HasValidationError = !double.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _);
                     ValidationErrorMessage = HasValidationError ? "值必须为双精度浮点数" : string.Empty;
                     break;
                 case DataType.Binary:
                     HasValidationError = !IsValidHexString(val);
-                    ValidationErrorMessage = HasValidationError
-                        ? "格式: 以空格分隔的十六进制字节串 (如 0A 1B FF)"
-                        : string.Empty;
+                    ValidationErrorMessage = HasValidationError ? "格式: 以空格分隔的十六进制字节串 (如 0A 1B FF)" : string.Empty;
                     break;
                 case DataType.Boolean:
                     HasValidationError = !IsValidBoolean(val);
-                    ValidationErrorMessage = HasValidationError
-                        ? "值必须为 true/false 或 1/0"
-                        : string.Empty;
+                    ValidationErrorMessage = HasValidationError ? "值必须为 true/false 或 1/0" : string.Empty;
                     break;
                 case DataType.ASCII:
                 case DataType.JIS8:
                     HasValidationError = false;
+                    Length = val.Length;
                     if (_length > 0 && val.Length != _length)
+                    {
                         ValidationErrorMessage = $"⚠ 字符串长度 {val.Length} 与声明长度 {_length} 不符";
+                    }
                     else
+                    {
                         ValidationErrorMessage = string.Empty;
+                    }
+                    // 更新长度放在判断之后
+                    
                     break;
                 default:
                     HasValidationError = false;
@@ -427,8 +426,9 @@ namespace PF.Modules.SecsGem.ViewModels
                     DataType.I2 => short.Parse(value),
                     DataType.I4 => int.Parse(value),
                     DataType.I8 => long.Parse(value),
-                    DataType.F4 => float.Parse(value, System.Globalization.CultureInfo.InvariantCulture),
-                    DataType.F8 => double.Parse(value, System.Globalization.CultureInfo.InvariantCulture),
+                    // 补充了 NumberStyles.Float 保证与校验逻辑一致
+                    DataType.F4 => float.Parse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture),
+                    DataType.F8 => double.Parse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture),
                     DataType.Boolean => value is "1" or "true" or "True",
                     DataType.ASCII => value,
                     DataType.JIS8 => value,
@@ -455,7 +455,8 @@ namespace PF.Modules.SecsGem.ViewModels
 
         private static byte[] HexStringToBytes(string hex)
         {
-            var parts = hex.Trim().Split(' ');
+            // 【修复 3】：加入 RemoveEmptyEntries 防止因为多输了空格导致崩溃
+            var parts = hex.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             return parts.Select(p => Convert.ToByte(p, 16)).ToArray();
         }
     }
