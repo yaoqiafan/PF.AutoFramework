@@ -87,7 +87,10 @@ namespace PF.Core.Entities.SecsGem.Message
             // 格式示例: <L [3]
             //             <U4 [1] 100>
             //           >
-
+            if (node == null )
+            {
+                return;
+            }
             string type = node.DataType.ToString(); // 例如: L, U4, ASCII, BI
             string count = node.SubNode?.Count > 0 ? $" [{node.SubNode.Count}]" : "";
             string value = node.TypedValue != null ? $" {node.TypedValue}" : "";
