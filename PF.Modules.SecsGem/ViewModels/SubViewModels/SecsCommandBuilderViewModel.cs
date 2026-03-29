@@ -9,13 +9,7 @@ using PF.Infrastructure.SecsGem.Tools;
 using PF.SecsGem.DataBase.Entities.Command;
 using PF.SecsGem.DataBase.Entities.Variable;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
-using Prism.Services.Dialogs;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace PF.Modules.SecsGem.ViewModels.SubViewModels

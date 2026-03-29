@@ -2,6 +2,7 @@ using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Enums;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.DataBase;
+using PF.Core.Interfaces.SecsGem.Params;
 using PF.SecsGem.DataBase.Entities.Variable;
 using Prism.Commands;
 using Prism.Mvvm;

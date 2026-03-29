@@ -6,6 +6,7 @@ using PF.Core.Entities.SecsGem.Params.ValidateParam;
 using PF.Core.Enums;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.DataBase;
+using PF.Core.Interfaces.SecsGem.Params;
 using PF.Infrastructure.SecsGem.Tools;
 using PF.Modules.SecsGem.ViewModels.Models;
 using PF.Modules.SecsGem.ViewModels.Models.RowViewModel;
