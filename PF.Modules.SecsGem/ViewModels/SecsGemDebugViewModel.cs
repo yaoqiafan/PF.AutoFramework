@@ -1,6 +1,7 @@
 using PF.Core.Entities.SecsGem.Params.FormulaParam;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.DataBase;
+using PF.Core.Interfaces.SecsGem.Params;
 using PF.Modules.SecsGem.ViewModels.SubViewModels;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Navigation.Regions;

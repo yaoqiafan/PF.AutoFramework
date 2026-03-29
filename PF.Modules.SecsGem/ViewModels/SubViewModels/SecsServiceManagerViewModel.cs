@@ -1,11 +1,7 @@
 using PF.CommonTools.ServeTool;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
-using Prism.Services.Dialogs;
-using System;
 using System.Runtime.Versioning;
 using System.ServiceProcess;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace PF.Modules.SecsGem.ViewModels.SubViewModels
