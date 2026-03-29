@@ -67,6 +67,7 @@ namespace PF.Infrastructure.SecsGem
 
                 if (res3)
                 {
+                    _secsGemClient.MessageReceived -= OnSecsMessageReceived;
                     _secsGemClient.MessageReceived += OnSecsMessageReceived;
                     return true;
                 }

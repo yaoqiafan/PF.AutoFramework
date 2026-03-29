@@ -48,16 +48,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token = default)
         {
-            if (_secsGemManger == null)
-            {
-                _secsGemlog.Error("SecsGem实例未创建，检查软件配置逻辑");
-                return false;
-            }
-            if (!await _secsGemManger.InitializeAsync())
-            {
-                _secsGemlog.Error("SecsGem初始化失败");
-                return false;
-            }
+            //if (_secsGemManger == null)
+            //{
+            //    _secsGemlog.Error("SecsGem实例未创建，检查软件配置逻辑");
+            //    return false;
+            //}
+            //if (!await _secsGemManger.InitializeAsync())
+            //{
+            //    _secsGemlog.Error("SecsGem初始化失败");
+            //    return false;
+            //}
             _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _secsGemlog.Info("SecsGem连接成功");
             _secsGemManger.MessageReceived += SecsGemManger_MessageReceived;
@@ -184,8 +184,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     break;
 
             }
-
-
         }
 
         #region S1F1--> S1F2
