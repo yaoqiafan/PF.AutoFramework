@@ -493,38 +493,44 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                var sysEntities    = await _db.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs).GetAllAsync();
-                var cmdIdEntities  = await _db.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs).GetAllAsync();
-                var ceidEntities   = await _db.GetRepository<CEIDEntity>(SecsDbSet.CEIDs).GetAllAsync();
-                var reportEntities = await _db.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs).GetAllAsync();
-                var vidEntities    = await _db.GetRepository<VIDEntity>(SecsDbSet.VIDs).GetAllAsync();
-                var incEntities    = await _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands).GetAllAsync();
-                var resEntities    = await _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands).GetAllAsync();
-
+                // DbSystemRows: 1-to-many expansion — handled manually
+                var sysEntities = await _db.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs).GetAllAsync();
                 Application.Current?.Dispatcher.Invoke(() =>
                 {
                     DbSystemRows.Clear();
                     foreach (var e in sysEntities)
                     {
                         var p = e.ToParam();
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = p.ServiceName,        DataType = "String", Description = "服务名称" });
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "IPAddress",   Value = p.IPAddress,          DataType = "String", Description = "IP 地址" });
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "Port",        Value = p.Port.ToString(),    DataType = "Int",    Description = "端口" });
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "DeviceID",    Value = p.DeviceID,           DataType = "String", Description = "设备ID" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = p.ServiceName,     DataType = "String", Description = "服务名称" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "IPAddress",   Value = p.IPAddress,       DataType = "String", Description = "IP 地址" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "Port",        Value = p.Port.ToString(), DataType = "Int",    Description = "端口" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "DeviceID",    Value = p.DeviceID,        DataType = "String", Description = "设备ID" });
                     }
-                    DbCommandIdRows.Clear();
-                    foreach (var e in cmdIdEntities)  { var c = e.ToCommandID(); DbCommandIdRows.Add(new CommandIdRowViewModel { Code = c.ID, Description = c.Description, RCMD = c.RCMD, LinkVIDs = string.Join(", ", c.LinkVID), Comment = c.Comment ?? string.Empty }); }
-                    DbCeidRows.Clear();
-                    foreach (var e in ceidEntities)   { var c = e.ToCEID();      DbCeidRows.Add(     new CeidRowViewModel     { Code = c.ID, Description = c.Description, LinkReportIDs = string.Join(", ", c.LinkReportID), Comment = c.Comment ?? string.Empty }); }
-                    DbReportIdRows.Clear();
-                    foreach (var e in reportEntities) { var r = e.ToReportID();  DbReportIdRows.Add( new ReportIdRowViewModel { Code = r.ID, Description = r.Description, LinkVIDs = string.Join(", ", r.LinkVID), Comment = r.Comment ?? string.Empty }); }
-                    DbVidRows.Clear();
-                    foreach (var e in vidEntities)    { var v = e.ToVID();       DbVidRows.Add(      new VidRowViewModel      { Code = v.ID, Description = v.Description, DataType = v.DataType.ToString(), Value = v.Value?.ToString() ?? string.Empty, Comment = v.Comment ?? string.Empty }); }
-                    DbIncentiveRows.Clear();
-                    foreach (var e in incEntities)    { var c = e.GetSFCommandFormIncentiveEntity(); DbIncentiveRows.Add(new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Incentive", Description = c.ID }); }
-                    DbResponseRows.Clear();
-                    foreach (var e in resEntities)    { var c = e.GetSFCommandFormResponseEntity();  DbResponseRows.Add( new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Response",  Description = c.ID }); }
                 });
+
+                await LoadEntitiesToRowsAsync<CommandIDEntity, CommandIdRowViewModel>(
+                    SecsDbSet.CommnadIDs, DbCommandIdRows,
+                    e => { var c = e.ToCommandID(); return new CommandIdRowViewModel { Code = c.ID, Description = c.Description, RCMD = c.RCMD, LinkVIDs = string.Join(", ", c.LinkVID), Comment = c.Comment ?? string.Empty }; });
+
+                await LoadEntitiesToRowsAsync<CEIDEntity, CeidRowViewModel>(
+                    SecsDbSet.CEIDs, DbCeidRows,
+                    e => { var c = e.ToCEID(); return new CeidRowViewModel { Code = c.ID, Description = c.Description, LinkReportIDs = string.Join(", ", c.LinkReportID), Comment = c.Comment ?? string.Empty }; });
+
+                await LoadEntitiesToRowsAsync<ReportIDEntity, ReportIdRowViewModel>(
+                    SecsDbSet.ReportIDs, DbReportIdRows,
+                    e => { var r = e.ToReportID(); return new ReportIdRowViewModel { Code = r.ID, Description = r.Description, LinkVIDs = string.Join(", ", r.LinkVID), Comment = r.Comment ?? string.Empty }; });
+
+                await LoadEntitiesToRowsAsync<VIDEntity, VidRowViewModel>(
+                    SecsDbSet.VIDs, DbVidRows,
+                    e => { var v = e.ToVID(); return new VidRowViewModel { Code = v.ID, Description = v.Description, DataType = v.DataType.ToString(), Value = v.Value?.ToString() ?? string.Empty, Comment = v.Comment ?? string.Empty }; });
+
+                await LoadEntitiesToRowsAsync<IncentiveEntity, ParamRowViewModel>(
+                    SecsDbSet.IncentiveCommands, DbIncentiveRows,
+                    e => { var c = e.GetSFCommandFormIncentiveEntity(); return new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Incentive", Description = c.ID }; });
+
+                await LoadEntitiesToRowsAsync<ResponseEntity, ParamRowViewModel>(
+                    SecsDbSet.ResponseCommands, DbResponseRows,
+                    e => { var c = e.GetSFCommandFormResponseEntity(); return new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Response", Description = c.ID }; });
             }
             catch (Exception ex)
             {
@@ -538,22 +544,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                var vidRepo = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
-                await vidRepo.RemoveRangeAsync(await vidRepo.GetAllAsync());
-                await vidRepo.AddRangeAsync(cfg.VIDS.Values.Select(v => v.ToEntity()));
-
-                var ceidRepo = _db.GetRepository<CEIDEntity>(SecsDbSet.CEIDs);
-                await ceidRepo.RemoveRangeAsync(await ceidRepo.GetAllAsync());
-                await ceidRepo.AddRangeAsync(cfg.CEIDS.Values.Select(c => c.ToEntity()));
-
-                var reportRepo = _db.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs);
-                await reportRepo.RemoveRangeAsync(await reportRepo.GetAllAsync());
-                await reportRepo.AddRangeAsync(cfg.ReportIDS.Values.Select(r => r.ToEntity()));
-
-                var cmdRepo = _db.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs);
-                await cmdRepo.RemoveRangeAsync(await cmdRepo.GetAllAsync());
-                await cmdRepo.AddRangeAsync(cfg.CommandIDS.Values.Select(c => c.ToEntity()));
-
+                await ReplaceAllAsync<VIDEntity>      (SecsDbSet.VIDs,       cfg.VIDS.Values.Select      (v => v.ToEntity()));
+                await ReplaceAllAsync<CEIDEntity>     (SecsDbSet.CEIDs,      cfg.CEIDS.Values.Select     (c => c.ToEntity()));
+                await ReplaceAllAsync<ReportIDEntity> (SecsDbSet.ReportIDs,  cfg.ReportIDS.Values.Select (r => r.ToEntity()));
+                await ReplaceAllAsync<CommandIDEntity>(SecsDbSet.CommnadIDs, cfg.CommandIDS.Values.Select(c => c.ToEntity()));
                 await _db.SaveChangesAsync();
             }
             catch (Exception ex) { _log.Append(null, $"Validate 参数持久化失败: {ex.Message}", isSystem: true); }
@@ -563,9 +557,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                var repo = _db.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
-                await repo.RemoveRangeAsync(await repo.GetAllAsync());
-                await repo.AddAsync(sys.ToEntity());
+                await ReplaceAllAsync<SecsGemSystemEntity>(SecsDbSet.SystemConfigs, [sys.ToEntity()]);
                 await _db.SaveChangesAsync();
             }
             catch (Exception ex) { _log.Append(null, $"System 参数持久化失败: {ex.Message}", isSystem: true); }
@@ -577,18 +569,39 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             {
                 var formula = _manager.CommandManager.FormulaConfiguration;
                 if (formula == null) return;
-
-                var incRepo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
-                await incRepo.RemoveRangeAsync(await incRepo.GetAllAsync());
-                await incRepo.AddRangeAsync(formula.IncentiveCommandDictionary.Values.Select(c => c.GetIncentiveEntityFormSFCommand()));
-
-                var resRepo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
-                await resRepo.RemoveRangeAsync(await resRepo.GetAllAsync());
-                await resRepo.AddRangeAsync(formula.ResponseCommandDictionary.Values.Select(c => c.GetResponseEntityFormSFCommand()));
-
+                await ReplaceAllAsync<IncentiveEntity>(SecsDbSet.IncentiveCommands,
+                    formula.IncentiveCommandDictionary.Values.Select(c => c.GetIncentiveEntityFormSFCommand()));
+                await ReplaceAllAsync<ResponseEntity>(SecsDbSet.ResponseCommands,
+                    formula.ResponseCommandDictionary.Values.Select(c => c.GetResponseEntityFormSFCommand()));
                 await _db.SaveChangesAsync();
             }
             catch (Exception ex) { _log.Append(null, $"Formula 参数持久化失败: {ex.Message}", isSystem: true); }
+        }
+
+        // ── 通用 DB 操作辅助 ────────────────────────────────────────────────────
+
+        /// <summary>清空指定 DbSet 后写入新实体（replace-all 模式）。</summary>
+        private async Task ReplaceAllAsync<TEntity>(SecsDbSet dbSet, IEnumerable<TEntity> newEntities)
+            where TEntity : class
+        {
+            var repo = _db.GetRepository<TEntity>(dbSet);
+            await repo.RemoveRangeAsync(await repo.GetAllAsync());
+            await repo.AddRangeAsync(newEntities);
+        }
+
+        /// <summary>从指定 DbSet 读取实体，映射后填入 UI 集合（Dispatcher 上执行 Clear + Add）。</summary>
+        private async Task LoadEntitiesToRowsAsync<TEntity, TRow>(
+            SecsDbSet dbSet,
+            ObservableCollection<TRow> target,
+            Func<TEntity, TRow> mapper)
+            where TEntity : class
+        {
+            var entities = await _db.GetRepository<TEntity>(dbSet).GetAllAsync();
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                target.Clear();
+                foreach (var e in entities) target.Add(mapper(e));
+            });
         }
     }
 }
