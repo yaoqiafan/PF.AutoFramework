@@ -1,6 +1,6 @@
 using Prism.Mvvm;
 
-namespace PF.Modules.SecsGem.ViewModels
+namespace PF.Modules.SecsGem.ViewModels.Models.RowViewModel
 {
     /// <summary>
     /// 右侧参数配置面板的 DataGrid 行 ViewModel
