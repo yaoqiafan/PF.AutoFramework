@@ -81,7 +81,7 @@ namespace PF.Core.Entities.SecsGem.Message
 
         private static void FormatNode(SecsGemNodeMessage node, StringBuilder sb, int indent)
         {
-            string indentStr = new string(' ', indent * 2);
+            string indentStr = new string(' ', indent * 4);
 
             // 假设 SecsGemNodeMessage 有 ItemFormat, Value, 和 Children 属性
             // 格式示例: <L [3]

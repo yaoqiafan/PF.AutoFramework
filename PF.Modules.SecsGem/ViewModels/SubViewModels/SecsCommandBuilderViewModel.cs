@@ -405,7 +405,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
                 if (WaitReply && msg.WBit)
                 {
-                    string sysHex = BitConverter.ToString(msg.SystemBytes.ToArray()).Replace("-", "");
+                    string sysHex =SecsGemMessageTools.ByteArrayToHexStringWithSeparator(msg.SystemBytes.ToArray());
                     bool sent = await _manager.WaitSendMessageAsync(msg, sysHex);
                     if (!sent) _log.Append(null, "等待回复超时", isSystem: true);
                 }
@@ -470,7 +470,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 Function    = _currentCommand?.Message?.Function ?? 1,
                 WBit        = WaitReply,
                 MessageId   = Guid.NewGuid().ToString(),
-                SystemBytes = new List<byte> { 0, 0, 0, 0 },
+                SystemBytes = SecsGemMessageTools.GenerateSystemBytes(),
                 IsIncoming  = false
             };
             if (CurrentMessageNodes.Count > 0)
@@ -558,7 +558,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                     if (selectedVid != null)
                     {
                         nodeVm.VariableCode        = selectedVid.Code;
-                        nodeVm.VariableDescription = $"VID:{selectedVid.Code} [{selectedVid.Description}]";
+                        nodeVm.VariableDescription = $"{selectedVid.Code}";
                     }
                     else
                     {

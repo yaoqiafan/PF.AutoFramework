@@ -55,7 +55,6 @@
                     Height="28"
                     Padding="4,0"
                     VerticalContentAlignment="Center"
-                    Background="#F5F5F5"
                     IsReadOnly="True"
                     Text="{Binding VariableDescription, Mode=OneWay}" />
                 <Button

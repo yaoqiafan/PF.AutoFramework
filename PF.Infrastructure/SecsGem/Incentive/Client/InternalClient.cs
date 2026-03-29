@@ -1,9 +1,13 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Entities.SecsGem.Message;
+using PF.Core.Entities.SecsGem.Params;
+using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication.TCP;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.Command;
+using PF.Core.Interfaces.SecsGem.Communication;
 using PF.Core.Interfaces.SecsGem.Params;
+using PF.Infrastructure.Communication.TCP;
 using PF.Infrastructure.SecsGem.Tools;
 using System;
 using System.Collections.Concurrent;
@@ -11,11 +15,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
-using PF.Core.Entities.SecsGem.Message;
-using PF.Core.Entities.SecsGem.Params;
-using PF.Core.Interfaces.SecsGem.Communication;
-using PF.Infrastructure.Communication.TCP;
 
 namespace PF.Infrastructure.SecsGem.Incentive
 {
@@ -33,9 +34,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
         // 状态管理
         private bool _status = false;
 
-        // 数据缓存队列
-        private readonly ConcurrentBag<byte[]> _receiveProactiveInfo = new ConcurrentBag<byte[]>();
-        private readonly ConcurrentBag<byte[]> _receiveReplyInfo = new ConcurrentBag<byte[]>();
+        // 数据缓存队列 (使用现代的 Channel 替换 ConcurrentBag，彻底解决 CPU 空转)
+        private readonly Channel<byte[]> _receiveProactiveInfo = Channel.CreateUnbounded<byte[]>();
+        private readonly Channel<byte[]> _receiveReplyInfo = Channel.CreateUnbounded<byte[]>();
 
         // 回复消息缓存
         public ConcurrentDictionary<string, SecsGemMessage> ReplyMessageInfo { get; } = new ConcurrentDictionary<string, SecsGemMessage>();
@@ -51,7 +52,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             _client = new TCPClient();
             _paramConfig = @params;
             _commandManager = commandManager;
-            _secsGemMessageProcessor= secsGemMessageProcessor;
+            _secsGemMessageProcessor = secsGemMessageProcessor;
         }
 
         public async Task<bool> InitializationClient()
@@ -188,13 +189,13 @@ namespace PF.Infrastructure.SecsGem.Incentive
                     if (function % 2 == 0)
                     {
                         WriteSecsGemLog($"收到回复消息: {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(data)}");
-                        _receiveReplyInfo.Add(data);
+                        _receiveReplyInfo.Writer.TryWrite(data);
                     }
                     // 主动消息（Function为奇数）
                     else
                     {
                         WriteSecsGemLog($"收到主动消息: {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(data)}");
-                        _receiveProactiveInfo.Add(data);
+                        _receiveProactiveInfo.Writer.TryWrite(data);
                     }
                 }
                 else if (data1[0] == 0x01)
@@ -220,24 +221,23 @@ namespace PF.Infrastructure.SecsGem.Incentive
 
         #region 消息处理循环
 
+
+
+
         private async Task ProcessActiveAsync(CancellationToken token)
         {
             try
             {
-                while (!token.IsCancellationRequested)
+                // await foreach 会在没有数据时自动休眠，有数据时瞬间唤醒，CPU 占用为 0
+                await foreach (var result in _receiveProactiveInfo.Reader.ReadAllAsync(token))
                 {
-                    await Task.Delay(1, token);
-
-                    if (_receiveProactiveInfo.TryTake(out var result))
+                    var message = _secsGemMessageProcessor.ParseSecsBytes(result);
+                    if (message == null)
                     {
-                        var message = _secsGemMessageProcessor.ParseSecsBytes(result);
-                        if (message == null)
-                        {
-                            continue;
-                        }
-
-                        MessageReceived?.Invoke(this, new SecsMessageReceivedEventArgs() { Message = message, Timestamp = DateTime.Now });
+                        continue;
                     }
+
+                    MessageReceived?.Invoke(this, new SecsMessageReceivedEventArgs() { Message = message, Timestamp = DateTime.Now });
                 }
             }
             catch (OperationCanceledException)
@@ -254,25 +254,21 @@ namespace PF.Infrastructure.SecsGem.Incentive
         {
             try
             {
-                while (!token.IsCancellationRequested)
+                await foreach (var result in _receiveReplyInfo.Reader.ReadAllAsync(token))
                 {
-                    await Task.Delay(1, token);
-
-                    if (_receiveReplyInfo.TryTake(out var result))
+                    var message = _secsGemMessageProcessor.ParseSecsBytes(result);
+                    if (message == null)
                     {
-                        var message = _secsGemMessageProcessor.ParseSecsBytes(result);
-                        if (message == null)
-                        {
-                            continue;
-                        }
-
-                        // 从缓存中移除对应的消息
-                        var systemBytesStr = SecsGemMessageTools.ByteArrayToHexStringWithSeparator(message.SystemBytes.ToArray());
-                        ReplyMessageInfo.TryRemove(systemBytesStr, out _);
-
-                        // 添加到回复消息缓存
-                        ReplyMessageInfo.TryAdd(systemBytesStr, message);
+                        continue;
                     }
+
+                    // 从缓存中移除对应的消息
+                    var systemBytesStr = SecsGemMessageTools.ByteArrayToHexStringWithSeparator(message.SystemBytes.ToArray());
+                    ReplyMessageInfo.TryRemove(systemBytesStr, out _);
+                    // 添加到回复消息缓存
+                    ReplyMessageInfo.TryAdd(systemBytesStr, message);
+
+                    MessageReceived?.Invoke(this, new SecsMessageReceivedEventArgs() { Message = message, Timestamp = DateTime.Now });
                 }
             }
             catch (OperationCanceledException)
@@ -284,7 +280,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 WriteSecsGemLog($"处理回复消息时出错: {ex.Message}");
             }
         }
+
         #endregion
+
 
         #region 消息发送
         /// <summary>
@@ -345,7 +343,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
         /// <summary>
         /// 等待回复消息
         /// </summary>
-        public async Task<SecsGemMessage> WaitForReplyAsync(string systemBytesHex, int timeoutMs = 5000)
+        public async Task<SecsGemMessage> WaitForReplyAsync(string systemBytesHex, int timeoutMs = 10000)
         {
             var startTime = DateTime.Now;
 

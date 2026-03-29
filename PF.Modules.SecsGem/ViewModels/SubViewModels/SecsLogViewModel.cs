@@ -53,12 +53,12 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             {
                 entry = CreateLogEntry(msg, message ?? "→");
             }
-            TransactionLogs.Add(entry);
+            TransactionLogs.Insert(0,entry);
         }
 
         /// <summary>追加一条接收到的报文日志。</summary>
         public void AppendReceived(SecsGemMessage msg) =>
-            TransactionLogs.Add(CreateLogEntry(msg, "←"));
+            TransactionLogs.Insert(0,CreateLogEntry(msg, "←"));
 
         // ── 私有辅助 ───────────────────────────────────────────────────────────
         private static TransactionLogEntry CreateLogEntry(SecsGemMessage msg, string direction)

@@ -665,7 +665,7 @@ namespace PF.Application.Shell
             }
 
 
-             var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule ));
+             var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
             if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;

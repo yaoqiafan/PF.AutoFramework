@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:PF.Modules.SecsGem.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     MinWidth="380"
-    MinHeight="300"
+   MaxHeight="600"
     mc:Ignorable="d" FontSize="{DynamicResource FontSize.Body.Standard}">
     <Grid Margin="12">
         <Grid.RowDefinitions>
