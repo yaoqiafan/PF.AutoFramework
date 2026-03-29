@@ -25,13 +25,13 @@ namespace PF.Modules.SecsGem.Views
             // 订阅日志集合变更以实现自动滚动
             if (DataContext is SecsGemDebugViewModel vm)
             {
-                vm.TransactionLogs.CollectionChanged += OnTransactionLogsChanged;
+                vm.Log.TransactionLogs.CollectionChanged += OnTransactionLogsChanged;
             }
         }
 
         private void OnTransactionLogsChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (DataContext is not SecsGemDebugViewModel vm || !vm.AutoScrollLog) return;
+            if (DataContext is not SecsGemDebugViewModel vm || !vm.Log.AutoScrollLog) return;
             if (e.Action != NotifyCollectionChangedAction.Add) return;
 
             // 自动滚动到底部
@@ -51,7 +51,7 @@ namespace PF.Modules.SecsGem.Views
             // 获取点击的 TreeViewItem 数据上下文
             if (sender is TreeViewItem item && item.DataContext is CommandLeafViewModel leaf)
             {
-                vm.SelectCommandLeafCommand.Execute(leaf);
+                vm.CommandBuilder.SelectCommandLeafCommand.Execute(leaf);
                 e.Handled = true;
             }
         }
