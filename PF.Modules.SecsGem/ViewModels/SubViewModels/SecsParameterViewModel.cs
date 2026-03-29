@@ -5,6 +5,7 @@ using PF.Core.Entities.SecsGem.Params.FormulaParam;
 using PF.Core.Entities.SecsGem.Params.ValidateParam;
 using PF.Core.Enums;
 using PF.Core.Interfaces.SecsGem;
+using PF.Core.Interfaces.Data;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Core.Interfaces.SecsGem.Params;
 using PF.Infrastructure.SecsGem.Tools;
@@ -582,7 +583,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         /// <summary>清空指定 DbSet 后写入新实体（replace-all 模式）。</summary>
         private async Task ReplaceAllAsync<TEntity>(SecsDbSet dbSet, IEnumerable<TEntity> newEntities)
-            where TEntity : class
+            where TEntity : class, IEntity, new()
         {
             var repo = _db.GetRepository<TEntity>(dbSet);
             await repo.RemoveRangeAsync(await repo.GetAllAsync());
@@ -594,7 +595,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             SecsDbSet dbSet,
             ObservableCollection<TRow> target,
             Func<TEntity, TRow> mapper)
-            where TEntity : class
+            where TEntity : class, IEntity, new()
         {
             var entities = await _db.GetRepository<TEntity>(dbSet).GetAllAsync();
             Application.Current?.Dispatcher.Invoke(() =>
