@@ -108,7 +108,7 @@
             Background="#FFF3E0"
             BorderBrush="#FF6D00"
             BorderThickness="0,0,0,2"
-            Visibility="{Binding IsDbEmpty, Converter={StaticResource BoolToVis}}">
+            Visibility="{Binding Connection.IsDbEmpty, Converter={StaticResource BoolToVis}}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock
                     Margin="0,0,8,0"
@@ -121,7 +121,7 @@
                     FontSize="13"
                     FontWeight="Bold"
                     Foreground="#BF360C"
-                    Text="{Binding DbEmptyMessage}" />
+                    Text="{Binding Connection.DbEmptyMessage}" />
             </StackPanel>
         </Border>
 
@@ -136,32 +136,32 @@
                     Height="14"
                     Margin="0,0,6,0"
                     VerticalAlignment="Center"
-                    Fill="{Binding StatusColor}" />
+                    Fill="{Binding Connection.StatusColor}" />
 
                 <TextBlock
                     Margin="0,0,24,0"
                     VerticalAlignment="Center"
                     FontWeight="SemiBold"
-                    Text="{Binding ConnectionStatusText}" />
+                    Text="{Binding Connection.ConnectionStatusText}" />
 
                 <Button
                     Width="90"
                     Margin="5"
-                    Command="{Binding InitializeCommand}"
+                    Command="{Binding Connection.InitializeCommand}"
                     Content="⚙ 初始化"
                     Style="{StaticResource ToolbarButtonStyle}" />
 
                 <Button
                     Width="90"
                     Margin="5"
-                    Command="{Binding ConnectCommand}"
+                    Command="{Binding Connection.ConnectCommand}"
                     Content="🔗 连接"
                     Style="{StaticResource PrimaryButtonStyle}" />
 
                 <Button
                     Width="90"
                     Margin="5"
-                    Command="{Binding DisconnectCommand}"
+                    Command="{Binding Connection.DisconnectCommand}"
                     Content="✖ 断开"
                     Style="{StaticResource DangerButtonStyle}" />
 
@@ -173,7 +173,7 @@
                     BorderBrush="#F9A825"
                     BorderThickness="1"
                     CornerRadius="3"
-                    Visibility="{Binding IsWBitWarningVisible, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding CommandBuilder.IsWBitWarningVisible, Converter={StaticResource BoolToVis}}">
                     <TextBlock
                         VerticalAlignment="Center"
                         FontSize="12"
@@ -212,23 +212,23 @@
                                 <Button
                                     Width="72"
                                     Margin="0,0,4,0"
-                                    Command="{Binding ImportCommandsCommand}"
+                                    Command="{Binding CommandBuilder.ImportCommandsCommand}"
                                     Content="导入"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                                 <Button
                                     Width="72"
                                     Margin="0,0,4,0"
-                                    Command="{Binding ExportCommandsCommand}"
+                                    Command="{Binding CommandBuilder.ExportCommandsCommand}"
                                     Content="导出"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                                 <Button
                                     Width="72"
-                                    Command="{Binding ReloadCommandsCommand}"
+                                    Command="{Binding CommandBuilder.ReloadCommandsCommand}"
                                     Content="重载"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                                 <Button
                                     Margin="0,0,4,0"
-                                    Command="{Binding AddNewCommandCommand}"
+                                    Command="{Binding CommandBuilder.AddNewCommandCommand}"
                                     Content="➕ 新建命令"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                             </WrapPanel>
@@ -239,7 +239,7 @@
                                     <TreeView
                                         Background="Transparent"
                                         BorderThickness="0"
-                                        ItemsSource="{Binding IncentiveCommandsTree}"
+                                        ItemsSource="{Binding CommandBuilder.IncentiveCommandsTree}"
                                         MouseRightButtonDown="TreeView_MouseRightButtonDown"
                                         Style="{DynamicResource TreeViewBaseStyle}">
                                         <TreeView.ItemContainerStyle>
@@ -254,7 +254,7 @@
                                     <TreeView
                                         Background="Transparent"
                                         BorderThickness="0"
-                                        ItemsSource="{Binding ResponseCommandsTree}"
+                                        ItemsSource="{Binding CommandBuilder.ResponseCommandsTree}"
                                         MouseRightButtonDown="TreeView_MouseRightButtonDown">
                                         <TreeView.ItemContainerStyle>
                                             <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
@@ -290,14 +290,14 @@
                                 <TextBlock
                                     FontSize="13"
                                     FontWeight="Bold"
-                                    Text="{Binding CurrentCommandHeader}" />
+                                    Text="{Binding CommandBuilder.CurrentCommandHeader}" />
                             </Border>
 
                             <!--  报文节点树  -->
                             <TreeView
                                 Grid.Row="1"
                                 BorderThickness="1"
-                                ItemsSource="{Binding CurrentMessageNodes}"
+                                ItemsSource="{Binding CommandBuilder.CurrentMessageNodes}"
                                 MouseRightButtonDown="TreeView_MouseRightButtonDown"
                                 VirtualizingStackPanel.IsVirtualizing="False">
                                 <TreeView.Resources>
@@ -427,22 +427,22 @@
                                     Margin="0,0,16,0"
                                     VerticalAlignment="Center"
                                     Content="等待回复 (W-Bit)"
-                                    IsChecked="{Binding WaitReply}" />
+                                    IsChecked="{Binding CommandBuilder.WaitReply}" />
 
                                 <Button
                                     Margin="0,0,4,0"
-                                    Command="{Binding SaveMessageCommand}"
+                                    Command="{Binding CommandBuilder.SaveMessageCommand}"
                                     Content="💾 保存报文"
                                     Style="{StaticResource ToolbarButtonStyle}" />
 
                                 <Button
-                                    Command="{Binding UpdateVariablesCommand}"
+                                    Command="{Binding CommandBuilder.UpdateVariablesCommand}"
                                     Content="🔄 更新变量节点"
                                     Style="{StaticResource ToolbarButtonStyle}" />
 
                                 <Button
                                     Width="120"
-                                    Command="{Binding SendCommand}"
+                                    Command="{Binding CommandBuilder.SendCommand}"
                                     Content="▶ 发送 (Send)"
                                     FontSize="13"
                                     Style="{StaticResource PrimaryButtonStyle}" />
@@ -467,7 +467,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedParamTabIndex}">
+                    <TabControl Grid.Row="0" SelectedIndex="{Binding Parameter.SelectedParamTabIndex}">
 
                         <!--  系统参数  -->
                         <TabItem Header="🖥 系统参数">
@@ -477,7 +477,7 @@
                                 CanUserDeleteRows="False"
                                 GridLinesVisibility="Horizontal"
                                 HeadersVisibility="Column"
-                                ItemsSource="{Binding ParamRows}"
+                                ItemsSource="{Binding Parameter.ParamRows}"
                                 SelectionMode="Single">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Width="*" MinWidth="100" Binding="{Binding Name}" Header="名称" IsReadOnly="True" />
@@ -491,10 +491,10 @@
                         <!--  VID  -->
                         <TabItem Header="📋 VID">
                             <controls:ParamDataGridControl
-                                AddCommand="{Binding AddVidCommand}"
-                                DeleteCommand="{Binding DeleteVidCommand}"
-                                ItemsSource="{Binding VidRows}"
-                                SelectedItem="{Binding SelectedVidRow}">
+                                AddCommand="{Binding Parameter.AddVidCommand}"
+                                DeleteCommand="{Binding Parameter.DeleteVidCommand}"
+                                ItemsSource="{Binding Parameter.VidRows}"
+                                SelectedItem="{Binding Parameter.SelectedVidRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
                                     <DataGridTextColumn Width="80" Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}" Header="类型" />
                                     <DataGridTextColumn Width="120" Binding="{Binding Value, UpdateSourceTrigger=LostFocus}" Header="值" />
@@ -505,10 +505,10 @@
                         <!--  CEID  -->
                         <TabItem Header="📡 CEID">
                             <controls:ParamDataGridControl
-                                AddCommand="{Binding AddCeidCommand}"
-                                DeleteCommand="{Binding DeleteCeidCommand}"
-                                ItemsSource="{Binding CeidRows}"
-                                SelectedItem="{Binding SelectedCeidRow}">
+                                AddCommand="{Binding Parameter.AddCeidCommand}"
+                                DeleteCommand="{Binding Parameter.DeleteCeidCommand}"
+                                ItemsSource="{Binding Parameter.CeidRows}"
+                                SelectedItem="{Binding Parameter.SelectedCeidRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
                                     <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}" Header="关联 ReportID" />
                                 </controls:ParamDataGridControl.ExtraColumns>
@@ -518,10 +518,10 @@
                         <!--  ReportID  -->
                         <TabItem Header="📄 ReportID">
                             <controls:ParamDataGridControl
-                                AddCommand="{Binding AddReportIdCommand}"
-                                DeleteCommand="{Binding DeleteReportIdCommand}"
-                                ItemsSource="{Binding ReportIdRows}"
-                                SelectedItem="{Binding SelectedReportIdRow}">
+                                AddCommand="{Binding Parameter.AddReportIdCommand}"
+                                DeleteCommand="{Binding Parameter.DeleteReportIdCommand}"
+                                ItemsSource="{Binding Parameter.ReportIdRows}"
+                                SelectedItem="{Binding Parameter.SelectedReportIdRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
                                     <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
                                 </controls:ParamDataGridControl.ExtraColumns>
@@ -531,10 +531,10 @@
                         <!--  CommandID  -->
                         <TabItem Header="⌨ CommandID">
                             <controls:ParamDataGridControl
-                                AddCommand="{Binding AddCommandIdCommand}"
-                                DeleteCommand="{Binding DeleteCommandIdCommand}"
-                                ItemsSource="{Binding CommandIdRows}"
-                                SelectedItem="{Binding SelectedCommandIdRow}">
+                                AddCommand="{Binding Parameter.AddCommandIdCommand}"
+                                DeleteCommand="{Binding Parameter.DeleteCommandIdCommand}"
+                                ItemsSource="{Binding Parameter.CommandIdRows}"
+                                SelectedItem="{Binding Parameter.SelectedCommandIdRow}">
                                 <controls:ParamDataGridControl.ExtraColumns>
                                     <DataGridTextColumn Width="80" Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}" Header="RCMD" />
                                     <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
@@ -551,22 +551,22 @@
                         HorizontalAlignment="Right">
                         <Button
                             Margin="0,0,4,0"
-                            Command="{Binding ImportSystemParamCommand}"
+                            Command="{Binding Parameter.ImportSystemParamCommand}"
                             Content="📂 导入系统参数(JSON)"
                             Style="{StaticResource ToolbarButtonStyle}" />
                         <Button
                             Margin="0,0,4,0"
-                            Command="{Binding ImportValidateParamCommand}"
+                            Command="{Binding Parameter.ImportValidateParamCommand}"
                             Content="📊 导入变量参数(Excel)"
                             Style="{StaticResource ToolbarButtonStyle}" />
                         <Button
                             Width="70"
                             Margin="0,0,4,0"
-                            Command="{Binding ExportParamsCommand}"
+                            Command="{Binding Parameter.ExportParamsCommand}"
                             Content="导出"
                             Style="{StaticResource ToolbarButtonStyle}" />
                         <Button
-                            Command="{Binding SaveParamCommand}"
+                            Command="{Binding Parameter.SaveParamCommand}"
                             Content="💾 保存参数"
                             Style="{StaticResource ToolbarButtonStyle}" />
                     </WrapPanel>
@@ -598,17 +598,17 @@
                                     Width="200"
                                     Margin="0,0,16,0"
                                     VerticalContentAlignment="Center"
-                                    Text="{Binding ServiceNameForManagement, UpdateSourceTrigger=PropertyChanged}" />
+                                    Text="{Binding ServiceManager.ServiceNameForManagement, UpdateSourceTrigger=PropertyChanged}" />
                                 <Ellipse
                                     Width="12"
                                     Height="12"
                                     Margin="0,0,6,0"
                                     VerticalAlignment="Center"
-                                    Fill="{Binding ServiceStatusColor}" />
+                                    Fill="{Binding ServiceManager.ServiceStatusColor}" />
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontWeight="SemiBold"
-                                    Text="{Binding ServiceStatusText}" />
+                                    Text="{Binding ServiceManager.ServiceStatusText}" />
                             </StackPanel>
 
                             <!--  EXE 路径  -->
@@ -618,28 +618,28 @@
                                     Width="400"
                                     Margin="0,0,8,0"
                                     VerticalContentAlignment="Center"
-                                    Text="{Binding ServiceExePath, UpdateSourceTrigger=PropertyChanged}" />
+                                    Text="{Binding ServiceManager.ServiceExePath, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
 
                             <!--  操作按钮  -->
                             <WrapPanel Grid.Row="2">
                                 <Button
                                     Margin="0,0,4,0"
-                                    Command="{Binding InstallServiceCommand}"
+                                    Command="{Binding ServiceManager.InstallServiceCommand}"
                                     Content="📥 安装服务"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                                 <Button
                                     Margin="0,0,4,0"
-                                    Command="{Binding UninstallServiceCommand}"
+                                    Command="{Binding ServiceManager.UninstallServiceCommand}"
                                     Content="🗑 卸载服务"
                                     Style="{StaticResource DangerButtonStyle}" />
                                 <Button
                                     Margin="0,0,4,0"
-                                    Command="{Binding StartServiceCommand}"
+                                    Command="{Binding ServiceManager.StartServiceCommand}"
                                     Content="▶ 启动服务"
                                     Style="{StaticResource PrimaryButtonStyle}" />
                                 <Button
-                                    Command="{Binding RefreshServiceStatusCommand}"
+                                    Command="{Binding ServiceManager.RefreshServiceStatusCommand}"
                                     Content="🔄 刷新状态"
                                     Style="{StaticResource ToolbarButtonStyle}" />
                             </WrapPanel>
@@ -669,7 +669,7 @@
                     Grid.Row="0"
                     Background="#263238"
                     BorderThickness="0"
-                    ItemsSource="{Binding TransactionLogs}"
+                    ItemsSource="{Binding Log.TransactionLogs}"
                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
                     VirtualizingStackPanel.IsVirtualizing="True"
@@ -761,9 +761,9 @@
                         VerticalAlignment="Center"
                         Content="自动滚动"
                         Foreground="#546E7A"
-                        IsChecked="{Binding AutoScrollLog}" />
+                        IsChecked="{Binding Log.AutoScrollLog}" />
                     <Button
-                        Command="{Binding ClearLogCommand}"
+                        Command="{Binding Log.ClearLogCommand}"
                         Content="🗑 清空日志"
                         Style="{StaticResource ToolbarButtonStyle}" />
                 </StackPanel>
