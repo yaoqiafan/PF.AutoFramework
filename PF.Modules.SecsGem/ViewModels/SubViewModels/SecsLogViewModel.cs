@@ -21,7 +21,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         public ObservableCollection<TransactionLogEntry> TransactionLogs { get; } = new();
 
         // ── 自动滚动 ───────────────────────────────────────────────────────────
-        private bool _autoScrollLog = true;
+        private bool _autoScrollLog = false;
         public bool AutoScrollLog
         {
             get => _autoScrollLog;

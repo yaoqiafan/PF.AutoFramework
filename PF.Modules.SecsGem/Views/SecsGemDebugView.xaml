@@ -578,17 +578,17 @@
                                 SelectionMode="Single">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
-                                        Width="*"
+                                        Width="auto"
                                         MinWidth="100"
                                         Binding="{Binding Name}"
                                         Header="名称"
                                         IsReadOnly="True" />
                                     <DataGridTextColumn
-                                        Width="160"
+                                        Width="*"
                                         Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
                                         Header="值" />
                                     <DataGridTextColumn
-                                        Width="70"
+                                        Width="auto"
                                         Binding="{Binding DataType}"
                                         Header="类型"
                                         IsReadOnly="True" />

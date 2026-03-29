@@ -80,7 +80,7 @@ namespace PF.Modules.SecsGem.Views.Controls
             PART_Grid.Columns.Add(new DataGridTextColumn
             {
                 Header = "Code",
-                Width = new DataGridLength(60),
+                Width =  DataGridLength.Auto,
                 Binding = new Binding("Code") { UpdateSourceTrigger = UpdateSourceTrigger.LostFocus }
             });
 

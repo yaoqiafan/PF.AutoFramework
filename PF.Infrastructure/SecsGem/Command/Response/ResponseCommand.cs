@@ -2,6 +2,7 @@
 using PF.Core.Entities.SecsGem.Command;
 using PF.Core.Entities.SecsGem.Params.FormulaParam;
 using PF.Core.Interfaces.SecsGem.Command;
+using PF.Infrastructure.SecsGem.Tools;
 using System.Collections.Concurrent;
 
 
@@ -257,7 +258,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
         /// </summary>
         public async Task Save(string filePath = null)
         {
-           
+            await NPOIHelper.SaveResponseCommandToExcel(filePath, _commandDictionary);
         }
 
         
