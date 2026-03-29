@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:vm="clr-namespace:PF.Modules.SecsGem.ViewModels"
+    xmlns:controls="clr-namespace:PF.Modules.SecsGem.Views.Controls"
     d:DesignHeight="1080"
     d:DesignWidth="1920"
     prism:ViewModelLocator.AutoWireViewModel="True"
@@ -489,128 +490,56 @@
 
                         <!--  VID  -->
                         <TabItem Header="📋 VID">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
-                                    <Button Margin="0,0,4,0" Command="{Binding AddVidCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
-                                    <Button Margin="0,0,4,0" Command="{Binding DeleteVidCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
-                                </WrapPanel>
-                                <DataGrid
-                                    Grid.Row="1"
-                                    AutoGenerateColumns="False"
-                                    CanUserAddRows="False"
-                                    CanUserDeleteRows="False"
-                                    GridLinesVisibility="Horizontal"
-                                    HeadersVisibility="Column"
-                                    ItemsSource="{Binding VidRows}"
-                                    SelectedItem="{Binding SelectedVidRow}"
-                                    SelectionMode="Single">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
-                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
-                                        <DataGridTextColumn Width="80" Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}" Header="类型" />
-                                        <DataGridTextColumn Width="120" Binding="{Binding Value, UpdateSourceTrigger=LostFocus}" Header="值" />
-                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Grid>
+                            <controls:ParamDataGridControl
+                                AddCommand="{Binding AddVidCommand}"
+                                DeleteCommand="{Binding DeleteVidCommand}"
+                                ItemsSource="{Binding VidRows}"
+                                SelectedItem="{Binding SelectedVidRow}">
+                                <controls:ParamDataGridControl.ExtraColumns>
+                                    <DataGridTextColumn Width="80" Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}" Header="类型" />
+                                    <DataGridTextColumn Width="120" Binding="{Binding Value, UpdateSourceTrigger=LostFocus}" Header="值" />
+                                </controls:ParamDataGridControl.ExtraColumns>
+                            </controls:ParamDataGridControl>
                         </TabItem>
 
                         <!--  CEID  -->
                         <TabItem Header="📡 CEID">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
-                                    <Button Margin="0,0,4,0" Command="{Binding AddCeidCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
-                                    <Button Margin="0,0,4,0" Command="{Binding DeleteCeidCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
-                                </WrapPanel>
-                                <DataGrid
-                                    Grid.Row="1"
-                                    AutoGenerateColumns="False"
-                                    CanUserAddRows="False"
-                                    CanUserDeleteRows="False"
-                                    GridLinesVisibility="Horizontal"
-                                    HeadersVisibility="Column"
-                                    ItemsSource="{Binding CeidRows}"
-                                    SelectedItem="{Binding SelectedCeidRow}"
-                                    SelectionMode="Single">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
-                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
-                                        <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}" Header="关联 ReportID" />
-                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Grid>
+                            <controls:ParamDataGridControl
+                                AddCommand="{Binding AddCeidCommand}"
+                                DeleteCommand="{Binding DeleteCeidCommand}"
+                                ItemsSource="{Binding CeidRows}"
+                                SelectedItem="{Binding SelectedCeidRow}">
+                                <controls:ParamDataGridControl.ExtraColumns>
+                                    <DataGridTextColumn Width="150" Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}" Header="关联 ReportID" />
+                                </controls:ParamDataGridControl.ExtraColumns>
+                            </controls:ParamDataGridControl>
                         </TabItem>
 
                         <!--  ReportID  -->
                         <TabItem Header="📄 ReportID">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
-                                    <Button Margin="0,0,4,0" Command="{Binding AddReportIdCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
-                                    <Button Margin="0,0,4,0" Command="{Binding DeleteReportIdCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
-                                </WrapPanel>
-                                <DataGrid
-                                    Grid.Row="1"
-                                    AutoGenerateColumns="False"
-                                    CanUserAddRows="False"
-                                    CanUserDeleteRows="False"
-                                    GridLinesVisibility="Horizontal"
-                                    HeadersVisibility="Column"
-                                    ItemsSource="{Binding ReportIdRows}"
-                                    SelectedItem="{Binding SelectedReportIdRow}"
-                                    SelectionMode="Single">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
-                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
-                                        <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
-                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Grid>
+                            <controls:ParamDataGridControl
+                                AddCommand="{Binding AddReportIdCommand}"
+                                DeleteCommand="{Binding DeleteReportIdCommand}"
+                                ItemsSource="{Binding ReportIdRows}"
+                                SelectedItem="{Binding SelectedReportIdRow}">
+                                <controls:ParamDataGridControl.ExtraColumns>
+                                    <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
+                                </controls:ParamDataGridControl.ExtraColumns>
+                            </controls:ParamDataGridControl>
                         </TabItem>
 
                         <!--  CommandID  -->
                         <TabItem Header="⌨ CommandID">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-                                <WrapPanel Grid.Row="0" Margin="0,0,0,4">
-                                    <Button Margin="0,0,4,0" Command="{Binding AddCommandIdCommand}" Content="+ 新增行" Style="{StaticResource ToolbarButtonStyle}" />
-                                    <Button Margin="0,0,4,0" Command="{Binding DeleteCommandIdCommand}" Content="- 删除选中" Style="{StaticResource ToolbarButtonStyle}" />
-                                </WrapPanel>
-                                <DataGrid
-                                    Grid.Row="1"
-                                    AutoGenerateColumns="False"
-                                    CanUserAddRows="False"
-                                    CanUserDeleteRows="False"
-                                    GridLinesVisibility="Horizontal"
-                                    HeadersVisibility="Column"
-                                    ItemsSource="{Binding CommandIdRows}"
-                                    SelectedItem="{Binding SelectedCommandIdRow}"
-                                    SelectionMode="Single">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Width="60" Binding="{Binding Code, UpdateSourceTrigger=LostFocus}" Header="Code" />
-                                        <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Header="描述" />
-                                        <DataGridTextColumn Width="80" Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}" Header="RCMD" />
-                                        <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
-                                        <DataGridTextColumn Width="*" MinWidth="60" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Header="备注" />
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Grid>
+                            <controls:ParamDataGridControl
+                                AddCommand="{Binding AddCommandIdCommand}"
+                                DeleteCommand="{Binding DeleteCommandIdCommand}"
+                                ItemsSource="{Binding CommandIdRows}"
+                                SelectedItem="{Binding SelectedCommandIdRow}">
+                                <controls:ParamDataGridControl.ExtraColumns>
+                                    <DataGridTextColumn Width="80" Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}" Header="RCMD" />
+                                    <DataGridTextColumn Width="150" Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}" Header="关联 VID" />
+                                </controls:ParamDataGridControl.ExtraColumns>
+                            </controls:ParamDataGridControl>
                         </TabItem>
 
                     </TabControl>
