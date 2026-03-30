@@ -80,22 +80,22 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
                                         Width=" 2*"
-                                        Binding="{Binding CustomerBatches}"
+                                        Binding="{Binding CustomerBatch}"
                                         Header="客户批次"
                                         IsReadOnly="True" />
                                     <DataGridTextColumn
                                         Width=" 2*"
-                                        Binding="{Binding OCRValue}"
+                                        Binding="{Binding OcrText}"
                                         Header="OCR值"
                                         IsReadOnly="True" />
                                     <DataGridTextColumn
                                         Width=" 2*"
-                                        Binding="{Binding CodeValue1}"
+                                        Binding="{Binding Barcode1}"
                                         Header="条码"
                                         IsReadOnly="True" />
                                     <DataGridTextColumn
                                         Width=" 1.2*"
-                                        Binding="{Binding DetResult}"
+                                        Binding="{Binding IsMatch}"
                                         Header="结果"
                                         IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
@@ -103,12 +103,12 @@
                                                 <Setter Property="Background" Value="Transparent" />
                                                 <Setter Property="Foreground" Value="Black" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding DetResult}" Value="True">
+                                                    <DataTrigger Binding="{Binding IsMatch}" Value="True">
                                                         <Setter Property="Background" Value="{DynamicResource SuccessBrush }"  />
                                                         <Setter Property="Foreground" Value="{DynamicResource SuccessBrush }"  />
                                                     </DataTrigger>
                                                     <!--  Result 为 false 时背景红色  -->
-                                                    <DataTrigger Binding="{Binding DetResult}" Value="False">
+                                                    <DataTrigger Binding="{Binding IsMatch}" Value="False">
                                                         <Setter Property="Background" Value="{DynamicResource DangerBrush }"  />
                                                         <Setter Property="Foreground" Value="{DynamicResource DangerBrush }"  />
 
@@ -181,17 +181,17 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
                                         Width=" 2*"
-                                        Binding="{Binding CustomerBatches}"
+                                        Binding="{Binding CustomerBatch}"
                                         Header="客户批次"
                                         IsReadOnly="True" />
                                     <DataGridTextColumn
                                         Width=" 2*"
-                                        Binding="{Binding OCRValue}"
+                                        Binding="{Binding OcrText}"
                                         Header="OCR值"
                                         IsReadOnly="True" />
                                     <DataGridTextColumn
                                         Width=" 2*"
-                                        Binding="{Binding CodeValue1}"
+                                        Binding="{Binding Barcode1}"
                                         Header="条码"
                                         IsReadOnly="True" />
                                     
@@ -199,7 +199,7 @@
                                     
                                     <DataGridTextColumn
                                         Width=" 1.2*"
-                                        Binding="{Binding DetResult}"
+                                        Binding="{Binding IsMatch}"
                                         Header="结果"
                                         IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
