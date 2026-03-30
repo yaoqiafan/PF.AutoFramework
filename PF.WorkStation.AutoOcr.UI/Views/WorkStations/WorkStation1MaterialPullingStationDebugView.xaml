@@ -1,0 +1,260 @@
+﻿<UserControl
+    x:Class="PF.WorkStation.AutoOcr.UI.Views.WorkStations.WorkStation1MaterialPullingStationDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:vm="clr-namespace:PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations"
+    Height="878"
+    d:DataContext="{d:DesignInstance vm:WorkStation1FeedingStationDebugViewModel,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignWidth="800">
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <ScrollViewer>
+
+
+            <StackPanel Width="720" Margin="16">
+
+                <!--  ══════════════════════════════════════════════════════════════  -->
+                <!--  状态看板  -->
+                <!--  ══════════════════════════════════════════════════════════════  -->
+                <TextBlock
+                    Margin="0,0,0,8"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="● 工站状态看板" />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+
+                    <!--  状态机状态  -->
+                    <Border Grid.Column="0" Margin="0,0,6,0">
+                        <StackPanel>
+                            <TextBlock Text="状态机状态" />
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                <Ellipse
+                                    Width="10"
+                                    Height="10"
+                                    Margin="0,0,6,0"
+                                    VerticalAlignment="Center"
+                                    Fill="{Binding StatusBrush}" />
+                                <TextBlock Text="{Binding CurrentState}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!--  运行模式  -->
+                    <Border Grid.Column="1" Margin="3,0,3,0">
+                        <StackPanel>
+                            <TextBlock Text="运行模式" />
+                            <TextBlock Text="{Binding CurrentMode}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--  当前步序  -->
+                    <Border Grid.Column="2" Margin="6,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="当前步序" />
+                            <TextBlock
+                                FontSize="13"
+                                Text="{Binding CurrentStepDescription}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!--  ══════════════════════════════════════════════════════════════  -->
+                <!--  手动控制区域（仅 SuperUser 可操作）  -->
+                <!--  ══════════════════════════════════════════════════════════════  -->
+                <TextBlock
+                    Margin="0,20,0,8"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="● 手动控制" />
+
+                <Border
+                    Padding="14,12"
+                    Background="{DynamicResource SecondaryRegionColorBrush}"
+                    BorderBrush="{DynamicResource BorderColorBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    IsEnabled="{Binding CanManualControl}">
+
+                    <StackPanel>
+                        <!--  权限提示条  -->
+                        <Border
+                            Margin="0,0,0,10"
+                            Padding="10,6"
+                            CornerRadius="4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanManualControl}" Value="True">
+                                            <Setter Property="Background" Value="#1a2db84d" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CanManualControl}" Value="False">
+                                            <Setter Property="Background" Value="#1adb3340" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock VerticalAlignment="Center" FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanManualControl}" Value="True">
+                                                <Setter Property="Text" Value="✓  当前用户已具备手动控制权限（SuperUser）" />
+                                                <Setter Property="Foreground" Value="#2db84d" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CanManualControl}" Value="False">
+                                                <Setter Property="Text" Value="✗  当前用户无手动控制权限，需 SuperUser 级别" />
+                                                <Setter Property="Foreground" Value="#db3340" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                        <pf:Card Margin="10">
+                            <pf:Card.Header>
+                                <TextBlock
+                                    Margin="5"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Text=" 控制按钮行 1：初始化 / 运行控制  " />
+                            </pf:Card.Header>
+                            <UniformGrid Margin="10" Columns="1">
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding InitializeCommand}"
+                                    Content="初始化"
+                                    ToolTip="执行硬件初始化：连接设备 → 回原点 → Idle" />
+
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding StartCommand}"
+                                    Content="▶ 启动" />
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding PauseCommand}"
+                                    Content="⏸ 暂停" />
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding ResumeCommand}"
+                                    Content="▶ 恢复" />
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding StopCommand}"
+                                    Content="⏹ 停止" />
+                            </UniformGrid>
+                        </pf:Card>
+
+
+                        <pf:Card Margin="10">
+                            <pf:Card.Header>
+                                <TextBlock
+                                    Margin="5"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Text="  控制按钮行 2：故障处理  " />
+                            </pf:Card.Header>
+
+                            <UniformGrid Margin="10" Columns="1">
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding ResetCommand}"
+                                    Content="⟳ 复位"
+                                    Style="{DynamicResource ButtonInfo}"
+                                    ToolTip="执行硬件复位：清警 → 回原点 → Idle" />
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerAlarmCommand}"
+                                    Content="⚡ 手动触发报警"
+                                    Style="{DynamicResource ButtonDashedDanger}"
+                                    ToolTip="模拟触发报警状态（仅用于调试测试）" />
+                            </UniformGrid>
+                        </pf:Card>
+                        <!--  控制按钮行 2：故障处理  -->
+
+                        <pf:Card Margin="10">
+                            <pf:Card.Header>
+                                <TextBlock
+                                    Margin="5"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Text="  控制按钮行 3：强制触发  " />
+                            </pf:Card.Header>
+
+                            <UniformGrid Margin="10" Columns="1">
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerAllowFeedCommand}"
+                                    Content="工位1允许拉料"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="夹爪取料" />
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerDetEndCommand}"
+                                    Content="工位1检测完成"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="等待允许送料" />
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerAllowBlankCommand}"
+                                    Content="夹爪允许送料"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="送料到料盒" />
+
+                            </UniformGrid>
+                        </pf:Card>
+
+                    </StackPanel>
+                </Border>
+
+                <!--  ══════════════════════════════════════════════════════════════  -->
+                <!--  状态流转说明  -->
+                <!--  ══════════════════════════════════════════════════════════════  -->
+                <Border
+                    Margin="0,16,0,0"
+                    Padding="12,10"
+                    BorderThickness="0"
+                    CornerRadius="4">
+                    <StackPanel>
+                        <TextBlock
+                            FontSize="{DynamicResource FontSize.Body.Small}"
+                            FontWeight="SemiBold"
+                            Text="状态流转说明" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            Text="Uninitialized → [初始化] → Idle → [启动] → Running ⇄ [暂停/恢复] ⇄ Paused → [停止] → Idle  |  任意状态 → [触发报警] → Alarm → [复位] → Idle"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </pf:TransitioningContentControl>
+</UserControl>

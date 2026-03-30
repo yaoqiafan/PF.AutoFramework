@@ -15,6 +15,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         工位1拉料完成,
         工位1允许退料,
         工位1退料完成,
+        工位1允许检测,
+        工位1检测完成,
 
 
 
@@ -26,7 +28,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         工位2拉料完成,
         工位2允许退料,
         工位2退料完成,
-
+        工位2允许检测,
+        工位2检测完成,
 
     }
     public class AutoOCRMachineController : BaseMasterController
