@@ -1,4 +1,5 @@
 ﻿
+using MathNet.Numerics;
 using PF.Core.Attributes;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
@@ -29,7 +30,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 1)]
     public class WorkStationDataModule : BaseMechanism
     {
-      private readonly  IProductionDataService _productionDataService;
+        private readonly IProductionDataService _productionDataService;
 
 
         public WorkStationDataModule(
@@ -343,11 +344,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                                List<MachineDetectionData> recorddata = new List<MachineDetectionData>();
                                // 从内存字典中移除已处理批次
                                _machineDataByBatch.TryRemove(kvp.Key, out recorddata);
-                               if (recorddata!=null&& recorddata.Count!=0)
+                               if (recorddata != null && recorddata.Count != 0)
                                {
                                    foreach (var item in recorddata)
                                    {
-                                      await  _productionDataService.RecordAsync<MachineDetectionData>(item);
+                                       await _productionDataService.RecordAsync<MachineDetectionData>(item);
                                    }
                                }
 
@@ -357,6 +358,86 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                    }
                });
         }
+
+
+        /// <summary>
+        /// 检查扫到条码是否符合标准
+        /// </summary>
+        /// <param name="station">工位</param>
+        /// <param name="codes">条码列表</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns>item1 :扫到条码是否符合要求  item2:返回条码 </returns>
+        public Task<(bool, List<string>)> CheckCode(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        {
+            try
+            {
+                if (station == E_WorkSpace.工位1)
+                {
+                    List<string> OKcodes = new List<string>();
+                    var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo() { CustomerBatch = x.CustomerBatch.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength), WaferId = x.WaferId }).ToList();
+                    for (int i = 0; i < codes?.Count; i++)
+                    {
+                        if (codes[i].Split('-') is { Length: 2 } parts)
+                        {
+                            string code = parts[0].Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
+
+                            if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
+                            {
+                                OKcodes.Add(codes[i]);
+                            }
+                        }
+                    }
+                    if (OKcodes.Count == _station1ReciepParam.CodeCount)
+                    {
+                        return Task.FromResult((true, OKcodes));
+                    }
+                    else
+                    {
+                        return Task.FromResult((false, codes));
+                    }
+                }
+                else if (station == E_WorkSpace.工位2)
+                {
+                    List<string> OKcodes = new List<string>();
+                    var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo() { CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength), WaferId = x.WaferId }).ToList();
+                    for (int i = 0; i < codes?.Count; i++)
+                    {
+                        if (codes[i].Split('-') is { Length: 2 } parts)
+                        {
+                            string code = parts[0].Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
+
+                            if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
+                            {
+                                OKcodes.Add(codes[i]);
+                            }
+                        }
+                    }
+                    if (OKcodes.Count == _station2ReciepParam.CodeCount)
+                    {
+                        return Task.FromResult((true, OKcodes));
+                    }
+                    else
+                    {
+                        return Task.FromResult((false, codes));
+                    }
+                }
+
+                else
+                {
+                    return Task.FromResult((false, codes));
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult((false, codes));
+            }
+        }
+
+
+
+
+
 
         #endregion  检测数据
 
