@@ -325,20 +325,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             return await _camera.Tigger(token);
         }
 
-
-
-
-        /// <summary>
-        /// 判断那个工位需要检测，移动到相应工位
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns>1：工位1  2：工位2   -1：异常推出</returns>
-        public async Task<int> WaitMoveStation(CancellationToken token)
-        {
-            return 1;
-        }
-
-
         #endregion 业务逻辑
 
 

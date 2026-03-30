@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 
 namespace PF.WorkStation.AutoOcr.Stations
@@ -17,11 +18,31 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly WorkStationDataModule? _dataModule;
         private readonly IStationSyncService _sync;
 
-        private StationDetectionStep _currentStep = StationDetectionStep.test;
+        private StationDetectionStep _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+
+        private E_WorkSpace _currentworkSpace = E_WorkSpace.工位1;
 
         public enum StationDetectionStep
         {
-            test
+            等待工位1或工位2允许检测,
+            去工位1检测位置,
+
+            去工位2检测位置,
+            触发检测,
+
+            数据比对,
+
+            写入检测数据,
+            检测完成,
+
+
+
+
+
+
+
+            去工位一检测位置异常,
+            触发检测异常,
 
         }
 
@@ -83,14 +104,40 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
-        protected override Task ProcessDryRunLoopAsync(CancellationToken token)
+        protected override async Task ProcessDryRunLoopAsync(CancellationToken token)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task ProcessNormalLoopAsync(CancellationToken token)
+        protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
-            throw new NotImplementedException();
+            while (!token.IsCancellationRequested)
+            {
+                switch (_currentStep)
+                {
+                    case StationDetectionStep.等待工位1或工位2允许检测:
+                        break;
+                    case StationDetectionStep.去工位1检测位置:
+                        break;
+                    case StationDetectionStep.去工位2检测位置:
+                        break;
+                    case StationDetectionStep.触发检测:
+                        break;
+                    case StationDetectionStep.数据比对:
+                        break;
+                    case StationDetectionStep.写入检测数据:
+                        break;
+                    case StationDetectionStep.检测完成:
+                        break;
+                    case StationDetectionStep.去工位一检测位置异常:
+                        break;
+                    case StationDetectionStep.触发检测异常:
+                        break;
+                    default:
+                        break;
+                }
+
+            }
         }
     }
 }
