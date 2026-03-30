@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Stations
 {
-    [StationUI("工位1拉料工站", "WorkStation1MaterialPullingStationDebugView", order: 1)]
+    [StationUI("工位1拉料工站", "WorkStation1MaterialPullingStationDebugView", order: 2)]
     public  class WorkStation1MaterialPullingStation<T> : StationBase<T> where T : StationMemoryBaseParam
     {
 
@@ -80,14 +80,10 @@ namespace PF.WorkStation.AutoOcr.Stations
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _sync = sync;
             _pullingModule.AlarmTriggered += _pullingModule_AlarmTriggered;
-            _dataModule.AlarmTriggered += _dataModule_AlarmTriggered;
+            
         }
 
-        private void _dataModule_AlarmTriggered(object? sender, Core.Events.MechanismAlarmEventArgs e)
-        {
-            _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            TriggerAlarm();
-        }
+      
 
         private void _pullingModule_AlarmTriggered(object? sender, Core.Events.MechanismAlarmEventArgs e)
         {
