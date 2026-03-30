@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 
 namespace PF.WorkStation.AutoOcr.Stations
