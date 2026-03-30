@@ -555,6 +555,11 @@ namespace PF.Application.Shell
                serviceKey: nameof(WorkStationDetectionStation<StationMemoryBaseParam>)
                 );
 
+            container.RegisterMany(
+               new[] { typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+               typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>),
+               reuse: DryIoc.Reuse.Singleton);
+
             // 主控调度器
             containerRegistry.RegisterSingleton<IMasterController, AutoOCRMachineController>();
         }
@@ -675,7 +680,7 @@ namespace PF.Application.Shell
             }
 
 
-             var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
+            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
             if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;
