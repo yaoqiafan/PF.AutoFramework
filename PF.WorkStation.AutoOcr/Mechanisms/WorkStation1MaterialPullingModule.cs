@@ -745,6 +745,22 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
 
 
+        /// <summary>
+        /// 判断移动到待机位后夹爪内是否带料
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns> true: 无料   false :异常</returns>
+        public async Task <bool > CheckGipperInsidePro(CancellationToken token =default )
+        {
+            bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
+            if (res2 == false)
+            {
+                return true;
+            }
+            return false ;
+        }
+
+
 
         #region 内部辅助数学/验证方法
 
