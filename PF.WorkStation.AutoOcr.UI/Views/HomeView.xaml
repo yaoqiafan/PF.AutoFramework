@@ -49,7 +49,10 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="内批："  Margin=" 20,0,5,0"/>
+                            <TextBlock
+                                Grid.Column="0"
+                                Margin="20,0,5,0"
+                                Text="内批：" />
                             <TextBlock Grid.Column=" 1" Text="{Binding Station1InternalBatches}" />
                             <TextBlock
                                 Grid.Column="2"
@@ -64,9 +67,11 @@
 
                             <Button
                                 Grid.Column="6"
+                                Height=" 40"
                                 Margin="60,0,0,0"
-                                Command="{Binding Station1ChangeLotCommand}"  FontSize="{DynamicResource FontSize.H3.Subtitle}"  Height=" 40"
-                                Content="切换批次" />
+                                Command="{Binding Station1ChangeLotCommand}"
+                                Content="切换批次"
+                                FontSize="{DynamicResource FontSize.H3.Subtitle}" />
                         </Grid>
                     </StackPanel>
                     <Grid Grid.Row=" 1">
@@ -99,18 +104,18 @@
                                         Header="结果"
                                         IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
-                                            <Style TargetType="DataGridCell"  BasedOn="{StaticResource DataGridCellStyle }">
+                                            <Style BasedOn="{StaticResource DataGridCellStyle}" TargetType="DataGridCell">
                                                 <Setter Property="Background" Value="Transparent" />
                                                 <Setter Property="Foreground" Value="Black" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsMatch}" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush }"  />
-                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush }"  />
+                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
                                                     </DataTrigger>
                                                     <!--  Result 为 false 时背景红色  -->
                                                     <DataTrigger Binding="{Binding IsMatch}" Value="False">
-                                                        <Setter Property="Background" Value="{DynamicResource DangerBrush }"  />
-                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush }"  />
+                                                        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
 
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -149,7 +154,10 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="内批：" Margin=" 20,0,0,0" />
+                            <TextBlock
+                                Grid.Column="0"
+                                Margin="20,0,0,0"
+                                Text="内批：" />
                             <TextBlock Grid.Column=" 1" Text="{Binding Station2InternalBatches}" />
                             <TextBlock
                                 Grid.Column="2"
@@ -164,9 +172,11 @@
 
                             <Button
                                 Grid.Column="6"
+                                Height="40"
                                 Margin="60,0,5,0"
-                                Command="{Binding Station2ChangeLotCommand}" FontSize="{DynamicResource FontSize.H3.Subtitle}"  Height="40"
-                                Content="切换批次" />
+                                Command="{Binding Station2ChangeLotCommand}"
+                                Content="切换批次"
+                                FontSize="{DynamicResource FontSize.H3.Subtitle}" />
                         </Grid>
                     </StackPanel>
                     <Grid Grid.Row=" 1">
@@ -194,28 +204,28 @@
                                         Binding="{Binding Barcode1}"
                                         Header="条码"
                                         IsReadOnly="True" />
-                                    
-                                    
-                                    
+
+
+
                                     <DataGridTextColumn
                                         Width=" 1.2*"
                                         Binding="{Binding IsMatch}"
                                         Header="结果"
                                         IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
-                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource DataGridCellStyle }">
+                                            <Style BasedOn="{StaticResource DataGridCellStyle}" TargetType="DataGridCell">
                                                 <Setter Property="Background" Value="Transparent" />
                                                 <Setter Property="Foreground" Value="Black" />
                                                 <Style.Triggers>
                                                     <!--  Result 为 true 时背景绿色  -->
                                                     <DataTrigger Binding="{Binding DetResult}" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush }"  />
-                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush }"  />
+                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
                                                     </DataTrigger>
                                                     <!--  Result 为 false 时背景红色  -->
                                                     <DataTrigger Binding="{Binding DetResult}" Value="False">
-                                                        <Setter Property="Background" Value="{DynamicResource DangerBrush }"  />
-                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush }"  />
+                                                        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
 
                                                     </DataTrigger>
                                                 </Style.Triggers>
