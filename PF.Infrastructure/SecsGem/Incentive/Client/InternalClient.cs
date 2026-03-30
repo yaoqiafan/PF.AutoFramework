@@ -59,17 +59,24 @@ namespace PF.Infrastructure.SecsGem.Incentive
         {
             try
             {
-                // 订阅事件
-                _client.Connected += Client_Connected;
-                _client.Disconnected += Client_Disconnected;
-                _client.DataReceived += Client_DataReceived;
-                _client.ErrorOccurred += Client_ErrorOccurred;
-                var systemparams = _paramConfig.GetParam<SecsGemSystemParam>(ParamType.System);
 
-                if (systemparams == null) { return false; }
-                _deviceId = BitConverter.GetBytes(Convert.ToInt16(systemparams.DeviceID));
-                // 连接到服务器
-                return await StartClient();
+                if (await StartClient())
+                {
+                    _client.Connected += Client_Connected;
+                    _client.Disconnected += Client_Disconnected;
+                    _client.DataReceived += Client_DataReceived;
+                    _client.ErrorOccurred += Client_ErrorOccurred;
+                    var systemparams = _paramConfig.GetParam<SecsGemSystemParam>(ParamType.System);
+
+                    if (systemparams == null) { return false; }
+                    _deviceId = BitConverter.GetBytes(Convert.ToInt16(systemparams.DeviceID));
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+                // 订阅事件
             }
             catch (Exception ex)
             {
