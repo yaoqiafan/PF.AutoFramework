@@ -114,13 +114,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync = sync;
 
             _feedingModule.AlarmTriggered += OnMechanismAlarm;
-            _dataModule.AlarmTriggered += _dataModule_AlarmTriggered;
-        }
-
-        private void _dataModule_AlarmTriggered(object? sender, MechanismAlarmEventArgs e)
-        {
-            _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            TriggerAlarm();
+            _dataModule.AlarmTriggered += OnMechanismAlarm;
         }
 
         private void OnMechanismAlarm(object? sender, MechanismAlarmEventArgs e)
