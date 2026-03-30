@@ -22,8 +22,6 @@ using System.Xml;
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
 
-
-
     [MechanismUI("检测模组", "WorkStationDetectionModuleDebugView", 1)]
     public class WorkStationDetectionModule : BaseMechanism
     {

@@ -66,7 +66,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand TriggerStartCommand { get; }
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
-            _station = containerProvider.Resolve<WorkStation1FeedingStation<StationMemoryBaseParam>>();
+            _station = containerProvider.Resolve<WorkStation1FeedingStation<StationMemoryBaseParam>>(nameof(WorkStation1FeedingStation<StationMemoryBaseParam>));
             _sync= containerProvider.Resolve<IStationSyncService>();
             _userService = containerProvider.Resolve<IUserService>();
 
