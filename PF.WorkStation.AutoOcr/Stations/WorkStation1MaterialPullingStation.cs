@@ -272,7 +272,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         List<string> coderec = await _pullingModule.CodeScanTigger(token);
                         _logger.Info($"[{StationName}] 扫码识别成功，识别结果：{string.Join(", ", coderec)}");
                         _currentStep = Station1PullingStep.允许检测位检测;
-
+                       
                         break;
 
                     case Station1PullingStep.允许检测位检测:
