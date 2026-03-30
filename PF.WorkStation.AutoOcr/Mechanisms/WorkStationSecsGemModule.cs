@@ -46,6 +46,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         }
 
+
+
+        private bool _isOnOffine = false;
+
+        /// <summary>
+        /// SecsGem是否处于在线状态，所有指令必须基于在线状态
+        /// </summary>
+        public bool IsOnOffine=> _isOnOffine;
+
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token = default)
         {
             if (_secsGemManger == null)
@@ -63,6 +72,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _secsGemManger.MessageReceived += SecsGemManger_MessageReceived;
             return true;
         }
+
+
+
 
 
 
@@ -405,6 +417,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         private async Task HandleS1F15Message(SecsGemMessage message, CancellationToken token = default)
         {
+            _isOnOffine = false;
             SecsGemMessage response = CreateS1F16Response(message, oflack: 0x00);
             response.IsIncoming = false;
             _secsGemlog.Info($"发送SecsGem消息: {response}");
@@ -446,6 +459,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         private async Task HandleS1F17Message(SecsGemMessage message, CancellationToken token = default)
         {
+            _isOnOffine = true ;
             SecsGemMessage response = CreateS1F18Response(message, onlack: 0x00);
             response.IsIncoming = false;
             _secsGemlog.Info($"发送SecsGem消息: {response}");
@@ -476,6 +490,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
         #endregion S1F17-->S1F18(设备在线)
+
+
+     
+
 
 
         #region S2F33-->S2F34 数据快照（报表）
@@ -654,7 +672,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #endregion S2F41---->S2F42
 
 
-        #region  S7F1-->S7F2 （正式下发配方数据之前的一个“预问询”环节。它的逻辑是：主机问设备“我有个配方要传给你，你现在有地方存吗？”，设备回答“可以传”或“现在不行）
+      #region  S7F1-->S7F2 （正式下发配方数据之前的一个“预问询”环节。它的逻辑是：主机问设备“我有个配方要传给你，你现在有地方存吗？”，设备回答“可以传”或“现在不行）
 
 
         /// <summary>
