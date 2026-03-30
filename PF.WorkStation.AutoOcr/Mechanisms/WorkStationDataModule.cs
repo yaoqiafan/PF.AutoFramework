@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Production;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -28,12 +29,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 1)]
     public class WorkStationDataModule : BaseMechanism
     {
+      private readonly  IProductionDataService _productionDataService;
+
+
         public WorkStationDataModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
+             IProductionDataService productionDataService,
             ILogService logger)
             : base("数据模块", hardwareManagerService, paramService, logger)
         {
+            _productionDataService = productionDataService;
         }
 
         public override void Dispose()
@@ -314,7 +320,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         private Task CheckBatchCompletionAsync()
         {
-            return Task.Run(() =>
+            return Task.Run(async () =>
                {
                    foreach (var kvp in _machineDataByBatch.ToList())
                    {
@@ -333,8 +339,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                                    _logger?.Error($"{MechanismName} 上报批次 {kvp.Key} 失败: {ex.Message}");
                                }
 
+
+                               List<MachineDetectionData> recorddata = new List<MachineDetectionData>();
                                // 从内存字典中移除已处理批次
-                               _machineDataByBatch.TryRemove(kvp.Key, out _);
+                               _machineDataByBatch.TryRemove(kvp.Key, out recorddata);
+                               if (recorddata!=null&& recorddata.Count!=0)
+                               {
+                                   foreach (var item in recorddata)
+                                   {
+                                      await  _productionDataService.RecordAsync<MachineDetectionData>(item);
+                                   }
+                               }
+
                                _batchQuantityMap.TryRemove(kvp.Key, out _);
                            }
                        }

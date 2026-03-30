@@ -311,7 +311,7 @@
                                                                 Header="客户批次" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding WaferID}"
+                                                                Binding="{Binding WaferId}"
                                                                 Header="晶圆ID" />
                                                         </DataGrid.Columns>
                                                     </DataGrid>
@@ -368,7 +368,7 @@
                                                             Header="客户批次" />
                                                         <DataGridTextColumn
                                                             Width="*"
-                                                            Binding="{Binding WaferID}"
+                                                            Binding="{Binding WaferId}"
                                                             Header="晶圆ID" />
                                                     </DataGrid.Columns>
                                                 </DataGrid>
@@ -394,31 +394,31 @@
                                                         <DataGrid.Columns>
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding InternalBatches}"
+                                                                Binding="{Binding InternalBatchId}"
                                                                 Header="内部批次" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding CustomerBatches}"
+                                                                Binding="{Binding CustomerBatch}"
                                                                 Header="客户批次" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding WaferID}"
+                                                                Binding="{Binding WaferId}"
                                                                 Header="晶圆ID" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding OCRValue}"
+                                                                Binding="{Binding OcrText}"
                                                                 Header="OCR值" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding CodeValue1}"
+                                                                Binding="{Binding Barcode1}"
                                                                 Header="条码1" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding CodeValue2}"
+                                                                Binding="{Binding Barcode2}"
                                                                 Header="条码2" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding OcrCodeValue}"
+                                                                Binding="{Binding Barcode3}"
                                                                 Header="OCR条码" />
                                                         </DataGrid.Columns>
                                                     </DataGrid>
@@ -440,31 +440,31 @@
                                                         <DataGrid.Columns>
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding InternalBatches}"
+                                                                Binding="{Binding InternalBatchId}"
                                                                 Header="内部批次" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding CustomerBatches}"
+                                                                Binding="{Binding CustomerBatch}"
                                                                 Header="客户批次" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding WaferID}"
+                                                                Binding="{Binding WaferId}"
                                                                 Header="晶圆ID" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding OCRValue}"
+                                                                Binding="{Binding OcrText}"
                                                                 Header="OCR值" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding CodeValue1}"
+                                                                Binding="{Binding Barcode1}"
                                                                 Header="条码1" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding CodeValue2}"
+                                                                Binding="{Binding Barcode2}"
                                                                 Header="条码2" />
                                                             <DataGridTextColumn
                                                                 Width="*"
-                                                                Binding="{Binding OcrCodeValue}"
+                                                                Binding="{Binding Barcode3}"
                                                                 Header="OCR条码" />
                                                         </DataGrid.Columns>
                                                     </DataGrid>
@@ -494,31 +494,31 @@
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding InternalBatches}"
+                                                        Binding="{Binding InternalBatchId}"
                                                         Header="内部批次" />
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding CustomerBatches}"
+                                                        Binding="{Binding CustomerBatch}"
                                                         Header="客户批次" />
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding WaferID}"
+                                                        Binding="{Binding WaferId}"
                                                         Header="晶圆ID" />
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding OCRValue}"
+                                                        Binding="{Binding OcrText}"
                                                         Header="OCR值" />
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding CodeValue1}"
+                                                        Binding="{Binding Barcode1}"
                                                         Header="条码1" />
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding CodeValue2}"
+                                                        Binding="{Binding Barcode2}"
                                                         Header="条码2" />
                                                     <DataGridTextColumn
                                                         Width="*"
-                                                        Binding="{Binding OcrCodeValue}"
+                                                        Binding="{Binding Barcode3}"
                                                         Header="OCR条码" />
                                                 </DataGrid.Columns>
                                             </DataGrid>
