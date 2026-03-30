@@ -350,6 +350,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                                       await  _productionDataService.RecordAsync<MachineDetectionData>(item);
                                    }
                                }
+                               _logger?.Info($"批次 {kvp.Key} 本地数据库记录完成！。");
 
                                _batchQuantityMap.TryRemove(kvp.Key, out _);
                            }
