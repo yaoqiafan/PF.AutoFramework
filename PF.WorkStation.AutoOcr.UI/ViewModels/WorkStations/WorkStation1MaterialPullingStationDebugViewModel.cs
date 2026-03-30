@@ -127,6 +127,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
             TriggerAllowFeedCommand.RaiseCanExecuteChanged();
+            TriggerDetEndCommand.RaiseCanExecuteChanged();
+            TriggerAllowBlankCommand.RaiseCanExecuteChanged();
         }
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
