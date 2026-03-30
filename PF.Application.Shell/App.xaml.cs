@@ -543,7 +543,17 @@ namespace PF.Application.Shell
             container.RegisterMany(
                 new[] { typeof(WorkStation1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
                 typeof(WorkStation1FeedingStation<StationMemoryBaseParam>),
-                reuse: DryIoc.Reuse.Singleton);
+                reuse: DryIoc.Reuse.Singleton,
+               serviceKey: nameof(WorkStation1FeedingStation<StationMemoryBaseParam>)
+                );
+
+
+            container.RegisterMany(
+                new[] { typeof(WorkStationDetectionStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WorkStationDetectionStation<StationMemoryBaseParam>),
+                reuse: DryIoc.Reuse.Singleton,
+               serviceKey: nameof(WorkStationDetectionStation<StationMemoryBaseParam>)
+                );
 
             // 主控调度器
             containerRegistry.RegisterSingleton<IMasterController, AutoOCRMachineController>();
