@@ -52,8 +52,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(WorkstationSignals.工位1拉料完成.ToString());
             _sync.Register(WorkstationSignals.工位1允许退料.ToString());
             _sync.Register(WorkstationSignals.工位1退料完成.ToString());
-
-
+            _sync.Register(WorkstationSignals.工位1允许检测.ToString());
+            _sync.Register(WorkstationSignals.工位1检测完成.ToString());
 
 
 
@@ -62,6 +62,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(WorkstationSignals.工位2拉料完成.ToString());
             _sync.Register(WorkstationSignals.工位2允许退料.ToString());
             _sync.Register(WorkstationSignals.工位2退料完成.ToString());
+            _sync.Register(WorkstationSignals.工位2允许检测.ToString());
+            _sync.Register(WorkstationSignals.工位2检测完成.ToString());
 
         }
 
