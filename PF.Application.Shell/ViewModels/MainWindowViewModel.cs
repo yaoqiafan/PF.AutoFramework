@@ -89,7 +89,7 @@ namespace PF.Application.Shell.ViewModels
                 _idleMonitor.Stop();
 
             RefreshMenu();
-
+            EventAggregator.GetEvent<UserChangedEvent>().Publish(CurrentUser);
             if (CurrentUser.Root == UserLevel.Null)
             {
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>

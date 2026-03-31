@@ -95,6 +95,20 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
 
+        private MachineDetectionData _Station1CurrentMachineDetection;
+        public MachineDetectionData Station1CurrentMachineDetection
+        {
+            get { return _Station1CurrentMachineDetection; }
+            set { SetProperty(ref _Station1CurrentMachineDetection, value); }
+        }
+
+        private MachineDetectionData _Station2CurrentMachineDetection;
+        public MachineDetectionData Station2CurrentMachineDetection
+        {
+            get { return _Station2CurrentMachineDetection; }
+            set { SetProperty(ref _Station2CurrentMachineDetection, value); }
+        }
+
 
         #endregion 数据集合
 
@@ -162,6 +176,30 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Station2RecipeName = _dataModule.Station2MesDetectionData.RecipeName;
             Station1DetStatus = _dataModule.Station1MesDetectionData.DetectionStatus;
             Station2DetStatus = _dataModule.Station2MesDetectionData.DetectionStatus;
+
+            if (Station1MachineDetection.Count!=0)
+            {
+                MachineDetectionData? latestData = Station1MachineDetection
+                    .OrderByDescending(data => data.Time)
+                    .FirstOrDefault();
+                if (latestData != null)
+                {
+                    Station1CurrentMachineDetection = latestData;
+                }
+
+            }
+
+            if (Station2MachineDetection.Count != 0)
+            {
+                MachineDetectionData? latestData = Station2MachineDetection
+                    .OrderByDescending(data => data.Time)
+                    .FirstOrDefault();
+                if (latestData != null)
+                {
+                    Station2CurrentMachineDetection = latestData;
+                }
+
+            }
             return Task.CompletedTask;
         }
 

@@ -11,6 +11,18 @@ namespace PF.Application.Shell.CustomConfiguration.Param
     /// <summary>
     /// 系统公共参数设置（JSON 文件存储，支持 PropertyGrid 展示）
     /// </summary>
+    /// 
+
+    public enum ConfettiEffectType
+    {
+        BasicCannon,
+        RandomDirection,
+        RealisticLook,
+        Fireworks,
+        Stars,
+        Snow,
+        SchoolPride,
+    }
     public class CommonSettings
     {
         // ==========================================
@@ -46,6 +58,55 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         [DisplayNameAttribute("6.软件主题")]
         [BrowsableAttribute(true)]
         public SkinType Skin { get; set; } =  SkinType.Dark;
+
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("1.启用操作员登录动画")]
+        [BrowsableAttribute(true)]
+        public bool EnableOperatorAnimation { get; set; } = false;
+
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("2.操作员登录主题")]
+        [BrowsableAttribute(true)]
+        public ConfettiEffectType OperatorAnimationType { get; set; } = ConfettiEffectType.SchoolPride;
+
+        // ==========================================
+        // 工程师 (Engineer)
+        // ==========================================
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("3.启用工程师登录动画")]
+        [BrowsableAttribute(true)]
+        public bool EnableEngineerAnimation { get; set; } = false;
+
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("4.工程师登录主题")]
+        [BrowsableAttribute(true)]
+        public ConfettiEffectType EngineerAnimationType { get; set; } = ConfettiEffectType.RealisticLook;
+
+        // ==========================================
+        // 管理员 (Administrator)
+        // ==========================================
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("5.启用管理员登录动画")]
+        [BrowsableAttribute(true)]
+        public bool EnableAdministratorAnimation { get; set; } = false;
+
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("6.管理员登录主题")]
+        [BrowsableAttribute(true)]
+        public ConfettiEffectType AdministratorAnimationType { get; set; } = ConfettiEffectType.Fireworks;
+
+        // ==========================================
+        // 超级用户 (Superuser)
+        // ==========================================
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("7.启用超级用户登录动画")]
+        [BrowsableAttribute(true)]
+        public bool EnableSuperuserAnimation { get; set; } = true;
+
+        [CategoryAttribute("B.登录参数")]
+        [DisplayNameAttribute("8.超级用户登录主题")]
+        [BrowsableAttribute(true)]
+        public ConfettiEffectType SuperuserAnimationType { get; set; } = ConfettiEffectType.Stars;
 
 
         // ==========================================
