@@ -56,7 +56,8 @@ PF.AutoFramework.slnx
 │   └── PF.UI.Shared                  # UI 共享工具
 │
 ├── /03. 数据层 (Data)
-│   └── PF.Data                       # EF Core 模型、DbContext、Repository
+│   ├── PF.Data                       # EF Core 模型、DbContext、Repository
+│   └── PF.SecsGem.DataBase           # SECS/GEM 协议专用数据库（实体、DbContext、Repository）
 │
 ├── /04. 工具与服务层
 │   ├── PF.CommonTools                # 通用工具
@@ -73,9 +74,12 @@ PF.AutoFramework.slnx
 ├── /06. 应用入口 (Application)
 │   └── PF.Application.Shell          # WPF App 入口
 │
-└── /07. Demo 工站
-    ├── PF.Workstation.yourapp           # 取放工站业务逻辑（入门 Demo）
-    └── PF.Workstation.yourapp         # 取放工站 UI 模块
+├── /07. Demo 工站（AutoOCR）
+│   ├── PF.WorkStation.AutoOcr        # OCR 工站业务逻辑（送料/检测/拉料三站 + 主控 + 配方）
+│   └── PF.WorkStation.AutoOcr.UI    # OCR 工站 UI 模块（Views / ViewModels）
+│
+└── /08. 独立服务
+    └── PF.SecsGem.Service            # SECS/GEM Windows 后台服务（独立进程，TCP 双服务器转发）
 ```
 
 ---
@@ -107,6 +111,9 @@ PF.AutoFramework.slnx
 - `IHardwareDevice` — 硬件设备统一接口（连接/断开/复位/报警事件）
 - `IMotionCard` — 运动控制卡接口（12 个统一硬件操作方法：运动控制 7 个、轴状态读取 2 个、IO 读写 3 个）
 - `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
+- `IMechanism` — 机构抽象接口（`InitializeAsync` / `StartAsync` / `StopAsync` / `PauseAsync`）
+- `IMasterController` — 全局主控接口（`InitializeAllAsync` / `StartAllAsync` / `StopAll` / `ResetAllAsync`）
+- `ISecsGemManger` — SECS/GEM 协议管理接口（消息发送/接收/状态管理）
 - `IParamService` — 泛型参数读写接口
 - `ILogService` — 统一日志接口（Info/Warn/Error/Debug/Success）
 - `IUserService` — 用户认证与权限接口
@@ -126,7 +133,10 @@ PF.AutoFramework.slnx
 - `ParamEntity` — 所有参数实体的基类（Name, JsonValue, Category, Version, TypeFullName）
 - `HardwareParam` — 硬件配置参数实体（存储 `HardwareConfig` 的 JSON 序列化结果）
 - `ProductionDataEntity` — 生产数据实体（DeviceId / RecordType / RecordTime / BatchId）
+- `UserLoginParam` — 用户登录参数实体（用户名/密码/角色持久化）
+- `SystemConfigParam` — 系统通用配置参数实体
 - `GenericRepository<T>` — 通用 CRUD 仓储
+- `ParamRepository<T>` — 参数专用仓储（带变更追踪）
 - 数据库路径：`%APPDATA%\PFAutoFrameWork\SystemParamsCollection.db`
 - 生产数据库：`%APPDATA%\PFAutoFrameWork\ProductionHistory.db`
 
@@ -176,6 +186,39 @@ PF.AutoFramework.slnx
 
 **StationBase**：`Stateless` 七状态机 + 后台线程管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。
 
+### PF.SecsGem.Service — SECS/GEM 独立后台服务
+
+> 独立 Windows 后台服务（`BackgroundService`），与主 WPF 进程解耦，作为 SECS/GEM 协议的专用转发代理。
+
+- **双 TCP 服务器架构**：
+  - `SecsGemServer`：对外监听，负责与设备主机（Host）的 SECS/GEM 报文收发
+  - `LocationServer`：对内监听（`127.0.0.1:6800`），负责与 WPF 主程序交互
+- **消息缓冲区**（`MessageBuffer`）：内置粘包/半包处理，按 SECS 协议的 4 字节长度头解帧
+- **消息队列**：`ConcurrentQueue<byte[]>` + 独立消费任务，异步处理 S0F0（LinkTest）及业务报文转发
+- **状态同步**：连接/断连事件通过 `0x02` 状态帧实时通知本地客户端
+- **日志记录**：独立 `Channel` 异步写入十六进制报文日志，按年月日自动分目录，路径 `D:\SWLog\SecsGemService\`
+- **配置来源**：启动时从 `PF.SecsGem.DataBase` 读取 `SecsGemSystemParam`（IP/Port）
+
+### PF.WorkStation.AutoOcr — AutoOCR Demo 工站
+
+> 框架内置的完整 Demo 工站，展示三站流水线联动。
+
+**机构（Mechanisms）**：
+- `WorkStation1FeedingModule` — 送料模组
+- `WorkStationDetectionModule` — 视觉检测模组
+- `WorkStation1MaterialPullingModule` — 拉料模组
+- `WorkStationDataModule` — 数据记录模组
+- `WorkStationSecsGemModule` — SECS/GEM 通信模组
+
+**工站（Stations）**：
+- `WorkStation1FeedingStation` — 来料/上料工站
+- `WorkStationDetectionStation` — OCR 检测工站
+- `WorkStation1MaterialPullingStation` — 出料/拉料工站
+
+**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调三站联动
+
+**配方**：`OCRRecipe<OCRRecipeParam>` — 单例配方管理，`OCRRecipeParam` 存储 OCR 检测参数
+
 ---
 
 # 开发者指南
@@ -204,7 +247,7 @@ dotnet restore
 - 深色主题主窗口
 - 左侧导航菜单
 - 系统调试 → 设备综合调试 / 业务模组调试 / 工站调试
-- 取放工站 Demo 正常运行
+- AutoOCR 三站流水线 Demo 正常运行（送料 → 检测 → 拉料）
 
 ---
 
