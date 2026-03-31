@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:usercontrol="clr-namespace:PF.WorkStation.AutoOcr.UI.UserControls"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
@@ -12,237 +14,229 @@
             <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
         </Style>
     </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-
-
-        <Grid Grid.Row=" 1">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width=" *" />
-                <ColumnDefinition Width=" *" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!--  工位1界面显示  -->
-            <GroupBox
-                Grid.Column=" 0"
-                Margin="0,0,0,5"
-                FontSize=" 18 "
-                FontWeight="Bold"
-                Header=" 工位1操作">
+            <pf:Card
+                Grid.Column="0"
+                Margin="10"
+                FontSize="{DynamicResource FontSize.Body.Standard}">
+                <pf:Card.Header>
+                    <TextBlock
+                        Margin="10"
+                        FontSize="{DynamicResource FontSize.H1.Large}"
+                        FontWeight="Bold"
+                        Text=" 工位1操作" />
+                </pf:Card.Header>
+
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height=" auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <StackPanel Grid.Row=" 0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                Margin="20,0,5,0"
-                                Text="内批：" />
-                            <TextBlock Grid.Column=" 1" Text="{Binding Station1InternalBatches}" />
-                            <TextBlock
-                                Grid.Column="2"
-                                Margin="40,0,5,0"
-                                Text="状态：" />
-                            <TextBlock Grid.Column="3" Text="{Binding Station1DetStatus}" />
-                            <TextBlock
-                                Grid.Column=" 4"
-                                Margin="40,0,5,0"
-                                Text=" 程式名称:" />
-                            <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
-                            <Button
-                                Grid.Column="6"
-                                Height=" 40"
-                                Margin="60,0,0,0"
-                                Command="{Binding Station1ChangeLotCommand}"
-                                Content="切换批次"
-                                FontSize="{DynamicResource FontSize.H3.Subtitle}" />
-                        </Grid>
-                    </StackPanel>
-                    <Grid Grid.Row=" 1">
-                        <ScrollViewer Padding="5,10" VerticalScrollBarVisibility="Auto">
-                            <DataGrid
-                                Margin="0,0,0,5"
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                FontSize="{DynamicResource FontSize.Body.Standard}"
-                                ItemsSource="{Binding Station1MachineDetection}">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn
-                                        Width=" 2*"
-                                        Binding="{Binding CustomerBatch}"
-                                        Header="客户批次"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width=" 2*"
-                                        Binding="{Binding OcrText}"
-                                        Header="OCR值"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width=" 2*"
-                                        Binding="{Binding Barcode1}"
-                                        Header="条码"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width=" 1.2*"
-                                        Binding="{Binding IsMatch}"
-                                        Header="结果"
-                                        IsReadOnly="True">
-                                        <DataGridTextColumn.CellStyle>
-                                            <Style BasedOn="{StaticResource DataGridCellStyle}" TargetType="DataGridCell">
-                                                <Setter Property="Background" Value="Transparent" />
-                                                <Setter Property="Foreground" Value="Black" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsMatch}" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
-                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
-                                                    </DataTrigger>
-                                                    <!--  Result 为 false 时背景红色  -->
-                                                    <DataTrigger Binding="{Binding IsMatch}" Value="False">
-                                                        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
-                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="20,0,5,0" Text="内批：" />
+                        <TextBlock Grid.Column="1" Text="{Binding Station1InternalBatches}" />
+                        <TextBlock Grid.Column="2" Margin="40,0,5,0" Text="状态：" />
+                        <TextBlock Grid.Column="3" Text="{Binding Station1DetStatus}" />
+                        <TextBlock Grid.Column="4" Margin="40,0,5,0" Text=" 程式名称:" />
+                        <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </DataGridTextColumn.CellStyle>
-                                    </DataGridTextColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </ScrollViewer>
-
-
+                        <Button
+                            Grid.Column="6"
+                            Margin="0,0,50,0"
+                            HorizontalAlignment="Right"
+                            Command="{Binding Station1ChangeLotCommand}"
+                            Content="切换批次"
+                            FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                            Style="{DynamicResource ButtonPrimary}" />
                     </Grid>
 
+                    <usercontrol:ZoomableImageViewer
+                        Grid.Row="1"
+                        Margin="5"
+                        AnnotationContent="{Binding Station1CurrentMachineDetection}"
+                        ErrorSource="{StaticResource DelateIcon_FFFFFF}"
+                        Source="{Binding Station1CurrentMachineDetection.ImagePath}" />
                 </Grid>
-            </GroupBox>
-            <!--  工位2界面显示  -->
-            <GroupBox
-                Grid.Column=" 1"
-                Margin="0,0,0,5"
-                FontSize=" 18 "
-                FontWeight="Bold"
-                Header=" 工位2操作">
+
+                <pf:Card.Footer>
+                    <Grid Height="300">
+                        <DataGrid
+                            Margin="5"
+                            SelectionMode="Single"
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            ItemsSource="{Binding Station1MachineDetection}"
+                            SelectedItem="{Binding Station1CurrentMachineDetection}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="2*" Binding="{Binding CustomerBatch}" Header="客户批次" IsReadOnly="True" />
+                                <DataGridTextColumn Width="2*" Binding="{Binding OcrText}" Header="OCR值" IsReadOnly="True" />
+                                <DataGridTextColumn Width="2*" Binding="{Binding Barcode1}" Header="条码" IsReadOnly="True" />
+                                <DataGridTemplateColumn Width="90" Header="匹配结果">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="10,4" HorizontalAlignment="Stretch" CornerRadius="4">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#E8F5E9" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                                                <Setter Property="Background" Value="#FFEBEE" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="OK" />
+                                                            <Setter Property="Foreground" Value="#2E7D32" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                                                    <Setter Property="Text" Value="NG" />
+                                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </pf:Card.Footer>
+            </pf:Card>
+
+            <pf:Card
+                Grid.Column="1"
+                Margin="10"
+                FontSize="{DynamicResource FontSize.Body.Standard}">
+                <pf:Card.Header>
+                    <TextBlock
+                        Margin="10"
+                        FontSize="{DynamicResource FontSize.H1.Large}"
+                        FontWeight="Bold"
+                        Text=" 工位2操作" />
+                </pf:Card.Header>
+
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height=" auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <StackPanel Grid.Row=" 0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                Margin="20,0,0,0"
-                                Text="内批：" />
-                            <TextBlock Grid.Column=" 1" Text="{Binding Station2InternalBatches}" />
-                            <TextBlock
-                                Grid.Column="2"
-                                Margin="40,0,5,0"
-                                Text="状态：" />
-                            <TextBlock Grid.Column="3" Text="{Binding Station2DetStatus}" />
-                            <TextBlock
-                                Grid.Column=" 4"
-                                Margin="40,0,5,0"
-                                Text=" 程式名称:" />
-                            <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
-                            <Button
-                                Grid.Column="6"
-                                Height="40"
-                                Margin="60,0,5,0"
-                                Command="{Binding Station2ChangeLotCommand}"
-                                Content="切换批次"
-                                FontSize="{DynamicResource FontSize.H3.Subtitle}" />
-                        </Grid>
-                    </StackPanel>
-                    <Grid Grid.Row=" 1">
-                        <ScrollViewer Padding="5,10" VerticalScrollBarVisibility="Auto">
-                            <DataGrid
-                                Margin="0,0,0,5"
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                FontSize="12"
-                                ItemsSource="{Binding Station2MachineDetection}">
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="20,0,5,0" Text="内批：" />
+                        <TextBlock Grid.Column="1" Text="{Binding Station2InternalBatches}" />
+                        <TextBlock Grid.Column="2" Margin="40,0,5,0" Text="状态：" />
+                        <TextBlock Grid.Column="3" Text="{Binding Station2DetStatus}" />
+                        <TextBlock Grid.Column="4" Margin="40,0,5,0" Text=" 程式名称:" />
+                        <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn
-                                        Width=" 2*"
-                                        Binding="{Binding CustomerBatch}"
-                                        Header="客户批次"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width=" 2*"
-                                        Binding="{Binding OcrText}"
-                                        Header="OCR值"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width=" 2*"
-                                        Binding="{Binding Barcode1}"
-                                        Header="条码"
-                                        IsReadOnly="True" />
-
-
-
-                                    <DataGridTextColumn
-                                        Width=" 1.2*"
-                                        Binding="{Binding IsMatch}"
-                                        Header="结果"
-                                        IsReadOnly="True">
-                                        <DataGridTextColumn.CellStyle>
-                                            <Style BasedOn="{StaticResource DataGridCellStyle}" TargetType="DataGridCell">
-                                                <Setter Property="Background" Value="Transparent" />
-                                                <Setter Property="Foreground" Value="Black" />
-                                                <Style.Triggers>
-                                                    <!--  Result 为 true 时背景绿色  -->
-                                                    <DataTrigger Binding="{Binding DetResult}" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
-                                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
-                                                    </DataTrigger>
-                                                    <!--  Result 为 false 时背景红色  -->
-                                                    <DataTrigger Binding="{Binding DetResult}" Value="False">
-                                                        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
-                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </DataGridTextColumn.CellStyle>
-                                    </DataGridTextColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </ScrollViewer>
-
-
+                        <Button
+                            Grid.Column="6"
+                            Margin="0,0,50,0"
+                            HorizontalAlignment="Right"
+                            Command="{Binding Station2ChangeLotCommand}"
+                            Content="切换批次"
+                            FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                            Style="{DynamicResource ButtonPrimary}" />
                     </Grid>
 
+                    <usercontrol:ZoomableImageViewer
+                        Grid.Row="1"
+                        Margin="5"
+                        AnnotationContent="{Binding Station2CurrentMachineDetection}"
+                        ErrorSource="{StaticResource DelateIcon_FFFFFF}"
+                        Source="{Binding Station2CurrentMachineDetection.ImagePath}" />
                 </Grid>
-            </GroupBox>
+
+                <pf:Card.Footer>
+                    <Grid Height="300">
+                        <DataGrid
+                            Margin="5"
+                            SelectionMode="Single"
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            ItemsSource="{Binding Station2MachineDetection}"
+                            SelectedItem="{Binding Station2CurrentMachineDetection}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="2*" Binding="{Binding CustomerBatch}" Header="客户批次" IsReadOnly="True" />
+                                <DataGridTextColumn Width="2*" Binding="{Binding OcrText}" Header="OCR值" IsReadOnly="True" />
+                                <DataGridTextColumn Width="2*" Binding="{Binding Barcode1}" Header="条码" IsReadOnly="True" />
+
+                                <DataGridTemplateColumn Width="90" Header="匹配结果">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="10,4" HorizontalAlignment="Stretch" CornerRadius="4">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#E8F5E9" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                                                <Setter Property="Background" Value="#FFEBEE" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="OK" />
+                                                            <Setter Property="Foreground" Value="#2E7D32" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                                                    <Setter Property="Text" Value="NG" />
+                                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </pf:Card.Footer>
+            </pf:Card>
         </Grid>
-
-
     </Grid>
 </UserControl>

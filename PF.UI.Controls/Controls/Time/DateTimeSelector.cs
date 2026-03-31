@@ -192,19 +192,19 @@ namespace PF.UI.Controls
             }
 
 
-            _RadioButton1 = GetTemplateChild("RadioButton1") as RadioButton;
+            _RadioButton1 = GetTemplateChild("PART_RadioDay") as RadioButton;
             if (_RadioButton1 != null)
             {
                 _RadioButton1.Checked += _RadioButton_Checked;
             }
 
-            _RadioButton2 = GetTemplateChild("RadioButton2") as RadioButton;
+            _RadioButton2 = GetTemplateChild("PART_RadioWeek") as RadioButton;
             if (_RadioButton2 != null)
             {
                 _RadioButton2.Checked += _RadioButton_Checked;
             }
 
-            _RadioButton3 = GetTemplateChild("RadioButton3") as RadioButton;
+            _RadioButton3 = GetTemplateChild("PART_RadioMonth") as RadioButton;
             if (_RadioButton3 != null)
             {
                 _RadioButton3.Checked += _RadioButton_Checked;

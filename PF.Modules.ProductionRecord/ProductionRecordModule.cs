@@ -18,8 +18,7 @@ namespace PF.Modules.Production
         {
             containerRegistry.RegisterForNavigation<ProductionMonitorView, ProductionMonitorViewModel>(
                 NavigationConstants.Views.ProductionMonitorView);
-            containerRegistry.RegisterForNavigation<ProductionHistoryView, ProductionHistoryViewModel>(
-                NavigationConstants.Views.ProductionHistoryView);
+         
         }
 
         public void OnInitialized(IContainerProvider containerProvider)
