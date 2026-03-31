@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
-
-	<ItemGroup>
-		<ProjectReference Include="..\PF.Services\PF.Services.csproj" />
-	</ItemGroup>
-
-</Project>

@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     Width="380"
-    Height="420">
+    Height="420" Background="{DynamicResource BackgroundBrush}">
 
     <Border CornerRadius="15">
         <Border.Effect>
