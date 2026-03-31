@@ -1,9 +1,11 @@
 ﻿using Microsoft.Win32;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
+using PF.UI.Shared.Data;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using Prism.Commands;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +16,93 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     public class ProductionHistoryViewModel : RegionViewModelBase
     {
         private readonly IProductionDataService _productionDataService;
+
+        // ══════════════════════════════════════════════════════════
+        //  分页相关属性与逻辑
+        // ══════════════════════════════════════════════════════════
+        private int _pageSize = 20;
+        /// <summary>
+        /// 每页显示的条数 (绑定到 UI，用户切换时自动重新计算分页)
+        /// </summary>
+        public int PageSize
+        {
+            get => _pageSize;
+            set
+            {
+                // 确保 PageSize 至少为 1，防止除以 0 的异常
+                int safeValue = value < 1 ? 1 : value;
+
+                // 如果值发生了实际改变，则重新计算分页并刷新第一页
+                if (SetProperty(ref _pageSize, safeValue))
+                {
+                    RecalculatePagination();
+                }
+            }
+        }
+
+        private int _pageIndex = 1;
+        /// <summary>
+        /// 当前页码
+        /// </summary>
+        public int PageIndex
+        {
+            get => _pageIndex;
+            set => SetProperty(ref _pageIndex, value);
+        }
+
+        private int _maxPageCount = 1;
+        /// <summary>
+        /// 总页数
+        /// </summary>
+        public int MaxPageCount
+        {
+            get => _maxPageCount;
+            set => SetProperty(ref _maxPageCount, value);
+        }
+
+        /// <summary>
+        /// 页码改变命令
+        /// </summary>
+        public DelegateCommand<FunctionEventArgs<int>> PageUpdatedCmd => new(PageUpdated);
+
+        /// <summary>
+        /// 重新计算总页数，并强制跳回第一页刷新 UI
+        /// </summary>
+        private void RecalculatePagination()
+        {
+            if (Records == null) return;
+
+            // 计算总页数 (向上取整)
+            int calculatedPages = (int)Math.Ceiling(Records.Count / (double)PageSize);
+            MaxPageCount = calculatedPages > 0 ? calculatedPages : 1;
+
+            // 强制重置为第一页，并刷新数据
+            PageUpdated(new FunctionEventArgs<int>(1));
+        }
+
+        /// <summary>
+        /// 执行翻页操作
+        /// </summary>
+        private void PageUpdated(FunctionEventArgs<int> info)
+        {
+            if (Records == null) return;
+
+            // 防御性编程：确保传入的页码在合法范围内
+            int targetPage = info.Info;
+            if (targetPage < 1) targetPage = 1;
+            if (targetPage > MaxPageCount) targetPage = MaxPageCount;
+
+            // 同步当前页码
+            PageIndex = targetPage;
+
+            // 清空当前 UI 绑定的列表，并注入新一页的数据
+            DataList.Clear();
+            var pagedData = Records.Skip((PageIndex - 1) * PageSize).Take(PageSize);
+            foreach (var item in pagedData)
+            {
+                DataList.Add(item);
+            }
+        }
 
         // ══════════════════════════════════════════════════════════
         //  时间过滤 (传给底层接口)
@@ -43,13 +132,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private bool _isBusy;
         public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
 
-        // 数据集合
-        public ObservableCollection<MachineDetectionDataWrapper> Records { get; set; } = new ObservableCollection<MachineDetectionDataWrapper>();
+        // ══════════════════════════════════════════════════════════
+        //  数据集合
+        // ══════════════════════════════════════════════════════════
+        /// <summary>
+        /// 全量数据缓存底池（不需要通知 UI，使用 List 提高性能）
+        /// </summary>
+        private List<MachineDetectionDataWrapper> Records { get; set; } = new List<MachineDetectionDataWrapper>();
 
-        // 命令
+        /// <summary>
+        /// 当前页显示的数据集合（绑定到 UI 的 DataGrid/ItemsControl）
+        /// </summary>
+        public ObservableCollection<MachineDetectionDataWrapper> DataList { get; } = new ObservableCollection<MachineDetectionDataWrapper>();
+
+        // ══════════════════════════════════════════════════════════
+        //  命令与构造函数
+        // ══════════════════════════════════════════════════════════
         public DelegateCommand SearchCommand { get; }
         public DelegateCommand ClearFiltersCommand { get; }
-        // ... (Export 命令同之前，为节省篇幅略过重复代码)
 
         public ProductionHistoryViewModel(IProductionDataService productionDataService)
         {
@@ -71,14 +171,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             try
             {
                 IsBusy = true;
-                Records.Clear();
 
                 // 1. 数据库层过滤（利用时间和最大条数）
                 var dbFilter = new ProductionQueryFilter
                 {
                     StartTime = this.StartTime,
                     EndTime = this.EndTime,
-                    MaxCount = 5000 // 稍微调大一点，因为后续还有内存过滤
+                    MaxCount = 5000
                 };
 
                 var results = await _productionDataService.QueryAsync(dbFilter);
@@ -90,24 +189,38 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     Data = r.Deserialize<MachineDetectionData>()!
                 }).Where(x => x.Data != null);
 
-                // 3. 内存层精确条件过滤 (LINQ)
+                // 3. 内存层精确条件过滤 (加入 null 检查防崩溃)
                 if (!string.IsNullOrWhiteSpace(FilterWaferId))
-                    query = query.Where(x => x.Data.WaferId.Contains(FilterWaferId.Trim(), StringComparison.OrdinalIgnoreCase));
+                {
+                    var keyword = FilterWaferId.Trim();
+                    query = query.Where(x => !string.IsNullOrEmpty(x.Data.WaferId) &&
+                                             x.Data.WaferId.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                }
 
                 if (!string.IsNullOrWhiteSpace(FilterInternalBatchId))
-                    query = query.Where(x => x.Data.InternalBatchId.Contains(FilterInternalBatchId.Trim(), StringComparison.OrdinalIgnoreCase));
+                {
+                    var keyword = FilterInternalBatchId.Trim();
+                    query = query.Where(x => !string.IsNullOrEmpty(x.Data.InternalBatchId) &&
+                                             x.Data.InternalBatchId.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                }
 
                 if (!string.IsNullOrWhiteSpace(FilterProductModel))
-                    query = query.Where(x => x.Data.ProductModel.Contains(FilterProductModel.Trim(), StringComparison.OrdinalIgnoreCase));
+                {
+                    var keyword = FilterProductModel.Trim();
+                    query = query.Where(x => !string.IsNullOrEmpty(x.Data.ProductModel) &&
+                                             x.Data.ProductModel.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                }
 
                 if (FilterIsMatch.HasValue)
-                    query = query.Where(x => x.Data.IsMatch == FilterIsMatch.Value);
-
-                // 4. 绑定到UI
-                foreach (var item in query)
                 {
-                    Records.Add(item);
+                    query = query.Where(x => x.Data.IsMatch == FilterIsMatch.Value);
                 }
+
+                // 4. 将最终结果转入全量缓存列表
+                Records = query.ToList();
+
+                // 5. 计算总页数并自动刷新第一页的数据
+                RecalculatePagination();
             }
             catch (Exception ex)
             {

@@ -6,10 +6,12 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+
 using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
@@ -19,7 +21,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         private readonly WorkStationDataModule? _dataModule;
 
         private DispatcherTimer _monitorTimer;
-
+        int index = 0;
+        string[] imageFiles = default;
 
         /// <summary>
         /// 供 XAML 直接绑定底层数据集合
@@ -175,6 +178,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 DebugMessage = "未解析到 WorkStationDataModule 实例";
             }
             RefreshAllAsync();
+
+            
+            // 1. 获取当前运行目录 (例如: PF.WorkStation.AutoOcr.UI\bin\Debug\net8.0-windows\)
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+
+            // 2. 向上回退 3 层，精准定位到当前 UI 项目的源码根目录
+            // Path.GetFullPath 会自动解析 "..\" 并返回绝对路径
+            string projectRootDir = Path.GetFullPath(Path.Combine(baseDir, @"..\..\..\..\"));
+
+            // 3. 拼接目标文件夹路径
+            string sampleImagesDir = Path.Combine(projectRootDir, "PF.WorkStation.AutoOcr.UI", "SampleImages");
+
+            // 4. 读取图片
+            if (Directory.Exists(sampleImagesDir))
+            {
+                imageFiles = Directory.GetFiles(sampleImagesDir, "*.png");
+                // 拿去喂给视觉算法或显示
+            }
             //StartMonitor();
         }
 
@@ -280,9 +301,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
 
+      
+
         private void AddStation1Det()
         {
-
+           
             var kk = Station1MachineDetection.Select(x => x.WaferId).ToList();
             var kkk = Station1MesDetection.Where(x => !kk.Contains(x.WaferId)).FirstOrDefault();
             if (kkk == null)
@@ -293,6 +316,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             if (_dataModule != null)
             {
+                if (index> imageFiles.Length)
+                {
+                    index = 0;
+                }
+                string path = imageFiles[index++];
+
+
                 MachineDetectionData info = new MachineDetectionData()
                 {
                     InternalBatchId = Station1InternalBatches,
@@ -302,6 +332,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     Barcode1 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
                     Barcode2 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
                     Barcode3 = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",
+                    ImagePath = path
                 };
                 _dataModule.AddMachineDetectionAsync(E_WorkSpace.工位1, info);
             }
@@ -320,6 +351,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             if (_dataModule != null)
             {
+                if (index > imageFiles.Length)
+                {
+                    index = 0;
+                }
+                string path = imageFiles[index++];
+
                 MachineDetectionData info = new MachineDetectionData()
                 {
                     InternalBatchId = Station1InternalBatches,
@@ -329,6 +366,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     Barcode1 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
                     Barcode2 = $"{kkk.CustomerBatch}-{kkk.WaferId}",
                     Barcode3 = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",
+                    ImagePath = path
                 };
                 _dataModule.AddMachineDetectionAsync(E_WorkSpace.工位2, info);
             }

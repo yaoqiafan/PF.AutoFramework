@@ -29,7 +29,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 1)]
     public class WorkStationDataModule : BaseMechanism
     {
-      private readonly  IProductionDataService _productionDataService;
+        private readonly IProductionDataService _productionDataService;
 
 
         public WorkStationDataModule(
@@ -343,11 +343,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                                List<MachineDetectionData> recorddata = new List<MachineDetectionData>();
                                // 从内存字典中移除已处理批次
                                _machineDataByBatch.TryRemove(kvp.Key, out recorddata);
-                               if (recorddata!=null&& recorddata.Count!=0)
+                               if (recorddata != null && recorddata.Count != 0)
                                {
                                    foreach (var item in recorddata)
                                    {
-                                      await  _productionDataService.RecordAsync<MachineDetectionData>(item);
+                                       await _productionDataService.RecordAsync<MachineDetectionData>(item);
                                    }
                                }
                                _logger?.Info($"批次 {kvp.Key} 本地数据库记录完成！。");
@@ -527,6 +527,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// </summary>
     public class MachineDetectionData
     {
+        /// <summary>
+        /// 内部批次号
+        /// </summary>
+        public double Time { get; set; } = DateTime.Now.ToOADate();
+
 
         /// <summary>
         /// 内部批次号
@@ -590,6 +595,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 配方名称
         /// </summary>
         public string RecipeName { get; set; } = "NONE";
+
+
+        /// <summary>
+        /// 配方名称
+        /// </summary>
+        public string ImagePath { get; set; } = "NONE";
+
+
+        public override string ToString()
+        {
+            return $"Time: {DateTime.FromOADate(Time) } \r\n OCR: {OcrText}";
+        }
 
     }
 
