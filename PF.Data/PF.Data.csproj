@@ -10,4 +10,10 @@
     <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>通用数据访问层：EF Core DbContext 工厂、参数/生产数据实体、泛型仓储</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 </Project>

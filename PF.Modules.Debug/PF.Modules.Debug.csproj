@@ -7,4 +7,10 @@
 	  <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	</ItemGroup>
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>硬件调试面板：设备连接/断开、轴运动、IO 状态测试</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
 </Project>

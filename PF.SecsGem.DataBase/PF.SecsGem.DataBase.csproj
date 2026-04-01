@@ -11,4 +11,10 @@
     <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>SECS/GEM 协议专用数据库层：EF Core 实体、DbContext、Repository</Description>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
 </Project>
