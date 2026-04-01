@@ -14,4 +14,10 @@
     <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>核心业务服务：ParamService、HardwareManagerService、ProductionDataService、LogService</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 </Project>

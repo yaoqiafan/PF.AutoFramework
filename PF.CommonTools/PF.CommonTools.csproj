@@ -11,4 +11,10 @@
     <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>通用工具集：EnumParameterExtensions、JSON 序列化、反射辅助工具</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 </Project>

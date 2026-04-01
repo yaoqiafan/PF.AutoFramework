@@ -2,6 +2,7 @@
   <Folder Name="/00.GlobalConfiguration(公共包文件管理)/">
     <File Path="Common.Desktop.props" />
     <File Path="Common.props" />
+    <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/01.Foundation (基础层)/">
@@ -40,5 +41,8 @@
   <Folder Name="/08.External Services(外部服务)/">
     <Project Path="ConsoleApp1/ConsoleApp1.csproj" Id="e29412e5-ad25-494b-95b5-905045aaf9d7" />
     <Project Path="PF.SecsGem.Service/PF.SecsGem.Service.csproj" Id="e5f18463-ab25-4308-9e0d-05911d98a7d8" />
+  </Folder>
+  <Folder Name="/09.MetaPackage (元包)/">
+    <Project Path="PF.AutoFramework.Meta/PF.AutoFramework.Meta.csproj" />
   </Folder>
 </Solution>

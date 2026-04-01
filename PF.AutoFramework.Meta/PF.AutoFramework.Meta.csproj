@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+    <Description>PF.AutoFramework 一键引用元包，包含全部核心库、UI 组件库及业务模块</Description>
+    <!-- 元包无代码产出，抑制 NU5128 警告 -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <!--
+    使用 ProjectReference：
+    dotnet pack 时 MSBuild 自动将其转换为 PackageId + $(Version) 的 NuGet 依赖。
+    因 Directory.Build.props 中 Version 统一，元包与各子包版本天然对齐。
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
+    <ProjectReference Include="..\PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
+    <ProjectReference Include="..\PF.UI.Shared\PF.UI.Shared.csproj" />
+    <ProjectReference Include="..\PF.Data\PF.Data.csproj" />
+    <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
+    <ProjectReference Include="..\PF.UI.Controls\PF.UI.Controls.csproj" />
+    <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
+    <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
+    <ProjectReference Include="..\PF.CommonTools\PF.CommonTools.csproj" />
+    <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+    <ProjectReference Include="..\PF.Modules.Identity\PF.Modules.Identity.csproj" />
+    <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj" />
+    <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj" />
+    <ProjectReference Include="..\PF.Modules.Debug\PF.Modules.Debug.csproj" />
+    <ProjectReference Include="..\PF.Modules.ProductionRecord\PF.Modules.Production.csproj" />
+    <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj" />
+  </ItemGroup>
+
+</Project>

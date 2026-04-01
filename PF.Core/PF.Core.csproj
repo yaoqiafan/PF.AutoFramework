@@ -1,3 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>PF.AutoFramework 核心契约层：接口、枚举、特性，无任何外部依赖</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
 </Project>

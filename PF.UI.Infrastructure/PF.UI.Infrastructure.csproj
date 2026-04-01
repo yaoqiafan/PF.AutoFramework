@@ -9,4 +9,10 @@
 	  <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
 	</ItemGroup>
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>UI 基础设施：ViewModelBase、导航服务、对话框服务</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 </Project>
