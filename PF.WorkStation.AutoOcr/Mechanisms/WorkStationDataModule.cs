@@ -1,5 +1,6 @@
 ﻿
 using MathNet.Numerics;
+using NPOI.SS.Formula.Functions;
 using PF.Core.Attributes;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
@@ -19,6 +20,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
@@ -368,7 +370,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="codes">条码列表</param>
         /// <param name="token">取消令牌</param>
         /// <returns>item1 :扫到条码是否符合要求  item2:返回条码 </returns>
-        public Task<(bool, List<string>)> CheckCode(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        public Task<(bool, List<string>)> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
         {
             try
             {
@@ -432,6 +434,93 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             catch (Exception ex)
             {
                 return Task.FromResult((false, codes));
+            }
+        }
+
+
+        /// <summary>
+        /// 检查OCR字符是否正确
+        /// </summary>
+        /// <param name="station">工站名</param>
+        /// <param name="ocrtext">ocr字符</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        public Task<bool> CheckOcrTextAsync(E_WorkSpace station, string ocrtext, CancellationToken token = default)
+        {
+            try
+            {
+                if (station == E_WorkSpace.工位1)
+                {
+                    var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo() { CustomerBatch = x.CustomerBatch.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength), WaferId = x.WaferId }).ToList();
+                    if (ocrtext.Split('-') is { Length: 3 } parts)
+                    {
+                        string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
+                        {
+                            return Task.FromResult(true);
+                        }
+                        else
+                        {
+                            return Task.FromResult(false);
+                        }
+                    }
+                    else if (ocrtext.Split('-') is { Length: 2 } parts1)
+                    {
+                        string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
+                        {
+                            return Task.FromResult(true);
+                        }
+                        else
+                        {
+                            return Task.FromResult(false);
+                        }
+                    }
+                    else
+                    {
+                        return Task.FromResult(false);
+                    }
+                }
+                else if (station == E_WorkSpace.工位2 )
+                {
+                    var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo() { CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength), WaferId = x.WaferId }).ToList();
+                    if (ocrtext.Split('-') is { Length: 3 } parts)
+                    {
+                        string ocr = ocrtext.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
+                        {
+                            return Task.FromResult(true);
+                        }
+                        else
+                        {
+                            return Task.FromResult(false);
+                        }
+                    }
+                    else if (ocrtext.Split('-') is { Length: 2 } parts1)
+                    {
+                        string ocr = ocrtext.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
+                        {
+                            return Task.FromResult(true);
+                        }
+                        else
+                        {
+                            return Task.FromResult(false);
+                        }
+                    }
+                    else
+                    {
+                        return Task.FromResult(false);
+                    }
+                }
+                else
+                {
+                    return Task.FromResult(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(false);
             }
         }
 
@@ -686,7 +775,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         public override string ToString()
         {
-            return $"Time: {DateTime.FromOADate(Time) } \r\n OCR: {OcrText}";
+            return $"Time: {DateTime.FromOADate(Time)} \r\n OCR: {OcrText}";
         }
 
     }
