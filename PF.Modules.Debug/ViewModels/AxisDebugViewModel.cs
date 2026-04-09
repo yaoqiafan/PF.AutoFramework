@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
@@ -110,6 +111,15 @@ namespace PF.Modules.Debug.ViewModels
         private bool _isAlarm;
         public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
+        private bool _isORG;
+
+        public bool IsORG { get => _isORG; set => SetProperty(ref _isORG, value); }
+
+        private bool _isHoming;
+
+        public bool IsHoming { get => _isHoming; set => SetProperty(ref _isHoming, value); }
+
+
         #endregion
 
         #region 【运动输入参数属性】
@@ -176,7 +186,7 @@ namespace PF.Modules.Debug.ViewModels
         private void InitializeCommands()
         {
             // ===== 基础硬件命令 =====
-            ShowAxisParamDialog = new DelegateCommand(() => 
+            ShowAxisParamDialog = new DelegateCommand(() =>
             {
                 var param = new DialogParameters { { "Data", _axis.Param } };
                 DialogService.ShowDialog(nameof(AxisParamDialog), param, ValueChangeCallBack);
@@ -199,18 +209,18 @@ namespace PF.Modules.Debug.ViewModels
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity*5, AbsVelocity * 5,0.08, _cts.Token);
+                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token);
             });
 
             MoveRelativeCommand = new DelegateCommand(async () =>
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity*5, RelVelocity * 5, 0.08, _cts.Token);
+                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity * 5, RelVelocity * 5, 0.08, _cts.Token);
             });
 
-            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity*5, JogVelocity*5); });
-            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity*5, JogVelocity*5); });
+            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity * 5, JogVelocity * 5); });
+            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity * 5, JogVelocity * 5); });
             AxisStop = new DelegateCommand(async () => { if (_axis != null) await _axis.StopAsync(); });
             // ===== 点表管理命令 =====
             AddPointCommand = new DelegateCommand(() =>
@@ -292,6 +302,8 @@ namespace PF.Modules.Debug.ViewModels
             IsEnabled = axisio?.SVO ?? false;
             IsPositiveLimit = axisio?.PEL ?? false;
             IsNegativeLimit = axisio?.MEL ?? false;
+            IsORG = axisio?.ORG ?? false;
+            IsHoming = axisio?.Homing ?? false;
         }
 
         #endregion

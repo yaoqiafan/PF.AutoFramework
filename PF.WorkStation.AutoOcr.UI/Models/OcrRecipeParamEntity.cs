@@ -62,7 +62,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _1PosX = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
-        [DisplayNameAttribute("1.X轴位置(mm)")]
+        [DisplayNameAttribute("1.X轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosX_1
         {
@@ -77,7 +77,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _1PosY = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
-        [DisplayNameAttribute("2.Y轴位置(mm)")]
+        [DisplayNameAttribute("2.Y轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosY_1
         {
@@ -92,7 +92,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _1PosZ = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
-        [DisplayNameAttribute("3.Z轴位置(mm)")]
+        [DisplayNameAttribute("3.Z轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosZ_1
         {
@@ -109,7 +109,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _2PosX = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
-        [DisplayNameAttribute("1.X轴位置(mm)")]
+        [DisplayNameAttribute("1.X轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosX_2
         {
@@ -124,7 +124,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _2PosY = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
-        [DisplayNameAttribute("2.Y轴位置(mm)")]
+        [DisplayNameAttribute("2.Y轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosY_2
         {
@@ -139,7 +139,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _2PosZ = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
-        [DisplayNameAttribute("3.Z轴位置(mm)")]
+        [DisplayNameAttribute("3.Z轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosZ_2
         {

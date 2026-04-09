@@ -147,7 +147,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Width="auto" Header="工位2 X,Y,Z (mm)">
+                            <DataGridTemplateColumn Width="auto" Header="工位2 X,Y,Z (um)">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox
