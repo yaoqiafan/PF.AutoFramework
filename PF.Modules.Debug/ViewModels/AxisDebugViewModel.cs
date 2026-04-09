@@ -253,6 +253,7 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (_axis == null) return;
             var axisio = _axis.AxisIOStatus;
+            IsConnected = _axis.IsConnected;
             CurrentPosition = _axis.CurrentPosition ?? 0;
             IsMoving = axisio?.Moving ?? false;
             IsEnabled = axisio?.SVO ?? false;
