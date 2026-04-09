@@ -1,6 +1,7 @@
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
+using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Recipe;
 using PF.Infrastructure.Hardware;
@@ -29,12 +30,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IBarcodeScan? _scanner2;
         private readonly IIntelligentCamera? _camera;
 
+
+        private readonly ILightController? _lightconnter;
+
         private IAxis _axis;
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
         private OCRRecipeParam _currentRecipe;
-       
+
 
         public RecipeDebugViewModel(
             IHardwareManagerService hardwareManager,
@@ -55,6 +59,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             // 相机：从 ActiveDevices 中取第一个 IIntelligentCamera
             _camera = hardwareManager.ActiveDevices.OfType<IIntelligentCamera>().FirstOrDefault();
+
+
+            _lightconnter = hardwareManager.ActiveDevices.OfType<ILightController>().FirstOrDefault();
 
             // 初始化轴列表（只含三个 OCR 轴，过滤 null）
             AxisList = new ObservableCollection<IAxis?>(
@@ -147,7 +154,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
-        
+
 
         private E_WorkSpace _currentStation = E_WorkSpace.工位1;
         public E_WorkSpace CurrentStation { get => _currentStation; set => SetProperty(ref _currentStation, value); }
@@ -159,6 +166,47 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public double RecipeAxisPosition { get => _recipeAxisPosition; set => SetProperty(ref _recipeAxisPosition, value); }
 
         #endregion
+
+        #region 光源参数属性
+
+        private double _infraredLightValue;
+
+        public double InfraredLightValue
+        {
+            get => _infraredLightValue;
+            set
+            {
+                if (value != _infraredLightValue)
+                {
+                    SetProperty(ref _infraredLightValue, (int)value);
+                    UpdateLihtValue(1, (int)value);
+                }
+            }
+        }
+
+        private double _whiteLightValue;
+
+        public double WhiteLightValue
+        {
+            get => _whiteLightValue;
+            set
+            {
+                if (value != _whiteLightValue)
+                {
+                    SetProperty(ref _whiteLightValue, (int )value);
+                    UpdateLihtValue(2, (int)value);
+                }
+            }
+        }
+
+
+
+        private void UpdateLihtValue(int chanel, int vale)
+        {
+            _lightconnter?.SetLightValue(chanel, vale);
+        }
+
+        #endregion 光源参数属性
 
         #region 命令定义
 
@@ -388,7 +436,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (_currentRecipe == null) return;
 
-            double x=0, y = 0, z = 0;
+            double x = 0, y = 0, z = 0;
             if (CurrentStation == 0)
             {
                 x = _currentRecipe._1PosX;
