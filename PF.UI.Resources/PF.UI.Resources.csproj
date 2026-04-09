@@ -71,4 +71,30 @@
 	  <ProjectReference Include="..\PF.UI.Controls\PF.UI.Controls.csproj" />
 	</ItemGroup>
 
+	<!-- 字体文件显式声明为 Resource，确保打包为 NuGet 后嵌入 DLL -->
+	<ItemGroup>
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_Bold.otf" />
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_ExtraLight_ExtraLight.otf" />
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_Heavy_Heavy.otf" />
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_Light_Light.otf" />
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_Medium_Medium.otf" />
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_Normal_Normal.otf" />
+		<None Remove="Fonts\Font\Source_Han_Sans_SC_Regular.otf" />
+	</ItemGroup>
+	<ItemGroup>
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_Bold.otf" />
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_ExtraLight_ExtraLight.otf" />
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_Heavy_Heavy.otf" />
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_Light_Light.otf" />
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_Medium_Medium.otf" />
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_Normal_Normal.otf" />
+		<Resource Include="Fonts\Font\Source_Han_Sans_SC_Regular.otf" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>WPF 主题资源：深色/浅色主题字典、思源黑体字体、图标资源</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 </Project>

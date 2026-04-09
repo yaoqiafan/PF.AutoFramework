@@ -33,6 +33,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
             set { SetProperty(ref _CodeCount, value); }
         }
 
+     
+
+
         private string _OCRRecipeName = string.Empty;
         [DefaultValue("")]
         [CategoryAttribute("A.基本参数")]
@@ -59,7 +62,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _1PosX = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
-        [DisplayNameAttribute("1.X轴位置(mm)")]
+        [DisplayNameAttribute("1.X轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosX_1
         {
@@ -74,7 +77,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _1PosY = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
-        [DisplayNameAttribute("2.Y轴位置(mm)")]
+        [DisplayNameAttribute("2.Y轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosY_1
         {
@@ -89,7 +92,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _1PosZ = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
-        [DisplayNameAttribute("3.Z轴位置(mm)")]
+        [DisplayNameAttribute("3.Z轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosZ_1
         {
@@ -106,7 +109,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _2PosX = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
-        [DisplayNameAttribute("1.X轴位置(mm)")]
+        [DisplayNameAttribute("1.X轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosX_2
         {
@@ -121,7 +124,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _2PosY = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
-        [DisplayNameAttribute("2.Y轴位置(mm)")]
+        [DisplayNameAttribute("2.Y轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosY_2
         {
@@ -136,7 +139,7 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         private double _2PosZ = 0;
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
-        [DisplayNameAttribute("3.Z轴位置(mm)")]
+        [DisplayNameAttribute("3.Z轴位置(um)")]
         [BrowsableAttribute(true)]
         public double PosZ_2
         {
@@ -215,6 +218,30 @@ namespace PF.WorkStation.AutoOcr.UI.Models
             get { return _AssociateProduct; }
             set { SetProperty(ref _AssociateProduct, value); }
         }
+
+
+
+        private int _light1Value = 0;
+        [DefaultValue(0)]
+        [CategoryAttribute("F.光源亮度")]
+        [DisplayNameAttribute("1.红外光源亮度")]
+        [BrowsableAttribute(true)]
+        public int Light1Value
+        {
+            get { return _light1Value; }
+            set { SetProperty(ref _light1Value, value); }
+        }
+        private int _light2Value = 0;
+        [DefaultValue(0)]
+        [CategoryAttribute("F.光源亮度")]
+        [DisplayNameAttribute("2.白光光源亮度")]
+        [BrowsableAttribute(true)]
+        public int Light2Value
+        {
+            get { return _light2Value; }
+            set { SetProperty(ref _light2Value, value); }
+        }
+
     }
 
 

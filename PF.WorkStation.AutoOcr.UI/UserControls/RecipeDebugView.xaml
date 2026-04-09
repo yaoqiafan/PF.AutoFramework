@@ -6,8 +6,8 @@
     xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.UserControls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
+    d:DesignHeight="850"
+    d:DesignWidth="1000"
     mc:Ignorable="d">
     <Grid Margin="5">
         <Grid.RowDefinitions>
@@ -98,13 +98,13 @@
                                             FontSize="36"
                                             FontWeight="Heavy"
                                             Foreground="#4ADE80"
-                                            Text="{Binding CurrentPosition, StringFormat=\{0:F3\}}" />
+                                            Text="{Binding CurrentPosition}" />
                                         <TextBlock
                                             Margin="8,0,0,6"
                                             VerticalAlignment="Bottom"
                                             FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                             Foreground="#94A3B8"
-                                            Text=" mm" />
+                                            Text=" um" />
                                     </StackPanel>
                                 </Border>
 
@@ -236,7 +236,7 @@
                                         Grid.Column="0"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="绝对目标(mm):" />
+                                        Text="绝对目标(um):" />
                                     <TextBox
                                         Grid.Column="1"
                                         Height="36"
@@ -247,7 +247,7 @@
                                         Grid.Column="2"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="速度(mm/s):" />
+                                        Text="速度(um/s):" />
                                     <TextBox
                                         Grid.Column="3"
                                         Height="36"
@@ -281,7 +281,7 @@
                                         Grid.Column="0"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="相对距离(mm):" />
+                                        Text="相对距离(um):" />
                                     <TextBox
                                         Grid.Column="1"
                                         Height="36"
@@ -292,7 +292,7 @@
                                         Grid.Column="2"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="速度(mm/s):" />
+                                        Text="速度(um/s):" />
                                     <TextBox
                                         Grid.Column="3"
                                         Height="36"
@@ -333,7 +333,7 @@
                                         Grid.Column="2"
                                         Margin="20,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="点动速度(mm/s):" />
+                                        Text="点动速度(um/s):" />
                                     <TextBox
                                         Grid.Column="3"
                                         Height="36"
@@ -393,7 +393,7 @@
                                             <pf:ButtonGroup Margin="10">
                                                 <Button Content="移动到" />
                                                 <Button Content="获取当前轴位置" />
-                                                <Button Content="更新" />
+                                                <Button Content="更新"   />
                                             </pf:ButtonGroup>
                                         </pf:Card.Footer>
                                     </pf:Card>
@@ -471,7 +471,9 @@
                                                 <Button Command="{Binding TriggerOcrCommand}" Content="触发OCR" />
                                             </pf:ButtonGroup>
                                         </pf:Card.Footer>
+                                        
                                     </pf:Card>
+                                    
 
                                 </StackPanel>
                             </ScrollViewer>
@@ -488,6 +490,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition />
                         <RowDefinition />
+                        <RowDefinition/>
                     </Grid.RowDefinitions>
 
 
@@ -575,6 +578,43 @@
                         </StackPanel>
 
                     </StackPanel>
+
+                    <StackPanel Grid.Row=" 2" Margin=" 10"  >
+                        <Grid >
+                            <Grid.RowDefinitions  >
+                                <RowDefinition />
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Grid >
+                                <Grid.ColumnDefinitions >
+                                    <ColumnDefinition Width=" 100"/>
+                                    <ColumnDefinition Width=" *"/>
+                                    <ColumnDefinition Width=" 100"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="红外光" Style="{DynamicResource TextBlockLargeBold}"/>
+                                <Slider Grid.Column=" 1" Maximum=" 255" Minimum=" 0"   Value="{Binding InfraredLightValue, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="{Binding InfraredLightValue}"  Grid.Column=" 2" Style="{DynamicResource TextBlockLargeBold}"/>
+                            </Grid>
+
+                            <Grid  Grid.Row=" 1">
+                                <Grid.ColumnDefinitions >
+                                    <ColumnDefinition Width=" 100"/>
+                                    <ColumnDefinition Width=" *"/>
+                                    <ColumnDefinition Width=" 100"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="条光" Style="{DynamicResource TextBlockLargeBold}"/>
+                                <Slider Grid.Column=" 1" Maximum=" 255" Minimum=" 0"   Value="{Binding WhiteLightValue, UpdateSourceTrigger=PropertyChanged}"   />
+                                <TextBlock  Grid.Column=" 2" Text="{Binding WhiteLightValue}" Style="{DynamicResource TextBlockLargeBold}"/>
+                            </Grid>
+
+                        </Grid>
+                        
+
+                     
+
+                    </StackPanel>
+                    
+                    
 
                 </Grid>
             </pf:Card.Footer>

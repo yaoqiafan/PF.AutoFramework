@@ -12,6 +12,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
@@ -40,7 +41,9 @@ using PF.Modules.Logging;
 using PF.Modules.Parameter;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
+using PF.Modules.Parameter.Dialog.Mappers.Hardware;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Modules.Parameter.ViewModels.Models.Hardware;
 using PF.Modules.Production;
 using PF.Modules.SecsGem;
 using PF.SecsGem.DataBase;
@@ -278,6 +281,14 @@ namespace PF.Application.Shell
             ViewFactory.PreloadAssemblies();
             ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
 
+            // 注册硬件配置参数视图（按 ImplementationClassName 路由）
+            ViewFactory.RegisterHardwareConfigType<LTDMCMotionCardParamView,          LTDMCMotionCardParamViewMapper>         ("LTDMCMotionCard");
+            ViewFactory.RegisterHardwareConfigType<EtherCatAxisParamView,             EtherCatAxisParamViewMapper>            ("EtherCatAxis");
+            ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
+            ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
+            ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
+            ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightControoller");
+
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
             containerRegistry.RegisterDialog<WaitDialogView, WaitDialogViewModel>("WaitDialog");
@@ -389,7 +400,6 @@ namespace PF.Application.Shell
 
         #endregion
 
-
         #region 参数数据库服务注册
 
         /// <summary>
@@ -449,7 +459,13 @@ namespace PF.Application.Shell
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
+                string axisparamstr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var axispa) ? axispa : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
+                var  axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
+                if (axisparam == null)
+                {
+                    axisparam = new AxisParam();
+                }
+                return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, axisparam, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
 
 
@@ -476,6 +492,15 @@ namespace PF.Application.Shell
                 int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutms", out var timeout) ? int.Parse(timeout) : 0;
                 return new Infrastructure.Hardware.Carame.IntelligentCamera.Keyence.KeyenceIntelligentCamera(ip, tiggerport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
+
+            hwManager.RegisterFactory("CTS_LightControoller", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("COM", out var COM);
+               
+                return new Infrastructure.Hardware.LightController .CTS.CTSLightController (COM ,  cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+            });
+
+
 
             containerRegistry.RegisterSingleton<IIOMappingService, IOMappingService>();
 
@@ -618,17 +643,17 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 
-                SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
-                await Task.Delay(300);
-                if (await InitializeMechanism())
-                {
-                    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
-                }
-                else
-                {
-                    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
-                    loadErr = true;
-                }
+                //SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
+                //await Task.Delay(300);
+                //if (await InitializeMechanism())
+                //{
+                //    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
+                //}
+                //else
+                //{
+                //    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                //    loadErr = true;
+                //}
 
 
                 await Task.Delay(500);

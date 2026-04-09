@@ -238,7 +238,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
                 double tAcc = (velocity - velocity / 10.0) / Acc;
                 double tDec = (velocity - velocity / 10.0) / Dec;
-                ushort jogDir = isPositive ? (ushort)1 : (ushort)2;
+                ushort jogDir = isPositive ? (ushort)1 : (ushort)0;
                 short ret = CardAPI.LTDMC.dmc_set_profile_unit((ushort)CardIndex, (ushort)axisIndex, velocity / 10.0, velocity, tAcc, tDec, velocity / 10.0);
                 if (ret != 0)
                 {

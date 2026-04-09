@@ -17,7 +17,7 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
     {
 
         const string CommonToolDll = "CommonToolDll.dll";
-        const string ControllerDll = "ExampleDll.dll";
+        //const string ControllerDll = "ExampleDll.dll";
 
         public const int EthernetMode = 0;
         public const int Rs232Mode = 1;
@@ -142,62 +142,66 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         int ReleaseSerialPort(ControllerHandleType controllerHandle);
 
 
-        ////////////////////////////////////////////ControllerDll//////////////////////////////////////////////////////
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetDigitalValue(int connectType, ref int intensity, int ChannelIndex, ControllerHandleType controllerHandle);
+        [DllImport("ControllerDll.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SetDigitalValue(int connectType, int ChannelIndex, int intensity, long controllerHandle);
 
 
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetDigitalValue(int connectType, int ChannelIndex, int intensity, ControllerHandleType controllerHandle);
+        //////////////////////////////////////////////ControllerDll//////////////////////////////////////////////////////
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetDigitalValue(int connectType, ref int intensity, int ChannelIndex, ControllerHandleType controllerHandle);
 
 
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetMulDigitalValue(int connectType, MulIntensityValue[] MulIntensityValueArray, int length, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetDigitalTime(int connectType, int intensity, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetDigitalTime(int connectType, ref int intensity, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetCameraSignalValue(int connectType, int CameraSignal, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetCameraSignalValue(int connectType, ref int CameraSignal, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetCameraDelayValue(int connectType, int CameraDelay, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetCameraDelayValue(int connectType, ref int CameraDelay, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetTriggerModeValue(int connectType, int TriggerMode, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetTriggerModeValue(int connectType, ref int TriggerMode, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetTriggerCycleValue(int connectType, int TriggerCycle, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetTriggerCycleValue(int connectType, ref int TriggerCycle, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SetChannelSwitchValue(int connectType, int ChannelIndex, int SwitchValue, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int GetChannelSwitchValue(int connectType, int ChannelIndex, ref int SwitchValue, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SaveData(int connectType, ControllerHandleType controllerHandle);
-        [DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        public static extern
-        int SoftwareTrigger(int connectType, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetDigitalValue(int connectType, int ChannelIndex, int intensity, ControllerHandleType controllerHandle);
+
+
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetMulDigitalValue(int connectType, MulIntensityValue[] MulIntensityValueArray, int length, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetDigitalTime(int connectType, int intensity, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetDigitalTime(int connectType, ref int intensity, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetCameraSignalValue(int connectType, int CameraSignal, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetCameraSignalValue(int connectType, ref int CameraSignal, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetCameraDelayValue(int connectType, int CameraDelay, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetCameraDelayValue(int connectType, ref int CameraDelay, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetTriggerModeValue(int connectType, int TriggerMode, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetTriggerModeValue(int connectType, ref int TriggerMode, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetTriggerCycleValue(int connectType, int TriggerCycle, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetTriggerCycleValue(int connectType, ref int TriggerCycle, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SetChannelSwitchValue(int connectType, int ChannelIndex, int SwitchValue, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int GetChannelSwitchValue(int connectType, int ChannelIndex, ref int SwitchValue, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SaveData(int connectType, ControllerHandleType controllerHandle);
+        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern
+        //int SoftwareTrigger(int connectType, ControllerHandleType controllerHandle);
 
     }
 }

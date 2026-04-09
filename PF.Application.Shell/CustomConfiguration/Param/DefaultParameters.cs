@@ -2,6 +2,7 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
 using PF.UI.Shared.Data;
@@ -10,18 +11,18 @@ using System.Text.Json;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {
-    public class DefaultParameters:IDefaultParam
+    public class DefaultParameters : IDefaultParam
     {
-        
+
         /// <summary>
         /// 获取系统默认配置
         /// </summary>
-        public  Dictionary<string, UserLoginParam> GetUsersDefaults()
+        public Dictionary<string, UserLoginParam> GetUsersDefaults()
         {
-           
+
             return new Dictionary<string, UserLoginParam>
             {
-               
+
             };
         }
 
@@ -51,7 +52,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["CardIndex"] = "0" },
+                ConnectionParameters = new Dictionary<string, string> { ["CardIndex"] = "0"},
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
 
@@ -64,7 +65,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "0" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "0" ,["AxisParam"]=System .Text .Json .JsonSerializer .Serialize (new AxisParam ())},
                 Remarks = "OCR模块Y轴，挂载于 LTDMC_Card_0"
             };
             HardwareConfig OcrXAxis = new()
@@ -76,7 +77,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "OCR模块X轴，挂载于 LTDMC_Card_0"
             };
             HardwareConfig OcrZAxis = new()
@@ -88,7 +89,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "2" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "2", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "OCR模块Z轴，挂载于 LTDMC_Card_0"
             };
 
@@ -101,7 +102,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "3" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "3", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位2上料Z轴，挂载于 LTDMC_Card_0"
             };
             HardwareConfig station2YAxis = new()
@@ -113,7 +114,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "4" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "4", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位2晶圆拉料Y轴，挂载于 LTDMC_Card_0"
             };
 
@@ -127,7 +128,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "5" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "5", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位1上料Z轴，挂载于 LTDMC_Card_0"
             };
             HardwareConfig station1YAxis = new()
@@ -139,7 +140,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "6" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "6", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位1晶圆拉料Y轴，挂载于 LTDMC_Card_0"
             };
             HardwareConfig station1XAxis = new()
@@ -151,7 +152,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "7" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "7", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位1挡料X轴，挂载于 LTDMC_Card_0"
             };
             HardwareConfig station2XAxis = new()
@@ -163,7 +164,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "8" },
+                ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "8", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位2挡料X轴，挂载于 LTDMC_Card_0"
             };
 
@@ -178,9 +179,11 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> {
-                    ["InPutCount"] = Enum.GetNames(typeof(E_InPutName)).Length.ToString(), 
-                    ["OutPutCount"] = Enum.GetNames(typeof(E_OutPutName)).Length.ToString(), },
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["InPutCount"] = Enum.GetNames(typeof(E_InPutName)).Length.ToString(),
+                    ["OutPutCount"] = Enum.GetNames(typeof(E_OutPutName)).Length.ToString(),
+                },
                 Remarks = "IO耦合器，挂载于 LTDMC_Card_0"
             };
 
@@ -206,7 +209,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9700", ["UserPort"] = "21", ["TimeOutMs"]= "5000" },
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9700", ["UserPort"] = "21", ["TimeOutMs"] = "5000" },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
 
@@ -223,6 +226,20 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9800", ["TimeOutms"] = "5000" },
                 Remarks = "基恩士OCR智能相机，用于开发/调试"
             };
+
+            HardwareConfig light = new HardwareConfig
+            {
+                DeviceId = E_LightController.康视达_COM.ToString(),
+                DeviceName = "康视达Com口光源控制器",
+                Category = "Light",
+                ImplementationClassName = "CTS_LightControoller",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["COM"] = "COM1" },
+                Remarks = "康视达光源控制器，用于开发/调试"
+            };
+
 
 
             return new Dictionary<string, HardwareParam>
@@ -384,6 +401,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Category     = "Hardware",
                         Version      = 1
                     }
+                },
+                {
+                    light .DeviceId ,new HardwareParam
+                    {
+                         Name         = light .DeviceId,
+                        Description  = light.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(light),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
                 }
             };
         }
@@ -395,24 +423,24 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         {
             var defaultConfigDict = new Dictionary<string, SystemConfigParam>();
 
-           
+
             foreach (E_Params param in Enum.GetValues(typeof(E_Params)))
             {
-                
+
                 string paramName = param.ToString();
 
-              
+
                 EnumParamInfo info = param.GetParamInfo();
 
-               
+
                 string typeFullName = info.TypeFullName ?? typeof(string).FullName;
 
-                
+
                 string jsonValue = info.DefaultValue != null
                     ? JsonSerializer.Serialize(info.DefaultValue)
                     : JsonSerializer.Serialize("");
 
-               
+
                 defaultConfigDict.Add(paramName, new SystemConfigParam
                 {
                     Name = paramName,
