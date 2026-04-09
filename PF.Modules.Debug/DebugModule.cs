@@ -2,6 +2,7 @@
 using PF.Modules.Debug.Dialogs;
 using PF.Modules.Debug.ViewModels;
 using PF.Modules.Debug.Views;
+using PF.Modules.Debug.Views.Hardware;
 using PF.UI.Infrastructure.Navigation;
 using Prism.Ioc;
 using Prism.Modularity;
@@ -47,7 +48,7 @@ namespace PF.Modules.Debug
 
             containerRegistry.RegisterForNavigation<CameraDebugView, CameraDebugViewModel>(NavigationConstants.Views.CameraDebugView);
 
-
+            containerRegistry.RegisterForNavigation<LightControllerDebugView, LightControllerDebugViewModel >(NavigationConstants.Views.LightControllerDebugView);
             containerRegistry.RegisterDialog<AxisParamDialog, AxisParamDialogViewModel>(nameof(AxisParamDialog));
         }
     }
