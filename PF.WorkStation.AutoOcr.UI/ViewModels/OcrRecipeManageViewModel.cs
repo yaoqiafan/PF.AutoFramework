@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.SecsGem;
 using PF.Infrastructure.Hardware;
@@ -291,7 +292,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnDialogCallback(IDialogResult result)
         {
-           
+            if (result.Result == ButtonResult.Yes)
+            {
+                try
+                {
+                    var paramItem = result.Parameters.GetValue<OCRRecipeParam>("CallBackRecipe");
+                    if (paramItem != null)
+                    {
+                        SelectedParameter = MapToEntity(paramItem);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                }
+            }
         }
 
 
