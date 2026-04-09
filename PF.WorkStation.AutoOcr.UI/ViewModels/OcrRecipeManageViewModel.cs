@@ -319,7 +319,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 GuestLength = param.GuestLength,
                 IsOCRCodePate = param.IsOCRCodePate,
                 AssociateProduct = param.AssociateProduct != null ? new List<string>(param.AssociateProduct) : new List<string>(),
-                CameraPrograms = _camera?.CameraProgram ?? new List<string>()
+                CameraPrograms = _camera?.CameraProgram ?? new List<string>(),
+                Light1Value=param ?.LightChanel1Value ?? 0,
+                Light2Value=param ?.LightChanel1Value ?? 0
             };
         }
 

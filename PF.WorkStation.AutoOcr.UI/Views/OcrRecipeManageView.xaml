@@ -134,7 +134,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Width="auto" Header="工位1 X,Y,Z (mm)">
+                            <DataGridTemplateColumn Width="auto" Header="工位1 X,Y,Z (um)">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox
@@ -211,6 +211,33 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Width="auto" Header="红外光亮度">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox
+                                            VerticalAlignment="Center"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            IsReadOnly="True"
+                                            Text="{Binding Light1Value, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Width="auto" Header="白光亮度">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox
+                                            VerticalAlignment="Center"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            IsReadOnly="True"
+                                            Text="{Binding Light2Value, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -236,7 +263,10 @@
                         FontWeight="Bold"
                         Text="程式参数设定" />
 
-                    <pf:PropertyGrid Grid.Row="1" SelectedObject="{Binding SelectedParameter}" Margin="0,5,0,5" />
+                    <pf:PropertyGrid
+                        Grid.Row="1"
+                        Margin="0,5,0,5"
+                        SelectedObject="{Binding SelectedParameter}" />
 
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
 
@@ -263,15 +293,15 @@
                         Grid.Row="2"
                         HorizontalAlignment="Left"
                         Orientation="Horizontal">
-                        <Button Style="{DynamicResource ButtonPrimary}" 
-                                pf:IconElement.Geometry="{StaticResource DebugIcon}"
-                                pf:IconElement.Height="20"
-                                 pf:IconElement.Width="20"
-                                
+                        <Button
                             MinHeight="35"
                             Padding="10,0"
+                            pf:IconElement.Geometry="{StaticResource DebugIcon}"
+                            pf:IconElement.Height="20"
+                            pf:IconElement.Width="20"
                             Command="{Binding ShowDebugViewCommand}"
-                            Content="调试当前程式" />
+                            Content="调试当前程式"
+                            Style="{DynamicResource ButtonPrimary}" />
                     </StackPanel>
 
                     <StackPanel
