@@ -38,12 +38,12 @@
                         Height="48"
                         Margin="0,0,15,0"
                         CornerRadius="8">
-                        <TextBlock
+                        <Button Style="{StaticResource ButtonCustom}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             FontSize="{DynamicResource FontSize.H1.Large}"
                             Foreground="{DynamicResource TextIconBrush}"
-                            Text="⚙️" />
+                            Content="⚙️" Command="{Binding ShowAxisParamDialog}"/>
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -137,9 +137,16 @@
                                     Content="轴已使能 (SVON)"
                                     IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                     IsHitTestVisible="False" />
+                                <TextBlock />
                                 <CheckBox
                                     Margin="0,5"
-                                    Content="正在运动 (BUSY)"
+                                    Content="运动中 (BUSY)"
+                                    Foreground="#0284C7"
+                                    IsChecked="{Binding IsMoving, Mode=OneWay}"
+                                    IsHitTestVisible="False" />
+                                <CheckBox
+                                    Margin="0,5"
+                                    Content="回零中 (HOME)"
                                     Foreground="#0284C7"
                                     IsChecked="{Binding IsMoving, Mode=OneWay}"
                                     IsHitTestVisible="False" />
@@ -149,12 +156,21 @@
                                     Foreground="#EF4444"
                                     IsChecked="{Binding IsPositiveLimit, Mode=OneWay}"
                                     IsHitTestVisible="False" />
+                                <TextBlock />
+                                <CheckBox
+                                    Margin="0,5"
+                                    Content="原点 (ORG)"
+                                    Foreground="{DynamicResource  LightPrimaryBrush}"
+                                    IsChecked="{Binding IsNegativeLimit, Mode=OneWay}"
+                                    IsHitTestVisible="False" />
+                                <TextBlock />
                                 <CheckBox
                                     Margin="0,5"
                                     Content="负限位 (NEL)"
                                     Foreground="#EF4444"
                                     IsChecked="{Binding IsNegativeLimit, Mode=OneWay}"
                                     IsHitTestVisible="False" />
+                                <TextBlock />
                                 <CheckBox
                                     Margin="0,5"
                                     Content="驱动器报警 (ALM)"
