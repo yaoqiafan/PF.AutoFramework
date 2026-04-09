@@ -282,6 +282,25 @@
                                         Text="{Binding Coderec}" />
                                 </Grid>
 
+                                <TextBlock
+      Margin="0,10,0,5"
+      Foreground="Gray"
+      Text=" 光源操作" />
+                                <Grid >
+                                    <Grid.ColumnDefinitions >
+                                        <ColumnDefinition Width=" * " />
+                                        <ColumnDefinition Width=" 60"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Grid.Column=" 0" Maximum=" 255" Minimum=" 0"   Value="{Binding InfraredLightValue, UpdateSourceTrigger=PropertyChanged}" Height =" 50" />
+                                    <TextBlock Text="{Binding InfraredLightValue}"  Grid.Column=" 1" Style="{DynamicResource TextBlockLargeBold}"/>
+
+                                </Grid>
+
+                                <Button
+     Height=" 35"
+     Margin="0,0,0,5"
+     Command="{Binding SaveLightValueCommand}"
+     Content=" 保存光源参数" />
                             </StackPanel>
                         </ScrollViewer>
                     </GroupBox>

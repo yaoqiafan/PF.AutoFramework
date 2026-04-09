@@ -341,6 +341,18 @@ namespace PF.Workstation.AutoOcr.CostParam
         #endregion
 
 
+        #region 扫码光源参数
+        [Category("扫码光源参数")]
+        [Description("工位1光源亮度")]
+        [DefaultValue(1)]
+        WorkStation1LightBrightness,
+        [Category("扫码光源参数")]
+        [Description("工位2光源亮度")]
+        [DefaultValue(1)]
+        WorkStation2LightBrightness,
+        #endregion 扫码光源参数
+
+
     }
 
 
