@@ -159,6 +159,7 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand MoveRelativeCommand { get; private set; }
         public DelegateCommand JogPositiveCommand { get; private set; }
         public DelegateCommand JogNegativeCommand { get; private set; }
+        public DelegateCommand AxisStop { get; private set; }
 
         // 点表控制命令
         public DelegateCommand AddPointCommand { get; private set; }
@@ -197,7 +198,7 @@ namespace PF.Modules.Debug.ViewModels
 
             JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity*5, JogVelocity*5); });
             JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity*5, JogVelocity*5); });
-
+            AxisStop = new DelegateCommand(async () => { if (_axis != null) await _axis.StopAsync(); });
             // ===== 点表管理命令 =====
             AddPointCommand = new DelegateCommand(() =>
             {
