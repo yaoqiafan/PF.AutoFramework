@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
@@ -48,6 +49,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public IBarcodeScan CodeScan => _codeScan;
 
 
+        private ILightController _lightController;
+
+        public ILightController LightController => _lightController;
+
+
+
         /// <summary>
         /// 当前生产晶圆尺寸
         /// </summary>
@@ -86,11 +93,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Error($"[{MechanismName}] 未找到扫码枪 '{E_ScanCode.工位1扫码枪}'，请确认硬件配置。");
                 return false;
             }
+            _lightController = HardwareManagerService?.ActiveDevices?.OfType<ILightController>().FirstOrDefault();
+            if (_lightController == null)
+            {
+                _logger.Error($"[{MechanismName}] 未找光源控制器 '{E_LightController.康视达_COM}'，请确认硬件配置。");
+                return false;
+            }
 
             // ② 将硬件注册到当前模组：这样当单一轴/IO发生报警时，整个模组的状态会自动同步为 Alarm
             RegisterHardwareDevice(_yAxis as IHardwareDevice);
             RegisterHardwareDevice(_io as IHardwareDevice);
             RegisterHardwareDevice(_codeScan as IHardwareDevice);
+            RegisterHardwareDevice(_lightController as IHardwareDevice);
 
             // 确认点位枚举在轴配置中都已示教/创建
             await ConfirmEunmPoints();
@@ -732,7 +746,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         public async Task<List<string>> CodeScanTigger(CancellationToken token = default)
         {
+            await _lightController.SetLightValue(3, await ParamService.GetParamAsync<int>(E_Params.WorkStation1LightBrightness.ToString()));
             string str = await _codeScan.Tigger(token);
+            await _lightController.SetLightValue(3, 0);
             if (string.IsNullOrEmpty(str))
             {
                 return null;
@@ -750,14 +766,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns> true: 无料   false :异常</returns>
-        public async Task <bool > CheckGipperInsidePro(CancellationToken token =default )
+        public async Task<bool> CheckGipperInsidePro(CancellationToken token = default)
         {
             bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
             if (res2 == false)
             {
                 return true;
             }
-            return false ;
+            return false;
         }
 
 

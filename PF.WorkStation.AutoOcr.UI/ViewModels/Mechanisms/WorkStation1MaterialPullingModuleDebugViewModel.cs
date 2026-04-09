@@ -1,5 +1,9 @@
-﻿using NPOI.SS.UserModel.Charts;
+﻿using log4net.Util;
+using NPOI.SS.UserModel.Charts;
+using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
@@ -20,6 +24,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         private readonly WorkStation1MaterialPullingModule? _materialPullingModule;
 
         public WorkStation1MaterialPullingModule? MaterialPullingModule => _materialPullingModule;
+
+        private readonly IParamService _paramService;
+
 
         private DispatcherTimer _monitorTimer;
         private string _debugMessage = "就绪";
@@ -93,6 +100,36 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #endregion 状态监控属性 (UI 实时刷新)
 
 
+        #region 光源参数属性
+
+        private double _infraredLightValue;
+
+        public double InfraredLightValue
+        {
+            get => _infraredLightValue;
+            set
+            {
+                if (value != _infraredLightValue)
+                {
+                    SetProperty(ref _infraredLightValue, (int)value);
+                    UpdateLihtValue(3, (int)value);
+
+                }
+            }
+        }
+
+
+
+
+
+        private void UpdateLihtValue(int chanel, int vale)
+        {
+            if (_materialPullingModule == null) return;
+            _materialPullingModule.LightController?.SetLightValue(chanel, vale);
+        }
+
+        #endregion 光源参数属性
+
 
         #region 点位集合
 
@@ -109,6 +146,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand StopCommand { get; }
 
         public DelegateCommand IsCanResetCommand { get; }
+
+        public DelegateCommand SaveLightValueCommand { get; }
 
 
         public DelegateCommand InitializeGipper { get; }
@@ -140,19 +179,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #endregion Command定义
 
 
-        public WorkStation1MaterialPullingModuleDebugViewModel(IContainerProvider containerProvider)
+        public WorkStation1MaterialPullingModuleDebugViewModel(IContainerProvider containerProvider, IParamService paramService)
         {
+            _paramService = paramService;
+
             _materialPullingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule)) as WorkStation1MaterialPullingModule;
 
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.StopAsync()));
-            IsCanResetCommand= new DelegateCommand(async () => await ExecuteCheckAsync("可初始化动作", () => _materialPullingModule?.CheckTrackIsMaterial()));
+            IsCanResetCommand = new DelegateCommand(async () => await ExecuteCheckAsync("可初始化动作", () => _materialPullingModule?.CheckTrackIsMaterial()));
             InitializeGipper = new DelegateCommand(async () => await ExecuteCheckAsync("初始化拉料工位", () => _materialPullingModule?.CheckTrackIsMaterial()));
 
             Change_8StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到8寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._8寸)));
-            Change_12StatusCommand=new DelegateCommand(async () => await ExecuteCheckAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
-            OpenGipperCommand= new DelegateCommand(async () => await ExecuteCheckAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
+            Change_12StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
+            OpenGipperCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
 
             CloseGipperCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开夹爪", () => _materialPullingModule?.CloseWafeGipper()));
             SavePointCommand = new DelegateCommand(SavePoint);
@@ -161,6 +202,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             MoveDetcetionCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
             MoveInitialCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
             CodeTiggerCommand = new DelegateCommand(async () => await ExecuteAsync(() => TiggerCode()));
+            SaveLightValueCommand = new DelegateCommand(async () => await ExecuteAsync(() => SaveLightValue()));
             LoadOriginalPoints();
 
             StartMonitor();
@@ -211,7 +253,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             {
                 DebugMessage = $"检查 {actionName} 中...";
                 bool? result = await action.Invoke();
-                DebugMessage = $"结果: {actionName} = {(result .Value ? "满足 (True)" : "不满足 (False)")}";
+                DebugMessage = $"结果: {actionName} = {(result.Value ? "满足 (True)" : "不满足 (False)")}";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -247,11 +289,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
 
-        private async Task TiggerCode(CancellationToken token =default )
+        private async Task TiggerCode(CancellationToken token = default)
         {
             if (_materialPullingModule?.YAxis == null) return;
-         var res =   await _materialPullingModule.CodeScanTigger();
-            if (res ==null )
+            var res = await _materialPullingModule.CodeScanTigger();
+            if (res == null)
             {
                 Coderec = "ERROR";
             }
@@ -260,6 +302,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 Coderec = string.Join('&', res);
             }
 
+        }
+
+
+        private async Task SaveLightValue(CancellationToken token = default)
+        {
+            // 使用非泛型重载，避免 double 作为引用类型约束的泛型参数
+            var info = await _paramService.SetParamAsync(
+                "System.Int32",
+                E_Params.WorkStation1LightBrightness.ToString(),
+                InfraredLightValue
+            );
         }
 
 

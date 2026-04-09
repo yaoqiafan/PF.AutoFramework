@@ -1,6 +1,7 @@
 ﻿using NPOI.POIFS.Crypt.Dsig.Facets;
 using NPOI.SS.Formula.Functions;
 using Org.BouncyCastle.Pkcs;
+using PF.Core.Attributes;
 using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params.ValidateParam;
 using PF.Core.Enums;
@@ -22,6 +23,8 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
+
+    [MechanismUI("SECSGEM模块", "WorkStationSecsGemModuleDebugView", 1)]
     public class WorkStationSecsGemModule : BaseMechanism
     {
 

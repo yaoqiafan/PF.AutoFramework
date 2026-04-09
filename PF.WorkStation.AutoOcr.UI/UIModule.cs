@@ -46,6 +46,9 @@ namespace PF.WorkStation.AutoOcr.UI
 
             containerRegistry.RegisterForNavigation<Workstation1FeedingModelDebugView, Workstation1FeedingModelDebugViewModel>(nameof(Workstation1FeedingModelDebugView));
 
+            containerRegistry.RegisterForNavigation<WorkStationSecsGemModuleDebugView , WorkStationSecsGemModuleDebugViewModel >(nameof(WorkStationSecsGemModuleDebugView));
+
+
             containerRegistry.RegisterForNavigation<WorkStationDetectionModuleDebugView, WorkStationDetectionModuleDebugViewModel>(nameof(WorkStationDetectionModuleDebugView));
 
             containerRegistry.RegisterForNavigation<WorkStation1MaterialPullingModuleDebugView, WorkStation1MaterialPullingModuleDebugViewModel>(nameof(WorkStation1MaterialPullingModuleDebugView));
