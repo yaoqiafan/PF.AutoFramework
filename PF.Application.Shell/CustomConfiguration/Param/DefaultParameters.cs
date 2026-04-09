@@ -10,18 +10,18 @@ using System.Text.Json;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {
-    public class DefaultParameters:IDefaultParam
+    public class DefaultParameters : IDefaultParam
     {
-        
+
         /// <summary>
         /// 获取系统默认配置
         /// </summary>
-        public  Dictionary<string, UserLoginParam> GetUsersDefaults()
+        public Dictionary<string, UserLoginParam> GetUsersDefaults()
         {
-           
+
             return new Dictionary<string, UserLoginParam>
             {
-               
+
             };
         }
 
@@ -178,9 +178,11 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
-                ConnectionParameters = new Dictionary<string, string> {
-                    ["InPutCount"] = Enum.GetNames(typeof(E_InPutName)).Length.ToString(), 
-                    ["OutPutCount"] = Enum.GetNames(typeof(E_OutPutName)).Length.ToString(), },
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["InPutCount"] = Enum.GetNames(typeof(E_InPutName)).Length.ToString(),
+                    ["OutPutCount"] = Enum.GetNames(typeof(E_OutPutName)).Length.ToString(),
+                },
                 Remarks = "IO耦合器，挂载于 LTDMC_Card_0"
             };
 
@@ -206,7 +208,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9700", ["UserPort"] = "21", ["TimeOutMs"]= "5000" },
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9700", ["UserPort"] = "21", ["TimeOutMs"] = "5000" },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
 
@@ -223,6 +225,20 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9800", ["TimeOutms"] = "5000" },
                 Remarks = "基恩士OCR智能相机，用于开发/调试"
             };
+
+            HardwareConfig light = new HardwareConfig
+            {
+                DeviceId = E_LightController.康视达_COM.ToString(),
+                DeviceName = "康视达Com口光源控制器",
+                Category = "Light",
+                ImplementationClassName = "CTS_LightControoller",
+                IsSimulated = false,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["COM"] = "COM1" },
+                Remarks = "康视达光源控制器，用于开发/调试"
+            };
+
 
 
             return new Dictionary<string, HardwareParam>
@@ -384,6 +400,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Category     = "Hardware",
                         Version      = 1
                     }
+                },
+                {
+                    light .DeviceId ,new HardwareParam
+                    {
+                         Name         = light .DeviceId,
+                        Description  = light.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(light),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
                 }
             };
         }
@@ -395,24 +422,24 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         {
             var defaultConfigDict = new Dictionary<string, SystemConfigParam>();
 
-           
+
             foreach (E_Params param in Enum.GetValues(typeof(E_Params)))
             {
-                
+
                 string paramName = param.ToString();
 
-              
+
                 EnumParamInfo info = param.GetParamInfo();
 
-               
+
                 string typeFullName = info.TypeFullName ?? typeof(string).FullName;
 
-                
+
                 string jsonValue = info.DefaultValue != null
                     ? JsonSerializer.Serialize(info.DefaultValue)
                     : JsonSerializer.Serialize("");
 
-               
+
                 defaultConfigDict.Add(paramName, new SystemConfigParam
                 {
                     Name = paramName,
