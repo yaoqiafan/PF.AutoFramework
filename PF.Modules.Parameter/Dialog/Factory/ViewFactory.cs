@@ -1,4 +1,5 @@
 ﻿using PF.Core.Attributes;
+using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Interfaces.Configuration;
 using PF.Modules.Parameter.Dialog.Mappers;
@@ -66,6 +67,15 @@ namespace PF.Modules.Parameter.Dialog.Base
         // 视图类型到数据类型的反向映射
         private static readonly ConcurrentDictionary<Type, Type> _viewToDataTypeCache = new ConcurrentDictionary<Type, Type>();
 
+        // HardwareConfig 按 ImplementationClassName 路由的视图类型
+        private static readonly ConcurrentDictionary<string, Type> _hardwareConfigViewTypes = new ConcurrentDictionary<string, Type>();
+
+        // HardwareConfig 按 ImplementationClassName 路由的映射器
+        private static readonly ConcurrentDictionary<string, IViewDataMapper> _hardwareConfigMappers = new ConcurrentDictionary<string, IViewDataMapper>();
+
+        // 硬件视图类型到其映射器的反向查找（用于 ExtractDataFromView）
+        private static readonly ConcurrentDictionary<Type, IViewDataMapper> _hardwareViewTypeToMapper = new ConcurrentDictionary<Type, IViewDataMapper>();
+
         /// <summary>
         /// 获取类型对应的视图实例
         /// </summary>
@@ -114,6 +124,12 @@ namespace PF.Modules.Parameter.Dialog.Base
         /// <returns>视图实例</returns>
         public static object GetViewInstanceWithData(Type parameterType, object data)
         {
+            // HardwareConfig 按 ImplementationClassName 路由到具体视图
+            if (parameterType == typeof(HardwareConfig) && data is HardwareConfig hwConfig)
+            {
+                return GetHardwareConfigViewInstanceWithData(hwConfig);
+            }
+
             var viewInstance = GetViewInstance(parameterType);
 
             if (viewInstance != null && data != null)
@@ -130,6 +146,33 @@ namespace PF.Modules.Parameter.Dialog.Base
         }
 
         /// <summary>
+        /// 根据 ImplementationClassName 创建对应的硬件配置视图并绑定数据
+        /// </summary>
+        private static object GetHardwareConfigViewInstanceWithData(HardwareConfig config)
+        {
+            var key = config.ImplementationClassName;
+
+            if (!_hardwareConfigViewTypes.TryGetValue(key, out var viewType) ||
+                !_hardwareConfigMappers.TryGetValue(key, out var mapper))
+            {
+                System.Diagnostics.Debug.WriteLine($"未注册的硬件实现类: {key}");
+                return null;
+            }
+
+            try
+            {
+                var viewInstance = Activator.CreateInstance(viewType);
+                mapper.MapToView(viewInstance, config);
+                return viewInstance;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"创建硬件视图实例失败 [{key}]: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// 从视图实例提取数据
         /// </summary>
         /// <param name="viewInstance">视图实例</param>
@@ -140,6 +183,12 @@ namespace PF.Modules.Parameter.Dialog.Base
                 return null;
 
             var viewType = viewInstance.GetType();
+
+            // 检查是否为已注册的硬件配置视图
+            if (_hardwareViewTypeToMapper.TryGetValue(viewType, out var hwMapper))
+            {
+                return hwMapper.MapFromView(viewInstance);
+            }
 
             // 获取对应的数据类型
             Type dataType = null;
@@ -342,6 +391,27 @@ namespace PF.Modules.Parameter.Dialog.Base
         }
 
         /// <summary>
+        /// 注册 HardwareConfig 按 ImplementationClassName 路由的视图和映射器
+        /// </summary>
+        /// <typeparam name="TView">视图类型</typeparam>
+        /// <typeparam name="TMapper">映射器类型</typeparam>
+        /// <param name="implementationClassName">HardwareConfig.ImplementationClassName 的值</param>
+        public static void RegisterHardwareConfigType<TView, TMapper>(string implementationClassName)
+            where TView : class, new()
+            where TMapper : IViewDataMapper, new()
+        {
+            if (string.IsNullOrWhiteSpace(implementationClassName))
+                throw new ArgumentNullException(nameof(implementationClassName));
+
+            var viewType = typeof(TView);
+            var mapper   = new TMapper();
+
+            _hardwareConfigViewTypes[implementationClassName] = viewType;
+            _hardwareConfigMappers[implementationClassName]   = mapper;
+            _hardwareViewTypeToMapper[viewType]               = mapper;
+        }
+
+        /// <summary>
         /// 清除缓存
         /// </summary>
         public static void ClearCache()
@@ -349,6 +419,9 @@ namespace PF.Modules.Parameter.Dialog.Base
             _customViewTypeCache.Clear();
             _customMapperCache.Clear();
             _viewToDataTypeCache.Clear();
+            _hardwareConfigViewTypes.Clear();
+            _hardwareConfigMappers.Clear();
+            _hardwareViewTypeToMapper.Clear();
         }
 
         /// <summary>
