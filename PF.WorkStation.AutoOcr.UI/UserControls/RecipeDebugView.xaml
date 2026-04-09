@@ -98,13 +98,13 @@
                                             FontSize="36"
                                             FontWeight="Heavy"
                                             Foreground="#4ADE80"
-                                            Text="{Binding CurrentPosition, StringFormat=\{0:F3\}}" />
+                                            Text="{Binding CurrentPosition}" />
                                         <TextBlock
                                             Margin="8,0,0,6"
                                             VerticalAlignment="Bottom"
                                             FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                             Foreground="#94A3B8"
-                                            Text=" mm" />
+                                            Text=" um" />
                                     </StackPanel>
                                 </Border>
 
@@ -236,7 +236,7 @@
                                         Grid.Column="0"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="绝对目标(mm):" />
+                                        Text="绝对目标(um):" />
                                     <TextBox
                                         Grid.Column="1"
                                         Height="36"
@@ -247,7 +247,7 @@
                                         Grid.Column="2"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="速度(mm/s):" />
+                                        Text="速度(um/s):" />
                                     <TextBox
                                         Grid.Column="3"
                                         Height="36"
@@ -281,7 +281,7 @@
                                         Grid.Column="0"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="相对距离(mm):" />
+                                        Text="相对距离(um):" />
                                     <TextBox
                                         Grid.Column="1"
                                         Height="36"
@@ -292,7 +292,7 @@
                                         Grid.Column="2"
                                         Margin="0,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="速度(mm/s):" />
+                                        Text="速度(um/s):" />
                                     <TextBox
                                         Grid.Column="3"
                                         Height="36"
@@ -333,7 +333,7 @@
                                         Grid.Column="2"
                                         Margin="20,0,10,0"
                                         VerticalAlignment="Center"
-                                        Text="点动速度(mm/s):" />
+                                        Text="点动速度(um/s):" />
                                     <TextBox
                                         Grid.Column="3"
                                         Height="36"

@@ -148,7 +148,7 @@
                                     Margin="0,5"
                                     Content="回零中 (HOME)"
                                     Foreground="#0284C7"
-                                    IsChecked="{Binding IsMoving, Mode=OneWay}"
+                                    IsChecked="{Binding IsHoming, Mode=OneWay}"
                                     IsHitTestVisible="False" />
                                 <CheckBox
                                     Margin="0,5"
@@ -161,7 +161,7 @@
                                     Margin="0,5"
                                     Content="原点 (ORG)"
                                     Foreground="{DynamicResource  LightPrimaryBrush}"
-                                    IsChecked="{Binding IsNegativeLimit, Mode=OneWay}"
+                                    IsChecked="{Binding IsORG, Mode=OneWay}"
                                     IsHitTestVisible="False" />
                                 <TextBlock />
                                 <CheckBox
@@ -281,7 +281,7 @@
                                     Grid.Column="2"
                                     Margin="0,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="速度(mm/s):" />
+                                    Text="速度(um/s):" />
                                 <TextBox
                                     Grid.Column="3"
                                     Height="36"
@@ -315,7 +315,7 @@
                                     Grid.Column="0"
                                     Margin="0,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="相对距离(mm):" />
+                                    Text="相对距离(um):" />
                                 <TextBox
                                     Grid.Column="1"
                                     Height="36"
@@ -326,7 +326,7 @@
                                     Grid.Column="2"
                                     Margin="0,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="速度(mm/s):" />
+                                    Text="速度(um/s):" />
                                 <TextBox
                                     Grid.Column="3"
                                     Height="36"
@@ -374,7 +374,7 @@
                                     Grid.Column="2"
                                     Margin="20,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="点动速度(mm/s):" />
+                                    Text="点动速度(um/s):" />
                                 <TextBox
                                     Grid.Column="3"
                                     Height="36"
@@ -457,7 +457,7 @@
                                     <DataGridTextColumn
                                         Width="110"
                                         Binding="{Binding TargetPosition, StringFormat={}{0:F3}, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="目标位置(mm)" />
+                                        Header="目标位置(um)" />
                                     <DataGridTextColumn
                                         Width="90"
                                         Binding="{Binding Speed, StringFormat={}{0:F1}, UpdateSourceTrigger=PropertyChanged}"
