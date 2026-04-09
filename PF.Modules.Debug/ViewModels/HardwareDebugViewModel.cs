@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Identity;
 using PF.Modules.Debug.Models;
@@ -235,6 +236,14 @@ namespace PF.Modules.Debug.ViewModels
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.CameraDebugView, parameters);
             }
+            else if (payload is ILightController lightcontroller)
+            {
+                parameters.Add("Device", lightcontroller);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.LightControllerDebugView , parameters);
+            }
+
+
         }
 
         // ── 辅助 ──────────────────────────────────────────────────────────────
