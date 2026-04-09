@@ -1,11 +1,15 @@
-﻿using PF.Core.Entities.Hardware;
+﻿using PF.Core.Constants;
+using PF.Core.Entities.Hardware;
+using PF.Core.Entities.Identity;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Infrastructure.Hardware;
+using PF.Modules.Debug.Dialogs;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
@@ -148,6 +152,8 @@ namespace PF.Modules.Debug.ViewModels
         #region 【控制命令定义】
 
         // 基础控制命令
+        public DelegateCommand ShowAxisParamDialog { get; private set; }
+
         public DelegateCommand ConnectCommand { get; private set; }
         public DelegateCommand DisconnectCommand { get; private set; }
         public DelegateCommand EnableCommand { get; private set; }
@@ -170,6 +176,13 @@ namespace PF.Modules.Debug.ViewModels
         private void InitializeCommands()
         {
             // ===== 基础硬件命令 =====
+            ShowAxisParamDialog = new DelegateCommand(() => 
+            {
+                var param = new DialogParameters { { "Data", _axis.Param } };
+                DialogService.ShowDialog(nameof(AxisParamDialog), param, ValueChangeCallBack);
+            });
+
+
             ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             EnableCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.EnableAsync(); });
@@ -238,6 +251,25 @@ namespace PF.Modules.Debug.ViewModels
                 RefreshCancellationToken();
                 await _axis.MoveToPointAsync(SelectedPoint.Name, _cts.Token);
             });
+        }
+
+        private void ValueChangeCallBack(IDialogResult result)
+        {
+            if (result.Result == ButtonResult.Yes)
+            {
+                try
+                {
+                    var paramItem = result.Parameters.GetValue<AxisParam>("CallBackParamItem");
+                    if (paramItem != null)
+                    {
+                        _axis.Param = paramItem;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                }
+            }
         }
 
         private void RefreshCancellationToken()
