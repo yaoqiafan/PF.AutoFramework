@@ -286,6 +286,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var param = new DialogParameters { { "CurrentRepice", paramToSave } };
 
             DialogService.ShowDialog(nameof(RecipeDebugView), param, OnDialogCallback);
+            // 这里可以根据需要传递参数到 RecipeDebugView，例如当前选中的配方参数
         }
 
         private void OnDialogCallback(IDialogResult result)
