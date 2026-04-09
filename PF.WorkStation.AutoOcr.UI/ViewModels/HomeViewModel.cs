@@ -25,6 +25,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private DispatcherTimer _monitorTimer;
 
+
+
+
+
         #region 工位 1/2 派生属性（简单文本）
 
         private string _station1InternalBatches = "NONE";
