@@ -145,10 +145,9 @@ namespace PF.Modules.Debug.ViewModels
             // =========================================================================
             // ⚠️ TODO: 替换为你实际的 IO 写入方法 (例如 WriteDO, SetOutput 等)
             // =========================================================================
-            // _ioController.WriteOutput(port.Index, targetState);
+             _ioController.WriteOutput(port.Index, targetState);
 
-            // 为了模拟演示，如果接口没有写入方法，暂时只改变 UI 状态
-            port.State = targetState;
+            
         }
 
         #endregion
@@ -167,17 +166,17 @@ namespace PF.Modules.Debug.ViewModels
             // 1. 刷新输入端口 (DI)
             foreach (var port in InputPorts)
             {
-                // port.State = _ioController.ReadInput(port.Index);
+                 port.State =Convert.ToBoolean(_ioController.ReadInput(port.Index));
             }
 
             // 2. 刷新输出端口 (DO) 的反馈状态
             foreach (var port in OutputPorts)
             {
-                // port.State = _ioController.ReadOutput(port.Index);
+                port.State = Convert.ToBoolean(_ioController.ReadOutput(port.Index));
             }
 
             // 3. 刷新连接状态
-            // if (_baseDevice != null) IsConnected = _baseDevice.IsConnected;
+             if (_baseDevice != null) IsConnected = _baseDevice.IsConnected;
         }
 
         #endregion

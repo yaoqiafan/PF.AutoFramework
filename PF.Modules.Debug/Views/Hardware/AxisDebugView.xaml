@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
@@ -37,12 +38,12 @@
                         Height="48"
                         Margin="0,0,15,0"
                         CornerRadius="8">
-                        <TextBlock
+                        <Button Style="{StaticResource ButtonCustom}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             FontSize="{DynamicResource FontSize.H1.Large}"
                             Foreground="{DynamicResource TextIconBrush}"
-                            Text="⚙️" />
+                            Content="⚙️" Command="{Binding ShowAxisParamDialog}"/>
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -114,13 +115,13 @@
                                         FontSize="36"
                                         FontWeight="Heavy"
                                         Foreground="#4ADE80"
-                                        Text="{Binding CurrentPosition, StringFormat=\{0:F3\}}" />
+                                        Text="{Binding CurrentPosition}" />
                                     <TextBlock
                                         Margin="8,0,0,6"
                                         VerticalAlignment="Bottom"
                                         FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                         Foreground="#94A3B8"
-                                        Text=" mm" />
+                                        Text=" um" />
                                 </StackPanel>
                             </Border>
 
@@ -136,11 +137,18 @@
                                     Content="轴已使能 (SVON)"
                                     IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                     IsHitTestVisible="False" />
+                                <TextBlock />
                                 <CheckBox
                                     Margin="0,5"
-                                    Content="正在运动 (BUSY)"
+                                    Content="运动中 (BUSY)"
                                     Foreground="#0284C7"
                                     IsChecked="{Binding IsMoving, Mode=OneWay}"
+                                    IsHitTestVisible="False" />
+                                <CheckBox
+                                    Margin="0,5"
+                                    Content="回零中 (HOME)"
+                                    Foreground="#0284C7"
+                                    IsChecked="{Binding IsHoming, Mode=OneWay}"
                                     IsHitTestVisible="False" />
                                 <CheckBox
                                     Margin="0,5"
@@ -148,12 +156,21 @@
                                     Foreground="#EF4444"
                                     IsChecked="{Binding IsPositiveLimit, Mode=OneWay}"
                                     IsHitTestVisible="False" />
+                                <TextBlock />
+                                <CheckBox
+                                    Margin="0,5"
+                                    Content="原点 (ORG)"
+                                    Foreground="{DynamicResource  LightPrimaryBrush}"
+                                    IsChecked="{Binding IsORG, Mode=OneWay}"
+                                    IsHitTestVisible="False" />
+                                <TextBlock />
                                 <CheckBox
                                     Margin="0,5"
                                     Content="负限位 (NEL)"
                                     Foreground="#EF4444"
                                     IsChecked="{Binding IsNegativeLimit, Mode=OneWay}"
                                     IsHitTestVisible="False" />
+                                <TextBlock />
                                 <CheckBox
                                     Margin="0,5"
                                     Content="驱动器报警 (ALM)"
@@ -264,7 +281,7 @@
                                     Grid.Column="2"
                                     Margin="0,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="速度(mm/s):" />
+                                    Text="速度(um/s):" />
                                 <TextBox
                                     Grid.Column="3"
                                     Height="36"
@@ -298,7 +315,7 @@
                                     Grid.Column="0"
                                     Margin="0,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="相对距离(mm):" />
+                                    Text="相对距离(um):" />
                                 <TextBox
                                     Grid.Column="1"
                                     Height="36"
@@ -309,7 +326,7 @@
                                     Grid.Column="2"
                                     Margin="0,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="速度(mm/s):" />
+                                    Text="速度(um/s):" />
                                 <TextBox
                                     Grid.Column="3"
                                     Height="36"
@@ -345,12 +362,19 @@
                                     Content="◀ JOG -"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
-                                    Style="{DynamicResource ButtonDefault}" />
+                                    Style="{DynamicResource ButtonDefault}">
+
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseLeftButtonUp">
+                                            <i:InvokeCommandAction Command="{Binding AxisStop}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </Button>
                                 <TextBlock
                                     Grid.Column="2"
                                     Margin="20,0,10,0"
                                     VerticalAlignment="Center"
-                                    Text="点动速度(mm/s):" />
+                                    Text="点动速度(um/s):" />
                                 <TextBox
                                     Grid.Column="3"
                                     Height="36"
@@ -365,7 +389,13 @@
                                     Content="JOG + ▶"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
-                                    Style="{DynamicResource ButtonDefault}" />
+                                    Style="{DynamicResource ButtonDefault}">
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseLeftButtonUp">
+                                            <i:InvokeCommandAction Command="{Binding AxisStop}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </Button>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -427,7 +457,7 @@
                                     <DataGridTextColumn
                                         Width="110"
                                         Binding="{Binding TargetPosition, StringFormat={}{0:F3}, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="目标位置(mm)" />
+                                        Header="目标位置(um)" />
                                     <DataGridTextColumn
                                         Width="90"
                                         Binding="{Binding Speed, StringFormat={}{0:F1}, UpdateSourceTrigger=PropertyChanged}"

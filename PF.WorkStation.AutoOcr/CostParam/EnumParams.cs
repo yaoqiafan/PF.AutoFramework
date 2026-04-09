@@ -270,6 +270,12 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     }
 
+
+    public enum E_LightController
+    {
+        康视达_COM
+    }
+
     #region 参数枚举
 
     public enum E_Params

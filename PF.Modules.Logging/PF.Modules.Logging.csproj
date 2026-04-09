@@ -9,4 +9,10 @@
     <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
     <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
   </ItemGroup>
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>日志查看模块：实时日志展示、分类过滤</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
 </Project>

@@ -1,14 +1,21 @@
-﻿using PF.Core.Entities.Hardware;
+﻿using PF.Core.Constants;
+using PF.Core.Entities.Hardware;
+using PF.Core.Entities.Identity;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Infrastructure.Hardware;
+using PF.Modules.Debug.Dialogs;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace PF.Modules.Debug.ViewModels
 {
@@ -18,9 +25,11 @@ namespace PF.Modules.Debug.ViewModels
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
+        private readonly IParamService _paramService;
 
-        public AxisDebugViewModel()
+        public AxisDebugViewModel( IParamService paramService)
         {
+            _paramService= paramService;
             // 初始化默认的运动参数
             AbsVelocity = 50.0;
             RelVelocity = 50.0;
@@ -106,6 +115,15 @@ namespace PF.Modules.Debug.ViewModels
         private bool _isAlarm;
         public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
+        private bool _isORG;
+
+        public bool IsORG { get => _isORG; set => SetProperty(ref _isORG, value); }
+
+        private bool _isHoming;
+
+        public bool IsHoming { get => _isHoming; set => SetProperty(ref _isHoming, value); }
+
+
         #endregion
 
         #region 【运动输入参数属性】
@@ -148,6 +166,8 @@ namespace PF.Modules.Debug.ViewModels
         #region 【控制命令定义】
 
         // 基础控制命令
+        public DelegateCommand ShowAxisParamDialog { get; private set; }
+
         public DelegateCommand ConnectCommand { get; private set; }
         public DelegateCommand DisconnectCommand { get; private set; }
         public DelegateCommand EnableCommand { get; private set; }
@@ -159,6 +179,7 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand MoveRelativeCommand { get; private set; }
         public DelegateCommand JogPositiveCommand { get; private set; }
         public DelegateCommand JogNegativeCommand { get; private set; }
+        public DelegateCommand AxisStop { get; private set; }
 
         // 点表控制命令
         public DelegateCommand AddPointCommand { get; private set; }
@@ -169,6 +190,13 @@ namespace PF.Modules.Debug.ViewModels
         private void InitializeCommands()
         {
             // ===== 基础硬件命令 =====
+            ShowAxisParamDialog = new DelegateCommand(() =>
+            {
+                var param = new DialogParameters { { "Data", _axis.Param } };
+                DialogService.ShowDialog(nameof(AxisParamDialog), param, ValueChangeCallBack);
+            });
+
+
             ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             EnableCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.EnableAsync(); });
@@ -185,19 +213,19 @@ namespace PF.Modules.Debug.ViewModels
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity*5, AbsVelocity * 5,0.08, _cts.Token);
+                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token);
             });
 
             MoveRelativeCommand = new DelegateCommand(async () =>
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity*5, RelVelocity * 5, 0.08, _cts.Token);
+                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity * 5, RelVelocity * 5, 0.08, _cts.Token);
             });
 
-            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity*5, JogVelocity*5); });
-            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity*5, JogVelocity*5); });
-
+            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity * 5, JogVelocity * 5); });
+            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity * 5, JogVelocity * 5); });
+            AxisStop = new DelegateCommand(async () => { if (_axis != null) await _axis.StopAsync(); });
             // ===== 点表管理命令 =====
             AddPointCommand = new DelegateCommand(() =>
             {
@@ -239,6 +267,41 @@ namespace PF.Modules.Debug.ViewModels
             });
         }
 
+        private async void ValueChangeCallBack(IDialogResult result)
+        {
+            if (result.Result == ButtonResult.Yes)
+            {
+                try
+                {
+                    var paramItem = result.Parameters.GetValue<AxisParam>("CallBackParamItem");
+                    if (paramItem != null)
+                    {
+                        _axis.Param = paramItem;
+
+                      var _config =  await _paramService.GetParamAsync<HardwareConfig>(_axis.DeviceName);
+                        if (_config !=null )
+                        {
+                            if (_config .ConnectionParameters .ContainsKey ("AxisParam"))
+                            {
+                                _config.ConnectionParameters["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(_axis.Param);
+                               
+                                await _paramService.SetParamAsync<HardwareConfig >(_config.DeviceId, _config);
+
+                            }
+                        }
+                        
+                      
+
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                }
+            }
+        }
+
         private void RefreshCancellationToken()
         {
             _cts?.Cancel();
@@ -253,11 +316,14 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (_axis == null) return;
             var axisio = _axis.AxisIOStatus;
+            IsConnected = _axis.IsConnected;
             CurrentPosition = _axis.CurrentPosition ?? 0;
             IsMoving = axisio?.Moving ?? false;
             IsEnabled = axisio?.SVO ?? false;
             IsPositiveLimit = axisio?.PEL ?? false;
             IsNegativeLimit = axisio?.MEL ?? false;
+            IsORG = axisio?.ORG ?? false;
+            IsHoming = axisio?.Homing ?? false;
         }
 
         #endregion

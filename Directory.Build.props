@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <!-- ===== 统一版本与作者信息 ===== -->
+    <Version>1.0.0</Version>
+    <Authors>葛大大</Authors>
+    <Company>聚力智能</Company>
+    <Copyright>Copyright © 2025 聚力智能</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/yaoqiafan/PF.AutoFramework</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- ===== 统一 nupkg 输出目录（根目录/packages/） ===== -->
+    <PackageOutputPath>$(MSBuildThisFileDirectory)packages</PackageOutputPath>
+
+    <!-- ===== 默认不打包，防止 Shell / Demo / Service 意外生成 nupkg ===== -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

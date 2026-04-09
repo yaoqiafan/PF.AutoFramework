@@ -14,6 +14,10 @@
 	  <ProjectReference Include="..\PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
 	</ItemGroup>
 
-	
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>底层基础设施：BaseDevice、BaseMechanism、StationBase、TCP 通信基类</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
 
 </Project>

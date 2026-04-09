@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.SecsGem;
 using PF.Infrastructure.Hardware;
@@ -286,11 +287,26 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var param = new DialogParameters { { "CurrentRepice", paramToSave } };
 
             DialogService.ShowDialog(nameof(RecipeDebugView), param, OnDialogCallback);
+            // 这里可以根据需要传递参数到 RecipeDebugView，例如当前选中的配方参数
         }
 
         private void OnDialogCallback(IDialogResult result)
         {
-           
+            if (result.Result == ButtonResult.Yes)
+            {
+                try
+                {
+                    var paramItem = result.Parameters.GetValue<OCRRecipeParam>("CallBackRecipe");
+                    if (paramItem != null)
+                    {
+                        SelectedParameter = MapToEntity(paramItem);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                }
+            }
         }
 
 
@@ -318,7 +334,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 GuestLength = param.GuestLength,
                 IsOCRCodePate = param.IsOCRCodePate,
                 AssociateProduct = param.AssociateProduct != null ? new List<string>(param.AssociateProduct) : new List<string>(),
-                CameraPrograms = _camera?.CameraProgram ?? new List<string>()
+                CameraPrograms = _camera?.CameraProgram ?? new List<string>(),
+                Light1Value=param ?.LightChanel1Value ?? 0,
+                Light2Value=param ?.LightChanel1Value ?? 0
             };
         }
 

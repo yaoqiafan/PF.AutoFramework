@@ -2,4 +2,10 @@
 
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Description>WPF UI 共享工具：Drawing、Media、Shape 辅助类</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 </Project>

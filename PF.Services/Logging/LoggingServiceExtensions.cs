@@ -30,8 +30,8 @@ namespace PF.Services.Logging
 
         private static LogConfiguration CreateDefaultLogConfiguration()
         {
-            var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
-            var logBasePath = Path.Combine(appBasePath, "Logs");
+            //var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
+            var logBasePath ="D://PF_Logs";
 
             var config = new LogConfiguration
             {
