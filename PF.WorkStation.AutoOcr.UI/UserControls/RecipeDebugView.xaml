@@ -393,7 +393,7 @@
                                             <pf:ButtonGroup Margin="10">
                                                 <Button Content="移动到" />
                                                 <Button Content="获取当前轴位置" />
-                                                <Button Content="更新" />
+                                                <Button Content="更新"   />
                                             </pf:ButtonGroup>
                                         </pf:Card.Footer>
                                     </pf:Card>
