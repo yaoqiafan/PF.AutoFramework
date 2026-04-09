@@ -25,7 +25,7 @@ namespace PF.Infrastructure.Hardware.Motor
 
         public override int AxisIndex { get; }
 
-        public override AxisParam Param { get ; set ; }
+        public override AxisParam Param { get; set; } = new AxisParam();
 
         protected override Task<bool> InternalConnectAsync(CancellationToken token)
         {

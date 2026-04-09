@@ -2832,8 +2832,6 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="MinHeight" Value="44" />
     <Setter Property="Template">
       <Setter.Value>
-          
-          
         <ControlTemplate TargetType="ListViewItem">
           <Border x:Name="Bd" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" SnapsToDevicePixels="true">
             <GridViewRowPresenter Columns="{TemplateBinding GridView.ColumnCollection}" Content="{TemplateBinding Content}" />

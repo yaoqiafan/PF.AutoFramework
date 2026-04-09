@@ -24,10 +24,10 @@ namespace PF.Modules.Parameter.Views
         Icon = "SettingIcon",                                      // 子节点矢量图
         NavigationParameter = "SystemConfigParam")]                // 传递的参数名
 
-    //[ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
-    //    GroupName = "系统调试", Order = 3,
-    //    Icon = "CurveIcon",
-    //    NavigationParameter = "HardwareParam")]
+    [ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
+        GroupName = "系统调试", Order = 3,
+        Icon = "CurveIcon",
+        NavigationParameter = "HardwareParam")]
 
 
     //[ModuleNavigation(NavigationConstants.Views.ParameterView_UserLoginParam, "权限管理",

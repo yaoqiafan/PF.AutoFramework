@@ -476,6 +476,15 @@ namespace PF.Application.Shell
                 return new Infrastructure.Hardware.Carame.IntelligentCamera.Keyence.KeyenceIntelligentCamera(ip, tiggerport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
+            hwManager.RegisterFactory("CTS_LightControoller", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("COM", out var COM);
+               
+                return new Infrastructure.Hardware.LightController .CTS.CTSLightController (COM ,  cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+            });
+
+
+
             containerRegistry.RegisterSingleton<IIOMappingService, IOMappingService>();
 
             // 注册 AutoOcr 工站的 IO 映射
