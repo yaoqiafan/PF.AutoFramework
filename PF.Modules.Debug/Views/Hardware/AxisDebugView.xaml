@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
@@ -114,13 +115,13 @@
                                         FontSize="36"
                                         FontWeight="Heavy"
                                         Foreground="#4ADE80"
-                                        Text="{Binding CurrentPosition, StringFormat=\{0:F3\}}" />
+                                        Text="{Binding CurrentPosition}" />
                                     <TextBlock
                                         Margin="8,0,0,6"
                                         VerticalAlignment="Bottom"
                                         FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                         Foreground="#94A3B8"
-                                        Text=" mm" />
+                                        Text=" um" />
                                 </StackPanel>
                             </Border>
 
@@ -345,7 +346,14 @@
                                     Content="◀ JOG -"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
-                                    Style="{DynamicResource ButtonDefault}" />
+                                    Style="{DynamicResource ButtonDefault}">
+
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseLeftButtonUp">
+                                            <i:InvokeCommandAction Command="{Binding AxisStop}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </Button>
                                 <TextBlock
                                     Grid.Column="2"
                                     Margin="20,0,10,0"
@@ -365,7 +373,13 @@
                                     Content="JOG + ▶"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
-                                    Style="{DynamicResource ButtonDefault}" />
+                                    Style="{DynamicResource ButtonDefault}">
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseLeftButtonUp">
+                                            <i:InvokeCommandAction Command="{Binding AxisStop}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </Button>
                             </Grid>
                         </Border>
                     </StackPanel>
