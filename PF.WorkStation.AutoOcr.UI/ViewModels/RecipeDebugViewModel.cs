@@ -180,6 +180,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     SetProperty(ref _infraredLightValue, (int)value);
                     UpdateLihtValue(1, (int)value);
+                    _currentRecipe.LightChanel1Value = (int)value;
                 }
             }
         }
@@ -193,8 +194,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 if (value != _whiteLightValue)
                 {
-                    SetProperty(ref _whiteLightValue, (int )value);
+                    SetProperty(ref _whiteLightValue, (int)value);
                     UpdateLihtValue(2, (int)value);
+                    _currentRecipe.LightChanel1Value = (int)value;
                 }
             }
         }
@@ -390,10 +392,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
 
 
+            var param = new DialogParameters() { { "CallBackRecipe", _currentRecipe } };
 
 
-
-            RequestClose.Invoke(ButtonResult.OK);
+            RequestClose.Invoke(param, ButtonResult.OK);
         }
 
         private void ExecuteSyncAdjust()
