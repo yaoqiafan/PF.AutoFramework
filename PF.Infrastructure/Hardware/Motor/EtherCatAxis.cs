@@ -11,7 +11,7 @@ namespace PF.Infrastructure.Hardware.Motor
 {
     public class EtherCatAxis : BaseAxisDevice
     {
-        public EtherCatAxis(string deviceId, int axisIndex, string deviceName, bool isSimulated, ILogService logger, string dataDirectory)
+        public EtherCatAxis(string deviceId, int axisIndex, AxisParam  axisParam, string deviceName, bool isSimulated, ILogService logger, string dataDirectory)
             : base(
                 deviceId: deviceId,
                 deviceName: deviceName,
@@ -21,6 +21,7 @@ namespace PF.Infrastructure.Hardware.Motor
         {
             AxisIndex = axisIndex;
             Category = Core.Enums.HardwareCategory.Axis;
+            Param = axisParam ;
         }
 
         public override int AxisIndex { get; }

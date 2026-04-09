@@ -12,6 +12,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
@@ -286,7 +287,7 @@ namespace PF.Application.Shell
             ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
             ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
             ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
-            ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTSLightController");
+            ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightControoller");
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
@@ -458,7 +459,13 @@ namespace PF.Application.Shell
             {
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
-                return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
+                string axisparamstr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var axispa) ? axispa : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
+                var  axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
+                if (axisparam == null)
+                {
+                    axisparam = new AxisParam();
+                }
+                return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, axisparam, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
 
 
@@ -636,17 +643,17 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 
-                SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
-                await Task.Delay(300);
-                if (await InitializeMechanism())
-                {
-                    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
-                }
-                else
-                {
-                    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
-                    loadErr = true;
-                }
+                //SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
+                //await Task.Delay(300);
+                //if (await InitializeMechanism())
+                //{
+                //    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
+                //}
+                //else
+                //{
+                //    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                //    loadErr = true;
+                //}
 
 
                 await Task.Delay(500);

@@ -19,7 +19,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 view.IsSimulated = config.IsSimulated;
                 view.Remarks     = config.Remarks;
 
-                config.ConnectionParameters.TryGetValue("Com", out var com);
+                config.ConnectionParameters.TryGetValue("COM", out var com);
                 view.Com = com ?? string.Empty;
 
                 return true;
@@ -41,10 +41,10 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ParentDeviceId        = string.Empty,
                     Remarks               = view.Remarks,
                     Category              = "LightController",
-                    ImplementationClassName = "CTSLightController",
+                    ImplementationClassName = "CTS_LightController",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["Com"] = view.Com ?? string.Empty
+                        ["COM"] = view.Com ?? string.Empty
                     }
                 };
             }
