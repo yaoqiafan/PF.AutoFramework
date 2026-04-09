@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Infrastructure.Hardware;
 using PF.Modules.Debug.Dialogs;
@@ -14,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace PF.Modules.Debug.ViewModels
 {
@@ -23,9 +25,11 @@ namespace PF.Modules.Debug.ViewModels
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
+        private readonly IParamService _paramService;
 
-        public AxisDebugViewModel()
+        public AxisDebugViewModel( IParamService paramService)
         {
+            _paramService= paramService;
             // 初始化默认的运动参数
             AbsVelocity = 50.0;
             RelVelocity = 50.0;
@@ -263,7 +267,7 @@ namespace PF.Modules.Debug.ViewModels
             });
         }
 
-        private void ValueChangeCallBack(IDialogResult result)
+        private async void ValueChangeCallBack(IDialogResult result)
         {
             if (result.Result == ButtonResult.Yes)
             {
@@ -273,6 +277,22 @@ namespace PF.Modules.Debug.ViewModels
                     if (paramItem != null)
                     {
                         _axis.Param = paramItem;
+
+                      var _config =  await _paramService.GetParamAsync<HardwareConfig>(_axis.DeviceName);
+                        if (_config !=null )
+                        {
+                            if (_config .ConnectionParameters .ContainsKey ("AxisParam"))
+                            {
+                                _config.ConnectionParameters["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(_axis.Param);
+                               
+                                await _paramService.SetParamAsync<HardwareConfig >(_config.DeviceId, _config);
+
+                            }
+                        }
+                        
+                      
+
+
                     }
                 }
                 catch (Exception ex)
