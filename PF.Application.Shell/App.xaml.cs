@@ -40,7 +40,9 @@ using PF.Modules.Logging;
 using PF.Modules.Parameter;
 using PF.Modules.Parameter.Dialog.Base;
 using PF.Modules.Parameter.Dialog.Mappers;
+using PF.Modules.Parameter.Dialog.Mappers.Hardware;
 using PF.Modules.Parameter.ViewModels.Models;
+using PF.Modules.Parameter.ViewModels.Models.Hardware;
 using PF.Modules.Production;
 using PF.Modules.SecsGem;
 using PF.SecsGem.DataBase;
@@ -277,6 +279,14 @@ namespace PF.Application.Shell
 
             ViewFactory.PreloadAssemblies();
             ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
+
+            // 注册硬件配置参数视图（按 ImplementationClassName 路由）
+            ViewFactory.RegisterHardwareConfigType<LTDMCMotionCardParamView,          LTDMCMotionCardParamViewMapper>         ("LTDMCMotionCard");
+            ViewFactory.RegisterHardwareConfigType<EtherCatAxisParamView,             EtherCatAxisParamViewMapper>            ("EtherCatAxis");
+            ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
+            ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
+            ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
+            ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTSLightController");
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
