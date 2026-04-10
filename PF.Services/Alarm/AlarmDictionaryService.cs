@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using PF.Core.Attributes;
-using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
@@ -34,7 +33,7 @@ namespace PF.Services.Alarm
         {
             if (_initialized) return;
 
-            // 1. 反射扫描 AlarmCodes 中的所有静态子类常量字段
+            // 1. 反射扫描所有已加载程序集中打了 [AlarmInfo] 的 const string 字段
             int codeCount = LoadFromReflection();
 
             // 2. 叠加数据库扩展条目（数据库覆盖代码内置）
@@ -68,39 +67,64 @@ namespace PF.Services.Alarm
 
         // ────────────────────────────────────────────────────────────────────
 
-        /// <summary>反射扫描 AlarmCodes 所有嵌套静态类的 const string 字段</summary>
+        /// <summary>
+        /// 扫描 AppDomain 中所有已加载程序集，收集任意类层次中打了 [AlarmInfo] 标签的 const string 字段。
+        /// 支持 AlarmCodes（核心层）和 AlarmCodesExtensions（工站层）等多处定义，无需手动注册。
+        /// </summary>
         private int LoadFromReflection()
         {
             int count = 0;
-            var outerType = typeof(AlarmCodes);
-
-            foreach (var nestedType in outerType.GetNestedTypes(BindingFlags.Public | BindingFlags.Static))
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                foreach (var field in nestedType.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
-                {
-                    if (field.FieldType != typeof(string) || !field.IsLiteral) continue;
-
-                    var attr = field.GetCustomAttribute<AlarmInfoAttribute>();
-                    if (attr == null) continue;
-
-                    var code = (string?)field.GetValue(null);
-                    if (string.IsNullOrEmpty(code)) continue;
-
-                    var alarmInfo = new AlarmInfo
-                    {
-                        ErrorCode    = code,
-                        Category     = attr.Category,
-                        Message      = attr.Message,
-                        Severity     = attr.Severity,
-                        Solution     = attr.Solution,
-                        IsFromDatabase = false
-                    };
-
-                    _dictionary[code] = alarmInfo;
-                    count++;
-                }
+                try { count += ScanAssembly(assembly); }
+                catch { /* 跳过无法反射的动态程序集 */ }
             }
+            return count;
+        }
 
+        private int ScanAssembly(Assembly assembly)
+        {
+            int count = 0;
+            Type[] types;
+            try { types = assembly.GetTypes(); }
+            catch { return 0; }
+
+            foreach (var type in types)
+            {
+                count += ScanTypeFields(type);
+                foreach (var nested in type.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
+                    count += ScanTypeFields(nested);
+            }
+            return count;
+        }
+
+        private int ScanTypeFields(Type type)
+        {
+            int count = 0;
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (field.FieldType != typeof(string) || !field.IsLiteral) continue;
+
+                var attr = field.GetCustomAttribute<AlarmInfoAttribute>();
+                if (attr == null) continue;
+
+                var code = (string?)field.GetValue(null);
+                if (string.IsNullOrEmpty(code)) continue;
+
+                // 不覆盖已有条目；数据库扩展在第二阶段统一覆盖
+                if (_dictionary.ContainsKey(code)) continue;
+
+                _dictionary[code] = new AlarmInfo
+                {
+                    ErrorCode      = code,
+                    Category       = attr.Category,
+                    Message        = attr.Message,
+                    Severity       = attr.Severity,
+                    Solution       = attr.Solution,
+                    IsFromDatabase = false
+                };
+                count++;
+            }
             return count;
         }
 
