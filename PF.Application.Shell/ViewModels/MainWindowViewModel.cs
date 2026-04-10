@@ -153,7 +153,7 @@ namespace PF.Application.Shell.ViewModels
         /// </summary>
         private void OnGlobalAlarmTriggered(object? sender, AlarmRecord record)
         {
-            Application.Current?.Dispatcher.Invoke(() =>
+           System.Windows. Application.Current?.Dispatcher.Invoke(() =>
             {
                 // Growl 气泡通知（右上角）
                 string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";

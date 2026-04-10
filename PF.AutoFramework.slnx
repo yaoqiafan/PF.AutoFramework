@@ -24,6 +24,7 @@
     <Project Path="PF.Services/PF.Services.csproj" Id="17350e09-de76-4c9d-90bf-addcf7e31fc9" />
   </Folder>
   <Folder Name="/05.Modules (业务模块层)/">
+    <Project Path="PF.Modules.Alarm/PF.Modules.Alarm.csproj" />
     <Project Path="PF.Modules.Debug/PF.Modules.Debug.csproj" Id="929901b1-bfec-4cf4-a270-3586097114ed" />
     <Project Path="PF.Modules.Identity/PF.Modules.Identity.csproj" Id="a2ab45f4-d470-4a68-9950-9e6a8420a392" />
     <Project Path="PF.Modules.Logging/PF.Modules.Logging.csproj" Id="20bfc342-f6c7-4186-b145-8abb66d44edc" />
