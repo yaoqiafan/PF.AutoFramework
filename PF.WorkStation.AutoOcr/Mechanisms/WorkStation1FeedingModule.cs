@@ -357,9 +357,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 await WaitAxisMoveDoneAsync(_zAxis, token: token);
                 // 第二步：同时配置并开启两个通道的位置锁存
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
+                inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆左错层12寸检测 : (int)E_InPutName.上晶圆左错层8寸检测;
 
-                bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
-                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
+
+                bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
+                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic:1, Filter: 1.0, LatchSource: 0, token: token);
 
                 if (!latch1Set || !latch2Set)
                 {
