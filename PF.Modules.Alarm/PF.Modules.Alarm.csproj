@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+  <ItemGroup>
+    <PackageReference Include="Prism.Wpf" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+    <ProjectReference Include="..\PF.UI.Controls\PF.UI.Controls.csproj" />
+  </ItemGroup>
+
+	<PropertyGroup>
+		<Description>异常处理展示模块：报警触发、活跃报警看板、历史查询、SOP排故面板</Description>
+	</PropertyGroup>
+</Project>
