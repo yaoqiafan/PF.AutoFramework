@@ -35,12 +35,17 @@ namespace PF.Infrastructure.Station
         // 并发安全：所有状态机跳转均通过此信号量独占执行
         private readonly SemaphoreSlim _machineLock = new(1, 1);
 
+        // 报警服务：可选注入，不影响已有子类的 DI 注册；注入后自动接入结构化报警流水线
+        private readonly IAlarmService? _alarmService;
+
         protected BaseMasterController(
             ILogService logger,
             IAlarmService alarmService,
             HardwareInputEventBus hardwareEventBus,
-            IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
+            IEnumerable<StationBase<StationMemoryBaseParam>> subStations,
+            IAlarmService? alarmService = null)
         {
+            _alarmService = alarmService;
             _logger = logger;
             _hardwareEventBus = hardwareEventBus;
             _alarmService = alarmService;
@@ -171,10 +176,22 @@ namespace PF.Infrastructure.Station
 
         // ── 全局核心指令 ──────────────────────────────────────────────────
 
-        private void OnSubStationAlarm(object sender, string errorMessage)
+        private void OnSubStationAlarm(object sender, string errorCode)
         {
-            _logger.Fatal($"【主控接收到子站报警】: {errorMessage}");
-            MasterAlarmTriggered?.Invoke(this, errorMessage);
+            // sender 即触发报警的子工站实例，从中提取结构化来源标识
+            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+
+            _logger.Fatal($"【主控接收到子站报警】{source}: {errorCode}");
+
+            // ── 接入 IAlarmService ────────────────────────────────────────────
+            // 此处是子站报警向上汇聚的唯一入口，在此统一写入报警服务，保证：
+            // · AlarmCenterView 实时显示活跃报警
+            // · Fatal 级别触发主窗口阻断对话框（见 MainWindowViewModel）
+            // · 报警记录异步持久化到年份分表
+            _alarmService?.TriggerAlarm(source, errorCode);
+
+            // 保留旧事件，确保已订阅 MasterAlarmTriggered 的外部代码不受影响
+            MasterAlarmTriggered?.Invoke(this, errorCode);
 
             _alarmService.TriggerAlarm("主控", errorMessage);
 
@@ -216,6 +233,10 @@ namespace PF.Infrastructure.Station
         {
             _logger.Fatal("【全局主控】触发全局急停指令！");
 
+            // 急停由主控统一上报，各子站的 TriggerAlarm() 随后也会触发各自的 StationAlarmTriggered，
+            // 但 IAlarmService 内置 2 秒防抖，同一 source 短时重复不会产生多余记录。
+            _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationSyncError);
+
             // 1. 软件切入 Alarm 状态（打断逻辑协同）
             Fire(MachineTrigger.Error);
 
@@ -245,6 +266,7 @@ namespace PF.Infrastructure.Station
             catch (Exception ex)
             {
                 _logger.Error($"【主控】初始化异常: {ex.Message}");
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout);
                 Fire(MachineTrigger.Error);
                 return;
             }
@@ -274,7 +296,9 @@ namespace PF.Infrastructure.Station
                 return;
             }
 
+            // 复位成功：先执行子类专属清理，再清除报警服务中的所有活跃记录
             OnAfterResetSuccess();
+            _alarmService?.ClearAllActiveAlarms();
 
             await FireAsync(MachineTrigger.ResetDone);
         }
