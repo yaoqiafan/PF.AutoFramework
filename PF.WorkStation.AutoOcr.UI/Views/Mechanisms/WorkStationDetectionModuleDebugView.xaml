@@ -305,7 +305,7 @@
                                                 FontSize="36"
                                                 FontWeight="Bold"
                                                 Foreground="#2980B9"
-                                                Text="{Binding XAxisPosition, StringFormat={}{0:F3} mm}" />
+                                                Text="{Binding XAxisPosition, StringFormat={}{0:F0} um}" />
                                         </StackPanel>
                                     </Border>
 
@@ -343,7 +343,7 @@
                                                 FontSize="36"
                                                 FontWeight="Bold"
                                                 Foreground="#2980B9"
-                                                Text="{Binding YAxisPosition, StringFormat={}{0:F3} mm}" />
+                                                Text="{Binding YAxisPosition, StringFormat={}{0:F0} um}" />
                                         </StackPanel>
                                     </Border>
 
@@ -382,7 +382,7 @@
                                                 FontSize="36"
                                                 FontWeight="Bold"
                                                 Foreground="#2980B9"
-                                                Text="{Binding ZAxisPosition, StringFormat={}{0:F3} mm}" />
+                                                Text="{Binding ZAxisPosition, StringFormat={}{0:F0} um}" />
                                         </StackPanel>
                                     </Border>
                                 </Grid>
@@ -428,7 +428,7 @@
                                                 <DataGridTextColumn
                                                     Width="*"
                                                     Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
-                                                    Header="目标位置(mm)" />
+                                                    Header="目标位置(um)" />
                                                 <DataGridTextColumn
                                                     Width="*"
                                                     Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
@@ -471,7 +471,7 @@
                                                 <DataGridTextColumn
                                                     Width="*"
                                                     Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
-                                                    Header="目标位置(mm)" />
+                                                    Header="目标位置(um)" />
                                                 <DataGridTextColumn
                                                     Width="*"
                                                     Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
@@ -514,7 +514,7 @@
                                                 <DataGridTextColumn
                                                     Width="*"
                                                     Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
-                                                    Header="目标位置(mm)" />
+                                                    Header="目标位置(um)" />
                                                 <DataGridTextColumn
                                                     Width="*"
                                                     Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"

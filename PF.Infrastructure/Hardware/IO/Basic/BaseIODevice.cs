@@ -68,12 +68,20 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         public virtual bool? ReadInput(int portIndex)
         {
             EnsureCardAttached();
+            if (IsSimulated )
+            {
+                return false;
+            }
             return ParentCard!.ReadInputPort(portIndex);
         }
 
 
         public virtual bool? ReadInput<T>(T InPutName) where T : Enum
         {
+            if (IsSimulated)
+            {
+                return false;
+            }
             return this.ReadInput(Convert.ToInt32(InPutName));
         }
         /// <summary>
@@ -84,11 +92,19 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         public virtual bool WriteOutput(int portIndex, bool value)
         {
             EnsureCardAttached();
+            if (IsSimulated)
+            {
+                return true ;
+            }
             return ParentCard!.WriteOutputPort(portIndex, value);
         }
 
         public virtual bool WriteOutput<T>(T OutputName, bool value) where T : Enum
         {
+            if (IsSimulated)
+            {
+                return true ;
+            }
             return this.WriteOutput(Convert.ToInt32(OutputName), value);
         }
 
@@ -99,11 +115,19 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         public virtual bool? ReadOutput(int portIndex)
         {
             EnsureCardAttached();
+            if (IsSimulated)
+            {
+                return false;
+            }
             return ParentCard!.ReadOutputPort(portIndex);
         }
 
         public virtual bool? ReadOutput<T>(T InPutName) where T : Enum
         {
+            if (IsSimulated)
+            {
+                return false;
+            }
             return this.ReadOutput(Convert.ToInt32(InPutName));
         }
 
@@ -131,7 +155,10 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             CancellationToken token = default)
         {
             EnsureCardAttached();
-
+            if (IsSimulated)
+            {
+                return false;
+            }
             const int PollingIntervalMs = 20;
             var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
 
