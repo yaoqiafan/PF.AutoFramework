@@ -132,6 +132,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (!await _feedingModule.InitializeAsync(token))
                     throw new Exception($"[{StationName}] 上下料模组初始化失败！");
                 _logger.Success($"[{StationName}] 初始化完成，就绪。");
+
+
+
+
                 Fire(MachineTrigger.InitializeDone); // Initializing → Idle
             }
             catch
