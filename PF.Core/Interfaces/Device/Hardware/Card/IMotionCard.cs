@@ -115,6 +115,14 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <returns></returns>
         MotionIOStatus GetMotionIOStatus(int axisIndex);
 
+
+        /// <summary>
+        /// 清除轴报警状态
+        /// </summary>
+        /// <param name="axisIndex"></param>
+        /// <returns></returns>
+        Task <bool > ClearAxisError(int axisIndex);
+
         #endregion
 
         #region IO 控制方法（portIndex 为板卡内物理端口号）

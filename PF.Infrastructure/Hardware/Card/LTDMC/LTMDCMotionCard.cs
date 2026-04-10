@@ -621,6 +621,26 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             return Task.CompletedTask;
         }
 
+
+
+        public  override Task<bool > ClearAxisError(int axisIndex)
+        {
+            try
+            {
+                short ret = CardAPI.LTDMC.nmc_clear_axis_errcode((ushort)CardIndex, (ushort)axisIndex);
+                if (ret != 0)
+                {
+                    throw new Exception($"清除轴异常失败,nmc_clear_axis_errcode返回值：{ret}");
+                }
+                return Task .FromResult (true );
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false );
+            }
+        }
+
         #endregion 控制卡连接和初始化
 
 
