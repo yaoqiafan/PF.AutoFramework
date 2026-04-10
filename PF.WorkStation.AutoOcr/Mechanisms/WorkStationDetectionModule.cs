@@ -143,7 +143,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _yAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Y轴连接失败"); return false; }
             if (!await _zAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
             // ④ 使能伺服电机（Power On）
-            if (!await _xAxis.EnableAsync(token )) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
+            if (!await _xAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
             if (!await _yAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
             if (!await _zAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             return true;
@@ -287,10 +287,90 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// OCR相机触发
         /// </summary>
         /// <param name="token"></param>
-        /// <returns></returns>
-        public async Task<string> CameraTigger(CancellationToken token = default)
+        /// <returns> item1:ocr检测字符   item :文件路径</returns>
+        public async Task<(string, string)> CameraTigger(CancellationToken token = default)
         {
-            return await _camera.Tigger(token);
+            try
+            {
+                DeleteDir(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
+                string ocreec = await _camera.Tigger(token);
+                string path = GetLatestCreatedFile(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
+                return (ocreec, path);
+            }
+            catch (Exception ex)
+            {
+                return (null, null);
+            }
+
+        }
+
+
+        /// <summary>
+        /// 保存图片到指定路径
+        /// </summary>
+        /// <param name="Originalpath"></param>
+        /// <param name="workSpace"></param>
+        /// <param name="info"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task<string> SaveImage(string Originalpath, E_WorkSpace workSpace, WaferInfo info, CancellationToken token = default)
+        {
+            try
+            {
+                var flag = workSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData : _dataModule.Station2MesDetectionData;
+                string path = $"{await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageSavePath.ToString())}//{flag.InternalBatchId}//{info.CustomerBatch}//{info.WaferId}//{DateTime.Now.ToString("YYYYMMddHHmmss")}.jpg";
+                File.Copy(Originalpath, path);
+                return path;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+
+        public string GetLatestCreatedFile(string folderPath)
+        {
+            if (!Directory.Exists(folderPath))
+                return null;
+
+            var dir = new DirectoryInfo(folderPath);
+            var files = dir.GetFiles();
+
+            if (files.Length == 0)
+                return null;
+
+            // 按创建时间降序，取第一个
+            return files.OrderByDescending(f => f.CreationTime).First().FullName;
+        }
+
+
+        private void DeleteDir(string dir)
+        {
+            try
+            {
+                if (Directory.Exists(dir))
+                {
+                    // 清空文件夹：删除所有文件和子文件夹
+                    DirectoryInfo directory = new DirectoryInfo(dir);
+
+                    // 删除所有文件
+                    foreach (FileInfo file in directory.GetFiles())
+                    {
+                        file.Delete();
+                    }
+
+                    // 删除所有子文件夹（包括里面的内容）
+                    foreach (DirectoryInfo subDir in directory.GetDirectories())
+                    {
+                        subDir.Delete(true); // true = 递归删除子内容
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
         }
 
         #endregion 业务逻辑

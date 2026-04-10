@@ -330,18 +330,18 @@
                                     Foreground="Gray"
                                     Text="机械轴实时坐标" />
                                 <Border
-       Grid.Column="0"
-       Margin="0,0,10,0"
-       Padding="15"
-       BorderBrush="#D5DBDB"
-       BorderThickness="1"
-       CornerRadius="5">
+                                    Grid.Column="0"
+                                    Margin="0,0,10,0"
+                                    Padding="15"
+                                    BorderBrush="#D5DBDB"
+                                    BorderThickness="1"
+                                    CornerRadius="5">
                                     <StackPanel>
                                         <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
                                             <TextBlock
-                   FontSize="16"
-                   FontWeight="Bold"
-                   Text="Y轴 坐标 :" />
+                                                FontSize="16"
+                                                FontWeight="Bold"
+                                                Text="Y轴 坐标 :" />
                                             <TextBlock Margin="10,0,0,0" Text="{Binding YAxisHasAlarm}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
@@ -358,11 +358,11 @@
                                             </TextBlock>
                                         </StackPanel>
                                         <TextBlock
-               HorizontalAlignment="Right"
-               FontSize="36"
-               FontWeight="Bold"
-               Foreground="#2980B9"
-               Text="{Binding YAxisPosition, StringFormat={}{0:F0} um}" />
+                                            HorizontalAlignment="Right"
+                                            FontSize="36"
+                                            FontWeight="Bold"
+                                            Foreground="#2980B9"
+                                            Text="{Binding YAxisPosition, StringFormat={}{0:F0} um}" />
                                     </StackPanel>
                                 </Border>
 

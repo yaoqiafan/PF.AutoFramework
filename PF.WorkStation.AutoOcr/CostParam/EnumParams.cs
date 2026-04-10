@@ -353,6 +353,22 @@ namespace PF.Workstation.AutoOcr.CostParam
         #endregion 扫码光源参数
 
 
+        #region OCR相机参数
+
+        [Category("OCR相机参数")]
+        [Description("OCR相机图片原始路径")]
+        [DefaultValue("C//OCRImagePath")]
+        OCRCameraImageOriginalPath,
+
+
+        [Category("OCR相机参数")]
+        [Description("OCR相机图片保存路径")]
+        [DefaultValue("E//OCRImagePath")]
+        OCRCameraImageSavePath,
+
+        #endregion OCR相机参数
+
+
     }
 
 

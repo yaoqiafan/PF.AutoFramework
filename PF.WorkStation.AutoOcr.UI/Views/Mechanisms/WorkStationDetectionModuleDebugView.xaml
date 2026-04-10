@@ -413,7 +413,8 @@
                                             <ColumnDefinition Width=" *" />
                                             <ColumnDefinition Width=" auto" />
                                         </Grid.ColumnDefinitions>
-                                        <DataGrid x:Name="xgrid"
+                                        <DataGrid
+                                            x:Name="xgrid"
                                             Margin="0,0,0,5"
                                             AutoGenerateColumns="False"
                                             CanUserAddRows="False"
@@ -436,12 +437,13 @@
                                             </DataGrid.Columns>
                                         </DataGrid>
 
-                                        <Button  Height="{Binding ElementName=xgrid,Path=ActualHeight}"
-                                                 Background="{DynamicResource BorderBrush}"
-                                                Grid.Column=" 1"
-                                                Margin="0,0,0,5"
-                                                Command="{Binding SaveXAxisPointsCommand}"  Content="点位保存" >
-                                        </Button>
+                                        <Button
+                                            Grid.Column=" 1"
+                                            Height="{Binding ElementName=xgrid, Path=ActualHeight}"
+                                            Margin="0,0,0,5"
+                                            Background="{DynamicResource BorderBrush}"
+                                            Command="{Binding SaveXAxisPointsCommand}"
+                                            Content="点位保存" />
 
 
 
@@ -478,10 +480,11 @@
                                                     Header="速度" />
                                             </DataGrid.Columns>
                                         </DataGrid>
-                                        <Button Height="{Binding ElementName=xgrid,Path=ActualHeight}"
+                                        <Button
                                             Grid.Column=" 1"
-                                             Background="{DynamicResource BorderBrush}"
+                                            Height="{Binding ElementName=xgrid, Path=ActualHeight}"
                                             Margin="0,0,0,5"
+                                            Background="{DynamicResource BorderBrush}"
                                             Command="{Binding SaveYAxisPointsCommand}"
                                             Content=" 保存点位" />
 
@@ -522,10 +525,10 @@
                                             </DataGrid.Columns>
                                         </DataGrid>
                                         <Button
-                                            Grid.Column =" 1"
-                                             Background="{DynamicResource BorderBrush}"
-                                            Height="{Binding ElementName=xgrid,Path=ActualHeight}"
+                                            Grid.Column=" 1"
+                                            Height="{Binding ElementName=xgrid, Path=ActualHeight}"
                                             Margin="0,0,0,5"
+                                            Background="{DynamicResource BorderBrush}"
                                             Command="{Binding SaveZAxisPointsCommand}"
                                             Content=" 保存点位" />
 

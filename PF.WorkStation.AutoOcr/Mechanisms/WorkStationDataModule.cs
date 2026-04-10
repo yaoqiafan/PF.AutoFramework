@@ -370,10 +370,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="codes">条码列表</param>
         /// <param name="token">取消令牌</param>
         /// <returns>item1 :扫到条码是否符合要求  item2:返回条码 </returns>
-        public Task<(bool, List<string>)> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        public Task<(bool, List<string>, WaferInfo)> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
         {
+            WaferInfo info = null;
             try
             {
+               
                 if (station == E_WorkSpace.工位1)
                 {
                     List<string> OKcodes = new List<string>();
@@ -387,16 +389,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                             if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
                             {
                                 OKcodes.Add(codes[i]);
+                                info = kk.Where(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
                             }
                         }
                     }
                     if (OKcodes.Count == _station1ReciepParam.CodeCount)
                     {
-                        return Task.FromResult((true, OKcodes));
+                        return Task.FromResult((true, OKcodes, info));
                     }
                     else
                     {
-                        return Task.FromResult((false, codes));
+                        return Task.FromResult((false, codes, info));
                     }
                 }
                 else if (station == E_WorkSpace.工位2)
@@ -412,28 +415,29 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                             if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
                             {
                                 OKcodes.Add(codes[i]);
+                                info = kk.Where(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
                             }
                         }
                     }
                     if (OKcodes.Count == _station2ReciepParam.CodeCount)
                     {
-                        return Task.FromResult((true, OKcodes));
+                        return Task.FromResult((true, OKcodes, info));
                     }
                     else
                     {
-                        return Task.FromResult((false, codes));
+                        return Task.FromResult((false, codes, info));
                     }
                 }
 
                 else
                 {
-                    return Task.FromResult((false, codes));
+                    return Task.FromResult((false, codes,info ));
                 }
 
             }
             catch (Exception ex)
             {
-                return Task.FromResult((false, codes));
+                return Task.FromResult((false, codes,info ));
             }
         }
 
@@ -445,8 +449,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="ocrtext">ocr字符</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        public Task<bool> CheckOcrTextAsync(E_WorkSpace station, string ocrtext, CancellationToken token = default)
+        public Task<(bool,WaferInfo )> CheckOcrTextAsync(E_WorkSpace station, string ocrtext, CancellationToken token = default)
         {
+            WaferInfo info = null;
             try
             {
                 if (station == E_WorkSpace.工位1)
@@ -457,11 +462,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
                         {
-                            return Task.FromResult(true);
+                            info = kk.Where (x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault ();
+                            return Task.FromResult((true,info ));
                         }
                         else
                         {
-                            return Task.FromResult(false);
+                            return Task.FromResult((true, info));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -469,19 +475,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
                         {
-                            return Task.FromResult(true);
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)).FirstOrDefault();
+                            return Task.FromResult((true, info));
                         }
                         else
                         {
-                            return Task.FromResult(false);
+                            return Task.FromResult((true, info));
                         }
                     }
                     else
                     {
-                        return Task.FromResult(false);
+                        return Task.FromResult((true, info));
                     }
                 }
-                else if (station == E_WorkSpace.工位2 )
+                else if (station == E_WorkSpace.工位2)
                 {
                     var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo() { CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength), WaferId = x.WaferId }).ToList();
                     if (ocrtext.Split('-') is { Length: 3 } parts)
@@ -489,11 +496,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         string ocr = ocrtext.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
                         {
-                            return Task.FromResult(true);
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
+                            return Task.FromResult((true, info));
                         }
                         else
                         {
-                            return Task.FromResult(false);
+                            return Task.FromResult((true, info));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -501,26 +509,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         string ocr = ocrtext.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
                         {
-                            return Task.FromResult(true);
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)).FirstOrDefault();
+                            return Task.FromResult((true, info));
                         }
                         else
                         {
-                            return Task.FromResult(false);
+                            return Task.FromResult((true, info));
                         }
                     }
                     else
                     {
-                        return Task.FromResult(false);
+                        return Task.FromResult((true, info));
                     }
                 }
                 else
                 {
-                    return Task.FromResult(false);
+                    return Task.FromResult((true, info));
                 }
             }
             catch (Exception ex)
             {
-                return Task.FromResult(false);
+                return Task.FromResult((true, info));
             }
         }
 
