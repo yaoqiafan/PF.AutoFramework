@@ -180,7 +180,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "触发相机";
-                string rec = await _detectionModule.CameraTigger();
+                string rec = (await _detectionModule.CameraTigger()).Item1 ;
                 if (string.IsNullOrEmpty(rec))
                 {
                     DebugMessage = "相机读取失败";

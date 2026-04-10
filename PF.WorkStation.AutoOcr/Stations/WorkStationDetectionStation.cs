@@ -25,7 +25,10 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         // ── 跨步序缓存字段 ──────────────────────────────────────────────────────
         private OCRRecipeParam? _cachedRecipe;
-        private string _cachedOcrResult = "";
+        /// <summary>
+        /// item1:OCR字符  item2:OCR相机图片路径
+        /// </summary>
+        private (string, string) _cachedOcrResult;
         private MachineDetectionData? _cachedDetectionData;
 
         public enum StationDetectionStep
@@ -211,7 +214,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         try
                         {
                             _cachedOcrResult = await _detectionModule.CameraTigger(token).ConfigureAwait(false);
-                            _logger.Info($"[{StationName}] OCR触发完成，读取结果：[{_cachedOcrResult}]。");
+                            _logger.Info($"[{StationName}] OCR触发完成，读取结果：[{_cachedOcrResult.Item1}]。");
                             _currentStep = StationDetectionStep.数据比对;
                         }
                         catch (Exception ex)
@@ -236,8 +239,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _cachedDetectionData = new MachineDetectionData
                         {
                             InternalBatchId = mesData?.InternalBatchId ?? "",
-                            OcrText = _cachedOcrResult,
-                            Barcode1 = _cachedOcrResult,
+                            OcrText = _cachedOcrResult.Item1,
+                            Barcode1 = _cachedOcrResult.Item1,
                             ProductModel = mesData?.ProductModel ?? "",
                             OperatorId = mesData?.OperatorId ?? "",
                             RecipeName = _cachedRecipe?.RecipeName ?? "",
@@ -249,16 +252,16 @@ namespace PF.WorkStation.AutoOcr.Stations
                         try
                         {
                             if (_cachedRecipe != null
-                                && !string.IsNullOrEmpty(_cachedOcrResult)
+                                && !string.IsNullOrEmpty(_cachedOcrResult.Item1)
                                 && mesData?.CustomerWafers != null
                                 && mesData.CustomerWafers.Count > 0)
                             {
                                 int startIdx = _cachedRecipe.GuestStartIndex;
                                 int length = _cachedRecipe.GuestLength;
 
-                                if (startIdx >= 0 && length > 0 && _cachedOcrResult.Length >= startIdx + length)
+                                if (startIdx >= 0 && length > 0 && _cachedOcrResult.Item1.Length >= startIdx + length)
                                 {
-                                    string extractedId = _cachedOcrResult.Substring(startIdx, length);
+                                    string extractedId = _cachedOcrResult.Item1.Substring(startIdx, length);
                                     var matchedWafer = mesData.CustomerWafers
                                         .FirstOrDefault(w => w.WaferId == extractedId);
 
@@ -277,7 +280,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 }
                                 else
                                 {
-                                    errorMsg = $"OCR结果长度[{_cachedOcrResult.Length}]不足以提取配方指定子串（起始={startIdx}，长度={length}）";
+                                    errorMsg = $"OCR结果长度[{_cachedOcrResult.Item1.Length}]不足以提取配方指定子串（起始={startIdx}，长度={length}）";
                                     _logger.Warn($"[{StationName}] 数据比对跳过：{errorMsg}");
                                 }
                             }
@@ -343,7 +346,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         // 清理本轮缓存，准备下一次检测
                         _cachedRecipe = null;
-                        _cachedOcrResult = "";
+                        _cachedOcrResult.Item1 = "";
                         _cachedDetectionData = null;
 
                         _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
