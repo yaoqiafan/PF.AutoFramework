@@ -354,12 +354,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 // 第一步：将Z轴移动到扫描起始点（负极限/底部位置）
                 _logger.Info($"[{MechanismName}] 正在移动至扫描起点（负极限）...");
                 await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.负极限位置), token: token);
-
+                await WaitAxisMoveDoneAsync(_zAxis, token: token);
                 // 第二步：同时配置并开启两个通道的位置锁存
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
 
-                bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 0, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
-                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 0, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
+                bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
+                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic: 0, Filter: 1.0, LatchSource: 0, token: token);
 
                 if (!latch1Set || !latch2Set)
                 {
@@ -369,6 +369,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 // 第三步：开始匀速扫描，从底部(负极限)移动到顶部(正极限)
                 _logger.Info($"[{MechanismName}] 开始向上匀速扫描...");
                 await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.正极限位置), token: token);
+
+                await WaitAxisMoveDoneAsync(_zAxis, token:token );
 
                 // 第四步：运动完成，遍历读取两个锁存通道的结果
                 int[] latchChannels = { latchNo1, latchNo2 };
