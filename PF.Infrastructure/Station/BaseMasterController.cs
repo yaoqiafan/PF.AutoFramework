@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
 using PF.Infrastructure.Station.Basic;
@@ -26,6 +27,7 @@ namespace PF.Infrastructure.Station
         public event EventHandler<string> MasterAlarmTriggered;
 
         protected readonly ILogService _logger;
+        protected readonly IAlarmService _alarmService;
         protected readonly HardwareInputEventBus _hardwareEventBus;
         protected readonly List<StationBase<StationMemoryBaseParam>> _subStations;
         protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
@@ -35,11 +37,13 @@ namespace PF.Infrastructure.Station
 
         protected BaseMasterController(
             ILogService logger,
+            IAlarmService alarmService,
             HardwareInputEventBus hardwareEventBus,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
         {
             _logger = logger;
             _hardwareEventBus = hardwareEventBus;
+            _alarmService = alarmService;
             _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
             // 监听所有子工站的软件报警事件
@@ -171,6 +175,9 @@ namespace PF.Infrastructure.Station
         {
             _logger.Fatal($"【主控接收到子站报警】: {errorMessage}");
             MasterAlarmTriggered?.Invoke(this, errorMessage);
+
+            _alarmService.TriggerAlarm("主控", errorMessage);
+
 
             // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
             Task.Run(() =>

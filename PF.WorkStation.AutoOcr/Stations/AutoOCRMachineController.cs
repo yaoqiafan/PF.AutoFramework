@@ -1,4 +1,5 @@
 ﻿using PF.Core.Events;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
@@ -38,11 +39,12 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly IHardwareInputMonitor _hardwareInputMonitor;
         private readonly IStationSyncService _sync;
         public AutoOCRMachineController(ILogService logger,
+            IAlarmService alarmService,
             HardwareInputEventBus hardwareEventBus,
             IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
-            : base(logger, hardwareEventBus, subStations)
+            : base(logger, alarmService, hardwareEventBus, subStations)
         {
             _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
