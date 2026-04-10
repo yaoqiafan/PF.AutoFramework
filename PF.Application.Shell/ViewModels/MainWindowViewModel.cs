@@ -6,9 +6,11 @@ using PF.Application.Shell.Services;
 using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using PF.Infrastructure.Logging;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
@@ -21,6 +23,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -33,6 +36,7 @@ namespace PF.Application.Shell.ViewModels
         private readonly IParamService _paramService;
         private readonly IUserService _userService;
         private readonly INavigationMenuService _navigationMenuService;
+        private readonly IAlarmService _alarmService;
         private ILogService _logService;
         private CommonSettings _commonSettings;
 
@@ -52,18 +56,22 @@ namespace PF.Application.Shell.ViewModels
         #endregion
 
         #region 构造函数
-        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider,CommonSettings commonSettings)
+        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider, CommonSettings commonSettings, IAlarmService alarmService)
         {
-            _paramService = paramService;
-            _userService = userService;
+            _paramService          = paramService;
+            _userService           = userService;
             _navigationMenuService = navigationMenuService;
-            _containerProvider = containerProvider;
-            _commonSettings = commonSettings;
+            _containerProvider     = containerProvider;
+            _commonSettings        = commonSettings;
+            _alarmService          = alarmService;
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
 
             _idleMonitor.IdleTimeout += OnIdleTimeout;
+
+            // ── 全局报警事件订阅 ─────────────────────────────────────────────
+            _alarmService.AlarmTriggered += OnGlobalAlarmTriggered;
 
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
@@ -134,6 +142,61 @@ namespace PF.Application.Shell.ViewModels
 
             _userService.ResetToOperator();
         }
+        #endregion
+
+        #region 全局报警联动
+
+        /// <summary>
+        /// 报警触发回调（后台线程）：
+        /// - 所有级别 → Growl 气泡通知
+        /// - Fatal 级别 → 强制弹出阻断式对话框，要求操作员确认后复位
+        /// </summary>
+        private void OnGlobalAlarmTriggered(object? sender, AlarmRecord record)
+        {
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                // Growl 气泡通知（右上角）
+                string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";
+
+                switch (record.Severity)
+                {
+                    case AlarmSeverity.Fatal:
+                        Growl.FatalGlobal(growlMessage);
+                        break;
+                    case AlarmSeverity.Error:
+                        Growl.ErrorGlobal(growlMessage);
+                        break;
+                    case AlarmSeverity.Warning:
+                        Growl.WarningGlobal(growlMessage);
+                        break;
+                    default:
+                        Growl.InfoGlobal(growlMessage);
+                        break;
+                }
+
+                // Fatal 级别 → 阻断式系统对话框，强制操作员确认后方可复位
+                if (record.Severity == AlarmSeverity.Fatal)
+                {
+                    var message =
+                        $"【致命报警 — 必须处理】\n\n" +
+                        $"来源：{record.Source}\n" +
+                        $"代码：{record.ErrorCode}\n" +
+                        $"描述：{record.Message}\n\n" +
+                        $"排故指导：\n{record.Solution}\n\n" +
+                        $"请按照排故指导处理故障后，点击【确认】执行复位。";
+
+                    MessageService.ShowSystemMessage(
+                        message,
+                        "致命报警 — 需要处理",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
+
+                    // 用户点击确认后自动清除该来源的报警
+                    _alarmService.ClearAlarm(record.Source);
+                }
+            });
+        }
+
         #endregion
 
         #region 菜单刷新

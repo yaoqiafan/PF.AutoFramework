@@ -47,6 +47,7 @@ using PF.Modules.Parameter.ViewModels.Models.Hardware;
 using PF.Modules.Production;
 using PF.Modules.SecsGem;
 using PF.SecsGem.DataBase;
+using PF.Services.Alarm;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
@@ -297,11 +298,15 @@ namespace PF.Application.Shell
             RegisterHardwareAndMechanisms(containerRegistry);
 
             RegisterRecipeRelated(containerRegistry);
+
+            // 报警模块：独立数据库，字典 + 业务服务
+            RegisterAlarmServices(containerRegistry);
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
             base.ConfigureModuleCatalog(moduleCatalog);
+            moduleCatalog.AddModule<PF.Modules.Alarm.AlarmModule>();
             moduleCatalog.AddModule<LoggingModule>();
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<IdentityModule>();
@@ -608,6 +613,29 @@ namespace PF.Application.Shell
                 reuse: DryIoc.Reuse.Singleton);
 
             // 后续如有其他工站类型的配方（如 T 为 DispensingRecipeParam），可在此处继续沿用该模式注册
+        }
+
+        #endregion
+
+        #region 报警服务注册
+
+        /// <summary>
+        /// 注册报警字典服务和业务服务，使用独立的 AlarmHistory.db。
+        /// 表名按年份动态分表（AlarmRecord_YYYY），跨年自动建表。
+        /// </summary>
+        private void RegisterAlarmServices(IContainerRegistry containerRegistry)
+        {
+            try
+            {
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "AlarmHistory.db");
+                containerRegistry.AddAlarmServices(filePath);
+                _logService.Info("报警服务注册完成", "DependencyInjection");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error("报警服务注册失败", exception: ex);
+                throw;
+            }
         }
 
         #endregion
