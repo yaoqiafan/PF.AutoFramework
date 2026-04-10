@@ -94,8 +94,8 @@ namespace PF.Modules.Debug.ViewModels
         private string _deviceDescription = "等待设备接入...";
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
-        private double _currentPosition;
-        public double CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
+        private int  _currentPosition;
+        public int  CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
 
         private bool _isMoving;
         public bool IsMoving { get => _isMoving; set => SetProperty(ref _isMoving, value); }
@@ -317,7 +317,7 @@ namespace PF.Modules.Debug.ViewModels
             if (_axis == null) return;
             var axisio = _axis.AxisIOStatus;
             IsConnected = _axis.IsConnected;
-            CurrentPosition = _axis.CurrentPosition ?? 0;
+            CurrentPosition = (int )(_axis.CurrentPosition ?? 0);
             IsMoving = axisio?.Moving ?? false;
             IsEnabled = axisio?.SVO ?? false;
             IsPositiveLimit = axisio?.PEL ?? false;
