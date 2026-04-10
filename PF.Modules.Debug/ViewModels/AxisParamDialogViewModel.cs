@@ -107,7 +107,8 @@ namespace PF.Modules.Debug.ViewModels
                 MelHomeModel = model.MelHomeModel,
                 LimitVisEnable = model.LimitVisEnable,
                 LimitPel = model.LimitPel,
-                LimitMel = model.LimitMel
+                LimitMel = model.LimitMel,
+                PositioningAccuracy = model.PositioningAccuracy,
             };
         }
 
@@ -136,7 +137,8 @@ namespace PF.Modules.Debug.ViewModels
                 MelHomeModel = viewModel.MelHomeModel,
                 LimitVisEnable = viewModel.LimitVisEnable,
                 LimitPel = viewModel.LimitPel,
-                LimitMel = viewModel.LimitMel
+                LimitMel = viewModel.LimitMel,
+                PositioningAccuracy = viewModel.PositioningAccuracy,
             };
         }
     }
@@ -149,8 +151,8 @@ namespace PF.Modules.Debug.ViewModels
         #region 基本运行参数
 
         private double _vel;
-        [CategoryAttribute("1. 基本运行参数")]
-        [DisplayNameAttribute("运行速度")]
+        [CategoryAttribute("A. 基本运行参数")]
+        [DisplayNameAttribute("1.运行速度")]
         [BrowsableAttribute(true)]
         public double Vel
         {
@@ -159,8 +161,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _acc;
-        [CategoryAttribute("1. 基本运行参数")]
-        [DisplayNameAttribute("运行加速度")]
+        [CategoryAttribute("A. 基本运行参数")]
+        [DisplayNameAttribute("2.运行加速度")]
         [BrowsableAttribute(true)]
         public double Acc
         {
@@ -169,8 +171,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _dec;
-        [CategoryAttribute("1. 基本运行参数")]
-        [DisplayNameAttribute("运行减速度")]
+        [CategoryAttribute("A. 基本运行参数")]
+        [DisplayNameAttribute("3.运行减速度")]
         [BrowsableAttribute(true)]
         public double Dec
         {
@@ -178,13 +180,25 @@ namespace PF.Modules.Debug.ViewModels
             set { SetProperty(ref _dec, value); }
         }
 
+
+        private double _positioningAccuracy;
+        [CategoryAttribute("A. 基本运行参数")]
+        [DisplayNameAttribute("4.定位精度")]
+        [BrowsableAttribute(true)]
+        public double PositioningAccuracy
+        {
+            get { return _positioningAccuracy; }
+            set { SetProperty(ref _positioningAccuracy, value); }
+        }
+
+
         #endregion
 
         #region 限位与极限参数
 
         private bool _pelVisEnabled;
-        [CategoryAttribute("2. 限位与极限参数")]
-        [DisplayNameAttribute("正极限硬限位启用")]
+        [CategoryAttribute("B. 限位与极限参数")]
+        [DisplayNameAttribute("1.正极限硬限位启用")]
         [BrowsableAttribute(true)]
         public bool PelVisEnabled
         {
@@ -193,8 +207,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private bool _melVisEnabled;
-        [CategoryAttribute("2. 限位与极限参数")]
-        [DisplayNameAttribute("负极限硬限位启用")]
+        [CategoryAttribute("B. 限位与极限参数")]
+        [DisplayNameAttribute("2.负极限硬限位启用")]
         [BrowsableAttribute(true)]
         public bool MelVisEnabled
         {
@@ -203,8 +217,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private bool _orgVisEnabled;
-        [CategoryAttribute("2. 限位与极限参数")]
-        [DisplayNameAttribute("原点限位启用")]
+        [CategoryAttribute("B. 限位与极限参数")]
+        [DisplayNameAttribute("3.原点限位启用")]
         [BrowsableAttribute(true)]
         public bool ORGVisEnabled
         {
@@ -213,8 +227,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private bool _limitVisEnable;
-        [CategoryAttribute("2. 限位与极限参数")]
-        [DisplayNameAttribute("软限位启用")]
+        [CategoryAttribute("B. 限位与极限参数")]
+        [DisplayNameAttribute("4.软限位启用")]
         [BrowsableAttribute(true)]
         public bool LimitVisEnable
         {
@@ -223,8 +237,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _limitPel;
-        [CategoryAttribute("2. 限位与极限参数")]
-        [DisplayNameAttribute("正极限软限位")]
+        [CategoryAttribute("B. 限位与极限参数")]
+        [DisplayNameAttribute("5.正极限软限位")]
         [BrowsableAttribute(true)]
         public double LimitPel
         {
@@ -233,8 +247,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _limitMel;
-        [CategoryAttribute("2. 限位与极限参数")]
-        [DisplayNameAttribute("负极限软限位")]
+        [CategoryAttribute("B. 限位与极限参数")]
+        [DisplayNameAttribute("6.负极限软限位")]
         [BrowsableAttribute(true)]
         public double LimitMel
         {
@@ -247,8 +261,8 @@ namespace PF.Modules.Debug.ViewModels
         #region 回零参数
 
         private int _homeModel;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("回零模式")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("1.回零模式")]
         [BrowsableAttribute(true)]
         public int HomeModel
         {
@@ -257,8 +271,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private bool _homeModelFixed;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("回零模式固定标志")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("2.回零模式固定标志")]
         [BrowsableAttribute(true)]
         public bool HomeModelFixed
         {
@@ -267,8 +281,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private int _pelHomeModel;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("正极限回零模式")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("3.正极限回零模式")]
         [BrowsableAttribute(true)]
         public int PelHomeModel
         {
@@ -277,8 +291,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private int _melHomeModel;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("负极限回零模式")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("4.负极限回零模式")]
         [BrowsableAttribute(true)]
         public int MelHomeModel
         {
@@ -287,8 +301,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _homeVel;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("回零速度")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("5.回零速度")]
         [BrowsableAttribute(true)]
         public double HomeVel
         {
@@ -297,8 +311,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _homeAcc;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("回零加速度")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("6.回零加速度")]
         [BrowsableAttribute(true)]
         public double HomeAcc
         {
@@ -307,8 +321,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _homeDec;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("回零减速度")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("7.回零减速度")]
         [BrowsableAttribute(true)]
         public double HomeDec
         {
@@ -317,8 +331,8 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private double _homeOffest;
-        [CategoryAttribute("3. 回零参数")]
-        [DisplayNameAttribute("回零偏移")]
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("8.回零偏移")]
         [BrowsableAttribute(true)]
         public double HomeOffest
         {

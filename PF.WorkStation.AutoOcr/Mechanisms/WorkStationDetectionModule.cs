@@ -143,41 +143,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _yAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Y轴连接失败"); return false; }
             if (!await _zAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
             // ④ 使能伺服电机（Power On）
-            if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
-            if (!await _yAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
-            if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
-
-
-            // ⑤ 执行回原点操作，建立机械绝对坐标系
-            if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
-            if (!await WaitHomeDoneAsync(_zAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] Z轴回零超时"); return false; }
-            if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
-            if (!await _yAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Y轴回零失败"); return false; }
-            if (!await WaitHomeDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] X轴回零超时"); return false; }
-            if (!await WaitHomeDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisHomeTimeout.ToString()), token)) { _logger.Error($"[{MechanismName}] Y轴回零超时"); return false; }
-
-
-            //电机使能
-            if (!await _xAxis.EnableAsync(token))
-            {
-                return false;
-            }
-
-            if (!await _yAxis.EnableAsync(token))
-            {
-                return false;
-            }
-
-            if (!await _zAxis.EnableAsync(token))
-            {
-                return false;
-            }
-            if (!await _zAxis.HomeAsync(token))
-            {
-                return false;
-            }
-
-
+            if (!await _xAxis.EnableAsync(token )) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
+            if (!await _yAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
+            if (!await _zAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             return true;
         }
 

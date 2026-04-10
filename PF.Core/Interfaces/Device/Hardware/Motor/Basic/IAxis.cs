@@ -246,5 +246,12 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// </summary>
 
         public double LimitMel { get; set; }
+
+
+
+        /// <summary>
+        /// 轴定位精度
+        /// </summary>
+        public double PositioningAccuracy { get ; set; }
     }
 }

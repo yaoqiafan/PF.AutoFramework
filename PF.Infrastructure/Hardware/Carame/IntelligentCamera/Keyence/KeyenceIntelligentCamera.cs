@@ -36,7 +36,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
-               
+                if (IsSimulated) { return true; }
 
                 if (!int.TryParse(programid.ToString(), out int ProgramID) || ProgramID < 0 || ProgramID > 9999)
                 {
@@ -147,6 +147,8 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
         protected async override Task<bool> InternalConnectAsync(CancellationToken token = default)
         {
+            if (IsSimulated) { return true; }
+
             if (!await tiggerclient.ConnectAsync(IPAdress, TiggerPort))
             {
                 return false;
@@ -163,11 +165,13 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
         protected async override Task InternalDisconnectAsync()
         {
+            if (IsSimulated) { return; }
             await tiggerclient.DisconnectAsync();
         }
 
         protected async override Task InternalResetAsync(CancellationToken token)
         {
+            if (IsSimulated) { return; }
             await tiggerclient.ReconnectAsync();
         }
 
@@ -192,6 +196,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
+                if (IsSimulated) { return new List<string>() { "0000_Test" }; }
                 var dirinfo = new DirectoryInfo(CamProgramBackUpFilePath);
                 if (!dirinfo.Exists)
                 {
@@ -236,6 +241,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
+                if (IsSimulated) { return "0000-Test"; }
                 TiggerEvent.Reset();
                 string TiggerStr = "PR";
                 TiggerRec = string.Empty;
@@ -272,6 +278,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             try
             {
+                if (IsSimulated) { return true; }
                 if (!programName.ToString().Contains("_"))
                 {
                     throw new Exception("传入的程序名称错误");

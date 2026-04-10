@@ -29,6 +29,10 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         {
             try
             {
+                if (IsSimulated)
+                {
+                    return Task.CompletedTask;
+                }
                 if (CtsAPI.SetDigitalValue(CtsAPI.Rs232Mode, Channel, LightValue, controllerHandle) == CtsAPI.SUCCESS)
                 {
                     return Task.CompletedTask;
@@ -49,6 +53,10 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         {
             try
             {
+                if (IsSimulated)
+                {
+                    return Task.FromResult(true);
+                }
                 if (ComName.Length < 4)
                 {
                     throw new Exception($"ComName {ComName} is invalid");
@@ -80,6 +88,10 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         {
             try
             {
+                if (IsSimulated)
+                {
+                    return Task.FromResult(true);
+                }
                 int RT3 = CtsAPI.ReleaseSerialPort(controllerHandle);
                 if (RT3 == CtsAPI.SUCCESS)
                 {
