@@ -339,7 +339,7 @@
                                             FontSize="36"
                                             FontWeight="Bold"
                                             Foreground="#2980B9"
-                                            Text="{Binding ZAxisPosition, StringFormat={}{0:F3} mm}" />
+                                            Text="{Binding ZAxisPosition, StringFormat={}{0:F0} um}" />
                                     </StackPanel>
                                 </Border>
 
@@ -375,7 +375,7 @@
                                             FontSize="36"
                                             FontWeight="Bold"
                                             Foreground="#2980B9"
-                                            Text="{Binding XAxisPosition, StringFormat={}{0:F3} mm}" />
+                                            Text="{Binding XAxisPosition, StringFormat={}{0:F0} um}" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -520,7 +520,7 @@
                                         <DataGridTextColumn
                                             Width="*"
                                             Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
-                                            Header="目标坐标(mm)" />
+                                            Header="目标坐标(um)" />
                                         <DataGridTextColumn
                                             Width="*"
                                             Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
@@ -559,7 +559,7 @@
                                         <DataGridTextColumn
                                             Width="*"
                                             Binding="{Binding TargetPosition, UpdateSourceTrigger=PropertyChanged}"
-                                            Header="目标坐标(mm)" />
+                                            Header="目标坐标(um)" />
                                         <DataGridTextColumn
                                             Width="*"
                                             Binding="{Binding Speed, UpdateSourceTrigger=PropertyChanged}"
@@ -588,7 +588,7 @@
                             <DataGrid AutoGenerateColumns="False" IsReadOnly="True" ItemsSource="{Binding ArrayedPoints}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="层名称" />
-                                    <DataGridTextColumn Width="1.2*" Binding="{Binding TargetPosition, StringFormat={}{0:F3}}" Header="理论Z(mm)" />
+                                    <DataGridTextColumn Width="1.2*" Binding="{Binding TargetPosition, StringFormat={}{0:F0}}" Header="理论Z(um)" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </GroupBox>
@@ -597,7 +597,7 @@
                             <DataGrid AutoGenerateColumns="False" IsReadOnly="True" ItemsSource="{Binding RawMappingPoints1}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Width="Auto" Binding="{Binding Index}" Header="序号" />
-                                    <DataGridTextColumn Width="*" Binding="{Binding ZPosition, StringFormat={}{0:F3}}" Header="触发Z坐标(mm)" />
+                                    <DataGridTextColumn Width="*" Binding="{Binding ZPosition, StringFormat={}{0:F0}}" Header="触发Z坐标(um)" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </GroupBox>
@@ -606,7 +606,7 @@
                             <DataGrid AutoGenerateColumns="False" IsReadOnly="True" ItemsSource="{Binding RawMappingPoints2}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Width="Auto" Binding="{Binding Index}" Header="序号" />
-                                    <DataGridTextColumn Width="*" Binding="{Binding ZPosition, StringFormat={}{0:F3}}" Header="触发Z坐标(mm)" />
+                                    <DataGridTextColumn Width="*" Binding="{Binding ZPosition, StringFormat={}{0:F0}}" Header="触发Z坐标(um)" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </GroupBox>
@@ -615,7 +615,7 @@
                             <DataGrid AutoGenerateColumns="False" IsReadOnly="True" ItemsSource="{Binding FilteredMappingPoints}">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Width="Auto" Binding="{Binding LayerIndex}" Header="真实层号" />
-                                    <DataGridTextColumn Width="*" Binding="{Binding ActualZ, StringFormat={}{0:F3}}" Header="带补偿中心Z(mm)" />
+                                    <DataGridTextColumn Width="*" Binding="{Binding ActualZ, StringFormat={}{0:F0}}" Header="带补偿中心Z(um)" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </GroupBox>
