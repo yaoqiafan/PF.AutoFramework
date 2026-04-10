@@ -643,17 +643,17 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 
-                //SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
-                //await Task.Delay(300);
-                //if (await InitializeMechanism())
-                //{
-                //    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
-                //}
-                //else
-                //{
-                //    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
-                //    loadErr = true;
-                //}
+                SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
+                await Task.Delay(300);
+                if (await InitializeMechanism())
+                {
+                    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
+                }
+                else
+                {
+                    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                    loadErr = true;
+                }
 
 
                 await Task.Delay(500);

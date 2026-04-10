@@ -288,7 +288,7 @@
                                     Height="36"
                                     Margin="0,0,20,0"
                                     VerticalContentAlignment="Center"
-                                    Text="{Binding AbsVelocity}" />
+                                    Text="{Binding AbsVelocity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
                                 <Button
                                     Grid.Column="4"
                                     Height="36"
@@ -333,7 +333,7 @@
                                     Height="36"
                                     Margin="0,0,20,0"
                                     VerticalContentAlignment="Center"
-                                    Text="{Binding RelVelocity}" />
+                                    Text="{Binding RelVelocity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
                                 <Button
                                     Grid.Column="4"
                                     Height="36"
@@ -359,14 +359,17 @@
                                 <Button
                                     Grid.Column="0"
                                     Height="40"
-                                    Command="{Binding JogNegativeCommand}"
                                     Content="◀ JOG -"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
                                     Style="{DynamicResource ButtonDefault}">
 
                                     <i:Interaction.Triggers>
-                                        <i:EventTrigger EventName="MouseLeftButtonUp">
+                                        <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                            <i:InvokeCommandAction Command="{Binding JogNegativeCommand}" />
+                                        </i:EventTrigger>
+
+                                        <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
                                             <i:InvokeCommandAction Command="{Binding AxisStop}" />
                                         </i:EventTrigger>
                                     </i:Interaction.Triggers>
@@ -382,17 +385,20 @@
                                     Margin="0,0,20,0"
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
-                                    Text="{Binding JogVelocity}" />
+                                    Text="{Binding JogVelocity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
                                 <Button
                                     Grid.Column="4"
                                     Height="40"
-                                    Command="{Binding JogPositiveCommand}"
                                     Content="JOG + ▶"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
                                     Style="{DynamicResource ButtonDefault}">
                                     <i:Interaction.Triggers>
-                                        <i:EventTrigger EventName="MouseLeftButtonUp">
+                                        <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                            <i:InvokeCommandAction Command="{Binding JogPositiveCommand}" />
+                                        </i:EventTrigger>
+
+                                        <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
                                             <i:InvokeCommandAction Command="{Binding AxisStop}" />
                                         </i:EventTrigger>
                                     </i:Interaction.Triggers>
@@ -463,6 +469,22 @@
                                         Width="90"
                                         Binding="{Binding Speed, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
                                         Header="速度" />
+
+                                    <DataGridTextColumn
+                                        Width="90"
+                                        Binding="{Binding Acc, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
+                                        Header="加速度" />
+
+                                    <DataGridTextColumn
+                                        Width="90"
+                                        Binding="{Binding Dec, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
+                                        Header="减速度" />
+
+                                    <DataGridTextColumn
+                                        Width="90"
+                                        Binding="{Binding STime, UpdateSourceTrigger=PropertyChanged}"
+                                        Header="S段时间" />
+
                                     <DataGridTextColumn
                                         Width="*"
                                         Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"

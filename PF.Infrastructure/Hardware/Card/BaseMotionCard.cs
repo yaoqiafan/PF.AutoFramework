@@ -132,6 +132,9 @@ namespace PF.Infrastructure.Hardware.Card
 
         public abstract MotionIOStatus GetMotionIOStatus(int axisIndex);
 
+
+        public abstract Task <bool > ClearAxisError(int axisIndex);
+
         #endregion
 
         #region IO 控制方法（abstract — 子类用厂商 SDK 实现，第一参数为板卡内物理端口号）
