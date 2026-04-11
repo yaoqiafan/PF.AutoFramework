@@ -83,18 +83,31 @@ namespace PF.Infrastructure.Mechanisms
             foreach (var hw in _internalHardwares)
             {
                 if (!await hw.ResetAsync(token))
-                {
                     allResetOk = false;
-                }
             }
 
             if (allResetOk)
-            {
                 allResetOk = await InternalResetAsync(token);
-            }
 
             if (allResetOk) HasAlarm = false;
             return allResetOk;
+        }
+
+        /// <summary>
+        /// 级联清除模组内所有硬件的报警标志（不执行回原点）。
+        /// 由 BaseMasterController.OnHardwareResetRequested 在 AlarmService.ClearAlarm 后调用。
+        /// </summary>
+        public virtual async Task<bool> ResetHardwareAlarmAsync(CancellationToken token = default)
+        {
+            bool allOk = true;
+            foreach (var hw in _internalHardwares)
+            {
+                if (!await hw.ResetHardwareAlarmAsync(token).ConfigureAwait(false))
+                    allOk = false;
+            }
+
+            if (allOk) HasAlarm = false;
+            return allOk;
         }
 
         public async Task StopAsync()

@@ -196,6 +196,40 @@ namespace PF.Infrastructure.Hardware
             }
         }
 
+        /// <summary>
+        /// 仅清除硬件层报警标志，不执行回原点（对应驱动器"清警"指令）。
+        /// 模拟模式下直接将 HasAlarm 置为 false 并返回 true。
+        /// </summary>
+        public virtual async Task<bool> ResetHardwareAlarmAsync(CancellationToken token = default)
+        {
+            _logger?.Info($"[{DeviceName}] 执行硬件清警复位...");
+
+            if (IsSimulated)
+            {
+                HasAlarm = false;
+                return true;
+            }
+
+            try
+            {
+                await InternalResetHardwareAlarmAsync(token).ConfigureAwait(false);
+                HasAlarm = false;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{DeviceName}] 硬件清警失败: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 子类重写：调用底层 SDK 的清警 API（如伺服清警命令）。
+        /// 默认实现为空（无额外清警指令的设备无需重写）。
+        /// </summary>
+        protected virtual Task InternalResetHardwareAlarmAsync(CancellationToken token)
+            => Task.CompletedTask;
+
         #endregion
 
         #region 健康监控循环

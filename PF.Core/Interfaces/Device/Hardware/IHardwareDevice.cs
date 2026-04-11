@@ -52,6 +52,12 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// </summary>
         Task<bool> ResetAsync(CancellationToken token = default);
 
+        /// <summary>
+        /// 仅清除硬件层报警标志，不执行回原点（对应驱动器"清警"指令）。
+        /// 与 <see cref="ResetAsync"/> 的区别：ResetAsync 包含回原点；本方法只清警。
+        /// </summary>
+        Task<bool> ResetHardwareAlarmAsync(CancellationToken token = default);
+
         #endregion
 
         #region 事件订阅 (Events)

@@ -34,6 +34,7 @@ using PF.Infrastructure.SecsGem.Command;
 using PF.Infrastructure.SecsGem.Incentive;
 using PF.Infrastructure.SecsGem.Param;
 using PF.Infrastructure.SecsGem.Tools;
+using PF.Infrastructure.Station;
 using PF.Infrastructure.Station.Basic;
 using PF.Modules.Debug;
 using PF.Modules.Identity;
@@ -233,7 +234,6 @@ namespace PF.Application.Shell
 
         protected override void OnInitialized()
         {
-
             // 解析导航服务并扫描当前程序集自动注册菜单
             var navMenuService = Container.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
@@ -243,6 +243,17 @@ namespace PF.Application.Shell
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
             // 使用默认的超级管理员账号进行静默登录
             authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
+
+            // ── 软硬联动：将 Prism EA 硬件复位事件路由到主控 ─────────────────────────
+            // BaseMasterController 不依赖 Prism，通过 RegisterHardwareResetHandler 委托桥接，
+            // 保持 PF.Infrastructure 对 Prism 的零依赖。
+            var controller = Container.Resolve<IMasterController>();
+            var ea         = Container.Resolve<IEventAggregator>();
+            ea.GetEvent<HardwareResetRequestedEvent>()
+              .Subscribe(
+                  req => (controller as BaseMasterController)?.OnHardwareResetRequested(req),
+                  ThreadOption.BackgroundThread,
+                  keepSubscriberReferenceAlive: true);
 
             base.OnInitialized();
         }
