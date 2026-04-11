@@ -220,7 +220,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
                 // 2. 调用算法过滤并应用防呆验证
                 DebugMessage = "数据获取完成，正在进行算法过滤...";
-                var filteredMap = _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                var filteredMap =await   _feedingModule.AnalyzeAndFilterMappingData(rawMap);
 
                 // 刷新过滤后有效数据到 UI
                 FilteredMappingPoints.Clear();

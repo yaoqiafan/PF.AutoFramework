@@ -1,5 +1,6 @@
 using log4net.Appender;
 using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using PF.Core.Attributes;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Configuration;
@@ -45,11 +46,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         // 定义Z轴（升降轴）的关键示教点位
         public enum ZAxisPoint
         {
-            正极限位置,       // 硬件/软件正极限保护位
+            扫描结束位置_8寸,
+            扫描起始位置_8寸,
+            扫描结束位置_12寸,
+            扫描起始位置_12寸,
             待机位,           // 默认的安全高度位置，通常在最上方以避让其他机构
             层1取料位_8寸,    // 8寸料盒第1层晶圆的绝对坐标基准点
             层1取料位_12寸,   // 12寸料盒第1层晶圆的绝对坐标基准点
-            负极限位置,       // 硬件/软件负极限保护位
+            层1扫描点位_8寸, //8寸第一层扫描的点位
+            层1扫描点位_12寸,//12寸第一层扫描的点位
         }
 
         // 定义X轴（挡料/调宽轴）的关键示教点位
@@ -72,12 +77,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         // 动态读取的配方参数
         private double LayerPitch = 0;                  // 晶圆层间距（每层之间的高度差，用于阵列计算）
-        private double WaferScanningPositiveOffset = 0; // 扫描寻层时的正向补偿值（传感器触发延迟补偿）
-        private double WaferScanningNegativeOffset = 0; // 扫描寻层时的负向补偿值
 
-        //── 轴阵列点位缓存：用于保存计算好的所有晶圆层坐标（1~25层）── 
+
+        //── 轴阵列点位缓存：用于保存计算好的所有晶圆层坐标（1~13层）── 
         public readonly ConcurrentDictionary<int, AxisPoint> PickingPosition_8;  // 8寸料盒层坐标字典
         public readonly ConcurrentDictionary<int, AxisPoint> PickingPosition_12; // 12寸料盒层坐标字典
+
+
+        public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_8;//8寸料盒扫描坐标字典
+        public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_12;//12寸料盒扫描坐标字典
+
+
 
         // ── 公开的硬件访问属性（主要提供给前端 ViewModel 绑定，用于调试面板的手动控制）──
         public IAxis ZAxis => _zAxis;
@@ -236,9 +246,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 动态获取8寸产品的工艺参数
                 LayerPitch = await ParamService.GetParamAsync<double>(E_Params.LayerPitch_8.ToString());
-                WaferScanningPositiveOffset = await ParamService.GetParamAsync<double>(E_Params.WaferScanningPositiveOffset_8.ToString());
-                WaferScanningNegativeOffset = await ParamService.GetParamAsync<double>(E_Params.WaferScanningNegativeOffset_8.ToString());
-
                 // 物理动作：移动挡料X轴到8寸专属的夹紧/挡料位置
                 await MoveToPointAndWaitAsync(_xAxis, nameof(XAxisPoint.挡料位_8寸), token: token);
 
@@ -249,8 +256,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 动态获取12寸产品的工艺参数
                 LayerPitch = await ParamService.GetParamAsync<double>(E_Params.LayerPitch_12.ToString());
-                WaferScanningPositiveOffset = await ParamService.GetParamAsync<double>(E_Params.WaferScanningPositiveOffset_12.ToString());
-                WaferScanningNegativeOffset = await ParamService.GetParamAsync<double>(E_Params.WaferScanningNegativeOffset_12.ToString());
+
 
                 // 物理动作：移动挡料X轴到12寸专属位置
                 await MoveToPointAndWaitAsync(_xAxis, nameof(XAxisPoint.挡料位_12寸), token: token);
@@ -353,15 +359,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 第一步：将Z轴移动到扫描起始点（负极限/底部位置）
                 _logger.Info($"[{MechanismName}] 正在移动至扫描起点（负极限）...");
-                await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.负极限位置), token: token);
-                await WaitAxisMoveDoneAsync(_zAxis, token: token);
+                var start = _currentWaferSize == E_WafeSize._12寸 ? ZAxisPoint.扫描起始位置_12寸.ToString() : ZAxisPoint.扫描起始位置_8寸.ToString();
+
+                if (!await _zAxis.MoveToPointAsync(start, token: token))
+                {
+                    throw new Exception($"移动到{start} 位置触发失败");
+                }
+                if (!await WaitAxisMoveDoneAsync(_zAxis, token: token))
+                {
+                    throw new Exception($"移动到{start} 位置超时");
+                }
                 // 第二步：同时配置并开启两个通道的位置锁存
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
                 inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆左错层12寸检测 : (int)E_InPutName.上晶圆左错层8寸检测;
 
 
                 bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
-                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic:1, Filter: 1.0, LatchSource: 0, token: token);
+                bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
 
                 if (!latch1Set || !latch2Set)
                 {
@@ -370,9 +384,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 // 第三步：开始匀速扫描，从底部(负极限)移动到顶部(正极限)
                 _logger.Info($"[{MechanismName}] 开始向上匀速扫描...");
-                await _zAxis.MoveToPointAsync(nameof(ZAxisPoint.正极限位置), token: token);
+                var end = _currentWaferSize == E_WafeSize._12寸 ? ZAxisPoint.扫描结束位置_12寸.ToString() : ZAxisPoint.扫描结束位置_8寸.ToString();
+                if (!await _zAxis.MoveToPointAsync(end, token: token))
+                {
+                    throw new Exception($"移动到{end} 位置触发失败");
+                }
 
-                await WaitAxisMoveDoneAsync(_zAxis, token:token );
+                if (!await WaitAxisMoveDoneAsync(_zAxis, token: token))
+                {
+                    throw new Exception($"移动到{end} 位置超时");
+                }
 
                 // 第四步：运动完成，遍历读取两个锁存通道的结果
                 int[] latchChannels = { latchNo1, latchNo2 };
@@ -400,6 +421,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 _logger.Success($"[{MechanismName}] 双传感器扫描完成。通道 {latchNo1} 识别 {resultMap[latchNo1].Count} 层，通道 {latchNo2} 识别 {resultMap[latchNo2].Count} 层。");
 
+                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Date}//{DateTime.Now.ToString("yyyyMMddHHmmss")}.xlsx", resultMap);
+
                 return resultMap;
             }
             catch (Exception ex)
@@ -413,12 +436,51 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
 
         /// <summary>
+        /// 保存扫描到的点位到本地
+        /// </summary>
+        /// <param name="FilePath"></param>
+        /// <param name="point"></param>
+        private void SavePoint(string FilePath, Dictionary<int, List<double>> point)
+        {
+            FileInfo file = new FileInfo(FilePath);
+            if (!Directory.Exists(file.DirectoryName))
+            {
+                Directory.CreateDirectory(file.DirectoryName);
+            }
+            using (XSSFWorkbook wk = new XSSFWorkbook())
+            {
+                ISheet sheet = wk.CreateSheet("point");
+                foreach (var item in point)
+                {
+                    int count = 0;
+                    for (int i = 0; i < item.Value?.Count; i++)
+                    {
+                        if (i == 0)
+                        {
+                            sheet.CreateRow(count).CreateCell(i).SetCellValue(item.Value[i]);
+                        }
+                        else
+                        {
+                            sheet.GetRow(count).CreateCell(i).SetCellValue(item.Value[i]);
+                        }
+
+                    }
+                }
+                using (FileStream fs = new FileStream(FilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+                {
+                    wk.Write(fs);
+                }
+            }
+
+        }
+
+        /// <summary>
         /// 4.1 寻层数据过滤与防呆验证：处理双传感器原始数据，匹配至理论槽位
         /// 依赖前置动作：必须先执行 SwitchProductionStateAsync 以生成对应的理论层坐标字典。
         /// </summary>
         /// <param name="rawMappingData">SearchLayerAsync 返回的双传感器原始锁存数据</param>
         /// <returns>返回有效的晶圆层级字典：Key为层级索引(0 ~ _maxLayerCount-1)，Value为经过补偿的实际Z轴坐标</returns>
-        public Dictionary<int, double> AnalyzeAndFilterMappingData(Dictionary<int, List<double>> rawMappingData)
+        public async Task<Dictionary<int, double>> AnalyzeAndFilterMappingData(Dictionary<int, List<double>> rawMappingData)
         {
             CheckReady();
             _logger.Info($"[{MechanismName}] 开始执行寻层数据的过滤与防呆验证...");
@@ -426,9 +488,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             var validWafers = new Dictionary<int, double>();
 
             // 1. 获取当前配方对应的理论坐标字典
-            var theoreticalPositions = _currentWaferSize == E_WafeSize._8寸 ? PickingPosition_8 : PickingPosition_12;
+            var ScanPositions = _currentWaferSize == E_WafeSize._8寸 ? ScanPosition_8 : ScanPosition_12;
+            var pickpoints = _currentWaferSize == E_WafeSize._8寸 ? PickingPosition_8 : PickingPosition_12;
 
-            if (theoreticalPositions == null || theoreticalPositions.Count == 0)
+            if (ScanPositions == null || ScanPositions.Count == 0)
             {
                 throw new Exception("理论层坐标未初始化，请先执行 SwitchProductionStateAsync 切换生产状态或计算阵列！");
             }
@@ -448,8 +511,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 throw new Exception("工艺参数 LayerPitch 异常，必须大于0！");
             }
-            double crossSlotTolerance = LayerPitch * 0.3; // 传感器比对容差：防止斜片 Cross-slot
             double slotMatchTolerance = LayerPitch * 0.4; // 槽位匹配容差：防止错位或飞片
+
+            int SameLayerMaximum = _currentWaferSize == E_WafeSize._8寸 ? await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_8.ToString()) : await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_12.ToString());
 
             // 第一阶段：双传感器数据融合与斜片(Cross-slot)防呆
             List<double> mergedRawPositions = new List<double>();
@@ -458,7 +522,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 // 在 Sensor2 中寻找最接近 z1 的触发点
                 var closestZ2 = sensor2Data.OrderBy(z2 => Math.Abs(z2 - z1)).FirstOrDefault();
 
-                if (closestZ2 != 0 && Math.Abs(z1 - closestZ2) <= crossSlotTolerance)
+                if (closestZ2 != 0 && Math.Abs(z1 - closestZ2) <= SameLayerMaximum)
                 {
                     // 两个传感器都识别到了，取平均值作为该片的原始中心高度
                     mergedRawPositions.Add((z1 + closestZ2) / 2.0);
@@ -476,13 +540,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             foreach (var rawZ in mergedRawPositions)
             {
                 // 应用扫描补偿 (从下往上扫通常应用正向补偿 WaferScanningPositiveOffset，抵消传感器响应延迟)
-                double actualZ = rawZ + WaferScanningPositiveOffset;
+                double actualZ = rawZ;
                 bool matched = false;
 
                 // 遍历理论槽位坐标，寻找归属
                 for (int layerIndex = 0; layerIndex < _maxLayerCount; layerIndex++)
                 {
-                    if (theoreticalPositions.TryGetValue(layerIndex, out var theoreticalPoint))
+                    if (ScanPositions.TryGetValue(layerIndex, out var theoreticalPoint) && pickpoints.TryGetValue(layerIndex, out var pickpos))
                     {
                         // 提取理论Z坐标
                         double theoreticalZ = theoreticalPoint.TargetPosition;
@@ -495,8 +559,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                                 _logger.Error($"[{MechanismName}] 检测到疑似重叠片(Double-wafer)！第 {layerIndex + 1} 层被多次匹配。");
                                 throw new Exception($"Mapping 失败：第 {layerIndex + 1} 层发生重叠片异常！");
                             }
-
-                            validWafers.Add(layerIndex, actualZ);
+                            validWafers.Add(layerIndex, pickpos.TargetPosition);
                             matched = true;
                             break;
                         }
@@ -670,24 +733,34 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 核心算法：阵列生成料盒的所有晶圆层坐标点。
         /// 通过提取“第一层”物理示教点作为基准，加上当前配置的 `LayerPitch` (层距)，推算后续所有层。
-        /// 这样工程师只要示教第一层高度，其余24层高度程序自动算出。
+        /// 这样工程师只要示教第一层高度，其余13层高度程序自动算出。
         /// </summary>
         /// <param name="wafeSize">料盒尺寸 (决定基准点和存入哪个字典)</param>
         public async Task<Dictionary<int, AxisPoint>> ArrayZAxisMaterialPickingPosition(E_WafeSize wafeSize)
         {
             // 决定操作的目标缓存字典
             var dictToFill = wafeSize == E_WafeSize._8寸 ? PickingPosition_8 : PickingPosition_12;
+            var dictScanToFill = wafeSize == E_WafeSize._8寸 ? ScanPosition_8 : ScanPosition_12;
+
+            dictScanToFill.Clear(); //每次计算前先清空旧数据
             dictToFill.Clear(); // 每次计算前先清空旧数据
             var resultDict = new Dictionary<int, AxisPoint>();
 
             // 1. 获取第一层绝对示教基准点
             string basePointName = wafeSize == E_WafeSize._8寸 ? nameof(ZAxisPoint.层1取料位_8寸) : nameof(ZAxisPoint.层1取料位_12寸);
+            string basescanPointName = wafeSize == E_WafeSize._8寸 ? nameof(ZAxisPoint.层1扫描点位_8寸) : nameof(ZAxisPoint.层1扫描点位_12寸);
             var basePoint = _zAxis.PointTable.FirstOrDefault(p => p.Name == basePointName);
+            var basescanPoint = _zAxis.PointTable.FirstOrDefault(p => p.Name == basescanPointName);
 
             // 防呆校验：如果工程师没配置第一层点位，直接报错跳出
             if (basePoint == null)
             {
                 _logger.Error($"[{MechanismName}] 阵列计算失败：底层硬件配置中找不到基准点位 [{basePointName}]");
+                return resultDict;
+            }
+            if (basescanPoint == null)
+            {
+                _logger.Error($"[{MechanismName}] 阵列计算失败：底层硬件配置中找不到基准点位 [{basescanPointName}]");
                 return resultDict;
             }
 
@@ -698,6 +771,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var point = new AxisPoint
                 {
                     Name = $"第{i + 1}层取料位",
+                    TargetPosition = basescanPoint.TargetPosition + (i * LayerPitch), // 计算核心
+                    Speed = basescanPoint.Speed,// 沿用第一层的运动速度
+                    Acc = basescanPoint.Acc, // 沿用第一层的运动速度
+                    Dec = basescanPoint.Dec, // 沿用第一层的运动速度
+                    STime = basescanPoint.STime,// 沿用第一层的运动速度
+                };
+                var point1 = new AxisPoint
+                {
+                    Name = $"第{i + 1}层扫描位",
                     TargetPosition = basePoint.TargetPosition + (i * LayerPitch), // 计算核心
                     Speed = basePoint.Speed,// 沿用第一层的运动速度
                     Acc = basePoint.Acc, // 沿用第一层的运动速度
@@ -706,6 +788,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 };
 
                 dictToFill.TryAdd(i, point); // 存入线程安全字典供全局读取
+                dictScanToFill.TryAdd(i, point);
                 resultDict.Add(i, point);    // 存入局部字典用于返回值
             }
 
