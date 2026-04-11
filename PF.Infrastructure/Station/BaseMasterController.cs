@@ -27,7 +27,6 @@ namespace PF.Infrastructure.Station
         public event EventHandler<string> MasterAlarmTriggered;
 
         protected readonly ILogService _logger;
-        protected readonly IAlarmService _alarmService;
         protected readonly HardwareInputEventBus _hardwareEventBus;
         protected readonly List<StationBase<StationMemoryBaseParam>> _subStations;
         protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
@@ -40,7 +39,6 @@ namespace PF.Infrastructure.Station
 
         protected BaseMasterController(
             ILogService logger,
-            IAlarmService alarmService,
             HardwareInputEventBus hardwareEventBus,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations,
             IAlarmService? alarmService = null)
@@ -192,9 +190,6 @@ namespace PF.Infrastructure.Station
 
             // 保留旧事件，确保已订阅 MasterAlarmTriggered 的外部代码不受影响
             MasterAlarmTriggered?.Invoke(this, errorCode);
-
-            _alarmService.TriggerAlarm("主控", errorMessage);
-
 
             // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
             Task.Run(() =>

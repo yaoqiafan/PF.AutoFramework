@@ -44,7 +44,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
             IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
-            : base(logger, alarmService, hardwareEventBus, subStations)
+            : base(logger,  hardwareEventBus, subStations, alarmService)
         {
             _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
