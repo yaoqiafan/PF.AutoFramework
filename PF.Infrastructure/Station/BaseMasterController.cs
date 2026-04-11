@@ -46,7 +46,6 @@ namespace PF.Infrastructure.Station
             _alarmService = alarmService;
             _logger = logger;
             _hardwareEventBus = hardwareEventBus;
-            _alarmService = alarmService;
             _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
             // 监听所有子工站的软件报警事件
@@ -228,8 +227,7 @@ namespace PF.Infrastructure.Station
         {
             _logger.Fatal("【全局主控】触发全局急停指令！");
 
-            // 急停由主控统一上报，各子站的 TriggerAlarm() 随后也会触发各自的 StationAlarmTriggered，
-            // 但 IAlarmService 内置 2 秒防抖，同一 source 短时重复不会产生多余记录。
+            // 急停由主控统一上报；AlarmService 复合键幂等，子站后续触发的相同 source+code 会被跳过
             _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationSyncError);
 
             // 1. 软件切入 Alarm 状态（打断逻辑协同）
