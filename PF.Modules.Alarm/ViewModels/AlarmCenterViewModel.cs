@@ -8,7 +8,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace PF.Modules.Alarm.ViewModels
 {
@@ -16,6 +15,7 @@ namespace PF.Modules.Alarm.ViewModels
     /// 报警中心 ViewModel。
     /// 负责活跃报警集合维护、历史查询、SOP看板联动以及复位命令。
     /// 遵守架构规范：不在 ViewModel 中直接写 EF Core 查询，所有 DB 操作委托给 IAlarmService。
+    /// 报警通知通过 Prism EventAggregator 接收（ThreadOption.UIThread 保证线程安全）。
     /// </summary>
     public class AlarmCenterViewModel : RegionViewModelBase
     {
@@ -82,11 +82,13 @@ namespace PF.Modules.Alarm.ViewModels
             QueryHistoryCommand  = new DelegateCommand(async () => await OnQueryHistoryAsync());
             ClearSelectedCommand = new DelegateCommand(OnClearSelected, CanClearSelected);
 
-            // 订阅服务事件（后台线程触发，需 Dispatcher 调度到 UI 线程）
-            _alarmService.AlarmTriggered += OnAlarmTriggered;
-            _alarmService.AlarmCleared  += OnAlarmCleared;
+            // 通过 EventAggregator 订阅（ThreadOption.UIThread 确保回调在 UI 线程执行，无需手动 Dispatcher）
+            EventAggregator.GetEvent<AlarmTriggeredEvent>()
+                .Subscribe(OnAlarmTriggered, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
+            EventAggregator.GetEvent<AlarmClearedEvent>()
+                .Subscribe(OnAlarmCleared, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
-            // 加载当前活跃报警快照
+            // 加载当前活跃报警快照（初始同步）
             foreach (var record in _alarmService.ActiveAlarms)
                 ActiveAlarms.Add(record);
         }
@@ -98,27 +100,23 @@ namespace PF.Modules.Alarm.ViewModels
         /// </summary>
         public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
-        // ── 服务事件回调 ──────────────────────────────────────────────────────
+        // ── EventAggregator 回调（已在 UI 线程） ──────────────────────────────
 
-        private void OnAlarmTriggered(object? sender, AlarmRecord record)
+        private void OnAlarmTriggered(AlarmRecord record)
         {
-            Application.Current?.Dispatcher.Invoke(() =>
-            {
-                // 移除同一 source 的旧记录（如有）再插入最新的到顶部
-                var existing = ActiveAlarms.FirstOrDefault(r => r.Source == record.Source);
-                if (existing != null) ActiveAlarms.Remove(existing);
+            // 按复合键 (Source, ErrorCode) 匹配，避免同站不同故障互相覆盖
+            var existing = ActiveAlarms.FirstOrDefault(
+                r => r.Source == record.Source && r.ErrorCode == record.ErrorCode);
+            if (existing != null) ActiveAlarms.Remove(existing);
 
-                ActiveAlarms.Insert(0, record);
-            });
+            ActiveAlarms.Insert(0, record);
         }
 
-        private void OnAlarmCleared(object? sender, AlarmRecord record)
+        private void OnAlarmCleared(AlarmRecord record)
         {
-            Application.Current?.Dispatcher.Invoke(() =>
-            {
-                var existing = ActiveAlarms.FirstOrDefault(r => r.Source == record.Source);
-                if (existing != null) ActiveAlarms.Remove(existing);
-            });
+            var existing = ActiveAlarms.FirstOrDefault(
+                r => r.Source == record.Source && r.ErrorCode == record.ErrorCode);
+            if (existing != null) ActiveAlarms.Remove(existing);
         }
 
         // ── 命令实现 ──────────────────────────────────────────────────────────
@@ -126,13 +124,14 @@ namespace PF.Modules.Alarm.ViewModels
         private void OnClearAll()
         {
             _alarmService.ClearAllActiveAlarms();
-            // ActiveAlarms 集合通过 AlarmCleared 事件回调自动清空
+            // ActiveAlarms 集合通过 AlarmClearedEvent 回调自动逐条清空
         }
 
         private void OnClearSelected()
         {
             if (_selectedAlarm == null) return;
-            _alarmService.ClearAlarm(_selectedAlarm.Source);
+            // 使用精确重载，只清除选中的单条报警
+            _alarmService.ClearAlarm(_selectedAlarm.Source, _selectedAlarm.ErrorCode);
         }
 
         private bool CanClearSelected() => HasSelectedAlarm;
@@ -146,20 +145,18 @@ namespace PF.Modules.Alarm.ViewModels
                 pageSize:    200,
                 page:        0);
 
-            Application.Current?.Dispatcher.Invoke(() =>
-            {
-                HistoricalAlarms.Clear();
-                foreach (var r in results)
-                    HistoricalAlarms.Add(r);
-            });
+            HistoricalAlarms.Clear();
+            foreach (var r in results)
+                HistoricalAlarms.Add(r);
         }
 
         // ── 清理 ─────────────────────────────────────────────────────────────
 
         public override void Destroy()
         {
-            _alarmService.AlarmTriggered -= OnAlarmTriggered;
-            _alarmService.AlarmCleared  -= OnAlarmCleared;
+            // 显式取消订阅，防止僵尸订阅残留
+            EventAggregator.GetEvent<AlarmTriggeredEvent>().Unsubscribe(OnAlarmTriggered);
+            EventAggregator.GetEvent<AlarmClearedEvent>().Unsubscribe(OnAlarmCleared);
             base.Destroy();
         }
     }

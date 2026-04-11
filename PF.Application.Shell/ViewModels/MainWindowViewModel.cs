@@ -70,8 +70,9 @@ namespace PF.Application.Shell.ViewModels
 
             _idleMonitor.IdleTimeout += OnIdleTimeout;
 
-            // ── 全局报警事件订阅 ─────────────────────────────────────────────
-            _alarmService.AlarmTriggered += OnGlobalAlarmTriggered;
+            // ── 全局报警事件订阅（通过 EventAggregator，ThreadOption.UIThread 免去手动 Dispatcher）──
+            EventAggregator.GetEvent<AlarmTriggeredEvent>()
+                .Subscribe(OnGlobalAlarmTriggered, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
@@ -147,54 +148,51 @@ namespace PF.Application.Shell.ViewModels
         #region 全局报警联动
 
         /// <summary>
-        /// 报警触发回调（后台线程）：
+        /// 报警触发回调（已由 ThreadOption.UIThread 派发到 UI 线程，无需手动 Dispatcher）：
         /// - 所有级别 → Growl 气泡通知
         /// - Fatal 级别 → 强制弹出阻断式对话框，要求操作员确认后复位
         /// </summary>
-        private void OnGlobalAlarmTriggered(object? sender, AlarmRecord record)
+        private void OnGlobalAlarmTriggered(AlarmRecord record)
         {
-           System.Windows. Application.Current?.Dispatcher.Invoke(() =>
+            // Growl 气泡通知（右上角）
+            string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";
+
+            switch (record.Severity)
             {
-                // Growl 气泡通知（右上角）
-                string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";
+                case AlarmSeverity.Fatal:
+                    Growl.FatalGlobal(growlMessage);
+                    break;
+                case AlarmSeverity.Error:
+                    Growl.ErrorGlobal(growlMessage);
+                    break;
+                case AlarmSeverity.Warning:
+                    Growl.WarningGlobal(growlMessage);
+                    break;
+                default:
+                    Growl.InfoGlobal(growlMessage);
+                    break;
+            }
 
-                switch (record.Severity)
-                {
-                    case AlarmSeverity.Fatal:
-                        Growl.FatalGlobal(growlMessage);
-                        break;
-                    case AlarmSeverity.Error:
-                        Growl.ErrorGlobal(growlMessage);
-                        break;
-                    case AlarmSeverity.Warning:
-                        Growl.WarningGlobal(growlMessage);
-                        break;
-                    default:
-                        Growl.InfoGlobal(growlMessage);
-                        break;
-                }
+            // Fatal 级别 → 阻断式系统对话框，强制操作员确认后方可复位
+            if (record.Severity == AlarmSeverity.Fatal)
+            {
+                var message =
+                    $"【致命报警 — 必须处理】\n\n" +
+                    $"来源：{record.Source}\n" +
+                    $"代码：{record.ErrorCode}\n" +
+                    $"描述：{record.Message}\n\n" +
+                    $"排故指导：\n{record.Solution}\n\n" +
+                    $"请按照排故指导处理故障后，点击【确认】执行复位。";
 
-                // Fatal 级别 → 阻断式系统对话框，强制操作员确认后方可复位
-                if (record.Severity == AlarmSeverity.Fatal)
-                {
-                    var message =
-                        $"【致命报警 — 必须处理】\n\n" +
-                        $"来源：{record.Source}\n" +
-                        $"代码：{record.ErrorCode}\n" +
-                        $"描述：{record.Message}\n\n" +
-                        $"排故指导：\n{record.Solution}\n\n" +
-                        $"请按照排故指导处理故障后，点击【确认】执行复位。";
+                MessageService.ShowSystemMessage(
+                    message,
+                    "致命报警 — 需要处理",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
 
-                    MessageService.ShowSystemMessage(
-                        message,
-                        "致命报警 — 需要处理",
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Error);
-
-                    // 用户点击确认后自动清除该来源的报警
-                    _alarmService.ClearAlarm(record.Source);
-                }
-            });
+                // 用户点击确认后自动清除该来源的报警
+                _alarmService.ClearAlarm(record.Source);
+            }
         }
 
         #endregion

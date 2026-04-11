@@ -54,6 +54,8 @@ using PF.Services.Logging;
 using PF.Services.Params;
 using PF.Services.Production;
 using PF.Services.Sync;
+using PF.Application.Shell.Services;
+using PF.Core.Interfaces.Alarm;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Dialog.ViewModels;
@@ -627,6 +629,9 @@ namespace PF.Application.Shell
         {
             try
             {
+                // IAlarmEventPublisher 必须在 AlarmService 解析前注册（AlarmService 构造函数可选注入）
+                containerRegistry.RegisterSingleton<IAlarmEventPublisher, PrismAlarmEventPublisher>();
+
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "AlarmHistory.db");
                 containerRegistry.AddAlarmServices(filePath);
                 _logService.Info("报警服务注册完成", "DependencyInjection");
