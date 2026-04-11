@@ -28,7 +28,8 @@ namespace PF.Core.Interfaces.Alarm
         /// <summary>
         /// 触发报警。
         /// <list type="bullet">
-        ///   <item>同一 source 在 2 秒内重复触发相同 errorCode 时，仅更新时间戳，不重复落盘。</item>
+        ///   <item>以 (source, errorCode) 复合键幂等处理：相同复合键已存在时直接跳过，不重复落盘。</item>
+        ///   <item>同一工站可同时持有多个不同 errorCode 的活跃报警，互不覆盖。</item>
         ///   <item>errorCode 不在字典中时，自动生成通用兜底记录确保故障不被吞噬。</item>
         /// </list>
         /// </summary>
@@ -36,8 +37,11 @@ namespace PF.Core.Interfaces.Alarm
         /// <param name="errorCode">报警代码，必须引用 <c>AlarmCodes.*</c> 常量</param>
         void TriggerAlarm(string source, string errorCode);
 
-        /// <summary>清除指定来源的活跃报警</summary>
+        /// <summary>清除指定来源的所有活跃报警</summary>
         void ClearAlarm(string source);
+
+        /// <summary>精确清除指定来源下单条报警（按复合键匹配）</summary>
+        void ClearAlarm(string source, string errorCode);
 
         /// <summary>一键清除所有活跃报警（关联【复位】按钮）</summary>
         void ClearAllActiveAlarms();
