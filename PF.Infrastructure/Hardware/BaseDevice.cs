@@ -1,20 +1,36 @@
-﻿using PF.Core.Enums;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace PF.Infrastructure.Hardware
 {
     /// <summary>
-    /// 工业硬件设备抽象基类
-    /// 封装了底层的状态机、重连逻辑、脱机模拟机制以及统一的异常拦截
+    /// 工业硬件设备抽象基类。
+    /// 封装了底层的状态机、重连逻辑、脱机模拟机制、统一异常拦截，
+    /// 以及 <see cref="INotifyPropertyChanged"/> 与后台健康监控循环。
     /// </summary>
-    public abstract class BaseDevice : IHardwareDevice
+    public abstract class BaseDevice : IHardwareDevice, INotifyPropertyChanged
     {
-        protected readonly ILogService _logger; // 依赖注入日志服务
+        protected readonly ILogService _logger;
         private bool _isConnected;
         private bool _hasAlarm;
         private bool _isDisposed;
+
+        // 健康监控后台任务
+        private CancellationTokenSource? _healthMonitorCts;
+        private Task? _healthMonitorTask;
+
+        #region INotifyPropertyChanged
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void RaisePropertyChanged([CallerMemberName] string? propertyName = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        #endregion
 
         #region IHardwareDevice 属性实现
 
@@ -31,8 +47,8 @@ namespace PF.Infrastructure.Hardware
                 if (_isConnected != value)
                 {
                     _isConnected = value;
-                    // 状态改变时自动触发事件，供 UI 层（红绿灯指示）订阅
                     ConnectionChanged?.Invoke(this, _isConnected);
+                    RaisePropertyChanged();
 
                     if (_isConnected)
                         _logger?.Success($"[{DeviceName}] 设备已连接");
@@ -45,26 +61,38 @@ namespace PF.Infrastructure.Hardware
         public bool HasAlarm
         {
             get => _hasAlarm;
-            protected set => _hasAlarm = value;
+            protected set
+            {
+                if (_hasAlarm != value)
+                {
+                    _hasAlarm = value;
+                    RaisePropertyChanged();
+                }
+            }
         }
 
         public event EventHandler<bool> ConnectionChanged;
         public event EventHandler<DeviceAlarmEventArgs> AlarmTriggered;
 
-
-        public readonly   CategoryLogger HardwareLogger;
+        public readonly CategoryLogger HardwareLogger;
 
         #endregion
 
         /// <summary>
-        /// 构造函数 (强制要求子类提供基本信息和日志服务)
+        /// 健康检查轮询间隔（毫秒）。
+        /// 模拟模式下自动扩大为 5 倍（避免几十个模拟设备空转浪费 CPU）。
+        /// </summary>
+        protected virtual int HealthCheckIntervalMs => 1000;
+
+        /// <summary>
+        /// 构造函数（强制要求子类提供基本信息和日志服务）
         /// </summary>
         protected BaseDevice(string deviceId, string deviceName, bool isSimulated, ILogService logger)
         {
-            DeviceId = deviceId;
-            DeviceName = deviceName;
+            DeviceId    = deviceId;
+            DeviceName  = deviceName;
             IsSimulated = isSimulated;
-            _logger = logger;
+            _logger     = logger;
             HardwareLogger = CategoryLoggerFactory.Hardware(logger);
         }
 
@@ -85,28 +113,27 @@ namespace PF.Infrastructure.Hardware
                 if (simResult)
                 {
                     IsConnected = true;
-                    HasAlarm = false;
+                    HasAlarm    = false;
+                    StartHealthMonitor();
                 }
                 return simResult;
             }
 
-            // 2. 真实硬件连接与重试逻辑 (默认重试 3 次)
+            // 2. 真实硬件连接与重试逻辑（默认重试 3 次）
             int maxRetries = 3;
             for (int i = 1; i <= maxRetries; i++)
             {
                 try
                 {
                     token.ThrowIfCancellationRequested();
-
                     _logger?.Info($"[{DeviceName}] 正在尝试连接... (第 {i} 次)");
 
-                    // 调用子类必须实现的真实物理连接方法
                     bool success = await InternalConnectAsync(token);
-
                     if (success)
                     {
                         IsConnected = true;
-                        HasAlarm = false;
+                        HasAlarm    = false;
+                        StartHealthMonitor();
                         return true;
                     }
                 }
@@ -120,15 +147,9 @@ namespace PF.Infrastructure.Hardware
                     _logger?.Error($"[{DeviceName}] 第 {i} 次连接发生异常: {ex.Message}");
 
                     if (i == maxRetries)
-                    {
-                        // 达到最大重试次数，触发全局底层报警
                         RaiseAlarm("ERR_CONN_FAILED", $"设备连接彻底失败，已重试 {maxRetries} 次", ex);
-                    }
                     else
-                    {
-                        // 间隔 2 秒后重试
                         await Task.Delay(2000, token);
-                    }
                 }
             }
 
@@ -139,12 +160,13 @@ namespace PF.Infrastructure.Hardware
         {
             if (!IsConnected) return;
 
+            // 停止健康监控，再进行物理断开
+            await StopHealthMonitorAsync();
+
             try
             {
                 if (!IsSimulated)
-                {
                     await InternalDisconnectAsync();
-                }
             }
             catch (Exception ex)
             {
@@ -152,7 +174,6 @@ namespace PF.Infrastructure.Hardware
             }
             finally
             {
-                // 无论物理断开是否成功，逻辑状态必须置为断开
                 IsConnected = false;
             }
         }
@@ -163,9 +184,8 @@ namespace PF.Infrastructure.Hardware
             try
             {
                 if (!IsSimulated)
-                {
                     await InternalResetAsync(token);
-                }
+
                 HasAlarm = false;
                 return true;
             }
@@ -178,11 +198,96 @@ namespace PF.Infrastructure.Hardware
 
         #endregion
 
+        #region 健康监控循环
+
+        /// <summary>
+        /// 连接成功后启动后台健康监控任务。
+        /// </summary>
+        private void StartHealthMonitor()
+        {
+            // 防止重复启动
+            _healthMonitorCts?.Cancel();
+            _healthMonitorCts?.Dispose();
+
+            _healthMonitorCts  = new CancellationTokenSource();
+            _healthMonitorTask = Task.Run(
+                () => HealthMonitorLoopAsync(_healthMonitorCts.Token),
+                _healthMonitorCts.Token);
+        }
+
+        /// <summary>
+        /// 停止健康监控任务，等待其退出（最多 3 秒）。
+        /// </summary>
+        private async Task StopHealthMonitorAsync()
+        {
+            if (_healthMonitorCts == null) return;
+
+            _healthMonitorCts.Cancel();
+
+            if (_healthMonitorTask != null)
+            {
+                try
+                {
+                    // 等待任务退出，超时后继续（不阻塞关闭流程）
+                    await Task.WhenAny(_healthMonitorTask, Task.Delay(3000)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    _logger?.Warn($"[{DeviceName}] 健康监控停止时发生异常: {ex.Message}");
+                }
+            }
+
+            _healthMonitorCts.Dispose();
+            _healthMonitorCts  = null;
+            _healthMonitorTask = null;
+        }
+
+        /// <summary>
+        /// 后台健康轮询主循环。
+        /// 模拟模式下延长间隔（HealthCheckIntervalMs × 5）避免空转浪费 CPU。
+        /// </summary>
+        private async Task HealthMonitorLoopAsync(CancellationToken token)
+        {
+            int intervalMs = IsSimulated
+                ? HealthCheckIntervalMs * 5
+                : HealthCheckIntervalMs;
+
+            while (!token.IsCancellationRequested && IsConnected)
+            {
+                try
+                {
+                    await Task.Delay(intervalMs, token).ConfigureAwait(false);
+
+                    if (!token.IsCancellationRequested && IsConnected)
+                        await InternalCheckHealthAsync(token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    if (!HasAlarm)
+                        RaiseAlarm("ERR_HEALTH_CHECK", $"健康检查异常: {ex.Message}", ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 子类重写：主动读取硬件状态并更新缓存属性；获取到硬件错误码时调用 <see cref="RaiseAlarm"/>。
+        /// 默认实现为空（模拟模式或无需轮询的设备无需重写）。
+        /// </summary>
+        protected virtual Task InternalCheckHealthAsync(CancellationToken token)
+            => Task.CompletedTask;
+
+        #endregion
+
         #region 供子类继承与实现的方法 (Hook Methods)
 
         /// <summary>
-        /// 模拟模式下的连接逻辑。默认实现：延迟 500ms 后返回 true（模拟连接耗时）。
-        /// 子类可重写此方法以在模拟模式下初始化虚拟状态（如模拟轴零点、虚拟 IO 初始电平）。
+        /// 模拟模式下的连接逻辑。默认实现：延迟 500ms 后返回 true。
+        /// 子类可重写以在模拟模式下初始化虚拟状态。
         /// </summary>
         protected virtual async Task<bool> InternalConnectSimulatedAsync(CancellationToken token)
         {
@@ -190,7 +295,7 @@ namespace PF.Infrastructure.Hardware
             return true;
         }
 
-        /// <summary>子类实现：具体的物理连接建立代码（如 TCP Socket Connect, 或调用板卡 InitDll）</summary>
+        /// <summary>子类实现：具体的物理连接建立代码</summary>
         protected abstract Task<bool> InternalConnectAsync(CancellationToken token);
 
         /// <summary>子类实现：具体的物理连接断开代码</summary>
@@ -209,13 +314,12 @@ namespace PF.Infrastructure.Hardware
         protected void RaiseAlarm(string errorCode, string message, Exception internalException = null)
         {
             HasAlarm = true;
-            _logger?.Fatal($"[{DeviceName}] 硬件报警 [{errorCode}]: {message}",exception: internalException);
+            _logger?.Fatal($"[{DeviceName}] 硬件报警 [{errorCode}]: {message}", exception: internalException);
 
-            // 通过事件推给 DeviceManager 或状态机，进而通过 Prism EventAggregator 广播全网
             AlarmTriggered?.Invoke(this, new DeviceAlarmEventArgs
             {
-                ErrorCode = errorCode,
-                ErrorMessage = message,
+                ErrorCode         = errorCode,
+                ErrorMessage      = message,
                 InternalException = internalException
             });
         }
@@ -236,11 +340,14 @@ namespace PF.Infrastructure.Hardware
             {
                 if (disposing)
                 {
-                    // 释放托管资源
-                    // 问题：直接 DisconnectAsync().Wait() 在 UI 线程或同步上下文中会死锁。
-                    // 修复：强制在线程池线程上运行，脱离当前 SynchronizationContext。
+                    // 先取消健康监控（不等待，Dispose 不应阻塞）
+                    _healthMonitorCts?.Cancel();
+                    _healthMonitorCts?.Dispose();
+                    _healthMonitorCts = null;
+
                     if (IsConnected)
                     {
+                        // 在线程池线程上运行，脱离当前 SynchronizationContext 防止死锁
                         Task.Run(() => DisconnectAsync()).GetAwaiter().GetResult();
                     }
                 }
