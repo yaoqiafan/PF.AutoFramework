@@ -1,4 +1,6 @@
-﻿using PF.Core.Interfaces.Logging;
+﻿using PF.Core.Constants;
+using PF.Core.Enums;
+using PF.Core.Interfaces.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -206,6 +208,16 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         protected override async Task InternalResetAsync(CancellationToken token)
         {
             await tiggerclient.ReconnectAsync();
+        }
+
+        protected override Task InternalCheckHealthAsync(CancellationToken token)
+        {
+            bool trigOk  = tiggerclient.Status    == ClientStatus.Connected;
+            bool userOk  = Userpowerclient.Status == ClientStatus.Connected;
+            if ((!trigOk || !userOk) && !HasAlarm)
+                RaiseAlarm(AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
+                    $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");
+            return Task.CompletedTask;
         }
     }
 }
