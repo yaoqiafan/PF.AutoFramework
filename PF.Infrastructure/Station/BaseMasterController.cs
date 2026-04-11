@@ -4,6 +4,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
+using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
 using Stateless;
 using System;
@@ -36,6 +37,9 @@ namespace PF.Infrastructure.Station
 
         // 报警服务：可选注入，不影响已有子类的 DI 注册；注入后自动接入结构化报警流水线
         private readonly IAlarmService? _alarmService;
+
+        // 硬件复位请求委托：由 Shell 通过 RegisterHardwareResetHandler 注入，使 PF.Infrastructure 无需依赖 Prism
+        private Action<HardwareResetRequest>? _hardwareResetHandler;
 
         protected BaseMasterController(
             ILogService logger,
@@ -300,6 +304,38 @@ namespace PF.Infrastructure.Station
         /// 供子类重写：复位成功回到 Idle 之前执行的专属逻辑（如清理信号量）
         /// </summary>
         protected virtual void OnAfterResetSuccess() { }
+
+        /// <inheritdoc/>
+        public void RegisterHardwareResetHandler(Action<HardwareResetRequest> handler)
+            => _hardwareResetHandler = handler;
+
+        /// <summary>
+        /// 响应硬件复位请求：按 Source 匹配子工站并在后台触发硬件清警复位。
+        /// Shell 通过 <c>RegisterHardwareResetHandler</c> 将 Prism EA 事件路由到此方法，
+        /// 使 PF.Infrastructure 无需直接依赖 Prism。
+        /// 子类可 override 以实现更精细的机构级路由。
+        /// </summary>
+        public virtual void OnHardwareResetRequested(HardwareResetRequest request)
+        {
+            if (request == null) return;
+
+            var station = _subStations.FirstOrDefault(s => s.StationName == request.Source);
+            if (station == null || station.CurrentState != MachineState.Alarm) return;
+
+            _logger.Info($"【主控】接收到硬件复位请求，来源：{request.Source}，错误码：{string.Join(", ", request.ErrorCodes)}");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await station.ExecuteResetAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"【主控】硬件复位请求执行失败，来源：{request.Source}: {ex.Message}");
+                }
+            });
+        }
 
         // ── 线程安全的触发器封装 ───────────────────────────────────────────
 
