@@ -57,6 +57,34 @@ namespace PF.Core.Constants
                 "3. 重启光源控制器;\n" +
                 "4. 在参数页面核对 COM 端口号;")]
             public const string LightControllerError = "HW_LGT_001";
+
+            [AlarmInfo("硬件异常", "运动控制卡总线通讯错误（运行期检测）", AlarmSeverity.Fatal,
+                "1. 检查 EtherCAT 总线连接线是否松动或断开;\n" +
+                "2. 检查各伺服驱动器及 IO 模块供电是否正常;\n" +
+                "3. 在调试页面重新初始化运动控制卡;\n" +
+                "4. 尝试重启设备后重新启动软件;")]
+            public const string MotionCardBusError = "HW_CARD_002";
+
+            [AlarmInfo("硬件异常", "伺服轴触发限位保护（PEL/MEL）", AlarmSeverity.Error,
+                "1. 检查轴当前位置是否超出行程范围;\n" +
+                "2. 手动将轴移离限位开关后点击【复位】;\n" +
+                "3. 确认限位开关接线和信号极性是否正确;\n" +
+                "4. 检查运动参数中行程保护设置是否合理;")]
+            public const string AxisLimitError = "HW_AXIS_002";
+
+            [AlarmInfo("硬件异常", "相机通讯心跳超时（TCP 连接丢失）", AlarmSeverity.Error,
+                "1. 检查相机网线是否松动或断开;\n" +
+                "2. 使用 Ping 命令验证相机 IP 是否可达;\n" +
+                "3. 确认网络适配器 IP 与相机在同一网段;\n" +
+                "4. 重启相机后点击【复位】重新连接;")]
+            public const string CameraHeartbeatTimeout = "HW_CAM_002";
+
+            [AlarmInfo("硬件异常", "扫码枪通讯心跳超时（TCP 连接丢失）", AlarmSeverity.Warning,
+                "1. 检查扫码枪网线或 USB 连接是否正常;\n" +
+                "2. 使用 Ping 命令验证扫码枪 IP 是否可达;\n" +
+                "3. 重启扫码枪后点击【复位】重新连接;\n" +
+                "4. 确认端口号与配置文件一致;")]
+            public const string BarcodeScannerHeartbeatTimeout = "HW_BCR_002";
         }
 
         // ─────────────────────────────────────────────────────────────────────
