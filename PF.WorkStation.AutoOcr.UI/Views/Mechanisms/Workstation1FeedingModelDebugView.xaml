@@ -474,8 +474,140 @@
                                                 Margin="10,0,0,0"
                                                 VerticalAlignment="Center"
                                                 FontSize="15"
-                                                Text="晶圆夹爪已张开" />
+                                                Text="错层检测1" />
                                         </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="错层检测2" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="铁环突片检测" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="8寸铁环防反检测" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="12寸铁环防反检测" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="8寸料盒挡杆检测" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="12寸料盒挡杆检测1" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock
+                                                Margin="10,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                Text="12寸料盒挡杆检测2" />
+                                        </StackPanel>
+
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
