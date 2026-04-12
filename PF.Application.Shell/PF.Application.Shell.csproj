@@ -15,6 +15,7 @@
 	  <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj" />
 	  <ProjectReference Include="..\PF.Modules.Debug\PF.Modules.Debug.csproj" />
 	  <ProjectReference Include="..\PF.Modules.Identity\PF.Modules.Identity.csproj" />
+	  <ProjectReference Include="..\PF.Modules.Alarm\PF.Modules.Alarm.csproj" />
 	  <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj" />
 	  <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj" />
 	  <ProjectReference Include="..\PF.Services\PF.Services.csproj" />

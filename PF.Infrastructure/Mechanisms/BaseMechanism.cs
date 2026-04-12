@@ -1,4 +1,5 @@
-﻿using PF.Core.Entities.Hardware;
+﻿using PF.Core.Constants;
+using PF.Core.Entities.Hardware;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -21,6 +22,7 @@ namespace PF.Infrastructure.Mechanisms
 
         // 实现接口事件
         public event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
+        public event EventHandler AlarmAutoCleared;
 
         // 构造函数：删除了 IEventAggregator
         protected BaseMechanism(string name, IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
@@ -29,6 +31,20 @@ namespace PF.Infrastructure.Mechanisms
             _logger = logger;
             HardwareManagerService = hardwareManagerService;
             ParamService = paramService;
+        }
+
+        /// <summary>
+        /// 拦截底层硬件自恢复事件：当所有内部硬件均清警后，清除模组报警并向上传递清警信号。
+        /// </summary>
+        private void OnHardwareAlarmAutoCleared(object sender, EventArgs e)
+        {
+            // 只有当模组确实处于报警状态，且所有内部硬件均已恢复时，才触发模组级清警
+            if (!HasAlarm) return;
+            if (_internalHardwares.Any(h => h.HasAlarm)) return;
+
+            HasAlarm = false;
+            _logger?.Info($"[模组 {MechanismName}] 所有内部硬件已自恢复，清除模组报警状态。");
+            AlarmAutoCleared?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -47,6 +63,7 @@ namespace PF.Infrastructure.Mechanisms
             {
                 MechanismName = this.MechanismName,
                 HardwareName = device?.DeviceName ?? "未知硬件",
+                ErrorCode = e.ErrorCode,
                 ErrorMessage = e.ErrorMessage,
                 InternalException = e.InternalException
             });
@@ -83,18 +100,31 @@ namespace PF.Infrastructure.Mechanisms
             foreach (var hw in _internalHardwares)
             {
                 if (!await hw.ResetAsync(token))
-                {
                     allResetOk = false;
-                }
             }
 
             if (allResetOk)
-            {
                 allResetOk = await InternalResetAsync(token);
-            }
 
             if (allResetOk) HasAlarm = false;
             return allResetOk;
+        }
+
+        /// <summary>
+        /// 级联清除模组内所有硬件的报警标志（不执行回原点）。
+        /// 由 BaseMasterController.OnHardwareResetRequested 在 AlarmService.ClearAlarm 后调用。
+        /// </summary>
+        public virtual async Task<bool> ResetHardwareAlarmAsync(CancellationToken token = default)
+        {
+            bool allOk = true;
+            foreach (var hw in _internalHardwares)
+            {
+                if (!await hw.ResetHardwareAlarmAsync(token).ConfigureAwait(false))
+                    allOk = false;
+            }
+
+            if (allOk) HasAlarm = false;
+            return allOk;
         }
 
         public async Task StopAsync()
@@ -127,7 +157,8 @@ namespace PF.Infrastructure.Mechanisms
         {
             if (device == null || _internalHardwares.Contains(device)) return;
             _internalHardwares.Add(device);
-            device.AlarmTriggered += OnHardwareAlarmTriggered;
+            device.AlarmTriggered        += OnHardwareAlarmTriggered;
+            device.HardwareAlarmAutoCleared += OnHardwareAlarmAutoCleared;
         }
 
         public virtual void Dispose()
@@ -135,7 +166,8 @@ namespace PF.Infrastructure.Mechanisms
             foreach (var hw in _internalHardwares)
             {
                 if (hw == null) continue;
-                hw.AlarmTriggered -= OnHardwareAlarmTriggered;
+                hw.AlarmTriggered           -= OnHardwareAlarmTriggered;
+                hw.HardwareAlarmAutoCleared -= OnHardwareAlarmAutoCleared;
                 if (hw is IDisposable disposable) disposable.Dispose();  // 释放硬件持有的非托管资源
             }
         }
@@ -197,13 +229,14 @@ namespace PF.Infrastructure.Mechanisms
                 // 走到这里，说明外部没有取消，纯粹是 timeoutCts 触发的超时
                 if (timeoutCts.IsCancellationRequested)
                 {
-                    HasAlarm = true; 
+                    HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待运动完成超时（{timeoutMs} ms）");
                     // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
                     AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
                     {
                         MechanismName    = this.MechanismName,
                         HardwareName     = axisName,
+                        ErrorCode        = AlarmCodes.Hardware.AxisMoveTimeout,
                         ErrorMessage     = $"等待轴运动完成超时（{timeoutMs} ms）"
                     });
                 }
@@ -247,6 +280,7 @@ namespace PF.Infrastructure.Mechanisms
                     {
                         MechanismName    = this.MechanismName,
                         HardwareName     = axisName,
+                        ErrorCode        = AlarmCodes.Hardware.HomingTimeout,
                         ErrorMessage     = $"等待回零完成超时（{timeoutMs} ms）"
                     });
                 }

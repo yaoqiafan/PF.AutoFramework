@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
@@ -53,8 +54,14 @@ namespace PF.Infrastructure.Station.Basic
             }
         }
 
-        // 向上层（主控）抛出的报警事件
+        // 向上层（主控）抛出的报警事件（string = AlarmCodes.* 常量，非自由文本）
         public event EventHandler<string> StationAlarmTriggered;
+
+        /// <summary>
+        /// 工站内所有机构均已自恢复（硬件清警）时触发，通知主控可主动清除 AlarmService 对应记录。
+        /// 由子类在订阅模组 AlarmAutoCleared 事件后调用 <see cref="RaiseStationAlarmAutoCleared"/>。
+        /// </summary>
+        public event EventHandler StationAlarmAutoCleared;
 
         protected readonly ILogService _logger;
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
@@ -74,6 +81,10 @@ namespace PF.Infrastructure.Station.Basic
         // 标记当前业务线程是被"外部报警"打断（true），还是"正常停止"打断（false）。
         // volatile 确保多线程可见性：TriggerAlarm 在状态机线程写入，ProcessWrapperAsync 在业务线程读取。
         private volatile bool _alarmInterrupted = false;
+
+        // 结构化报警码：业务代码或外部调用在触发报警前设置，Alarm.OnEntry 读取后上报并重置。
+        // 未显式设置时回落至 AlarmCodes.System.StationSyncError（通用工站异常兜底）。
+        private volatile string _pendingAlarmCode;
 
         protected StationBase(string name, ILogService logger)
         {
@@ -141,7 +152,13 @@ namespace PF.Infrastructure.Station.Basic
                 {
                     // 开门：防止 Paused → Alarm 时业务续体永久阻塞在已关闭的门上
                     _pauseGate.TrySetResult(true);
-                    StationAlarmTriggered?.Invoke(this, $"[{StationName}] 发生内部异常，进入报警状态！");
+
+                    // 读取并重置待上报的结构化报警码（未设置时兜底使用通用工站异常码）。
+                    // 必须无条件触发：主控依赖此事件感知子站已进入 Alarm，以维护整机状态同步。
+                    // "过滤兜底码不写入全局 AlarmService"的职责上移至 BaseMasterController.OnSubStationAlarm。
+                    var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
+                    _pendingAlarmCode = null;
+                    StationAlarmTriggered?.Invoke(this, code);
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting); // Alarm → Resetting（对齐主控复位路径）
 
@@ -217,6 +234,10 @@ namespace PF.Infrastructure.Station.Basic
             {
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
 
+                // 业务代码未显式调用 RaiseAlarm 时兜底赋码，确保未预期崩溃能被 AlarmService 正确上报。
+                // 显式调用过 RaiseAlarm 的路径 _pendingAlarmCode 已非空，?? 不会覆盖精确报警码。
+                _pendingAlarmCode ??= AlarmCodes.System.StationSyncError;
+
                 // 🚨 修复 P0 级死锁：
                 // 必须通过 Task.Run 脱离当前任务上下文，让 _workflowTask 立即结束
                 // 从而释放 OnStartRunningAsync 中的 await 锁等待，防止与 StartAsync 形成循环死锁。
@@ -224,7 +245,11 @@ namespace PF.Infrastructure.Station.Basic
                 {
                     try
                     {
-                        Fire(MachineTrigger.Error);
+                        // 防止重入：主控急停已通过 TriggerAlarm() 将本工站拉入 Alarm 后，
+                        // 业务线程的 OperationCanceledException 在极端竞态下可能漏入此 catch，
+                        // 若再次 Fire(Error) 会导致 Stateless 因"当前状态无此转换"抛出异常。
+                        if (_machine.State != MachineState.Alarm)
+                            Fire(MachineTrigger.Error);
                     }
                     catch (Exception fireEx)
                     {
@@ -368,6 +393,41 @@ namespace PF.Infrastructure.Station.Basic
             {
                 Fire(MachineTrigger.Error);
             }
+        }
+
+        /// <summary>
+        /// 携带结构化报警码的外部触发重载（推荐）。
+        /// 主控或外部调用此重载可将精确的 <see cref="AlarmCodes"/> 常量传递给 <c>StationAlarmTriggered</c>，
+        /// 使上层 <see cref="IAlarmService"/> 能展示正确的报警描述与排故指导。
+        /// </summary>
+        /// <param name="errorCode">报警代码，应使用 <see cref="AlarmCodes"/> 中定义的常量。</param>
+        public void TriggerAlarm(string errorCode)
+        {
+            _pendingAlarmCode = errorCode;
+            TriggerAlarm();
+        }
+
+        /// <summary>
+        /// 业务代码报警入口（供子类工艺循环内调用）。
+        /// 设置精确报警码后立即触发报警流程——取消当前业务线程并切换至 Alarm 状态。
+        /// <code>
+        /// bool ok = await WaitIOAsync(io, IoSignal.VacuumReady, true, token: token);
+        /// if (!ok) { RaiseAlarm(AlarmCodes.Hardware.IoModuleError); return; }
+        /// </code>
+        /// </summary>
+        /// <param name="errorCode">报警代码，应使用 <see cref="AlarmCodes"/> 中定义的常量。</param>
+        protected void RaiseAlarm(string errorCode)
+        {
+            _pendingAlarmCode = errorCode;
+            TriggerAlarm();
+        }
+
+        /// <summary>
+        /// 子类调用：通知主控此工站的硬件已自恢复，可主动清除 AlarmService 中对应的活跃报警记录。
+        /// </summary>
+        protected void RaiseStationAlarmAutoCleared()
+        {
+            StationAlarmAutoCleared?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>

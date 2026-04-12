@@ -1,4 +1,5 @@
 using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Device.Mechanisms;
@@ -60,13 +61,14 @@ namespace PF.WorkStation.AutoOcr.Stations
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _sync = sync;
 
-            _detectionModule.AlarmTriggered += OnMechanismAlarm;
+            _detectionModule.AlarmTriggered    += OnMechanismAlarm;
+            _detectionModule.AlarmAutoCleared  += (_, _) => RaiseStationAlarmAutoCleared();
         }
 
         private void OnMechanismAlarm(object? sender, MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            TriggerAlarm();
+            RaiseAlarm(e.ErrorCode ?? AlarmCodes.System.StationSyncError);
         }
 
         public override async Task ExecuteInitializeAsync(CancellationToken token)
@@ -132,23 +134,36 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待工位1或工位2发出允许检测信号...");
 
-                        // 用独立的 LinkedCTS 防止任意一方先触发后另一方消耗多余信号
                         using (var cts1 = CancellationTokenSource.CreateLinkedTokenSource(token))
                         using (var cts2 = CancellationTokenSource.CreateLinkedTokenSource(token))
                         {
                             var task1 = _sync.WaitAsync(WorkstationSignals.工位1允许检测.ToString(), cts1.Token);
                             var task2 = _sync.WaitAsync(WorkstationSignals.工位2允许检测.ToString(), cts2.Token);
+
                             var done = await Task.WhenAny(task1, task2).ConfigureAwait(false);
+
+                            // 【核心修改】首先判断完成的 Task 是否是异常或取消状态
+                            if (done.IsFaulted || done.IsCanceled)
+                            {
+                                _logger.Error($"[{StationName}] 等待工位1或工位2允许检测异常或被取消（{_currentworkSpace}）。" +
+                                              (done.Exception != null ? $" 错误信息: {done.Exception.InnerException?.Message}" : ""));
+
+                                _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+                                TriggerAlarm();
+                                break;
+                            }
+
+                            // 走到这里，说明任务是“正常完成 (RanToCompletion)”的，获得了信号
                             if (done == task1)
                             {
-                                cts2.Cancel();
+                                cts2.Cancel(); // 取消另一个任务
                                 _currentworkSpace = E_WorkSpace.工位1;
                                 _logger.Info($"[{StationName}] 收到工位1允许检测信号，切换到工位1。");
                                 _currentStep = StationDetectionStep.去工位1检测位置;
                             }
-                            else
+                            else if (done == task2)
                             {
-                                cts1.Cancel();
+                                cts1.Cancel(); // 取消另一个任务
                                 _currentworkSpace = E_WorkSpace.工位2;
                                 _logger.Info($"[{StationName}] 收到工位2允许检测信号，切换到工位2。");
                                 _currentStep = StationDetectionStep.去工位2检测位置;
@@ -367,24 +382,24 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _currentStep = _currentworkSpace == E_WorkSpace.工位1
                             ? StationDetectionStep.去工位1检测位置
                             : StationDetectionStep.去工位2检测位置;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case StationDetectionStep.触发检测异常:
                         _logger.Error($"[{StationName}] OCR相机触发异常（{_currentworkSpace}）。请检查相机状态后复位，将重新触发检测。");
                         _currentStep = StationDetectionStep.触发检测;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.CameraTriggerFailed);
                         break;
 
                     case StationDetectionStep.写入检测数据异常:
                         _logger.Error($"[{StationName}] 写入检测数据异常（{_currentworkSpace}）。请检查数据模块后复位，将重新写入。");
                         _currentStep = StationDetectionStep.写入检测数据;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataWriteFailed);
                         break;
 
                     default:
                         _logger.Error($"[{StationName}] 进入未定义步序 [{_currentStep}]，触发报警。");
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationUnexpectedStep);
                         break;
                 }
             }

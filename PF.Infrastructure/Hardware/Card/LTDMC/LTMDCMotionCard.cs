@@ -1,5 +1,6 @@
 ﻿using log4net.Core;
 using Microsoft.EntityFrameworkCore.Metadata;
+using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
@@ -618,6 +619,16 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
+            return Task.CompletedTask;
+        }
+
+        protected override Task InternalCheckHealthAsync(CancellationToken token)
+        {
+            ushort errcode = 0;
+            short ret = CardAPI.LTDMC.nmc_get_errcode((ushort)CardIndex, 2, ref errcode);
+            if ((ret != 0 || errcode != 0) && !HasAlarm)
+                RaiseAlarm(AlarmCodes.Hardware.MotionCardBusError,
+                    $"运动控制卡总线错误，nmc_get_errcode 返回 ret={ret}, errcode={errcode}");
             return Task.CompletedTask;
         }
 

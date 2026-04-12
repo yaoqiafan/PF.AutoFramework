@@ -7044,7 +7044,7 @@ Themes\Styles\Custom\Window.xaml
     <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
   </Style>
   <Style x:Key="ButtonBaseBaseStyle" BasedOn="{StaticResource BaseStyle}" TargetType="ButtonBase">
-    <Setter Property="Height" Value="{StaticResource DefaultControlHeight}" />
+    <!--<Setter Property="Height" Value="{StaticResource DefaultControlHeight}" />-->
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="Padding" Value="{StaticResource DefaultControlPadding}" />
     <Setter Property="Foreground" Value="{DynamicResource TextIconBrush}" />

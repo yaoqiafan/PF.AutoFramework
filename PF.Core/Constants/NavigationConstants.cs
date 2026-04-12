@@ -82,7 +82,10 @@ namespace PF.Core.Constants
             public const string ProductionHistoryView = nameof(ProductionHistoryView);
             #endregion
 
-         
+
+            #region 报警中心
+            public const string AlarmCenterView = nameof(AlarmCenterView);
+            #endregion
         }
 
     }

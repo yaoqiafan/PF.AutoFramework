@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Logging;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -110,7 +111,18 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
+            return Task.CompletedTask;
+        }
 
+        protected override Task InternalCheckHealthAsync(CancellationToken token)
+        {
+            if (!IsSimulated)
+            {
+                if (controllerHandle <= 0 && !HasAlarm)
+                    RaiseAlarm(AlarmCodes.Hardware.LightControllerError,
+                        $"康视达光源控制器句柄无效，串口[{ComName}]通讯中断");
+            }
+                
             return Task.CompletedTask;
         }
     }
