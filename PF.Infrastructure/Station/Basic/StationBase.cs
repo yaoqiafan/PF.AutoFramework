@@ -57,6 +57,12 @@ namespace PF.Infrastructure.Station.Basic
         // 向上层（主控）抛出的报警事件（string = AlarmCodes.* 常量，非自由文本）
         public event EventHandler<string> StationAlarmTriggered;
 
+        /// <summary>
+        /// 工站内所有机构均已自恢复（硬件清警）时触发，通知主控可主动清除 AlarmService 对应记录。
+        /// 由子类在订阅模组 AlarmAutoCleared 事件后调用 <see cref="RaiseStationAlarmAutoCleared"/>。
+        /// </summary>
+        public event EventHandler StationAlarmAutoCleared;
+
         protected readonly ILogService _logger;
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
 
@@ -414,6 +420,14 @@ namespace PF.Infrastructure.Station.Basic
         {
             _pendingAlarmCode = errorCode;
             TriggerAlarm();
+        }
+
+        /// <summary>
+        /// 子类调用：通知主控此工站的硬件已自恢复，可主动清除 AlarmService 中对应的活跃报警记录。
+        /// </summary>
+        protected void RaiseStationAlarmAutoCleared()
+        {
+            StationAlarmAutoCleared?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>

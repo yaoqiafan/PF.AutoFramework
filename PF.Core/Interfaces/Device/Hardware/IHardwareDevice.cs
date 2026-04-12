@@ -68,6 +68,12 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// <summary>设备发生底层硬件报警时触发 (抛给上层统一处理)</summary>
         event EventHandler<DeviceAlarmEventArgs> AlarmTriggered;
 
+        /// <summary>
+        /// 设备报警状态从 true 自动恢复为 false 时触发（如驱动器自清警、TCP重连成功）。
+        /// 由 <see cref="BaseMechanism"/> 聚合后判断模组是否整体恢复，进而向上传递清警信号。
+        /// </summary>
+        event EventHandler HardwareAlarmAutoCleared;
+
         #endregion
     }
 

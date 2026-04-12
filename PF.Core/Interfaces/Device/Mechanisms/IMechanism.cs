@@ -30,6 +30,13 @@ namespace PF.Core.Interfaces.Device.Mechanisms
         event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
 
         /// <summary>
+        /// 模组内所有硬件均自恢复（HasAlarm = false）时触发。
+        /// 由 <see cref="StationBase{T}"/> 聚合后向主控发出报警自清信号，
+        /// 使 AlarmService 对应条目得以清除（无需操作员手动确认）。
+        /// </summary>
+        event EventHandler AlarmAutoCleared;
+
+        /// <summary>
         /// 异步初始化模组（执行回原点、设置气缸初始状态等）
         /// </summary>
         Task<bool> InitializeAsync(CancellationToken token = default);

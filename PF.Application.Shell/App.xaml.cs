@@ -255,6 +255,14 @@ namespace PF.Application.Shell
                   ThreadOption.BackgroundThread,
                   keepSubscriberReferenceAlive: true);
 
+            // ── 系统复位：AlarmCenterView 中"系统复位"按钮 → SystemResetRequestedEvent → 主控 ──
+            // Shell 作为 Prism 与 Infrastructure 之间的桥接层，保持 PF.Infrastructure 对 Prism 零依赖。
+            ea.GetEvent<SystemResetRequestedEvent>()
+              .Subscribe(
+                  () => _ = controller.RequestSystemResetAsync(),
+                  ThreadOption.BackgroundThread,
+                  keepSubscriberReferenceAlive: true);
+
             base.OnInitialized();
         }
 
