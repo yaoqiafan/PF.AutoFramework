@@ -5,6 +5,7 @@ using PF.Infrastructure.Hardware.Motor.Basic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -42,7 +43,29 @@ namespace PF.Infrastructure.Hardware.Motor
 
         protected override Task InternalResetAsync(CancellationToken token)
         {
-            return Task.FromResult(true);
+            EnsureCardAttached();
+            if (IsSimulated)
+            {
+                return Task .CompletedTask ;
+            }
+            return ParentCard!.ClearAxisError (AxisIndex);
+        }
+
+
+
+        // ── 私有工具 ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 检查父板卡是否已挂载，未挂载则记录错误日志并抛出 InvalidOperationException。
+        /// </summary>
+        private void EnsureCardAttached([CallerMemberName] string caller = "")
+        {
+            if (ParentCard is null)
+            {
+                var msg = $"[{DeviceName}] '{caller}'：设备尚未挂载到板卡，请先调用 AttachToCard()。";
+                _logger?.Error(msg);
+                throw new InvalidOperationException(msg);
+            }
         }
 
         protected override Task InternalCheckHealthAsync(CancellationToken token)

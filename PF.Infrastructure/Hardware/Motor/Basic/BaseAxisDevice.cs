@@ -239,7 +239,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
         
-        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }

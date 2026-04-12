@@ -26,10 +26,9 @@ namespace PF.Workstation.AutoOcr.CostParam
     /// </summary>
     public enum E_InPutName
     {
-        上晶圆左错层检测1=0,
-        上晶圆左错层检测2=1,
-        [Browsable(false)]
-        预留1 = 2,
+        上晶圆左错层公共检测=0,
+        上晶圆左错层12寸检测=1,
+        上晶圆左错层8寸检测 = 2,
         [Browsable(false)]
         预留2 = 3,
         上晶圆右错层检测1 = 4,
@@ -283,13 +282,26 @@ namespace PF.Workstation.AutoOcr.CostParam
         #region 上下料模组参数
 
         [Category("上下料模组参数")]
-        [Description("8寸晶圆层间距(mm)")]
-        [DefaultValue(10.0)]
+        [Description("8寸晶圆层间距(um)")]
+        [DefaultValue(10)]
         LayerPitch_8,
+
+
+
+        [Category("上下料模组参数")]
+        [Description("8寸晶圆同层允许最大间距")]
+        [DefaultValue(10)]
+        SameLayerMaximum_8,
+
+        [Category("上下料模组参数")]
+        [Description("12寸晶圆同层允许最大间距")]
+        [DefaultValue(10)]
+        SameLayerMaximum_12,
+
 
         [Category("上下料模组参数")]
         [Description("12寸晶圆层间距")]
-        [DefaultValue(15.0)]
+        [DefaultValue(15)]
         LayerPitch_12,
 
         [Category("上下料模组参数")]
@@ -314,7 +326,7 @@ namespace PF.Workstation.AutoOcr.CostParam
 
         [Category("上下料模组参数")]
         [Description("扫层速度")]
-        [DefaultValue(1.0)]
+        [DefaultValue(1)]
         ZScanSpeed,
         #endregion
 

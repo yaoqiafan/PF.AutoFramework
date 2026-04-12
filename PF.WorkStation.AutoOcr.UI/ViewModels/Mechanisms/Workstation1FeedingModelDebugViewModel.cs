@@ -220,7 +220,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
                 // 2. 调用算法过滤并应用防呆验证
                 DebugMessage = "数据获取完成，正在进行算法过滤...";
-                var filteredMap = _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                var filteredMap =await   _feedingModule.AnalyzeAndFilterMappingData(rawMap);
 
                 // 刷新过滤后有效数据到 UI
                 FilteredMappingPoints.Clear();
@@ -332,7 +332,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     IsBoxCommonInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左料盒公用到位检测) == true;
                     Is8InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸料盒到位检测) == true;
                     Is12InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒到位检测) == true;
-                    IsGripperOpen = _feedingModule.IO.ReadInput(E_InPutName.晶圆夹爪左气缸张开) == true;
+                    
                 }
             };
             _monitorTimer.Start();

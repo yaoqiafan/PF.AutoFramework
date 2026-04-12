@@ -329,7 +329,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         try
                         {
-                            var validWafersDict = _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
+                            var validWafersDict =await  _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
                             _layersToProcess = validWafersDict.Keys.OrderBy(layerIndex => layerIndex).ToList();
 
                             _totalLayerCount = _layersToProcess.Count;
