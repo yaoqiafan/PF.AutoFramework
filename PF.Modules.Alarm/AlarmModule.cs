@@ -2,6 +2,7 @@ using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
+using PF.Modules.Alarm.Dialogs;
 using PF.Modules.Alarm.ViewModels;
 using PF.Modules.Alarm.Views;
 using PF.UI.Infrastructure.Navigation;
@@ -33,6 +34,11 @@ namespace PF.Modules.Alarm
             DefaultPermissions.RegisterViews(
                 UserLevel.Operator,
                 NavigationConstantsAlarm.AlarmCenterView);
+
+
+            containerRegistry.RegisterDialogWindow<PFAlarmBaseWindow>(nameof(PFAlarmBaseWindow));
+
+            containerRegistry.RegisterDialog<AlarmDetailCardView, AlarmDetailCardViewModel>(nameof(AlarmDetailCardView));
         }
 
         public async void OnInitialized(IContainerProvider containerProvider)

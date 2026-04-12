@@ -56,6 +56,80 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 手动清除异常后复位;\n" +
                 "4. 检查真空传感器及气路;")]
             public const string PullingTimeout = "PRC_PULL_001";
+
+
+
+            
+                [AlarmInfo("流程异常", "工站运动失败（轴未到位/运动超时）", AlarmSeverity.Error,
+                    "1. 检查轴当前状态是否存在卡阻;\n" +
+                    "2. 手动点动确认运动是否正常;\n" +
+                    "3. 检查运动参数（速度/加速度/超时）;\n" +
+                    "4. 复位后重新运行;")]
+                public const string StationMotionFailed = "PROC_MOT_001";
+
+                [AlarmInfo("流程异常", "执行机构动作失败（气缸/夹爪未到位）", AlarmSeverity.Error,
+                    "1. 检查气源压力是否在正常范围;\n" +
+                    "2. 检查对应传感器信号是否正常;\n" +
+                    "3. 手动操作气缸/夹爪确认动作;\n" +
+                    "4. 复位后重新运行;")]
+                public const string StationActuatorFailed = "PROC_ACT_001";
+
+                [AlarmInfo("流程异常", "传感器信号异常（尺寸识别/寻层扫描失败）", AlarmSeverity.Error,
+                    "1. 检查传感器安装位置与信号线连接;\n" +
+                    "2. 确认料盒/物料位置摆放正确;\n" +
+                    "3. 清洁传感器感应面;\n" +
+                    "4. 复位后重新运行;")]
+                public const string StationSensorError = "PROC_SEN_001";
+
+                [AlarmInfo("流程异常", "物料异常（叠料/错层/带片检测）", AlarmSeverity.Error,
+                    "1. 人工检查当前取料位置物料状态;\n" +
+                    "2. 手动处理叠料或移除带片;\n" +
+                    "3. 确认料盒归位正常;\n" +
+                    "4. 复位后重新运行;")]
+                public const string StationMaterialError = "PROC_MAT_001";
+
+                [AlarmInfo("流程异常", "工站数据校验失败（配方/MES数据为空或不匹配）", AlarmSeverity.Error,
+                    "1. 确认 MES 批次数据已正确下发;\n" +
+                    "2. 检查配方参数是否已加载;\n" +
+                    "3. 确认物料规格与配方匹配;\n" +
+                    "4. 重新下发数据后复位重启;",
+                @"C:\Users\12434\source\repos\PF.AutoFramework\PF.UI.Resources\Images\PNG\1.png")]
+                public const string StationDataInvalid = "PROC_DATA_001";
+
+                [AlarmInfo("流程异常", "检测数据写入失败（数据库/数据模块异常）", AlarmSeverity.Error,
+                    "1. 检查数据库连接与磁盘空间;\n" +
+                    "2. 查看日志中具体写入错误信息;\n" +
+                    "3. 尝试重启数据服务后复位;\n" +
+                    "4. 联系维护人员检查数据库;")]
+                public const string StationDataWriteFailed = "PROC_DATA_002";
+
+                [AlarmInfo("流程异常", "相机触发检测失败", AlarmSeverity.Error,
+                    "1. 检查相机连接状态;\n" +
+                    "2. 确认相机触发参数配置正确;\n" +
+                    "3. 手动触发相机确认功能;\n" +
+                    "4. 复位后重新运行;")]
+                public const string CameraTriggerFailed = "PROC_CAM_001";
+
+                [AlarmInfo("流程异常", "工站信号等待超时或异常取消", AlarmSeverity.Error,
+                    "1. 检查上游工站信号是否正常发出;\n" +
+                    "2. 确认工站间同步配置是否正确;\n" +
+                    "3. 查看关联工站报警信息;\n" +
+                    "4. 复位后重新运行;")]
+                public const string StationSignalTimeout = "PROC_SIG_001";
+
+                [AlarmInfo("流程异常", "寻层算法运算异常或返回空值", AlarmSeverity.Error,
+                    "1. 确认物料已正确放置到料盒;\n" +
+                    "2. 检查寻层传感器信号;\n" +
+                    "3. 查看日志中算法输入数据;\n" +
+                    "4. 复位后重新运行;")]
+                public const string StationAlgorithmError = "PROC_ALG_001";
+
+                [AlarmInfo("流程异常", "工站进入未定义步序（程序逻辑错误）", AlarmSeverity.Fatal,
+                    "1. 记录当前操作步骤并联系开发人员;\n" +
+                    "2. 查看日志中异常步序编号;\n" +
+                    "3. 重启软件后重新运行;\n" +
+                    "4. 提供日志文件给技术支持;")]
+                public const string StationUnexpectedStep = "PROC_SYS_001";
         }
     }
 }

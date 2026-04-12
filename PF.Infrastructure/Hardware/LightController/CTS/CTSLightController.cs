@@ -116,9 +116,13 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
 
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
-            if (controllerHandle <= 0 && !HasAlarm)
-                RaiseAlarm(AlarmCodes.Hardware.LightControllerError,
-                    $"康视达光源控制器句柄无效，串口[{ComName}]通讯中断");
+            if (!IsSimulated)
+            {
+                if (controllerHandle <= 0 && !HasAlarm)
+                    RaiseAlarm(AlarmCodes.Hardware.LightControllerError,
+                        $"康视达光源控制器句柄无效，串口[{ComName}]通讯中断");
+            }
+                
             return Task.CompletedTask;
         }
     }

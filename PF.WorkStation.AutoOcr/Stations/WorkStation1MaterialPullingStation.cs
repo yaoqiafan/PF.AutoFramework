@@ -378,65 +378,65 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1PullingStep.获取配方失败:
                         _logger.Error($"[{StationName}] 工位1配方参数为空，无法继续。请确认配方已正确下发后复位重启。");
                         _currentStep = Station1PullingStep.等待允许取料;
-                        TriggerAlarm(AlarmCodes.Process.StationDataInvalid);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid);
                         break;
 
 
                     case Station1PullingStep.调整流道尺寸失败:
                         _logger.Error($"[{StationName}] 调整流道尺寸失败，流道尺寸{_cachedRecipe.WafeSize}");
                         _currentStep = Station1PullingStep.判断流道尺寸;
-                        TriggerAlarm(AlarmCodes.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
 
                     case Station1PullingStep.移动到取料位失败:
                         _logger.Error($"[{StationName}] 移动到取料位失败");
                         _currentStep = Station1PullingStep.移动到取料位;
-                        TriggerAlarm(AlarmCodes.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
 
                     case Station1PullingStep.关闭夹爪失败:
                         _logger.Error($"[{StationName}] 关闭夹爪失败");
                         _currentStep = Station1PullingStep.关闭夹爪;
-                        TriggerAlarm(AlarmCodes.Process.StationActuatorFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed);
                         break;
 
                     case Station1PullingStep.检测到叠料异常:
                         _logger.Error($"[{StationName}] 检测到叠料，检查料盒物料");
                         _currentStep = Station1PullingStep.检测叠料;
-                        TriggerAlarm(AlarmCodes.Process.StationMaterialError);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError);
                         break;
 
                     case Station1PullingStep.移动到检测位失败:
                         _logger.Error($"[{StationName}] 移动到检测位失败,检查是否卡料掉料");
                         _currentStep = Station1PullingStep.移动到检测位;
-                        TriggerAlarm(AlarmCodes.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case Station1PullingStep.送料到取料位失败:
                         _logger.Error($"[{StationName}] 送料到取料位失败,检查是否卡料掉料");
                         _currentStep = Station1PullingStep.送料到取料位;
-                        TriggerAlarm(AlarmCodes.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case Station1PullingStep.打开夹爪失败:
                         _logger.Error($"[{StationName}] 打开夹爪失败,检查气缸信号");
                         _currentStep = Station1PullingStep.打开夹爪;
-                        TriggerAlarm(AlarmCodes.Process.StationActuatorFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed);
                         break;
 
 
                     case Station1PullingStep.移动到待机位失败:
                         _logger.Error($"[{StationName}] 移动到待机位失败");
                         _currentStep = Station1PullingStep.移动到待机位;
-                        TriggerAlarm(AlarmCodes.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case Station1PullingStep.判断带片异常:
                         _logger.Error($"[{StationName}] 夹爪带料");
                         _currentStep = Station1PullingStep.判断带片;
-                        TriggerAlarm(AlarmCodes.Process.StationMaterialError);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError);
                         break;
                         #endregion 异常流程
 

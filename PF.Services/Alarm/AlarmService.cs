@@ -89,6 +89,7 @@ namespace PF.Services.Alarm
                 Category    = info.Category,
                 Message     = info.Message,
                 Severity    = info.Severity,
+                ImagePath   = info.ImagePath,
                 Solution    = info.Solution
             };
 
@@ -171,6 +172,7 @@ namespace PF.Services.Alarm
                             Category    = info.Category,
                             Message     = info.Message,
                             Severity    = info.Severity,
+                            ImagePath   = info.ImagePath,
                             Solution    = info.Solution
                         };
                     })
