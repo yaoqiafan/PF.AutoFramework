@@ -71,6 +71,11 @@ namespace PF.Modules.Alarm.ViewModels
         public DelegateCommand ClearAllCommand      { get; }
         public DelegateCommand QueryHistoryCommand  { get; }
         public DelegateCommand ClearSelectedCommand { get; }
+        /// <summary>
+        /// 系统复位命令：发布 SystemResetRequestedEvent，由 Shell 桥接到 IMasterController.RequestSystemResetAsync()。
+        /// 与"确认/清除"的区别：本命令触发全线硬件复位+状态机跳转，不仅仅是清除报警记录。
+        /// </summary>
+        public DelegateCommand SystemResetCommand   { get; }
 
         // ── 构造 ─────────────────────────────────────────────────────────────
 
@@ -81,6 +86,7 @@ namespace PF.Modules.Alarm.ViewModels
             ClearAllCommand      = new DelegateCommand(OnClearAll);
             QueryHistoryCommand  = new DelegateCommand(async () => await OnQueryHistoryAsync());
             ClearSelectedCommand = new DelegateCommand(OnClearSelected, CanClearSelected);
+            SystemResetCommand   = new DelegateCommand(OnSystemReset);
 
             // 通过 EventAggregator 订阅（ThreadOption.UIThread 确保回调在 UI 线程执行，无需手动 Dispatcher）
             EventAggregator.GetEvent<AlarmTriggeredEvent>()
@@ -135,6 +141,12 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private bool CanClearSelected() => HasSelectedAlarm;
+
+        private void OnSystemReset()
+        {
+            // 发布 SystemResetRequestedEvent，Shell 在 BackgroundThread 上订阅并调用 IMasterController.RequestSystemResetAsync()
+            EventAggregator.GetEvent<SystemResetRequestedEvent>().Publish();
+        }
 
         private async Task OnQueryHistoryAsync()
         {

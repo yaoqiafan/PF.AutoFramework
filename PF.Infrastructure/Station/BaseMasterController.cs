@@ -52,10 +52,11 @@ namespace PF.Infrastructure.Station
             _hardwareEventBus = hardwareEventBus;
             _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
-            // 监听所有子工站的软件报警事件
+            // 监听所有子工站的软件报警事件与硬件自恢复事件
             foreach (var station in _subStations)
             {
-                station.StationAlarmTriggered += OnSubStationAlarm;
+                station.StationAlarmTriggered   += OnSubStationAlarm;
+                station.StationAlarmAutoCleared += OnSubStationAlarmAutoCleared;
             }
 
             // 🌟 监听底层事件总线广播的物理按键事件
@@ -176,6 +177,13 @@ namespace PF.Infrastructure.Station
         }
 
         // ── 全局核心指令 ──────────────────────────────────────────────────
+
+        private void OnSubStationAlarmAutoCleared(object sender, EventArgs e)
+        {
+            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+            _logger.Info($"【主控】工站 [{source}] 硬件自恢复，主动清除报警服务中对应记录。");
+            _alarmService?.ClearAlarm(source);
+        }
 
         private void OnSubStationAlarm(object sender, string errorCode)
         {
@@ -307,6 +315,17 @@ namespace PF.Infrastructure.Station
             await FireAsync(MachineTrigger.ResetDone);
         }
 
+        /// <inheritdoc/>
+        public async Task RequestSystemResetAsync()
+        {
+            _logger.Info("【主控】接收到系统复位请求，开始执行全线复位...");
+
+            // 先清除报警服务中的所有活跃记录（UI 即时刷新），再触发硬件状态机复位
+            _alarmService?.ClearAllActiveAlarms();
+
+            await ResetAllAsync();
+        }
+
         /// <summary>
         /// 供子类重写：复位成功回到 Idle 之前执行的专属逻辑（如清理信号量）
         /// </summary>
@@ -393,7 +412,8 @@ namespace PF.Infrastructure.Station
 
             foreach (var station in _subStations)
             {
-                station.StationAlarmTriggered -= OnSubStationAlarm;
+                station.StationAlarmTriggered   -= OnSubStationAlarm;
+                station.StationAlarmAutoCleared -= OnSubStationAlarmAutoCleared;
             }
 
             _machineLock?.Dispose();

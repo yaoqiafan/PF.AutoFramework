@@ -65,14 +65,20 @@ namespace PF.Infrastructure.Hardware
             {
                 if (_hasAlarm != value)
                 {
+                    bool wasAlarm = _hasAlarm;
                     _hasAlarm = value;
                     RaisePropertyChanged();
+
+                    // true → false：设备自恢复，向上通知 BaseMechanism 检查是否整体清警
+                    if (wasAlarm && !_hasAlarm)
+                        HardwareAlarmAutoCleared?.Invoke(this, EventArgs.Empty);
                 }
             }
         }
 
         public event EventHandler<bool> ConnectionChanged;
         public event EventHandler<DeviceAlarmEventArgs> AlarmTriggered;
+        public event EventHandler HardwareAlarmAutoCleared;
 
         public readonly CategoryLogger HardwareLogger;
 

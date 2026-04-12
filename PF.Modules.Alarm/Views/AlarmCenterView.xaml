@@ -56,14 +56,21 @@
 
                     <!-- 操作栏 -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0">
-                        <Button Content="⟳ 复位全部" Width="100" Height="28" Margin="0,0,8,0"
+                        <Button Content="⟳ 确认全部" Width="100" Height="28" Margin="0,0,8,0"
                                 Command="{Binding ClearAllCommand}"
                                 Background="#E53935" Foreground="White" FontWeight="Bold"
-                                BorderThickness="0"/>
-                        <Button Content="✓ 清除选中" Width="100" Height="28"
+                                BorderThickness="0"
+                                ToolTip="清除报警服务中所有活跃记录（软确认，不触发硬件复位）"/>
+                        <Button Content="✓ 确认/清除" Width="100" Height="28" Margin="0,0,8,0"
                                 Command="{Binding ClearSelectedCommand}"
                                 Background="#FB8C00" Foreground="White"
-                                BorderThickness="0"/>
+                                BorderThickness="0"
+                                ToolTip="清除选中的单条报警记录（软确认）"/>
+                        <Button Content="🔄 系统复位" Width="110" Height="28"
+                                Command="{Binding SystemResetCommand}"
+                                Background="#1565C0" Foreground="White" FontWeight="Bold"
+                                BorderThickness="0"
+                                ToolTip="触发全线系统复位：清除所有活跃报警并执行硬件回待机位（ResetAllAsync）"/>
                     </StackPanel>
 
                     <!-- 表格 -->
