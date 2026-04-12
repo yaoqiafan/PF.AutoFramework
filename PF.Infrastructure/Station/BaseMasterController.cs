@@ -184,15 +184,22 @@ namespace PF.Infrastructure.Station
 
             _logger.Fatal($"【主控接收到子站报警】{source}: {errorCode}");
 
-            // ── 接入 IAlarmService ────────────────────────────────────────────
-            // 此处是子站报警向上汇聚的唯一入口，在此统一写入报警服务，保证：
-            // · AlarmCenterView 实时显示活跃报警
-            // · Fatal 级别触发主窗口阻断对话框（见 MainWindowViewModel）
-            // · 报警记录异步持久化到年份分表
-            _alarmService?.TriggerAlarm(source, errorCode);
+            // ── UI 拦截墙：过滤被动联锁停机产生的兜底报警码 ────────────────
+            // StationSyncError 是子站"被动拉停"时（_pendingAlarmCode 为空）由 Alarm.OnEntry 兜底填入的占位码。
+            // 此类事件的作用是维护主控与子站的状态同步（下方 Fire(Error) 保证），
+            // 本身不代表任何真实故障，禁止写入全局 AlarmService，否则一次急停会淹没 N 条无意义记录，
+            // 掩盖真正的根本故障（Root Cause）。
+            if (errorCode != AlarmCodes.System.StationSyncError)
+            {
+                // 此处是真实子站故障向上汇聚的唯一入口，写入报警服务，保证：
+                // · AlarmCenterView 实时显示活跃报警
+                // · Fatal 级别触发主窗口阻断对话框（见 MainWindowViewModel）
+                // · 报警记录异步持久化到年份分表
+                _alarmService?.TriggerAlarm(source, errorCode);
 
-            // 保留旧事件，确保已订阅 MasterAlarmTriggered 的外部代码不受影响
-            MasterAlarmTriggered?.Invoke(this, errorCode);
+                // 保留旧事件，确保已订阅 MasterAlarmTriggered 的外部代码不受影响
+                MasterAlarmTriggered?.Invoke(this, errorCode);
+            }
 
             // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
             Task.Run(() =>

@@ -147,13 +147,12 @@ namespace PF.Infrastructure.Station.Basic
                     // 开门：防止 Paused → Alarm 时业务续体永久阻塞在已关闭的门上
                     _pauseGate.TrySetResult(true);
 
-                    // 仅在主动报警（_pendingAlarmCode 非空）时才向主控上报事件。
-                    // 被主控急停联锁"被动拉停"的无辜工站 _pendingAlarmCode 为 null，
-                    // 静默切换状态，不触发事件，避免级联报警风暴淹没根本故障。
-                    var code = _pendingAlarmCode;
+                    // 读取并重置待上报的结构化报警码（未设置时兜底使用通用工站异常码）。
+                    // 必须无条件触发：主控依赖此事件感知子站已进入 Alarm，以维护整机状态同步。
+                    // "过滤兜底码不写入全局 AlarmService"的职责上移至 BaseMasterController.OnSubStationAlarm。
+                    var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
                     _pendingAlarmCode = null;
-                    if (code != null)
-                        StationAlarmTriggered?.Invoke(this, code);
+                    StationAlarmTriggered?.Invoke(this, code);
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting); // Alarm → Resetting（对齐主控复位路径）
 
@@ -240,7 +239,11 @@ namespace PF.Infrastructure.Station.Basic
                 {
                     try
                     {
-                        Fire(MachineTrigger.Error);
+                        // 防止重入：主控急停已通过 TriggerAlarm() 将本工站拉入 Alarm 后，
+                        // 业务线程的 OperationCanceledException 在极端竞态下可能漏入此 catch，
+                        // 若再次 Fire(Error) 会导致 Stateless 因"当前状态无此转换"抛出异常。
+                        if (_machine.State != MachineState.Alarm)
+                            Fire(MachineTrigger.Error);
                     }
                     catch (Exception fireEx)
                     {
