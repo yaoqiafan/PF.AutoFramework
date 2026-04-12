@@ -47,6 +47,7 @@ namespace PF.Modules.Debug.ViewModels
             {
                 var paramItem = parameters.GetValue<AxisParam>("Data");
                 ParamInstence = paramItem.ToViewModel();
+
             }
         }
 

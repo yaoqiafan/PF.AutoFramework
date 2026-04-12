@@ -20,16 +20,20 @@ namespace PF.Core.Attributes
         /// <summary>排故 SOP 指导文本，操作员可在报警中心查看逐步处理方案</summary>
         public string Solution { get; }
 
+        /// <summary>图片路径，如果有</summary>
+        public string? ImagePath { get; }
+
         /// <param name="category">分类</param>
         /// <param name="message">描述</param>
         /// <param name="severity">严重程度</param>
         /// <param name="solution">排故指导 SOP</param>
-        public AlarmInfoAttribute(string category, string message, AlarmSeverity severity, string solution)
+        public AlarmInfoAttribute(string category, string message, AlarmSeverity severity, string solution, string? imagePath=null)
         {
             Category = category;
             Message  = message;
             Severity = severity;
             Solution = solution;
+            ImagePath = imagePath;
         }
     }
 }

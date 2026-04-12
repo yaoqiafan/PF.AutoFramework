@@ -212,11 +212,15 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
-            bool trigOk  = tiggerclient.Status    == ClientStatus.Connected;
-            bool userOk  = Userpowerclient.Status == ClientStatus.Connected;
-            if ((!trigOk || !userOk) && !HasAlarm)
-                RaiseAlarm(AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
-                    $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");
+            if (!IsSimulated)
+            {
+                bool trigOk = tiggerclient.Status == ClientStatus.Connected;
+                bool userOk = Userpowerclient.Status == ClientStatus.Connected;
+                if ((!trigOk || !userOk) && !HasAlarm)
+                    RaiseAlarm(AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
+                        $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");
+            }
+
             return Task.CompletedTask;
         }
     }

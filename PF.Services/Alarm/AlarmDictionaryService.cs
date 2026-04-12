@@ -121,6 +121,7 @@ namespace PF.Services.Alarm
                     Message        = attr.Message,
                     Severity       = attr.Severity,
                     Solution       = attr.Solution,
+                    ImagePath = attr.ImagePath,
                     IsFromDatabase = false
                 };
                 count++;

@@ -179,9 +179,12 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
-            if (tiggerclient.Status != ClientStatus.Connected && !HasAlarm)
-                RaiseAlarm(AlarmCodes.Hardware.CameraHeartbeatTimeout,
-                    $"相机[{DeviceName}]触发端口 TCP 连接中断（{IPAdress}:{TiggerPort}）");
+            if (!IsSimulated)
+            {
+                if (tiggerclient.Status != ClientStatus.Connected && !HasAlarm)
+                    RaiseAlarm(AlarmCodes.Hardware.CameraHeartbeatTimeout,
+                        $"相机[{DeviceName}]触发端口 TCP 连接中断（{IPAdress}:{TiggerPort}）");
+            }
             return Task.CompletedTask;
         }
 

@@ -40,6 +40,9 @@ namespace PF.Core.Models
         /// <summary>排故 SOP 指导文本</summary>
         public string Solution { get; set; } = string.Empty;
 
+        /// <summary>排故 SOP 指导文本</summary>
+        public string? ImagePath { get; set; } = string.Empty;
+
         /// <summary>严重程度显示名（供 DataGrid 列绑定）</summary>
         public string SeverityDisplay => Severity switch
         {

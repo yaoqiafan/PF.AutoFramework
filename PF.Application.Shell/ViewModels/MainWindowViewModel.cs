@@ -12,6 +12,7 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
+using PF.Modules.Alarm.Dialogs;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
@@ -155,44 +156,48 @@ namespace PF.Application.Shell.ViewModels
         private void OnGlobalAlarmTriggered(AlarmRecord record)
         {
             // Growl 气泡通知（右上角）
-            string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";
+            //string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";
 
-            switch (record.Severity)
-            {
-                case AlarmSeverity.Fatal:
-                    Growl.FatalGlobal(growlMessage);
-                    break;
-                case AlarmSeverity.Error:
-                    Growl.ErrorGlobal(growlMessage);
-                    break;
-                case AlarmSeverity.Warning:
-                    Growl.WarningGlobal(growlMessage);
-                    break;
-                default:
-                    Growl.InfoGlobal(growlMessage);
-                    break;
-            }
+            //switch (record.Severity)
+            //{
+            //    case AlarmSeverity.Fatal:
+            //        Growl.FatalGlobal(growlMessage);
+            //        break;
+            //    case AlarmSeverity.Error:
+            //        Growl.ErrorGlobal(growlMessage);
+            //        break;
+            //    case AlarmSeverity.Warning:
+            //        Growl.WarningGlobal(growlMessage);
+            //        break;
+            //    default:
+            //        Growl.InfoGlobal(growlMessage);
+            //        break;
+            //}
 
-            // Fatal 级别 → 阻断式系统对话框，强制操作员确认后方可复位
-            if (record.Severity == AlarmSeverity.Fatal)
-            {
-                var message =
-                    $"【致命报警 — 必须处理】\n\n" +
-                    $"来源：{record.Source}\n" +
-                    $"代码：{record.ErrorCode}\n" +
-                    $"描述：{record.Message}\n\n" +
-                    $"排故指导：\n{record.Solution}\n\n" +
-                    $"请按照排故指导处理故障后，点击【确认】执行复位。";
+            //// Fatal 级别 → 阻断式系统对话框，强制操作员确认后方可复位
+            //if (record.Severity == AlarmSeverity.Fatal)
+            //{
+            //    var message =
+            //        $"【致命报警 — 必须处理】\n\n" +
+            //        $"来源：{record.Source}\n" +
+            //        $"代码：{record.ErrorCode}\n" +
+            //        $"描述：{record.Message}\n\n" +
+            //        $"排故指导：\n{record.Solution}\n\n" +
+            //        $"请按照排故指导处理故障后，点击【确认】执行复位。";
 
-                MessageService.ShowSystemMessage(
-                    message,
-                    "致命报警 — 需要处理",
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Error);
+            //    MessageService.ShowSystemMessage(
+            //        message,
+            //        "致命报警 — 需要处理",
+            //        System.Windows.MessageBoxButton.OK,
+            //        System.Windows.MessageBoxImage.Error);
 
-                // 用户点击确认后自动清除该来源的报警
-                _alarmService.ClearAlarm(record.Source);
-            }
+            //    // 用户点击确认后自动清除该来源的报警
+            //    _alarmService.ClearAlarm(record.Source);
+            //}
+
+
+            var param = new DialogParameters { { "Data", record } };
+            DialogService.Show(nameof(AlarmDetailCardView),param, null, nameof(PFAlarmBaseWindow));
         }
 
         #endregion

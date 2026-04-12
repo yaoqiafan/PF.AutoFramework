@@ -23,6 +23,9 @@ namespace PF.Core.Models
         /// <summary>排故 SOP 指导文本</summary>
         public string Solution { get; init; } = string.Empty;
 
+        /// <summary>图片路径，如果有</summary>
+        public string? ImagePath { get; init; } = string.Empty;
+
         /// <summary>
         /// 是否来自数据库扩展（true = 数据库定义，可覆盖代码内置；false = 代码内置）
         /// </summary>

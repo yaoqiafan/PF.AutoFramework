@@ -146,7 +146,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                               (done.Exception != null ? $" 错误信息: {done.Exception.InnerException?.Message}" : ""));
 
                                 _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
-                                TriggerAlarm(AlarmCodes.Process.StationSignalTimeout);
+                                TriggerAlarm();
                                 break;
                             }
 
@@ -379,24 +379,24 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _currentStep = _currentworkSpace == E_WorkSpace.工位1
                             ? StationDetectionStep.去工位1检测位置
                             : StationDetectionStep.去工位2检测位置;
-                        TriggerAlarm(AlarmCodes.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case StationDetectionStep.触发检测异常:
                         _logger.Error($"[{StationName}] OCR相机触发异常（{_currentworkSpace}）。请检查相机状态后复位，将重新触发检测。");
                         _currentStep = StationDetectionStep.触发检测;
-                        TriggerAlarm(AlarmCodes.Process.CameraTriggerFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.CameraTriggerFailed);
                         break;
 
                     case StationDetectionStep.写入检测数据异常:
                         _logger.Error($"[{StationName}] 写入检测数据异常（{_currentworkSpace}）。请检查数据模块后复位，将重新写入。");
                         _currentStep = StationDetectionStep.写入检测数据;
-                        TriggerAlarm(AlarmCodes.Process.StationDataWriteFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataWriteFailed);
                         break;
 
                     default:
                         _logger.Error($"[{StationName}] 进入未定义步序 [{_currentStep}]，触发报警。");
-                        TriggerAlarm(AlarmCodes.Process.StationUnexpectedStep);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationUnexpectedStep);
                         break;
                 }
             }
