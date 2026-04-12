@@ -13,6 +13,7 @@ namespace PF.Core.Events
     {
         public string MechanismName { get; set; }
         public string HardwareName { get; set; } // 哪个底层硬件引发的报警
+        public string ErrorCode { get; set; }    // 结构化报警码，透传至 AlarmService
         public string ErrorMessage { get; set; }
         public Exception InternalException { get; set; }
     }

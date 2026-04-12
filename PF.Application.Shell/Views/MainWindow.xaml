@@ -225,6 +225,7 @@
 
 
             <Button
+                Height="30"
                 Name="ButtonConfig"
                 Grid.Column="6"
                 VerticalAlignment="Top"

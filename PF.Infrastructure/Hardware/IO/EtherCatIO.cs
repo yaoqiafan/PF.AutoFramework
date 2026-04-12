@@ -1,4 +1,5 @@
 ﻿
+using PF.Core.Constants;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware.IO.Basic;
 using System;
@@ -36,6 +37,14 @@ namespace PF.Infrastructure.Hardware.IO
         protected override Task InternalResetAsync(CancellationToken token)
         {
             return Task.FromResult(true);
+        }
+
+        protected override Task InternalCheckHealthAsync(CancellationToken token)
+        {
+            if ((ParentCard == null || !ParentCard.IsConnected) && !HasAlarm)
+                RaiseAlarm(AlarmCodes.Hardware.IoModuleError,
+                    "IO 模块所在控制卡已断开，EtherCAT IO 不可用");
+            return Task.CompletedTask;
         }
     }
 }

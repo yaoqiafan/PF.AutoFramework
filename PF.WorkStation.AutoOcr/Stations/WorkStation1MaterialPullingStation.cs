@@ -1,5 +1,6 @@
 ﻿using Org.BouncyCastle.Crypto.Modes.Gcm;
 using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
@@ -79,7 +80,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _pullingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule)) as WorkStation1MaterialPullingModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _sync = sync;
-            _pullingModule.AlarmTriggered += _pullingModule_AlarmTriggered;
+            _pullingModule.AlarmTriggered   += _pullingModule_AlarmTriggered;
+            _pullingModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
             
         }
 
@@ -88,7 +90,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private void _pullingModule_AlarmTriggered(object? sender, Core.Events.MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            TriggerAlarm();
+            RaiseAlarm(e.ErrorCode ?? AlarmCodes.System.StationSyncError);
         }
 
         public override async Task ExecuteInitializeAsync(CancellationToken token)
@@ -376,74 +378,65 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1PullingStep.获取配方失败:
                         _logger.Error($"[{StationName}] 工位1配方参数为空，无法继续。请确认配方已正确下发后复位重启。");
                         _currentStep = Station1PullingStep.等待允许取料;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid);
                         break;
 
 
                     case Station1PullingStep.调整流道尺寸失败:
-                        _logger.Error($"[{StationName}] 调整流道尺寸失败，流道尺寸{_cachedRecipe .WafeSize }");
-                        
-                        _currentStep = Station1PullingStep.判断流道尺寸 ;
-                        TriggerAlarm();
+                        _logger.Error($"[{StationName}] 调整流道尺寸失败，流道尺寸{_cachedRecipe.WafeSize}");
+                        _currentStep = Station1PullingStep.判断流道尺寸;
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
 
                     case Station1PullingStep.移动到取料位失败:
                         _logger.Error($"[{StationName}] 移动到取料位失败");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.移动到取料位;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
 
                     case Station1PullingStep.关闭夹爪失败:
                         _logger.Error($"[{StationName}] 关闭夹爪失败");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.关闭夹爪;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed);
                         break;
 
                     case Station1PullingStep.检测到叠料异常:
                         _logger.Error($"[{StationName}] 检测到叠料，检查料盒物料");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.检测叠料;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError);
                         break;
 
                     case Station1PullingStep.移动到检测位失败:
                         _logger.Error($"[{StationName}] 移动到检测位失败,检查是否卡料掉料");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.移动到检测位;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case Station1PullingStep.送料到取料位失败:
                         _logger.Error($"[{StationName}] 送料到取料位失败,检查是否卡料掉料");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.送料到取料位;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case Station1PullingStep.打开夹爪失败:
                         _logger.Error($"[{StationName}] 打开夹爪失败,检查气缸信号");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.打开夹爪;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed);
                         break;
 
 
                     case Station1PullingStep.移动到待机位失败:
                         _logger.Error($"[{StationName}] 移动到待机位失败");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.移动到待机位;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
                         break;
 
                     case Station1PullingStep.判断带片异常:
                         _logger.Error($"[{StationName}] 夹爪带料");
-                        // 料盒/配方不对应，需人工干预后从头重新确认
                         _currentStep = Station1PullingStep.判断带片;
-                        TriggerAlarm();
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError);
                         break;
                         #endregion 异常流程
 

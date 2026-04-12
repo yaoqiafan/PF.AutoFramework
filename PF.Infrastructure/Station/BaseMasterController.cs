@@ -1,8 +1,10 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
+using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
 using Stateless;
 using System;
@@ -33,19 +35,28 @@ namespace PF.Infrastructure.Station
         // 并发安全：所有状态机跳转均通过此信号量独占执行
         private readonly SemaphoreSlim _machineLock = new(1, 1);
 
+        // 报警服务：可选注入，不影响已有子类的 DI 注册；注入后自动接入结构化报警流水线
+        private readonly IAlarmService? _alarmService;
+
+        // 硬件复位请求委托：由 Shell 通过 RegisterHardwareResetHandler 注入，使 PF.Infrastructure 无需依赖 Prism
+        private Action<HardwareResetRequest>? _hardwareResetHandler;
+
         protected BaseMasterController(
             ILogService logger,
             HardwareInputEventBus hardwareEventBus,
-            IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
+            IEnumerable<StationBase<StationMemoryBaseParam>> subStations,
+            IAlarmService? alarmService = null)
         {
+            _alarmService = alarmService;
             _logger = logger;
             _hardwareEventBus = hardwareEventBus;
             _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
-            // 监听所有子工站的软件报警事件
+            // 监听所有子工站的软件报警事件与硬件自恢复事件
             foreach (var station in _subStations)
             {
-                station.StationAlarmTriggered += OnSubStationAlarm;
+                station.StationAlarmTriggered   += OnSubStationAlarm;
+                station.StationAlarmAutoCleared += OnSubStationAlarmAutoCleared;
             }
 
             // 🌟 监听底层事件总线广播的物理按键事件
@@ -167,10 +178,36 @@ namespace PF.Infrastructure.Station
 
         // ── 全局核心指令 ──────────────────────────────────────────────────
 
-        private void OnSubStationAlarm(object sender, string errorMessage)
+        private void OnSubStationAlarmAutoCleared(object sender, EventArgs e)
         {
-            _logger.Fatal($"【主控接收到子站报警】: {errorMessage}");
-            MasterAlarmTriggered?.Invoke(this, errorMessage);
+            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+            _logger.Info($"【主控】工站 [{source}] 硬件自恢复，主动清除报警服务中对应记录。");
+            _alarmService?.ClearAlarm(source);
+        }
+
+        private void OnSubStationAlarm(object sender, string errorCode)
+        {
+            // sender 即触发报警的子工站实例，从中提取结构化来源标识
+            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+
+            _logger.Fatal($"【主控接收到子站报警】{source}: {errorCode}");
+
+            // ── UI 拦截墙：过滤被动联锁停机产生的兜底报警码 ────────────────
+            // StationSyncError 是子站"被动拉停"时（_pendingAlarmCode 为空）由 Alarm.OnEntry 兜底填入的占位码。
+            // 此类事件的作用是维护主控与子站的状态同步（下方 Fire(Error) 保证），
+            // 本身不代表任何真实故障，禁止写入全局 AlarmService，否则一次急停会淹没 N 条无意义记录，
+            // 掩盖真正的根本故障（Root Cause）。
+            if (errorCode != AlarmCodes.System.StationSyncError)
+            {
+                // 此处是真实子站故障向上汇聚的唯一入口，写入报警服务，保证：
+                // · AlarmCenterView 实时显示活跃报警
+                // · Fatal 级别触发主窗口阻断对话框（见 MainWindowViewModel）
+                // · 报警记录异步持久化到年份分表
+                _alarmService?.TriggerAlarm(source, errorCode);
+
+                // 保留旧事件，确保已订阅 MasterAlarmTriggered 的外部代码不受影响
+                MasterAlarmTriggered?.Invoke(this, errorCode);
+            }
 
             // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
             Task.Run(() =>
@@ -209,6 +246,9 @@ namespace PF.Infrastructure.Station
         {
             _logger.Fatal("【全局主控】触发全局急停指令！");
 
+            // 急停由主控统一上报；AlarmService 复合键幂等，子站后续触发的相同 source+code 会被跳过
+            _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationSyncError);
+
             // 1. 软件切入 Alarm 状态（打断逻辑协同）
             Fire(MachineTrigger.Error);
 
@@ -238,6 +278,7 @@ namespace PF.Infrastructure.Station
             catch (Exception ex)
             {
                 _logger.Error($"【主控】初始化异常: {ex.Message}");
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout);
                 Fire(MachineTrigger.Error);
                 return;
             }
@@ -267,15 +308,60 @@ namespace PF.Infrastructure.Station
                 return;
             }
 
+            // 复位成功：先执行子类专属清理，再清除报警服务中的所有活跃记录
             OnAfterResetSuccess();
+            _alarmService?.ClearAllActiveAlarms();
 
             await FireAsync(MachineTrigger.ResetDone);
+        }
+
+        /// <inheritdoc/>
+        public async Task RequestSystemResetAsync()
+        {
+            _logger.Info("【主控】接收到系统复位请求，开始执行全线复位...");
+
+            // 先清除报警服务中的所有活跃记录（UI 即时刷新），再触发硬件状态机复位
+            _alarmService?.ClearAllActiveAlarms();
+
+            await ResetAllAsync();
         }
 
         /// <summary>
         /// 供子类重写：复位成功回到 Idle 之前执行的专属逻辑（如清理信号量）
         /// </summary>
         protected virtual void OnAfterResetSuccess() { }
+
+        /// <inheritdoc/>
+        public void RegisterHardwareResetHandler(Action<HardwareResetRequest> handler)
+            => _hardwareResetHandler = handler;
+
+        /// <summary>
+        /// 响应硬件复位请求：按 Source 匹配子工站并在后台触发硬件清警复位。
+        /// Shell 通过 <c>RegisterHardwareResetHandler</c> 将 Prism EA 事件路由到此方法，
+        /// 使 PF.Infrastructure 无需直接依赖 Prism。
+        /// 子类可 override 以实现更精细的机构级路由。
+        /// </summary>
+        public virtual void OnHardwareResetRequested(HardwareResetRequest request)
+        {
+            if (request == null) return;
+
+            var station = _subStations.FirstOrDefault(s => s.StationName == request.Source);
+            if (station == null || station.CurrentState != MachineState.Alarm) return;
+
+            _logger.Info($"【主控】接收到硬件复位请求，来源：{request.Source}，错误码：{string.Join(", ", request.ErrorCodes)}");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await station.ExecuteResetAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"【主控】硬件复位请求执行失败，来源：{request.Source}: {ex.Message}");
+                }
+            });
+        }
 
         // ── 线程安全的触发器封装 ───────────────────────────────────────────
 
@@ -326,7 +412,8 @@ namespace PF.Infrastructure.Station
 
             foreach (var station in _subStations)
             {
-                station.StationAlarmTriggered -= OnSubStationAlarm;
+                station.StationAlarmTriggered   -= OnSubStationAlarm;
+                station.StationAlarmAutoCleared -= OnSubStationAlarmAutoCleared;
             }
 
             _machineLock?.Dispose();

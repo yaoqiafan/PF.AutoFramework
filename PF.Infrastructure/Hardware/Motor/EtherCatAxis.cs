@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware.Motor.Basic;
 using System;
@@ -42,6 +43,20 @@ namespace PF.Infrastructure.Hardware.Motor
         protected override Task InternalResetAsync(CancellationToken token)
         {
             return Task.FromResult(true);
+        }
+
+        protected override Task InternalCheckHealthAsync(CancellationToken token)
+        {
+            if (ParentCard == null) return Task.CompletedTask;
+
+            var ios = ParentCard.GetMotionIOStatus(AxisIndex);
+            if (ios.ALM && !HasAlarm)
+                RaiseAlarm(AlarmCodes.Hardware.ServoError,
+                    $"轴[{AxisIndex}]伺服驱动器报警（ALM 信号有效）");
+            else if ((ios.PEL || ios.MEL) && !HasAlarm)
+                RaiseAlarm(AlarmCodes.Hardware.AxisLimitError,
+                    $"轴[{AxisIndex}]限位保护触发（PEL={ios.PEL}, MEL={ios.MEL}）");
+            return Task.CompletedTask;
         }
     }
 }

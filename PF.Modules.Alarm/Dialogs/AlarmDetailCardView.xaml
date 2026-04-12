@@ -1,0 +1,217 @@
+﻿<UserControl
+    x:Class="PF.Modules.Alarm.Dialogs.AlarmDetailCardView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PF.Modules.Alarm.Dialogs"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Height="450"
+    FontSize="{DynamicResource FontSize.H1.Large}"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <Style x:Key="HeaderBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Alarm.SeverityDisplay}" Value="警告">
+                    <Setter Property="Background" Value="{DynamicResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Alarm.SeverityDisplay}" Value="错误">
+                    <Setter Property="Background" Value="#EF4444" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Alarm.SeverityDisplay}" Value="致命">
+                    <Setter Property="Background" Value="{DynamicResource DarkDangerBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Alarm.IsActive}" Value="False">
+                    <Setter Property="Background" Value="#9CA3AF" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Border
+        Margin="10"
+        BorderThickness="1"
+        CornerRadius="8">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border
+                Grid.Row="0"
+                Padding="15"
+                CornerRadius="8,8,0,0"
+                Style="{StaticResource HeaderBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel
+                        Grid.Row="0"
+                        Margin="0,0,0,8"
+                        Orientation="Horizontal">
+                        <Border
+                            Margin="0,0,10,0"
+                            Padding="6,2"
+                            Background="White"
+                            CornerRadius="4">
+                            <TextBlock
+                                FontWeight="Bold"
+                                Foreground="Black"
+                                Text="{Binding Alarm.SeverityDisplay}" />
+                        </Border>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Foreground="White"
+                            Opacity="0.9"
+                            Text="{Binding Alarm.ErrorCode, StringFormat='代码: {0}'}" />
+
+                        <TextBlock
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            FontWeight="Bold"
+                            Foreground="White">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="(已清除)" />
+                                    <Setter Property="Opacity" Value="0.7" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Alarm.IsActive}" Value="True">
+                                            <Setter Property="Text" Value="● 发生中" />
+                                            <Setter Property="Opacity" Value="1" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <TextBlock
+                        Grid.Row="1"
+                        FontSize="20"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="{Binding Alarm.Message}"
+                        TextWrapping="Wrap" />
+
+                    <Button
+                        Grid.Row="0"
+                        Grid.RowSpan="2"
+                        Grid.Column="1"
+                        Content="异常复位"
+                        Command="{Binding ConfirmCommand}"
+                        FontSize="{DynamicResource FontSize.H1.Large}"
+                        Style="{StaticResource ButtonPrimary}" />
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Row="1"
+                Padding="15,15,15,10"
+                BorderBrush="#E5E7EB"
+                BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Margin="0,0,5,10"
+                        Foreground="#6B7280"
+                        Text="来源工站：" />
+                    <TextBlock
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        FontWeight="SemiBold"
+                        Text="{Binding Alarm.Source}"
+                        TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock
+                        Grid.Row="0"
+                        Grid.Column="2"
+                        Margin="10,0,5,10"
+                        Foreground="#6B7280"
+                        Text="报警分类：" />
+                    <TextBlock
+                        Grid.Row="0"
+                        Grid.Column="3"
+                        FontWeight="SemiBold"
+                        Text="{Binding Alarm.Category}"
+                        TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Margin="0,0,5,0"
+                        Foreground="#6B7280"
+                        Text="触发时间：" />
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Text="{Binding Alarm.TriggerTime, StringFormat=\{0:yyyy-MM-dd HH:mm:ss\}}" />
+
+
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Row="2"
+                Padding="15"
+                Background="#F9FAFB"
+                CornerRadius="0,0,8,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition  />
+                        <ColumnDefinition Width="auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                        <TextBlock Margin="0,0,5,0" Text="💡" />
+                        <TextBlock
+                            FontWeight="Bold"
+                            Foreground="#374151"
+                            Text="排故指导 (SOP)" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <TextBlock
+                            Foreground="#4B5563"
+                            LineHeight="20"
+                            Text="{Binding Alarm.Solution, TargetNullValue='暂无排故指导。'}"
+                            TextWrapping="Wrap" />
+                    </ScrollViewer>
+
+
+                    <Grid  Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"  Margin="15,0,0,0">
+                        <Image Source="{Binding Alarm.ImagePath}" Stretch="Uniform" >
+
+                        </Image>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>
