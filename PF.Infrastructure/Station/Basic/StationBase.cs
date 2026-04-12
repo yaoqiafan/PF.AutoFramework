@@ -147,10 +147,13 @@ namespace PF.Infrastructure.Station.Basic
                     // 开门：防止 Paused → Alarm 时业务续体永久阻塞在已关闭的门上
                     _pauseGate.TrySetResult(true);
 
-                    // 读取并重置待上报的结构化报警码（未设置时使用通用工站异常码）
-                    var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
+                    // 仅在主动报警（_pendingAlarmCode 非空）时才向主控上报事件。
+                    // 被主控急停联锁"被动拉停"的无辜工站 _pendingAlarmCode 为 null，
+                    // 静默切换状态，不触发事件，避免级联报警风暴淹没根本故障。
+                    var code = _pendingAlarmCode;
                     _pendingAlarmCode = null;
-                    StationAlarmTriggered?.Invoke(this, code);
+                    if (code != null)
+                        StationAlarmTriggered?.Invoke(this, code);
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting); // Alarm → Resetting（对齐主控复位路径）
 
@@ -225,6 +228,10 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
+
+                // 业务代码未显式调用 RaiseAlarm 时兜底赋码，确保未预期崩溃能被 AlarmService 正确上报。
+                // 显式调用过 RaiseAlarm 的路径 _pendingAlarmCode 已非空，?? 不会覆盖精确报警码。
+                _pendingAlarmCode ??= AlarmCodes.System.StationSyncError;
 
                 // 🚨 修复 P0 级死锁：
                 // 必须通过 Task.Run 脱离当前任务上下文，让 _workflowTask 立即结束
