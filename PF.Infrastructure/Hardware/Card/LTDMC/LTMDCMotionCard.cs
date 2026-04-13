@@ -632,6 +632,26 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             return Task.CompletedTask;
         }
 
+
+
+        public override Task<bool> ClearAxisError(int axisIndex)
+        {
+            try
+            {
+                short ret = CardAPI.LTDMC.nmc_clear_axis_errcode((ushort)CardIndex, (ushort)axisIndex);
+                if (ret != 0)
+                {
+                    throw new Exception($"清除轴异常失败,nmc_clear_axis_errcode返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+        }
+
         #endregion 控制卡连接和初始化
 
 
@@ -639,7 +659,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         #region 位置锁存
 
-        public override Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        public override Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
         {
             try
             {
@@ -657,12 +677,12 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 {
                     throw new Exception($"配置锁存器 失败，函数 dmc_softltc_set_mode 返回值 {ret}");
                 }
-                ret = CardAPI.LTDMC.dmc_ltc_set_source((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)AxisNo, (ushort)1);
+                ret = CardAPI.LTDMC.dmc_softltc_set_source((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)AxisNo, (ushort)1);
                 if (ret != 0)
                 {
                     throw new Exception($"配置锁存源  失败，函数 dmc_ltc_set_source 返回值 {ret}");
                 }
-                ret = CardAPI.LTDMC.dmc_ltc_reset((ushort)(this.CardIndex), (ushort)LatchNo);
+                ret = CardAPI.LTDMC.dmc_softltc_reset((ushort)(this.CardIndex), (ushort)LatchNo);
                 if (ret != 0)
                 {
                     throw new Exception($"复位锁存器  失败，函数 dmc_ltc_reset 返回值 {ret}");
