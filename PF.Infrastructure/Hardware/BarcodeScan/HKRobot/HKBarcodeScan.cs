@@ -148,7 +148,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
                 TiggerEvent.Reset();
                 string TiggerStr = "+";
-                if (await tiggerclient.SendStringAsync(TiggerStr))
+                if (!await tiggerclient.SendStringAsync(TiggerStr))
                 {
                     return null;
                 }
@@ -181,6 +181,8 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             {
                 return false;
             }
+            tiggerclient.DataReceived -= Tiggerclient_DataReceived;
+            Userpowerclient.DataReceived -= Userpowerclient_DataReceived;
             tiggerclient.DataReceived += Tiggerclient_DataReceived;
             Userpowerclient.DataReceived += Userpowerclient_DataReceived;
 
