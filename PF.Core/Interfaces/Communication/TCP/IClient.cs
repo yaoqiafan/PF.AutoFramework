@@ -1,9 +1,6 @@
 ﻿using PF.Core.Enums;
 using PF.Core.Events;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Communication.TCP
@@ -27,5 +24,11 @@ namespace PF.Core.Interfaces.Communication.TCP
         Task<bool> SendAsync(byte[] data);
         Task DisconnectAsync();
         Task ReconnectAsync();
+
+        // 新增：发送数据并等待一次返回结果（带超时）
+        Task<byte[]> WaitSentReceiveDataAsync(byte[] data, int timeoutMs);
+
+        // 新增：在固定的时间窗口内，接收期间到达的所有数据
+        Task<byte[]> ReceiveAllDataInTimeWindowAsync(int timeWindowMs);
     }
 }
