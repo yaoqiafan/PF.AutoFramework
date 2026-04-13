@@ -72,11 +72,15 @@ namespace PF.Infrastructure.Hardware.Motor
         {
             if (ParentCard == null) return Task.CompletedTask;
 
+            if (IsSimulated )
+            {
+                return Task.CompletedTask;
+            }
             var ios = ParentCard.GetMotionIOStatus(AxisIndex);
-            if (ios.ALM && !HasAlarm)
+            if (ios.ALM && !HasAlarm )
                 RaiseAlarm(AlarmCodes.Hardware.ServoError,
                     $"轴[{AxisIndex}]伺服驱动器报警（ALM 信号有效）");
-            else if ((ios.PEL || ios.MEL) && !HasAlarm)
+            else if ((ios.PEL || ios.MEL) && !HasAlarm && !ios.Homing)
                 RaiseAlarm(AlarmCodes.Hardware.AxisLimitError,
                     $"轴[{AxisIndex}]限位保护触发（PEL={ios.PEL}, MEL={ios.MEL}）");
             return Task.CompletedTask;

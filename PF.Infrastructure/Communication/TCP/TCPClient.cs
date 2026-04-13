@@ -68,7 +68,7 @@ namespace PF.Infrastructure.Communication.TCP
             _clientId = clientId ?? Guid.NewGuid().ToString();
         }
 
-        public async Task<bool> ConnectAsync(string serverIp, int serverPort)
+        public async Task<bool> ConnectAsync(string serverIp, int serverPort,bool IsAsync=true )
         {
             await _connectLock.WaitAsync();
             try
@@ -117,8 +117,10 @@ namespace PF.Infrastructure.Communication.TCP
                     _receiveCancellationTokenSource?.Cancel();
                     _receiveCancellationTokenSource?.Dispose();
                     _receiveCancellationTokenSource = new CancellationTokenSource();
-                    _ = Task.Run(() => ReceiveLoopAsync(_receiveCancellationTokenSource.Token), _receiveCancellationTokenSource.Token);
-
+                    if (IsAsync )
+                    {
+                        _ = Task.Run(() => ReceiveLoopAsync(_receiveCancellationTokenSource.Token), _receiveCancellationTokenSource.Token);
+                    }
                     Status = ClientStatus.Connected;
                     OnConnected($"已连接到服务器 {serverIp}:{serverPort}");
 

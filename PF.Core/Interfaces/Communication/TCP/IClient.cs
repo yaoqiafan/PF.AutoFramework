@@ -23,7 +23,7 @@ namespace PF.Core.Interfaces.Communication.TCP
         event EventHandler<DataReceivedEventArgs> DataReceived;
         event EventHandler<ErrorOccurredEventArgs> ErrorOccurred;
 
-        Task<bool> ConnectAsync(string serverIp, int serverPort);
+        Task<bool> ConnectAsync(string serverIp, int serverPort, bool IsAsync = true);
         Task<bool> SendAsync(byte[] data);
         Task DisconnectAsync();
         Task ReconnectAsync();

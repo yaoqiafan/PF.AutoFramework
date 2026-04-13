@@ -103,6 +103,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // 初始化线程安全的字典用于存放层阵列坐标
             PickingPosition_8 = new ConcurrentDictionary<int, AxisPoint>();
             PickingPosition_12 = new ConcurrentDictionary<int, AxisPoint>();
+            ScanPosition_8 = new ConcurrentDictionary<int, AxisPoint>();
+            ScanPosition_12 = new ConcurrentDictionary<int, AxisPoint>();
         }
 
 
@@ -421,7 +423,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 _logger.Success($"[{MechanismName}] 双传感器扫描完成。通道 {latchNo1} 识别 {resultMap[latchNo1].Count} 层，通道 {latchNo2} 识别 {resultMap[latchNo2].Count} 层。");
 
-                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Date}//{DateTime.Now.ToString("yyyyMMddHHmmss")}.xlsx", resultMap);
+                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{DateTime.Now.ToString("yyyyMMddHHmmss")}.xlsx", resultMap);
 
                 return resultMap;
             }
@@ -449,10 +451,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             using (XSSFWorkbook wk = new XSSFWorkbook())
             {
+                int count = 0;
                 ISheet sheet = wk.CreateSheet("point");
                 foreach (var item in point)
                 {
-                    int count = 0;
+                    
                     for (int i = 0; i < item.Value?.Count; i++)
                     {
                         if (i == 0)
@@ -465,6 +468,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
 
                     }
+                    count++;
                 }
                 using (FileStream fs = new FileStream(FilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
                 {

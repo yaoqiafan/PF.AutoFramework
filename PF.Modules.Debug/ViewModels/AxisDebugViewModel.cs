@@ -324,6 +324,7 @@ namespace PF.Modules.Debug.ViewModels
             IsNegativeLimit = axisio?.MEL ?? false;
             IsORG = axisio?.ORG ?? false;
             IsHoming = axisio?.Homing ?? false;
+            IsAlarm = axisio?.ALM ?? false;
         }
 
         #endregion
