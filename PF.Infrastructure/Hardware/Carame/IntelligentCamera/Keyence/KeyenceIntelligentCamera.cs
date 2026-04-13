@@ -122,9 +122,10 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 if (IsSimulated) { return "当前设备模拟模式中，触发测试！"; }
 
                 TiggerEvent.Reset();
-                string TiggerStr = "TRG";
+                //string TiggerStr = "TRG\r\n";
+                string TiggerStr = "TRG\r\n";
                 TiggerRec = string.Empty;
-                if (await tiggerclient.SendStringAsync(TiggerStr))
+                if (!await tiggerclient.SendStringAsync(TiggerStr))
                 {
                     throw new Exception($"基恩士智能相机发送触发指令失败");
                 }
@@ -155,6 +156,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             {
                 return false;
             }
+            tiggerclient.DataReceived -= Tiggerclient_DataReceived;
             tiggerclient.DataReceived += Tiggerclient_DataReceived;
             return true;
         }
@@ -256,7 +258,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             {
                 if (IsSimulated) { return "0000-Test"; }
                 TiggerEvent.Reset();
-                string TiggerStr = "PR";
+                string TiggerStr = "PR\r\n";
                 TiggerRec = string.Empty;
                 if (await tiggerclient.SendStringAsync(TiggerStr))
                 {
