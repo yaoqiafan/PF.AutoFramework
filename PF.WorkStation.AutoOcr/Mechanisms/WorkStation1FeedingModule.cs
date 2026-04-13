@@ -455,7 +455,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 ISheet sheet = wk.CreateSheet("point");
                 foreach (var item in point)
                 {
-                    
+
                     for (int i = 0; i < item.Value?.Count; i++)
                     {
                         if (i == 0)
@@ -500,9 +500,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 throw new Exception("理论层坐标未初始化，请先执行 SwitchProductionStateAsync 切换生产状态或计算阵列！");
             }
 
+            if (rawMappingData.Keys.Count < 2)
+            {
+                throw new Exception("寻层计算失败，原始数据缺失");
+            }
+
             // 安全提取两个传感器的数据（假设键值按传入顺序，或者容错处理）
-            var sensor1Data = rawMappingData.Keys.ElementAtOrDefault(0) != default ? rawMappingData[rawMappingData.Keys.ElementAt(0)] : new List<double>();
-            var sensor2Data = rawMappingData.Keys.ElementAtOrDefault(1) != default ? rawMappingData[rawMappingData.Keys.ElementAt(1)] : new List<double>();
+            var sensor1Data = rawMappingData[rawMappingData.Keys.ElementAt(0)];
+            var sensor2Data = rawMappingData[rawMappingData.Keys.ElementAt(1)];
 
             // 防呆1：检查两个传感器识别到的总数是否差异过大
             if (Math.Abs(sensor1Data.Count - sensor2Data.Count) > 1)
@@ -511,10 +516,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
 
             // 设定容差阈值 (依赖动态读取的 LayerPitch)
-            if (LayerPitch <= 0)
-            {
-                throw new Exception("工艺参数 LayerPitch 异常，必须大于0！");
-            }
+            //if (  LayerPitch <= 0)
+            //{
+            //    throw new Exception("工艺参数 LayerPitch 异常，必须大于0！");
+            //}
             double slotMatchTolerance = LayerPitch * 0.4; // 槽位匹配容差：防止错位或飞片
 
             int SameLayerMaximum = _currentWaferSize == E_WafeSize._8寸 ? await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_8.ToString()) : await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_12.ToString());
@@ -555,7 +560,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         // 提取理论Z坐标
                         double theoreticalZ = theoreticalPoint.TargetPosition;
 
-                        if (Math.Abs(actualZ - theoreticalZ) <= slotMatchTolerance)
+                        if (Math.Abs(actualZ - theoreticalZ) <= Math.Abs(slotMatchTolerance))
                         {
                             // 防呆3：重叠片(Double-wafer)防呆 —— 同一个槽位塞了两片晶圆
                             if (validWafers.ContainsKey(layerIndex))
@@ -775,7 +780,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var point = new AxisPoint
                 {
                     Name = $"第{i + 1}层取料位",
-                    TargetPosition = basescanPoint.TargetPosition + (i * LayerPitch), // 计算核心
+                    TargetPosition = basescanPoint.TargetPosition - (i * LayerPitch), // 计算核心
                     Speed = basescanPoint.Speed,// 沿用第一层的运动速度
                     Acc = basescanPoint.Acc, // 沿用第一层的运动速度
                     Dec = basescanPoint.Dec, // 沿用第一层的运动速度
@@ -784,7 +789,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var point1 = new AxisPoint
                 {
                     Name = $"第{i + 1}层扫描位",
-                    TargetPosition = basePoint.TargetPosition + (i * LayerPitch), // 计算核心
+                    TargetPosition = basePoint.TargetPosition - (i * LayerPitch), // 计算核心
                     Speed = basePoint.Speed,// 沿用第一层的运动速度
                     Acc = basePoint.Acc, // 沿用第一层的运动速度
                     Dec = basePoint.Dec, // 沿用第一层的运动速度

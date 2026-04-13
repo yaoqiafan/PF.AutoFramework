@@ -24,7 +24,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         /// </summary>
         private PF.Infrastructure.Communication.TCP.TCPClient tiggerclient = new Communication.TCP.TCPClient();
 
-        private ManualResetEventSlim TiggerEvent = new ManualResetEventSlim(false);
+       
 
         private string TiggerRec = string.Empty;
         public override string IPAdress { get; }
@@ -44,40 +44,24 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 {
                     throw new Exception($"切换程序编号错误");
                 }
-                TiggerEvent.Reset();
-                string TiggerStr = "RUN";
+                string TiggerStr = "RUN\r\n";
                 TiggerRec = string.Empty;
-                if (await tiggerclient.SendStringAsync(TiggerStr))
-                {
-                    throw new Exception($"基恩士智能相机发送切换运行模式指令失败");
-                }
-                Task a = Task.Run(() => TiggerEvent.Wait(), token);
-                Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                Task result = await Task.WhenAny(a, b);
-                if (!result.Equals(a))
-                {
-                    throw new Exception($"基恩士智能相机接收切换运行模式指令返回超时");
-                }
-                if (!TiggerRec.Equals(TiggerStr))
+                var rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
+
+                TiggerRec = Encoding.ASCII.GetString(rec);
+                if (!TiggerRec.Contains(TiggerStr))
                 {
                     throw new Exception($"基恩士智能相机接收切换运行模式指令返回内容不匹配");
                 }
 
-                TiggerEvent.Reset();
-                TiggerStr = $"PL,1,{ProgramID.ToString("X4")}";
+
+                TiggerStr = $"PL,1,{ProgramID.ToString("X4")}\r\n";
                 TiggerRec = string.Empty;
-                if (await tiggerclient.SendStringAsync(TiggerStr))
-                {
-                    throw new Exception($"基恩士智能相机发送切换程式指令失败");
-                }
-                a = Task.Run(() => TiggerEvent.Wait(), token);
-                b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                result = await Task.WhenAny(a, b);
-                if (!result.Equals(a))
-                {
-                    throw new Exception($"基恩士智能相机接收切换程式指令返回超时");
-                }
-                if (!TiggerRec.Trim().Equals("PL"))
+                TiggerRec = string.Empty;
+                rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
+
+                TiggerRec = Encoding.ASCII.GetString(rec);
+                if (!TiggerRec.Trim().Contains ("PL"))
                 {
                     throw new Exception($"基恩士智能相机接收切换程式指令返回内容不匹配");
                 }
@@ -121,25 +105,12 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             {
                 if (IsSimulated) { return "当前设备模拟模式中，触发测试！"; }
 
-                TiggerEvent.Reset();
+
                 //string TiggerStr = "TRG\r\n";
                 string TiggerStr = "TRG\r\n";
-                TiggerRec = string.Empty;
-                if (!await tiggerclient.SendStringAsync(TiggerStr))
-                {
-                    throw new Exception($"基恩士智能相机发送触发指令失败");
-                }
-                Task a = Task.Run(() => TiggerEvent.Wait(), token);
-                Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                Task result = await Task.WhenAny(a, b);
-                if (result.Equals(a))
-                {
-                    return TiggerRec;
-                }
-                else
-                {
-                    throw new Exception($"基恩士智能相机接收触发返回超时");
-                }
+                TiggerRec = await GetResult(TiggerStr, TimeOutMs, 1000);
+                return TiggerRec;
+
             }
             catch (Exception ex)
             {
@@ -152,20 +123,15 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             if (IsSimulated) { return true; }
 
-            if (!await tiggerclient.ConnectAsync(IPAdress, TiggerPort))
+            if (!await tiggerclient.ConnectAsync(IPAdress, TiggerPort, false))
             {
                 return false;
             }
-            tiggerclient.DataReceived -= Tiggerclient_DataReceived;
-            tiggerclient.DataReceived += Tiggerclient_DataReceived;
+           
             return true;
         }
 
-        private void Tiggerclient_DataReceived(object? sender, DataReceivedEventArgs e)
-        {
-            TiggerRec = Encoding.UTF8.GetString(e.Data);
-            TiggerEvent.Set();
-        }
+      
 
         protected async override Task InternalDisconnectAsync()
         {
@@ -257,29 +223,16 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             try
             {
                 if (IsSimulated) { return "0000-Test"; }
-                TiggerEvent.Reset();
                 string TiggerStr = "PR\r\n";
                 TiggerRec = string.Empty;
-                if (await tiggerclient.SendStringAsync(TiggerStr))
-                {
-                    throw new Exception($"基恩士智能相机发送触发指令失败");
-                }
-                Task a = Task.Run(() => TiggerEvent.Wait(), token);
-                Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                Task result = await Task.WhenAny(a, b);
-                if (!result.Equals(a))
-                {
-                    throw new Exception("基恩士智能相机接收数据超时");
-                }
-                string rec = TiggerRec;
-                if (rec.Contains("PR,"))
-                {
-                    return rec.Split(',')[2];
-                }
-                else
+                var rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
+
+                TiggerRec = Encoding.ASCII.GetString(rec);
+                if (!TiggerRec.Contains("PR,"))
                 {
                     throw new Exception($"基恩士智能相机返回数据格式错误：返回数据{rec}");
                 }
+                return TiggerRec.Split(',')[2];
             }
             catch (Exception ex)
             {
@@ -299,13 +252,6 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                     throw new Exception("传入的程序名称错误");
                 }
                 string changecamid = programName.ToString().Split('_')[0];
-                TiggerEvent.Reset();
-                string TiggerStr = "TRG";
-                TiggerRec = string.Empty;
-                if (await tiggerclient.SendStringAsync(TiggerStr))
-                {
-                    throw new Exception($"基恩士智能相机发送触发指令失败");
-                }
                 string nowid = await this.GetProgramName(token);
                 if (string.IsNullOrEmpty(nowid))
                 {
@@ -325,5 +271,24 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 return false;
             }
         }
+
+
+
+        private async Task<string> GetResult(string Send, int TimeOutMs = 5000, int DelayTimeM = 500, CancellationToken token = default)
+        {
+            var rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(Send), TimeOutMs);
+            if (rec == null || !Encoding.ASCII.GetString(rec).Contains(Send.Trim()))
+            {
+                return null;
+            }
+            var ocr = await tiggerclient.ReceiveAllDataInTimeWindowAsync(DelayTimeM);
+            if (ocr == null)
+            {
+                return null;
+            }
+            return Encoding.ASCII.GetString(ocr).Trim();
+        }
+
+
     }
 }
