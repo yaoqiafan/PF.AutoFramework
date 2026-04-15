@@ -165,6 +165,7 @@ namespace PF.Services.Hardware
 
             var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
             _logger.Info($"[HardwareManager] 开始拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...");
+            await Task.Delay(500);
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"开始硬件拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...",
@@ -174,6 +175,7 @@ namespace PF.Services.Hardware
             // ── 第1层：顶级设备（板卡，ParentDeviceId 为空）────────────────────
             var topLevel = enabledConfigs.Where(c => string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
             _logger.Info($"[HardwareManager] 第1层：初始化 {topLevel.Count} 个顶级设备...");
+            await Task.Delay(500);
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"[第1层] 初始化 {topLevel.Count} 个顶级设备（板卡）...",
@@ -185,6 +187,7 @@ namespace PF.Services.Hardware
             // ── 第2层：子设备（轴/IO，ParentDeviceId 非空）──────────────────────
             var children = enabledConfigs.Where(c => !string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
             _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备...");
+            await Task.Delay(500);
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"[第2层] 初始化 {children.Count} 个子设备（轴/IO）...",
@@ -212,6 +215,7 @@ namespace PF.Services.Hardware
             }
 
             _logger.Success($"[HardwareManager] 初始化完成，活跃设备数: {_activeDevices.Count}");
+            await Task.Delay(500);
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"硬件初始化完成，活跃设备数: {_activeDevices.Count}",
@@ -306,6 +310,7 @@ namespace PF.Services.Hardware
             if (!_factories.TryGetValue(config.ImplementationClassName, out var factory))
             {
                 _logger.Warn($"[HardwareManager] 未找到工厂 '{config.ImplementationClassName}'，跳过设备 '{config.DeviceId}'");
+                await Task.Delay(500);
                 progress?.Report(new SplashProgressPayload
                 {
                     Status = $"跳过 [{config.DeviceName}]：未找到对应工厂实现",
@@ -313,14 +318,14 @@ namespace PF.Services.Hardware
                 });
                 return;
             }
-
+           
             // ── 加载前汇报 ─────────────────────────────────────────────────────
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"正在初始化: [{config.DeviceName}]...",
                 MsgType = MsgType.Info
             });
-
+            await Task.Delay(500);
             try
             {
                 var device = factory(config);
@@ -346,6 +351,7 @@ namespace PF.Services.Hardware
                             Status = $"[{config.DeviceName}] 连接成功",
                             MsgType = MsgType.Success
                         });
+                        await Task.Delay(500);
                     }
                     else
                     {
@@ -356,6 +362,7 @@ namespace PF.Services.Hardware
                             Status = $"[{config.DeviceName}] 连接返回 false，已保留以供手动重连",
                             MsgType = MsgType.Warning
                         });
+                        await Task.Delay(500);
                     }
                 }
                 catch (Exception connEx)
@@ -368,6 +375,7 @@ namespace PF.Services.Hardware
                         Status = $"[{config.DeviceName}] 连接异常: {connEx.Message}",
                         MsgType = MsgType.Error
                     });
+                    await Task.Delay(500);
                 }
             }
             catch (Exception ex)
@@ -379,6 +387,7 @@ namespace PF.Services.Hardware
                     Status = $"[{config.DeviceName}] 实例化失败: {ex.Message}",
                     MsgType = MsgType.Fatal
                 });
+                await Task.Delay(500);
             }
         }
 
