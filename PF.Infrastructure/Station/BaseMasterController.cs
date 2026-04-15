@@ -264,16 +264,24 @@ namespace PF.Infrastructure.Station
         {
             if (!CanFire(MachineTrigger.Initialize)) return;
 
-            _logger.Info("【主控】开始全线初始化...");
+            _logger.Info("【主控】开始全线初始化(限流模式)...");
             Fire(MachineTrigger.Initialize);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             try
             {
-                foreach (var station in _subStations)
+                // 1. 配置并行选项
+                var parallelOptions = new ParallelOptions
                 {
-                    await station.ExecuteInitializeAsync(cts.Token);
-                }
+                    MaxDegreeOfParallelism = 4, // 限制最多同时初始化 4 个工位（请根据实际硬件承受能力调整）
+                    CancellationToken = cts.Token
+                };
+
+                // 2. 执行限流的并发初始化
+                await Parallel.ForEachAsync(_subStations, parallelOptions, async (station, token) =>
+                {
+                    await station.ExecuteInitializeAsync(token);
+                });
             }
             catch (Exception ex)
             {
