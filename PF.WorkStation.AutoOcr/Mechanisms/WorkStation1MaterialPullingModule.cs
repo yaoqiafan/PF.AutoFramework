@@ -392,13 +392,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             try
             {
-                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸右张开, false))
+                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左张开, false))
                 {
-                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸右张开} 失败");
+                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸左张开} 失败");
                 }
-                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸右闭合, true))
+                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左闭合, true))
                 {
-                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸右闭合} 失败");
+                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸左闭合} 失败");
                 }
 
                 while (true)
@@ -415,7 +415,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     throw new Exception($"获取输入信号{E_InPutName.晶圆夹爪左铁环有无检测} 失败");
                 }
-                if (!res1.Value)
+                if (res1.Value)
                 {
                     throw new Exception($"{E_InPutName.晶圆夹爪左铁环有无检测}  检测到无料");
                 }
