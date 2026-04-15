@@ -103,8 +103,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 // 注意：不重置 _currentStep！
                 // 断点续跑的恢复节点已在各异常 case 中于 TriggerAlarm() 前设定完毕。
 
-                _logger.Success($"[{StationName}] 复位完成，回到就绪状态，将从步序 [{_currentStep}] 继续执行。");
-                await FireAsync(MachineTrigger.ResetDone);  // Resetting → Idle
+                _logger.Success($"[{StationName}] 复位完成，将从步序 [{_currentStep}] 继续执行。");
+                await FireAsync(ResetCompletionTrigger);  // Resetting → Idle 或 Uninitialized（取决于报警来源）
             }
             catch (Exception ex)
             {

@@ -26,8 +26,9 @@ namespace PF.Core.Enums
         Resume,         // 恢复指令
         Stop,           // 停止指令（Running / Paused → Idle）
         Error,          // 内部硬件报错触发
-        Reset,          // 报警复位指令（Alarm → Resetting）
-        ResetDone       // 复位完成（Resetting → Idle）
+        Reset,                  // 报警复位指令（Alarm → Resetting）
+        ResetDone,              // 复位完成（Resetting → Idle）
+        ResetDoneUninitialized  // 复位完成后回到未初始化（Resetting → Uninitialized，仅初始化失败后的复位使用）
     }
 
     /// <summary>

@@ -184,8 +184,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
              
 
-                _logger.Success($"[{StationName}] 复位完成，回到就绪状态，将从步序 [{_currentStep}] 继续执行。");
-                await FireAsync(MachineTrigger.ResetDone);  // Resetting → Idle
+                _logger.Success($"[{StationName}] 复位完成，将从步序 [{_currentStep}] 继续执行。");
+                await FireAsync(ResetCompletionTrigger);  // Resetting → Idle 或 Uninitialized（取决于报警来源）
             }
             catch (Exception ex)
             {

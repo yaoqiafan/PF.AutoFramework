@@ -13,11 +13,12 @@ namespace PF.Infrastructure.Station.Basic
     /// 工站（子线程）状态机基础类
     ///
     /// 生命周期：
-    ///   Uninitialized → (Initialize) → Initializing → (InitializeDone) → Idle
-    ///                                                 → (Error)         → Alarm
+    ///   Uninitialized → (Initialize) → Initializing → (InitializeDone)        → Idle
+    ///                                                 → (Error)                → Alarm
     ///   Idle          → (Start)      → Running
     ///   Running       → (Stop)       → Idle
-    ///   Alarm         → (Reset)      → Idle  （经由 ExecuteResetAsync）
+    ///   Alarm         → (Reset)      → Resetting → (ResetDone)            → Idle          （正常运行报警后复位）
+    ///                                            → (ResetDoneUninitialized) → Uninitialized （初始化失败后复位，强制重新初始化）
     ///
     /// 并发安全设计：
     ///   · 所有状态机跳转（Fire / FireAsync）均通过 _stateLock（SemaphoreSlim 1,1）独占执行，
@@ -86,6 +87,11 @@ namespace PF.Infrastructure.Station.Basic
         // 未显式设置时回落至 AlarmCodes.System.StationSyncError（通用工站异常兜底）。
         private volatile string _pendingAlarmCode;
 
+        // 标记当前报警是否源于初始化阶段（Initializing → Alarm）。
+        // 若为 true，复位完成后回到 Uninitialized 而非 Idle，强制重新执行初始化。
+        // 在 Uninitialized.OnEntry 中清除，确保成功初始化后状态干净。
+        protected bool _initializationFailed = false;
+
         protected StationBase(string name, ILogService logger)
         {
             StationName = name;
@@ -115,6 +121,7 @@ namespace PF.Infrastructure.Station.Basic
 
             // --- 未初始化状态 ---
             _machine.Configure(MachineState.Uninitialized)
+                .OnEntry(() => _initializationFailed = false)  // 进入未初始化时清除初始化失败标记
                 .Permit(MachineTrigger.Initialize, MachineState.Initializing);
 
             // --- 初始化中状态 ---
@@ -152,8 +159,13 @@ namespace PF.Infrastructure.Station.Basic
 
             // --- 报警状态 ---
             _machine.Configure(MachineState.Alarm)
-                .OnEntry(() =>
+                .OnEntry(t =>
                 {
+                    // 若报警来源于初始化阶段，标记需要重新初始化（复位后回到 Uninitialized 而非 Idle）。
+                    // 若来源于 Resetting（复位失败再次报警），保留已有标记，确保最终仍回到正确目标状态。
+                    if (t.Source == MachineState.Initializing)
+                        _initializationFailed = true;
+
                     // 开门：防止 Paused → Alarm 时业务续体永久阻塞在已关闭的门上
                     _pauseGate.TrySetResult(true);
 
@@ -168,8 +180,9 @@ namespace PF.Infrastructure.Station.Basic
 
             // --- 复位中状态 ---
             _machine.Configure(MachineState.Resetting)
-                .Permit(MachineTrigger.ResetDone, MachineState.Idle)   // 复位成功 → Idle
-                .Permit(MachineTrigger.Error, MachineState.Alarm);     // 复位失败 → 回到 Alarm，允许再次复位
+                .Permit(MachineTrigger.ResetDone, MachineState.Idle)                    // 复位成功 → Idle（正常运行报警）
+                .Permit(MachineTrigger.ResetDoneUninitialized, MachineState.Uninitialized) // 复位成功 → Uninitialized（初始化失败报警）
+                .Permit(MachineTrigger.Error, MachineState.Alarm);                      // 复位失败 → 回到 Alarm，允许再次复位
         }
 
         #region 线程生命周期管控
@@ -330,13 +343,17 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// 物理复位模板：驱动本工站完整经历 Alarm → Resetting → Idle 的复位路径。
+        /// 物理复位模板：驱动本工站完整经历 Alarm → Resetting → Idle/Uninitialized 的复位路径。
         /// 由 MasterController.ResetAllAsync() 在其自身进入 Resetting 后顺序调用。
+        ///
+        /// 复位目标状态由 <see cref="_initializationFailed"/> 决定：
+        ///   · 报警来源于初始化失败 → 复位完成后回到 Uninitialized（强制重新初始化，逻辑闭环）
+        ///   · 报警来源于运行阶段   → 复位完成后回到 Idle（可直接启动）
         ///
         /// 子类 override 规范：
         ///   1. 调用 Fire(MachineTrigger.Reset) 将本工站推入 Resetting。
         ///   2. 在 try 块中执行真实硬件清警 / 回原点动作。
-        ///   3. 成功后调用 await FireAsync(MachineTrigger.ResetDone) 进入 Idle；
+        ///   3. 成功后调用 await FireAsync(ResetCompletionTrigger) 进入正确目标状态；
         ///      失败时在 catch 中调用 Fire(MachineTrigger.Error) 回到 Alarm，再 throw/rethrow。
         /// 基类默认实现适用于无真实硬件的工站（纯软件复位）。
         /// </summary>
@@ -346,7 +363,7 @@ namespace PF.Infrastructure.Station.Basic
             try
             {
                 await Task.CompletedTask;  // 基类无硬件动作；子类 override 在此处插入硬件复位逻辑
-                await FireAsync(MachineTrigger.ResetDone);  // Resetting → Idle
+                await FireAsync(ResetCompletionTrigger);  // Resetting → Idle 或 Uninitialized（取决于报警来源）
             }
             catch (Exception)
             {
@@ -437,9 +454,18 @@ namespace PF.Infrastructure.Station.Basic
         /// <summary>
         /// 触发复位流程入口（Alarm → Resetting）。
         /// ⚠️ 注意：此方法仅将状态机推入 Resetting，不会自动完成复位。
-        /// 完整复位路径请调用 ExecuteResetAsync()，它会在硬件复位成功后触发 FireAsync(ResetDone)。
+        /// 完整复位路径请调用 ExecuteResetAsync()，它会在硬件复位成功后触发 FireAsync(ResetCompletionTrigger)。
         /// </summary>
         public void ResetAlarm() => Fire(MachineTrigger.Reset);
+
+        /// <summary>
+        /// 复位完成时应使用的状态跳转触发器：
+        ///   · 若报警来源于初始化失败 → ResetDoneUninitialized（回到 Uninitialized，强制重新初始化）
+        ///   · 否则                   → ResetDone（回到 Idle，可直接启动）
+        /// 子类 override ExecuteResetAsync 时应使用此属性替代硬编码的 MachineTrigger.ResetDone。
+        /// </summary>
+        protected MachineTrigger ResetCompletionTrigger =>
+            _initializationFailed ? MachineTrigger.ResetDoneUninitialized : MachineTrigger.ResetDone;
 
         /// <summary>
         /// 线程安全的同步状态跳转。
