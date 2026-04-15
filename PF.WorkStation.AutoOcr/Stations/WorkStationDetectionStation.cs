@@ -61,8 +61,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _sync = sync;
 
-            _detectionModule.AlarmTriggered    += OnMechanismAlarm;
-            _detectionModule.AlarmAutoCleared  += (_, _) => RaiseStationAlarmAutoCleared();
+            _detectionModule.AlarmTriggered += OnMechanismAlarm;
+            _detectionModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
         }
 
         private void OnMechanismAlarm(object? sender, MechanismAlarmEventArgs e)
@@ -77,10 +77,43 @@ namespace PF.WorkStation.AutoOcr.Stations
             try
             {
                 _logger.Info($"[{StationName}] 正在初始化OCR模组...");
-                if (!await _detectionModule.InitializeAsync(token))
-                    throw new Exception($"[{StationName}] OCR模组初始化失败！");
-                _logger.Success($"[{StationName}] 初始化完成，就绪。");
-                Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+
+                if (!await _detectionModule.WaitHomeDoneAsync(_detectionModule.ZAxis, token: token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，Z轴回零失败。");
+                    Fire(MachineTrigger.Error);
+                    return;
+                }
+
+                if (!await _detectionModule.WaitHomeDoneAsync(_detectionModule.XAxis, token: token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，X轴回零失败。");
+                    Fire(MachineTrigger.Error);
+                    return;
+                }
+
+
+
+                if (!await _detectionModule.WaitHomeDoneAsync(_detectionModule.YAxis, token: token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，Y轴回零失败。");
+                    Fire(MachineTrigger.Error);
+                    return;
+                }
+                if (!await _detectionModule.MoveInitial(token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，模组移动待机位失败。");
+                    Fire(MachineTrigger.Error);
+                }
+                else
+                {
+                    _logger.Success($"[{StationName}] 初始化完成，就绪。");
+                    Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+                }
+
+
+
+
             }
             catch
             {
