@@ -141,11 +141,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     _logger.Error ($"[{StationName}] 初始化失败，Z轴回零失败。");
                     Fire(MachineTrigger.Error );
+                    return;
                 }
                 if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.XAxis, token: token))
                 {
                     _logger.Error($"[{StationName}] 初始化失败，X轴回零失败。");
                     Fire(MachineTrigger.Error);
+                    return;
                 }
 
                if ( await _feedingModule .InitializeFeedingStateAsync(token :token ))
