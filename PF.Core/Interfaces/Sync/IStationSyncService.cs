@@ -33,7 +33,7 @@ namespace PF.Core.Interfaces.Sync
         /// <summary>
         /// 释放指定信号量，将计数 +1，唤醒一个正在等待的工站线程。
         /// </summary>
-        void Release(string name);
+        void Release(string name,bool isAutodispose = false);
 
         /// <summary>
         /// 将所有已注册的信号量复位到其初始计数状态。
