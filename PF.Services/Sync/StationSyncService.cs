@@ -75,12 +75,54 @@ namespace PF.Services.Sync
         }
 
         /// <inheritdoc/>
-        public void Release(string name)
+        public void Release(string name,bool isAutodispose = false)
         {
             var entry = GetEntry(name);
-            entry.Sem.Release();
-            _logger.Debug($"[SyncService] [{name}] 已释放 (释放后计数={entry.Sem.CurrentCount})");
+
+            // 预检：如果当前计数已经达到或超过最大值，则直接跳过
+            if (entry.Sem.CurrentCount >= entry.MaxCount)
+            {
+                _logger.Debug($"[SyncService] [{name}] 信号量已达最大值 ({entry.MaxCount})，跳过多余释放。");
+                if (isAutodispose)
+                {
+                    var old = _signals[name];
+                    old.Sem.Dispose();
+
+                    _signals[name] = new SignalEntry(
+                        new SemaphoreSlim(old.InitialCount, old.MaxCount),
+                        old.InitialCount,
+                        old.MaxCount);
+                    _logger.Info($"[SyncService] 信号量 '{name}' 自动复位 → 初始计数={old.InitialCount}");
+                }
+                return;
+            }
+
+            try
+            {
+                entry.Sem.Release();
+                _logger.Debug($"[SyncService] [{name}] 已释放 (释放后计数={entry.Sem.CurrentCount})");
+                if (isAutodispose)
+                {
+                    var old = _signals[name];
+                    old.Sem.Dispose();
+
+                    _signals[name] = new SignalEntry(
+                        new SemaphoreSlim(old.InitialCount, old.MaxCount),
+                        old.InitialCount,
+                        old.MaxCount);
+                    _logger.Info($"[SyncService] 信号量 '{name}' 自动复位 → 初始计数={old.InitialCount}");
+                }
+            }
+            catch (SemaphoreFullException)
+            {
+                // 兜底：在极端并发情况下，如果 if 预检刚过，
+                // 另一个线程瞬间抢先 Release 导致触达上限，这里安全捕获并忽略即可
+                _logger.Debug($"[SyncService] [{name}] 释放冲突：信号量已被其他线程充满，忽略此次释放。");
+            }
         }
+
+
+
 
         // ── 复位 ──────────────────────────────────────────────────────────────
 
