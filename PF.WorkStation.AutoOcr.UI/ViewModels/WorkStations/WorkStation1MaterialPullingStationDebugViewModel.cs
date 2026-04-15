@@ -64,7 +64,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand ResumeCommand { get; }
         public DelegateCommand ResetCommand { get; }
         public DelegateCommand TriggerAlarmCommand { get; }
-        public DelegateCommand TriggerAllowFeedCommand { get; }
+      
         public DelegateCommand TriggerDetEndCommand { get; }
         public DelegateCommand TriggerAllowBlankCommand { get; }
         public DelegateCommand TriggerPullingOverCommand { get; }
@@ -95,8 +95,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             TriggerAlarmCommand = new DelegateCommand(ExecuteTriggerAlarm,
                 () => CanManualControl && _station.CurrentState != MachineState.Alarm);
 
-            TriggerAllowFeedCommand = new DelegateCommand(TriggerAllowFeed,
-                () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
             TriggerDetEndCommand = new DelegateCommand(TriggerDetEnd,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
@@ -137,7 +135,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResumeCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
-            TriggerAllowFeedCommand.RaiseCanExecuteChanged();
+         
             TriggerDetEndCommand.RaiseCanExecuteChanged();
             TriggerAllowBlankCommand.RaiseCanExecuteChanged();
             TriggerPullingOverCommand.RaiseCanExecuteChanged();

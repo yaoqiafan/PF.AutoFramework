@@ -64,6 +64,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand ResetCommand { get; }
         public DelegateCommand TriggerAlarmCommand { get; }
         public DelegateCommand TriggerStartCommand { get; }
+        public DelegateCommand TriggerAllowFeedCommand { get; }
         public DelegateCommand TriggerFinishCommand { get; }
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
@@ -93,6 +94,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             TriggerStartCommand=new DelegateCommand(ExecuteTriggerStart,
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
+            TriggerAllowFeedCommand = new DelegateCommand(ExecuteTriggerAllowFeed,
+              () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
             TriggerFinishCommand = new DelegateCommand(ExecuteTriggerFinish,
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
@@ -103,6 +107,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _pollTimer.Tick += OnPollTick;
             _pollTimer.Start();
         }
+
+       
 
         // ── 轮询刷新 ─────────────────────────────────────────────────────────
 
@@ -121,6 +127,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
             TriggerStartCommand.RaiseCanExecuteChanged();
+            TriggerAllowFeedCommand.RaiseCanExecuteChanged();
             TriggerFinishCommand.RaiseCanExecuteChanged();
 
         }
@@ -194,6 +201,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _sync.Release(WorkstationSignals.工位1人工下料完成.ToString(), true);
         }
 
+
+        private void ExecuteTriggerAllowFeed()
+        {
+            _sync.Release(WorkstationSignals.工位1允许拉料.ToString(), true);
+        }
         // ── 销毁 ─────────────────────────────────────────────────────────────
 
         public void Dispose()
