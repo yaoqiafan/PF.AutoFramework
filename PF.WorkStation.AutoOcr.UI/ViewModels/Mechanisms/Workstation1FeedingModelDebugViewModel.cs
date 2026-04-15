@@ -125,9 +125,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             SearchLayerCommand = new DelegateCommand(async () => await ExecuteSearchLayerAsync());
             GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
 
-            WaitPullOutCommand = new DelegateCommand(async () => await ExecuteCheckAsync("等待物料拉出", () => _feedingModule?.WaitUntilMaterialPulledOutAsync(5000)));
-            WaitReturnCommand = new DelegateCommand(async () => await ExecuteCheckAsync("等待物料回退", () => _feedingModule?.WaitUntilMaterialReturnedAsync(5000)));
-
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
             SaveXAxisPointsCommand = new DelegateCommand(SaveXAxisPoints);
 

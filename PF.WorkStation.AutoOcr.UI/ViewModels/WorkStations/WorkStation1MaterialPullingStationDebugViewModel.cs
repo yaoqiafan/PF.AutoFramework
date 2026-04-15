@@ -67,6 +67,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand TriggerAllowFeedCommand { get; }
         public DelegateCommand TriggerDetEndCommand { get; }
         public DelegateCommand TriggerAllowBlankCommand { get; }
+        public DelegateCommand TriggerPullingOverCommand { get; }
+        public DelegateCommand TriggerPushOverCommand { get; }
 
         public WorkStation1MaterialPullingStationDebugViewModel(IContainerProvider containerProvider)
         {
@@ -102,6 +104,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             TriggerAllowBlankCommand = new DelegateCommand(TriggerAllowBlank,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
+            TriggerPullingOverCommand = new DelegateCommand(TriggerPullingOver,
+             () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
+            TriggerPushOverCommand = new DelegateCommand(TriggerPushOver,
+             () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
+
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
             {
                 Interval = TimeSpan.FromMilliseconds(100)
@@ -109,6 +118,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _pollTimer.Tick += OnPollTick;
             _pollTimer.Start();
         }
+
+       
 
         // ── 轮询刷新 ─────────────────────────────────────────────────────────
 
@@ -129,6 +140,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             TriggerAllowFeedCommand.RaiseCanExecuteChanged();
             TriggerDetEndCommand.RaiseCanExecuteChanged();
             TriggerAllowBlankCommand.RaiseCanExecuteChanged();
+            TriggerPullingOverCommand.RaiseCanExecuteChanged();
+            TriggerPushOverCommand.RaiseCanExecuteChanged();
         }
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
@@ -202,6 +215,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private void TriggerAllowBlank()
         {
             _sync.Release(WorkstationSignals.工位1退料完成 .ToString());
+        }
+
+        private void TriggerPushOver()
+        {
+            _sync.Release(WorkstationSignals.工位1退料完成.ToString());
+        }
+
+        private void TriggerPullingOver()
+        {
+            _sync.Release(WorkstationSignals.工位1拉料完成.ToString());
         }
 
         // ── 销毁 ─────────────────────────────────────────────────────────────

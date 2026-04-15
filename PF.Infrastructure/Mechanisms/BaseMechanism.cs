@@ -332,7 +332,7 @@ namespace PF.Infrastructure.Mechanisms
         /// <summary>
         /// 按点表名称移动并等待完成（组合方法，速度/加速度从点表读取）。
         /// </summary>
-        protected async Task<bool> MoveToPointAndWaitAsync(
+        public  async Task<bool> MoveToPointAndWaitAsync(
             IAxis axis, string pointName,
             int timeoutMs = 30_000, CancellationToken token = default)
         {
@@ -361,7 +361,7 @@ namespace PF.Infrastructure.Mechanisms
         /// <param name="moves">轴-点位对集合</param>
         /// <param name="timeoutMs">等待单轴到位的超时毫秒数，默认 30 秒</param>
         /// <param name="token">取消令牌</param>
-        protected async Task<bool> MoveMultiAxesToPointsAsync(
+        protected async Task<bool>  MoveMultiAxesToPointsAsync(
             IEnumerable<(IAxis axis, string pointName)> moves,
             int timeoutMs = 30_000,
             CancellationToken token = default)

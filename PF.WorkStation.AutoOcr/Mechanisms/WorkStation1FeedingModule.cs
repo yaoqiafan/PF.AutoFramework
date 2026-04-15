@@ -61,8 +61,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public enum XAxisPoint
         {
             待机位,           // 挡料机构退回的安全位置，不干涉上下料
-            挡料位_8寸,       // 适应8寸晶圆盒宽度的挡料位置
-            挡料位_12寸,      // 适应12寸晶圆盒宽度的挡料位置
+            挡料位,       // 适应晶圆盒宽度的挡料位置
         }
         #endregion
 
@@ -182,7 +181,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
             // 多轴插补或同时运动：将X轴和Z轴同时移动到待机位，节省时间
-            if (await MoveMultiAxesToPointsAsync(new[] { (_xAxis, nameof(XAxisPoint.待机位)), (_zAxis, nameof(ZAxisPoint.待机位)), }, token: token))
+            if (await MoveMultiAxesToPointsAsync(new[] { (_xAxis, nameof(XAxisPoint.挡料位)), (_zAxis, nameof(ZAxisPoint.待机位)), }, token: token))
             {
                 _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
                 return true;
@@ -250,9 +249,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 动态获取8寸产品的工艺参数
                 LayerPitch = await ParamService.GetParamAsync<double>(E_Params.LayerPitch_8.ToString());
-                // 物理动作：移动挡料X轴到8寸专属的夹紧/挡料位置
-                await MoveToPointAndWaitAsync(_xAxis, nameof(XAxisPoint.挡料位_8寸), token: token);
-
+               
                 // 逻辑动作：根据8寸基准点，重新推演计算所有25层的理论坐标
                 await ArrayZAxisMaterialPickingPosition(E_WafeSize._8寸);
             }
@@ -260,10 +257,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 动态获取12寸产品的工艺参数
                 LayerPitch = await ParamService.GetParamAsync<double>(E_Params.LayerPitch_12.ToString());
-
-
-                // 物理动作：移动挡料X轴到12寸专属位置
-                await MoveToPointAndWaitAsync(_xAxis, nameof(XAxisPoint.挡料位_12寸), token: token);
 
                 // 逻辑动作：生成12寸坐标阵列
                 await ArrayZAxisMaterialPickingPosition(E_WafeSize._12寸);
@@ -657,73 +650,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             return true;
         }
 
-        /// <summary>
-        /// 7. 动作阻塞等待：等待外部机构（如Y轴拉料手）完成把晶圆抽出来的动作
-        /// 采用带超时限制的 `while` 轮询机制，避免传感器损坏导致的程序永久假死（Deadlock）
-        /// </summary>
-        public async Task<bool> WaitUntilMaterialPulledOutAsync(int timeoutMilliseconds = 5000, CancellationToken token = default)
-        {
-            CheckReady();
-            _logger.Info($"[{MechanismName}] 等待物料拉出到位（最大超时设定 = {timeoutMilliseconds}ms）...");
-
-            var timeoutTime = DateTime.Now.AddMilliseconds(timeoutMilliseconds);
-
-            // 轮询检查传感器状态
-            while (DateTime.Now < timeoutTime)
-            {
-                // 支持外部业务随时取消（如急停拍下时及时抛出异常中断轮询）
-                token.ThrowIfCancellationRequested();
-
-                // 假设逻辑：轨道前端传感器点亮代表晶圆已经完全拉出料盒
-                // bool isPulledOut = _io.ReadInput(E_InPutName.轨道物料在位检测) == true;
-                bool isPulledOut = true; // 此处用 true 占位供演示
-
-                if (isPulledOut)
-                {
-                    _logger.Success($"[{MechanismName}] 物料已成功拉出。");
-                    return true;
-                }
-
-                // 避免死循环占满 CPU，释放线程给其他任务，每 50 毫秒检查一次
-                await Task.Delay(50, token);
-            }
-
-            // 循环结束还没 return true，说明超时报警
-            _logger.Warn($"[{MechanismName}] 等待物料拉出超时（{timeoutMilliseconds}ms），请检查拉料机构是否卡料或传感器是否损坏。");
-            return false;
-        }
-
-        /// <summary>
-        /// 8. 动作阻塞等待：等待外部机构将晶圆退回到料盒内
-        /// 逻辑同上，同样具备超时防死等机制
-        /// </summary>
-        public async Task<bool> WaitUntilMaterialReturnedAsync(int timeoutMilliseconds = 5000, CancellationToken token = default)
-        {
-            CheckReady();
-            _logger.Info($"[{MechanismName}] 等待物料退回料盒（最大超时设定 = {timeoutMilliseconds}ms）...");
-
-            var timeoutTime = DateTime.Now.AddMilliseconds(timeoutMilliseconds);
-
-            while (DateTime.Now < timeoutTime)
-            {
-                token.ThrowIfCancellationRequested();
-
-                // 假设逻辑：轨道传感器由亮变灭，代表晶圆离开了轨道，完全进入了料盒
-                // bool isReturned = _io.ReadInput(E_InPutName.轨道物料在位检测) == false;
-                bool isReturned = true; // 此处占位
-
-                if (isReturned)
-                {
-                    _logger.Success($"[{MechanismName}] 物料已成功回退至料盒。");
-                    return true;
-                }
-
-                await Task.Delay(50, token);
-            }
-
-            _logger.Warn($"[{MechanismName}] 等待物料回退超时（{timeoutMilliseconds}ms），请检查退料动作或传感器状态。");
-            return false;
-        }
 
         #endregion
 

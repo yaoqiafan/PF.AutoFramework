@@ -18,7 +18,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         工位1退料完成,
         工位1允许检测,
         工位1检测完成,
-
+        工位1人工下料完成,
 
 
 
@@ -31,7 +31,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         工位2退料完成,
         工位2允许检测,
         工位2检测完成,
-
+        工位2人工下料完成
     }
     public class AutoOCRMachineController : BaseMasterController
     {
@@ -56,7 +56,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(WorkstationSignals.工位1退料完成.ToString());
             _sync.Register(WorkstationSignals.工位1允许检测.ToString());
             _sync.Register(WorkstationSignals.工位1检测完成.ToString());
-
+            _sync.Register(WorkstationSignals.工位1人工下料完成.ToString());
 
 
             _sync.Register(WorkstationSignals.工位2启动按钮按下.ToString());
@@ -66,7 +66,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(WorkstationSignals.工位2退料完成.ToString());
             _sync.Register(WorkstationSignals.工位2允许检测.ToString());
             _sync.Register(WorkstationSignals.工位2检测完成.ToString());
-
+            _sync.Register(WorkstationSignals.工位2人工下料完成.ToString());
         }
 
 

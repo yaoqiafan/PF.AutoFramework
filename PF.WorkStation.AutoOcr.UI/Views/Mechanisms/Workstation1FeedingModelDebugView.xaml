@@ -279,16 +279,7 @@
                                         Content="执行: 切换层" />
                                 </Grid>
 
-                                <Button
-                                    Height="35"
-                                    Margin="0,0,0,5"
-                                    Command="{Binding WaitPullOutCommand}"
-                                    Content="阻塞等待: 物料拉出完成" />
-                                <Button
-                                    Height="35"
-                                    Margin="0,0,0,5"
-                                    Command="{Binding WaitReturnCommand}"
-                                    Content="阻塞等待: 物料回退完成" />
+                              
                             </StackPanel>
                         </ScrollViewer>
                     </GroupBox>
