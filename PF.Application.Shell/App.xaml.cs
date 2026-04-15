@@ -63,7 +63,8 @@ using PF.UI.Infrastructure.Dialog.ViewModels;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Resources;
-using PF.UI.Shared.Data;
+using PF.Core.Enums;
+using PF.Core.Models;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -691,7 +692,9 @@ namespace PF.Application.Shell
                 SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
                 await Task.Delay(500);
                 var hwManager = Container.Resolve<IHardwareManagerService>();
-                await hwManager.LoadAndInitializeAsync();
+                var hwProgress = new Progress<SplashProgressPayload>(payload =>
+                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType));
+                await hwManager.LoadAndInitializeAsync(hwProgress);
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 

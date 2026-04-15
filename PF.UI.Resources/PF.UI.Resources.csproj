@@ -68,6 +68,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
 	  <ProjectReference Include="..\PF.UI.Controls\PF.UI.Controls.csproj" />
 	</ItemGroup>
 
