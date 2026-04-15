@@ -227,6 +227,24 @@
                                     Style="{DynamicResource ButtonWarning}"
                                     ToolTip="送料到料盒" />
 
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerPullingOverCommand}"
+                                    Content="工位1拉料完成"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="送料到料盒" />
+
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerPushOverCommand}"
+                                    Content="工位1退料完成"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="送料到料盒" />
+
                             </UniformGrid>
                         </pf:Card>
 

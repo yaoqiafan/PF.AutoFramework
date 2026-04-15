@@ -64,6 +64,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand ResetCommand { get; }
         public DelegateCommand TriggerAlarmCommand { get; }
         public DelegateCommand TriggerStartCommand { get; }
+        public DelegateCommand TriggerFinishCommand { get; }
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
             _station = containerProvider.Resolve<WorkStation1FeedingStation<StationMemoryBaseParam>>(nameof(WorkStation1FeedingStation<StationMemoryBaseParam>));
@@ -92,6 +93,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             TriggerStartCommand=new DelegateCommand(ExecuteTriggerStart,
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
+            TriggerFinishCommand = new DelegateCommand(ExecuteTriggerFinish,
+                () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
             {
                 Interval = TimeSpan.FromMilliseconds(100)
@@ -117,6 +121,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
             TriggerStartCommand.RaiseCanExecuteChanged();
+            TriggerFinishCommand.RaiseCanExecuteChanged();
+
         }
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
@@ -180,7 +186,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private void ExecuteTriggerStart()
         {
-            _sync.Release(WorkstationSignals.工位1启动按钮按下.ToString());
+            _sync.Release(WorkstationSignals.工位1启动按钮按下.ToString(),true);
+        }
+
+        private void ExecuteTriggerFinish()
+        {
+            _sync.Release(WorkstationSignals.工位1人工下料完成.ToString(), true);
         }
 
         // ── 销毁 ─────────────────────────────────────────────────────────────
