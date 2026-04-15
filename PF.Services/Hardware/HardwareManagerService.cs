@@ -1,8 +1,10 @@
 using PF.Core.Entities.Hardware;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using PF.Data.Entity.Category;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -157,22 +159,37 @@ namespace PF.Services.Hardware
         /// 无论父设备是否连接成功，子设备均会被实例化并加入活跃列表，确保 UI 可见。
         /// 子设备实例化完成后，若实现 IAttachedDevice，自动绑定父板卡引用。
         /// </summary>
-        public async Task LoadAndInitializeAsync()
+        public async Task LoadAndInitializeAsync(IProgress<SplashProgressPayload>? progress = null)
         {
             await LoadConfigsAsync();
 
             var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
             _logger.Info($"[HardwareManager] 开始拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...");
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"开始硬件拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...",
+                MsgType = MsgType.Info
+            });
 
             // ── 第1层：顶级设备（板卡，ParentDeviceId 为空）────────────────────
             var topLevel = enabledConfigs.Where(c => string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
             _logger.Info($"[HardwareManager] 第1层：初始化 {topLevel.Count} 个顶级设备...");
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"[第1层] 初始化 {topLevel.Count} 个顶级设备（板卡）...",
+                MsgType = MsgType.Info
+            });
             foreach (var config in topLevel)
-                await ActivateDeviceAsync(config);
+                await ActivateDeviceAsync(config, parentCard: null, progress);
 
             // ── 第2层：子设备（轴/IO，ParentDeviceId 非空）──────────────────────
             var children = enabledConfigs.Where(c => !string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
             _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备...");
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"[第2层] 初始化 {children.Count} 个子设备（轴/IO）...",
+                MsgType = MsgType.Info
+            });
             foreach (var config in children)
             {
                 IMotionCard? parentCard = null;
@@ -191,10 +208,15 @@ namespace PF.Services.Hardware
                     parentCard = parentDevice as IMotionCard;
                 }
 
-                await ActivateDeviceAsync(config, parentCard);
+                await ActivateDeviceAsync(config, parentCard, progress);
             }
 
             _logger.Success($"[HardwareManager] 初始化完成，活跃设备数: {_activeDevices.Count}");
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"硬件初始化完成，活跃设备数: {_activeDevices.Count}",
+                MsgType = MsgType.Success
+            });
         }
 
         public async Task ReloadAllAsync()
@@ -278,13 +300,26 @@ namespace PF.Services.Hardware
         /// 实例化并连接单个设备。
         /// 若 parentCard 不为 null 且设备实现 IAttachedDevice，则自动绑定父板卡。
         /// </summary>
-        private async Task ActivateDeviceAsync(HardwareConfig config, IMotionCard? parentCard = null)
+        private async Task ActivateDeviceAsync(HardwareConfig config, IMotionCard? parentCard = null,
+            IProgress<SplashProgressPayload>? progress = null)
         {
             if (!_factories.TryGetValue(config.ImplementationClassName, out var factory))
             {
                 _logger.Warn($"[HardwareManager] 未找到工厂 '{config.ImplementationClassName}'，跳过设备 '{config.DeviceId}'");
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"跳过 [{config.DeviceName}]：未找到对应工厂实现",
+                    MsgType = MsgType.Warning
+                });
                 return;
             }
+
+            // ── 加载前汇报 ─────────────────────────────────────────────────────
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"正在初始化: [{config.DeviceName}]...",
+                MsgType = MsgType.Info
+            });
 
             try
             {
@@ -302,19 +337,48 @@ namespace PF.Services.Hardware
                 try
                 {
                     var connected = await device.ConnectAsync();
-                    if (!connected)
+                    if (connected)
+                    {
+                        _logger.Info($"[HardwareManager] 设备 '{config.DeviceName}' 连接成功。");
+                        // ── 连接成功汇报 ──────────────────────────────────────
+                        progress?.Report(new SplashProgressPayload
+                        {
+                            Status = $"[{config.DeviceName}] 连接成功",
+                            MsgType = MsgType.Success
+                        });
+                    }
+                    else
+                    {
                         _logger.Warn($"[HardwareManager] 设备 '{config.DeviceName}' 连接返回 false，" +
                                      "设备已保留在活跃列表，可在 UI 中手动切换模拟模式后重连。");
+                        progress?.Report(new SplashProgressPayload
+                        {
+                            Status = $"[{config.DeviceName}] 连接返回 false，已保留以供手动重连",
+                            MsgType = MsgType.Warning
+                        });
+                    }
                 }
                 catch (Exception connEx)
                 {
                     _logger.Error($"[HardwareManager] 设备 '{config.DeviceName}' 连接时发生异常: {connEx.Message}，" +
                                   "设备已保留在活跃列表。");
+                    // ── 连接异常汇报 ──────────────────────────────────────────
+                    progress?.Report(new SplashProgressPayload
+                    {
+                        Status = $"[{config.DeviceName}] 连接异常: {connEx.Message}",
+                        MsgType = MsgType.Error
+                    });
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error($"[HardwareManager] 实例化设备 '{config.DeviceId}' 失败: {ex.Message}");
+                // ── 实例化异常汇报 ────────────────────────────────────────────
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"[{config.DeviceName}] 实例化失败: {ex.Message}",
+                    MsgType = MsgType.Fatal
+                });
             }
         }
 

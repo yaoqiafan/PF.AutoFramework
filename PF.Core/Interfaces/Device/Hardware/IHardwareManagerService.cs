@@ -1,4 +1,5 @@
 using PF.Core.Entities.Hardware;
+using PF.Core.Models;
 
 namespace PF.Core.Interfaces.Device.Hardware
 {
@@ -59,7 +60,11 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 从数据库加载配置，再根据已启用配置通过注册工厂实例化所有设备并调用 ConnectAsync。
         /// 通常在应用启动、且已通过 ImportConfigsAsync 确认配置存在后调用一次。
         /// </summary>
-        Task LoadAndInitializeAsync();
+        /// <param name="progress">
+        ///   可选进度回调，每初始化一个设备前后均会 Report 一次 <see cref="SplashProgressPayload"/>。
+        ///   传 null 时退化为原有行为，保持向后兼容。
+        /// </param>
+        Task LoadAndInitializeAsync(IProgress<SplashProgressPayload>? progress = null);
 
         /// <summary>
         /// 先释放所有活跃设备，再重新加载配置并实例化。
