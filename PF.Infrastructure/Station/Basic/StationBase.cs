@@ -101,6 +101,10 @@ namespace PF.Infrastructure.Station.Basic
             ReadMemoryParam();
         }
 
+
+
+    
+
         private void ConfigureStateMachine()
         {
             _machine.OnTransitioned(t =>
@@ -637,6 +641,12 @@ namespace PF.Infrastructure.Station.Basic
                 throw; // 外部取消（Stop/Alarm）→ 向上重新抛出
             }
         }
+
+
+
+      
+
+
 
         #endregion
 

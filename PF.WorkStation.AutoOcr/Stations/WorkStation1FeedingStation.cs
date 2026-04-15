@@ -1,3 +1,4 @@
+using NPOI.OpenXmlFormats.Wordprocessing;
 using NPOI.SS.Formula.Functions;
 using PF.Core.Attributes;
 using PF.Core.Constants;
@@ -131,15 +132,34 @@ namespace PF.WorkStation.AutoOcr.Stations
             Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
             try
             {
+
                 _logger.Info($"[{StationName}] 正在初始化上下料模组...");
                 if (!await _feedingModule.InitializeAsync(token))
                     throw new Exception($"[{StationName}] 上下料模组初始化失败！");
-                _logger.Success($"[{StationName}] 初始化完成，就绪。");
 
+                if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.ZAxis, token: token))
+                {
+                    _logger.Error ($"[{StationName}] 初始化失败，Z轴回零失败。");
+                    Fire(MachineTrigger.Error );
+                }
+                if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.XAxis, token: token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，X轴回零失败。");
+                    Fire(MachineTrigger.Error);
+                }
 
+               if ( await _feedingModule .InitializeFeedingStateAsync(token :token ))
+                {
+                    _logger.Success($"[{StationName}] 初始化完成，就绪。");
 
-
-                Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+                    Fire(MachineTrigger.InitializeDone);
+                }
+               else
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，模组回归初始化失败。");
+                    Fire(MachineTrigger.Error);
+                }
+ // Initializing → Idle
             }
             catch
             {
@@ -161,6 +181,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                 // 注意：不重置 _currentStep！
                 // 断点续跑的恢复节点已在各异常 case 中于 TriggerAlarm() 前设定完毕。
+
+             
 
                 _logger.Success($"[{StationName}] 复位完成，回到就绪状态，将从步序 [{_currentStep}] 继续执行。");
                 await FireAsync(MachineTrigger.ResetDone);  // Resetting → Idle

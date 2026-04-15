@@ -11,7 +11,7 @@ namespace PF.Core.Constants
         /// <summary>
         /// 整体配置的配置文件路径
         /// </summary>
-        public static string ConfigPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PFAutoFrameWork");
+        public static string ConfigPath => Path.Combine("D://PFConfig", "PFAutoFrameWork");
 
     }
 }

@@ -278,7 +278,7 @@ namespace PF.Modules.Debug.ViewModels
                     {
                         _axis.Param = paramItem;
 
-                      var _config =  await _paramService.GetParamAsync<HardwareConfig>(_axis.DeviceName);
+                      var _config =  await _paramService.GetParamAsync<HardwareConfig>(_axis.DeviceId);
                         if (_config !=null )
                         {
                             if (_config .ConnectionParameters .ContainsKey ("AxisParam"))

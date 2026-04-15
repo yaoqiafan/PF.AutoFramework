@@ -176,7 +176,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 0. 初始化上料状态：将所有机构复位至安全位置，准备迎接人工或AGV放料
         /// </summary>
-        public async Task InitializeFeedingStateAsync(CancellationToken token = default)
+        public async Task<bool > InitializeFeedingStateAsync(CancellationToken token = default)
         {
             CheckReady(); // 确保模组已初始化且无报警
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
@@ -185,10 +185,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (await MoveMultiAxesToPointsAsync(new[] { (_xAxis, nameof(XAxisPoint.待机位)), (_zAxis, nameof(ZAxisPoint.待机位)), }, token: token))
             {
                 _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
+                return true;
             }
             else
             {
                 _logger.Warn($"[{MechanismName}] 上料状态初始化失败。");
+                return false;
             }
         }
 
