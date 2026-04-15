@@ -3,8 +3,13 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
+		<ApplicationIcon>-pfico.ico</ApplicationIcon>
 
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="-pfico.ico" />
+	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Prism.DryIoc" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" />

@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 namespace PF.WorkStation.AutoOcr.Stations
 {
     [StationUI("工位1拉料工站", "WorkStation1MaterialPullingStationDebugView", order: 2)]
-    public  class WorkStation1MaterialPullingStation<T> : StationBase<T> where T : StationMemoryBaseParam
+    public class WorkStation1MaterialPullingStation<T> : StationBase<T> where T : StationMemoryBaseParam
     {
 
         private readonly WorkStation1MaterialPullingModule? _pullingModule;
@@ -80,12 +80,12 @@ namespace PF.WorkStation.AutoOcr.Stations
             _pullingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule)) as WorkStation1MaterialPullingModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _sync = sync;
-            _pullingModule.AlarmTriggered   += _pullingModule_AlarmTriggered;
+            _pullingModule.AlarmTriggered += _pullingModule_AlarmTriggered;
             _pullingModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
-            
+
         }
 
-      
+
 
         private void _pullingModule_AlarmTriggered(object? sender, Core.Events.MechanismAlarmEventArgs e)
         {
@@ -98,11 +98,26 @@ namespace PF.WorkStation.AutoOcr.Stations
             Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
             try
             {
-                _logger.Info($"[{StationName}] 正在初始化上下料模组...");
-                if (!await _pullingModule.InitializeAsync(token))
-                    throw new Exception($"[{StationName}] 上下料模组初始化失败！");
-                _logger.Success($"[{StationName}] 初始化完成，就绪。");
-                Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+                _logger.Info($"[{StationName}] 正在初始化拉料模组...");
+
+                if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
+                    Fire(MachineTrigger.Error);
+                    return;
+                }
+                if (!await _pullingModule.MoveInitialNoScan(token))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，Y轴到待机位异常。");
+                    Fire(MachineTrigger.Error);
+                    return;
+                }
+                else
+                {
+                    _logger.Success($"[{StationName}] 初始化完成，就绪。");
+                    Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+                }
+
             }
             catch
             {
@@ -270,7 +285,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         List<string> coderec = await _pullingModule.CodeScanTigger(token);
                         _logger.Info($"[{StationName}] 扫码识别成功，识别结果：{string.Join(", ", coderec)}");
                         _currentStep = Station1PullingStep.允许检测位检测;
-                       
+
                         break;
 
                     case Station1PullingStep.允许检测位检测:
