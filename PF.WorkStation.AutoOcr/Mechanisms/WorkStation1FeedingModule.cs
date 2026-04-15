@@ -798,7 +798,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     STime = basePoint.STime,// 沿用第一层的运动速度
                 };
 
-                dictToFill.TryAdd(i, point); // 存入线程安全字典供全局读取
+                dictToFill.TryAdd(i, point1); // 存入线程安全字典供全局读取
                 dictScanToFill.TryAdd(i, point);
                 resultDict.Add(i, point);    // 存入局部字典用于返回值
             }
