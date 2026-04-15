@@ -76,7 +76,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             InitializeCommands();
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-            //_pollingTimer.Tick += OnPollingTimerTick;
+            _pollingTimer.Tick += OnPollingTimerTick;
             SelectedAxis = AxisList.First();
         }
 
@@ -468,13 +468,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private void OnPollingTimerTick(object sender, EventArgs e)
         {
             if (_axis == null) return;
-            var io = _axis.AxisIOStatus;
-            CurrentPosition = _axis.CurrentPosition ?? 0;
-            IsMoving = io?.Moving ?? false;
-            IsEnabled = io?.SVO ?? false;
-            IsPositiveLimit = io?.PEL ?? false;
-            IsNegativeLimit = io?.MEL ?? false;
-            IsAlarm = _axis.HasAlarm;
+            var axisio = _axis.AxisIOStatus;
+            //IsConnected = _axis.IsConnected;
+            CurrentPosition = (int)(_axis.CurrentPosition ?? 0);
+            IsMoving = axisio?.Moving ?? false;
+            IsEnabled = axisio?.SVO ?? false;
+            IsPositiveLimit = axisio?.PEL ?? false;
+            IsNegativeLimit = axisio?.MEL ?? false;
+            //IsORG = axisio?.ORG ?? false;
+            //IsHoming = axisio?.Homing ?? false;
+            IsAlarm = axisio?.ALM ?? false;
         }
 
         private void RefreshCancellationToken()

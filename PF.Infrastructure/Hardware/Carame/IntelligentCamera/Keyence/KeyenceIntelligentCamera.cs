@@ -142,7 +142,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         protected async override Task InternalResetAsync(CancellationToken token)
         {
             if (IsSimulated) { return; }
-            await tiggerclient.ReconnectAsync();
+            //await tiggerclient.ReconnectAsync();
         }
 
         protected override Task InternalCheckHealthAsync(CancellationToken token)

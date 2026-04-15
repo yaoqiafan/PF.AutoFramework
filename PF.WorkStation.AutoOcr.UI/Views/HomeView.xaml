@@ -55,11 +55,20 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Margin="20,0,5,0" Text="内批：" />
+                        <TextBlock
+                            Grid.Column="0"
+                            Margin="20,0,5,0"
+                            Text="内批：" />
                         <TextBlock Grid.Column="1" Text="{Binding Station1InternalBatches}" />
-                        <TextBlock Grid.Column="2" Margin="40,0,5,0" Text="状态：" />
+                        <TextBlock
+                            Grid.Column="2"
+                            Margin="40,0,5,0"
+                            Text="状态：" />
                         <TextBlock Grid.Column="3" Text="{Binding Station1DetStatus}" />
-                        <TextBlock Grid.Column="4" Margin="40,0,5,0" Text=" 程式名称:" />
+                        <TextBlock
+                            Grid.Column="4"
+                            Margin="40,0,5,0"
+                            Text=" 程式名称:" />
                         <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
                         <Button
@@ -84,20 +93,35 @@
                     <Grid Height="300">
                         <DataGrid
                             Margin="5"
-                            SelectionMode="Single"
                             AutoGenerateColumns="False"
                             CanUserAddRows="False"
                             FontSize="{DynamicResource FontSize.Body.Standard}"
                             ItemsSource="{Binding Station1MachineDetection}"
-                            SelectedItem="{Binding Station1CurrentMachineDetection}">
+                            SelectedItem="{Binding Station1CurrentMachineDetection}"
+                            SelectionMode="Single">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="2*" Binding="{Binding CustomerBatch}" Header="客户批次" IsReadOnly="True" />
-                                <DataGridTextColumn Width="2*" Binding="{Binding OcrText}" Header="OCR值" IsReadOnly="True" />
-                                <DataGridTextColumn Width="2*" Binding="{Binding Barcode1}" Header="条码" IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding CustomerBatch}"
+                                    Header="客户批次"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding OcrText}"
+                                    Header="OCR值"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding Barcode1}"
+                                    Header="条码"
+                                    IsReadOnly="True" />
                                 <DataGridTemplateColumn Width="90" Header="匹配结果">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border Margin="10,4" HorizontalAlignment="Stretch" CornerRadius="4">
+                                            <Border
+                                                Margin="10,4"
+                                                HorizontalAlignment="Stretch"
+                                                CornerRadius="4">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#E8F5E9" />
@@ -108,7 +132,10 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Text" Value="OK" />
@@ -160,11 +187,20 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Margin="20,0,5,0" Text="内批：" />
+                        <TextBlock
+                            Grid.Column="0"
+                            Margin="20,0,5,0"
+                            Text="内批：" />
                         <TextBlock Grid.Column="1" Text="{Binding Station2InternalBatches}" />
-                        <TextBlock Grid.Column="2" Margin="40,0,5,0" Text="状态：" />
+                        <TextBlock
+                            Grid.Column="2"
+                            Margin="40,0,5,0"
+                            Text="状态：" />
                         <TextBlock Grid.Column="3" Text="{Binding Station2DetStatus}" />
-                        <TextBlock Grid.Column="4" Margin="40,0,5,0" Text=" 程式名称:" />
+                        <TextBlock
+                            Grid.Column="4"
+                            Margin="40,0,5,0"
+                            Text=" 程式名称:" />
                         <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
                         <Button
@@ -189,21 +225,36 @@
                     <Grid Height="300">
                         <DataGrid
                             Margin="5"
-                            SelectionMode="Single"
                             AutoGenerateColumns="False"
                             CanUserAddRows="False"
                             FontSize="{DynamicResource FontSize.Body.Standard}"
                             ItemsSource="{Binding Station2MachineDetection}"
-                            SelectedItem="{Binding Station2CurrentMachineDetection}">
+                            SelectedItem="{Binding Station2CurrentMachineDetection}"
+                            SelectionMode="Single">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="2*" Binding="{Binding CustomerBatch}" Header="客户批次" IsReadOnly="True" />
-                                <DataGridTextColumn Width="2*" Binding="{Binding OcrText}" Header="OCR值" IsReadOnly="True" />
-                                <DataGridTextColumn Width="2*" Binding="{Binding Barcode1}" Header="条码" IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding CustomerBatch}"
+                                    Header="客户批次"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding OcrText}"
+                                    Header="OCR值"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding Barcode1}"
+                                    Header="条码"
+                                    IsReadOnly="True" />
 
                                 <DataGridTemplateColumn Width="90" Header="匹配结果">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border Margin="10,4" HorizontalAlignment="Stretch" CornerRadius="4">
+                                            <Border
+                                                Margin="10,4"
+                                                HorizontalAlignment="Stretch"
+                                                CornerRadius="4">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#E8F5E9" />
@@ -214,7 +265,10 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Text" Value="OK" />

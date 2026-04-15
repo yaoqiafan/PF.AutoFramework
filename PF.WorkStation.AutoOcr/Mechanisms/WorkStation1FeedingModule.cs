@@ -621,7 +621,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
 
             // 驱动Z轴走到该层的绝对坐标（Position）并应用示教速度（Speed）
-            bool moveResult = await MoveAbsAndWaitAsync(_zAxis, targetPoint.TargetPosition, targetPoint.Speed, targetPoint.Acc, targetPoint.Dec, targetPoint.STime, token: token);
+            bool moveResult = await MoveAbsAndWaitAsync(_zAxis, targetPoint.TargetPosition, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.08, token: token);
             if (moveResult)
             {
                 _logger.Success($"[{MechanismName}] 成功切换至第 {targetLayer + 1} 层位置。");

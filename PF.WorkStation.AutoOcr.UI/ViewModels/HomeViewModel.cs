@@ -1,8 +1,10 @@
 ﻿using NPOI.SS.Formula.Functions;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
+using PF.Core.Interfaces.Recipe;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.UserControls;
 using System;
@@ -24,6 +26,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IUserService _userService;
 
         private DispatcherTimer _monitorTimer;
+
+        private readonly IRecipeService<OCRRecipeParam> _recipeService;
 
 
 
@@ -135,6 +139,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
             _userService = userService;
+            _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
 
             Station1ChangeLotCommand = new DelegateCommand(Station1ShowChangeLotView);
 
@@ -181,7 +186,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Station1DetStatus = _dataModule.Station1MesDetectionData.DetectionStatus;
             Station2DetStatus = _dataModule.Station2MesDetectionData.DetectionStatus;
 
-            if (Station1MachineDetection.Count!=0)
+            if (Station1MachineDetection.Count != 0)
             {
                 MachineDetectionData? latestData = Station1MachineDetection
                     .OrderByDescending(data => data.Time)
@@ -242,14 +247,30 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         MessageService.ShowMessage($"{lotid}获取检测数据错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    if (await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位1, info))
-                    {
-                        MessageService.ShowMessage($"工位1切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else
+
+
+
+                    if (!await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位1, info))
                     {
                         MessageService.ShowMessage($"工位1切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
                     }
+
+                    var kk = await _recipeService.RecipeParam("New_Recipe_141457");
+                    if (kk == null)
+                    {
+                        MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位1, kk))
+                    {
+                        MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    MessageService.ShowMessage($"工位1切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+
+
                 }
                 else
                 {

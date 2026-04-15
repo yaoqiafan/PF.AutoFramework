@@ -48,6 +48,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             获取工位1配方参数 = 20,
             识别料盒尺寸 = 30,
             验证尺寸与配方是否匹配 = 40,
+            切换物料尺寸=45,
             判断Z轴是否具备运动条件_寻层 = 50,
             Z轴扫描寻层 = 60,
             到初始层点 = 70,
@@ -276,6 +277,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                         if (_detectedWaferSize == _cachedRecipe.WafeSize)
                         {
                             _logger.Info($"[{StationName}] 料盒尺寸与配方匹配（{_detectedWaferSize}），继续执行。");
+                            _currentStep = Station1FeedingStep.切换物料尺寸;
+                        }
+                        else
+                        {
+                            _logger.Error($"[{StationName}] 料盒尺寸不匹配：实际={_detectedWaferSize}，配方要求={_cachedRecipe.WafeSize}。");
+                            _currentStep = Station1FeedingStep.料盒尺寸与配方不匹配;
+                        }
+                        break;
+
+                    case Station1FeedingStep.切换物料尺寸:
+                        CurrentStepDescription = "切换物料尺寸...";
+                        await CheckPauseAsync(token).ConfigureAwait(false);
+                        if (await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize,token ).ConfigureAwait(false ))
+                        {
+                            _logger.Info($"[{StationName}] 切换物料尺寸成功，继续执行。");
                             _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_寻层;
                         }
                         else
@@ -283,6 +299,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _logger.Error($"[{StationName}] 料盒尺寸不匹配：实际={_detectedWaferSize}，配方要求={_cachedRecipe.WafeSize}。");
                             _currentStep = Station1FeedingStep.料盒尺寸与配方不匹配;
                         }
+
                         break;
 
                     case Station1FeedingStep.判断Z轴是否具备运动条件_寻层:
