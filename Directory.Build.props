@@ -11,7 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <!-- ===== 统一 nupkg 输出目录（根目录/packages/） ===== -->
-    <PackageOutputPath>$(MSBuildThisFileDirectory)packages</PackageOutputPath>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)nupkg</PackageOutputPath>
 
     <!-- ===== 默认不打包，防止 Shell / Demo / Service 意外生成 nupkg ===== -->
     <IsPackable>false</IsPackable>

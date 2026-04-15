@@ -12,7 +12,7 @@ namespace PF.Infrastructure.Mechanisms
     public abstract class BaseMechanism : IMechanism, IDisposable
     {
         protected readonly ILogService _logger;
-        private readonly List<IHardwareDevice> _internalHardwares= new List<IHardwareDevice>();
+        private readonly List<IHardwareDevice> _internalHardwares = new List<IHardwareDevice>();
         protected IHardwareManagerService HardwareManagerService { get; }
 
         protected IParamService ParamService { get; }
@@ -157,7 +157,7 @@ namespace PF.Infrastructure.Mechanisms
         {
             if (device == null || _internalHardwares.Contains(device)) return;
             _internalHardwares.Add(device);
-            device.AlarmTriggered        += OnHardwareAlarmTriggered;
+            device.AlarmTriggered += OnHardwareAlarmTriggered;
             device.HardwareAlarmAutoCleared += OnHardwareAlarmAutoCleared;
         }
 
@@ -166,7 +166,7 @@ namespace PF.Infrastructure.Mechanisms
             foreach (var hw in _internalHardwares)
             {
                 if (hw == null) continue;
-                hw.AlarmTriggered           -= OnHardwareAlarmTriggered;
+                hw.AlarmTriggered -= OnHardwareAlarmTriggered;
                 hw.HardwareAlarmAutoCleared -= OnHardwareAlarmAutoCleared;
                 if (hw is IDisposable disposable) disposable.Dispose();  // 释放硬件持有的非托管资源
             }
@@ -234,10 +234,10 @@ namespace PF.Infrastructure.Mechanisms
                     // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
                     AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
                     {
-                        MechanismName    = this.MechanismName,
-                        HardwareName     = axisName,
-                        ErrorCode        = AlarmCodes.Hardware.AxisMoveTimeout,
-                        ErrorMessage     = $"等待轴运动完成超时（{timeoutMs} ms）"
+                        MechanismName = this.MechanismName,
+                        HardwareName = axisName,
+                        ErrorCode = AlarmCodes.Hardware.AxisMoveTimeout,
+                        ErrorMessage = $"等待轴运动完成超时（{timeoutMs} ms）"
                     });
                 }
 
@@ -247,7 +247,7 @@ namespace PF.Infrastructure.Mechanisms
 
 
 
-        protected async Task<bool> WaitHomeDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
+        public  async Task<bool> WaitHomeDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
         {
             // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
             if ((axis as IHardwareDevice)?.IsSimulated == true)
@@ -256,13 +256,20 @@ namespace PF.Infrastructure.Mechanisms
 
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+
+            if (!await axis.HomeAsync(token))
+            {
+
+                return false;
+            }
+
             try
             {
                 while (true)
                 {
                     await Task.Delay(10, linked.Token).ConfigureAwait(false);
                     var status = axis.AxisIOStatus;
-                    if (status != null && status.HomeDone  && !status.Homing )
+                    if (status != null && status.HomeDone && !status.Homing)
                     {
                         _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 回原点完成");
                         return true;
@@ -278,10 +285,10 @@ namespace PF.Infrastructure.Mechanisms
                     // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
                     AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
                     {
-                        MechanismName    = this.MechanismName,
-                        HardwareName     = axisName,
-                        ErrorCode        = AlarmCodes.Hardware.HomingTimeout,
-                        ErrorMessage     = $"等待回零完成超时（{timeoutMs} ms）"
+                        MechanismName = this.MechanismName,
+                        HardwareName = axisName,
+                        ErrorCode = AlarmCodes.Hardware.HomingTimeout,
+                        ErrorMessage = $"等待回零完成超时（{timeoutMs} ms）"
                     });
                 }
                 return false;
