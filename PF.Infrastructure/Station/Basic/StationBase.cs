@@ -1,5 +1,6 @@
 using PF.Core.Constants;
 using PF.Core.Enums;
+using PF.Core.Events;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
@@ -64,6 +65,13 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         public event EventHandler StationAlarmAutoCleared;
 
+        /// <summary>
+        /// 工站状态机发生跳转时触发，携带跳转前后的状态信息。
+        /// <see cref="BaseMasterController"/> 订阅此事件以实施防状态撕裂守卫：
+        /// 当主控处于 Running/Paused 而子站意外回到 Idle 时，主控可立即触发全线急停。
+        /// </summary>
+        public event EventHandler<StationStateChangedEventArgs> StationStateChanged;
+
         protected readonly ILogService _logger;
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
 
@@ -114,10 +122,17 @@ namespace PF.Infrastructure.Station.Basic
         private void ConfigureStateMachine()
         {
             _machine.OnTransitioned(t =>
-        {
-            _logger?.Debug($"[{StationName}] 状态变迁: {t.Source} -> {t.Destination}");
-            RaisePropertyChanged(nameof(CurrentState)); // 通知 UI 刷新状态绑定
-        });
+            {
+                _logger?.Debug($"[{StationName}] 状态变迁: {t.Source} -> {t.Destination}");
+                RaisePropertyChanged(nameof(CurrentState)); // 通知 UI 刷新状态绑定
+
+                // 通知主控发生了状态跳转：主控据此实施防撕裂守卫（如意外回到 Idle 时急停全线）
+                StationStateChanged?.Invoke(this, new StationStateChangedEventArgs
+                {
+                    OldState = t.Source,
+                    NewState = t.Destination
+                });
+            });
 
             // --- 未初始化状态 ---
             _machine.Configure(MachineState.Uninitialized)
