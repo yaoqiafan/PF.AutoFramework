@@ -205,6 +205,51 @@ namespace PF.Services.Sync
             }
         }
 
+        /// <inheritdoc/>
+        public void ResetSingleSignal(string name, string scope = DefaultScope)
+        {
+            if (!_scopes.TryGetValue(scope, out var ctx))
+            {
+                _logger.Warn($"[SyncService] ResetSingleSignal：scope '{scope}' 不存在，跳过。");
+                return;
+            }
+            if (!ctx.Signals.ContainsKey(name))
+            {
+                _logger.Warn($"[SyncService] ResetSingleSignal：信号量 '{name}'（scope='{scope}'）未注册，跳过。");
+                return;
+            }
+
+            // 步骤 1：广播取消（同一 scope 内所有 WaitAsync 均被唤醒，代价可接受）
+            var oldCts = Interlocked.Exchange(ref ctx.ResetCts, new CancellationTokenSource());
+            oldCts.Cancel();
+            oldCts.Dispose();
+
+            // 步骤 2：Drain 屏障，等待此 scope 的飞行计数归零
+            var sw = Stopwatch.StartNew();
+            var spin = new SpinWait();
+            while (Volatile.Read(ref ctx.InFlightCount) > 0)
+            {
+                if (sw.ElapsedMilliseconds > 1000)
+                {
+                    _logger.Warn($"[SyncService] scope '{scope}' 单点复位 Drain 超时（1000ms），" +
+                                 $" InFlightCount={Volatile.Read(ref ctx.InFlightCount)}，强制继续。");
+                    break;
+                }
+                spin.SpinOnce();
+            }
+
+            // 步骤 3：仅重建目标信号量
+            var old = ctx.Signals[name];
+            old.Sem.Dispose();
+            ctx.Signals[name] = new SignalEntry(
+                new SemaphoreSlim(old.InitialCount, old.MaxCount),
+                old.InitialCount,
+                old.MaxCount);
+
+            _logger.Info($"[SyncService] [{scope}] 信号量 '{name}' 单点复位完成" +
+                          $" → 初始计数={old.InitialCount}");
+        }
+
         // ── 销毁 ─────────────────────────────────────────────────────────────
 
         public void Dispose()

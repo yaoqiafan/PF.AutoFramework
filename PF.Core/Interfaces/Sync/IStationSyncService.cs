@@ -58,6 +58,15 @@ namespace PF.Core.Interfaces.Sync
         void ResetScope(string scope);
 
         /// <summary>
+        /// 将指定 scope 下的单个具名信号量复位到其初始计数状态。
+        /// 内部使用与 ResetScope 相同的 Cancel→Drain→Rebuild 三步流程，
+        /// 确保没有线程持有旧信号量后再执行 Dispose + 重建。
+        /// </summary>
+        /// <param name="name">要复位的信号量名称</param>
+        /// <param name="scope">所属工站分组名，默认 "global"</param>
+        void ResetSingleSignal(string name, string scope = "global");
+
+        /// <summary>
         /// 快照读取所有已注册信号量的当前状态（只读，供监控 UI 轮询）。
         /// 返回字典：Key = "scope/name"，Value = (初始计数, 当前可用计数)。
         /// </summary>

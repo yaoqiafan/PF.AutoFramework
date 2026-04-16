@@ -8,6 +8,7 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     xmlns:vm="clr-namespace:PF.Modules.Debug.ViewModels"
+    xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     d:DesignHeight="600"
     d:DesignWidth="1000"
     mc:Ignorable="d">
@@ -224,89 +225,68 @@
                         DockPanel.Dock="Top"
                         Text="流水线信号量" />
 
-                    <ListView
+                    <!--  信号量树：Scope 节点 → Signal 叶子，右键可释放/复位单个信号量  -->
+                    <TreeView
+                        x:Name="SyncTreeView"
                         Margin="4,0,4,4"
                         Background="Transparent"
                         BorderBrush="{DynamicResource TextIconBrush}"
                         BorderThickness="1"
                         DockPanel.Dock="Top"
-                        ItemsSource="{Binding SignalItems}"
+                        ItemsSource="{Binding ScopeNodes}"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
-                        <ListView.Style>
-                            <Style TargetType="ListView" BasedOn="{StaticResource ListBoxBaseStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SignalItems.Count}" Value="0">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListView.Style>
+                        <TreeView.Resources>
+                            <!--  Scope（工站）节点模板：可折叠的分组头  -->
+                            <HierarchicalDataTemplate DataType="{x:Type models:ScopeTreeNode}" ItemsSource="{Binding Signals}">
+                                <TextBlock
+                                    Padding="2,3"
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Foreground="{DynamicResource SecondaryTextColorBrush}"
+                                    Text="{Binding ScopeName}" />
+                            </HierarchicalDataTemplate>
 
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem" BasedOn="{StaticResource ListBoxItemBaseStyle}">
-                                <Setter Property="Focusable" Value="False" />
-                                <Setter Property="IsHitTestVisible" Value="False" />
-                                <Setter Property="Background" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="0" />
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="Margin" Value="0" />
-                            </Style>
-                        </ListView.ItemContainerStyle>
-
-                        <ListView.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:SignalStatusItem}">
-                                <Border
+                            <!--  Signal（信号量）叶子节点模板：状态指示 + 右键菜单  -->
+                            <DataTemplate DataType="{x:Type models:SignalTreeNode}">
+                                <StackPanel
                                     Margin="0,1"
-                                    Padding="10,6"
-                                    Background="{DynamicResource ThirdlyRegionColorBrush}"
-                                    CornerRadius="4">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                                    Padding="6,4"
+                                    Orientation="Horizontal"
+                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}">
+                                    <!--
+                                        Tag 绑定到 TreeView 的 DataContext（即 StationDebugViewModel）。
+                                        ContextMenu 与视觉树断开连接，通过 PlacementTarget.Tag 访问 VM 命令；
+                                        通过 PlacementTarget.DataContext 访问当前 SignalTreeNode 参数。
+                                    -->
+                                    <StackPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem
+                                                Command="{Binding PlacementTarget.Tag.ReleaseSignalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                Header="释放（计数 +1）" />
+                                            <MenuItem
+                                                Command="{Binding PlacementTarget.Tag.ResetSignalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                Header="复位至初始值" />
+                                        </ContextMenu>
+                                    </StackPanel.ContextMenu>
 
-                                        <StackPanel
-                                            Grid.Column="0"
-                                            VerticalAlignment="Center"
-                                            Orientation="Horizontal">
-                                            <Ellipse
-                                                x:Name="StatusDot"
-                                                Width="8"
-                                                Height="8"
-                                                Margin="0,0,8,0"
-                                                Fill="#4CAF50" />
-                                            <TextBlock
-                                                VerticalAlignment="Center"
-                                                FontSize="11"
-                                                Foreground="{DynamicResource PrimaryTextColorBrush}"
-                                                Text="{Binding Name}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-
-                                        <StackPanel 
-                                            HorizontalAlignment="Right"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Orientation="Horizontal">
-                                            <TextBlock
-                                                Margin="0,0,6,0"
-                                                VerticalAlignment="Center"
-                                                FontSize="10"
-                                                Foreground="{DynamicResource SecondaryTextColorBrush}"
-                                                Text="{Binding InitialCount, StringFormat='初始:{0}'}" />
-
-                                            <TextBlock
-                                                x:Name="TxtStatus"
-                                                VerticalAlignment="Center"
-                                                FontSize="11"
-                                                FontWeight="SemiBold"
-                                                Foreground="#4CAF50"
-                                                Text="{Binding StatusText}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
+                                    <Ellipse
+                                        x:Name="StatusDot"
+                                        Width="8"
+                                        Height="8"
+                                        Margin="0,0,8,0"
+                                        VerticalAlignment="Center"
+                                        Fill="#4CAF50" />
+                                    <TextBlock
+                                        x:Name="TxtStatus"
+                                        VerticalAlignment="Center"
+                                        FontSize="11"
+                                        Foreground="#4CAF50"
+                                        Text="{Binding StatusText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
 
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding CurrentCount}" Value="0">
@@ -315,8 +295,8 @@
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                        </TreeView.Resources>
+                    </TreeView>
                 </DockPanel>
             </Border>
             <!--  ── 右侧内容区域 ───────────────────────────────────────────────  -->

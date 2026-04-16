@@ -4,6 +4,7 @@ using PF.Core.Enums;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
+using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using Prism.Mvvm;
@@ -81,9 +82,15 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand ResetAllCommand      { get; }
         public DelegateCommand EmergencyStopCommand { get; }
 
-        // ── 流水线信号量列表 ──────────────────────────────────────────────────
+        // ── 流水线信号量树（Scope → Signal）──────────────────────────────────
 
-        public ObservableCollection<SignalStatusItem> SignalItems { get; } = new();
+        public ObservableCollection<ScopeTreeNode> ScopeNodes { get; } = new();
+
+        /// <summary>在 ContextMenu 中释放一个信号量（计数 +1）</summary>
+        public DelegateCommand<SignalTreeNode> ReleaseSignalCommand { get; }
+
+        /// <summary>在 ContextMenu 中将单个信号量复位至初始计数</summary>
+        public DelegateCommand<SignalTreeNode> ResetSignalCommand { get; }
 
         // ── 工站导航列表 ─────────────────────────────────────────────────────
 
@@ -143,6 +150,20 @@ namespace PF.Modules.Debug.ViewModels
                 () => _controller.EmergencyStop(),
                 () => _controller.CurrentState != MachineState.Alarm
                    && _controller.CurrentState != MachineState.Uninitialized);
+
+            ReleaseSignalCommand = new DelegateCommand<SignalTreeNode>(node =>
+            {
+                if (node == null) return;
+                try { _syncService.Release(node.SignalName, node.ParentScope); }
+                catch (Exception ex) { Log(ex); }
+            });
+
+            ResetSignalCommand = new DelegateCommand<SignalTreeNode>(node =>
+            {
+                if (node == null) return;
+                try { _syncService.ResetSingleSignal(node.SignalName, node.ParentScope); }
+                catch (Exception ex) { Log(ex); }
+            });
 
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
             {
@@ -212,21 +233,55 @@ namespace PF.Modules.Debug.ViewModels
         {
             var snapshot = _syncService.GetSnapshot();
 
-            // 新增在快照中但不在列表中的条目
+            // 按 scope 分组快照条目（key 格式："scope/name"）
+            var grouped = new Dictionary<string, List<(string SignalName, int Initial, int Current)>>();
             foreach (var kv in snapshot)
             {
-                var existing = SignalItems.FirstOrDefault(s => s.Name == kv.Key);
-                if (existing == null)
-                    SignalItems.Add(new SignalStatusItem { Name = kv.Key, InitialCount = kv.Value.InitialCount });
-                else
-                    existing.Update(kv.Value.CurrentCount);
+                var slash = kv.Key.IndexOf('/');
+                if (slash < 0) continue;
+                var scope      = kv.Key[..slash];
+                var signalName = kv.Key[(slash + 1)..];
+                if (!grouped.TryGetValue(scope, out var list))
+                    grouped[scope] = list = new List<(string, int, int)>();
+                list.Add((signalName, kv.Value.InitialCount, kv.Value.CurrentCount));
             }
 
-            // 移除已不存在于快照的条目（信号量注销场景）
-            for (int i = SignalItems.Count - 1; i >= 0; i--)
+            // 同步 ScopeNodes（增量更新，避免 UI 闪烁）
+            var existingScopes = ScopeNodes.ToDictionary(n => n.ScopeName);
+
+            foreach (var (scopeName, signals) in grouped)
             {
-                if (!snapshot.ContainsKey(SignalItems[i].Name))
-                    SignalItems.RemoveAt(i);
+                if (!existingScopes.TryGetValue(scopeName, out var scopeNode))
+                {
+                    scopeNode = new ScopeTreeNode(scopeName);
+                    ScopeNodes.Add(scopeNode);
+                }
+
+                var existingSignals = scopeNode.Signals.ToDictionary(s => s.SignalName);
+                var snapshotNames   = new HashSet<string>();
+
+                foreach (var (signalName, initial, current) in signals)
+                {
+                    snapshotNames.Add(signalName);
+                    if (existingSignals.TryGetValue(signalName, out var node))
+                        node.Update(current);
+                    else
+                        scopeNode.Signals.Add(new SignalTreeNode(signalName, scopeName, initial, current));
+                }
+
+                // 移除已消失的信号量叶子节点
+                for (int i = scopeNode.Signals.Count - 1; i >= 0; i--)
+                {
+                    if (!snapshotNames.Contains(scopeNode.Signals[i].SignalName))
+                        scopeNode.Signals.RemoveAt(i);
+                }
+            }
+
+            // 移除快照中不再存在的 scope 节点
+            for (int i = ScopeNodes.Count - 1; i >= 0; i--)
+            {
+                if (!grouped.ContainsKey(ScopeNodes[i].ScopeName))
+                    ScopeNodes.RemoveAt(i);
             }
         }
 
@@ -243,29 +298,6 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         public override void Destroy() => Dispose();
-    }
-
-    /// <summary>流水线信号量状态条目</summary>
-    public class SignalStatusItem : BindableBase
-    {
-        public string Name         { get; init; }
-        public int    InitialCount { get; init; }
-
-        private int _currentCount;
-        public int CurrentCount
-        {
-            get => _currentCount;
-            private set
-            {
-                SetProperty(ref _currentCount, value);
-                RaisePropertyChanged(nameof(StatusText));
-            }
-        }
-
-        /// <summary>显示文本：当前可用计数 / 最大计数</summary>
-        public string StatusText => CurrentCount > 0 ? $"可用 ({CurrentCount})" : "阻塞 (0)";
-
-        internal void Update(int currentCount) => CurrentCount = currentCount;
     }
 
     /// <summary>工站导航条目，持有实时状态供左侧列表展示</summary>
