@@ -159,52 +159,37 @@ namespace PF.Infrastructure.Communication.TCP
                 // 若确实需要大包，应在应用层做流式分帧，而非一次性大缓冲。
                 var buffer = new byte[64 * 1024]; // 64KB，足够绝大多数工业协议
 
+                // 修复：彻底移除 Poll/DataAvailable 同步阻塞轮询。
+                // 每个客户端的 Poll 调用最多阻塞 1 s（加上 IsSocketConnected 内的 3 次 Poll
+                // 共可达 5 s），100 个并发连接即耗尽线程池。
+                // 直接用 await ReadAsync 进行真正的异步等待：操作系统在数据到达时唤醒，
+                // 期间不占用线程。返回 0 字节 = 对端优雅关闭；IOException/SocketException = 异常断开。
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    // 使用Poll方法检查连接状态
-                    if (!IsSocketConnected(tcpClient.Client))
-                    {
-                        disconnectReason = "客户端主动断开连接";
-                        break;
-                    }
-
                     try
                     {
-                        // 设置读取超时，以便定期检查连接状态
-                        if (tcpClient.Client.Poll(1000, SelectMode.SelectRead))
+                        var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                        if (bytesRead == 0)
                         {
-                            // 检查是否有数据可读
-                            if (stream.DataAvailable)
-                            {
-                                stream.ReadTimeout = 3000;
-                                var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-                                if (bytesRead == 0)
-                                {
-                                    // 读取0字节表示客户端已断开
-                                    disconnectReason = "客户端正常关闭连接";
-                                    break;
-                                }
+                            disconnectReason = "客户端正常关闭连接";
+                            break;
+                        }
 
-                                var receivedData = new byte[bytesRead];
-                                Array.Copy(buffer, receivedData, bytesRead);
-                                OnDataReceived(clientEndPoint, receivedData);
-                            }
-                        }
-                        else
-                        {
-                            // 没有数据可读，继续等待
-                            await Task.Delay(100, cancellationToken);
-                        }
+                        var receivedData = new byte[bytesRead];
+                        Array.Copy(buffer, receivedData, bytesRead);
+                        OnDataReceived(clientEndPoint, receivedData);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
                     }
                     catch (IOException ioEx)
                     {
-                        // IO异常通常表示连接断开
                         disconnectReason = $"IO异常: {ioEx.Message}";
                         break;
                     }
                     catch (SocketException socketEx)
                     {
-                        // Socket异常表示连接问题
                         disconnectReason = $"Socket异常: {socketEx.Message}";
                         break;
                     }

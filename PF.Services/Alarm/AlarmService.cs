@@ -30,11 +30,15 @@ namespace PF.Services.Alarm
         // 复合键：(Source, ErrorCode) → 同一工站可并发持有多条不同代码的活跃报警
         private readonly ConcurrentDictionary<(string Source, string ErrorCode), ActiveAlarmState> _activeMap = new();
 
-        // 有界持久化队列：容量 10000，背压策略 DropOldest（防止数据库死锁时内存 OOM）
+        // 有界持久化队列：容量 10000，背压策略改为 Wait。
+        // 原 DropOldest 在高并发停机时会将最早入队的首发故障报警挤出，导致根因丢失；
+        // Wait 模式确保写入端阻塞等待空位，首发报警不被后续报警覆盖。
+        // 容量 10000 已足够大，正常情况下不会触发背压；若数据库持续死锁，
+        // 写入方阻塞是合理的背压信号，优于静默丢弃关键故障信息。
         private readonly Channel<PersistJob> _persistChannel = Channel.CreateBounded<PersistJob>(
             new BoundedChannelOptions(10_000)
             {
-                FullMode                      = BoundedChannelFullMode.DropOldest,
+                FullMode                      = BoundedChannelFullMode.Wait,
                 SingleReader                  = true,
                 SingleWriter                  = false,
                 AllowSynchronousContinuations = false
