@@ -254,10 +254,14 @@ namespace PF.Infrastructure.Mechanisms
 
         public  async Task<bool> WaitHomeDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
         {
+            if (axis == null) return false;
+            
             // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
             if ((axis as IHardwareDevice)?.IsSimulated == true)
                 return true;
             var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
+
+
 
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
