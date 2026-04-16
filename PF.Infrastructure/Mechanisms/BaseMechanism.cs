@@ -168,7 +168,8 @@ namespace PF.Infrastructure.Mechanisms
                 if (hw == null) continue;
                 hw.AlarmTriggered -= OnHardwareAlarmTriggered;
                 hw.HardwareAlarmAutoCleared -= OnHardwareAlarmAutoCleared;
-                if (hw is IDisposable disposable) disposable.Dispose();  // 释放硬件持有的非托管资源
+                // 不在此处 Dispose 硬件实例：硬件生命周期由 HardwareManagerService 统一管理，
+                // 模组提前 Dispose 会导致共享该硬件的其他模组出现 ObjectDisposedException。
             }
         }
 
@@ -229,6 +230,10 @@ namespace PF.Infrastructure.Mechanisms
                 // 走到这里，说明外部没有取消，纯粹是 timeoutCts 触发的超时
                 if (timeoutCts.IsCancellationRequested)
                 {
+                    // 先物理制动：轴仍在运动中，必须立即停止，否则有撞机风险。
+                    // 此时外部 token 尚未取消，可安全用于制动指令。
+                    await axis.StopAsync(token);
+
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待运动完成超时（{timeoutMs} ms）");
                     // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作

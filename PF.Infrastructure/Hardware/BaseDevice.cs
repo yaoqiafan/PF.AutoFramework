@@ -142,6 +142,12 @@ namespace PF.Infrastructure.Hardware
                         StartHealthMonitor();
                         return true;
                     }
+
+                    // InternalConnectAsync 返回 false 但未抛异常（如握手未通过），
+                    // 补充等待间隔，避免高频空转瞬间耗尽全部重试次数。
+                    _logger?.Warn($"[{DeviceName}] 第 {i} 次连接返回失败，等待后重试...");
+                    if (i < maxRetries)
+                        await Task.Delay(2000, token);
                 }
                 catch (OperationCanceledException)
                 {
