@@ -347,13 +347,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             try
             {
-                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸右闭合, false))
+                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左闭合, false))
                 {
-                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸右闭合} 失败");
+                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸左闭合} 失败");
                 }
-                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸右张开, true))
+                if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左张开, true))
                 {
-                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸右张开} 失败");
+                    throw new Exception($"操作输出信号{E_OutPutName.夹爪气缸左张开} 失败");
                 }
 
                 while (true)
@@ -442,12 +442,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
-                bool? res = _io.ReadInput((int)E_InPutName.夹爪左叠料检测);
-                if (!res.HasValue)
-                {
-                    throw new Exception($"获取输入信号{E_InPutName.夹爪左叠料检测} 失败");
-                }
-                return res.Value;
+                //bool? res = _io.ReadInput((int)E_InPutName.夹爪左叠料检测);
+                //if (!res.HasValue)
+                //{
+                //    throw new Exception($"获取输入信号{E_InPutName.夹爪左叠料检测} 失败");
+                //}
+                //return res.Value;
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -535,6 +537,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     return false;
                 }
+                await Task.Delay(1000);
                 if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.晶圆取料位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     return true;
@@ -678,7 +681,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     {
                         await Task.Delay(5, linked.Token);
                         bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
-                        if (res2 == false)
+                        if (res2 == true)
                         {
                             return;
                         }
@@ -769,7 +772,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<bool> CheckGipperInsidePro(CancellationToken token = default)
         {
             bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
-            if (res2 == false)
+            if (res2 == true)
             {
                 return true;
             }

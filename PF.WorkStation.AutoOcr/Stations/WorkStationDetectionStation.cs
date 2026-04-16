@@ -2,6 +2,7 @@ using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
@@ -40,6 +41,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             去工位1检测位置 = 10,
             去工位2检测位置 = 20,
             触发检测 = 30,
+
+            检测完成后避位=35,
             数据比对 = 40,
             写入检测数据 = 50,
             检测完成 = 60,
@@ -263,13 +266,29 @@ namespace PF.WorkStation.AutoOcr.Stations
                         {
                             _cachedOcrResult = await _detectionModule.CameraTigger(token).ConfigureAwait(false);
                             _logger.Info($"[{StationName}] OCR触发完成，读取结果：[{_cachedOcrResult.Item1}]。");
-                            _currentStep = StationDetectionStep.数据比对;
+                            _currentStep = StationDetectionStep.检测完成后避位;
                         }
                         catch (Exception ex)
                         {
                             _logger.Error($"[{StationName}] OCR相机触发异常：{ex.Message}");
                             _currentStep = StationDetectionStep.触发检测异常;
                         }
+                        break;
+
+                    case StationDetectionStep.检测完成后避位:
+                        CurrentStepDescription = $"检测完成后避位（{_currentworkSpace}）...";
+                        await CheckPauseAsync(token).ConfigureAwait(false);
+                        if (!await _detectionModule.MoveInitial(token))
+                        {
+                            _logger.Error($"[{StationName}] 检测完成后避位异常：");
+                            _currentStep = StationDetectionStep.触发检测异常;
+
+                        } 
+                        else
+                        {
+                            _currentStep = StationDetectionStep.数据比对;
+                        }
+
                         break;
 
                     // ══════════════════════════════════════════════════════════
@@ -280,72 +299,72 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "OCR数据与MES数据比对...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        var mesData = _currentworkSpace == E_WorkSpace.工位1
-                            ? _dataModule?.Station1MesDetectionData
-                            : _dataModule?.Station2MesDetectionData;
+                        //var mesData = _currentworkSpace == E_WorkSpace.工位1
+                        //    ? _dataModule?.Station1MesDetectionData
+                        //    : _dataModule?.Station2MesDetectionData;
 
-                        _cachedDetectionData = new MachineDetectionData
-                        {
-                            InternalBatchId = mesData?.InternalBatchId ?? "",
-                            OcrText = _cachedOcrResult.Item1,
-                            Barcode1 = _cachedOcrResult.Item1,
-                            ProductModel = mesData?.ProductModel ?? "",
-                            OperatorId = mesData?.OperatorId ?? "",
-                            RecipeName = _cachedRecipe?.RecipeName ?? "",
-                        };
+                        //_cachedDetectionData = new MachineDetectionData
+                        //{
+                        //    InternalBatchId = mesData?.InternalBatchId ?? "",
+                        //    OcrText = _cachedOcrResult.Item1,
+                        //    Barcode1 = _cachedOcrResult.Item1,
+                        //    ProductModel = mesData?.ProductModel ?? "",
+                        //    OperatorId = mesData?.OperatorId ?? "",
+                        //    RecipeName = _cachedRecipe?.RecipeName ?? "",
+                        //};
 
-                        // 用配方中的 GuestStartIndex/GuestLength 提取客批片号子串进行比对
-                        bool isMatch = false;
-                        string errorMsg = "NONE";
-                        try
-                        {
-                            if (_cachedRecipe != null
-                                && !string.IsNullOrEmpty(_cachedOcrResult.Item1)
-                                && mesData?.CustomerWafers != null
-                                && mesData.CustomerWafers.Count > 0)
-                            {
-                                int startIdx = _cachedRecipe.GuestStartIndex;
-                                int length = _cachedRecipe.GuestLength;
+                        //// 用配方中的 GuestStartIndex/GuestLength 提取客批片号子串进行比对
+                        //bool isMatch = false;
+                        //string errorMsg = "NONE";
+                        //try
+                        //{
+                        //    if (_cachedRecipe != null
+                        //        && !string.IsNullOrEmpty(_cachedOcrResult.Item1)
+                        //        && mesData?.CustomerWafers != null
+                        //        && mesData.CustomerWafers.Count > 0)
+                        //    {
+                        //        int startIdx = _cachedRecipe.GuestStartIndex;
+                        //        int length = _cachedRecipe.GuestLength;
 
-                                if (startIdx >= 0 && length > 0 && _cachedOcrResult.Item1.Length >= startIdx + length)
-                                {
-                                    string extractedId = _cachedOcrResult.Item1.Substring(startIdx, length);
-                                    var matchedWafer = mesData.CustomerWafers
-                                        .FirstOrDefault(w => w.WaferId == extractedId);
+                        //        if (startIdx >= 0 && length > 0 && _cachedOcrResult.Item1.Length >= startIdx + length)
+                        //        {
+                        //            string extractedId = _cachedOcrResult.Item1.Substring(startIdx, length);
+                        //            var matchedWafer = mesData.CustomerWafers
+                        //                .FirstOrDefault(w => w.WaferId == extractedId);
 
-                                    if (matchedWafer != null)
-                                    {
-                                        isMatch = true;
-                                        _cachedDetectionData.CustomerBatch = matchedWafer.CustomerBatch;
-                                        _cachedDetectionData.WaferId = matchedWafer.WaferId;
-                                        _logger.Info($"[{StationName}] 数据比对成功：WaferId=[{extractedId}]，客批=[{matchedWafer.CustomerBatch}]。");
-                                    }
-                                    else
-                                    {
-                                        errorMsg = $"OCR提取片号[{extractedId}]在MES批次中未找到匹配项";
-                                        _logger.Warn($"[{StationName}] 数据比对不匹配：{errorMsg}");
-                                    }
-                                }
-                                else
-                                {
-                                    errorMsg = $"OCR结果长度[{_cachedOcrResult.Item1.Length}]不足以提取配方指定子串（起始={startIdx}，长度={length}）";
-                                    _logger.Warn($"[{StationName}] 数据比对跳过：{errorMsg}");
-                                }
-                            }
-                            else
-                            {
-                                errorMsg = "配方或MES数据为空，跳过比对";
-                                _logger.Warn($"[{StationName}] {errorMsg}");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            errorMsg = $"比对过程异常：{ex.Message}";
-                            _logger.Error($"[{StationName}] {errorMsg}");
-                        }
+                        //            if (matchedWafer != null)
+                        //            {
+                        //                isMatch = true;
+                        //                _cachedDetectionData.CustomerBatch = matchedWafer.CustomerBatch;
+                        //                _cachedDetectionData.WaferId = matchedWafer.WaferId;
+                        //                _logger.Info($"[{StationName}] 数据比对成功：WaferId=[{extractedId}]，客批=[{matchedWafer.CustomerBatch}]。");
+                        //            }
+                        //            else
+                        //            {
+                        //                errorMsg = $"OCR提取片号[{extractedId}]在MES批次中未找到匹配项";
+                        //                _logger.Warn($"[{StationName}] 数据比对不匹配：{errorMsg}");
+                        //            }
+                        //        }
+                        //        else
+                        //        {
+                        //            errorMsg = $"OCR结果长度[{_cachedOcrResult.Item1.Length}]不足以提取配方指定子串（起始={startIdx}，长度={length}）";
+                        //            _logger.Warn($"[{StationName}] 数据比对跳过：{errorMsg}");
+                        //        }
+                        //    }
+                        //    else
+                        //    {
+                        //        errorMsg = "配方或MES数据为空，跳过比对";
+                        //        _logger.Warn($"[{StationName}] {errorMsg}");
+                        //    }
+                        //}
+                        //catch (Exception ex)
+                        //{
+                        //    errorMsg = $"比对过程异常：{ex.Message}";
+                        //    _logger.Error($"[{StationName}] {errorMsg}");
+                        //}
 
-                        _cachedDetectionData.IsMatch = isMatch;
-                        _cachedDetectionData.ErrorMessage = errorMsg;
+                        //_cachedDetectionData.IsMatch = isMatch;
+                        //_cachedDetectionData.ErrorMessage = errorMsg;
 
                         _currentStep = StationDetectionStep.写入检测数据;
                         break;

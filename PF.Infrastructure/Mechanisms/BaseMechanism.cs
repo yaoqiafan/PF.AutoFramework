@@ -361,7 +361,7 @@ namespace PF.Infrastructure.Mechanisms
         /// <param name="moves">轴-点位对集合</param>
         /// <param name="timeoutMs">等待单轴到位的超时毫秒数，默认 30 秒</param>
         /// <param name="token">取消令牌</param>
-        protected async Task<bool>  MoveMultiAxesToPointsAsync(
+        public async Task<bool>  MoveMultiAxesToPointsAsync(
             IEnumerable<(IAxis axis, string pointName)> moves,
             int timeoutMs = 30_000,
             CancellationToken token = default)
