@@ -4,6 +4,7 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Stations;
 using Prism.Commands;
 using System;
@@ -65,6 +66,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand TriggerAlarmCommand { get; }
         public DelegateCommand TriggerStartCommand { get; }
         public DelegateCommand TriggerAllowFeedCommand { get; }
+        public DelegateCommand TriggerAllowBackCommand { get; }
         public DelegateCommand TriggerFinishCommand { get; }
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
@@ -95,6 +97,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
             TriggerAllowFeedCommand = new DelegateCommand(ExecuteTriggerAllowFeed,
+              () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
+            TriggerAllowBackCommand = new DelegateCommand(ExecuteTriggerAllowBack,
               () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
             TriggerFinishCommand = new DelegateCommand(ExecuteTriggerFinish,
@@ -129,7 +134,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             TriggerStartCommand.RaiseCanExecuteChanged();
             TriggerAllowFeedCommand.RaiseCanExecuteChanged();
             TriggerFinishCommand.RaiseCanExecuteChanged();
-
+            TriggerAllowBackCommand.RaiseCanExecuteChanged();
         }
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
@@ -204,7 +209,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private void ExecuteTriggerAllowFeed()
         {
-            _sync.Release(WorkstationSignals.工位1允许拉料.ToString());
+            _sync.Release(WorkstationSignals.工位1允许拉料.ToString(), E_WorkStation.工位1上下料工站.ToString());
+        }
+
+        private void ExecuteTriggerAllowBack()
+        {
+            _sync.Release(WorkstationSignals.工位1允许退料.ToString(), E_WorkStation.工位1上下料工站.ToString());
         }
         // ── 销毁 ─────────────────────────────────────────────────────────────
 

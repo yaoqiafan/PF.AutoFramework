@@ -257,6 +257,18 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     }
 
+
+    public enum E_WorkStation
+    {
+        工位1上下料工站,
+        OCR检测工站,
+        工位1拉料工站,
+
+        工位2上下料工站,
+        工位2拉料工站,
+    }
+
+
     /// <summary>
     /// 物料检测状态枚举
     /// </summary>
