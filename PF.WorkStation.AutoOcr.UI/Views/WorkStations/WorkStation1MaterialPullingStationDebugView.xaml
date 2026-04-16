@@ -202,30 +202,6 @@
                             </pf:Card.Header>
 
                             <UniformGrid Margin="10" Columns="1">
-                                <Button
-                                    Height="40"
-                                    Margin="3"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding TriggerAllowFeedCommand}"
-                                    Content="工位1允许拉料"
-                                    Style="{DynamicResource ButtonWarning}"
-                                    ToolTip="夹爪取料" />
-                                <Button
-                                    Height="40"
-                                    Margin="3"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding TriggerDetEndCommand}"
-                                    Content="工位1检测完成"
-                                    Style="{DynamicResource ButtonWarning}"
-                                    ToolTip="等待允许送料" />
-                                <Button
-                                    Height="40"
-                                    Margin="3"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding TriggerAllowBlankCommand}"
-                                    Content="夹爪允许送料"
-                                    Style="{DynamicResource ButtonWarning}"
-                                    ToolTip="送料到料盒" />
 
                                 <Button
                                     Height="40"
@@ -235,7 +211,14 @@
                                     Content="工位1拉料完成"
                                     Style="{DynamicResource ButtonWarning}"
                                     ToolTip="送料到料盒" />
-
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerAllowDecCommand}"
+                                    Content="工位1允许检测"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="送料到料盒" />
                                 <Button
                                     Height="40"
                                     Margin="3"

@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Stations;
 using Prism.Commands;
 using System;
@@ -217,10 +218,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private void ExecuteTriggerAlarm() => _station.TriggerAlarm();
 
         private void ExecuteTriggerStation1Detection()
-            => _sync.Release(WorkstationSignals.工位1允许检测.ToString());
+            => _sync.Release(WorkstationSignals.工位1检测完成.ToString(),E_WorkStation.OCR检测工站.ToString());
 
         private void ExecuteTriggerStation2Detection()
-            => _sync.Release(WorkstationSignals.工位2允许检测.ToString());
+            => _sync.Release(WorkstationSignals.工位2检测完成.ToString(), E_WorkStation.OCR检测工站.ToString());
 
         /// <summary>向 AlarmService 注入测试报警，验证复合键链路与历史落盘</summary>
         private void ExecuteTriggerTestAlarm()
