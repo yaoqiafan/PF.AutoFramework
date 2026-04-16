@@ -4,6 +4,7 @@ using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Stations;
 using System;
 using System.Collections.Generic;
@@ -64,9 +65,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public DelegateCommand ResumeCommand { get; }
         public DelegateCommand ResetCommand { get; }
         public DelegateCommand TriggerAlarmCommand { get; }
-      
-        public DelegateCommand TriggerDetEndCommand { get; }
-        public DelegateCommand TriggerAllowBlankCommand { get; }
+
+        public DelegateCommand TriggerAllowDecCommand { get; }
         public DelegateCommand TriggerPullingOverCommand { get; }
         public DelegateCommand TriggerPushOverCommand { get; }
 
@@ -96,12 +96,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
                 () => CanManualControl && _station.CurrentState != MachineState.Alarm);
 
 
-            TriggerDetEndCommand = new DelegateCommand(TriggerDetEnd,
+            TriggerAllowDecCommand= new DelegateCommand(TriggerAllowDec,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
-
-            TriggerAllowBlankCommand = new DelegateCommand(TriggerAllowBlank,
-             () => CanManualControl && (_station.CurrentState == MachineState.Running));
-
             TriggerPullingOverCommand = new DelegateCommand(TriggerPullingOver,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
@@ -135,10 +131,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResumeCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
-         
-            TriggerDetEndCommand.RaiseCanExecuteChanged();
-            TriggerAllowBlankCommand.RaiseCanExecuteChanged();
+        
             TriggerPullingOverCommand.RaiseCanExecuteChanged();
+            TriggerAllowDecCommand.RaiseCanExecuteChanged();
             TriggerPushOverCommand.RaiseCanExecuteChanged();
         }
 
@@ -201,28 +196,20 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private void ExecuteTriggerAlarm() => _station.TriggerAlarm();
 
-        private void TriggerAllowFeed()
-        {
-            _sync.Release(WorkstationSignals.工位1允许拉料.ToString());
-        }
-
-        private void TriggerDetEnd()
-        {
-            _sync.Release(WorkstationSignals.工位1检测完成.ToString());
-        }
-        private void TriggerAllowBlank()
-        {
-            _sync.Release(WorkstationSignals.工位1退料完成 .ToString());
-        }
 
         private void TriggerPushOver()
         {
-            _sync.Release(WorkstationSignals.工位1退料完成.ToString());
+            _sync.Release(WorkstationSignals.工位1退料完成.ToString(),E_WorkStation.工位1拉料工站.ToString());
         }
 
         private void TriggerPullingOver()
         {
-            _sync.Release(WorkstationSignals.工位1拉料完成.ToString());
+            _sync.Release(WorkstationSignals.工位1拉料完成.ToString(), E_WorkStation.工位1拉料工站.ToString());
+        }
+
+        private void TriggerAllowDec()
+        {
+            _sync.Release(WorkstationSignals.工位1允许检测.ToString(), E_WorkStation.工位1拉料工站.ToString());
         }
 
         // ── 销毁 ─────────────────────────────────────────────────────────────

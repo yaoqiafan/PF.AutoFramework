@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using System;
@@ -75,7 +76,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         }
 
 
-        public WorkStation1MaterialPullingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger) : base("工位1拉料工站", logger)
+        public WorkStation1MaterialPullingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger) : base(E_WorkStation.工位1拉料工站.ToString(), logger)
         {
             _pullingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule)) as WorkStation1MaterialPullingModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
@@ -167,7 +168,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "等待允许拉出物料...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待允许拉料信号...");
-                        await _sync.WaitAsync(WorkstationSignals.工位1允许拉料.ToString(), token).ConfigureAwait(false);
+                        await _sync.WaitAsync(WorkstationSignals.工位1允许拉料.ToString(),token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 检测到允许拉料信号...");
                         _currentStep = Station1PullingStep.获取当前配方;
                         break;
@@ -270,7 +271,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         {
                             _logger.Info($"[{StationName}] 运动到检测位成功 ");
 
-                            _sync.Release(WorkstationSignals.工位1拉料完成.ToString());
+                            _sync.Release(WorkstationSignals.工位1拉料完成.ToString(), StationName);
                             _currentStep = Station1PullingStep.扫码识别;
                         }
                         else
@@ -294,14 +295,14 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "扫码识别...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 允许检测位检测");
-                        _sync.Release(WorkstationSignals.工位1允许检测.ToString());
+                        _sync.Release(WorkstationSignals.工位1允许检测.ToString(), StationName);
                         _currentStep = Station1PullingStep.等待检测位检测完成;
                         break;
                     case Station1PullingStep.等待检测位检测完成:
                         CurrentStepDescription = "等待检测位检测完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待检测位检测完成信号");
-                        await _sync.WaitAsync(WorkstationSignals.工位1检测完成.ToString(), token).ConfigureAwait(false);
+                        await _sync.WaitAsync(WorkstationSignals.工位1检测完成.ToString(), token, scope: E_WorkStation.OCR检测工站.ToString()).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待到检测位检测完成信号");
                         _currentStep = Station1PullingStep.等待允许送料;
                         break;
@@ -310,7 +311,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "等待允许送料...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待允许送料信号");
-                        await _sync.WaitAsync(WorkstationSignals.工位1允许退料.ToString(), token).ConfigureAwait(false);
+                        await _sync.WaitAsync(WorkstationSignals.工位1允许退料.ToString(), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待到允许送料信号");
                         _currentStep = Station1PullingStep.送料到取料位;
                         break;
@@ -382,7 +383,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "发送退料完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 发送退料完成 ");
-                        _sync.Release(WorkstationSignals.工位1退料完成.ToString());
+                        _sync.Release(WorkstationSignals.工位1退料完成.ToString(), StationName);
                         _currentStep = Station1PullingStep.等待允许取料;
                         break;
 

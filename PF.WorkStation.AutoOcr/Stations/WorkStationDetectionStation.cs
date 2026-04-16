@@ -14,7 +14,7 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 namespace PF.WorkStation.AutoOcr.Stations
 {
 
-    [StationUI("OCR检测工站", "WorkStationDetectionStationDebugView", order: 2)]
+    [StationUI("OCR检测工站", "WorkStationDetectionStationDebugView", order: 3)]
     public class WorkStationDetectionStation<T> : StationBase<T> where T : StationMemoryBaseParam
     {
         private readonly WorkStationDetectionModule? _detectionModule;
@@ -58,7 +58,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             #endregion
         }
 
-        public WorkStationDetectionStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger) : base("OCR检测工站", logger)
+        public WorkStationDetectionStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger) : base(E_WorkStation.OCR检测工站.ToString(), logger)
         {
             _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDetectionModule)) as WorkStationDetectionModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
@@ -173,8 +173,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         using (var cts1 = CancellationTokenSource.CreateLinkedTokenSource(token))
                         using (var cts2 = CancellationTokenSource.CreateLinkedTokenSource(token))
                         {
-                            var task1 = _sync.WaitAsync(WorkstationSignals.工位1允许检测.ToString(), cts1.Token);
-                            var task2 = _sync.WaitAsync(WorkstationSignals.工位2允许检测.ToString(), cts2.Token);
+                            var task1 = _sync.WaitAsync(WorkstationSignals.工位1允许检测.ToString(), cts1.Token, scope: E_WorkStation.工位1拉料工站.ToString());
+                            var task2 = _sync.WaitAsync(WorkstationSignals.工位2允许检测.ToString(), cts2.Token, scope: E_WorkStation.工位2拉料工站.ToString());
 
                             var done = await Task.WhenAny(task1, task2).ConfigureAwait(false);
 
@@ -402,12 +402,12 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         if (_currentworkSpace == E_WorkSpace.工位1)
                         {
-                            _sync.Release(WorkstationSignals.工位1检测完成.ToString());
+                            _sync.Release(WorkstationSignals.工位1检测完成.ToString(), StationName);
                             _logger.Success($"[{StationName}] 工位1检测完成，已释放信号。");
                         }
                         else
                         {
-                            _sync.Release(WorkstationSignals.工位2检测完成.ToString());
+                            _sync.Release(WorkstationSignals.工位2检测完成.ToString(), StationName);
                             _logger.Success($"[{StationName}] 工位2检测完成，已释放信号。");
                         }
 

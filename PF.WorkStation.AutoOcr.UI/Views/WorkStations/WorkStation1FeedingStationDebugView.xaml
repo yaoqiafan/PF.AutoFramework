@@ -217,8 +217,17 @@
                                     Height="40"
                                     Margin="3"
                                     HorizontalAlignment="Stretch"
-                                    Command="{Binding ExecuteTriggerAllowFeed}"
+                                    Command="{Binding TriggerAllowFeedCommand}"
                                     Content="工位1允许拉料"
+                                    Style="{DynamicResource ButtonWarning}"
+                                    ToolTip="执行硬件复位：清警 → 回原点 → Idle" />
+
+                                <Button
+                                    Height="40"
+                                    Margin="3"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding TriggerAllowBackCommand}"
+                                    Content="工位1允退拉料"
                                     Style="{DynamicResource ButtonWarning}"
                                     ToolTip="执行硬件复位：清警 → 回原点 → Idle" />
 
