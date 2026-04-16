@@ -193,18 +193,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private void ExecuteTriggerStart()
         {
-            _sync.Release(WorkstationSignals.工位1启动按钮按下.ToString(),true);
+            _sync.Release(WorkstationSignals.工位1启动按钮按下.ToString());
         }
 
         private void ExecuteTriggerFinish()
         {
-            _sync.Release(WorkstationSignals.工位1人工下料完成.ToString(), true);
+            _sync.Release(WorkstationSignals.工位1人工下料完成.ToString());
         }
 
 
         private void ExecuteTriggerAllowFeed()
         {
-            _sync.Release(WorkstationSignals.工位1允许拉料.ToString(), true);
+            _sync.Release(WorkstationSignals.工位1允许拉料.ToString());
         }
         // ── 销毁 ─────────────────────────────────────────────────────────────
 
