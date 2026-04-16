@@ -222,24 +222,40 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
             //先移动XY
-            if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, XVel, XAcc, XDec, 0.08, token) || !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, YVel, YAcc, YDec, 0.1, token))
+            if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
+                !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token))
             {
                 _logger.Error($"[{MechanismName}] 移动到工位1失败");
                 return false;
             }
-            if (IsChangedOcrCamera())
-            {
-                if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
-                {
-                    _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
-                    return false;
-                }
-            }
-            if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
+
+            #region 未验证
+            //if (IsChangedOcrCamera())
+            //{
+            //    if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
+            //    {
+            //        _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
+            //        return false;
+            //    }
+            //}
+            #endregion
+
+
+
+            if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) 
+                || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
             {
                 _logger.Error($"[{MechanismName}] XY轴移动到工位1超时");
                 return false;
             }
+            if (! await MoveAbsAndWaitAsync(_zAxis, _1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.08, token:token))
+            {
+                _logger.Error($"[{MechanismName}] Z轴移动到工位1超时");
+                return false;
+            }
+
+
+
             return true;
         }
 

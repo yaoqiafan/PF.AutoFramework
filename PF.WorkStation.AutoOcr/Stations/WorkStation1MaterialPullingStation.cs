@@ -246,7 +246,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         break;
 
-
+                  
                     case Station1PullingStep.检测叠料:
                         CurrentStepDescription = "检测叠料...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
@@ -269,6 +269,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         if (await _pullingModule.MoveDetection(token))
                         {
                             _logger.Info($"[{StationName}] 运动到检测位成功 ");
+
+                            _sync.Release(WorkstationSignals.工位1拉料完成.ToString());
                             _currentStep = Station1PullingStep.扫码识别;
                         }
                         else

@@ -62,7 +62,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             判断Z轴是否具备运动条件_取料定位 = 110,
             切换到指定层 = 120,
-            错层检测 = 130,
+            判断物料可拉出条件 = 130,
 
             等待物料拉出完成 = 140,
             阻塞等待物料回退完成 = 150,
@@ -430,7 +430,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
                         {
                             _logger.Info($"[{StationName}] Z轴已到达第{_layersToProcess[_currentLayerIndex] + 1}层取料位。");
-                            _currentStep = Station1FeedingStep.错层检测;
+                            _currentStep = Station1FeedingStep.判断物料可拉出条件;
                         }
                         else
                         {
@@ -439,14 +439,14 @@ namespace PF.WorkStation.AutoOcr.Stations
                         }
                         break;
 
-                    case Station1FeedingStep.错层检测:
-                        CurrentStepDescription = "检测物料错层...";
+                    case Station1FeedingStep.判断物料可拉出条件:
+                        CurrentStepDescription = "判断物料可拉出条件...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         if (await _feedingModule.CanPullOutMaterialAsync(token).ConfigureAwait(false))
                         {
-                            _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层错层检测通过，可执行拉料。");
+                            _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料可拉出条件通过，可执行拉料。");
 
-                            _sync.Release(WorkstationSignals.工位1允许拉料.ToString(), true);
+                            _sync.Release(WorkstationSignals.工位1允许拉料.ToString());
                             _currentStep = Station1FeedingStep.等待物料拉出完成;
                         }
                         else
@@ -465,6 +465,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await _sync.WaitAsync(WorkstationSignals.工位1拉料完成.ToString(), token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已拉出到位。");
                         _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+                        _sync.Release(WorkstationSignals.工位1允许退料.ToString());
                         break;
 
                     case Station1FeedingStep.阻塞等待物料回退完成:
