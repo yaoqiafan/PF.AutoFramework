@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station;
 using PF.Infrastructure.Station.Basic;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 
 namespace PF.WorkStation.AutoOcr.Stations
@@ -50,23 +51,23 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync = sync;
 
             _sync.Register(WorkstationSignals.工位1启动按钮按下.ToString());
-            _sync.Register(WorkstationSignals.工位1允许拉料.ToString());
-            _sync.Register(WorkstationSignals.工位1拉料完成.ToString());
-            _sync.Register(WorkstationSignals.工位1允许退料.ToString());
-            _sync.Register(WorkstationSignals.工位1退料完成.ToString());
-            _sync.Register(WorkstationSignals.工位1允许检测.ToString());
-            _sync.Register(WorkstationSignals.工位1检测完成.ToString());
+            _sync.Register(WorkstationSignals.工位1允许拉料.ToString(),scope:E_WorkStation. 工位1上下料工站.ToString());
+            _sync.Register(WorkstationSignals.工位1拉料完成.ToString(),scope: E_WorkStation.工位1拉料工站.ToString());
+            _sync.Register(WorkstationSignals.工位1允许退料.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            _sync.Register(WorkstationSignals.工位1退料完成.ToString(), scope: E_WorkStation.工位1拉料工站.ToString());
+            _sync.Register(WorkstationSignals.工位1允许检测.ToString(), scope: E_WorkStation.工位1拉料工站.ToString());
+            _sync.Register(WorkstationSignals.工位1检测完成.ToString(), scope: E_WorkStation.OCR检测工站.ToString());
             _sync.Register(WorkstationSignals.工位1人工下料完成.ToString());
 
 
-            _sync.Register(WorkstationSignals.工位2启动按钮按下.ToString());
-            _sync.Register(WorkstationSignals.工位2允许拉料.ToString());
-            _sync.Register(WorkstationSignals.工位2拉料完成.ToString());
-            _sync.Register(WorkstationSignals.工位2允许退料.ToString());
-            _sync.Register(WorkstationSignals.工位2退料完成.ToString());
-            _sync.Register(WorkstationSignals.工位2允许检测.ToString());
-            _sync.Register(WorkstationSignals.工位2检测完成.ToString());
-            _sync.Register(WorkstationSignals.工位2人工下料完成.ToString());
+            //_sync.Register(WorkstationSignals.工位2启动按钮按下.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            //_sync.Register(WorkstationSignals.工位2允许拉料.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            //_sync.Register(WorkstationSignals.工位2拉料完成.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            //_sync.Register(WorkstationSignals.工位2允许退料.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            //_sync.Register(WorkstationSignals.工位2退料完成.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            _sync.Register(WorkstationSignals.工位2允许检测.ToString(), scope: E_WorkStation.工位2拉料工站.ToString());
+            //_sync.Register(WorkstationSignals.工位2检测完成.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
+            //_sync.Register(WorkstationSignals.工位2人工下料完成.ToString(), scope: E_WorkStation.工位1上下料工站.ToString());
         }
 
 

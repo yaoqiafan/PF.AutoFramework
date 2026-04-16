@@ -106,7 +106,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         }
 
 
-        public WorkStation1FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger) : base("工位1上下料工站", logger)
+        public WorkStation1FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger) : base(E_WorkStation.工位1上下料工站.ToString(), logger)
         {
             _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1FeedingModule)) as WorkStation1FeedingModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
@@ -446,7 +446,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         {
                             _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料可拉出条件通过，可执行拉料。");
 
-                            _sync.Release(WorkstationSignals.工位1允许拉料.ToString());
+                            _sync.Release(WorkstationSignals.工位1允许拉料.ToString(), StationName);
                             _currentStep = Station1FeedingStep.等待物料拉出完成;
                         }
                         else
@@ -462,17 +462,17 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.等待物料拉出完成:
                         CurrentStepDescription = "等待物料拉出完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        await _sync.WaitAsync(WorkstationSignals.工位1拉料完成.ToString(), token).ConfigureAwait(false);
+                        await _sync.WaitAsync(WorkstationSignals.工位1拉料完成.ToString(), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已拉出到位。");
                         _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
-                        _sync.Release(WorkstationSignals.工位1允许退料.ToString());
+                        _sync.Release(WorkstationSignals.工位1允许退料.ToString(), StationName);
                         break;
 
                     case Station1FeedingStep.阻塞等待物料回退完成:
                         CurrentStepDescription = "阻塞等待物料回退完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        await _sync.WaitAsync(WorkstationSignals.工位1退料完成.ToString(), token).ConfigureAwait(false);
+                        await _sync.WaitAsync(WorkstationSignals.工位1退料完成.ToString(), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已回退至安全位置。");
                         _currentStep = Station1FeedingStep.计算下一层位置;
                         break;

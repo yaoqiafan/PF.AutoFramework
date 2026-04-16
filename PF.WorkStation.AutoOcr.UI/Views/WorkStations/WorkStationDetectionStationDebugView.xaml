@@ -8,7 +8,6 @@
     xmlns:vm="clr-namespace:PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations"
     d:DataContext="{d:DesignInstance vm:WorkStationDetectionStationDebugViewModel,
                                      IsDesignTimeCreatable=False}"
-    d:DesignHeight="700"
     d:DesignWidth="760"
     mc:Ignorable="d">
 
@@ -221,7 +220,7 @@
                                     Margin="3"
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding TriggerStation1DetectionCommand}"
-                                    Content="触发工位1允许检测"
+                                    Content="触发工位1检测完成"
                                     Style="{DynamicResource ButtonWarning}"
                                     ToolTip="模拟工位1拉料工站发出允许检测信号（仅供调试）" />
                                 <Button
@@ -229,7 +228,7 @@
                                     Margin="3"
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding TriggerStation2DetectionCommand}"
-                                    Content="触发工位2允许检测"
+                                    Content="触发工位2检测完成"
                                     Style="{DynamicResource ButtonWarning}"
                                     ToolTip="模拟工位2拉料工站发出允许检测信号（仅供调试）" />
                             </UniformGrid>
