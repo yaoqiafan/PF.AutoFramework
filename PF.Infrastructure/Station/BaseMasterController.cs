@@ -52,11 +52,12 @@ namespace PF.Infrastructure.Station
             _hardwareEventBus = hardwareEventBus;
             _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
-            // 监听所有子工站的软件报警事件与硬件自恢复事件
+            // 监听所有子工站的软件报警事件、硬件自恢复事件与状态变迁事件
             foreach (var station in _subStations)
             {
                 station.StationAlarmTriggered   += OnSubStationAlarm;
                 station.StationAlarmAutoCleared += OnSubStationAlarmAutoCleared;
+                station.StationStateChanged     += OnSubStationStateChanged;  // 防撕裂守卫
             }
 
             // 🌟 监听底层事件总线广播的物理按键事件
@@ -177,6 +178,54 @@ namespace PF.Infrastructure.Station
         }
 
         // ── 全局核心指令 ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// 防状态撕裂守卫：监听所有子工站的状态变迁，在发现不一致流转时立即触发全线急停。
+        ///
+        /// 守卫规则：
+        ///   · 主控处于 Running/Paused，而子工站意外跳回 Idle（且不是正常复位路径）→ 状态撕裂
+        ///
+        /// 防死锁设计：
+        ///   OnTransitioned 回调在持有 Stateless 状态机内部锁的上下文中执行，
+        ///   若直接在此调用 EmergencyStop() → Fire(Error) 会尝试再次进入状态机，
+        ///   导致与 _machineLock 或 Stateless 内部锁形成重入死锁。
+        ///   因此必须通过 Task.Run 将急停动作投入后台线程执行，
+        ///   彻底脱离当前调用栈的锁上下文。
+        /// </summary>
+        private void OnSubStationStateChanged(object sender, StationStateChangedEventArgs e)
+        {
+            var stationName = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+            var masterState = CurrentState;
+
+            _logger.Debug($"【主控】工站 [{stationName}] 状态: {e.OldState} → {e.NewState}" +
+                           $"，主控当前={masterState}");
+
+            // 守卫：主控运行/暂停中，子工站意外回到 Idle（排除正常复位完成路径）
+            // 正常路径：Resetting → Idle 是 ExecuteResetAsync 中 FireAsync(ResetDone) 触发的，合法
+            if ((masterState == MachineState.Running || masterState == MachineState.Paused)
+                && e.NewState == MachineState.Idle
+                && e.OldState != MachineState.Resetting)
+            {
+                _logger.Fatal($"【主控守卫】检测到状态撕裂！主控={masterState}，" +
+                               $"工站 [{stationName}] 意外从 {e.OldState} 跳回 Idle。" +
+                               "触发全线急停。");
+
+                // 防死锁：通过 Task.Run 脱离当前 OnTransitioned 回调的调用栈，
+                // 避免与 _machineLock / Stateless 状态机内部锁形成重入死锁
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        _alarmService?.TriggerAlarm(stationName, AlarmCodes.System.StationSyncError);
+                        EmergencyStop();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Fatal($"【主控守卫】急停执行失败: {ex.Message}");
+                    }
+                });
+            }
+        }
 
         private void OnSubStationAlarmAutoCleared(object sender, EventArgs e)
         {
@@ -422,6 +471,7 @@ namespace PF.Infrastructure.Station
             {
                 station.StationAlarmTriggered   -= OnSubStationAlarm;
                 station.StationAlarmAutoCleared -= OnSubStationAlarmAutoCleared;
+                station.StationStateChanged     -= OnSubStationStateChanged;
             }
 
             _machineLock?.Dispose();
