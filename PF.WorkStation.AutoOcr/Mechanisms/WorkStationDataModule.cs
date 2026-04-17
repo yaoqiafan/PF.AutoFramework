@@ -467,7 +467,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult((true, info));
+                            return Task.FromResult((false , info));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -480,12 +480,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult((true, info));
+                            return Task.FromResult((false , info));
                         }
                     }
                     else
                     {
-                        return Task.FromResult((true, info));
+                        return Task.FromResult((false , info));
                     }
                 }
                 else if (station == E_WorkSpace.工位2)
@@ -501,7 +501,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult((true, info));
+                            return Task.FromResult((false , info));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -514,22 +514,22 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult((true, info));
+                            return Task.FromResult((false , info));
                         }
                     }
                     else
                     {
-                        return Task.FromResult((true, info));
+                        return Task.FromResult((false , info));
                     }
                 }
                 else
                 {
-                    return Task.FromResult((true, info));
+                    return Task.FromResult((false , info));
                 }
             }
             catch (Exception ex)
             {
-                return Task.FromResult((true, info));
+                return Task.FromResult((false , info));
             }
         }
 
