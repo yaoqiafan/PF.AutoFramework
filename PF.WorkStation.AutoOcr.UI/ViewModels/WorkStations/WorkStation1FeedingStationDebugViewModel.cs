@@ -79,19 +79,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _userService.CurrentUserChanged += OnCurrentUserChanged;
 
             InitializeCommand = new DelegateCommand(ExecuteInitialize,
-                () => CanManualControl && _station.CurrentState == MachineState.Uninitialized);
+                () => CanManualControl && (_station.CurrentState == MachineState.Uninitialized
+                                        || _station.CurrentState == MachineState.Idle));
             StartCommand = new DelegateCommand(ExecuteStart,
                 () => CanManualControl && _station.CurrentState == MachineState.Idle);
             StopCommand = new DelegateCommand(ExecuteStop,
-                () => CanManualControl && (_station.CurrentState == MachineState.Running || _station.CurrentState == MachineState.Paused));
+                () => CanManualControl && (_station.CurrentState == MachineState.Idle
+                                        || _station.CurrentState == MachineState.Running
+                                        || _station.CurrentState == MachineState.Paused));
             PauseCommand = new DelegateCommand(ExecutePause,
                 () => CanManualControl && _station.CurrentState == MachineState.Running);
             ResumeCommand = new DelegateCommand(ExecuteResume,
                 () => CanManualControl && _station.CurrentState == MachineState.Paused);
             ResetCommand = new DelegateCommand(ExecuteReset,
-                () => CanManualControl && _station.CurrentState == MachineState.Alarm);
+                () => CanManualControl && (_station.CurrentState == MachineState.InitAlarm
+                                        || _station.CurrentState == MachineState.RunAlarm));
             TriggerAlarmCommand = new DelegateCommand(ExecuteTriggerAlarm,
-                () => CanManualControl && _station.CurrentState != MachineState.Alarm);
+                () => CanManualControl && _station.CurrentState != MachineState.InitAlarm
+                                       && _station.CurrentState != MachineState.RunAlarm);
 
             TriggerStartCommand=new DelegateCommand(ExecuteTriggerStart,
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
@@ -141,7 +146,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         {
             { MachineState.Running,      new SolidColorBrush(Color.FromRgb(0x2d, 0xb8, 0x4d)) },
             { MachineState.Paused,       new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)) },
-            { MachineState.Alarm,        new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
+            { MachineState.InitAlarm,    new SolidColorBrush(Color.FromRgb(0xff, 0x8f, 0x00)) },
+            { MachineState.RunAlarm,     new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
             { MachineState.Initializing, new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
             { MachineState.Resetting,    new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)) },
             { MachineState.Idle,         new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
@@ -179,8 +185,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[StationDebug] 启动失败: {ex.Message}"); }
         }
 
-        private void ExecuteStop() => _station.Stop();
-        private void ExecutePause() => _station.Pause();
+        private async void ExecuteStop()
+        {
+            try { await _station.StopAsync(); }
+            catch { }
+        }
+        private void ExecutePause() { try { _station.Pause(); } catch { } }
 
         private async void ExecuteResume()
         {
