@@ -83,6 +83,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         private IContainerProvider Provider;
 
+        private string _curOCRRecipeName;
+
 
         public WorkStationDetectionModule(IHardwareManagerService hardwareManagerService, IParamService paramService, IContainerProvider provider, ILogService logger) : base(E_Mechanisms.OCR识别模组.ToString(), hardwareManagerService, paramService, logger)
         {
@@ -94,6 +96,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
+            _curOCRRecipeName = string.Empty;
             // ① 延迟解析硬件实例：通过硬件管理器及配置名称查找具体硬件对象
             _xAxis = HardwareManagerService?.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
             if (_xAxis == null)
@@ -249,13 +252,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
 
             #region 未验证
-            if (IsChangedOcrCamera())
+            if (IsChangedOcrCamera(E_WorkSpace.工位1))
             {
                 if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
                 {
                     _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
+                    _curOCRRecipeName = string.Empty;
                     return false;
                 }
+                _curOCRRecipeName = _1StationRecipe.OCRRecipeName;
             }
             #endregion
             if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token)
@@ -289,13 +294,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Error($"[{MechanismName}] 移动到工位2失败");
                 return false;
             }
-            if (IsChangedOcrCamera())
+            if (IsChangedOcrCamera(E_WorkSpace.工位2))
             {
                 if (!await _camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
                 {
                     _logger.Error($"[{MechanismName}] 切换到工位2的OCR配方失败");
+                    _curOCRRecipeName = string.Empty;
                     return false;
                 }
+                _curOCRRecipeName = _2StationRecipe.OCRRecipeName;
             }
             if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
             {
@@ -447,9 +454,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 判断是否需要切换OCR视觉配方：如果工位1和工位2使用了不同的OCR配方，则需要在两者之间切换相机设置
         /// </summary>
         /// <returns></returns>
-        private bool IsChangedOcrCamera()
+        private bool IsChangedOcrCamera(E_WorkSpace station )
         {
-            return _1StationRecipe.OCRRecipeName != _2StationRecipe.OCRRecipeName;
+            var flag = station == E_WorkSpace.工位1 ? _1StationRecipe.OCRRecipeName: _2StationRecipe.OCRRecipeName;
+
+            return flag .Equals (_curOCRRecipeName );
         }
 
 

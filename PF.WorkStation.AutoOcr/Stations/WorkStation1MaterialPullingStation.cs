@@ -323,6 +323,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "等待允许送料...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 送料到取料位 ");
+                        if (!await _pullingModule.OpenWafeGipper(token))
+                        {
+                            _currentStep = Station1PullingStep.送料到取料位失败;
+                        }
                         if (await _pullingModule.FeedingMaterialToBox(token))
                         {
                             _currentStep = Station1PullingStep.打开夹爪;
