@@ -168,7 +168,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "等待允许拉出物料...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待允许拉料信号...");
-                        await _sync.WaitAsync(WorkstationSignals.工位1允许拉料.ToString(),token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
+                        await _sync.WaitAsync(WorkstationSignals.工位1允许拉料.ToString(), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 检测到允许拉料信号...");
                         _currentStep = Station1PullingStep.获取当前配方;
                         break;
@@ -247,7 +247,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         break;
 
-                  
+
                     case Station1PullingStep.检测叠料:
                         CurrentStepDescription = "检测叠料...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
@@ -352,7 +352,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "移动到待机位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 移动到待机位 ");
-                        if (await _pullingModule.PutOverMove ())
+                        if (await _pullingModule.PutOverMove())
                         {
                             _logger.Info($"[{StationName}] 移动到待机位成功 ");
                             _currentStep = Station1PullingStep.判断带片;
