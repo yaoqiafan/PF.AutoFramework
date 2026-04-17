@@ -13,22 +13,23 @@ namespace PF.Core.Enums
         Idle,           // 待机状态（硬件就绪，等待启动指令）
         Running,        // 运行状态
         Paused,         // 暂停状态（流程挂起，可恢复）
-        Alarm,          // 报警状态（需人为排故后复位）
+        InitAlarm,      // 初始化阶段报警（复位后强制回 Uninitialized，必须重新初始化）
+        RunAlarm,       // 运行期报警（复位后回 Idle，坐标系有效，可直接再启动）
         Resetting       // 复位中（正在执行物理复位动作，等待各工站完成）
     }
 
     public enum MachineTrigger
     {
-        Initialize,     // 触发开始初始化（Uninitialized → Initializing）
+        Initialize,     // 触发开始初始化（Uninitialized / Idle → Initializing）
         InitializeDone, // 初始化完成（Initializing → Idle）
         Start,          // 启动指令（Idle → Running）
-        Pause,          // 暂停指令
-        Resume,         // 恢复指令
-        Stop,           // 停止指令（Running / Paused → Idle）
-        Error,          // 内部硬件报错触发
-        Reset,                  // 报警复位指令（Alarm → Resetting）
-        ResetDone,              // 复位完成（Resetting → Idle）
-        ResetDoneUninitialized  // 复位完成后回到未初始化（Resetting → Uninitialized，仅初始化失败后的复位使用）
+        Pause,          // 暂停指令（Running → Paused）
+        Resume,         // 恢复指令（Paused → Running）
+        Stop,           // 停止指令（Idle / Running / Paused → Uninitialized）
+        Error,          // 内部硬件报错触发（路由到 InitAlarm 或 RunAlarm 视当前状态）
+        Reset,          // 报警复位指令（InitAlarm / RunAlarm → Resetting）
+        ResetDone,              // 复位完成（Resetting → Idle，来自 RunAlarm 路径）
+        ResetDoneUninitialized  // 复位完成（Resetting → Uninitialized，来自 InitAlarm 路径，强制重新初始化）
     }
 
     /// <summary>
