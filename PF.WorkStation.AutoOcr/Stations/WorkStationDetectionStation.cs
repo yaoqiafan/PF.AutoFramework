@@ -304,14 +304,32 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
                         var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.Item1).ConfigureAwait(false);
+                        string path = string.Empty;
                         if (!kk.Item1)
                         {
-                            string path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = "er" });
+                             path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = "er" });
                         }
                         else
                         {
-                            string path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, kk.Item2 );
+                             path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, kk.Item2 );
                         }
+                        MachineDetectionData info = new MachineDetectionData()
+                        {
+                            CustomerBatch = kk.Item2?.CustomerBatch ?? "ERROR",
+                            WaferId = kk.Item2?.WaferId ?? "ERROR",
+                            InternalBatchId = _dataModule.Station1MesDetectionData.InternalBatchId,
+                            Barcode1 = "CODE1",
+                            Barcode2 = "CODE2",
+                            Barcode3 = "CODE3",
+                            IsMatch = kk.Item1,
+                            ErrorMessage = "NONE",
+                            ProductModel= _dataModule.Station1MesDetectionData.ProductModel ,
+                            OperatorId = _dataModule.Station1MesDetectionData.OperatorId ,
+                            RecipeName = _dataModule.Station1MesDetectionData.RecipeName ,
+                            ImagePath=path 
+                        };
+                      await   _dataModule.AddMachineDetectionAsync(_currentworkSpace, info);
+
 
 
 

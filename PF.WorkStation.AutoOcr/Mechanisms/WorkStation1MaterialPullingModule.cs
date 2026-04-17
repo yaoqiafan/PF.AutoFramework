@@ -572,7 +572,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     return false;
                 }
-                await Task.Delay(1000);
                 if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.晶圆取料位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     return true;
