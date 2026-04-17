@@ -101,6 +101,10 @@ namespace PF.Infrastructure.Station.Basic
         // 用状态本身替代旧 _initializationFailed 布尔标记，语义更清晰。
         private bool _cameFromInitAlarm = false;
 
+        // Stop/Pause 主动取消业务线程时置位，阻止 ProcessWrapperAsync 的 catch(Exception)
+        // 将副作用异常（非 OCE）误判为报警。Reset in OnStartRunningAsync。
+        private volatile bool _cancelledIntentionally = false;
+
         protected StationBase(string name, ILogService logger)
         {
             StationName = name;
@@ -237,6 +241,7 @@ namespace PF.Infrastructure.Station.Basic
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
             _alarmInterrupted = false;
+            _cancelledIntentionally = false;
             _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token));
             return Task.CompletedTask;
         }
@@ -287,7 +292,8 @@ namespace PF.Infrastructure.Station.Basic
                         // 防止重入：主控已通过 TriggerAlarm() 将本工站拉入 InitAlarm/RunAlarm 后，
                         // 业务线程的 OperationCanceledException 在极端竞态下可能漏入此 catch，
                         // 若再次 Fire(Error) 会导致 Stateless 因"当前状态无此转换"抛出异常。
-                        if (_machine.State != MachineState.InitAlarm && _machine.State != MachineState.RunAlarm)
+                        if (_machine.State != MachineState.InitAlarm && _machine.State != MachineState.RunAlarm
+                            && !_cancelledIntentionally)
                             Fire(MachineTrigger.Error);
                     }
                     catch (Exception fireEx)
@@ -407,14 +413,24 @@ namespace PF.Infrastructure.Station.Basic
             await FireAsync(MachineTrigger.Start);
         }
 
-        public void Stop() => Fire(MachineTrigger.Stop);
-        public void Pause() => Fire(MachineTrigger.Pause);
+        public void Stop()
+        {
+            _cancelledIntentionally = true;
+            Fire(MachineTrigger.Stop);
+        }
+
+        public void Pause()
+        {
+            _cancelledIntentionally = true;
+            Fire(MachineTrigger.Pause);
+        }
 
         /// <summary>
         /// 异步停止：取消业务线程 → 等待任务退出 → 物理制动 → 推进状态机到 Uninitialized。
         /// </summary>
         public async Task StopAsync()
         {
+            _cancelledIntentionally = true;
             _runCts?.Cancel();
             if (_workflowTask is { IsCompleted: false })
             {
