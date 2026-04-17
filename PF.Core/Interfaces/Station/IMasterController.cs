@@ -23,9 +23,8 @@ namespace PF.Core.Interfaces.Station
         Task StartAllAsync();
         Task ResumeAllAsync();
         void PauseAll();
-        void StopAll();
+        Task StopAllAsync();
         Task ResetAllAsync();
-        void EmergencyStop();
 
         bool SetMode(OperationMode mode);
 
