@@ -7,6 +7,7 @@ using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
@@ -29,6 +30,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             待机位置,
             晶圆取料位置,
             晶圆拉出位置,
+            取出安全位置,
         }
 
         #endregion 轴点枚举定义
@@ -53,17 +55,19 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         public ILightController LightController => _lightController;
 
+        private WorkStationDataModule? _dataModule;
 
+        private IContainerProvider Provider;
 
         /// <summary>
         /// 当前生产晶圆尺寸
         /// </summary>
         private E_WafeSize _currentWafeSize = E_WafeSize._12寸;
 
-        public WorkStation1MaterialPullingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger) : base(E_Mechanisms.工位1推拉晶圆模组.ToString(), hardwareManagerService, paramService, logger)
+        public WorkStation1MaterialPullingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, IContainerProvider provider, ILogService logger) : base(E_Mechanisms.工位1推拉晶圆模组.ToString(), hardwareManagerService, paramService, logger)
         {
 
-
+            Provider = provider;
         }
 
 
@@ -116,6 +120,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // ④ 使能伺服电机（Power On）
             if (!await _yAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
 
+            _dataModule = Provider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+
+            if (_dataModule == null)
+            {
+                _logger.Error($"[{MechanismName}] 未找到 WorkStationDataModule 模块，请检查软件。");
+                return false;
+            }
             return true;
         }
 
@@ -524,6 +535,44 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         }
 
 
+
+        /// <summary>
+        /// 放料完成后移动到安全位置并判断夹爪是否有料
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task<bool> PutOverMove(CancellationToken token = default)
+        {
+            try
+            {
+                CheckReady(); // 确保模组已初始化且无报警
+                _logger.Info($"[{MechanismName}] 移动到待机位");
+                if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.取出安全位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
+                {
+                    bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
+                    if (!res1.HasValue)
+                    {
+                        throw new Exception($"获取输入信号{E_InPutName.晶圆夹爪左铁环有无检测} 失败");
+                    }
+                    if (!res1.Value)
+                    {
+                        throw new Exception($"{E_InPutName.晶圆夹爪左铁环有无检测}  检测到有料，检查是否带料");
+                    }
+                    return true;
+                }
+                else
+                {
+                    throw new Exception($"[{MechanismName}] 移动到待机位失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex.Message);
+                return false;
+            }
+        }
+
+
         /// <summary>
         /// 初始位置移动到取料位去取料
         /// </summary>
@@ -537,7 +586,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     return false;
                 }
-                await Task.Delay(1000);
                 if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.晶圆取料位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     return true;
@@ -749,16 +797,41 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         public async Task<List<string>> CodeScanTigger(CancellationToken token = default)
         {
-            await _lightController.SetLightValue(3, await ParamService.GetParamAsync<int>(E_Params.WorkStation1LightBrightness.ToString()));
-            string str = await _codeScan.Tigger(token);
-            await _lightController.SetLightValue(3, 0);
-            if (string.IsNullOrEmpty(str))
+            try
             {
+                await _lightController.SetLightValue(3, await ParamService.GetParamAsync<int>(E_Params.WorkStation1LightBrightness.ToString()));
+
+                for (int i = 0; i < 3; i++)
+                {
+                    string str = await _codeScan.Tigger(token);
+                    if (string.IsNullOrEmpty(str))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        var flag = await _dataModule.CheckCodeAsync(E_WorkSpace.工位1, str.Split('&').ToList(), token);
+                        if (flag.Item1)
+                        {
+                            _logger.Info($"[{MechanismName}] 扫码结果合法: {str}");
+                            return str.Split('&').ToList();
+                        }
+                        else
+                        {
+                            _logger.Warn($"[{MechanismName}] 扫码结果不合法: {str}");
+                            if (i == 2)
+                            {
+                                return str.Split('&').ToList();
+                            }
+                        }
+                    }
+                }
                 return null;
             }
-            else
+            catch (Exception ex)
             {
-                return str.Split('&').ToList();
+                await _lightController.SetLightValue(3, 0);
+                return null;
             }
         }
 
