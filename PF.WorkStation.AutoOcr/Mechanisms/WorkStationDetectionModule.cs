@@ -353,7 +353,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             try
             {
                 var flag = workSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData : _dataModule.Station2MesDetectionData;
-                string path = $"{await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageSavePath.ToString())}//{flag.InternalBatchId}//{info.CustomerBatch}//{info.WaferId}//{DateTime.Now.ToString("YYYYMMddHHmmss")}.jpg";
+                string path = $"{await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageSavePath.ToString())}//{flag.InternalBatchId}//{info.CustomerBatch}//{info.WaferId}//{DateTime.Now.ToString("yyyyMMddHHmmss")}.jpg";
+                FileInfo fileInfo = new FileInfo(path);
+                if (!Directory .Exists (fileInfo .DirectoryName ))
+                {
+                    Directory.CreateDirectory(fileInfo.DirectoryName);
+                }
+              
+
+
+
                 File.Copy(Originalpath, path);
                 return path;
             }

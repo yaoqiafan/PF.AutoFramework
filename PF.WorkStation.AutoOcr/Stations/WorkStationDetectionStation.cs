@@ -42,8 +42,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             去工位2检测位置 = 20,
             触发检测 = 30,
 
-            检测完成Z轴回安全位=35,
-            
+            检测完成Z轴回安全位 = 35,
+
             数据比对 = 40,
             写入检测数据 = 50,
             检测完成后避位 = 55,
@@ -56,7 +56,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             去工位检测位置异常 = 100001,
             触发检测异常 = 100002,
             写入检测数据异常 = 100003,
-            检测完成Z轴回安全位异常=100004,
+            检测完成Z轴回安全位异常 = 100004,
 
             #endregion
         }
@@ -278,10 +278,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                         }
                         break;
 
-                        case StationDetectionStep.检测完成Z轴回安全位:
+                    case StationDetectionStep.检测完成Z轴回安全位:
                         CurrentStepDescription = $"检测完成Z轴回安全位（{_currentworkSpace}）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (!await _detectionModule.MoveZSafePos (token))
+                        if (!await _detectionModule.MoveZSafePos(token))
                         {
                             _logger.Error($"[{StationName}] 检测完成后避位异常：");
                             _currentStep = StationDetectionStep.检测完成Z轴回安全位异常;
@@ -293,7 +293,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         }
                         break;
 
-                   
+
 
                     // ══════════════════════════════════════════════════════════
                     //  数据比对
@@ -302,6 +302,18 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case StationDetectionStep.数据比对:
                         CurrentStepDescription = "OCR数据与MES数据比对...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
+
+                        var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.Item1).ConfigureAwait(false);
+                        if (!kk.Item1)
+                        {
+                            string path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = "er" });
+                        }
+                        else
+                        {
+                            string path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, kk.Item2 );
+                        }
+
+
 
                         //var mesData = _currentworkSpace == E_WorkSpace.工位1
                         //    ? _dataModule?.Station1MesDetectionData
