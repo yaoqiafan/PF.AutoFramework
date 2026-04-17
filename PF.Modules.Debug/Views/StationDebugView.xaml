@@ -4,11 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     xmlns:vm="clr-namespace:PF.Modules.Debug.ViewModels"
-    xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     d:DesignHeight="600"
     d:DesignWidth="1000"
     mc:Ignorable="d">
@@ -251,7 +251,6 @@
                             <DataTemplate DataType="{x:Type models:SignalTreeNode}">
                                 <StackPanel
                                     Margin="0,1"
-                                    Padding="6,4"
                                     Orientation="Horizontal"
                                     Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TreeView}}">
                                     <!--
