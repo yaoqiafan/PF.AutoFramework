@@ -42,12 +42,12 @@ namespace PF.WorkStation.AutoOcr.Stations
             去工位2检测位置 = 20,
             触发检测 = 30,
 
-            检测完成Z轴回安全位 = 35,
+            检测完成Z轴回安全位 = 40,
 
-            数据比对 = 40,
-            写入检测数据 = 50,
-            检测完成后避位 = 55,
-            检测完成 = 60,
+            数据比对 = 50,
+            写入检测数据 = 60,
+            检测完成后避位 = 70,
+            检测完成 = 80,
 
             #endregion
 
@@ -267,7 +267,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
-                            _cachedOcrResult = await _detectionModule.CameraTigger(token).ConfigureAwait(false);
+                            _cachedOcrResult = await _detectionModule.CameraTigger(true, _currentworkSpace, token: token).ConfigureAwait(false);
                             _logger.Info($"[{StationName}] OCR触发完成，读取结果：[{_cachedOcrResult.Item1}]。");
                             _currentStep = StationDetectionStep.检测完成Z轴回安全位;
                         }
@@ -307,11 +307,11 @@ namespace PF.WorkStation.AutoOcr.Stations
                         string path = string.Empty;
                         if (!kk.Item1)
                         {
-                             path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = "er" });
+                            path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = $"ERR_{DateTime.Now.ToString("HHmmss")}" });
                         }
                         else
                         {
-                             path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, kk.Item2 );
+                            path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, kk.Item2);
                         }
                         MachineDetectionData info = new MachineDetectionData()
                         {
@@ -323,12 +323,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                             Barcode3 = "CODE3",
                             IsMatch = kk.Item1,
                             ErrorMessage = "NONE",
-                            ProductModel= _dataModule.Station1MesDetectionData.ProductModel ,
-                            OperatorId = _dataModule.Station1MesDetectionData.OperatorId ,
-                            RecipeName = _dataModule.Station1MesDetectionData.RecipeName ,
-                            ImagePath=path 
+                            ProductModel = _dataModule.Station1MesDetectionData.ProductModel,
+                            OperatorId = _dataModule.Station1MesDetectionData.OperatorId,
+                            RecipeName = _dataModule.Station1MesDetectionData.RecipeName,
+                            ImagePath = path
                         };
-                      await   _dataModule.AddMachineDetectionAsync(_currentworkSpace, info);
+                        await _dataModule.AddMachineDetectionAsync(_currentworkSpace, info);
 
 
 

@@ -210,7 +210,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task <bool > MoveZSafePos(CancellationToken token = default)
+        public async Task<bool> MoveZSafePos(CancellationToken token = default)
         {
             CheckReady();
             if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
@@ -218,7 +218,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Error($"[{MechanismName}] Z轴移动到待机位失败");
                 return false;
             }
-            
+
             _logger.Info($"[{MechanismName}] Z移动到安全位置位成功");
             return true;
         }
@@ -242,39 +242,28 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             //先移动XY
             if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
-                !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token))
+                !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token) || !await _zAxis.MoveAbsoluteAsync(_1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.1, token))
             {
                 _logger.Error($"[{MechanismName}] 移动到工位1失败");
                 return false;
             }
 
             #region 未验证
-            //if (IsChangedOcrCamera())
-            //{
-            //    if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
-            //    {
-            //        _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
-            //        return false;
-            //    }
-            //}
+            if (IsChangedOcrCamera())
+            {
+                if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
+                {
+                    _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
+                    return false;
+                }
+            }
             #endregion
-
-
-
-            if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) 
-                || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
+            if (!await WaitAxisMoveDoneAsync(_xAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token)
+                || !await WaitAxisMoveDoneAsync(_yAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token) || !await WaitAxisMoveDoneAsync(_zAxis, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token))
             {
                 _logger.Error($"[{MechanismName}] XY轴移动到工位1超时");
                 return false;
             }
-            if (! await MoveAbsAndWaitAsync(_zAxis, _1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.08, token:token))
-            {
-                _logger.Error($"[{MechanismName}] Z轴移动到工位1超时");
-                return false;
-            }
-
-
-
             return true;
         }
 
@@ -323,14 +312,32 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns> item1:ocr检测字符   item :文件路径</returns>
-        public async Task<(string, string)> CameraTigger(CancellationToken token = default)
+        public async Task<(string, string)> CameraTigger(bool IsCheckResult, E_WorkSpace workStation = E_WorkSpace.工位1, CancellationToken token = default)
         {
             try
             {
-                DeleteDir(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
-                string ocreec = await _camera.Tigger(token);
-                string path = GetLatestCreatedFile(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
-                return (ocreec, path);
+                if (!IsCheckResult)
+                {
+                    DeleteDir(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
+                    string ocreec = await _camera.Tigger(token);
+                    string path = GetLatestCreatedFile(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
+                    return (ocreec, path);
+                }
+                else
+                {
+                    string rec = string.Empty;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        rec = await _camera.Tigger(token);
+                        var flag = await _dataModule.CheckOcrTextAsync(workStation, rec);
+                        if (flag.Item1)
+                        {
+                            break;
+                        }
+                    }
+                    string path = GetLatestCreatedFile(await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString()));
+                    return (rec, path);
+                }
             }
             catch (Exception ex)
             {
@@ -355,11 +362,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var flag = workSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData : _dataModule.Station2MesDetectionData;
                 string path = $"{await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageSavePath.ToString())}//{flag.InternalBatchId}//{info.CustomerBatch}//{info.WaferId}//{DateTime.Now.ToString("yyyyMMddHHmmss")}.jpg";
                 FileInfo fileInfo = new FileInfo(path);
-                if (!Directory .Exists (fileInfo .DirectoryName ))
+                if (!Directory.Exists(fileInfo.DirectoryName))
                 {
                     Directory.CreateDirectory(fileInfo.DirectoryName);
                 }
-              
+
 
 
 
