@@ -198,6 +198,12 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        protected override async Task OnPhysicalStopAsync()
+        {
+            if (_feedingModule != null)
+                await _feedingModule.StopAsync().ConfigureAwait(false);
+        }
+
         protected override Task ProcessDryRunLoopAsync(CancellationToken token)
         {
             throw new NotImplementedException();
