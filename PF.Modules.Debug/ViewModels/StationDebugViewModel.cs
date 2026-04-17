@@ -37,7 +37,8 @@ namespace PF.Modules.Debug.ViewModels
         {
             { MachineState.Running,      new SolidColorBrush(Color.FromRgb(0x2d, 0xb8, 0x4d)) },
             { MachineState.Paused,       new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)) },
-            { MachineState.Alarm,        new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
+            { MachineState.InitAlarm,    new SolidColorBrush(Color.FromRgb(0xff, 0x8f, 0x00)) },
+            { MachineState.RunAlarm,     new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
             { MachineState.Initializing, new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
             { MachineState.Resetting,    new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)) },
             { MachineState.Idle,         new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
@@ -80,7 +81,6 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand ResumeAllCommand     { get; }
         public DelegateCommand StopAllCommand       { get; }
         public DelegateCommand ResetAllCommand      { get; }
-        public DelegateCommand EmergencyStopCommand { get; }
 
         // ── 流水线信号量树（Scope → Signal）──────────────────────────────────
 
@@ -123,14 +123,15 @@ namespace PF.Modules.Debug.ViewModels
 
             InitializeAllCommand = new DelegateCommand(
                 async () => { try { await _controller.InitializeAllAsync(); } catch (Exception ex) { Log(ex); } },
-                () => _controller.CurrentState == MachineState.Uninitialized);
+                () => _controller.CurrentState == MachineState.Uninitialized
+                   || _controller.CurrentState == MachineState.Idle);
 
             StartAllCommand = new DelegateCommand(
                 async () => { try { await _controller.StartAllAsync(); } catch (Exception ex) { Log(ex); } },
                 () => _controller.CurrentState == MachineState.Idle);
 
             PauseAllCommand = new DelegateCommand(
-                () => _controller.PauseAll(),
+                () => { try { _controller.PauseAll(); } catch { } },
                 () => _controller.CurrentState == MachineState.Running);
 
             ResumeAllCommand = new DelegateCommand(
@@ -138,18 +139,15 @@ namespace PF.Modules.Debug.ViewModels
                 () => _controller.CurrentState == MachineState.Paused);
 
             StopAllCommand = new DelegateCommand(
-                () => _controller.StopAll(),
-                () => _controller.CurrentState == MachineState.Running
+                async () => { try { await _controller.StopAllAsync(); } catch { } },
+                () => _controller.CurrentState == MachineState.Idle
+                   || _controller.CurrentState == MachineState.Running
                    || _controller.CurrentState == MachineState.Paused);
 
             ResetAllCommand = new DelegateCommand(
                 async () => { try { await _controller.ResetAllAsync(); } catch (Exception ex) { Log(ex); } },
-                () => _controller.CurrentState == MachineState.Alarm);
-
-            EmergencyStopCommand = new DelegateCommand(
-                () => _controller.EmergencyStop(),
-                () => _controller.CurrentState != MachineState.Alarm
-                   && _controller.CurrentState != MachineState.Uninitialized);
+                () => _controller.CurrentState == MachineState.InitAlarm
+                   || _controller.CurrentState == MachineState.RunAlarm);
 
             ReleaseSignalCommand = new DelegateCommand<SignalTreeNode>(node =>
             {
@@ -226,7 +224,6 @@ namespace PF.Modules.Debug.ViewModels
             ResumeAllCommand.RaiseCanExecuteChanged();
             StopAllCommand.RaiseCanExecuteChanged();
             ResetAllCommand.RaiseCanExecuteChanged();
-            EmergencyStopCommand.RaiseCanExecuteChanged();
         }
 
         private void RefreshSignals()
@@ -307,7 +304,8 @@ namespace PF.Modules.Debug.ViewModels
         {
             { MachineState.Running,      new SolidColorBrush(Color.FromRgb(0x2d, 0xb8, 0x4d)) },
             { MachineState.Paused,       new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)) },
-            { MachineState.Alarm,        new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
+            { MachineState.InitAlarm,    new SolidColorBrush(Color.FromRgb(0xff, 0x8f, 0x00)) },
+            { MachineState.RunAlarm,     new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)) },
             { MachineState.Initializing, new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
             { MachineState.Resetting,    new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)) },
             { MachineState.Idle,         new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)) },
