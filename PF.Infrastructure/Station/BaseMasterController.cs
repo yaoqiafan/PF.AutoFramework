@@ -10,46 +10,106 @@ using Stateless;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Station
 {
     /// <summary>
-    /// 全局主控调度器基类 (Infrastructure)
+    /// 全局主控调度器基类 (Infrastructure层)
     /// 封装了所有非标自动化设备通用的状态流转、并发安全保护、以及面板事件响应。
+    /// 采用 Stateless 状态机管理生命周期，并通过严格的锁机制保证并发安全。
     /// </summary>
+    /// <remarks>
+    /// 💡 【使用指南】
+    /// 
+    /// 本类为抽象基类，必须在具体机台项目中派生并注入到 IoC 容器。
+    /// 
+    /// 📌 必须依赖的注入配置 (以 DryIoc 为例)：
+    /// 1. 需将所有子工站按单例注册，以便底层框架通过 <see cref="IEnumerable{T}"/> 自动收集。
+    /// 2. 需将派生的主控类注册为 <see cref="IMasterController"/> 接口的单例。
+    /// 
+    /// 📌 推荐重写的扩展点 (Virtual Methods)：
+    /// 
+    /// - <see cref="OnAfterResetSuccess"/> (最常用):
+    ///   触发时机：全线复位动作成功完成，但主控状态尚未切回 <see cref="MachineState.Idle"/> 之前。
+    ///   使用场景：清理上一模的残存业务数据（如扫码缓存）、清空全局气缸互锁标志、重置生产计数等。
+    /// 
+    /// - <see cref="OnHardwareInputReceived(string)"/>:
+    ///   触发时机：底层 <see cref="HardwareInputEventBus"/> 广播了物理按钮事件时。
+    ///   使用场景：如果当前机台除了标准的启动/暂停/复位外，还有专属的物理按键（如：急停、点动、模式切换旋钮），
+    ///   可在此处拦截并扩展路由。重写时请保留对基类 <see cref="OnHardwareInputReceived(string)"/> 的调用以处理标准按键。
+    /// 
+    /// - <see cref="OnHardwareResetRequested(HardwareResetRequest)"/>:
+    ///   触发时机：UI 面板或其它模块通过 Prism EA 路由了特定工站的复位请求时。
+    ///   使用场景：如果机台包含复杂的组合机构，需要比默认“按名称匹配对应子工站并触发清警”更精细的控制逻辑，可以在此重写。
+    /// 
+    /// - <see cref="Dispose"/>:
+    ///   使用场景：如果派生类中订阅了额外的全局事件或占用了非托管资源，需在此释放。
+    ///   注意：务必在末尾调用基类的 <see cref="Dispose()"/>，以确保基础的防撕裂守卫和底层总线事件被安全解绑，防止内存泄漏。
+    /// </remarks>
     public abstract class BaseMasterController : IMasterController, IDisposable
     {
+        #region Fields & Properties (字段与属性)
+
+        /// <summary>
+        /// 主控当前所处的运行状态
+        /// </summary>
         public MachineState CurrentState => _globalMachine.State;
+
+        /// <summary>
+        /// 主控当前的操作模式（正常、空跑、维修等）
+        /// </summary>
         public OperationMode CurrentMode { get; private set; } = OperationMode.Normal;
 
+        /// <summary>
+        /// 当主控状态发生流转时触发
+        /// </summary>
         public event EventHandler<MachineState> MasterStateChanged;
+
+        /// <summary>
+        /// 当主控或子工站触发真实报警时触发（已过滤联锁同步占位报警）
+        /// </summary>
         public event EventHandler<string> MasterAlarmTriggered;
 
+        // 基础服务依赖
         protected readonly ILogService _logger;
         protected readonly HardwareInputEventBus _hardwareEventBus;
         protected readonly List<StationBase<StationMemoryBaseParam>> _subStations;
-        protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
-
-        // 并发安全：所有状态机跳转均通过此信号量独占执行
-        private readonly SemaphoreSlim _machineLock = new(1, 1);
-
-        // 主控主动让子工站停机的意图标志：在 StopAllAsync / PauseAll 等
-        // 主控自己下发 station.StopAsync()/station.Pause() 的窗口期内置位，
-        // 用于区分"主控命令导致的子工站回 Uninitialized"与"子工站自发撕裂"，
-        // 防止 OnSubStationStateChanged 守卫误触发全线报警。
-        private volatile bool _subStationStopsAreIntentional = false;
-
-        // 记录主控进入 Resetting 前的报警来源，决定复位成功后回到 Uninitialized 还是 Idle
-        private bool _masterCameFromInitAlarm = false;
-
-        // 报警服务：可选注入，不影响已有子类的 DI 注册；注入后自动接入结构化报警流水线
         private readonly IAlarmService? _alarmService;
 
-        // 硬件复位请求委托：由 Shell 通过 RegisterHardwareResetHandler 注入，使 PF.Infrastructure 无需依赖 Prism
+        // 核心状态机
+        protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
+
+        /// <summary>
+        /// 并发安全锁：保证所有的状态机跃迁（Fire）都是串行且独占的，防止多线程引发状态竞态。
+        /// </summary>
+        private readonly SemaphoreSlim _machineLock = new(1, 1);
+
+        /// <summary>
+        /// 意图标志位：用于区分“主控下发的停机指令”与“子工站异常发生的自发停机”。
+        /// 在执行 StopAllAsync/PauseAll 等操作内置位，用于屏蔽状态防撕裂守卫的误拦截。
+        /// </summary>
+        private volatile bool _subStationStopsAreIntentional = false;
+
+        /// <summary>
+        /// 报警来源追溯：记录主控进入 Resetting 之前是因为初始化报警（InitAlarm）还是运行报警（RunAlarm）。
+        /// 决定复位成功后的去向（Uninitialized 还是 Idle）。
+        /// </summary>
+        private bool _masterCameFromInitAlarm = false;
+
+        /// <summary>
+        /// 硬件复位请求委托：由外部框架（如 Prism EA）通过 <see cref="RegisterHardwareResetHandler(Action{HardwareResetRequest})"/> 注入，实现低耦合路由。
+        /// </summary>
         private Action<HardwareResetRequest>? _hardwareResetHandler;
 
+        #endregion
+
+        #region Constructor (构造与初始化)
+
+        /// <summary>
+        /// 实例化全局主控调度器
+        /// </summary>
         protected BaseMasterController(
             ILogService logger,
             HardwareInputEventBus hardwareEventBus,
@@ -61,45 +121,58 @@ namespace PF.Infrastructure.Station
             _hardwareEventBus = hardwareEventBus;
             _subStations = new List<StationBase<StationMemoryBaseParam>>(subStations);
 
-            // 监听所有子工站的软件报警事件、硬件自恢复事件与状态变迁事件
+            // 监听子工站生命周期事件
             foreach (var station in _subStations)
             {
-                station.StationAlarmTriggered   += OnSubStationAlarm;
+                station.StationAlarmTriggered += OnSubStationAlarm;
                 station.StationAlarmAutoCleared += OnSubStationAlarmAutoCleared;
-                station.StationStateChanged     += OnSubStationStateChanged;  // 防撕裂守卫
+                station.StationStateChanged += OnSubStationStateChanged;  // 绑定状态防撕裂守卫
             }
 
-            // 🌟 监听底层事件总线广播的物理按键事件
+            // 监听底层事件总线广播的物理按键事件（如实体启动、暂停、复位按钮）
             if (_hardwareEventBus != null)
             {
                 _hardwareEventBus.HardwareInputTriggered += OnHardwareInputReceived;
             }
 
+            // 初始化并配置全局状态机
             _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
             ConfigureGlobalMachine();
         }
 
+        #endregion
+
+        #region State Machine Configuration (状态机流转配置)
+
+        /// <summary>
+        /// 配置全局状态机的状态拓扑流转图及进出状态的回调动作
+        /// </summary>
         private void ConfigureGlobalMachine()
         {
+            // 全局状态变迁监听
             _globalMachine.OnTransitioned(t =>
             {
                 _logger.Info($"【全局主控】状态切换: {t.Source} -> {t.Destination}");
                 MasterStateChanged?.Invoke(this, t.Destination);
             });
 
+            // 1. 未初始化状态
             _globalMachine.Configure(MachineState.Uninitialized)
                 .Permit(MachineTrigger.Initialize, MachineState.Initializing);
 
+            // 2. 初始化中状态
             _globalMachine.Configure(MachineState.Initializing)
                 .Permit(MachineTrigger.InitializeDone, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.InitAlarm);
 
+            // 3. 待机状态
             _globalMachine.Configure(MachineState.Idle)
                 .Permit(MachineTrigger.Start, MachineState.Running)
                 .Permit(MachineTrigger.Initialize, MachineState.Initializing)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
+            // 4. 运行中状态
             _globalMachine.Configure(MachineState.Running)
                 .OnEntryFromAsync(MachineTrigger.Start, async () =>
                 {
@@ -111,25 +184,25 @@ namespace PF.Infrastructure.Station
                 })
                 .OnExit(t =>
                 {
+                    // 若目标状态是暂停，挂起所有子工站业务线程
                     if (t.Destination == MachineState.Paused)
                     {
-                        // Pause：挂起子工站业务线程，主控进入 Paused 等待 Resume
                         _subStationStopsAreIntentional = true;
                         try { foreach (var s in _subStations) s.Pause(); }
                         finally { _subStationStopsAreIntentional = false; }
                     }
-                    // Stop → Uninitialized：物理停止已由 StopAllAsync 在 FireAsync(Stop) 前完成
-                    // Error → RunAlarm：RunAlarm.OnEntry 负责调用 TriggerAlarm 通知子工站
                 })
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
+            // 5. 暂停状态
             _globalMachine.Configure(MachineState.Paused)
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
+            // 6. 初始化故障报警状态
             _globalMachine.Configure(MachineState.InitAlarm)
                 .OnEntry(() =>
                 {
@@ -138,6 +211,7 @@ namespace PF.Infrastructure.Station
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
+            // 7. 运行故障报警状态
             _globalMachine.Configure(MachineState.RunAlarm)
                 .OnEntry(() =>
                 {
@@ -146,6 +220,7 @@ namespace PF.Infrastructure.Station
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
+            // 8. 复位中状态
             _globalMachine.Configure(MachineState.Resetting)
                 .Permit(MachineTrigger.ResetDone, MachineState.Idle)
                 .Permit(MachineTrigger.ResetDoneUninitialized, MachineState.Uninitialized)
@@ -153,8 +228,13 @@ namespace PF.Infrastructure.Station
                     () => _masterCameFromInitAlarm ? MachineState.InitAlarm : MachineState.RunAlarm);
         }
 
-        // ── 物理按键智能路由 ──────────────────────────────────────────────
+        #endregion
 
+        #region Hardware Smart Routing (物理输入与智能路由)
+
+        /// <summary>
+        /// 处理底层物理按键/信号的输入并路由到对应的状态指令
+        /// </summary>
         protected virtual void OnHardwareInputReceived(string inputType)
         {
             switch (inputType)
@@ -171,6 +251,9 @@ namespace PF.Infrastructure.Station
             }
         }
 
+        /// <summary>
+        /// 智能启动逻辑：根据当前所处状态自动决定是执行初始化、启动还是恢复。
+        /// </summary>
         private async Task ExecuteSmartStartAsync()
         {
             try
@@ -202,43 +285,29 @@ namespace PF.Infrastructure.Station
             }
         }
 
-        // ── 全局核心指令 ──────────────────────────────────────────────────
+        #endregion
+
+        #region Safety Guards & Sub-Station Events (状态守卫与子站事件)
 
         /// <summary>
-        /// 防状态撕裂守卫：监听所有子工站的状态变迁，在发现不一致流转时立即触发全线报警。
-        ///
-        /// 守卫规则：
-        ///   · 主控处于 Running/Paused，而子工站意外跳回 Uninitialized（且不是主控命令路径）→ 状态撕裂
-        ///
-        /// 防死锁设计：
-        ///   OnTransitioned 回调在持有 Stateless 状态机内部锁的上下文中执行，
-        ///   若直接在此调用 Fire(Error) 会尝试再次进入状态机，
-        ///   导致与 _machineLock 或 Stateless 内部锁形成重入死锁。
-        ///   因此必须通过 Task.Run 将报警动作投入后台线程执行，
-        ///   彻底脱离当前调用栈的锁上下文。
+        /// 状态防撕裂守卫：监听所有子工站的状态变迁，发现不一致流转时立即触发全线报警。
         /// </summary>
         private void OnSubStationStateChanged(object sender, StationStateChangedEventArgs e)
         {
             var stationName = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
             var masterState = CurrentState;
 
-            _logger.Debug($"【主控】工站 [{stationName}] 状态: {e.OldState} → {e.NewState}" +
-                           $"，主控当前={masterState}");
+            _logger.Debug($"【主控】工站 [{stationName}] 状态: {e.OldState} -> {e.NewState}，主控当前={masterState}");
 
-            // 守卫：主控运行/暂停中，子工站意外回到 Uninitialized（排除主控命令与复位完成路径）
-            // 正常路径：Resetting → Uninitialized 是 ExecuteResetAsync 中 FireAsync(ResetDoneUninitialized) 触发的，合法
-            // 豁免路径：主控主动 StopAllAsync/Pause 下发时（_subStationStopsAreIntentional=true），不是撕裂
+            // 撕裂判定条件：主控认为在运行或暂停，且非主控主动意图下，子工站意外回落到 Uninitialized
             if (!_subStationStopsAreIntentional
                 && (masterState == MachineState.Running || masterState == MachineState.Paused)
                 && e.NewState == MachineState.Uninitialized
                 && e.OldState != MachineState.Resetting)
             {
-                _logger.Fatal($"【主控守卫】检测到状态撕裂！主控={masterState}，" +
-                               $"工站 [{stationName}] 意外从 {e.OldState} 跳回 Uninitialized。" +
-                               "触发全线报警。");
+                _logger.Fatal($"【主控守卫】检测到状态撕裂！主控={masterState}，工站 [{stationName}] 意外从 {e.OldState} 跳回 Uninitialized。触发全线报警。");
 
-                // 防死锁：通过 Task.Run 脱离当前 OnTransitioned 回调的调用栈，
-                // 避免与 _machineLock / Stateless 状态机内部锁形成重入死锁
+                // 脱离调用栈上下文，防止与锁形成重入死锁
                 Task.Run(() =>
                 {
                     try
@@ -254,38 +323,22 @@ namespace PF.Infrastructure.Station
             }
         }
 
-        private void OnSubStationAlarmAutoCleared(object sender, EventArgs e)
-        {
-            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
-            _logger.Info($"【主控】工站 [{source}] 硬件自恢复，主动清除报警服务中对应记录。");
-            _alarmService?.ClearAlarm(source);
-        }
-
+        /// <summary>
+        /// 处理子工站真实硬件报警事件，并向全局报警服务汇报。
+        /// </summary>
         private void OnSubStationAlarm(object sender, string errorCode)
         {
-            // sender 即触发报警的子工站实例，从中提取结构化来源标识
             var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
-
             _logger.Fatal($"【主控接收到子站报警】{source}: {errorCode}");
 
-            // ── UI 拦截墙：过滤被动联锁停机产生的兜底报警码 ────────────────
-            // StationSyncError 是子站"被动拉停"时（_pendingAlarmCode 为空）由 Alarm.OnEntry 兜底填入的占位码。
-            // 此类事件的作用是维护主控与子站的状态同步（下方 Fire(Error) 保证），
-            // 本身不代表任何真实故障，禁止写入全局 AlarmService，否则一次急停会淹没 N 条无意义记录，
-            // 掩盖真正的根本故障（Root Cause）。
+            // UI 拦截墙：屏蔽被动联锁停机产生的兜底同步码，仅上报 Root Cause
             if (errorCode != AlarmCodes.System.StationSyncError)
             {
-                // 此处是真实子站故障向上汇聚的唯一入口，写入报警服务，保证：
-                // · AlarmCenterView 实时显示活跃报警
-                // · Fatal 级别触发主窗口阻断对话框（见 MainWindowViewModel）
-                // · 报警记录异步持久化到年份分表
                 _alarmService?.TriggerAlarm(source, errorCode);
-
-                // 保留旧事件，确保已订阅 MasterAlarmTriggered 的外部代码不受影响
                 MasterAlarmTriggered?.Invoke(this, errorCode);
             }
 
-            // 🚨 核心修复：切断同步调用链，防止底层 SemaphoreSlim 发生重入死锁
+            // 脱离调用栈，防止底层同步调用链引发死锁
             Task.Run(() =>
             {
                 try
@@ -299,10 +352,25 @@ namespace PF.Infrastructure.Station
             });
         }
 
+        /// <summary>
+        /// 响应子工站硬件级报警自恢复信号。
+        /// </summary>
+        private void OnSubStationAlarmAutoCleared(object sender, EventArgs e)
+        {
+            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+            _logger.Info($"【主控】工站 [{source}] 硬件自恢复，主动清除报警服务中对应记录。");
+            _alarmService?.ClearAlarm(source);
+        }
+
+        #endregion
+
+        #region Global Core API (全局核心指令)
+
+        /// <summary>全线启动</summary>
         public async Task StartAllAsync() => await FireAsync(MachineTrigger.Start);
 
         /// <summary>
-        /// 异步停止：并行等待所有子工站物理停稳后，推进主控状态机到 Uninitialized。
+        /// 全线异步停止：并行等待所有子工站物理停稳后，主控退回未初始化状态。
         /// </summary>
         public async Task StopAllAsync()
         {
@@ -320,13 +388,19 @@ namespace PF.Infrastructure.Station
             await FireAsync(MachineTrigger.Stop);
         }
 
+        /// <summary>全线挂起暂停</summary>
         public void PauseAll() => Fire(MachineTrigger.Pause);
 
+        /// <summary>全线恢复运行</summary>
         public async Task ResumeAllAsync() => await FireAsync(MachineTrigger.Resume);
 
+        /// <summary>
+        /// 切换设备运行模式（仅在待机状态允许切换）
+        /// </summary>
         public bool SetMode(OperationMode mode)
         {
             if (CurrentState != MachineState.Idle) return false;
+
             CurrentMode = mode;
             foreach (var s in _subStations)
             {
@@ -335,6 +409,9 @@ namespace PF.Infrastructure.Station
             return true;
         }
 
+        /// <summary>
+        /// 执行全线并发限流初始化
+        /// </summary>
         public async Task InitializeAllAsync()
         {
             if (!CanFire(MachineTrigger.Initialize)) return;
@@ -345,14 +422,12 @@ namespace PF.Infrastructure.Station
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             try
             {
-                // 1. 配置并行选项
                 var parallelOptions = new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = 4, // 限制最多同时初始化 4 个工位（请根据实际硬件承受能力调整）
+                    MaxDegreeOfParallelism = 4, // 限制峰值并发降低硬件瞬时负荷
                     CancellationToken = cts.Token
                 };
 
-                // 2. 执行限流的并发初始化
                 await Parallel.ForEachAsync(_subStations, parallelOptions, async (station, token) =>
                 {
                     await station.ExecuteInitializeAsync(token);
@@ -369,6 +444,9 @@ namespace PF.Infrastructure.Station
             Fire(MachineTrigger.InitializeDone);
         }
 
+        /// <summary>
+        /// 执行全线并发限流硬件复位与清警
+        /// </summary>
         public async Task ResetAllAsync()
         {
             if (!CanFire(MachineTrigger.Reset)) return;
@@ -379,8 +457,6 @@ namespace PF.Infrastructure.Station
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             try
             {
-                // 与 InitializeAllAsync 对齐：限流并行执行各工站复位，缩短复位总耗时；
-                // 任何一个工站抛异常 → Parallel.ForEachAsync 向上抛 → 统一回退到 Alarm
                 var parallelOptions = new ParallelOptions
                 {
                     MaxDegreeOfParallelism = 4,
@@ -395,33 +471,36 @@ namespace PF.Infrastructure.Station
             catch (Exception ex)
             {
                 _logger.Error($"【主控】复位失败: {ex.Message}，重新回到报警状态。");
-                Fire(MachineTrigger.Error);  // Resetting → InitAlarm/RunAlarm，确保系统不永久卡死在 Resetting
+                // 确保系统不永久卡死在 Resetting
+                Fire(MachineTrigger.Error);
                 return;
             }
 
-            // 复位成功：先执行子类专属清理，再清除报警服务中的所有活跃记录
+            // 复位成功：执行钩子并清理报警记录
             OnAfterResetSuccess();
             _alarmService?.ClearAllActiveAlarms();
 
-            // 双轨出口：来自 InitAlarm → 回 Uninitialized（强制重新初始化）；来自 RunAlarm → 回 Idle
+            // 双轨出口策略
             var resetTrigger = _masterCameFromInitAlarm
                 ? MachineTrigger.ResetDoneUninitialized
                 : MachineTrigger.ResetDone;
+
             await FireAsync(resetTrigger);
         }
+
+        #endregion
+
+        #region Hardware Reset Mechanisms (硬件级复位路由)
 
         /// <inheritdoc/>
         public async Task RequestSystemResetAsync()
         {
             _logger.Info("【主控】接收到系统复位请求，开始执行全线复位...");
-
-            // 复位成功后 ResetAllAsync 内部会统一调用 ClearAllActiveAlarms，无需在此提前清理；
-            // 否则若硬件复位失败，UI 看到 AlarmCenter 清空但实际仍在 Alarm 态，造成误导。
             await ResetAllAsync();
         }
 
         /// <summary>
-        /// 供子类重写：复位成功回到 Idle 之前执行的专属逻辑（如清理信号量）
+        /// 供派生类重写的生命周期钩子：在系统复位成功、主控状态跳回之前执行专属清理（如清空全局残存数据或气缸信号）。
         /// </summary>
         protected virtual void OnAfterResetSuccess() { }
 
@@ -430,10 +509,8 @@ namespace PF.Infrastructure.Station
             => _hardwareResetHandler = handler;
 
         /// <summary>
-        /// 响应硬件复位请求：按 Source 匹配子工站并在后台触发硬件清警复位。
-        /// Shell 通过 <c>RegisterHardwareResetHandler</c> 将 Prism EA 事件路由到此方法，
-        /// 使 PF.Infrastructure 无需直接依赖 Prism。
-        /// 子类可 override 以实现更精细的机构级路由。
+        /// 精准机构级复位路由：按 Source 匹配异常工站并在后台单独执行清警复位。
+        /// 通常响应 UI 端或事件聚合器发起的局部硬件复位请求。
         /// </summary>
         public virtual void OnHardwareResetRequested(HardwareResetRequest request)
         {
@@ -458,13 +535,16 @@ namespace PF.Infrastructure.Station
             });
         }
 
-        // ── 线程安全的触发器封装 ───────────────────────────────────────────
+        #endregion
 
-        private bool CanFire(MachineTrigger trigger)
-        {
-            return _globalMachine.CanFire(trigger);
-        }
+        #region Thread-Safe Triggers (线程安全状态跃迁包装)
 
+        /// <summary>验证是否允许执行某项状态跃迁</summary>
+        private bool CanFire(MachineTrigger trigger) => _globalMachine.CanFire(trigger);
+
+        /// <summary>
+        /// 线程安全的同步状态跃迁
+        /// </summary>
         private void Fire(MachineTrigger trigger)
         {
             _machineLock.Wait();
@@ -481,6 +561,9 @@ namespace PF.Infrastructure.Station
             }
         }
 
+        /// <summary>
+        /// 线程安全的异步状态跃迁
+        /// </summary>
         private async Task FireAsync(MachineTrigger trigger)
         {
             await _machineLock.WaitAsync();
@@ -497,9 +580,15 @@ namespace PF.Infrastructure.Station
             }
         }
 
+        #endregion
+
+        #region IDisposable Implementation (资源释放)
+
+        /// <summary>
+        /// 释放主控资源并严格解绑所有事件监听，防止 WPF/Prism 框架下的内存泄漏。
+        /// </summary>
         public virtual void Dispose()
         {
-            // 必须移除事件订阅，防止内存泄漏
             if (_hardwareEventBus != null)
             {
                 _hardwareEventBus.HardwareInputTriggered -= OnHardwareInputReceived;
@@ -507,12 +596,14 @@ namespace PF.Infrastructure.Station
 
             foreach (var station in _subStations)
             {
-                station.StationAlarmTriggered   -= OnSubStationAlarm;
+                station.StationAlarmTriggered -= OnSubStationAlarm;
                 station.StationAlarmAutoCleared -= OnSubStationAlarmAutoCleared;
-                station.StationStateChanged     -= OnSubStationStateChanged;
+                station.StationStateChanged -= OnSubStationStateChanged;
             }
 
             _machineLock?.Dispose();
         }
+
+        #endregion
     }
 }
