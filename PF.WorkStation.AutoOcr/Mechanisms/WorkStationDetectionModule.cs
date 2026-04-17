@@ -205,6 +205,25 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
 
 
+        /// <summary>
+        /// 检测模组移动到安全位置
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task <bool > MoveZSafePos(CancellationToken token = default)
+        {
+            CheckReady();
+            if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
+            {
+                _logger.Error($"[{MechanismName}] Z轴移动到待机位失败");
+                return false;
+            }
+            
+            _logger.Info($"[{MechanismName}] Z移动到安全位置位成功");
+            return true;
+        }
+
+
 
         /// <summary>
         /// OCR模组移动到工位1：先移动XY轴到工位1位置，再根据工位1的OCR配方切换相机设置，最后等待轴运动完成

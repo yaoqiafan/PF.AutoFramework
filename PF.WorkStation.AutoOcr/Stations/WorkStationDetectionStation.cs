@@ -42,9 +42,11 @@ namespace PF.WorkStation.AutoOcr.Stations
             去工位2检测位置 = 20,
             触发检测 = 30,
 
-            检测完成后避位=35,
+            检测完成Z轴回安全位=35,
+            
             数据比对 = 40,
             写入检测数据 = 50,
+            检测完成后避位 = 55,
             检测完成 = 60,
 
             #endregion
@@ -54,6 +56,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             去工位检测位置异常 = 100001,
             触发检测异常 = 100002,
             写入检测数据异常 = 100003,
+            检测完成Z轴回安全位异常=100004,
 
             #endregion
         }
@@ -275,21 +278,22 @@ namespace PF.WorkStation.AutoOcr.Stations
                         }
                         break;
 
-                    case StationDetectionStep.检测完成后避位:
-                        CurrentStepDescription = $"检测完成后避位（{_currentworkSpace}）...";
+                        case StationDetectionStep.检测完成Z轴回安全位:
+                        CurrentStepDescription = $"检测完成Z轴回安全位（{_currentworkSpace}）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (!await _detectionModule.MoveInitial(token))
+                        if (!await _detectionModule.MoveZSafePos (token))
                         {
                             _logger.Error($"[{StationName}] 检测完成后避位异常：");
-                            _currentStep = StationDetectionStep.触发检测异常;
+                            _currentStep = StationDetectionStep.检测完成Z轴回安全位异常;
 
-                        } 
+                        }
                         else
                         {
                             _currentStep = StationDetectionStep.数据比对;
                         }
-
                         break;
+
+                   
 
                     // ══════════════════════════════════════════════════════════
                     //  数据比对
@@ -396,6 +400,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                     //  检测完成，释放完成信号
                     // ══════════════════════════════════════════════════════════
 
+
+
+
                     case StationDetectionStep.检测完成:
                         CurrentStepDescription = "检测完成，释放完成信号...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
@@ -417,6 +424,23 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _cachedDetectionData = null;
 
                         _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+                        break;
+
+
+                    case StationDetectionStep.检测完成后避位:
+                        CurrentStepDescription = $"检测完成后避位（{_currentworkSpace}）...";
+                        await CheckPauseAsync(token).ConfigureAwait(false);
+                        if (!await _detectionModule.MoveInitial(token))
+                        {
+                            _logger.Error($"[{StationName}] 检测完成后避位异常：");
+                            _currentStep = StationDetectionStep.触发检测异常;
+
+                        }
+                        else
+                        {
+                            _currentStep = StationDetectionStep.数据比对;
+                        }
+
                         break;
 
                     // ══════════════════════════════════════════════════════════
