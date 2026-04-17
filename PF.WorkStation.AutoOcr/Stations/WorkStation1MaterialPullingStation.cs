@@ -159,6 +159,12 @@ namespace PF.WorkStation.AutoOcr.Stations
 
 
 
+        protected override async Task OnPhysicalStopAsync()
+        {
+            if (_pullingModule != null)
+                await _pullingModule.StopAsync().ConfigureAwait(false);
+        }
+
         protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
