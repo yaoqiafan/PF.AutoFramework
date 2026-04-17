@@ -540,7 +540,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     {
                         throw new Exception($"获取输入信号{E_InPutName.晶圆夹爪左铁环有无检测} 失败");
                     }
-                    if (res1.Value)
+                    if (!res1.Value)
                     {
                         throw new Exception($"{E_InPutName.晶圆夹爪左铁环有无检测}  检测到有料，检查是否带料");
                     }

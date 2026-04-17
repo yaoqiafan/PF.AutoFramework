@@ -269,7 +269,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         {
                             _cachedOcrResult = await _detectionModule.CameraTigger(token).ConfigureAwait(false);
                             _logger.Info($"[{StationName}] OCR触发完成，读取结果：[{_cachedOcrResult.Item1}]。");
-                            _currentStep = StationDetectionStep.检测完成后避位;
+                            _currentStep = StationDetectionStep.检测完成Z轴回安全位;
                         }
                         catch (Exception ex)
                         {
@@ -423,7 +423,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _cachedOcrResult.Item1 = "";
                         _cachedDetectionData = null;
 
-                        _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+                        _currentStep = StationDetectionStep.检测完成后避位;
                         break;
 
 
@@ -438,7 +438,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         }
                         else
                         {
-                            _currentStep = StationDetectionStep.数据比对;
+                            _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
                         }
 
                         break;
