@@ -96,12 +96,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
 
         /// <summary>
-        /// 重写父类钩子：在所有子工站物理复位成功后，安全重置本机器的流水线信号量
+        /// 重写父类钩子：各子工站已经在自己的 ExecuteResetAsync 中按 Scope 清理了本工站作用域内的信号量，
+        /// 主控在此仅清理 global 作用域（按钮/人工确认类无归属的共享信号量），避免越权重置其他工站的 Scope。
         /// </summary>
         protected override void OnAfterResetSuccess()
         {
-            _logger.Info("【Demo机台主控】各工站物理复位完毕，正在重置流水线信号量...");
-            _sync.ResetAll();
+            _logger.Info("【Demo机台主控】各工站物理复位完毕，正在重置 global 作用域信号量...");
+            _sync.ResetScope("global");
         }
 
     }
