@@ -188,6 +188,9 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                             var done = await Task.WhenAny(task1, task2).ConfigureAwait(false);
 
+                            // 主动取消（Pause / Stop）：抛 OCE 让 ProcessWrapperAsync 静默处理，不触发报警
+                            token.ThrowIfCancellationRequested();
+
                             // 【核心修改】首先判断完成的 Task 是否是异常或取消状态
                             if (done.IsFaulted || done.IsCanceled)
                             {

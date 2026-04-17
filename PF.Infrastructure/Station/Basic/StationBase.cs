@@ -145,6 +145,7 @@ namespace PF.Infrastructure.Station.Basic
 
             // --- 初始化中状态：失败→ InitAlarm（强制重新初始化），成功→ Idle ---
             _machine.Configure(MachineState.Initializing)
+                .OnEntry(() => _cancelledIntentionally = false)  // 进入初始化时清除停止标记
                 .Permit(MachineTrigger.InitializeDone, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.InitAlarm);
 
@@ -498,6 +499,7 @@ namespace PF.Infrastructure.Station.Basic
         /// <param name="errorCode">报警代码，应使用 <see cref="AlarmCodes"/> 中定义的常量。</param>
         protected void RaiseAlarm(string errorCode)
         {
+            if (_cancelledIntentionally) return;
             _pendingAlarmCode = errorCode;
             TriggerAlarm();
         }
