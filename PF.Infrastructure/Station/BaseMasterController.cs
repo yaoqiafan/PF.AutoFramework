@@ -35,6 +35,12 @@ namespace PF.Infrastructure.Station
         // 并发安全：所有状态机跳转均通过此信号量独占执行
         private readonly SemaphoreSlim _machineLock = new(1, 1);
 
+        // 主控主动让子工站停机的意图标志：在 Running.OnExit / Paused.OnEntry 等
+        // 主控自己下发 station.Stop()/station.Pause() 的窗口期内置位，
+        // 用于区分"主控命令导致的子工站回 Idle"与"子工站自发撕裂"，
+        // 防止 OnSubStationStateChanged 守卫误触发全线急停。
+        private volatile bool _subStationStopsAreIntentional = false;
+
         // 报警服务：可选注入，不影响已有子类的 DI 注册；注入后自动接入结构化报警流水线
         private readonly IAlarmService? _alarmService;
 
@@ -98,17 +104,27 @@ namespace PF.Infrastructure.Station
                 })
                 .OnExit(() =>
                 {
-                    foreach (var s in _subStations) s.Stop();
+                    // 主控主动让子工站回 Idle，置位意图标志，避免守卫误判为撕裂
+                    _subStationStopsAreIntentional = true;
+                    try
+                    {
+                        foreach (var s in _subStations) s.Stop();
+                    }
+                    finally
+                    {
+                        _subStationStopsAreIntentional = false;
+                    }
                 })
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
 
+            // Paused 语义：主控 Pause = Running.OnExit 中统一让子工站 Stop 回 Idle；
+            // Resume 时 Running.OnEntryAsync 会重新 StartAsync 拉起业务线程（Stop-Restart 语义）。
+            // 因此 Paused.OnEntry 不再对子工站调用 s.Pause()——子工站此时已处于 Idle，
+            // Idle 状态未配置 Permit(Pause,...)，调用会被 Stateless 静默忽略（原本即为死代码），
+            // 保留反而误导读者，遂移除。
             _globalMachine.Configure(MachineState.Paused)
-                .OnEntry(() =>
-                {
-                    foreach (var s in _subStations) s.Pause();
-                })
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.Alarm);
@@ -202,7 +218,11 @@ namespace PF.Infrastructure.Station
 
             // 守卫：主控运行/暂停中，子工站意外回到 Idle（排除正常复位完成路径）
             // 正常路径：Resetting → Idle 是 ExecuteResetAsync 中 FireAsync(ResetDone) 触发的，合法
-            if ((masterState == MachineState.Running || masterState == MachineState.Paused)
+            // 豁免路径：主控主动 Stop/Pause 下发时（_subStationStopsAreIntentional=true），
+            //           此时 Stateless 尚未更新 _globalMachine.State，masterState 仍读到 Running/Paused，
+            //           但这是主控命令的正常流转，不是撕裂
+            if (!_subStationStopsAreIntentional
+                && (masterState == MachineState.Running || masterState == MachineState.Paused)
                 && e.NewState == MachineState.Idle
                 && e.OldState != MachineState.Resetting)
             {
@@ -295,8 +315,13 @@ namespace PF.Infrastructure.Station
         {
             _logger.Fatal("【全局主控】触发全局急停指令！");
 
-            // 急停由主控统一上报；AlarmService 复合键幂等，子站后续触发的相同 source+code 会被跳过
-            _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationSyncError);
+            // 仅当当前无任何活跃报警时（即纯人工/被动急停无根因），才由主控补写一条 EmergencyStop 占位报警，
+            // 避免真实根因报警已存在时再覆盖/淹没根因记录。
+            // AlarmService 复合键幂等，重复调用不会叠加，复位后会被统一清理。
+            if (_alarmService != null && _alarmService.ActiveAlarms.Count == 0)
+            {
+                _alarmService.TriggerAlarm("主控", AlarmCodes.System.EmergencyStop);
+            }
 
             // 1. 软件切入 Alarm 状态（打断逻辑协同）
             Fire(MachineTrigger.Error);
@@ -347,16 +372,24 @@ namespace PF.Infrastructure.Station
         {
             if (!CanFire(MachineTrigger.Reset)) return;
 
-            _logger.Info("【主控】开始全线复位...");
+            _logger.Info("【主控】开始全线复位(限流并行模式)...");
             Fire(MachineTrigger.Reset);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             try
             {
-                foreach (var station in _subStations)
+                // 与 InitializeAllAsync 对齐：限流并行执行各工站复位，缩短复位总耗时；
+                // 任何一个工站抛异常 → Parallel.ForEachAsync 向上抛 → 统一回退到 Alarm
+                var parallelOptions = new ParallelOptions
                 {
-                    await station.ExecuteResetAsync(cts.Token);
-                }
+                    MaxDegreeOfParallelism = 4,
+                    CancellationToken = cts.Token
+                };
+
+                await Parallel.ForEachAsync(_subStations, parallelOptions, async (station, token) =>
+                {
+                    await station.ExecuteResetAsync(token);
+                });
             }
             catch (Exception ex)
             {
@@ -377,9 +410,8 @@ namespace PF.Infrastructure.Station
         {
             _logger.Info("【主控】接收到系统复位请求，开始执行全线复位...");
 
-            // 先清除报警服务中的所有活跃记录（UI 即时刷新），再触发硬件状态机复位
-            _alarmService?.ClearAllActiveAlarms();
-
+            // 复位成功后 ResetAllAsync 内部会统一调用 ClearAllActiveAlarms，无需在此提前清理；
+            // 否则若硬件复位失败，UI 看到 AlarmCenter 清空但实际仍在 Alarm 态，造成误导。
             await ResetAllAsync();
         }
 

@@ -128,6 +128,13 @@ namespace PF.Core.Constants
                 "3. 逐一复位各工站;\n" +
                 "4. 重启同步服务（重启软件）;")]
             public const string StationSyncError = "SYS_SYNC_001";
+
+            [AlarmInfo("系统异常", "操作员触发急停", AlarmSeverity.Fatal,
+                "1. 确认急停触发原因（安全门、急停按钮等）已排除;\n" +
+                "2. 确认现场人员安全撤离，可以恢复运行;\n" +
+                "3. 处理可能并存的根因报警（查看报警列表）;\n" +
+                "4. 旋开急停按钮，点击【复位】恢复系统;")]
+            public const string EmergencyStop = "SYS_ESTOP_001";
         }
 
        

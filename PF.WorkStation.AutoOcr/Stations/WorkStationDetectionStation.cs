@@ -136,6 +136,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (_detectionModule != null)
                     await _detectionModule.ResetAsync(token);
 
+                // 按生产者归属复位本工站作用域内的信号量：
+                // 仅本工站作为生产者（Release 方）的信号量被重置，避免越权影响其他工站
+                _sync.ResetScope(StationName);
+
                 // 注意：不重置 _currentStep！
                 // 断点续跑的恢复节点已在各异常 case 中于 TriggerAlarm() 前设定完毕。
 
