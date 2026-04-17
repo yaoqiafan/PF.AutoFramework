@@ -267,7 +267,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
-                            _cachedOcrResult = await _detectionModule.CameraTigger(true, _currentworkSpace, token: token).ConfigureAwait(false);
+                            _cachedOcrResult = await _detectionModule.CameraTigger(false , _currentworkSpace, token: token).ConfigureAwait(false);
                             _logger.Info($"[{StationName}] OCR触发完成，读取结果：[{_cachedOcrResult.Item1}]。");
                             _currentStep = StationDetectionStep.检测完成Z轴回安全位;
                         }

@@ -175,7 +175,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 0. 初始化上料状态：将所有机构复位至安全位置，准备迎接人工或AGV放料
         /// </summary>
-        public async Task<bool > InitializeFeedingStateAsync(CancellationToken token = default)
+        public async Task<bool> InitializeFeedingStateAsync(CancellationToken token = default)
         {
             CheckReady(); // 确保模组已初始化且无报警
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
@@ -249,7 +249,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 动态获取8寸产品的工艺参数
                 LayerPitch = await ParamService.GetParamAsync<double>(E_Params.LayerPitch_8.ToString());
-               
+
                 // 逻辑动作：根据8寸基准点，重新推演计算所有25层的理论坐标
                 await ArrayZAxisMaterialPickingPosition(E_WafeSize._8寸);
             }
@@ -407,7 +407,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         double? pos = await _zAxis.GetLatchPos(latchId, token);
                         if (pos.HasValue)
                         {
-                            resultMap[latchId].Add(pos.Value);
+                            //if (i != 0)//第一条数据忽略因为第一个点默认是料盒底面，忽略不要
+                            //{
+                                resultMap[latchId].Add(pos.Value);
+                            //}
                         }
                         else
                         {
@@ -508,6 +511,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (Math.Abs(sensor1Data.Count - sensor2Data.Count) > 1)
             {
                 _logger.Warn($"[{MechanismName}] 双传感器识别数量差异过大(Sensor1: {sensor1Data.Count}, Sensor2: {sensor2Data.Count})，可能存在斜片或传感器故障！");
+                throw new Exception($"[{MechanismName}] 双传感器识别数量差异过大(Sensor1: {sensor1Data.Count}, Sensor2: {sensor2Data.Count})，可能存在斜片或传感器故障！");
             }
 
             // 设定容差阈值 (依赖动态读取的 LayerPitch)

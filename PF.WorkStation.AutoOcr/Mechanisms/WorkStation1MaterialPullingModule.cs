@@ -804,7 +804,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 for (int i = 0; i < 3; i++)
                 {
                     string str = await _codeScan.Tigger(token);
-                    if (!string.IsNullOrEmpty(str))
+                    if (string.IsNullOrEmpty(str))
                     {
                         continue;
                     }
