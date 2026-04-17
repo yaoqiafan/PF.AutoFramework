@@ -29,6 +29,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             待机位置,
             晶圆取料位置,
             晶圆拉出位置,
+            取出安全位置,
         }
 
         #endregion 轴点枚举定义
@@ -499,6 +500,40 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 CheckReady(); // 确保模组已初始化且无报警
                 _logger.Info($"[{MechanismName}] 移动到待机位");
                 if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.待机位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
+                {
+                    bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
+                    if (!res1.HasValue)
+                    {
+                        throw new Exception($"获取输入信号{E_InPutName.晶圆夹爪左铁环有无检测} 失败");
+                    }
+                    if (res1.Value)
+                    {
+                        throw new Exception($"{E_InPutName.晶圆夹爪左铁环有无检测}  检测到有料，检查是否带料");
+                    }
+                    return true;
+                }
+                else
+                {
+                    throw new Exception($"[{MechanismName}] 移动到待机位失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex.Message);
+                return false;
+            }
+        }
+
+
+
+
+        public async Task <bool > PutOverMove(CancellationToken token = default)
+        {
+            try
+            {
+                CheckReady(); // 确保模组已初始化且无报警
+                _logger.Info($"[{MechanismName}] 移动到待机位");
+                if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.取出安全位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
                     if (!res1.HasValue)
