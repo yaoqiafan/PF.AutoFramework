@@ -6,11 +6,6 @@ using System.Windows.Controls;
 namespace PF.Modules.Production.Views
 {
 
-    [ModuleNavigation(NavigationConstants.Views.ProductionMonitorView, "�������",
-      GroupName = "��ʷ����", GroupOrder = 4, Order = 1,
-      GroupIcon = "/PF.UI.Resources;component/Images/PNG/7.png", // ���ڵ� PNG ͼ��
-      Icon = "RunInfoIcon")]
-
    
     public partial class ProductionMonitorView : UserControl
     {

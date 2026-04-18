@@ -32,7 +32,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 负责在工位1和工位2之间调度相机位置，根据不同工位的产品动态切换相机内部的检测配方 (Program)，
     /// 触发相机拍照解码，并维护检测源图片的本地存根，以便工程师在发生误判时进行图像追溯。
     /// </summary>
-    [MechanismUI("检测模组", "WorkStationDetectionModuleDebugView", 1)]
+    [MechanismUI("检测模组", "WorkStationDetectionModuleDebugView", 5)]
     public class WorkStationDetectionModule : BaseMechanism
     {
         #region Enums (轴关键点位枚举)

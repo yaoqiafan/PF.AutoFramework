@@ -85,715 +85,717 @@
             </TextBlock>
         </DataTemplate>
     </UserControl.Resources>
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="6">
+            <Grid.RowDefinitions>
+                <!--  数据库空库警告 Banner  -->
+                <RowDefinition Height="Auto" />
+                <!--  顶部工具栏  -->
+                <RowDefinition Height="52" />
+                <!--  主内容区  -->
+                <RowDefinition Height="*" />
+                <!--  分隔线  -->
 
-    <Grid Margin="6">
-        <Grid.RowDefinitions>
-            <!--  数据库空库警告 Banner  -->
-            <RowDefinition Height="Auto" />
-            <!--  顶部工具栏  -->
-            <RowDefinition Height="52" />
-            <!--  主内容区  -->
-            <RowDefinition Height="*" />
-            <!--  分隔线  -->
+            </Grid.RowDefinitions>
 
-        </Grid.RowDefinitions>
-
-        <!--  ═══════════════════════════════════════════════════════════  -->
-        <!--  Row 0: 空库警告 Banner  -->
-        <!--  ═══════════════════════════════════════════════════════════  -->
-        <Border
-            Grid.Row="0"
-            Padding="10,6"
-            Background="#FFF3E0"
-            BorderBrush="#FF6D00"
-            BorderThickness="0,0,0,2"
-            Visibility="{Binding Connection.IsDbEmpty, Converter={StaticResource BoolToVis}}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock
-                    Margin="0,0,8,0"
-                    VerticalAlignment="Center"
-                    FontSize="16"
-                    Foreground="#E65100"
-                    Text="⚠" />
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="13"
-                    FontWeight="Bold"
-                    Foreground="#BF360C"
-                    Text="{Binding Connection.DbEmptyMessage}" />
-            </StackPanel>
-        </Border>
-
-        <!--  ═══════════════════════════════════════════════════════════  -->
-        <!--  Row 1: 顶部工具栏  -->
-        <!--  ═══════════════════════════════════════════════════════════  -->
-        <Border Grid.Row="1" Margin="10,0,0,0">
-            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-
-                <Ellipse
-                    Width="14"
-                    Height="14"
-                    Margin="0,0,6,0"
-                    VerticalAlignment="Center"
-                    Fill="{Binding Connection.StatusColor}" />
-
-                <TextBlock
-                    Margin="0,0,24,0"
-                    VerticalAlignment="Center"
-                    FontWeight="SemiBold"
-                    Text="{Binding Connection.ConnectionStatusText}" />
-
-                <Button
-                    Width="90"
-                    Margin="5"
-                    Command="{Binding Connection.InitializeCommand}"
-                    Content="⚙ 初始化"
-                    Style="{StaticResource ToolbarButtonStyle}" />
-
-                <Button
-                    Width="90"
-                    Margin="5"
-                    Command="{Binding Connection.ConnectCommand}"
-                    Content="🔗 连接"
-                    Style="{StaticResource PrimaryButtonStyle}" />
-
-                <Button
-                    Width="90"
-                    Margin="5"
-                    Command="{Binding Connection.DisconnectCommand}"
-                    Content="✖ 断开"
-                    Style="{StaticResource DangerButtonStyle}" />
-
-                <!--  W-Bit 警告提示  -->
-                <Border
-                    Margin="20,0,0,0"
-                    Padding="8,4"
-                    Background="#FFF9C4"
-                    BorderBrush="#F9A825"
-                    BorderThickness="1"
-                    CornerRadius="3"
-                    Visibility="{Binding CommandBuilder.IsWBitWarningVisible, Converter={StaticResource BoolToVis}}">
+            <!--  ═══════════════════════════════════════════════════════════  -->
+            <!--  Row 0: 空库警告 Banner  -->
+            <!--  ═══════════════════════════════════════════════════════════  -->
+            <Border
+                Grid.Row="0"
+                Padding="10,6"
+                Background="#FFF3E0"
+                BorderBrush="#FF6D00"
+                BorderThickness="0,0,0,2"
+                Visibility="{Binding Connection.IsDbEmpty, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        Foreground="#E65100"
+                        Text="⚠" />
                     <TextBlock
                         VerticalAlignment="Center"
-                        FontSize="12"
-                        Foreground="#E65100"
-                        Text="⚠ 请求报文 (奇数Function) 建议勾选「等待回复」" />
-                </Border>
-            </StackPanel>
-        </Border>
+                        FontSize="13"
+                        FontWeight="Bold"
+                        Foreground="#BF360C"
+                        Text="{Binding Connection.DbEmptyMessage}" />
+                </StackPanel>
+            </Border>
+
+            <!--  ═══════════════════════════════════════════════════════════  -->
+            <!--  Row 1: 顶部工具栏  -->
+            <!--  ═══════════════════════════════════════════════════════════  -->
+            <Border Grid.Row="1" Margin="10,0,0,0">
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+
+                    <Ellipse
+                        Width="14"
+                        Height="14"
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        Fill="{Binding Connection.StatusColor}" />
+
+                    <TextBlock
+                        Margin="0,0,24,0"
+                        VerticalAlignment="Center"
+                        FontWeight="SemiBold"
+                        Text="{Binding Connection.ConnectionStatusText}" />
+
+                    <Button
+                        Width="90"
+                        Margin="5"
+                        Command="{Binding Connection.InitializeCommand}"
+                        Content="⚙ 初始化"
+                        Style="{StaticResource ToolbarButtonStyle}" />
+
+                    <Button
+                        Width="90"
+                        Margin="5"
+                        Command="{Binding Connection.ConnectCommand}"
+                        Content="🔗 连接"
+                        Style="{StaticResource PrimaryButtonStyle}" />
+
+                    <Button
+                        Width="90"
+                        Margin="5"
+                        Command="{Binding Connection.DisconnectCommand}"
+                        Content="✖ 断开"
+                        Style="{StaticResource DangerButtonStyle}" />
+
+                    <!--  W-Bit 警告提示  -->
+                    <Border
+                        Margin="20,0,0,0"
+                        Padding="8,4"
+                        Background="#FFF9C4"
+                        BorderBrush="#F9A825"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="{Binding CommandBuilder.IsWBitWarningVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="#E65100"
+                            Text="⚠ 请求报文 (奇数Function) 建议勾选「等待回复」" />
+                    </Border>
+                </StackPanel>
+            </Border>
 
 
 
-        <TabControl Grid.Row="2" Margin="0,6,0,0">
+            <TabControl Grid.Row="2" Margin="0,6,0,0">
 
-            <TabItem Header="报文命令管理">
+                <TabItem Header="报文命令管理">
 
-                <Grid Grid.Row="2" Margin="5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="500" />
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition Width="*" MinWidth="300" />
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition Width="auto" />
+                    <Grid Grid.Row="2" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="500" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="*" MinWidth="300" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="auto" />
 
-                    </Grid.ColumnDefinitions>
+                        </Grid.ColumnDefinitions>
 
-                    <!--  ───────────────────────────────────────  -->
-                    <!--  左侧面板：命令库  -->
-                    <!--  ───────────────────────────────────────  -->
-                    <GroupBox Grid.Column="0" Header="📚 命令库 (Command Library)">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
+                        <!--  ───────────────────────────────────────  -->
+                        <!--  左侧面板：命令库  -->
+                        <!--  ───────────────────────────────────────  -->
+                        <GroupBox Grid.Column="0" Header="📚 命令库 (Command Library)">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
 
-                            <!--  操作按钮  -->
-                            <WrapPanel Grid.Row="0" Margin="2,4,2,6">
-                                <Button
-                                    Width="72"
-                                    Margin="0,0,4,0"
-                                    Command="{Binding CommandBuilder.ImportCommandsCommand}"
-                                    Content="导入"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Width="72"
-                                    Margin="0,0,4,0"
-                                    Command="{Binding CommandBuilder.ExportCommandsCommand}"
-                                    Content="导出"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Width="72"
-                                    Command="{Binding CommandBuilder.ReloadCommandsCommand}"
-                                    Content="重载"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding CommandBuilder.AddNewCommandCommand}"
-                                    Content="➕ 新建命令"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                            </WrapPanel>
+                                <!--  操作按钮  -->
+                                <WrapPanel Grid.Row="0" Margin="2,4,2,6">
+                                    <Button
+                                        Width="72"
+                                        Margin="0,0,4,0"
+                                        Command="{Binding CommandBuilder.ImportCommandsCommand}"
+                                        Content="导入"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button
+                                        Width="72"
+                                        Margin="0,0,4,0"
+                                        Command="{Binding CommandBuilder.ExportCommandsCommand}"
+                                        Content="导出"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button
+                                        Width="72"
+                                        Command="{Binding CommandBuilder.ReloadCommandsCommand}"
+                                        Content="重载"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding CommandBuilder.AddNewCommandCommand}"
+                                        Content="➕ 新建命令"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                </WrapPanel>
 
-                            <!--  主动/应答 Tab  -->
-                            <TabControl Grid.Row="1">
-                                <TabItem Header="主动命令">
-                                    <TreeView
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        ItemsSource="{Binding CommandBuilder.IncentiveCommandsTree}"
-                                        MouseRightButtonDown="TreeView_MouseRightButtonDown"
-                                        Style="{DynamicResource TreeViewBaseStyle}">
-                                        <TreeView.ItemContainerStyle>
-                                            <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
-                                                <Setter Property="IsExpanded" Value="True" />
-                                                <EventSetter Event="MouseLeftButtonUp" Handler="OnCommandTreeItemClicked" />
-                                            </Style>
-                                        </TreeView.ItemContainerStyle>
-                                    </TreeView>
-                                </TabItem>
-                                <TabItem Header="应答命令">
-                                    <TreeView
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        ItemsSource="{Binding CommandBuilder.ResponseCommandsTree}"
-                                        MouseRightButtonDown="TreeView_MouseRightButtonDown">
-                                        <TreeView.ItemContainerStyle>
-                                            <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
-                                                <Setter Property="IsExpanded" Value="True" />
-                                                <EventSetter Event="MouseLeftButtonUp" Handler="OnCommandTreeItemClicked" />
-                                            </Style>
-                                        </TreeView.ItemContainerStyle>
-                                    </TreeView>
-                                </TabItem>
-                            </TabControl>
-                        </Grid>
-                    </GroupBox>
+                                <!--  主动/应答 Tab  -->
+                                <TabControl Grid.Row="1">
+                                    <TabItem Header="主动命令">
+                                        <TreeView
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ItemsSource="{Binding CommandBuilder.IncentiveCommandsTree}"
+                                            MouseRightButtonDown="TreeView_MouseRightButtonDown"
+                                            Style="{DynamicResource TreeViewBaseStyle}">
+                                            <TreeView.ItemContainerStyle>
+                                                <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
+                                                    <Setter Property="IsExpanded" Value="True" />
+                                                    <EventSetter Event="MouseLeftButtonUp" Handler="OnCommandTreeItemClicked" />
+                                                </Style>
+                                            </TreeView.ItemContainerStyle>
+                                        </TreeView>
+                                    </TabItem>
+                                    <TabItem Header="应答命令">
+                                        <TreeView
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ItemsSource="{Binding CommandBuilder.ResponseCommandsTree}"
+                                            MouseRightButtonDown="TreeView_MouseRightButtonDown">
+                                            <TreeView.ItemContainerStyle>
+                                                <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
+                                                    <Setter Property="IsExpanded" Value="True" />
+                                                    <EventSetter Event="MouseLeftButtonUp" Handler="OnCommandTreeItemClicked" />
+                                                </Style>
+                                            </TreeView.ItemContainerStyle>
+                                        </TreeView>
+                                    </TabItem>
+                                </TabControl>
+                            </Grid>
+                        </GroupBox>
 
 
 
-                    <!--  ───────────────────────────────────────  -->
-                    <!--  中间面板：报文编辑器  -->
-                    <!--  ───────────────────────────────────────  -->
-                    <GroupBox Grid.Column="2" Header="✏ 报文编辑器 (Message Builder)">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <!--  ───────────────────────────────────────  -->
+                        <!--  中间面板：报文编辑器  -->
+                        <!--  ───────────────────────────────────────  -->
+                        <GroupBox Grid.Column="2" Header="✏ 报文编辑器 (Message Builder)">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                            <!--  当前命令标题  -->
-                            <Border
-                                Grid.Row="0"
-                                Margin="0,0,0,4"
-                                Padding="8,5"
-                                CornerRadius="{DynamicResource DefaultCornerRadius}">
-                                <TextBlock
-                                    FontSize="13"
-                                    FontWeight="Bold"
-                                    Text="{Binding CommandBuilder.CurrentCommandHeader}" />
-                            </Border>
+                                <!--  当前命令标题  -->
+                                <Border
+                                    Grid.Row="0"
+                                    Margin="0,0,0,4"
+                                    Padding="8,5"
+                                    CornerRadius="{DynamicResource DefaultCornerRadius}">
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="Bold"
+                                        Text="{Binding CommandBuilder.CurrentCommandHeader}" />
+                                </Border>
 
-                            <!--  报文节点树  -->
-                            <TreeView
-                                Grid.Row="1"
-                                BorderThickness="1"
-                                ItemsSource="{Binding CommandBuilder.CurrentMessageNodes}"
-                                MouseRightButtonDown="TreeView_MouseRightButtonDown"
-                                VirtualizingStackPanel.IsVirtualizing="False">
-                                <TreeView.Resources>
-                                    <HierarchicalDataTemplate DataType="{x:Type vm:SecsNodeViewModel}" ItemsSource="{Binding Children}">
-                                        <Grid>
-                                            <StackPanel Margin="2,2" Orientation="Horizontal">
+                                <!--  报文节点树  -->
+                                <TreeView
+                                    Grid.Row="1"
+                                    BorderThickness="1"
+                                    ItemsSource="{Binding CommandBuilder.CurrentMessageNodes}"
+                                    MouseRightButtonDown="TreeView_MouseRightButtonDown"
+                                    VirtualizingStackPanel.IsVirtualizing="False">
+                                    <TreeView.Resources>
+                                        <HierarchicalDataTemplate DataType="{x:Type vm:SecsNodeViewModel}" ItemsSource="{Binding Children}">
+                                            <Grid>
+                                                <StackPanel Margin="2,2" Orientation="Horizontal">
 
-                                                <!--  类型标签 (如 L / A / U4)  -->
-                                                <Border
-                                                    MinWidth="32"
-                                                    Margin="0,0,6,0"
-                                                    Padding="5,2"
-                                                    HorizontalAlignment="Center"
-                                                    CornerRadius="3">
-                                                    <TextBlock
+                                                    <!--  类型标签 (如 L / A / U4)  -->
+                                                    <Border
+                                                        MinWidth="32"
+                                                        Margin="0,0,6,0"
+                                                        Padding="5,2"
                                                         HorizontalAlignment="Center"
+                                                        CornerRadius="3">
+                                                        <TextBlock
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="12"
+                                                            FontWeight="Bold"
+                                                            Foreground="{DynamicResource TextIconBrush}"
+                                                            Text="{Binding ItemFormat}" />
+                                                    </Border>
+
+                                                    <!--  长度标签  -->
+                                                    <TextBlock
                                                         VerticalAlignment="Center"
-                                                        FontSize="12"
-                                                        FontWeight="Bold"
                                                         Foreground="{DynamicResource TextIconBrush}"
-                                                        Text="{Binding ItemFormat}" />
-                                                </Border>
+                                                        Text="[" />
+                                                    <TextBlock
+                                                        Margin="5,0,5,0"
+                                                        VerticalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{DynamicResource TextIconBrush}"
+                                                        Text="{Binding Length}" />
+                                                    <TextBlock
+                                                        Margin="0,0,6,0"
+                                                        VerticalAlignment="Center"
+                                                        Foreground="{DynamicResource TextIconBrush}"
+                                                        Text="]" />
 
-                                                <!--  长度标签  -->
-                                                <TextBlock
-                                                    VerticalAlignment="Center"
-                                                    Foreground="{DynamicResource TextIconBrush}"
-                                                    Text="[" />
-                                                <TextBlock
-                                                    Margin="5,0,5,0"
-                                                    VerticalAlignment="Center"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{DynamicResource TextIconBrush}"
-                                                    Text="{Binding Length}" />
-                                                <TextBlock
-                                                    Margin="0,0,6,0"
-                                                    VerticalAlignment="Center"
-                                                    Foreground="{DynamicResource TextIconBrush}"
-                                                    Text="]" />
+                                                    <!--  值输入框（LIST 节点隐藏）  -->
+                                                    <TextBox
+                                                        MinWidth="140"
+                                                        MaxWidth="240"
+                                                        Margin="0,0,6,0"
+                                                        Padding="4,2"
+                                                        VerticalContentAlignment="Center"
+                                                        Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                        Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}">
+                                                        <TextBox.Style>
+                                                            <Style BasedOn="{StaticResource TextBoxBaseStyle}" TargetType="TextBox">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasValidationError}" Value="True">
+                                                                        <Setter Property="BorderBrush" Value="#E53935" />
+                                                                        <Setter Property="BorderThickness" Value="1.5" />
+                                                                        <Setter Property="Background" Value="#FFEBEE" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBox.Style>
+                                                        <TextBox.ToolTip>
+                                                            <ToolTip Content="{Binding ValidationErrorMessage}" Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
+                                                        </TextBox.ToolTip>
+                                                    </TextBox>
 
-                                                <!--  值输入框（LIST 节点隐藏）  -->
-                                                <TextBox
-                                                    MinWidth="140"
-                                                    MaxWidth="240"
-                                                    Margin="0,0,6,0"
-                                                    Padding="4,2"
-                                                    VerticalContentAlignment="Center"
-                                                    Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                    Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}">
-                                                    <TextBox.Style>
-                                                        <Style BasedOn="{StaticResource TextBoxBaseStyle}" TargetType="TextBox">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding HasValidationError}" Value="True">
-                                                                    <Setter Property="BorderBrush" Value="#E53935" />
-                                                                    <Setter Property="BorderThickness" Value="1.5" />
-                                                                    <Setter Property="Background" Value="#FFEBEE" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBox.Style>
-                                                    <TextBox.ToolTip>
-                                                        <ToolTip Content="{Binding ValidationErrorMessage}" Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
-                                                    </TextBox.ToolTip>
-                                                </TextBox>
+                                                    <!--  校验错误警告图标  -->
+                                                    <TextBlock
+                                                        Margin="0,0,6,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="14"
+                                                        Foreground="#E53935"
+                                                        Text="⚠"
+                                                        ToolTip="{Binding ValidationErrorMessage}"
+                                                        Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
 
-                                                <!--  校验错误警告图标  -->
-                                                <TextBlock
-                                                    Margin="0,0,6,0"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="14"
-                                                    Foreground="#E53935"
-                                                    Text="⚠"
-                                                    ToolTip="{Binding ValidationErrorMessage}"
-                                                    Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}" />
+                                                    <!--  VID 勾选框  -->
+                                                    <CheckBox
+                                                        Margin="0,0,6,0"
+                                                        VerticalAlignment="Center"
+                                                        Content="绑定变量"
+                                                        IsChecked="{Binding IsVariableNode}"
+                                                        Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
 
-                                                <!--  VID 勾选框  -->
-                                                <CheckBox
-                                                    Margin="0,0,6,0"
-                                                    VerticalAlignment="Center"
-                                                    Content="绑定变量"
-                                                    IsChecked="{Binding IsVariableNode}"
-                                                    Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
-
-                                                <!--  已绑定的 VID 说明  -->
+                                                    <!--  已绑定的 VID 说明  -->
 
 
-                                                <pf:Shield
-                                                    Grid.Column="2"
-                                                    Margin="5"
-                                                    Padding="4,1"
-                                                    Status="{Binding VariableDescription}"
-                                                    Subject="VID"
-                                                    Visibility="{Binding VariableDescription, Converter={StaticResource StringNotEmptyToVis}}"
-                                                    Color="{DynamicResource PrimaryBrush}" />
-                                               
-
-                                                <StackPanel.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem
-                                                            Command="{Binding AddChildCommand}"
-                                                            Header="➕ 添加子节点 (LIST)"
-                                                            Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
-                                                        <Separator Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
-                                                        <MenuItem Command="{Binding RemoveNodeCommand}" Header="🗑 删除此节点" />
-                                                    </ContextMenu>
-                                                </StackPanel.ContextMenu>
-                                            </StackPanel>
-                                        </Grid>
-
-                                    </HierarchicalDataTemplate>
-                                </TreeView.Resources>
-                                <TreeView.ItemContainerStyle>
-                                    <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
-                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                                    </Style>
-                                </TreeView.ItemContainerStyle>
-                            </TreeView>
-
-                            <!--  底部操作栏  -->
-                            <StackPanel
-                                Grid.Row="2"
-                                Margin="0,6,0,0"
-                                HorizontalAlignment="Right"
-                                Orientation="Horizontal">
-
-                                <CheckBox
-                                    Margin="0,0,16,0"
-                                    VerticalAlignment="Center"
-                                    Content="等待回复 (W-Bit)"
-                                    IsChecked="{Binding CommandBuilder.WaitReply}" />
-
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding CommandBuilder.SaveMessageCommand}"
-                                    Content="💾 保存报文"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-
-                                <Button
-                                    Command="{Binding CommandBuilder.UpdateVariablesCommand}"
-                                    Content="🔄 更新变量节点"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-
-                                <Button
-                                    Width="120"
-                                    Command="{Binding CommandBuilder.SendCommand}"
-                                    Content="▶ 发送 (Send)"
-                                    FontSize="13"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
-                            </StackPanel>
-                        </Grid>
-                    </GroupBox>
+                                                    <pf:Shield
+                                                        Grid.Column="2"
+                                                        Margin="5"
+                                                        Padding="4,1"
+                                                        Status="{Binding VariableDescription}"
+                                                        Subject="VID"
+                                                        Visibility="{Binding VariableDescription, Converter={StaticResource StringNotEmptyToVis}}"
+                                                        Color="{DynamicResource PrimaryBrush}" />
 
 
-                    <!--  ═══════════════════════════════════════════════════════════  -->
-                    <!--  Row 4: 实时通信日志  -->
-                    <!--  ═══════════════════════════════════════════════════════════  -->
-                    <GroupBox Grid.Column="4" Header="📋 实时通信日志 (Transaction Logs)">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                                                    <StackPanel.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem
+                                                                Command="{Binding AddChildCommand}"
+                                                                Header="➕ 添加子节点 (LIST)"
+                                                                Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
+                                                            <Separator Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
+                                                            <MenuItem Command="{Binding RemoveNodeCommand}" Header="🗑 删除此节点" />
+                                                        </ContextMenu>
+                                                    </StackPanel.ContextMenu>
+                                                </StackPanel>
+                                            </Grid>
 
-                            <!--  日志列表 (双列：Raw Hex + SML)  -->
-                            <ListBox
-                                x:Name="LogListBox"
-                                Grid.Row="0"
-                                BorderThickness="0"
-                                ItemsSource="{Binding Log.TransactionLogs}"
-                                ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                VirtualizingStackPanel.IsVirtualizing="True"
-                                VirtualizingStackPanel.VirtualizationMode="Recycling">
-                                <ListBox.ItemContainerStyle>
-                                    <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:TransactionLogEntry}">
-                                        <Grid Margin="2,1">
-                                            <Grid.RowDefinitions>
-                                                <!--  方向箭头  -->
-                                                <RowDefinition />
-                                                <!--  时间 + 报文头  -->
-                                                <RowDefinition />
-                                                <!--  Raw Hex  -->
-                                                <RowDefinition />
-                                                <RowDefinition />
-                                            </Grid.RowDefinitions>
+                                        </HierarchicalDataTemplate>
+                                    </TreeView.Resources>
+                                    <TreeView.ItemContainerStyle>
+                                        <Style BasedOn="{StaticResource TreeViewItemBaseStyle}" TargetType="TreeViewItem">
+                                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                        </Style>
+                                    </TreeView.ItemContainerStyle>
+                                </TreeView>
 
-                                            <TextBlock
-                                                Grid.Row="0"
-                                                HorizontalAlignment="Left"
-                                                VerticalAlignment="Center"
-                                                FontFamily="Consolas"
-                                                FontSize="20"
-                                                FontWeight="Bold"
-                                                Foreground="{Binding DirectionColor}"
-                                                Text="{Binding Direction}" />
+                                <!--  底部操作栏  -->
+                                <StackPanel
+                                    Grid.Row="2"
+                                    Margin="0,6,0,0"
+                                    HorizontalAlignment="Right"
+                                    Orientation="Horizontal">
 
-                                            <TextBlock
-                                                Grid.Row="1"
-                                                Margin="4,0"
-                                                VerticalAlignment="Center"
-                                                FontFamily="Consolas"
-                                                FontSize="12"
-                                                Text="{Binding TimestampHeader}"
-                                                TextTrimming="CharacterEllipsis"
-                                                ToolTip="{Binding TimestampHeader}" />
+                                    <CheckBox
+                                        Margin="0,0,16,0"
+                                        VerticalAlignment="Center"
+                                        Content="等待回复 (W-Bit)"
+                                        IsChecked="{Binding CommandBuilder.WaitReply}" />
 
-                                            <TextBlock
-                                                Grid.Row="2"
-                                                Margin="6,0"
-                                                VerticalAlignment="Center"
-                                                FontFamily="Consolas"
-                                                FontSize="11"
-                                                Text="{Binding RawHex}"
-                                                TextTrimming="CharacterEllipsis"
-                                                ToolTip="{Binding RawHex}" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding CommandBuilder.SaveMessageCommand}"
+                                        Content="💾 保存报文"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
 
-                                            <TextBlock
-                                                Grid.Row="3"
-                                                Margin="6,0"
-                                                VerticalAlignment="Center"
-                                                FontFamily="Consolas"
-                                                FontSize="12"
-                                                Text="{Binding SmlText}"
-                                                TextTrimming="CharacterEllipsis"
-                                                TextWrapping="NoWrap"
-                                                ToolTip="{Binding SmlText}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                                    <Button
+                                        Command="{Binding CommandBuilder.UpdateVariablesCommand}"
+                                        Content="🔄 更新变量节点"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
 
-                            <!--  日志底部操作栏  -->
-                            <StackPanel
-                                Grid.Row="1"
-                                Margin="0,4,0,0"
-                                HorizontalAlignment="Right"
-                                Orientation="Horizontal">
-                                <Button
-                                    Command="{Binding Log.ClearLogCommand}"
-                                    Content="🗑 清空日志"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                            </StackPanel>
-                        </Grid>
-                    </GroupBox>
-
-                </Grid>
-            </TabItem>
-
-
-            <!--  ═══════════════════════════════════════════════════════════  -->
-            <!--  参数管理 Tab（分类展示 System / VID / CEID / ReportID / CommandID）  -->
-            <!--  ═══════════════════════════════════════════════════════════  -->
-            <TabItem Header="参数管理">
-                <Grid Margin="5">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <TabControl Grid.Row="0" SelectedIndex="{Binding Parameter.SelectedParamTabIndex}">
-
-                        <!--  系统参数  -->
-                        <TabItem Header="🖥 系统参数">
-                            <DataGrid
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                CanUserDeleteRows="False"
-                                GridLinesVisibility="Horizontal"
-                                HeadersVisibility="Column"
-                                ItemsSource="{Binding Parameter.ParamRows}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn
-                                        Width="auto"
-                                        MinWidth="100"
-                                        Binding="{Binding Name}"
-                                        Header="名称"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width="*"
-                                        Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
-                                        Header="值" />
-                                    <DataGridTextColumn
-                                        Width="auto"
-                                        Binding="{Binding DataType}"
-                                        Header="类型"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width="*"
-                                        MinWidth="80"
-                                        Binding="{Binding Description}"
-                                        Header="说明"
-                                        IsReadOnly="True" />
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </TabItem>
-
-                        <!--  VID  -->
-                        <TabItem Header="📋 VID">
-                            <controls:ParamDataGridControl
-                                AddCommand="{Binding Parameter.AddVidCommand}"
-                                DeleteCommand="{Binding Parameter.DeleteVidCommand}"
-                                ItemsSource="{Binding Parameter.VidRows}"
-                                SelectedItem="{Binding Parameter.SelectedVidRow}">
-                                <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn
-                                        Width="80"
-                                        Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}"
-                                        Header="类型" />
-                                    <DataGridTextColumn
+                                    <Button
                                         Width="120"
-                                        Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
-                                        Header="值" />
-                                </controls:ParamDataGridControl.ExtraColumns>
-                            </controls:ParamDataGridControl>
-                        </TabItem>
-
-                        <!--  CEID  -->
-                        <TabItem Header="📡 CEID">
-                            <controls:ParamDataGridControl
-                                AddCommand="{Binding Parameter.AddCeidCommand}"
-                                DeleteCommand="{Binding Parameter.DeleteCeidCommand}"
-                                ItemsSource="{Binding Parameter.CeidRows}"
-                                SelectedItem="{Binding Parameter.SelectedCeidRow}">
-                                <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn
-                                        Width="150"
-                                        Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}"
-                                        Header="关联 ReportID" />
-                                </controls:ParamDataGridControl.ExtraColumns>
-                            </controls:ParamDataGridControl>
-                        </TabItem>
-
-                        <!--  ReportID  -->
-                        <TabItem Header="📄 ReportID">
-                            <controls:ParamDataGridControl
-                                AddCommand="{Binding Parameter.AddReportIdCommand}"
-                                DeleteCommand="{Binding Parameter.DeleteReportIdCommand}"
-                                ItemsSource="{Binding Parameter.ReportIdRows}"
-                                SelectedItem="{Binding Parameter.SelectedReportIdRow}">
-                                <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn
-                                        Width="150"
-                                        Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
-                                        Header="关联 VID" />
-                                </controls:ParamDataGridControl.ExtraColumns>
-                            </controls:ParamDataGridControl>
-                        </TabItem>
-
-                        <!--  CommandID  -->
-                        <TabItem Header="⌨ CommandID">
-                            <controls:ParamDataGridControl
-                                AddCommand="{Binding Parameter.AddCommandIdCommand}"
-                                DeleteCommand="{Binding Parameter.DeleteCommandIdCommand}"
-                                ItemsSource="{Binding Parameter.CommandIdRows}"
-                                SelectedItem="{Binding Parameter.SelectedCommandIdRow}">
-                                <controls:ParamDataGridControl.ExtraColumns>
-                                    <DataGridTextColumn
-                                        Width="80"
-                                        Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}"
-                                        Header="RCMD" />
-                                    <DataGridTextColumn
-                                        Width="150"
-                                        Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
-                                        Header="关联 VID" />
-                                </controls:ParamDataGridControl.ExtraColumns>
-                            </controls:ParamDataGridControl>
-                        </TabItem>
-
-                    </TabControl>
-
-                    <!--  底部操作按钮  -->
-                    <WrapPanel
-                        Grid.Row="1"
-                        Margin="0,6,0,0"
-                        HorizontalAlignment="Right">
-                        <Button
-                            Margin="0,0,4,0"
-                            Command="{Binding Parameter.ImportSystemParamCommand}"
-                            Content="📂 导入系统参数(JSON)"
-                            Style="{StaticResource ToolbarButtonStyle}" />
-                        <Button
-                            Margin="0,0,4,0"
-                            Command="{Binding Parameter.ImportValidateParamCommand}"
-                            Content="📊 导入变量参数(Excel)"
-                            Style="{StaticResource ToolbarButtonStyle}" />
-                        <Button
-                            Width="70"
-                            Margin="0,0,4,0"
-                            Command="{Binding Parameter.ExportParamsCommand}"
-                            Content="导出"
-                            Style="{StaticResource ToolbarButtonStyle}" />
-                        <Button
-                            Command="{Binding Parameter.SaveParamCommand}"
-                            Content="💾 保存参数"
-                            Style="{StaticResource ToolbarButtonStyle}" />
-                    </WrapPanel>
-                </Grid>
-            </TabItem>
-
-            <!--  ═══════════════════════════════════════════════════════════  -->
-            <!--  外围服务管理 Tab  -->
-            <!--  ═══════════════════════════════════════════════════════════  -->
-            <TabItem Header="外围服务管理">
-                <Grid Margin="5">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <!--  区域 A：Windows 服务管控  -->
-                    <GroupBox
-                        Grid.Row="0"
-                        Margin="0,0,0,6"
-                        Header="🔧 Windows 服务管控">
-                        <Grid Margin="4">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <!--  服务名称 + 状态  -->
-                            <StackPanel
-                                Grid.Row="0"
-                                Margin="0,0,0,6"
-                                Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" Text="服务名称: " />
-                                <TextBox
-                                    Width="200"
-                                    Margin="0,0,16,0"
-                                    VerticalContentAlignment="Center"
-                                    Text="{Binding ServiceManager.ServiceNameForManagement, UpdateSourceTrigger=PropertyChanged}" />
-                                <Ellipse
-                                    Width="12"
-                                    Height="12"
-                                    Margin="0,0,6,0"
-                                    VerticalAlignment="Center"
-                                    Fill="{Binding ServiceManager.ServiceStatusColor}" />
-                                <TextBlock
-                                    VerticalAlignment="Center"
-                                    FontWeight="SemiBold"
-                                    Text="{Binding ServiceManager.ServiceStatusText}" />
-                            </StackPanel>
-
-                            <!--  EXE 路径  -->
-                            <StackPanel
-                                Grid.Row="1"
-                                Margin="0,0,0,6"
-                                Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" Text="服务 EXE 路径: " />
-                                <TextBox
-                                    Width="400"
-                                    Margin="0,0,8,0"
-                                    VerticalContentAlignment="Center"
-                                    Text="{Binding ServiceManager.ServiceExePath, UpdateSourceTrigger=PropertyChanged}" />
-                            </StackPanel>
-
-                            <!--  操作按钮  -->
-                            <WrapPanel Grid.Row="2">
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding ServiceManager.InstallServiceCommand}"
-                                    Content="📥 安装服务"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding ServiceManager.UninstallServiceCommand}"
-                                    Content="🗑 卸载服务"
-                                    Style="{StaticResource DangerButtonStyle}" />
-                                <Button
-                                    Margin="0,0,4,0"
-                                    Command="{Binding ServiceManager.StartServiceCommand}"
-                                    Content="▶ 启动服务"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
-                                <Button
-                                    Command="{Binding ServiceManager.RefreshServiceStatusCommand}"
-                                    Content="🔄 刷新状态"
-                                    Style="{StaticResource ToolbarButtonStyle}" />
-                            </WrapPanel>
-                        </Grid>
-                    </GroupBox>
-
-                </Grid>
-            </TabItem>
-
-        </TabControl>
+                                        Command="{Binding CommandBuilder.SendCommand}"
+                                        Content="▶ 发送 (Send)"
+                                        FontSize="13"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
 
 
+                        <!--  ═══════════════════════════════════════════════════════════  -->
+                        <!--  Row 4: 实时通信日志  -->
+                        <!--  ═══════════════════════════════════════════════════════════  -->
+                        <GroupBox Grid.Column="4" Header="📋 实时通信日志 (Transaction Logs)">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!--  日志列表 (双列：Raw Hex + SML)  -->
+                                <ListBox
+                                    x:Name="LogListBox"
+                                    Grid.Row="0"
+                                    BorderThickness="0"
+                                    ItemsSource="{Binding Log.TransactionLogs}"
+                                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                    VirtualizingStackPanel.IsVirtualizing="True"
+                                    VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:TransactionLogEntry}">
+                                            <Grid Margin="2,1">
+                                                <Grid.RowDefinitions>
+                                                    <!--  方向箭头  -->
+                                                    <RowDefinition />
+                                                    <!--  时间 + 报文头  -->
+                                                    <RowDefinition />
+                                                    <!--  Raw Hex  -->
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock
+                                                    Grid.Row="0"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Consolas"
+                                                    FontSize="20"
+                                                    FontWeight="Bold"
+                                                    Foreground="{Binding DirectionColor}"
+                                                    Text="{Binding Direction}" />
+
+                                                <TextBlock
+                                                    Grid.Row="1"
+                                                    Margin="4,0"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Consolas"
+                                                    FontSize="12"
+                                                    Text="{Binding TimestampHeader}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    ToolTip="{Binding TimestampHeader}" />
+
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Margin="6,0"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Consolas"
+                                                    FontSize="11"
+                                                    Text="{Binding RawHex}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    ToolTip="{Binding RawHex}" />
+
+                                                <TextBlock
+                                                    Grid.Row="3"
+                                                    Margin="6,0"
+                                                    VerticalAlignment="Center"
+                                                    FontFamily="Consolas"
+                                                    FontSize="12"
+                                                    Text="{Binding SmlText}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="NoWrap"
+                                                    ToolTip="{Binding SmlText}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <!--  日志底部操作栏  -->
+                                <StackPanel
+                                    Grid.Row="1"
+                                    Margin="0,4,0,0"
+                                    HorizontalAlignment="Right"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Command="{Binding Log.ClearLogCommand}"
+                                        Content="🗑 清空日志"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                    </Grid>
+                </TabItem>
 
 
-    </Grid>
+                <!--  ═══════════════════════════════════════════════════════════  -->
+                <!--  参数管理 Tab（分类展示 System / VID / CEID / ReportID / CommandID）  -->
+                <!--  ═══════════════════════════════════════════════════════════  -->
+                <TabItem Header="参数管理">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TabControl Grid.Row="0" SelectedIndex="{Binding Parameter.SelectedParamTabIndex}">
+
+                            <!--  系统参数  -->
+                            <TabItem Header="🖥 系统参数">
+                                <DataGrid
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    CanUserDeleteRows="False"
+                                    GridLinesVisibility="Horizontal"
+                                    HeadersVisibility="Column"
+                                    ItemsSource="{Binding Parameter.ParamRows}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                            Width="auto"
+                                            MinWidth="100"
+                                            Binding="{Binding Name}"
+                                            Header="名称"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="*"
+                                            Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                            Header="值" />
+                                        <DataGridTextColumn
+                                            Width="auto"
+                                            Binding="{Binding DataType}"
+                                            Header="类型"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="*"
+                                            MinWidth="80"
+                                            Binding="{Binding Description}"
+                                            Header="说明"
+                                            IsReadOnly="True" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+
+                            <!--  VID  -->
+                            <TabItem Header="📋 VID">
+                                <controls:ParamDataGridControl
+                                    AddCommand="{Binding Parameter.AddVidCommand}"
+                                    DeleteCommand="{Binding Parameter.DeleteVidCommand}"
+                                    ItemsSource="{Binding Parameter.VidRows}"
+                                    SelectedItem="{Binding Parameter.SelectedVidRow}">
+                                    <controls:ParamDataGridControl.ExtraColumns>
+                                        <DataGridTextColumn
+                                            Width="80"
+                                            Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}"
+                                            Header="类型" />
+                                        <DataGridTextColumn
+                                            Width="120"
+                                            Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                            Header="值" />
+                                    </controls:ParamDataGridControl.ExtraColumns>
+                                </controls:ParamDataGridControl>
+                            </TabItem>
+
+                            <!--  CEID  -->
+                            <TabItem Header="📡 CEID">
+                                <controls:ParamDataGridControl
+                                    AddCommand="{Binding Parameter.AddCeidCommand}"
+                                    DeleteCommand="{Binding Parameter.DeleteCeidCommand}"
+                                    ItemsSource="{Binding Parameter.CeidRows}"
+                                    SelectedItem="{Binding Parameter.SelectedCeidRow}">
+                                    <controls:ParamDataGridControl.ExtraColumns>
+                                        <DataGridTextColumn
+                                            Width="150"
+                                            Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}"
+                                            Header="关联 ReportID" />
+                                    </controls:ParamDataGridControl.ExtraColumns>
+                                </controls:ParamDataGridControl>
+                            </TabItem>
+
+                            <!--  ReportID  -->
+                            <TabItem Header="📄 ReportID">
+                                <controls:ParamDataGridControl
+                                    AddCommand="{Binding Parameter.AddReportIdCommand}"
+                                    DeleteCommand="{Binding Parameter.DeleteReportIdCommand}"
+                                    ItemsSource="{Binding Parameter.ReportIdRows}"
+                                    SelectedItem="{Binding Parameter.SelectedReportIdRow}">
+                                    <controls:ParamDataGridControl.ExtraColumns>
+                                        <DataGridTextColumn
+                                            Width="150"
+                                            Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
+                                            Header="关联 VID" />
+                                    </controls:ParamDataGridControl.ExtraColumns>
+                                </controls:ParamDataGridControl>
+                            </TabItem>
+
+                            <!--  CommandID  -->
+                            <TabItem Header="⌨ CommandID">
+                                <controls:ParamDataGridControl
+                                    AddCommand="{Binding Parameter.AddCommandIdCommand}"
+                                    DeleteCommand="{Binding Parameter.DeleteCommandIdCommand}"
+                                    ItemsSource="{Binding Parameter.CommandIdRows}"
+                                    SelectedItem="{Binding Parameter.SelectedCommandIdRow}">
+                                    <controls:ParamDataGridControl.ExtraColumns>
+                                        <DataGridTextColumn
+                                            Width="80"
+                                            Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}"
+                                            Header="RCMD" />
+                                        <DataGridTextColumn
+                                            Width="150"
+                                            Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
+                                            Header="关联 VID" />
+                                    </controls:ParamDataGridControl.ExtraColumns>
+                                </controls:ParamDataGridControl>
+                            </TabItem>
+
+                        </TabControl>
+
+                        <!--  底部操作按钮  -->
+                        <WrapPanel
+                            Grid.Row="1"
+                            Margin="0,6,0,0"
+                            HorizontalAlignment="Right">
+                            <Button
+                                Margin="0,0,4,0"
+                                Command="{Binding Parameter.ImportSystemParamCommand}"
+                                Content="📂 导入系统参数(JSON)"
+                                Style="{StaticResource ToolbarButtonStyle}" />
+                            <Button
+                                Margin="0,0,4,0"
+                                Command="{Binding Parameter.ImportValidateParamCommand}"
+                                Content="📊 导入变量参数(Excel)"
+                                Style="{StaticResource ToolbarButtonStyle}" />
+                            <Button
+                                Width="70"
+                                Margin="0,0,4,0"
+                                Command="{Binding Parameter.ExportParamsCommand}"
+                                Content="导出"
+                                Style="{StaticResource ToolbarButtonStyle}" />
+                            <Button
+                                Command="{Binding Parameter.SaveParamCommand}"
+                                Content="💾 保存参数"
+                                Style="{StaticResource ToolbarButtonStyle}" />
+                        </WrapPanel>
+                    </Grid>
+                </TabItem>
+
+                <!--  ═══════════════════════════════════════════════════════════  -->
+                <!--  外围服务管理 Tab  -->
+                <!--  ═══════════════════════════════════════════════════════════  -->
+                <TabItem Header="外围服务管理">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!--  区域 A：Windows 服务管控  -->
+                        <GroupBox
+                            Grid.Row="0"
+                            Margin="0,0,0,6"
+                            Header="🔧 Windows 服务管控">
+                            <Grid Margin="4">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!--  服务名称 + 状态  -->
+                                <StackPanel
+                                    Grid.Row="0"
+                                    Margin="0,0,0,6"
+                                    Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" Text="服务名称: " />
+                                    <TextBox
+                                        Width="200"
+                                        Margin="0,0,16,0"
+                                        VerticalContentAlignment="Center"
+                                        Text="{Binding ServiceManager.ServiceNameForManagement, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Ellipse
+                                        Width="12"
+                                        Height="12"
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center"
+                                        Fill="{Binding ServiceManager.ServiceStatusColor}" />
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding ServiceManager.ServiceStatusText}" />
+                                </StackPanel>
+
+                                <!--  EXE 路径  -->
+                                <StackPanel
+                                    Grid.Row="1"
+                                    Margin="0,0,0,6"
+                                    Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" Text="服务 EXE 路径: " />
+                                    <TextBox
+                                        Width="400"
+                                        Margin="0,0,8,0"
+                                        VerticalContentAlignment="Center"
+                                        Text="{Binding ServiceManager.ServiceExePath, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+
+                                <!--  操作按钮  -->
+                                <WrapPanel Grid.Row="2">
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding ServiceManager.InstallServiceCommand}"
+                                        Content="📥 安装服务"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding ServiceManager.UninstallServiceCommand}"
+                                        Content="🗑 卸载服务"
+                                        Style="{StaticResource DangerButtonStyle}" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding ServiceManager.StartServiceCommand}"
+                                        Content="▶ 启动服务"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                    <Button
+                                        Command="{Binding ServiceManager.RefreshServiceStatusCommand}"
+                                        Content="🔄 刷新状态"
+                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                </WrapPanel>
+                            </Grid>
+                        </GroupBox>
+
+                    </Grid>
+                </TabItem>
+
+            </TabControl>
+
+
+
+
+        </Grid>
+    </pf:TransitioningContentControl>
+
 </UserControl>

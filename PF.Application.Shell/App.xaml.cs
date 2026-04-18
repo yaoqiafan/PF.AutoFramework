@@ -785,27 +785,10 @@ namespace PF.Application.Shell
             {
                 return false;
             }
-            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
-            if (!await workStation1DetectionModule.InitializeAsync())
-            {
-                return false;
-            }
+           
             var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule));
 
             if (!await workStation1MaterialPullingModule.InitializeAsync())
-            {
-                return false;
-            }
-
-            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
-            if (!await workStationDataModule.InitializeAsync())
-            {
-                return false;
-            }
-
-
-            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
-            if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;
             }
@@ -819,6 +802,25 @@ namespace PF.Application.Shell
 
             var workStation2MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation2MaterialPullingModule));
             if (!await workStation2MaterialPullingModule.InitializeAsync())
+            {
+                return false;
+            }
+
+            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
+            if (!await workStation1DetectionModule.InitializeAsync())
+            {
+                return false;
+            }
+
+            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
+            if (!await workStationDataModule.InitializeAsync())
+            {
+                return false;
+            }
+
+
+            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
+            if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;
             }

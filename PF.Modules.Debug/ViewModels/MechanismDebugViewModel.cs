@@ -1,10 +1,11 @@
-﻿using PF.Core.Attributes;
+using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
 {
@@ -12,94 +13,107 @@ namespace PF.Modules.Debug.ViewModels
     public class MechanismDebugViewModel : RegionViewModelBase
     {
         private readonly IRegionManager _regionManager;
+        private readonly DispatcherTimer _pollTimer;
 
-        
+        /// <summary>获取模组导航条目列表</summary>
+        public ObservableCollection<MechanismNavItem> NavItems { get; } = new ObservableCollection<MechanismNavItem>();
 
-        // 缓存：模组实例 -> 对应的视图名称 (ViewName)
-        private readonly Dictionary<object, string> _mechanismViewMap = new Dictionary<object, string>();
-
-        /// <summary>获取模组树节点列表</summary>
-        public ObservableCollection<DebugTreeNode> TreeNodes { get; } = new ObservableCollection<DebugTreeNode>();
-
-        private DebugTreeNode _selectedNode;
-        /// <summary>获取或设置选中的树节点</summary>
-        public DebugTreeNode SelectedNode
+        private MechanismNavItem? _selectedItem;
+        /// <summary>获取或设置选中的导航条目</summary>
+        public MechanismNavItem? SelectedItem
         {
-            get => _selectedNode;
+            get => _selectedItem;
             set
             {
-                if (SetProperty(ref _selectedNode, value))
+                if (SetProperty(ref _selectedItem, value))
                 {
                     NavigateToSelectedMechanism();
                 }
             }
         }
 
-        // 注入 IRegionManager 用于动态加载页面
         /// <summary>初始化模组调试 ViewModel</summary>
         public MechanismDebugViewModel(IEnumerable<IMechanism> mechanisms, IRegionManager regionManager)
         {
             _regionManager = regionManager;
-            BuildTree(mechanisms);
+            BuildNavItems(mechanisms);
+
+            _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
+            {
+                Interval = TimeSpan.FromMilliseconds(200)
+            };
+            _pollTimer.Tick += OnPollTick;
+            _pollTimer.Start();
         }
 
-        private void BuildTree(IEnumerable<IMechanism> mechanisms)
+        /// <summary>
+        /// 利用反射读取每个模组的 <see cref="MechanismUIAttribute"/> 特性，并构建排序后的导航列表
+        /// </summary>
+        private void BuildNavItems(IEnumerable<IMechanism> mechanisms)
         {
-            // 用于临时存储以便进行排序
-            var tempList = new List<(DebugTreeNode Node, int Order)>();
+            var items = new List<(MechanismNavItem Item, int Order)>();
 
             foreach (var mech in mechanisms)
             {
-                // 默认值
                 string nodeName = mech.GetType().Name;
                 string viewName = string.Empty;
-                int order = 99; // 默认排序号
+                int order = 99;
 
-                // 反射获取 MechanismUIAttribute 特性
                 var attr = mech.GetType().GetCustomAttribute<MechanismUIAttribute>();
                 if (attr != null)
                 {
-                    nodeName = attr.Title; // 使用特性中定义的中文名称
-                    viewName = attr.MechanismViewName; // 获取对应的前端视图注册名
-                    order = attr.Order; // 获取排序号
+                    nodeName = attr.Title;
+                    viewName = attr.MechanismViewName;
+                    order = attr.Order;
                 }
 
-                // 构建树节点
-                var node = new DebugTreeNode { NodeName = nodeName, Payload = mech };
-                tempList.Add((node, order));
-
-                // 如果特性中定义了视图名称，则加入路由缓存字典
-                if (!string.IsNullOrEmpty(viewName))
+                var navItem = new MechanismNavItem
                 {
-                    _mechanismViewMap[mech] = viewName;
-                }
+                    Title = nodeName,
+                    ViewName = viewName,
+                    Mechanism = mech
+                };
+
+                items.Add((navItem, order));
             }
 
-            // 按 Order 升序排序并填充到绑定的集合中
-            foreach (var item in tempList.OrderBy(x => x.Order))
+            foreach (var item in items.OrderBy(x => x.Order))
             {
-                TreeNodes.Add(item.Node);
+                NavItems.Add(item.Item);
             }
         }
 
         /// <summary>
-        /// 当选中的节点发生变化时，通过 Prism RegionManager 导航到对应的视图
+        /// 当选中的导航条目变化时，通过 Prism RegionManager 导航到对应的视图
         /// </summary>
         private void NavigateToSelectedMechanism()
         {
-            if (_selectedNode?.Payload != null &&
-                _mechanismViewMap.TryGetValue(_selectedNode.Payload, out var viewName))
+            if (_selectedItem == null || string.IsNullOrEmpty(_selectedItem.ViewName))
+                return;
+
+            _regionManager.RequestNavigate(NavigationConstants.Regions.MechanismContentRegion, _selectedItem.ViewName, result =>
             {
-                // 加上回调函数，捕获并显示导航失败的真正原因
-                _regionManager.RequestNavigate("MechanismContentRegion", viewName, result =>
+                if (result.Success == false)
                 {
-                    if (result.Success == false)
-                    {
-                        // 这里打个断点，或者用 MessageBox 弹出来看看具体报什么错！
-                        MessageService.ShowMessage($"导航失败: {result?.Exception?.Message}");
-                    }
-                });
+                    MessageService.ShowMessage($"导航失败: {result?.Exception?.Message}");
+                }
+            });
+        }
+
+        private void OnPollTick(object? sender, EventArgs e)
+        {
+            foreach (var item in NavItems)
+            {
+                item.Refresh();
             }
+        }
+
+        /// <summary>
+        /// 重写基类方法，在 ViewModel 销毁时停止定时器
+        /// </summary>
+        public override void Destroy()
+        {
+            _pollTimer.Stop();
         }
     }
 }
