@@ -16,7 +16,7 @@
 ## ✨ 核心特性
 
 * **🧩 极致的模块化架构**：基于 Prism 9 实现 UI、核心逻辑与数据层的彻底解耦。支持插件式开发，子模块动态加载。
-* **🏭 完整的工控生命周期**：内置标准化 7 状态机，配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
+* **🏭 完整的工控生命周期**：内置标准化 8 状态机（含 `InitAlarm` / `RunAlarm` 分离），配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
 * **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice`）。
 * **🎨 现代扁平化 UI**：内置高颜值自定义控件库（`Growl`、`Drawer`、步骤条等），支持深色/浅色主题。
 * **🔐 全局身份与权限管理**：内置完整身份认证模块，支持细粒度权限管控及多级用户角色。
@@ -35,7 +35,7 @@
 
 ## 📂 工程结构说明
 
-解决方案遵循严格的 **7 层分层架构**，依赖方向单向不循环：
+解决方案遵循严格的 **7 层分层架构**，依赖方向单向不循环。状态机包含 **8 个状态**（含 `InitAlarm` / `RunAlarm` 分离）、**10 个触发器**：
 
 ```
 PF.AutoFramework.slnx
@@ -94,7 +94,7 @@ PF.AutoFramework.slnx
 | **DI 容器** | DryIoc | 6.2.0 |
 | **ORM** | Entity Framework Core | 9.0.12 |
 | **数据库** | SQLite | EF Core Provider |
-| **日志** | log4net | 3.2.0 |
+| **日志** | log4net | 3.3.0 |
 | **主机** | Microsoft.Extensions.Hosting | 10.0.2 |
 | **状态机** | Stateless | 5.20.1 |
 | **Excel** | NPOI | 2.7.5 |
@@ -108,24 +108,47 @@ PF.AutoFramework.slnx
 
 > 无任何外部依赖，所有项目均可安全引用。
 
-- `IHardwareDevice` — 硬件设备统一接口（连接/断开/复位/报警事件）
-- `IMotionCard` — 运动控制卡接口（12 个统一硬件操作方法：运动控制 7 个、轴状态读取 2 个、IO 读写 3 个）
+- `IHardwareDevice` — 硬件设备统一接口（6 个属性 + 4 个方法 + 3 个事件）
+  - 属性：`DeviceId`、`DeviceName`、`IsConnected`、`HasAlarm`、`Category`、`IsSimulated`
+  - 方法：`ConnectAsync` / `DisconnectAsync` / `ResetAsync` / `ResetHardwareAlarmAsync`
+  - 事件：`ConnectionChanged` / `AlarmTriggered`（携带 `DeviceAlarmEventArgs`）/ `HardwareAlarmAutoCleared`
+- `IMotionCard` : `IHardwareDevice` — 运动控制卡接口（18 个方法 + 4 个属性）
+  - 运动控制（7）：`EnableAxisAsync` / `DisableAxisAsync` / `StopAxisAsync` / `HomeAxisAsync` / `MoveAbsoluteAsync` / `MoveRelativeAsync` / `JogAsync`
+  - 轴状态（3）：`GetAxisCurrentPosition` / `GetMotionIOStatus`（返回 `MotionIOStatus` 结构体）/ `ClearAxisError`
+  - IO 读写（3）：`ReadInputPort` / `WriteOutputPort` / `ReadOutputPort`
+  - 位置锁存（3）：`SetLatchMode` / `GetLatchNumber` / `GetLatchPos`
+  - 板卡配置（1）：`LoadConfigAsync`
+  - 属性：`CardIndex`、`AxisCount`、`InputCount`、`OutputCount`
 - `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
-- `IMechanism` — 机构抽象接口（`InitializeAsync` / `StartAsync` / `StopAsync` / `PauseAsync`）
-- `IMasterController` — 全局主控接口（`InitializeAllAsync` / `StartAllAsync` / `StopAll` / `ResetAllAsync`）
+- `IAxis` : `IHardwareDevice`, `IAttachedDevice` — 单轴控制器接口（点表管理 + 运动控制 + 位置锁存）
+- `IIOController` : `IHardwareDevice`, `IAttachedDevice` — 数字 IO 接口（含泛型枚举重载）
+- `IMechanism` : `IDisposable` — 机构抽象接口（`InitializeAsync` / `ResetAsync` / `StopAsync`）
+  - 属性：`MechanismName`、`IsInitialized`、`HasAlarm`
+  - 事件：`AlarmTriggered` / `AlarmAutoCleared`
+- `IMasterController` — 全局主控接口（`InitializeAllAsync` / `StartAllAsync` / `StopAllAsync` / `PauseAll` / `ResumeAllAsync` / `ResetAllAsync` / `SetMode` / `RequestSystemResetAsync`）
 - `ISecsGemManger` — SECS/GEM 协议管理接口（消息发送/接收/状态管理）
-- `IParamService` — 泛型参数读写接口
-- `ILogService` — 统一日志接口（Info/Warn/Error/Debug/Success）
+- `IParamService` — 泛型参数读写接口（JSON 序列化、变更事件、批量操作）
+- `ILogService` — 统一日志接口（Info/Warn/Error/Debug/Success，内存缓冲区，历史查询，分类管理）
 - `IUserService` — 用户认证与权限接口
-- `IHardwareManagerService` — 硬件生命周期管理接口
-- `IStationSyncService` — 工站流水线信号量协同接口
-- `IProductionDataService` — 生产数据记录服务接口
-- `MachineState` / `MachineTrigger` / `OperationMode` — 状态机枚举
-- `HardwareCategory` — 设备分类枚举（Axis / IOController / MotionCard / Camera 等）
-- `ModuleNavigationAttribute` — 声明式视图导航注册特性
+- `IHardwareManagerService` — 硬件生命周期管理接口（工厂注册、配置 CRUD、拓扑初始化、仿真模式）
+- `IStationSyncService` — 工站流水线信号量协同接口（作用域隔离、信号量重置、快照查询）
+- `IProductionDataService` — 生产数据记录服务接口（泛型写入、条件查询、CSV/Excel 导出）
+- `IAlarmService` — 报警服务接口（报警触发/清除/确认，事件发布）
+- `IAlarmEventPublisher` — 报警事件发布接口（跨模块解耦通信）
+- `IAlarmDictionaryService` — 报警码字典服务（元数据加载、反射扫描）
+- `IRecipeService<T>` — 配方管理接口
+- `IGenericRepository<T>` — 通用 CRUD 仓储接口
+- `IParamRepository<T>` — 参数专用仓储接口（带变更追踪）
+- `MachineState` — 8 状态：`Uninitialized` → `Initializing` → `Idle` → `Running` / `Paused`，异常分支 `InitAlarm` / `RunAlarm`，复位 `Resetting`
+- `MachineTrigger` — 10 触发：`Initialize` / `InitializeDone` / `Start` / `Pause` / `Resume` / `Stop` / `Error` / `Reset` / `ResetDone` / `ResetDoneUninitialized`
+- `OperationMode` — 运行模式：`Normal` / `DryRun`
+- `HardwareCategory` — 设备分类枚举（9 种）：`General` / `Axis` / `IOController` / `Camera` / `Robot` / `Scanner` / `Instrument` / `MotionCard` / `LightController`
+- `ModuleNavigationAttribute` — 声明式侧边栏菜单注册特性（ViewName / Title / GroupName / Icon / Order）
 - `MechanismUIAttribute` — 模组调试 UI 自动发现特性
 - `StationUIAttribute` — 工站调试 UI 自动发现特性
-- `UserLevel` — 角色层级：Null → Operator → Engineer → Administrator → SuperUser
+- `AlarmInfoAttribute` — 报警元数据注解特性
+- `ParamViewAttribute` — 参数视图路由特性
+- `UserLevel` — 角色层级：`Null`(-1) → `Operator`(0) → `Engineer`(1) → `Administrator`(2) → `SuperUser`(3)
 
 ### PF.Data — 数据访问层
 
@@ -170,21 +193,29 @@ PF.AutoFramework.slnx
 
 ### PF.Infrastructure — 底层基础设施
 
-**BaseDevice**：模板方法模式，3 次重试连接（间隔 2s），模拟模式直通，`RaiseAlarm()` 触发事件链
+**BaseDevice**：模板方法模式，3 次重试连接（间隔 2s），模拟模式直通，`RaiseAlarm()` 触发事件链。内置健康监控循环（默认 1000ms 间隔，仿真模式 ×5），实现 `INotifyPropertyChanged`。
 
 **硬件代理层架构**：`IMotionCard` 是所有硬件操作的统一入口。`BaseAxisDevice` 和 `BaseIODevice` 均实现 `IAttachedDevice`，所有运动/IO 方法均为代理方法，委托至 `ParentCard.XxxAsync(...)`，实现与具体 SDK 的彻底解耦。
 
-**BaseAxisDevice**：轴设备，所有运动方法通过 `ParentCard` 代理，内置点表 JSON 持久化
+**BaseAxisDevice**：轴设备，所有运动方法通过 `ParentCard` 代理，内置点表 JSON 持久化。仿真模式下延迟 1000ms 返回。子类仅需提供 `AxisIndex` 和 `Param` 两个抽象成员。
 
-**BaseIODevice**：IO 设备，`ReadInput`/`WriteOutput`/`ReadOutput` 均代理到 `ParentCard`
+**BaseIODevice**：IO 设备，`ReadInput`/`WriteOutput`/`ReadOutput` 均代理到 `ParentCard`。`WaitInputAsync` 以 20ms 轮询检测输入变化。提供泛型枚举重载 `ReadInput<T>` / `WriteOutput<T>` / `WaitInputAsync<T>`。子类仅需提供 `InputCount` 和 `OutputCount` 两个抽象属性。
 
-**BaseMotionCard**：板卡基类，12 个操作方法声明为 `abstract`，由厂商子类调用具体 SDK
+**BaseMotionCard**：板卡基类，21 个抽象成员（4 个属性 + 17 个方法），由厂商子类调用具体 SDK。具体板卡实现还需满足 `BaseDevice` 的 3 个抽象方法，共 **24 个**需实现的抽象成员。
 
-**BaseMechanism**：聚合多硬件，自动订阅硬件 `AlarmTriggered` 事件，支持延迟注册设备。构造函数签名为 `(string name, IHardwareManagerService, IParamService, ILogService)`。新增两个工具方法：
-- `WaitAxisMoveDone(IAxis, CancellationToken)` — 以 10ms 轮询等待轴运动完成（`MoveDone && !Moving`），支持取消
+**BaseMechanism**：聚合多硬件，自动订阅硬件 `AlarmTriggered` 事件，支持延迟注册设备。构造函数签名为 `(string name, IHardwareManagerService, IParamService, ILogService)`。内置丰富的工具方法：
+- `WaitAxisMoveDoneAsync(IAxis, int, CancellationToken)` — 以 50ms 轮询等待轴运动完成（`MoveDone && !Moving`），默认 30s 超时，支持取消
+- `WaitHomeDoneAsync(IAxis, int, CancellationToken)` — 以 10ms 轮询等待回零完成，默认 30s 超时
+- `MoveAbsAndWaitAsync(...)` — 绝对运动 + 等待组合
+- `MoveRelAndWaitAsync(...)` — 相对运动 + 等待组合
+- `MoveToPointAndWaitAsync(IAxis, string, int, CancellationToken)` — 点表运动 + 等待
+- `MoveMultiAxesToPointsAsync(...)` — `Task.WhenAll` 并发多轴点表运动
 - `EnsurePointsExist<TEnum>(IAxis)` — 泛型点位自动补全：将枚举所有成员与轴点表对比，缺失的自动插入并调用 `SavePointTable()` 持久化
+- `CheckReady()` — 防呆保护，`HasAlarm` 或 `!IsInitialized` 时抛异常
 
-**StationBase**：`Stateless` 七状态机 + 后台线程管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。
+**StationBase**：`Stateless` 8 状态机 + 后台线程管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。暂停门使用 `TaskCompletionSource<bool>` (RunContinuationsAsynchronously) 实现异步门控。子类须实现 `ProcessNormalLoopAsync` 和 `ProcessDryRunLoopAsync` 两个抽象方法。
+
+**BaseMasterController**：全局主控基类，编排所有工站。独立 `StateMachine` + `SemaphoreSlim(1,1)` 保护。并行操作最大并发度 4（`MaxDegreeOfParallelism`）。初始化超时 60s，复位超时 30s。内置防撕裂守卫：当子工站意外跌落到 `Uninitialized` 时自动触发全局报警。智能启动路由：根据当前状态自动决策初始化/启动/恢复。构造函数签名为 `(ILogService, HardwareInputEventBus, IEnumerable<StationBase<StationMemoryBaseParam>>, IAlarmService?)`。
 
 ### PF.SecsGem.Service — SECS/GEM 独立后台服务
 
@@ -323,7 +354,7 @@ BaseIODevice（IO）         ← 代理到 ParentCard
 
 ### 2.1 新增运动控制卡
 
-继承 `BaseMotionCard`，实现 15 个抽象方法：
+继承 `BaseMotionCard`，实现 21 个抽象成员（4 属性 + 17 方法）+ 3 个 `BaseDevice` 抽象方法：
 
 ```csharp
 // PF.Workstation.YourProject/Hardware/YourMotionCard.cs
@@ -409,7 +440,7 @@ public class YourMotionCard : BaseMotionCard
         return Task.FromResult(true);
     }
 
-    // ===== 轴状态读取（2个）=====
+    // ===== 轴状态读取（3个）=====
     public override double? GetAxisCurrentPosition(int axisIndex)
     {
         if (IsSimulated) return 0.0;
@@ -424,10 +455,47 @@ public class YourMotionCard : BaseMotionCard
         return new MotionIOStatus();
     }
 
+    public override Task<bool> ClearAxisError(int axisIndex)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        // VendorSDK.ClearAlarm(CardIndex, axisIndex);
+        return Task.FromResult(true);
+    }
+
     // ===== IO 读写（3个）=====
     public override bool? ReadInputPort(int portIndex) => false;
     public override bool WriteOutputPort(int portIndex, bool value) => true;
     public override bool? ReadOutputPort(int portIndex) => false;
+
+    // ===== 位置锁存（3个）=====
+    public override Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort,
+        int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0,
+        CancellationToken token = default)
+    {
+        if (IsSimulated) return Task.FromResult(true);
+        return Task.FromResult(true);
+    }
+
+    public override Task<int> GetLatchNumber(int LatchNo, int AxisNo,
+        CancellationToken token = default)
+    {
+        if (IsSimulated) return Task.FromResult(0);
+        return Task.FromResult(0);
+    }
+
+    public override Task<double?> GetLatchPos(int LatchNo, int AxisNo,
+        CancellationToken token = default)
+    {
+        if (IsSimulated) return Task.FromResult((double?)0.0);
+        return Task.FromResult((double?)null);
+    }
+
+    // ===== 板卡配置（1个）=====
+    protected override Task<bool> InternalLoadConfigAsync(string configFilePath)
+    {
+        // 加载板卡配置文件（可选实现）
+        return Task.FromResult(true);
+    }
 }
 ```
 
@@ -644,18 +712,21 @@ container.RegisterMany(
 
 工站层是业务逻辑的核心，管理步序状态机和后台线程。
 
-### 4.1 工站 7 状态机
+### 4.1 工站 8 状态机
 
 ```
-Uninitialized ──(Initialize)──► Initializing ──(InitDone)──► Idle
-                                     │                            │
-                                  (Error)                      (Start)
-                                     ▼                            ▼
-                                   Alarm ◄──(Error)─────────── Running
-                                     │                        ↕ (Pause/Resume)
-                                   (Reset)                     Paused
-                                     ▼
-                                 Resetting ──(ResetDone)──► Idle
+Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)──► Idle
+                                     │                                  │
+                                  (Error)                            (Start)
+                                     ▼                                  ▼
+                                 InitAlarm                          Running
+                                                                      ↕ (Pause/Resume)
+                              RunAlarm ◄──(Error)─────────────────  Paused
+                                 │
+                               (Reset)
+                                 ▼
+                             Resetting ──(ResetDone)──► Idle
+                            Resetting ──(ResetDoneUninitialized)──► Uninitialized
 ```
 
 | 状态 | 描述 |
@@ -664,9 +735,23 @@ Uninitialized ──(Initialize)──► Initializing ──(InitDone)──►
 | `Initializing` | 正在执行硬件连接/回零 |
 | `Idle` | 待机，就绪等待启动 |
 | `Running` | 后台线程执行 `ProcessLoopAsync` |
-| `Paused` | `_pauseEvent` 关闭，线程挂起 |
-| `Alarm` | 故障，等待人工干预 |
-| `Resetting` | 正在执行物理复位 |
+| `Paused` | `_pauseGate` 关闭（`TaskCompletionSource` 异步门控），线程挂起 |
+| `InitAlarm` | 初始化阶段故障（来自 `Initializing` 的 Error） |
+| `RunAlarm` | 运行阶段故障（来自 `Running` / `Paused` 的 Error） |
+| `Resetting` | 正在执行物理复位（复位完成后根据来源回到 `Idle` 或 `Uninitialized`） |
+
+| 触发器 | 描述 |
+|--------|------|
+| `Initialize` | Uninitialized → Initializing |
+| `InitializeDone` | Initializing → Idle |
+| `Start` | Idle → Running |
+| `Pause` | Running → Paused |
+| `Resume` | Paused → Running |
+| `Stop` | Idle/Running/Paused → Uninitialized |
+| `Error` | 根据当前状态路由到 `InitAlarm` 或 `RunAlarm` |
+| `Reset` | InitAlarm/RunAlarm → Resetting |
+| `ResetDone` | Resetting → Idle（来自 RunAlarm） |
+| `ResetDoneUninitialized` | Resetting → Uninitialized（来自 InitAlarm） |
 
 ### 4.2 创建工站类
 
@@ -717,7 +802,7 @@ public class YourStation : StationBase
         }
     }
 
-    protected override async Task ProcessLoopAsync(CancellationToken token)
+    protected override async Task ProcessNormalLoopAsync(CancellationToken token)
     {
         if (CurrentMode == OperationMode.Normal)
             await ProcessNormalAsync(token);
@@ -763,7 +848,7 @@ public class YourStation : StationBase
         }
     }
 
-    private async Task ProcessDryRunAsync(CancellationToken token)
+    private async Task ProcessDryRunLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -829,8 +914,8 @@ public class YourMasterController : BaseMasterController
     // 复位成功进入 Idle 之前执行（可选）：清理信号量、重置业务状态等
     protected override void OnAfterResetSuccess()
     {
-        _sync.Reset("SlotEmpty", initialCount: 1);
-        _sync.Reset("ProductReady", initialCount: 0);
+        _sync.ResetSingleSignal("SlotEmpty", initialCount: 1);
+        _sync.ResetSingleSignal("ProductReady", initialCount: 0);
     }
 }
 ```
@@ -845,7 +930,7 @@ controller.SetMode(OperationMode.DryRun);     // 仅 Idle 状态有效
 await controller.StartAllAsync();             // 异步：等待 Running.OnEntryAsync 完成
 controller.PauseAll();                        // 同步
 await controller.ResumeAllAsync();            // 异步
-controller.StopAll();                         // 同步
+await controller.StopAllAsync();              // 异步
 await controller.ResetAllAsync();             // 异步
 ```
 
@@ -1104,7 +1189,8 @@ BaseMechanism（机构）      ← 聚合多硬件，业务动作
     └── RegisterHardwareDevice() → 报警聚合
 
 StationBase（工站）        ← 步序状态机 + 后台线程
-    ├── ProcessLoopAsync  ← 业务循环
+    ├── ProcessNormalLoopAsync  ← 正常生产循环
+    ├── ProcessDryRunLoopAsync  ← 空跑循环
     └── ExecuteResetAsync ← 智能恢复
 ```
 
@@ -1122,6 +1208,8 @@ StationBase（工站）        ← 步序状态机 + 后台线程
 | `[ModuleNavigation]` | 侧边栏菜单 | `NavigationMenuService` |
 | `[MechanismUI]` | 机构调试面板 | `MechanismDebugViewModel` |
 | `[StationUI]` | 工站调试面板 | `StationDebugViewModel` |
+| `[AlarmInfo]` | 报警元数据 | `AlarmDictionaryService` |
+| `[ParamView]` | 参数视图路由 | `ParameterModule` |
 
 **核心约束**：特性中的 `ViewName` 必须与 `RegisterForNavigation` 的 key 完全一致。
 
@@ -1219,11 +1307,14 @@ await _hwManager.ReloadAllAsync();
 |------|------|------|
 | View 导航失败 | key 不匹配 | 检查特性 ViewName 与注册 key |
 | 设备未找到 | ID 拼写错误 | 检查 HardwareConfig.DeviceId |
-| 信号量死锁 | ResetAll 时线程未停 | 确保 StopAll 后再 ResetAll |
+| 信号量死锁 | ResetAll 时线程未停 | 确保 StopAllAsync 后再 ResetAllAsync |
 | 重复实例 | RegisterSingleton 多次 | 使用 RegisterMany |
 | Start 后旧任务仍在运行 | 使用了同步 Fire 触发 Running | 触发 Start/Resume 必须用 `await FireAsync` |
 | 机构初始化取不到设备 | 构造函数中调用了 GetDevice | 必须在 `InternalInitializeAsync` 中延迟解析 |
 | 点表丢失 | 未调用 EnsurePointsExist | 在 `InternalInitializeAsync` 末尾调用 `EnsurePointsExist<TEnum>(axis)` |
+| 仿真模式切换未生效 | 仅改配置未重载 | 切换后需调用 `ReloadAllAsync()` |
+| 工站抽象方法找不到 | 接口名已更新 | `ProcessLoopAsync` → `ProcessNormalLoopAsync` / `ProcessDryRunLoopAsync` |
+| StationSyncService.Reset 不存在 | API 已更新 | 使用 `ResetSingleSignal` / `ResetScope` / `ResetAll` |
 
 ---
 
@@ -1237,6 +1328,308 @@ await _hwManager.ReloadAllAsync();
 | **PLC 通信** | 基于 `TCPClient` / Modbus 协议实现 `IPlcService` |
 | **运动控制卡** | 继承 `BaseMotionCard`，封装厂商 SDK |
 | **报警管理** | 新建 `AlarmModule`，订阅 `BaseDevice.AlarmTriggered` 事件 |
+
+---
+
+## 11. 完整设计模式索引
+
+本框架运用了多种经典设计模式：
+
+| 模式 | 应用位置 | 说明 |
+|------|---------|------|
+| **模板方法** | `BaseDevice.ConnectAsync` → `InternalConnectAsync` | 定义算法骨架（模拟检查→重试循环→OnConnected），子类仅覆写钩子 |
+| **代理/委托** | `BaseAxisDevice` / `BaseIODevice` | 所有操作委托给 `ParentCard`，新增厂商仅需实现一个 `XXXMotionCard` |
+| **状态机** | `StationBase` / `BaseMasterController` | Stateless 库，8 状态 10 触发，`SemaphoreSlim` 保护并发 |
+| **MVVM** | 所有 UI 模块 | Prism ViewModelBase，View-ViewModel 绑定，Region 导航 |
+| **模块插件** | Prism `IModule` | 每个业务域独立模块，动态加载注册 |
+| **工厂** | `HardwareManagerService.RegisterFactory` | `Func<HardwareConfig, IHardwareDevice>` 字典，按类名字符串匹配 |
+| **仓储** | `GenericRepository<T>` / `ParamRepository<T>` | 数据访问抽象，EF Core 实现 |
+| **观察者/事件聚合** | 三层事件体系 | (a) C# 原生事件（设备→模组报警传播）；(b) Prism `EventAggregator`（跨模块解耦）；(c) 服务级事件（`ParamChanged`、`DataRecorded`） |
+| **属性自动发现** | `[ModuleNavigation]` / `[MechanismUI]` / `[StationUI]` | 反射扫描特性，零配置注册 UI 视图 |
+| **生产者-消费者** | `ProductionDataService` | `Channel<T>` 有界队列（10000）+ 单消费线程，非阻塞写入 |
+| **双重信号量互锁** | `IStationSyncService` | 流水线协同，命名信号量 + 作用域生命周期 |
+| **任务竞争** | `WorkStationDetectionStation` | `Task.WhenAny` 实现共享资源的竞争获取 |
+| **单例** | DryIoc `Reuse.Singleton` | 全局唯一的服务、模组、工站、主控实例 |
+
+---
+
+## 12. UI 组件库详解
+
+### PF.UI.Controls — 自定义 WPF 控件库（~230 个 .cs 文件）
+
+> 独立的自定义控件库，可脱离框架单独使用。
+
+| 分类 | 控件 | 说明 |
+|------|------|------|
+| **附加属性** | `BackgroundSwitchElement` / `BorderElement` / `ComboBoxAttach` / `DataGridAttach` / `IconElement` / `InfoElement` / `TipElement` / `TitleElement` | XAML 附加属性，声明式配置控件外观 |
+| **通知** | `Growl` | Toast 通知（成功/警告/错误/信息），替代 MessageBox |
+| **导航** | `Drawer` / `SideMenu` | 抽屉式导航 + 侧边菜单 |
+| **步骤** | `StepBar` | 步骤条控件，适用于向导式流程 |
+| **标签** | `Tag` | 标签/徽章控件 |
+| **功能区** | `Ribbon` | Office 风格功能区 |
+| **属性编辑** | `PropertyGrid` | 属性网格，类似 WinForms PropertyGrid |
+| **截图** | `Screenshot` | 屏幕截图控件 |
+| **特效** | `ConfettiCannon` / `CoverFlow` / `RunningBlock` | 彩纸庆祝 / 封面流 / 滚动文字 |
+| **输入** | `ComboBox` / `TextBox` / `PasswordBox` / `NumericUpDown` / `SearchBar` / `AutoCompleteTextBox` / `CheckComboBox` / `SearchComboBox` / `PinBox` | 增强型输入控件 |
+| **布局** | `FlexPanel` / `CirclePanel` / `HoneycombPanel` / `WaterfallPanel` / `SimplePanel` / `RelativePanel` | 自定义布局面板 |
+| **时间** | `Clock` / `FlipClock` / `CalendarWithClock` / `TimeBar` | 时钟/日历控件 |
+| **窗口** | `GlowWindow` / `BlurWindow` / `PopupWindow` | 自定义窗口基类 |
+| **交互** | `EventTrigger` / `InvokeCommandAction` / `EventToCommand` | Behavior 系统 |
+
+### PF.UI.Infrastructure — UI 基础设施
+
+| 类 | 用途 |
+|----|------|
+| `ViewModelBase` | 抽象基类，继承 `BindableBase` + `IDestructible`，自动解析 `IEventAggregator` / `IDialogService` / `IServiceProvider` / `IMessageService` |
+| `RegionViewModelBase` | Region 级 ViewModel 基类 |
+| `PFDialogViewModelBase` | 对话框 ViewModel 基类 |
+| `NavigationMenuService` | 自动扫描程序集 `[ModuleNavigation]` 特性，构建侧边栏菜单树（`ObservableCollection<NavigationItem>`），支持分组排序 |
+| `PermissionHelper` | 视图路由名→中文名映射，按 `UserLevel` 提供默认可访问视图列表 |
+| `MessageService` | 对话框服务抽象（`IMessageService`），封装确认/输入/等待对话框 |
+| `ViewDataMapperBase` | 参数对话框数据映射基类，硬件参数编辑器的数据桥梁 |
+| `EnterKeyTraversalBehavior` | WPF 附加行为，Enter 键自动跳转下一控件 |
+
+**Prism 事件定义**：
+
+| 事件 | 用途 |
+|------|------|
+| `AlarmTriggeredEvent` | 报警触发（跨模块广播） |
+| `AlarmClearedEvent` | 报警清除 |
+| `AlarmAcknowledgeEvent` | 报警确认 |
+| `HardwareResetRequestedEvent` | 硬件复位请求（Shell 桥接至 Infrastructure） |
+| `SystemResetRequestedEvent` | 系统复位请求 |
+| `UserChangedEvent` | 用户切换通知 |
+
+### PF.UI.Shared — 共享 UI 工具库（~180 个 .cs 文件）
+
+底层 WPF 工具库，不含业务逻辑：
+
+- **值转换器**：`Boolean2VisibilityConverter` / `Color2HexConverter` 等
+- **扩展方法**：`DependencyObject` / `FrameworkElement` / `Color` / `String` / `Geometry`
+- **绘图/几何**：贝塞尔曲线扁平化、路径几何计算
+- **媒体效果**：`GeometryEffect` / `SketchGeometryEffect` / `ArcGeometrySource`
+- **Win32 互操作**：窗口句柄封装、剪贴板钩子、键盘/鼠标钩子
+- **辅助类**：动画、绑定、颜色、DPI、图标、资源、安全、可视化、窗口
+
+### PF.UI.Resources — 主题与资源
+
+- 深色/浅色主题字典（`Theme=Light` / `Theme=Dark`）
+- 所有自定义控件的 XAML 样式
+- 图片、图标、字体资源
+- 启动画面（Splash Screen）
+
+---
+
+## 13. 业务模块详解
+
+### PF.Modules.Alarm — 报警中心
+
+| 类 | 用途 |
+|----|------|
+| `AlarmModule` | Prism 模块注册（`AlarmCenterView` / `AlarmDetailCardView` / `PFAlarmBaseWindow`） |
+| `AlarmCenterViewModel` | 报警中心主 ViewModel，报警列表展示 |
+| `AlarmDetailCardViewModel` | 报警详情卡片 ViewModel，确认/清除操作 |
+| `AlarmCenterView` | 报警中心视图（`[ModuleNavigation]` 自动注册） |
+| `NullToVisibilityConverter` | 空值→可见性转换器 |
+
+### PF.Modules.Debug — 硬件调试面板
+
+> 通过 `[MechanismUI]` / `[StationUI]` 特性自动发现并加载调试面板。
+
+| 调试视图 | ViewModel | 调试对象 |
+|---------|-----------|---------|
+| `HardwareDebugView` | `HardwareDebugViewModel` | 设备总览 |
+| `AxisDebugView` | `AxisDebugViewModel` | 轴运动调试（JOG/绝对/相对/回零/使能） |
+| `IODebugView` | `IODebugViewModel` | IO 输入输出实时监控 |
+| `CardDebugView` | `CardDebugViewModel` | 板卡状态 |
+| `CameraDebugView` | `CameraDebugViewModel` | 相机调试 |
+| `BarcodeScanDebugView` | `BarcodeScanDebugViewModel` | 条码扫描调试 |
+| `LightControllerDebugView` | `LightControllerDebugViewModel` | 光源控制器调试 |
+| `MechanismDebugView` | `MechanismDebugViewModel` | 机构调试（自动发现 `[MechanismUI]`） |
+| `StationDebugView` | `StationDebugViewModel` | 工站调试（自动发现 `[StationUI]`） |
+| `AxisParamDialog` | `AxisParamDialogViewModel` | 轴参数编辑对话框 |
+
+### PF.Modules.Identity — 身份认证
+
+| 类 | 用途 |
+|----|------|
+| `LoginViewModel` | 登录逻辑（Singleton），密码验证、角色切换 |
+| `UserManagementViewModel` | 用户管理（增删改查） |
+| `PagePermissionViewModel` | 页面权限分配 |
+| `LoginView` | 登录对话框 |
+| `UserManagementView` | 用户管理视图 |
+| `PagePermissionView` | 权限管理视图 |
+
+### PF.Modules.Logging — 日志查看
+
+| 类 | 用途 |
+|----|------|
+| `LogListViewModel` | 日志列表（实时显示，按级别/分类过滤） |
+| `LogManagementViewModel` | 日志管理（清理、导出配置） |
+
+### PF.Modules.Parameter — 参数管理
+
+| 类 | 用途 |
+|----|------|
+| `ParameterViewModel` | 参数管理主 ViewModel |
+| `ParamItemViewModel` | 参数项 ViewModel |
+| `CommonChangeParamDialogViewModel` | 参数修改对话框 |
+| `ViewFactory` | 硬件参数视图工厂（根据硬件类型选择编辑器） |
+| **硬件参数编辑器** | `LTDMCMotionCardParamView` / `EtherCatAxisParamView` / `EtherCatIOParamView` / `HKBarcodeScanParamView` / `KeyenceIntelligentCameraParamView` / `CTSLightControllerParamView` |
+| **基础类型编辑器** | `BooleanParamView` / `EnumParamView` / `NumericParamView` / `StringParamView` / `UserParamView` |
+| **数据映射器** | `GenericViewDataMapper` / 各硬件类型 `ParamViewMapper` |
+
+### PF.Modules.ProductionRecord — 生产记录
+
+| 类 | 用途 |
+|----|------|
+| `ProductionMonitorViewModel` | 实时生产监控 |
+| `ProductionHistoryViewModel` | 历史记录查询 |
+
+### PF.Modules.SecsGem — SECS/GEM 通信调试
+
+| 类 | 用途 |
+|----|------|
+| `SecsGemDebugViewModel` | SECS/GEM 调试主面板 |
+| `SecsCommandBuilderViewModel` | 命令构建器（编辑 SxFy 报文） |
+| `SecsConnectionViewModel` | 连接状态查看 |
+| `SecsLogViewModel` | 通信日志查看 |
+| `SecsParameterViewModel` | 参数编辑（VID/CEID/ReportID） |
+| `SecsServiceManagerViewModel` | 服务管理 |
+| `CommandEditDialog` | 命令编辑对话框 |
+| `SecsNodeConfigDialog` | 节点配置对话框 |
+| `VidSelectDialog` | VID 选择对话框 |
+
+---
+
+## 14. 工具与辅助项目详解
+
+### PF.CommonTools — 通用工具库
+
+| 类 | 用途 |
+|----|------|
+| `EnumParameterExtensions` | 枚举参数扩展：`GetDescription()` / `GetCategory()` / `GetDefaultValueAs<T,R>()`，零装箱，`ConcurrentDictionary` 缓存 |
+| `EnumParamInfo` | 枚举参数元数据（Description / Category / DefaultValue / TypeFullName） |
+| `JsonSingleValueHelper` | JSON 单值序列化辅助 |
+| `TypeExtensions` / `TypeScanner` | 反射工具（程序集扫描、类型发现） |
+| `ServerMangerTool` | 服务管理工具 |
+
+### PF.SecsGem.DataBase — SECS/GEM 数据库
+
+| 类 | 用途 |
+|----|------|
+| `SecsGemDbContext` | EF Core 上下文，7 个 `DbSet` |
+| `SecsGemSystemEntity` | 系统配置（IP / Port） |
+| `VIDEntity` / `CEIDEntity` / `ReportIDEntity` / `CommandIDEntity` | SECS/GEM 协议实体 |
+| `IncentiveEntity` / `ResponseEntity` | 激励/响应命令实体 |
+| `SecsGemDataBaseManger` | 数据库管理门面类 |
+
+### PF.AutoFramework.Meta — NuGet 元包
+
+聚合所有框架项目的 NuGet 元包，引用后自动传递所有子项目依赖。
+
+### ConsoleApp1 — 测试控制台
+
+简单控制台应用程序，引用框架项目用于快速测试和验证。
+
+---
+
+## 15. 完整依赖关系图
+
+```
+PF.Core（零依赖）
+  ← PF.CommonTools
+  ← PF.Data（EF Core, Prism.Core）
+  ← PF.Infrastructure（Stateless, log4net, NPOI, PF.Core, PF.SecsGem.DataBase）
+  ← PF.SecsGem.DataBase（EF Core, PF.Core）
+  ← PF.UI.Shared
+  ← PF.UI.Resources（PF.UI.Shared）
+  ← PF.UI.Controls（PF.UI.Resources, PF.UI.Shared）
+  ← PF.UI.Infrastructure（Prism.Wpf, PF.UI.Controls）
+  ← PF.Services（PF.Data, PF.Infrastructure, Prism.DryIoc）
+  ← PF.Modules.*（PF.UI.Infrastructure, PF.Services, PF.Core）
+  ← PF.WorkStation.AutoOcr（PF.Infrastructure, PF.Services, PF.Core）
+  ← PF.WorkStation.AutoOcr.UI（PF.WorkStation.AutoOcr, PF.UI.Infrastructure, Prism.DryIoc）
+  ← PF.Application.Shell（依赖所有，组合根）
+  ← PF.SecsGem.Service（PF.Infrastructure, PF.SecsGem.DataBase）
+```
+
+**关键架构约束**：
+- `PF.Infrastructure` **零 Prism 依赖**：Shell 通过事件桥接（`HardwareResetRequestedEvent` → `BaseMasterController`）维持 Infrastructure 的纯净性
+- `PF.Core` **零外部依赖**：所有项目均可安全引用
+- 依赖方向严格单向，无循环引用
+
+---
+
+## 16. 应用启动流程
+
+`App.xaml.cs`（842 行）作为组合根，执行以下启动序列：
+
+1. **单实例检查**：命名 `Mutex`（`Global\PFAutoFrameworkOCRAppID-...`），防止多开
+2. **Prism 配置**：DryIoc 容器 + 模块目录
+3. **DI 注册**（按顺序）：
+   - 日志（`log4net`）
+   - 参数数据库（`AppParamDbContext` → SQLite → `EnsureCreatedAsync`）
+   - 生产数据库（`ProductionDbContext`）
+   - SECS/GEM 服务（`SecsGemDbContext` + 双 TCP 服务器）
+   - 硬件工厂（6 种设备：LTDMC / EtherCat / HKBarcode / Keyence / CTS_LightController）
+   - 机制（5 个模组 Singleton）
+   - 工站（3 个站 Singleton）
+   - 主控（`AutoOCRMachineController` Singleton）
+   - 配方（`OCRRecipe<OCRRecipeParam>`）
+   - 报警服务（独立 `AlarmHistory.db`）
+   - 身份服务（`UserService`）
+   - UI 基础设施（`NavigationMenuService` / `MessageService` / `Splash`）
+4. **模块加载**（按顺序）：`Alarm` → `Logging` → `Parameter` → `Identity` → `Debug` → `AutoOcr.UI` → `SecsGem` → `ProductionRecord`
+5. **Shell 初始化**：
+   - 注册 Shell 程序集菜单 → `PermissionHelper` 初始化
+   - 静默登录（SuperUser，密码 = `DateTime.Now.ToString("yyyyMMddHH00")`）
+   - 事件桥接：Prism `EventAggregator` → Infrastructure 层事件
+6. **Splash 启动画面**：进度报告 → 配置加载 → 硬件拓扑初始化 → 机制初始化
+7. **硬件监控启动**：`IHardwareInputMonitor` 启动双线程扫描
+
+---
+
+## 17. SECS/GEM 独立服务架构
+
+```
+┌─────────────────┐     TCP 127.0.0.1:6800     ┌──────────────────────┐
+│  WPF 主程序      │ ◄──────────────────────────► │ LocationServer      │
+│  (InternalClient)│                              │   (本地服务器)        │
+└─────────────────┘                              └──────────┬───────────┘
+                                                            │ 消息转发
+                                                            ▼
+                                                 ┌──────────────────────┐
+                                                 │ SecsGemServer        │
+                                                 │   (外部服务器)        │
+                                                 │   (可配置 IP:Port)    │
+                                                 └──────────┬───────────┘
+                                                            │
+                                                            ▼
+                                                 ┌──────────────────────┐
+                                                 │ 设备主机 (Host)       │
+                                                 │ (工厂 MES / SEMI 设备) │
+                                                 └──────────────────────┘
+```
+
+**消息流**：
+- **出站**（WPF → Host）：`LocationServer` 接收 → 去掉 0x00 命令字节 → `SecsGemServer.SendAsync()`
+- **入站**（Host → WPF）：`SecsGemServer` 接收 → `MessageBuffer` 粘包/半包处理 → S0F0 LinkTest 直接回复 → 其他报文 → `LocationServer` 转发
+- **状态同步**：Host 连接/断连 → `LocationServer` 发送 `[0x02, status]` 状态帧
+- **日志**：独立 `Channel` 异步写入十六进制报文日志 → `D:\SWLog\SecsGemService\{year}\{month}\{yyyy-MM-dd}.log`
+
+---
+
+## 18. 已注册硬件厂商实现
+
+| 类 | 厂商/类型 | 说明 |
+|----|----------|------|
+| `LTMDCMotionCard` | 雷泰 (LTDMC) | 运动控制卡，继承 `BaseMotionCard` |
+| `EtherCatAxis` | EtherCAT | 轴设备，继承 `BaseAxisDevice` |
+| `EtherCatIO` | EtherCAT | IO 设备，继承 `BaseIODevice` |
+| `HKBarcodeScan` | 海康机器人 | 条码扫描器（TCP 通信），继承 `BaseDevice` |
+| `KeyenceIntelligentCamera` | 基恩士 | 视觉相机，继承 `BaseDevice` |
+| `CTSLightController` / `OPTLightController` | CTS / OPT | 光源控制器，继承 `BaseDevice` |
 
 ---
 
