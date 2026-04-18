@@ -1,0 +1,312 @@
+using PF.Core.Entities.Hardware;
+using PF.Core.Interfaces.Device.Mechanisms;
+using PF.UI.Infrastructure.PrismBase;
+using PF.Workstation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.Mechanisms;
+using PF.WorkStation.AutoOcr.UI.Models;
+using Prism.Commands;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
+
+namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
+{
+    public class Workstation2FeedingModelDebugViewModel : RegionViewModelBase
+    {
+        private readonly WorkStation2FeedingModule? _feedingModule;
+        private DispatcherTimer _monitorTimer;
+
+        public WorkStation2FeedingModule? FeedingModule => _feedingModule;
+
+        private string _debugMessage = "就绪";
+        public string DebugMessage
+        {
+            get => _debugMessage;
+            set => SetProperty(ref _debugMessage, value);
+        }
+
+        private int _targetLayer;
+        public int TargetLayer
+        {
+            get => _targetLayer;
+            set => SetProperty(ref _targetLayer, value);
+        }
+
+        #region Status Monitor Properties
+
+        private double _zAxisPosition;
+        public double ZAxisPosition { get => _zAxisPosition; set => SetProperty(ref _zAxisPosition, value); }
+
+        private double _xAxisPosition;
+        public double XAxisPosition { get => _xAxisPosition; set => SetProperty(ref _xAxisPosition, value); }
+
+        private bool _zAxisHasAlarm;
+        public bool ZAxisHasAlarm { get => _zAxisHasAlarm; set => SetProperty(ref _zAxisHasAlarm, value); }
+
+        private bool _xAxisHasAlarm;
+        public bool XAxisHasAlarm { get => _xAxisHasAlarm; set => SetProperty(ref _xAxisHasAlarm, value); }
+
+        private bool _isBoxCommonInPlace;
+        public bool IsBoxCommonInPlace { get => _isBoxCommonInPlace; set => SetProperty(ref _isBoxCommonInPlace, value); }
+
+        private bool _is8InchInPlace;
+        public bool Is8InchInPlace { get => _is8InchInPlace; set => SetProperty(ref _is8InchInPlace, value); }
+
+        private bool _is12InchInPlace;
+        public bool Is12InchInPlace { get => _is12InchInPlace; set => SetProperty(ref _is12InchInPlace, value); }
+
+        private bool _isGripperOpen;
+        public bool IsGripperOpen { get => _isGripperOpen; set => SetProperty(ref _isGripperOpen, value); }
+        #endregion
+
+        #region Point Collections
+        public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = new ObservableCollection<AxisPoint>();
+
+        public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = new ObservableCollection<RawMappingItem>();
+        public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = new ObservableCollection<RawMappingItem>();
+        public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = new ObservableCollection<FilteredMappingItem>();
+        #endregion
+
+        #region Commands
+        public DelegateCommand InitializeModuleCommand { get; }
+        public DelegateCommand ResetModuleCommand { get; }
+        public DelegateCommand StopCommand { get; }
+
+        public DelegateCommand InitStateCommand { get; }
+        public DelegateCommand DetectSizeCommand { get; }
+        public DelegateCommand<string> SwitchProductionCommand { get; }
+
+        public DelegateCommand CanMoveZCommand { get; }
+        public DelegateCommand CanMoveXCommand { get; }
+        public DelegateCommand CanPullOutCommand { get; }
+
+        public DelegateCommand SearchLayerCommand { get; }
+        public DelegateCommand GoToLayerCommand { get; }
+
+        public DelegateCommand SaveZAxisPointsCommand { get; }
+        public DelegateCommand SaveXAxisPointsCommand { get; }
+        #endregion
+
+        public Workstation2FeedingModelDebugViewModel(IContainerProvider containerProvider)
+        {
+            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation2FeedingModule)) as WorkStation2FeedingModule;
+
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));
+            ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.ResetAsync()));
+            StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.StopAsync()));
+
+            InitStateCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeFeedingStateAsync()));
+            DetectSizeCommand = new DelegateCommand(async () => await ExecuteDetectSizeAsync());
+            SwitchProductionCommand = new DelegateCommand<string>(async (size) => await ExecuteSwitchProductionAsync(size));
+
+            CanMoveZCommand = new DelegateCommand(async () => await ExecuteCheckAsync("Z轴可动条件", () => _feedingModule?.CanMoveZAxesAsync()));
+            CanMoveXCommand = new DelegateCommand(async () => await ExecuteCheckAsync("X轴可动条件", () => _feedingModule?.CanMoveXAxesAsync()));
+            CanPullOutCommand = new DelegateCommand(async () => await ExecuteCheckAsync("允许拉料条件", () => _feedingModule?.CanPullOutMaterialAsync()));
+
+            SearchLayerCommand = new DelegateCommand(async () => await ExecuteSearchLayerAsync());
+            GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
+
+            SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
+            SaveXAxisPointsCommand = new DelegateCommand(SaveXAxisPoints);
+
+            LoadOriginalPoints();
+            StartMonitor();
+        }
+
+        #region Internal Logic
+
+        private async Task ExecuteAsync(Func<Task>? action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = "执行中...";
+                await action.Invoke();
+                DebugMessage = "执行成功";
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(ex.Message, "调试面板报错", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ExecuteCheckAsync(string actionName, Func<Task<bool>> action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = $"检查 {actionName} 中...";
+                bool result = await action.Invoke();
+                DebugMessage = $"结果: {actionName} = {(result ? "满足 (True)" : "不满足 (False)")}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"检查异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async Task ExecuteDetectSizeAsync()
+        {
+            if (_feedingModule == null) return;
+            try
+            {
+                DebugMessage = "尺寸识别中...";
+                var size = await _feedingModule.GetWaferBoxSizeAsync();
+                DebugMessage = $"检测成功: 当前为 {size}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"检测异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async Task ExecuteSearchLayerAsync()
+        {
+            if (_feedingModule == null) return;
+            try
+            {
+                DebugMessage = "开始寻层扫描...";
+                var rawMap = await _feedingModule.SearchLayerAsync();
+
+                RawMappingPoints1.Clear();
+                RawMappingPoints2.Clear();
+
+                var keys = rawMap.Keys.ToList();
+                if (keys.Count > 0)
+                {
+                    int index1 = 1;
+                    foreach (var z in rawMap[keys[0]])
+                        RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
+                }
+
+                if (keys.Count > 1)
+                {
+                    int index2 = 1;
+                    foreach (var z in rawMap[keys[1]])
+                        RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
+                }
+
+                DebugMessage = "数据获取完成，正在进行算法过滤...";
+                var filteredMap = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+
+                FilteredMappingPoints.Clear();
+                foreach (var kvp in filteredMap.OrderBy(k => k.Key))
+                {
+                    FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
+                }
+
+                DebugMessage = $"寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"寻层/过滤异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async Task ExecuteSwitchProductionAsync(string sizeStr)
+        {
+            if (_feedingModule == null) return;
+            try
+            {
+                DebugMessage = $"切换 {sizeStr}寸 生产配方中...";
+                E_WafeSize size = sizeStr == "8" ? E_WafeSize._8寸 : E_WafeSize._12寸;
+                await _feedingModule.SwitchProductionStateAsync(size);
+
+                ArrayedPoints.Clear();
+                var dict = size == E_WafeSize._8寸 ? _feedingModule.PickingPosition_8 : _feedingModule.PickingPosition_12;
+                foreach (var kvp in dict.OrderBy(k => k.Key))
+                {
+                    ArrayedPoints.Add(kvp.Value);
+                }
+                DebugMessage = $"切换成功: {sizeStr}寸 状态已就绪";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"配方切换异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void LoadOriginalPoints()
+        {
+            if (_feedingModule == null) return;
+            if (_feedingModule.ZAxis?.PointTable != null)
+            {
+                ZAxisOriginalPoints.Clear();
+                foreach (var pt in _feedingModule.ZAxis.PointTable) ZAxisOriginalPoints.Add(pt);
+            }
+            if (_feedingModule.XAxis?.PointTable != null)
+            {
+                XAxisOriginalPoints.Clear();
+                foreach (var pt in _feedingModule.XAxis.PointTable) XAxisOriginalPoints.Add(pt);
+            }
+        }
+
+        private void SaveZAxisPoints()
+        {
+            if (_feedingModule?.ZAxis == null) return;
+            try
+            {
+                foreach (var pt in ZAxisOriginalPoints) _feedingModule.ZAxis.AddOrUpdatePoint(pt);
+                _feedingModule.ZAxis.SavePointTable();
+                MessageService.ShowMessage("Z轴点位保存成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex) { MessageService.ShowMessage($"Z轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void SaveXAxisPoints()
+        {
+            if (_feedingModule?.XAxis == null) return;
+            try
+            {
+                foreach (var pt in XAxisOriginalPoints) _feedingModule.XAxis.AddOrUpdatePoint(pt);
+                _feedingModule.XAxis.SavePointTable();
+                MessageService.ShowMessage("X轴点位保存成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex) { MessageService.ShowMessage($"X轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void StartMonitor()
+        {
+            _monitorTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _monitorTimer.Tick += (s, e) =>
+            {
+                if (_feedingModule == null || !_feedingModule.IsInitialized) return;
+
+                if (_feedingModule.ZAxis != null)
+                {
+                    ZAxisPosition = _feedingModule.ZAxis.CurrentPosition ?? 0;
+                    ZAxisHasAlarm = _feedingModule.ZAxis.HasAlarm;
+                }
+                if (_feedingModule.XAxis != null)
+                {
+                    XAxisPosition = _feedingModule.XAxis.CurrentPosition ?? 0;
+                    XAxisHasAlarm = _feedingModule.XAxis.HasAlarm;
+                }
+
+                if (_feedingModule.IO != null)
+                {
+                    IsBoxCommonInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右料盒公用到位) == true;
+                    Is8InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右8寸料盒到位检测) == true;
+                    Is12InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
+                }
+            };
+            _monitorTimer.Start();
+        }
+        #endregion
+    }
+}

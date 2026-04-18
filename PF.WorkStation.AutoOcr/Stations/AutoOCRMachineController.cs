@@ -108,15 +108,17 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             // ── 工位 2 信号注册 ──
 
-            // 注：部分工位 2 信号当前被注释，预留为后续双工位完全独立流转扩展时启用
-            // _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
-            // _sync.Register(nameof(WorkstationSignals.工位2允许拉料), scope: E_WorkStation.工位1上下料工站.ToString());
-            // _sync.Register(nameof(WorkstationSignals.工位2拉料完成), scope: E_WorkStation.工位1上下料工站.ToString());
-            // _sync.Register(nameof(WorkstationSignals.工位2允许退料), scope: E_WorkStation.工位1上下料工站.ToString());
-            // _sync.Register(nameof(WorkstationSignals.工位2退料完成), scope: E_WorkStation.工位1上下料工站.ToString());
+            // 全局作用域信号
+            _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下));
+            _sync.Register(nameof(WorkstationSignals.工位2人工下料完成));
+
+            // 局部作用域信号
+            _sync.Register(nameof(WorkstationSignals.工位2允许拉料), scope: E_WorkStation.工位2上下料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位2拉料完成), scope: E_WorkStation.工位2拉料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位2允许退料), scope: E_WorkStation.工位2上下料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位2退料完成), scope: E_WorkStation.工位2拉料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位2允许检测), scope: E_WorkStation.工位2拉料工站.ToString());
-            // _sync.Register(nameof(WorkstationSignals.工位2检测完成), scope: E_WorkStation.工位1上下料工站.ToString());
-            // _sync.Register(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位2检测完成), scope: E_WorkStation.OCR检测工站.ToString());
         }
 
         #endregion
