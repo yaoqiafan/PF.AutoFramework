@@ -454,6 +454,7 @@ namespace PF.SecsGem.Service
             _scopeFactory = scopeFactory;
         }
 
+        /// <summary>执行后台任务</summary>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             using (var scope = _scopeFactory.CreateScope())

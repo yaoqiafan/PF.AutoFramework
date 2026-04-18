@@ -14,6 +14,7 @@ namespace PF.Modules.Production
     /// </summary>
     public class ProductionRecordModule : IModule
     {
+        /// <summary>注册依赖类型</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<ProductionMonitorView, ProductionMonitorViewModel>(
@@ -21,6 +22,7 @@ namespace PF.Modules.Production
          
         }
 
+        /// <summary>模块初始化回调</summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             // 初始化生产数据服务（建表）

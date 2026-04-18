@@ -47,7 +47,8 @@ namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
         /// <summary>
         /// 修改扫码枪用户参数集
         /// </summary>
-        /// <param name="UserIndex">用户集</param>
+        /// <param name="UserInfo">用户集</param>
+        /// <param name="token">取消令牌</param>
         /// <returns></returns>
         Task<bool> ChangeUserParam(object UserInfo, CancellationToken token = default);
 

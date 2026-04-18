@@ -24,14 +24,10 @@ namespace PF.Data.Repositories
             DbSet = context.Set<T>();
         }
 
-        /// <summary>
-        /// 数据上下文对象
-        /// </summary>
+        /// <summary>获取数据库上下文</summary>
         protected DbContext Context { get; }
 
-        /// <summary>
-        /// DbSet对象
-        /// </summary>
+        /// <summary>获取实体数据集</summary>
         protected DbSet<T> DbSet { get; }
 
         /// <inheritdoc/>

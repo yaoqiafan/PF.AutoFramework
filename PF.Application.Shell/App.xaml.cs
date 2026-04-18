@@ -470,7 +470,7 @@ namespace PF.Application.Shell
                 containerRegistry.RegisterSingleton<IParams, ParamsManger>();
                 containerRegistry.RegisterSingleton<IinternalClient, InternalClient>();
                 containerRegistry.RegisterSingleton<ISecsGemMessageUpdater, SecsGemMessageUpdater>();
-                containerRegistry.RegisterSingleton<ISecsGemManger, SecsGemManger>();
+                containerRegistry.RegisterSingleton<ISecsGemManager, SecsGemManger>();
             }
             catch (Exception ex)
             {

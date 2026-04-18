@@ -29,7 +29,7 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="excelFilePath">Excel文件路径</param>
+        /// <param name="formulaConfiguration">Excel文件路径</param>
         public IncentiveCommand(FormulaConfiguration formulaConfiguration)
         {
             _commandDictionary = formulaConfiguration.IncentiveCommandDictionary;

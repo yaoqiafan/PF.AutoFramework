@@ -10,12 +10,14 @@ namespace PF.Modules.SecsGem.ViewModels
     /// </summary>
     public class CommandLeafViewModel : BindableBase
     {
+        /// <summary>初始化实例</summary>
         public CommandLeafViewModel(SFCommand command)
         {
             Command = command;
             DeleteCommand = new DelegateCommand(ExecuteDelete);
         }
 
+        /// <summary>获取命令对象</summary>
         public SFCommand Command { get; }
 
         /// <summary>
@@ -23,7 +25,9 @@ namespace PF.Modules.SecsGem.ViewModels
         /// </summary>
         public string DisplayName => $"{Command.Name}";
 
+        /// <summary>获取流编号</summary>
         public uint Stream => Command.Stream;
+        /// <summary>获取功能编号</summary>
         public uint Function => Command.Function;
 
         /// <summary>
@@ -35,6 +39,7 @@ namespace PF.Modules.SecsGem.ViewModels
         // 删除功能
         // ──────────────────────────────────────────────
 
+        /// <summary>删除命令</summary>
         public DelegateCommand DeleteCommand { get; }
 
         /// <summary>

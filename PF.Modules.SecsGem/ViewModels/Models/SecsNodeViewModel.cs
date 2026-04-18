@@ -28,6 +28,7 @@ namespace PF.Modules.SecsGem.ViewModels
         private string _validationErrorMessage;
         private bool _isExpanded = true;
 
+        /// <summary>节点添加请求事件</summary>
         public event EventHandler NodeAddRequested;
         /// <summary>
         /// 当 IsVariableNode = true 时触发，外部 ViewModel 订阅后弹出 VID 选择对话框
@@ -37,6 +38,7 @@ namespace PF.Modules.SecsGem.ViewModels
         // 父节点引用，用于 RemoveNodeCommand
         private SecsNodeViewModel _parent;
 
+        /// <summary>初始化实例</summary>
         public SecsNodeViewModel()
         {
             Children = new ObservableCollection<SecsNodeViewModel>();
@@ -69,6 +71,7 @@ namespace PF.Modules.SecsGem.ViewModels
         // 核心属性
         // ──────────────────────────────────────────────
 
+        /// <summary>获取或设置数据类型</summary>
         public DataType DataType
         {
             get => _dataType;
@@ -116,8 +119,10 @@ namespace PF.Modules.SecsGem.ViewModels
             }
         }
 
+        /// <summary>获取或设置是否为列表节点</summary>
         public bool IsListNode => _dataType == DataType.LIST;
 
+        /// <summary>获取或设置是否展开</summary>
         public bool IsExpanded
         {
             get => _isExpanded;
@@ -128,6 +133,7 @@ namespace PF.Modules.SecsGem.ViewModels
         // 变量绑定属性
         // ──────────────────────────────────────────────
 
+        /// <summary>获取或设置是否为变量节点</summary>
         public bool IsVariableNode
         {
             get => _isVariableNode;
@@ -150,12 +156,14 @@ namespace PF.Modules.SecsGem.ViewModels
             }
         }
 
+        /// <summary>获取或设置变量代码</summary>
         public uint VariableCode
         {
             get => _variableCode;
             set => SetProperty(ref _variableCode, value);
         }
 
+        /// <summary>获取或设置变量描述</summary>
         public string VariableDescription
         {
             get => _variableDescription;
@@ -166,32 +174,39 @@ namespace PF.Modules.SecsGem.ViewModels
         // 校验属性
         // ──────────────────────────────────────────────
 
+        /// <summary>获取或设置是否有验证错误</summary>
         public bool HasValidationError
         {
             get => _hasValidationError;
             set => SetProperty(ref _hasValidationError, value);
         }
 
+        /// <summary>获取或设置验证错误消息</summary>
         public string ValidationErrorMessage
         {
             get => _validationErrorMessage;
             set => SetProperty(ref _validationErrorMessage, value);
         }
 
+        /// <summary>获取子节点集合</summary>
         public ObservableCollection<SecsNodeViewModel> Children { get; }
 
         // ──────────────────────────────────────────────
         // 命令
         // ──────────────────────────────────────────────
 
+        /// <summary>添加子节点命令</summary>
         public DelegateCommand AddChildCommand { get; }
+        /// <summary>移除节点命令</summary>
         public DelegateCommand RemoveNodeCommand { get; }
+        /// <summary>选择变量命令</summary>
         public DelegateCommand SelectVariableCommand { get; }
 
         // ──────────────────────────────────────────────
         // 工厂：SecsGemNodeMessage ↔ SecsNodeViewModel
         // ──────────────────────────────────────────────
 
+        /// <summary>从节点消息创建视图模型</summary>
         public static SecsNodeViewModel FromNodeMessage(SecsGemNodeMessage node, SecsNodeViewModel parent = null)
         {
             if (node == null) return null;
@@ -224,6 +239,7 @@ namespace PF.Modules.SecsGem.ViewModels
             return vm;
         }
 
+        /// <summary>转换为节点消息</summary>
         public SecsGemNodeMessage ToNodeMessage()
         {
             if (_dataType == DataType.LIST)
@@ -262,6 +278,7 @@ namespace PF.Modules.SecsGem.ViewModels
             NodeAddRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>设置变量绑定</summary>
         public void SetVariableBinding(uint code, string description)
         {
             _isVariableNode = true;

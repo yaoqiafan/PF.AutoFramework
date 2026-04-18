@@ -12,7 +12,6 @@ namespace PF.Services.Alarm
 {
     /// <summary>
     /// 报警字典服务实现。
-    /// 启动时通过反射扫描 <see cref="AlarmCodes"/> 常量字段，
     /// 再叠加数据库 AlarmDefinitions 表（数据库定义优先级更高，可覆盖代码内置）。
     /// </summary>
     internal sealed class AlarmDictionaryService : IAlarmDictionaryService

@@ -20,6 +20,7 @@ namespace PF.Modules.SecsGem.Dialogs
     /// </summary>
     public partial class SecsNodeConfigDialog : UserControl
     {
+        /// <summary>初始化Secs节点配置对话框</summary>
         public SecsNodeConfigDialog()
         {
             InitializeComponent();

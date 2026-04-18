@@ -36,12 +36,14 @@ namespace PF.Data.Context
         /// </summary>
         public DbSet<AlarmRecordEntity> AlarmRecords { get; set; } = null!;
 
+        /// <summary>配置数据库连接</summary>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // 注入自定义 ModelCacheKey，使 EF Core 按年份区分缓存的 Model
             optionsBuilder.ReplaceService<IModelCacheKeyFactory, AlarmModelCacheKeyFactory>();
         }
 
+        /// <summary>配置数据模型</summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

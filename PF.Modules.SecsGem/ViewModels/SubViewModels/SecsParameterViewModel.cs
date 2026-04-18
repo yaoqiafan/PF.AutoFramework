@@ -31,15 +31,16 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     /// </summary>
     public class SecsParameterViewModel : BindableBase
     {
-        private readonly ISecsGemManger _manager;
+        private readonly ISecsGemManager _manager;
         private readonly ISecsGemDataBase _db;
         private readonly SecsLogViewModel _log;
         private readonly Func<Task> _reloadCommandTrees;
 
         private int _selectedParamIndex;
 
+        /// <summary>初始化实例</summary>
         public SecsParameterViewModel(
-            ISecsGemManger manager,
+            ISecsGemManager manager,
             ISecsGemDataBase db,
             SecsLogViewModel log,
             Func<Task> reloadCommandTrees)
@@ -84,6 +85,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         // ── 参数 Tab 索引 ──────────────────────────────────────────────────────
 
         private int _selectedParamTabIndex;
+        /// <summary>获取或设置选中的参数标签页索引</summary>
         public int SelectedParamTabIndex
         {
             get => _selectedParamTabIndex;
@@ -96,54 +98,86 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         // ── 系统参数行集合 ─────────────────────────────────────────────────────
+        /// <summary>获取系统参数行集合</summary>
         public ObservableCollection<ParamRowViewModel> ParamRows { get; }
 
         // ── 分类参数集合 ───────────────────────────────────────────────────────
+        /// <summary>获取VID行集合</summary>
         public ObservableCollection<VidRowViewModel>       VidRows       { get; }
+        /// <summary>获取CEID行集合</summary>
         public ObservableCollection<CeidRowViewModel>      CeidRows      { get; }
+        /// <summary>获取报告ID行集合</summary>
         public ObservableCollection<ReportIdRowViewModel>  ReportIdRows  { get; }
+        /// <summary>获取命令ID行集合</summary>
         public ObservableCollection<CommandIdRowViewModel> CommandIdRows { get; }
 
         private VidRowViewModel       _selectedVidRow;
+        /// <summary>获取或设置选中的VID行</summary>
         public  VidRowViewModel       SelectedVidRow       { get => _selectedVidRow;       set => SetProperty(ref _selectedVidRow,       value); }
 
         private CeidRowViewModel      _selectedCeidRow;
+        /// <summary>获取或设置选中的CEID行</summary>
         public  CeidRowViewModel      SelectedCeidRow      { get => _selectedCeidRow;      set => SetProperty(ref _selectedCeidRow,      value); }
 
         private ReportIdRowViewModel  _selectedReportIdRow;
+        /// <summary>获取或设置选中的报告ID行</summary>
         public  ReportIdRowViewModel  SelectedReportIdRow  { get => _selectedReportIdRow;  set => SetProperty(ref _selectedReportIdRow,  value); }
 
         private CommandIdRowViewModel _selectedCommandIdRow;
+        /// <summary>获取或设置选中的命令ID行</summary>
         public  CommandIdRowViewModel SelectedCommandIdRow { get => _selectedCommandIdRow; set => SetProperty(ref _selectedCommandIdRow, value); }
 
         // ── 数据库镜像集合 ─────────────────────────────────────────────────────
+        /// <summary>获取数据库系统参数行集合</summary>
         public ObservableCollection<ParamRowViewModel>     DbSystemRows    { get; }
+        /// <summary>获取数据库命令ID行集合</summary>
         public ObservableCollection<CommandIdRowViewModel> DbCommandIdRows { get; }
+        /// <summary>获取数据库CEID行集合</summary>
         public ObservableCollection<CeidRowViewModel>      DbCeidRows      { get; }
+        /// <summary>获取数据库报告ID行集合</summary>
         public ObservableCollection<ReportIdRowViewModel>  DbReportIdRows  { get; }
+        /// <summary>获取数据库VID行集合</summary>
         public ObservableCollection<VidRowViewModel>       DbVidRows       { get; }
+        /// <summary>获取数据库主动命令行集合</summary>
         public ObservableCollection<ParamRowViewModel>     DbIncentiveRows { get; }
+        /// <summary>获取数据库应答命令行集合</summary>
         public ObservableCollection<ParamRowViewModel>     DbResponseRows  { get; }
 
         // ── 命令 ───────────────────────────────────────────────────────────────
+        /// <summary>导入参数命令</summary>
         public DelegateCommand ImportParamsCommand        { get; }
+        /// <summary>导出参数命令</summary>
         public DelegateCommand ExportParamsCommand        { get; }
+        /// <summary>保存参数命令</summary>
         public DelegateCommand SaveParamCommand           { get; }
+        /// <summary>导入系统参数命令</summary>
         public DelegateCommand ImportSystemParamCommand   { get; }
+        /// <summary>导入变量参数命令</summary>
         public DelegateCommand ImportValidateParamCommand { get; }
+        /// <summary>导入配方参数命令</summary>
         public DelegateCommand ImportFormulaParamCommand  { get; }
+        /// <summary>刷新数据库视图命令</summary>
         public DelegateCommand RefreshDbViewCommand       { get; }
+        /// <summary>添加VID命令</summary>
         public DelegateCommand AddVidCommand              { get; }
+        /// <summary>删除VID命令</summary>
         public DelegateCommand DeleteVidCommand           { get; }
+        /// <summary>添加CEID命令</summary>
         public DelegateCommand AddCeidCommand             { get; }
+        /// <summary>删除CEID命令</summary>
         public DelegateCommand DeleteCeidCommand          { get; }
+        /// <summary>添加报告ID命令</summary>
         public DelegateCommand AddReportIdCommand         { get; }
+        /// <summary>删除报告ID命令</summary>
         public DelegateCommand DeleteReportIdCommand      { get; }
+        /// <summary>添加命令ID命令</summary>
         public DelegateCommand AddCommandIdCommand        { get; }
+        /// <summary>删除命令ID命令</summary>
         public DelegateCommand DeleteCommandIdCommand     { get; }
 
         // ── 参数行加载（供主 VM 在导航时调用）─────────────────────────────────
 
+        /// <summary>加载参数行</summary>
         public void LoadParamRows(int index)
         {
             Application.Current?.Dispatcher.Invoke(() =>
@@ -490,6 +524,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             }
         }
 
+        /// <summary>刷新数据库视图</summary>
         public async Task ExecuteRefreshDbViewAsync()
         {
             try

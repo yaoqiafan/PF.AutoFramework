@@ -20,6 +20,7 @@ namespace PF.Modules.SecsGem.Dialogs
     /// </summary>
     public partial class CommandEditDialog : UserControl
     {
+        /// <summary>初始化命令编辑对话框</summary>
         public CommandEditDialog()
         {
             InitializeComponent();

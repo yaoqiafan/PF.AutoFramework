@@ -4,8 +4,10 @@ using System.Windows;
 
 namespace PF.Modules.SecsGem.Dialogs.ViewModels
 {
+    /// <summary>命令编辑对话框视图模型</summary>
     public class CommandEditDialogViewModel : PFDialogViewModelBase
     {
+        /// <summary>初始化命令编辑对话框</summary>
         public CommandEditDialogViewModel()
         {
             Title = "新建命令";
@@ -18,6 +20,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // ──────────────────────────────────────────────
 
         private uint _stream = 1;
+        /// <summary>获取或设置流编号</summary>
         public uint Stream
         {
             get => _stream;
@@ -25,6 +28,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private uint _function = 1;
+        /// <summary>获取或设置功能编号</summary>
         public uint Function
         {
             get => _function;
@@ -32,6 +36,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private string _commandName = string.Empty;
+        /// <summary>获取或设置命令名称</summary>
         public string CommandName
         {
             get => _commandName;
@@ -39,6 +44,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private bool _isStreamReadOnly;
+        /// <summary>获取或设置流编号是否只读</summary>
         public bool IsStreamReadOnly
         {
             get => _isStreamReadOnly;
@@ -48,9 +54,11 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
                     RaisePropertyChanged(nameof(IsStreamEnabled));
             }
         }
+        /// <summary>获取流编号输入是否启用</summary>
         public bool IsStreamEnabled => !_isStreamReadOnly;
 
         private bool _isFunctionReadOnly;
+        /// <summary>获取或设置功能编号是否只读</summary>
         public bool IsFunctionReadOnly
         {
             get => _isFunctionReadOnly;
@@ -60,12 +68,14 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
                     RaisePropertyChanged(nameof(IsFunctionEnabled));
             }
         }
+        /// <summary>获取功能编号输入是否启用</summary>
         public bool IsFunctionEnabled => !_isFunctionReadOnly;
 
         // ──────────────────────────────────────────────
         // 生命周期
         // ──────────────────────────────────────────────
 
+        /// <summary>对话框打开时调用</summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             Stream           = parameters.GetValue<uint>("DefaultStream") > 0

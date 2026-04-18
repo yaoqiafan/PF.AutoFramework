@@ -31,7 +31,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="excelFilePath">Excel文件路径</param>
+        /// <param name="formulaConfig">Excel文件路径</param>
         public ResponseCommand(FormulaConfiguration formulaConfig)
         {
             _commandDictionary = formulaConfig.ResponseCommandDictionary;

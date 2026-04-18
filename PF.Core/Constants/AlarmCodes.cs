@@ -90,29 +90,29 @@ namespace PF.Core.Constants
                 "3. 确认网络适配器 IP 与相机在同一网段;\n" +
                 "4. 重启相机后点击【复位】重新连接;")]
             public const string CameraHeartbeatTimeout = "HW_CAM_002";
+
             /// <summary>扫码枪通讯心跳超时</summary>
             [AlarmInfo("硬件异常", "扫码枪通讯心跳超时（TCP 连接丢失）", AlarmSeverity.Warning,
                 "1. 检查扫码枪网线或 USB 连接是否正常;\n" +
                 "2. 使用 Ping 命令验证扫码枪 IP 是否可达;\n" +
                 "3. 重启扫码枪后点击【复位】重新连接;\n" +
                 "4. 确认端口号与配置文件一致;")]
-          
             public const string BarcodeScannerHeartbeatTimeout = "HW_BCR_002";
 
+            /// <summary>伺服轴运动完成等待超时</summary>
             [AlarmInfo("运动超时", "伺服轴运动完成等待超时", AlarmSeverity.Error,
                 "1. 检查轴当前是否卡在中途（机械干涉、摩擦过大）;\n" +
                 "2. 手动点动该轴，确认运动是否正常;\n" +
                 "3. 检查运动参数（速度/加速度）是否合理;\n" +
                 "4. 复位后重新运行;")]
-            /// <summary>伺服轴运动完成等待超时</summary>
             public const string AxisMoveTimeout = "HW_AXIS_003";
 
+            /// <summary>伺服轴回原点完成等待超时</summary>
             [AlarmInfo("运动超时", "伺服轴回原点完成等待超时", AlarmSeverity.Error,
                 "1. 检查原点传感器信号是否正常;\n" +
                 "2. 确认回零方向与速度参数配置是否正确;\n" +
                 "3. 手动移动轴后重新执行初始化;\n" +
                 "4. 检查限位开关是否触发;")]
-            /// <summary>伺服轴回原点完成等待超时</summary>
             public const string HomingTimeout = "HW_AXIS_004";
         }
 
@@ -126,28 +126,28 @@ namespace PF.Core.Constants
         /// </summary>
         public static class System
         {
+            /// <summary>系统初始化超时</summary>
             [AlarmInfo("系统异常", "系统初始化超时，硬件未全部就绪", AlarmSeverity.Fatal,
                 "1. 检查所有硬件设备连接状态;\n" +
                 "2. 查看调试页面中各硬件连接指示灯;\n" +
                 "3. 逐一排除连接失败的设备;\n" +
                 "4. 全部就绪后点击【复位】按钮;")]
-            /// <summary>系统初始化超时</summary>
             public const string InitializationTimeout = "SYS_INIT_001";
 
+            /// <summary>数据库写入失败</summary>
             [AlarmInfo("系统异常", "数据库写入失败", AlarmSeverity.Error,
                 "1. 检查程序运行目录磁盘空间是否充足;\n" +
                 "2. 检查数据库文件是否被其他程序占用;\n" +
                 "3. 以管理员权限重启软件;\n" +
                 "4. 联系维护人员检查数据库文件完整性;")]
-            /// <summary>数据库写入失败</summary>
             public const string DatabaseWriteError = "SYS_DB_001";
 
+            /// <summary>工站同步服务异常</summary>
             [AlarmInfo("系统异常", "工站同步服务异常", AlarmSeverity.Error,
                 "1. 检查各工站状态机是否处于正常态;\n" +
                 "2. 查看日志中工站异常原因;\n" +
                 "3. 逐一复位各工站;\n" +
                 "4. 重启同步服务（重启软件）;")]
-            /// <summary>工站同步服务异常</summary>
             public const string StationSyncError = "SYS_SYNC_001";
 
         }

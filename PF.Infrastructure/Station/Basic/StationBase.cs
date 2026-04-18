@@ -5,15 +5,9 @@ using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using Stateless;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Station.Basic
 {
@@ -22,13 +16,13 @@ namespace PF.Infrastructure.Station.Basic
     ///
     /// 【状态生命周期 (State Lifecycle)】
     ///   Uninitialized ──(Initialize)──→ Initializing ──(InitializeDone)─────────→ Idle
-    ///                                        └─────────(Error)──────────────────→ Alarm
+    ///                                                └─────────(Error)──────────────────→ Alarm
     ///   Idle          ──(Start)───────→ Running
     ///   Running       ──(Stop)────────→ Idle
     ///   Alarm         ──(Reset)───────→ Resetting  ──(ResetDone)────────────────→ Idle          (运行期报警复位)
-    ///                                        └─────────(ResetDoneUninitialized)─→ Uninitialized (初始化报警复位，强制重置)
+    ///                                                └─────────(ResetDoneUninitialized)─→ Uninitialized (初始化报警复位，强制重置)
     ///
-    /// 【并发安全设计 (Concurrency & Thread Safety)】
+    /// 【并发安全设计 (Concurrency  和 Thread Safety)】
     ///   · 独占变迁：所有状态变迁（<see cref="Fire(MachineTrigger)"/> / <see cref="FireAsync(MachineTrigger)"/>）均受 <see cref="_stateLock"/> 信号量保护，杜绝后台硬件报警与 UI 交互命令（如 Stop/Pause）导致的并发状态撕裂。
     ///   · 任务防重入：<see cref="MachineState.Running"/> 状态严格确保前置业务任务彻底销毁后，方可启动新任务，彻底消除“幽灵线程”（Orphan Threads）与竞态死锁。
     ///
@@ -54,11 +48,21 @@ namespace PF.Infrastructure.Station.Basic
     {
         #region 1. MVVM 数据绑定与核心属性 (Properties & MVVM)
 
+        /// <summary>
+        /// 属性变更事件，用于实现 MVVM 双向数据绑定。
+        /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
+        /// <summary>
+        /// 触发属性变更事件通知 UI 刷新。
+        /// </summary>
+        /// <param name="propertyName">发生变更的属性名称，使用 CallerMemberName 自动获取。</param>
         protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
+        /// <summary>
+        /// 获取当前工站的唯一名称标识。
+        /// </summary>
         public string StationName { get; }
 
         /// <summary>当前状态机状态（状态变化时触发 PropertyChanged）</summary>
@@ -122,7 +126,10 @@ namespace PF.Infrastructure.Station.Basic
 
         #region 3. 核心依赖与内部状态标记 (Fields & State Variables)
 
+        /// <summary>工站内置日志记录服务实例。</summary>
         protected readonly ILogService _logger;
+
+        /// <summary>工站核心状态机实例，管控当前生命周期流转。</summary>
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
 
         // ── 并发安全：所有状态机跳转均通过此信号量独占执行 ─────────────────
@@ -170,6 +177,11 @@ namespace PF.Infrastructure.Station.Basic
 
         #region 4. 构造函数与状态机配置 (Constructor & Configuration)
 
+        /// <summary>
+        /// 初始化工站基类，配置基础服务与核心状态机。
+        /// </summary>
+        /// <param name="name">工站唯一名称</param>
+        /// <param name="logger">日志服务</param>
         protected StationBase(string name, ILogService logger)
         {
             StationName = name;
@@ -340,11 +352,6 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// Running 状态出口逻辑已内联至状态机配置（OnExit lambda），
-        /// 按触发条件区分：Pause 不取消 _runCts，Stop/Error 正常取消。
-        /// </summary>
-
-        /// <summary>
         /// 内部包装器，负责全局的异常捕获，防止子线程崩溃导致程序闪退
         /// </summary>
         private async Task ProcessWrapperAsync(CancellationToken token)
@@ -404,12 +411,18 @@ namespace PF.Infrastructure.Station.Basic
             await FireAsync(MachineTrigger.Start);
         }
 
+        /// <summary>
+        /// 同步停止工站业务（发出停止取消信号，状态切入 Uninitialized）。
+        /// </summary>
         public void Stop()
         {
             _cancelledIntentionally = true;
             Fire(MachineTrigger.Stop);
         }
 
+        /// <summary>
+        /// 同步挂起/暂停工站业务（发出暂停标志，触发物理减速，状态切入 Paused）。
+        /// </summary>
         public void Pause()
         {
             _cancelledIntentionally = true;
@@ -689,6 +702,7 @@ namespace PF.Infrastructure.Station.Basic
                 : gate.Task.WaitAsync(token);
         }
 
+        /// <summary>检查暂停信号</summary>
         [Obsolete("请在 async 方法中改用 await CheckPauseAsync(token)，避免同步阻塞线程池线程。")]
         protected void CheckPause(CancellationToken token) => _pauseGate.Task.Wait(token);
 
@@ -780,6 +794,7 @@ namespace PF.Infrastructure.Station.Basic
 
         #region 10. 记忆参数管理 (Memory & Param Management)
 
+        /// <summary>获取或设置工站的记忆参数实例（支持断电保存和读取私有业务数据）。</summary>
         public virtual T MemoryParam { get; set; }
 
         private void ReadMemoryParam()
@@ -869,8 +884,12 @@ namespace PF.Infrastructure.Station.Basic
         #endregion
     }
 
+    /// <summary>
+    /// 工站记忆参数基类，供各具体工站派生以保存其私有业务持久化数据（如当前配方、上次计数等）。
+    /// </summary>
     public class StationMemoryBaseParam
     {
+        /// <summary>获取或设置是否处于写入过程的内部标志（业务代码一般不直接干预）。</summary>
         public bool IsWrite { get; set; }
     }
 }

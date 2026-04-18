@@ -18,18 +18,24 @@ namespace PF.Modules.SecsGem.ViewModels
     /// </summary>
     public class SecsGemDebugViewModel : RegionViewModelBase
     {
-        private readonly ISecsGemManger _manager;
+        private readonly ISecsGemManager _manager;
 
         // ── 子 ViewModel（公开供 XAML 绑定）──────────────────────────────────
+        /// <summary>获取日志视图模型</summary>
         public SecsLogViewModel            Log            { get; }
+        /// <summary>获取连接视图模型</summary>
         public SecsConnectionViewModel     Connection     { get; }
+        /// <summary>获取命令构建器视图模型</summary>
         public SecsCommandBuilderViewModel CommandBuilder { get; }
+        /// <summary>获取参数视图模型</summary>
         public SecsParameterViewModel      Parameter      { get; }
+        /// <summary>获取服务管理视图模型</summary>
         public SecsServiceManagerViewModel ServiceManager { get; }
 
         // ── 构造 ───────────────────────────────────────────────────────────────
 
-        public SecsGemDebugViewModel(ISecsGemManger manager, ISecsGemDataBase db)
+        /// <summary>初始化实例</summary>
+        public SecsGemDebugViewModel(ISecsGemManager manager, ISecsGemDataBase db)
         {
             _manager = manager;
 
@@ -43,6 +49,7 @@ namespace PF.Modules.SecsGem.ViewModels
 
         // ── 导航生命周期 ───────────────────────────────────────────────────────
 
+        /// <summary>导航进入时调用</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
@@ -59,6 +66,7 @@ namespace PF.Modules.SecsGem.ViewModels
             });
         }
 
+        /// <summary>导航离开时调用</summary>
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
@@ -67,6 +75,7 @@ namespace PF.Modules.SecsGem.ViewModels
             _manager.ParamsManager.FormulaValidateError    -= OnFormulaValidateError;
         }
 
+        /// <summary>销毁视图模型</summary>
         public override void Destroy()
         {
             base.Destroy();

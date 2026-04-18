@@ -25,6 +25,7 @@ namespace PF.Data
         /// </summary>
         public DbSet<ProductionDataEntity> ProductionData { get; set; }
 
+        /// <summary>配置数据模型</summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

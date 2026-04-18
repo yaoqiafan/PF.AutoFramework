@@ -17,6 +17,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
         private static readonly ConcurrentDictionary<Type, bool> _hasValuePropertyCache =
             new ConcurrentDictionary<Type, bool>();
 
+        /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
             var viewType = viewInstance.GetType();
@@ -56,6 +57,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
             return false;
         }
 
+        /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
             var viewType = viewInstance.GetType();

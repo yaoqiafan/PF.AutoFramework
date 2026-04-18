@@ -13,6 +13,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     {
         private readonly SecsLogViewModel _log;
 
+        /// <summary>初始化实例</summary>
         public SecsServiceManagerViewModel(SecsLogViewModel log)
         {
             _log = log;
@@ -26,6 +27,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         // ── 服务状态属性 ───────────────────────────────────────────────────────
 
         private string _serviceStatusText = "未知";
+        /// <summary>获取或设置服务状态文本</summary>
         public string ServiceStatusText
         {
             get => _serviceStatusText;
@@ -33,6 +35,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private string _serviceStatusColor = "#9E9E9E";
+        /// <summary>获取或设置服务状态颜色</summary>
         public string ServiceStatusColor
         {
             get => _serviceStatusColor;
@@ -40,6 +43,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private string _serviceExePath = string.Empty;
+        /// <summary>获取或设置服务可执行文件路径</summary>
         public string ServiceExePath
         {
             get => _serviceExePath;
@@ -47,6 +51,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private string _serviceNameForManagement = "MyDotNet8Service";
+        /// <summary>获取或设置服务管理名称</summary>
         public string ServiceNameForManagement
         {
             get => _serviceNameForManagement;
@@ -55,9 +60,13 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 命令 ───────────────────────────────────────────────────────────────
 
+        /// <summary>刷新服务状态命令</summary>
         public DelegateCommand RefreshServiceStatusCommand { get; }
+        /// <summary>安装服务命令</summary>
         public DelegateCommand InstallServiceCommand       { get; }
+        /// <summary>卸载服务命令</summary>
         public DelegateCommand UninstallServiceCommand     { get; }
+        /// <summary>启动服务命令</summary>
         public DelegateCommand StartServiceCommand         { get; }
 
         // ── 命令实现 ───────────────────────────────────────────────────────────

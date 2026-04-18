@@ -14,6 +14,7 @@ namespace PF.Modules.SecsGem.Views
 
     public partial class SecsGemDebugView : UserControl
     {
+        /// <summary>初始化组件</summary>
         public SecsGemDebugView()
         {
             InitializeComponent();

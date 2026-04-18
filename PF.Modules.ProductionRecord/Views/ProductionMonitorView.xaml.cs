@@ -6,14 +6,15 @@ using System.Windows.Controls;
 namespace PF.Modules.Production.Views
 {
 
-    [ModuleNavigation(NavigationConstants.Views.ProductionMonitorView, "Éú²ú¼à¿Ø",
-      GroupName = "ÀúÊ·±íµ¥", GroupOrder = 4, Order = 1,
-      GroupIcon = "/PF.UI.Resources;component/Images/PNG/7.png", // ¸¸½Úµã PNG Í¼±ê
+    [ModuleNavigation(NavigationConstants.Views.ProductionMonitorView, "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½",
+      GroupName = "ï¿½ï¿½Ê·ï¿½ï¿½ï¿½ï¿½", GroupOrder = 4, Order = 1,
+      GroupIcon = "/PF.UI.Resources;component/Images/PNG/7.png", // ï¿½ï¿½ï¿½Úµï¿½ PNG Í¼ï¿½ï¿½
       Icon = "RunInfoIcon")]
 
    
     public partial class ProductionMonitorView : UserControl
     {
+        /// <summary>åˆå§‹åŒ–ç”Ÿäº§ç›‘æ§è§†å›¾</summary>
         public ProductionMonitorView()
         {
             InitializeComponent();

@@ -12,8 +12,10 @@ using System.Reflection;
 
 namespace PF.Modules.SecsGem
 {
+    /// <summary>SecsGem 模块</summary>
     public class SecsGemModule : IModule
     {
+        /// <summary>注册依赖类型</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
 
@@ -29,6 +31,7 @@ namespace PF.Modules.SecsGem
 
         }
 
+        /// <summary>模块初始化回调</summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             // 注册导航菜单（扫描 [ModuleNavigation] 特性）

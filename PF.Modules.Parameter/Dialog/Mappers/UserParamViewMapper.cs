@@ -9,6 +9,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
     /// </summary>
     public class UserParamViewMapper : ViewDataMapperBase
     {
+        /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
             if (viewInstance is UserParamView userView && data is UserInfo userData)
@@ -25,6 +26,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
             return false;
         }
 
+        /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
             if (viewInstance is UserParamView userView)

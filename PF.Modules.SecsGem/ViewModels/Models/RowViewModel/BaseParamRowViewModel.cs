@@ -8,12 +8,15 @@ namespace PF.Modules.SecsGem.ViewModels.Models.RowViewModel
     public abstract class BaseParamRowViewModel : BindableBase
     {
         private uint _code;
+        /// <summary>获取或设置编码</summary>
         public uint Code { get => _code; set => SetProperty(ref _code, value); }
 
         private string _description;
+        /// <summary>获取或设置描述</summary>
         public string Description { get => _description; set => SetProperty(ref _description, value); }
 
         private string _comment;
+        /// <summary>获取或设置注释</summary>
         public string Comment { get => _comment; set => SetProperty(ref _comment, value); }
     }
 }

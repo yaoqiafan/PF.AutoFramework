@@ -14,10 +14,13 @@ namespace PF.Infrastructure.Mechanisms
     /// </summary>
     public abstract class BaseMechanism : IMechanism, IDisposable
     {
+        /// <summary>日志记录器</summary>
         protected readonly ILogService _logger;
         private readonly List<IHardwareDevice> _internalHardwares = new List<IHardwareDevice>();
+        /// <summary>获取硬件管理服务</summary>
         protected IHardwareManagerService HardwareManagerService { get; }
 
+        /// <summary>获取参数服务</summary>
         protected IParamService ParamService { get; }
         /// <summary>
         /// 模组名称
@@ -172,10 +175,14 @@ namespace PF.Infrastructure.Mechanisms
             await InternalStopAsync();
         }
 
+        /// <summary>内部初始化异步操作</summary>
         protected abstract Task<bool> InternalInitializeAsync(CancellationToken token);
+        /// <summary>内部停止异步操作</summary>
         protected abstract Task InternalStopAsync();
+        /// <summary>内部复位异步操作</summary>
         protected virtual Task<bool> InternalResetAsync(CancellationToken token) => Task.FromResult(true);
 
+        /// <summary>检查机构是否就绪</summary>
         protected void CheckReady()
         {
             if (HasAlarm) throw new Exception($"模组 [{MechanismName}] 处于报警状态，禁止动作！");

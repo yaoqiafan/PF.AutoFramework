@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace PF.UI.Infrastructure.Mappers
 {
-    // <summary>
+    /// <summary>
     /// 视图数据映射器基类
     /// </summary>
     public abstract class ViewDataMapperBase : IViewDataMapper

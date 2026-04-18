@@ -20,6 +20,7 @@ namespace PF.Modules.SecsGem.Dialogs
     /// </summary>
     public partial class VidSelectDialog : UserControl
     {
+        /// <summary>初始化VID选择对话框</summary>
         public VidSelectDialog()
         {
             InitializeComponent();

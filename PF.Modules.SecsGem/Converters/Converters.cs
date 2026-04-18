@@ -11,6 +11,7 @@ namespace PF.Modules.SecsGem.ViewModels
     /// </summary>
     public class InverseBoolToVisibilityConverter : IValueConverter
     {
+        /// <summary>布尔值取反转可见性</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool b)
@@ -18,6 +19,7 @@ namespace PF.Modules.SecsGem.ViewModels
             return Visibility.Visible;
         }
 
+        /// <summary>反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
@@ -27,6 +29,7 @@ namespace PF.Modules.SecsGem.ViewModels
     /// </summary>
     public class BoolToBorderBrushConverter : IValueConverter
     {
+        /// <summary>布尔值转边框画刷</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool b && b)
@@ -34,6 +37,7 @@ namespace PF.Modules.SecsGem.ViewModels
             return new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD)); // #BDBDBD
         }
 
+        /// <summary>反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
@@ -43,6 +47,7 @@ namespace PF.Modules.SecsGem.ViewModels
     /// </summary>
     public class StringNotEmptyToVisibilityConverter : IValueConverter
     {
+        /// <summary>非空字符串转可见性</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return string.IsNullOrWhiteSpace(value as string)
@@ -50,6 +55,7 @@ namespace PF.Modules.SecsGem.ViewModels
                 : Visibility.Visible;
         }
 
+        /// <summary>反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
