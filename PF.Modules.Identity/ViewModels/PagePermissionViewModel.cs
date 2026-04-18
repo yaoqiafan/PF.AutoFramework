@@ -244,11 +244,15 @@ namespace PF.Modules.Identity.ViewModels
         }
     }
 
+    /// <summary>权限检查项</summary>
     public class PermissionCheckItem : BindableBase
     {
         private bool _isAuthorized;
+        /// <summary>获取或设置视图名称</summary>
         public string ViewName { get; set; }
+        /// <summary>获取或设置描述</summary>
         public string Description { get; set; }
+        /// <summary>获取或设置是否已授权</summary>
         public bool IsAuthorized
         {
             get => _isAuthorized;

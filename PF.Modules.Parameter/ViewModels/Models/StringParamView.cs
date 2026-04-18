@@ -7,11 +7,11 @@ namespace PF.Modules.Parameter.ViewModels.Models
     public  class StringParamView : BindableBase
     {
         private string _Value;
+        /// <summary>获取或设置字符串值</summary>
         [DefaultSettingValue("")]
         [CategoryAttribute("参数属性")]
         [DisplayNameAttribute("参数值")]
         [BrowsableAttribute(true)]
-        /// <summary>获取或设置字符串值</summary>
         public string Value
         {
             get { return _Value; }

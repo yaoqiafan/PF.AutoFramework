@@ -8,9 +8,9 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
     public class CTSLightControllerParamView : BindableBase
     {
         private string _deviceId;
+        /// <summary>获取或设置设备ID</summary>
         [Category("设备基本信息")]
         [DisplayName("设备ID")]
-        /// <summary>获取或设置设备ID</summary>
         public string DeviceId
         {
             get => _deviceId;
@@ -18,9 +18,9 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _deviceName;
+        /// <summary>获取或设置设备名称</summary>
         [Category("设备基本信息")]
         [DisplayName("设备名称")]
-        /// <summary>获取或设置设备名称</summary>
         public string DeviceName
         {
             get => _deviceName;
@@ -28,9 +28,9 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private bool _isEnabled;
+        /// <summary>获取或设置是否启用</summary>
         [Category("设备基本信息")]
         [DisplayName("启用")]
-        /// <summary>获取或设置是否启用</summary>
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -38,9 +38,9 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private bool _isSimulated;
+        /// <summary>获取或设置是否仿真</summary>
         [Category("设备基本信息")]
         [DisplayName("仿真模式")]
-        /// <summary>获取或设置是否仿真模式</summary>
         public bool IsSimulated
         {
             get => _isSimulated;
@@ -48,9 +48,9 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _com;
+        /// <summary>获取或设置串口号</summary>
         [Category("连接参数")]
         [DisplayName("串口号")]
-        /// <summary>获取或设置串口号</summary>
         public string Com
         {
             get => _com;
@@ -58,9 +58,9 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _remarks;
+        /// <summary>获取或设置备注</summary>
         [Category("设备基本信息")]
         [DisplayName("备注")]
-        /// <summary>获取或设置备注</summary>
         public string Remarks
         {
             get => _remarks;

@@ -8,6 +8,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
     public class EtherCatIOParamView : BindableBase
     {
         private string _deviceId;
+        /// <summary>获取或设置设备ID</summary>
         [Category("设备基本信息")]
         [DisplayName("设备ID")]
         public string DeviceId
@@ -17,6 +18,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _deviceName;
+        /// <summary>获取或设置设备名称</summary>
         [Category("设备基本信息")]
         [DisplayName("设备名称")]
         public string DeviceName
@@ -26,6 +28,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private bool _isEnabled;
+        /// <summary>获取或设置是否启用</summary>
         [Category("设备基本信息")]
         [DisplayName("启用")]
         public bool IsEnabled
@@ -35,6 +38,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private bool _isSimulated;
+        /// <summary>获取或设置是否仿真</summary>
         [Category("设备基本信息")]
         [DisplayName("仿真模式")]
         public bool IsSimulated
@@ -44,6 +48,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _parentDeviceId;
+        /// <summary>获取或设置父设备ID</summary>
         [Category("设备基本信息")]
         [DisplayName("父设备ID")]
         public string ParentDeviceId
@@ -53,6 +58,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _inPutCount;
+        /// <summary>获取或设置输入点数</summary>
         [Category("连接参数")]
         [DisplayName("输入点数")]
         public string InPutCount
@@ -62,6 +68,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _outPutCount;
+        /// <summary>获取或设置输出点数</summary>
         [Category("连接参数")]
         [DisplayName("输出点数")]
         public string OutPutCount
@@ -71,6 +78,7 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         }
 
         private string _remarks;
+        /// <summary>获取或设置备注</summary>
         [Category("设备基本信息")]
         [DisplayName("备注")]
         public string Remarks

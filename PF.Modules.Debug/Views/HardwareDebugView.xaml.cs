@@ -25,6 +25,7 @@ namespace PF.Modules.Debug.Views
     /// <summary>绑定代理，用于在 HierarchicalDataTemplate 中传递 DataContext</summary>
     public class BindingProxy : Freezable
     {
+        /// <summary>创建实例核心</summary>
         protected override Freezable CreateInstanceCore() => new BindingProxy();
 
         /// <summary>获取或设置绑定的数据对象</summary>
@@ -34,6 +35,7 @@ namespace PF.Modules.Debug.Views
             set => SetValue(DataProperty, value);
         }
 
+        /// <summary>数据依赖属性</summary>
         public static readonly DependencyProperty DataProperty =
             DependencyProperty.Register(nameof(Data), typeof(object), typeof(BindingProxy),
                 new UIPropertyMetadata(null));

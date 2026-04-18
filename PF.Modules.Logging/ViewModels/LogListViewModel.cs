@@ -517,10 +517,14 @@ namespace PF.Modules.Logging.ViewModels
         #endregion
     }
 
+    /// <summary>日期范围选项</summary>
     public class DateRangeOption
     {
+        /// <summary>获取或设置名称</summary>
         public string Name { get; set; }
+        /// <summary>获取或设置天数</summary>
         public int Days { get; set; }
+        /// <summary>获取起始日期</summary>
         public DateTime? StartDate => Days >= 0 ? DateTime.Today.AddDays(-Days) : (DateTime?)null;
     }
 }

@@ -57,6 +57,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 检查送料气缸传感器状态;")]
             public const string FeedingTimeout = "PRC_FEED_001";
 
+            /// <summary>拉料超时</summary>
             [AlarmInfo("工艺异常", "拉料工站取料超时", AlarmSeverity.Error,
                 "1. 检查拉料机构是否被卡住;\n" +
                 "2. 检查真空吸力是否正常;\n" +
@@ -66,7 +67,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
 
 
-            
+            /// <summary>工站运动失败</summary>
                 [AlarmInfo("流程异常", "工站运动失败（轴未到位/运动超时）", AlarmSeverity.Error,
                     "1. 检查轴当前状态是否存在卡阻;\n" +
                     "2. 手动点动确认运动是否正常;\n" +
@@ -74,6 +75,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string StationMotionFailed = "PROC_MOT_001";
 
+                /// <summary>工站执行器失败</summary>
                 [AlarmInfo("流程异常", "执行机构动作失败（气缸/夹爪未到位）", AlarmSeverity.Error,
                     "1. 检查气源压力是否在正常范围;\n" +
                     "2. 检查对应传感器信号是否正常;\n" +
@@ -81,6 +83,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string StationActuatorFailed = "PROC_ACT_001";
 
+                /// <summary>工站传感器错误</summary>
                 [AlarmInfo("流程异常", "传感器信号异常（尺寸识别/寻层扫描失败）", AlarmSeverity.Error,
                     "1. 检查传感器安装位置与信号线连接;\n" +
                     "2. 确认料盒/物料位置摆放正确;\n" +
@@ -88,6 +91,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string StationSensorError = "PROC_SEN_001";
 
+                /// <summary>工站物料错误</summary>
                 [AlarmInfo("流程异常", "物料异常（叠料/错层/带片检测）", AlarmSeverity.Error,
                     "1. 人工检查当前取料位置物料状态;\n" +
                     "2. 手动处理叠料或移除带片;\n" +
@@ -95,6 +99,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string StationMaterialError = "PROC_MAT_001";
 
+                /// <summary>工站数据无效</summary>
                 [AlarmInfo("流程异常", "工站数据校验失败（配方/MES数据为空或不匹配）", AlarmSeverity.Error,
                     "1. 确认 MES 批次数据已正确下发;\n" +
                     "2. 检查配方参数是否已加载;\n" +
@@ -103,6 +108,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 @"C:\Users\12434\source\repos\PF.AutoFramework\PF.UI.Resources\Images\PNG\1.png")]
                 public const string StationDataInvalid = "PROC_DATA_001";
 
+                /// <summary>工站数据写入失败</summary>
                 [AlarmInfo("流程异常", "检测数据写入失败（数据库/数据模块异常）", AlarmSeverity.Error,
                     "1. 检查数据库连接与磁盘空间;\n" +
                     "2. 查看日志中具体写入错误信息;\n" +
@@ -110,6 +116,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 联系维护人员检查数据库;")]
                 public const string StationDataWriteFailed = "PROC_DATA_002";
 
+                /// <summary>相机触发失败</summary>
                 [AlarmInfo("流程异常", "相机触发检测失败", AlarmSeverity.Error,
                     "1. 检查相机连接状态;\n" +
                     "2. 确认相机触发参数配置正确;\n" +
@@ -117,6 +124,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string CameraTriggerFailed = "PROC_CAM_001";
 
+                /// <summary>工站信号超时</summary>
                 [AlarmInfo("流程异常", "工站信号等待超时或异常取消", AlarmSeverity.Error,
                     "1. 检查上游工站信号是否正常发出;\n" +
                     "2. 确认工站间同步配置是否正确;\n" +
@@ -124,6 +132,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string StationSignalTimeout = "PROC_SIG_001";
 
+                /// <summary>工站算法错误</summary>
                 [AlarmInfo("流程异常", "寻层算法运算异常或返回空值", AlarmSeverity.Error,
                     "1. 确认物料已正确放置到料盒;\n" +
                     "2. 检查寻层传感器信号;\n" +
@@ -131,6 +140,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     "4. 复位后重新运行;")]
                 public const string StationAlgorithmError = "PROC_ALG_001";
 
+                /// <summary>工站非预期步骤</summary>
                 [AlarmInfo("流程异常", "工站进入未定义步序（程序逻辑错误）", AlarmSeverity.Fatal,
                     "1. 记录当前操作步骤并联系开发人员;\n" +
                     "2. 查看日志中异常步序编号;\n" +
