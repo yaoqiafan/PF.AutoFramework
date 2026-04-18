@@ -231,7 +231,11 @@
                         DockPanel.Dock="Top"
                         ItemsSource="{Binding ScopeNodes}"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
                         <TreeView.Resources>
                             <!--  Scope（工站）节点模板：可折叠的分组头  -->
                             <HierarchicalDataTemplate DataType="{x:Type models:ScopeTreeNode}" ItemsSource="{Binding Signals}">

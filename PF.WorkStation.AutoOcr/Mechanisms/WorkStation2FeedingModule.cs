@@ -45,7 +45,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 5. 数据过滤：调用 <see cref="AnalyzeAndFilterMappingData(Dictionary{int, List{double}})"/>，将扫描原始数据剔除斜片、假触发，生成有效层级映射。
     /// 6. 定位取料：调用 <see cref="SwitchToLayerAsync(int, CancellationToken)"/> 到达目标层级后，交由外部机械手拉料。
     /// </remarks>
-    [MechanismUI("工位2上晶圆模组", "Workstation2FeedingModelDebugView", 2)]
+    [MechanismUI("工位2上晶圆模组", "Workstation2FeedingModelDebugView", 3)]
     public class WorkStation2FeedingModule : BaseMechanism
     {
         #region Enums (轴关键点位枚举)

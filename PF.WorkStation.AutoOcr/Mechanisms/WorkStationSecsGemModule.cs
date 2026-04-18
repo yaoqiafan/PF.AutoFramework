@@ -43,7 +43,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// - Stream 7: 过程程序管理/配方管理 (<see cref="HandleS7F1Message"/>, <see cref="HandleS7F3Message"/>, <see cref="HandleS7F5Message"/>, <see cref="HandleS7F17Message"/>, <see cref="HandleS7F19Message"/>)
     /// - Stream 10: 终端服务/消息显示 (<see cref="HandleS10F3Message"/>)
     /// </remarks>
-    [MechanismUI("SECSGEM模块", "WorkStationSecsGemModuleDebugView", 1)]
+    [MechanismUI("SECSGEM模块", "WorkStationSecsGemModuleDebugView", 7)]
     public class WorkStationSecsGemModule : BaseMechanism
     {
         #region Fields & Properties (依赖服务与核心状态)

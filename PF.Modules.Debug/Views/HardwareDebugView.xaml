@@ -79,6 +79,11 @@
                         ItemsSource="{Binding TreeNodes}"
                         SelectedItemChanged="TreeView_SelectedItemChanged"
                         Style="{StaticResource TreeView.Small}">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate DataType="{x:Type models:DebugTreeNode}" ItemsSource="{Binding Children}">
                                 <Grid Margin="0,3">

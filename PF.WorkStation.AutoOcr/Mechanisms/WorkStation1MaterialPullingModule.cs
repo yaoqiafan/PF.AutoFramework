@@ -43,7 +43,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 5. 扫码校验：调用 <see cref="CodeScanTigger(CancellationToken)"/> 触发光源与扫码枪验证载具信息。
     /// 6. 送回晶圆：调用 <see cref="FeedingMaterialToBox(CancellationToken)"/>，同样带有并发防呆监控，防止推入时撞片。
     /// </remarks>
-    [MechanismUI("工位1推拉晶圆模组", "WorkStation1MaterialPullingModuleDebugView", 1)]
+    [MechanismUI("工位1推拉晶圆模组", "WorkStation1MaterialPullingModuleDebugView", 2)]
     public class WorkStation1MaterialPullingModule : BaseMechanism
     {
         #region Enums (轴点枚举定义)

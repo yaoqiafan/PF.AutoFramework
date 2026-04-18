@@ -13,16 +13,33 @@
         <conv:NullToVisibilityConverter x:Key="NullToVisibility"/>
 
         <!-- Fatal → 红底粗体；Error → 橙底；Warning → 黄底 -->
-        <Style x:Key="SeverityRowStyle" TargetType="DataGridRow">
+        <Style x:Key="SeverityCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource DataGridCellStyle}">
+            <Setter Property="Foreground" Value="Black"></Setter>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding SeverityDisplay}" Value="致命">
                     <Setter Property="Background" Value="#FFCCCC"/>
                     <Setter Property="FontWeight" Value="Bold"/>
                 </DataTrigger>
-                <DataTrigger Binding="{Binding SeverityDisplay}" Value="错误">
+                <DataTrigger Binding="{Binding  SeverityDisplay}" Value="错误">
                     <Setter Property="Background" Value="#FFE0CC"/>
                 </DataTrigger>
-                <DataTrigger Binding="{Binding SeverityDisplay}" Value="警告">
+                <DataTrigger Binding="{Binding  SeverityDisplay}" Value="警告">
+                    <Setter Property="Background" Value="#FFF9CC"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SeverityRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource DataGridRowStyle}">
+            <Setter Property="Foreground" Value="Black"></Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SeverityDisplay}" Value="致命">
+                    <Setter Property="Background" Value="#FFCCCC"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding  SeverityDisplay}" Value="错误">
+                    <Setter Property="Background" Value="#FFE0CC"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding  SeverityDisplay}" Value="警告">
                     <Setter Property="Background" Value="#FFF9CC"/>
                 </DataTrigger>
             </Style.Triggers>
@@ -82,23 +99,25 @@
                               SelectionMode="Single"
                               CanUserAddRows="False"
                               GridLinesVisibility="Horizontal"
+                              Foreground="Black"
                               HeadersVisibility="Column"
-                              RowStyle="{StaticResource SeverityRowStyle}">
+                              CellStyle="{StaticResource SeverityCellStyle}" 
+                               RowStyle="{StaticResource SeverityRowStyle}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="级别"   Binding="{Binding SeverityDisplay}" Width="58"/>
-                            <DataGridTextColumn Header="分类"   Binding="{Binding Category}"        Width="80"/>
-                            <DataGridTextColumn Header="代码"   Binding="{Binding ErrorCode}"       Width="110"/>
-                            <DataGridTextColumn Header="来源"   Binding="{Binding Source}"          Width="120"/>
+                            <DataGridTextColumn Header="级别"   Binding="{Binding SeverityDisplay}" Width="auto"/>
+                            <DataGridTextColumn Header="分类"   Binding="{Binding Category}"        Width="auto"/>
+                            <DataGridTextColumn Header="代码"   Binding="{Binding ErrorCode}"       Width="auto"/>
+                            <DataGridTextColumn Header="来源"   Binding="{Binding Source}"          Width="auto"/>
                             <DataGridTextColumn Header="描述"   Binding="{Binding Message}"         Width="*"/>
                             <DataGridTextColumn Header="触发时间"
                                                 Binding="{Binding TriggerTime, StringFormat='yyyy-MM-dd HH:mm:ss'}"
-                                                Width="145"/>
+                                                Width="auto"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </GroupBox>
 
-            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#DDD"/>
+            
 
             <!-- 右：SOP 排故看板 -->
             <GroupBox Grid.Column="2" Header="📋 排故指导 SOP" Padding="4">
@@ -141,7 +160,7 @@
             </GroupBox>
         </Grid>
 
-        <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="#DDD"/>
+      
 
         <!-- ════════════════════ 下半区：历史查询 ════════════════════ -->
         <GroupBox Grid.Row="2" Header="📜 历史报警查询" Padding="4">
@@ -177,14 +196,16 @@
                           IsReadOnly="True"
                           SelectionMode="Single"
                           CanUserAddRows="False"
+                           Foreground="Black"
                           GridLinesVisibility="Horizontal"
                           HeadersVisibility="Column"
-                          RowStyle="{StaticResource SeverityRowStyle}">
+                            CellStyle="{StaticResource SeverityCellStyle}" 
+   RowStyle="{StaticResource SeverityRowStyle}"> 
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="级别"   Binding="{Binding SeverityDisplay}" Width="58"/>
-                        <DataGridTextColumn Header="分类"   Binding="{Binding Category}"        Width="80"/>
-                        <DataGridTextColumn Header="代码"   Binding="{Binding ErrorCode}"       Width="110"/>
-                        <DataGridTextColumn Header="来源"   Binding="{Binding Source}"          Width="120"/>
+                        <DataGridTextColumn Header="级别"   Binding="{Binding SeverityDisplay}" Width="auto"/>
+                        <DataGridTextColumn Header="分类"   Binding="{Binding Category}"        Width="auto"/>
+                        <DataGridTextColumn Header="代码"   Binding="{Binding ErrorCode}"       Width="auto"/>
+                        <DataGridTextColumn Header="来源"   Binding="{Binding Source}"          Width="auto"/>
                         <DataGridTextColumn Header="描述"   Binding="{Binding Message}"         Width="*"/>
                         <DataGridTextColumn Header="触发时间"
                                             Binding="{Binding TriggerTime, StringFormat='yyyy-MM-dd HH:mm:ss'}"
@@ -192,7 +213,7 @@
                         <DataGridTextColumn Header="清除时间"
                                             Binding="{Binding ClearTime, StringFormat='yyyy-MM-dd HH:mm:ss'}"
                                             Width="145"/>
-                        <DataGridCheckBoxColumn Header="活跃" Binding="{Binding IsActive}" Width="50"/>
+                        <DataGridCheckBoxColumn Header="活跃" Binding="{Binding IsActive}" Width="auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

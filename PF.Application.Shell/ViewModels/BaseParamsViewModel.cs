@@ -14,7 +14,7 @@ namespace PF.Application.Shell.ViewModels
     /// <summary>
     /// ViewModelBase 视图模型
     /// </summary>
-    public class BaseParamsViewModel : ViewModelBase
+    public class BaseParamsViewModel : RegionViewModelBase
     {
         private readonly CommonSettings _commonSettings;
         /// <summary>

@@ -5,7 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.Debug.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="clr-namespace:PF.Modules.Debug.Models"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
@@ -21,23 +20,65 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" CornerRadius="5">
-                <TreeView
-                    BorderThickness="3"
-                    ItemsSource="{Binding TreeNodes}"
-                    SelectedItemChanged="TreeView_SelectedItemChanged"
-                    Style="{StaticResource TreeView.Small}">
-                    <TreeView.ItemTemplate>
-                        <HierarchicalDataTemplate DataType="{x:Type models:DebugTreeNode}" ItemsSource="{Binding Children}">
-                            <StackPanel Margin="0,4" Orientation="Horizontal">
-                                <TextBlock
-                                    VerticalAlignment="Center"
-                                    FontSize="{DynamicResource FontSize.Body.Standard}"
-                                    Text="{Binding NodeName}" />
-                            </StackPanel>
-                        </HierarchicalDataTemplate>
-                    </TreeView.ItemTemplate>
-                </TreeView>
+            <Border Grid.Column="0" CornerRadius="5"
+                    Background="{DynamicResource RegionBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="3">
+                <DockPanel>
+                    <TextBlock Margin="12,12,12,4"
+                               DockPanel.Dock="Top"
+                               FontSize="{DynamicResource FontSize.H1.Large}"
+                               FontWeight="SemiBold"
+                               Text="模组调试" />
+
+                    <ListBox Margin="4,0,4,4"
+                             Background="Transparent"
+                             BorderBrush="{DynamicResource TextIconBrush}"
+                             BorderThickness="1"
+                             ItemsSource="{Binding NavItems}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="10,8"
+                                        Background="{DynamicResource ThirdlyRegionColorBrush}"
+                                        CornerRadius="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!--  状态指示点  -->
+                                        <Ellipse Grid.Column="0"
+                                                 Width="8" Height="8"
+                                                 Margin="0,0,8,0"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding StateBrush}" />
+
+                                        <!--  模组名称  -->
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12"
+                                                   FontWeight="Medium"
+                                                   Foreground="{DynamicResource PrimaryTextColorBrush}"
+                                                   Text="{Binding Title}" />
+
+                                        <!--  状态标签  -->
+                                        <TextBlock Grid.Column="2"
+                                                   Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding StateBrush}"
+                                                   Text="{Binding StateText}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
             </Border>
 
             <Border Grid.Column="2" CornerRadius="5">
@@ -45,7 +86,7 @@
                     <ContentControl.Style>
                         <Style TargetType="ContentControl">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedNode}" Value="{x:Null}">
+                                <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ContentControl">
