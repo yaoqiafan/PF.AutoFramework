@@ -40,7 +40,6 @@
     <Project Path="PF.WorkStation.AutoOcr/PF.WorkStation.AutoOcr.csproj" Id="86c74a6e-a9ed-4e80-8d16-3bea9662dc85" />
   </Folder>
   <Folder Name="/08.External Services(外部服务)/">
-    <Project Path="ConsoleApp1/ConsoleApp1.csproj" Id="e29412e5-ad25-494b-95b5-905045aaf9d7" />
     <Project Path="PF.SecsGem.Service/PF.SecsGem.Service.csproj" Id="e5f18463-ab25-4308-9e0d-05911d98a7d8" />
   </Folder>
   <Folder Name="/09.MetaPackage (元包)/">
