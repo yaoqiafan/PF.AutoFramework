@@ -20,6 +20,12 @@ namespace PF.Infrastructure.Mechanisms
         public bool IsInitialized { get; protected set; }
         public bool HasAlarm { get; protected set; }
 
+        /// <summary>
+        /// 暂停感知委托：由工站层注入。当轴运动等待循环检测到轴停止但未到位时调用。
+        /// 若工站处于暂停状态，此委托会挂起直到恢复后返回 true；非暂停时立即返回 false。
+        /// </summary>
+        public Func<CancellationToken, Task<bool>>? PauseCheckAsync { get; set; }
+
         // 实现接口事件
         public event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
         public event EventHandler AlarmAutoCleared;
@@ -207,7 +213,6 @@ namespace PF.Infrastructure.Mechanisms
             {
                 while (true)
                 {
-                    // 修复 3：建议将轮询间隔稍微拉长，50ms 通常对机械轴运动来说足够灵敏
                     await Task.Delay(50, linked.Token).ConfigureAwait(false);
 
                     var status = axis.AxisIOStatus;
@@ -215,6 +220,14 @@ namespace PF.Infrastructure.Mechanisms
                     {
                         _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 运动完成");
                         return true;
+                    }
+
+                    // 轴已停止但未到达目标（被工站暂停指令减速停止）
+                    if (status != null && !status.MoveDone && !status.Moving && PauseCheckAsync != null)
+                    {
+                        bool wasPaused = await PauseCheckAsync(linked.Token).ConfigureAwait(false);
+                        if (wasPaused)
+                            return false;  // 暂停恢复后信号：由调用方重新发起运动
                     }
                 }
             }
@@ -351,7 +364,19 @@ namespace PF.Infrastructure.Mechanisms
             if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
                 return false;
 
-            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+            bool success = await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+            if (success) return true;
+
+            // 运动未完成且存在暂停感知 → 暂停恢复后重新发起运动
+            if (PauseCheckAsync != null && !token.IsCancellationRequested)
+            {
+                _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 暂停恢复，重新移动到 [{pointName}]");
+                if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
+                    return false;
+                return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+            }
+
+            return false;
         }
 
         /// <summary>

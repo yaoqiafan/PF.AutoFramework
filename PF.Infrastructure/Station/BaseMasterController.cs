@@ -68,9 +68,9 @@ namespace PF.Infrastructure.Station
         public event EventHandler<MachineState> MasterStateChanged;
 
         /// <summary>
-        /// 当主控或子工站触发真实报警时触发（已过滤联锁同步占位报警）
+        /// 当主控或子工站触发真实报警时触发，携带硬件名、运行时消息等上下文。
         /// </summary>
-        public event EventHandler<string> MasterAlarmTriggered;
+        public event EventHandler<StationAlarmEventArgs> MasterAlarmTriggered;
 
         // 基础服务依赖
         protected readonly ILogService _logger;
@@ -97,6 +97,9 @@ namespace PF.Infrastructure.Station
         /// 决定复位成功后的去向（Uninitialized 还是 Idle）。
         /// </summary>
         private bool _masterCameFromInitAlarm = false;
+
+        /// <summary>指示主控当前报警来源是否为初始化阶段，供派生类在 OnAfterResetSuccess 中决定是否重置信号量。</summary>
+        protected bool MasterCameFromInitAlarm => _masterCameFromInitAlarm;
 
         /// <summary>
         /// 硬件复位请求委托：由外部框架（如 Prism EA）通过 <see cref="RegisterHardwareResetHandler(Action{HardwareResetRequest})"/> 注入，实现低耦合路由。
@@ -297,46 +300,46 @@ namespace PF.Infrastructure.Station
             var stationName = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
             var masterState = CurrentState;
 
-            _logger.Debug($"【主控】工站 [{stationName}] 状态: {e.OldState} -> {e.NewState}，主控当前={masterState}");
-
-            // 撕裂判定条件：主控认为在运行或暂停，且非主控主动意图下，子工站意外回落到 Uninitialized
+            // 撕裂判定：仅在意非预期地回落到 Uninitialized 的异常场景
             if (!_subStationStopsAreIntentional
                 && (masterState == MachineState.Running || masterState == MachineState.Paused)
                 && e.NewState == MachineState.Uninitialized
                 && e.OldState != MachineState.Resetting)
             {
-                _logger.Fatal($"【主控守卫】检测到状态撕裂！主控={masterState}，工站 [{stationName}] 意外从 {e.OldState} 跳回 Uninitialized。触发全线报警。");
+                _logger.Warn($"【主控守卫】检测到状态撕裂！主控={masterState}，工站 [{stationName}] 意外从 {e.OldState} 跳回 Uninitialized。触发全线报警。");
 
                 // 脱离调用栈上下文，防止与锁形成重入死锁
                 Task.Run(() =>
                 {
                     try
                     {
-                        _alarmService?.TriggerAlarm(stationName, AlarmCodes.System.StationSyncError);
                         Fire(MachineTrigger.Error);
                     }
                     catch (Exception ex)
                     {
-                        _logger.Fatal($"【主控守卫】切入报警状态失败: {ex.Message}");
+                        _logger.Error($"【主控守卫】切入报警状态失败: {ex.Message}");
                     }
                 });
             }
         }
 
         /// <summary>
-        /// 处理子工站真实硬件报警事件，并向全局报警服务汇报。
+        /// 处理子工站报警事件：写入 AlarmService 并触发主控状态跳转。
+        /// 工站同步异常（StationSyncError）为级联产生的兜底码，静默忽略。
         /// </summary>
-        private void OnSubStationAlarm(object sender, string errorCode)
+        private void OnSubStationAlarm(object sender, StationAlarmEventArgs e)
         {
-            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
-            _logger.Fatal($"【主控接收到子站报警】{source}: {errorCode}");
+            // 静默忽略：级联产生的兜底同步码，非真实根因报警
+            if (e.ErrorCode == AlarmCodes.System.StationSyncError)
+                return;
 
-            // UI 拦截墙：屏蔽被动联锁停机产生的兜底同步码，仅上报 Root Cause
-            if (errorCode != AlarmCodes.System.StationSyncError)
-            {
-                _alarmService?.TriggerAlarm(source, errorCode);
-                MasterAlarmTriggered?.Invoke(this, errorCode);
-            }
+            var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
+            _logger.Fatal($"【报警】{source} | {e.ErrorCode}" +
+                (e.HardwareName != null ? $" | 硬件:{e.HardwareName}" : "") +
+                (e.RuntimeMessage != null ? $" | {e.RuntimeMessage}" : ""));
+
+            _alarmService?.TriggerAlarm(source, e.ErrorCode, e.RuntimeMessage);
+            MasterAlarmTriggered?.Invoke(this, e);
 
             // 脱离调用栈，防止底层同步调用链引发死锁
             Task.Run(() =>

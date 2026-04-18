@@ -150,14 +150,13 @@ namespace PF.Application.Shell.ViewModels
 
         /// <summary>
         /// 报警触发回调（已由 ThreadOption.UIThread 派发到 UI 线程，无需手动 Dispatcher）：
-        /// - 所有级别 → Growl 气泡通知
-        /// - Fatal 级别 → 强制弹出阻断式对话框，要求操作员确认后复位
+        /// - 所有级别 → Growl 气泡通知（右上角）
+        /// - Error/Fatal → 弹出报警详情对话框
         /// </summary>
         private void OnGlobalAlarmTriggered(AlarmRecord record)
         {
-            // Growl 气泡通知（右上角）
-            //string growlMessage = $"[{record.SeverityDisplay}] {record.Source}: {record.Message}";
-
+            //// 1. Growl 气泡通知（所有级别，右上角快速提示）
+            //string growlMessage = $"[{record.Source}] {record.Message}";
             //switch (record.Severity)
             //{
             //    case AlarmSeverity.Fatal:
@@ -174,30 +173,12 @@ namespace PF.Application.Shell.ViewModels
             //        break;
             //}
 
-            //// Fatal 级别 → 阻断式系统对话框，强制操作员确认后方可复位
-            //if (record.Severity == AlarmSeverity.Fatal)
-            //{
-            //    var message =
-            //        $"【致命报警 — 必须处理】\n\n" +
-            //        $"来源：{record.Source}\n" +
-            //        $"代码：{record.ErrorCode}\n" +
-            //        $"描述：{record.Message}\n\n" +
-            //        $"排故指导：\n{record.Solution}\n\n" +
-            //        $"请按照排故指导处理故障后，点击【确认】执行复位。";
-
-            //    MessageService.ShowSystemMessage(
-            //        message,
-            //        "致命报警 — 需要处理",
-            //        System.Windows.MessageBoxButton.OK,
-            //        System.Windows.MessageBoxImage.Error);
-
-            //    // 用户点击确认后自动清除该来源的报警
-            //    _alarmService.ClearAlarm(record.Source);
-            //}
-
-
-            var param = new DialogParameters { { "Data", record } };
-            DialogService.Show(nameof(AlarmDetailCardView),param, null, nameof(PFAlarmBaseWindow));
+            // 2. Error 及以上级别弹出报警详情对话框
+            if (record.Severity >= AlarmSeverity.Error)
+            {
+                var param = new DialogParameters { { "Data", record } };
+                DialogService.Show(nameof(AlarmDetailCardView), param, null, nameof(PFAlarmBaseWindow));
+            }
         }
 
         #endregion

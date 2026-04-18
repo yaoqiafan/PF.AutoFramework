@@ -37,6 +37,13 @@ namespace PF.Core.Interfaces.Alarm
         /// <param name="errorCode">报警代码，必须引用 <c>AlarmCodes.*</c> 常量</param>
         void TriggerAlarm(string source, string errorCode);
 
+        /// <summary>
+        /// 触发报警（携带运行时消息）。
+        /// <paramref name="runtimeMessage"/> 非空时覆盖活跃报警的 Message 字段（如 "X轴位置偏差 3.5mm"），
+        /// 历史查询仍回落到字典静态描述（运行时消息不持久化）。
+        /// </summary>
+        void TriggerAlarm(string source, string errorCode, string? runtimeMessage);
+
         /// <summary>清除指定来源的所有活跃报警</summary>
         void ClearAlarm(string source);
 
