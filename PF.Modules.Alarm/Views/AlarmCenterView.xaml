@@ -4,9 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:PF.Modules.Alarm.ViewModels"
-             xmlns:conv="clr-namespace:PF.Modules.Alarm.Converters"
+             xmlns:conv="clr-namespace:PF.Modules.Alarm.Converters" 
+             xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:AlarmCenterViewModel}"
              d:DesignHeight="720" d:DesignWidth="1280">
 
     <UserControl.Resources>
@@ -45,8 +45,8 @@
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
-
-    <Grid Margin="4">
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="4">
         <Grid.RowDefinitions>
             <!-- 上：活跃报警 + SOP看板 -->
             <RowDefinition Height="*" MinHeight="200"/>
@@ -212,11 +212,12 @@
                                             Width="145"/>
                         <DataGridTextColumn Header="清除时间"
                                             Binding="{Binding ClearTime, StringFormat='yyyy-MM-dd HH:mm:ss'}"
-                                            Width="145"/>
+                                            Width="auto"/>
                         <DataGridCheckBoxColumn Header="活跃" Binding="{Binding IsActive}" Width="auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
         </GroupBox>
     </Grid>
+    </pf:TransitioningContentControl>
 </UserControl>
