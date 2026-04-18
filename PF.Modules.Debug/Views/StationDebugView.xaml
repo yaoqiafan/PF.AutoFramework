@@ -117,23 +117,19 @@
                         <Button
                             Margin="3"
                             HorizontalAlignment="Stretch"
-                            Command="{Binding StopAllCommand}"
-                            Content="⏹ 停止" />
-                        <Button
-                            Margin="3"
-                            HorizontalAlignment="Stretch"
                             Command="{Binding ResetAllCommand}"
                             Content="⟳ 复位" />
-
                     </UniformGrid>
+
 
                     <Button
                         Margin="3"
                         HorizontalAlignment="Stretch"
-                        Command="{Binding EmergencyStopCommand}"
-                        Content="⚠ 急停"
+                        Command="{Binding StopAllCommand}"
+                        Content="⏹ 停止"
                         DockPanel.Dock="Top"
                         Style="{DynamicResource ButtonWarning}" />
+
 
                     <Separator
                         Margin="8,6"

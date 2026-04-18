@@ -592,6 +592,19 @@ namespace PF.Application.Shell
                reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WorkStationSecsGemModule));
 
+            // ── 工位 2 机构层注册 ──
+            container.RegisterMany(
+                new[] { typeof(WorkStation2FeedingModule), typeof(IMechanism) },
+                typeof(WorkStation2FeedingModule),
+                reuse: DryIoc.Reuse.Singleton,
+                serviceKey: nameof(WorkStation2FeedingModule));
+
+            container.RegisterMany(
+                new[] { typeof(WorkStation2MaterialPullingModule), typeof(IMechanism) },
+                typeof(WorkStation2MaterialPullingModule),
+                reuse: DryIoc.Reuse.Singleton,
+                serviceKey: nameof(WorkStation2MaterialPullingModule));
+
             // 工站层
             container.RegisterMany(
                 new[] { typeof(WorkStation1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
@@ -612,6 +625,18 @@ namespace PF.Application.Shell
                new[] { typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
                typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>),
                reuse: DryIoc.Reuse.Singleton);
+
+            // ── 工位 2 工站层注册 ──
+            container.RegisterMany(
+                new[] { typeof(WorkStation2FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WorkStation2FeedingStation<StationMemoryBaseParam>),
+                reuse: DryIoc.Reuse.Singleton,
+                serviceKey: nameof(WorkStation2FeedingStation<StationMemoryBaseParam>));
+
+            container.RegisterMany(
+                new[] { typeof(WorkStation2MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WorkStation2MaterialPullingStation<StationMemoryBaseParam>),
+                reuse: DryIoc.Reuse.Singleton);
 
             // 主控调度器
             containerRegistry.RegisterSingleton<IMasterController, AutoOCRMachineController>();
@@ -763,6 +788,19 @@ namespace PF.Application.Shell
 
             var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
             if (!await workStationSecsGemModule.InitializeAsync())
+            {
+                return false;
+            }
+
+            // ── 工位 2 机构初始化 ──
+            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation2FeedingModule));
+            if (!await workStation2FeedingModule.InitializeAsync())
+            {
+                return false;
+            }
+
+            var workStation2MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation2MaterialPullingModule));
+            if (!await workStation2MaterialPullingModule.InitializeAsync())
             {
                 return false;
             }
