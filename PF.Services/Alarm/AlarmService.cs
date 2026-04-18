@@ -73,6 +73,10 @@ namespace PF.Services.Alarm
 
         /// <inheritdoc/>
         public void TriggerAlarm(string source, string errorCode)
+            => TriggerAlarm(source, errorCode, runtimeMessage: null);
+
+        /// <inheritdoc/>
+        public void TriggerAlarm(string source, string errorCode, string? runtimeMessage)
         {
             if (string.IsNullOrWhiteSpace(source))    throw new ArgumentNullException(nameof(source));
             if (string.IsNullOrWhiteSpace(errorCode)) throw new ArgumentNullException(nameof(errorCode));
@@ -91,7 +95,7 @@ namespace PF.Services.Alarm
                 TriggerTime = now,
                 IsActive    = true,
                 Category    = info.Category,
-                Message     = info.Message,
+                Message     = runtimeMessage ?? info.Message,  // 运行时消息优先
                 Severity    = info.Severity,
                 ImagePath   = info.ImagePath,
                 Solution    = info.Solution

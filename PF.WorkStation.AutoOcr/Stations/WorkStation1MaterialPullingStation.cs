@@ -131,7 +131,13 @@ namespace PF.WorkStation.AutoOcr.Stations
         private void _pullingModule_AlarmTriggered(object? sender, MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            RaiseAlarm(e.ErrorCode ?? AlarmCodes.System.StationSyncError);
+            RaiseAlarm(new StationAlarmEventArgs
+            {
+                ErrorCode = e.ErrorCode ?? AlarmCodes.System.StationSyncError,
+                RuntimeMessage = e.ErrorMessage,
+                HardwareName = e.HardwareName,
+                InternalException = e.InternalException
+            });
         }
 
         public override async Task ExecuteInitializeAsync(CancellationToken token)
@@ -176,8 +182,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (_pullingModule != null)
                     await _pullingModule.ResetAsync(token);
 
-                // 按生产者归属复位本工站作用域内的信号量
-                _sync.ResetScope(StationName);
+                // 仅初始化报警复位时重置信号量；运行期报警复位保留信号量以支持断点续跑
+                if (CameFromInitAlarm)
+                    _sync.ResetScope(StationName);
 
                 // ⚠️ 不重置 _currentStep！断点续跑的恢复节点已在 TriggerAlarm() 之前设定。
 
@@ -196,6 +203,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             if (_pullingModule != null)
                 await _pullingModule.StopAsync().ConfigureAwait(false);
+        }
+
+        protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
+        {
+            if (_pullingModule != null) yield return _pullingModule;
         }
 
         protected override Task ProcessDryRunLoopAsync(CancellationToken token)
@@ -490,61 +502,61 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1PullingStep.获取配方失败:
                         _logger.Error($"[{StationName}] 工位1配方参数为空，无法继续。请确认配方已正确下发后复位。");
                         _currentStep = Station1PullingStep.等待允许取料; // 致命数据异常，退回初始点重接
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid, "工位1配方参数为空");
                         break;
 
                     case Station1PullingStep.调整流道尺寸失败:
                         _logger.Error($"[{StationName}] 调整流道尺寸失败，当前配方尺寸要求：{_cachedRecipe?.WafeSize}");
                         _currentStep = Station1PullingStep.判断流道尺寸; // 偶发异常，原地重试
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, $"调整流道尺寸失败，配方要求:{_cachedRecipe?.WafeSize}");
                         break;
 
                     case Station1PullingStep.移动到取料位失败:
                         _logger.Error($"[{StationName}] Y轴移动到取料位失败，请检查伺服是否报警或超时。");
                         _currentStep = Station1PullingStep.移动到取料位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "Y轴移动到取料位失败");
                         break;
 
                     case Station1PullingStep.关闭夹爪失败:
                         _logger.Error($"[{StationName}] 关闭夹爪失败，未感应到气缸闭合信号。");
                         _currentStep = Station1PullingStep.关闭夹爪;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed, "关闭夹爪失败，未感应到闭合信号");
                         break;
 
                     case Station1PullingStep.检测到叠料异常:
                         _logger.Error($"[{StationName}] 检测到叠料！请人工干预检查料盒内物料状态。");
                         _currentStep = Station1PullingStep.检测叠料;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError, "检测到叠料异常");
                         break;
 
                     case Station1PullingStep.移动到检测位失败:
                         _logger.Error($"[{StationName}] 拉出至检测位失败，运动被中断。可能触发了【卡料】或【掉料】防呆！");
                         _currentStep = Station1PullingStep.移动到检测位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "拉出至检测位失败，运动被中断");
                         break;
 
                     case Station1PullingStep.送料到取料位失败:
                         _logger.Error($"[{StationName}] 推回至料盒失败，运动被中断。可能触发了防呆拦截！");
                         _currentStep = Station1PullingStep.送料到取料位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "推回至料盒失败，运动被中断");
                         break;
 
                     case Station1PullingStep.打开夹爪失败:
                         _logger.Error($"[{StationName}] 打开夹爪失败，请检查气缸与传感器信号。");
                         _currentStep = Station1PullingStep.打开夹爪;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationActuatorFailed, "打开夹爪失败");
                         break;
 
                     case Station1PullingStep.移动到待机位失败:
                         _logger.Error($"[{StationName}] Y 轴退回待机位失败，请检查伺服报警。");
                         _currentStep = Station1PullingStep.移动到待机位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "Y轴退回待机位失败");
                         break;
 
                     case Station1PullingStep.判断带片异常:
                         _logger.Error($"[{StationName}] 异常：退回安全位后，夹爪仍检测到带料（未能成功留在料盒中）。请人工排查。");
                         _currentStep = Station1PullingStep.判断带片;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError, "退回安全位后夹爪仍检测到带料");
                         break;
 
                         #endregion

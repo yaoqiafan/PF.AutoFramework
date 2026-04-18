@@ -5,13 +5,15 @@ using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using Stateless;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
 
 namespace PF.Infrastructure.Station.Basic
 {
@@ -98,8 +100,10 @@ namespace PF.Infrastructure.Station.Basic
 
         #region 2. 外部交互事件 (Events)
 
-        // 向上层（主控）抛出的报警事件（string = AlarmCodes.* 常量，非自由文本）
-        public event EventHandler<string> StationAlarmTriggered;
+        /// <summary>
+        /// 向上层（主控）抛出的报警事件，携带 ErrorCode + RuntimeMessage + HardwareName 等上下文。
+        /// </summary>
+        public event EventHandler<StationAlarmEventArgs> StationAlarmTriggered;
 
         /// <summary>
         /// 工站内所有机构均已自恢复（硬件清警）时触发，通知主控可主动清除 AlarmService 对应记录。
@@ -133,6 +137,10 @@ namespace PF.Infrastructure.Station.Basic
         // Paused.OnEntry 替换为新建未完成 TCS（关门），Paused.OnExit / Alarm.OnEntry 调用 TrySetResult(true)（开门）。
         private volatile TaskCompletionSource<bool> _pauseGate;
 
+        // 暂停状态标记：Pause 时置 true，Resume 时置 false。
+        // BaseMechanism.WaitAxisMoveDoneAsync 通过 PauseCheckAsync 委托间接读取此标记。
+        private volatile bool _isPaused = false;
+
         // 标记当前业务线程是被"外部报警"打断（true），还是"正常停止"打断（false）。
         // volatile 确保多线程可见性：TriggerAlarm 在状态机线程写入，ProcessWrapperAsync 在业务线程读取。
         private volatile bool _alarmInterrupted = false;
@@ -147,9 +155,16 @@ namespace PF.Infrastructure.Station.Basic
         // 用状态本身替代旧 _initializationFailed 布尔标记，语义更清晰。
         private bool _cameFromInitAlarm = false;
 
+        /// <summary>指示当前报警来源是否为初始化阶段（InitAlarm），供派生类在 ExecuteResetAsync 中决定是否重置信号量。</summary>
+        protected bool CameFromInitAlarm => _cameFromInitAlarm;
+
         // Stop/Pause 主动取消业务线程时置位，阻止 ProcessWrapperAsync 的 catch(Exception)
         // 将副作用异常（非 OCE）误判为报警。Reset in OnStartRunningAsync。
         private volatile bool _cancelledIntentionally = false;
+
+        // 丰富报警上下文：携带运行时错误详情（硬件名、运行时消息、原始异常）。
+        // 由 RaiseAlarm(StationAlarmEventArgs) 重载设置，InitAlarm/RunAlarm OnEntry 读取后重置。
+        private volatile StationAlarmEventArgs? _pendingAlarmContext;
 
         #endregion
 
@@ -207,7 +222,13 @@ namespace PF.Infrastructure.Station.Basic
             // 注意：凡触发进入 Running 的 Fire 调用（Start / Resume）均须使用 FireAsync。
             _machine.Configure(MachineState.Running)
                 .OnEntryAsync(OnStartRunningAsync)
-                .OnExit(OnStopRunning)
+                .OnExit(t =>
+                {
+                    // Pause 时不取消 _runCts — 任务仅挂起不销毁，恢复后从断点继续。
+                    // Stop / Error 时正常取消。
+                    if (t.Trigger != MachineTrigger.Pause)
+                        _runCts?.Cancel();
+                })
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)  // Stop → Uninitialized（物理停稳后再改状态）
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
@@ -217,9 +238,14 @@ namespace PF.Infrastructure.Station.Basic
                 .OnEntry(() =>
                     // 关门：新建未完成 TCS，业务线程在 CheckPauseAsync 处挂起（不占用线程）
                     _pauseGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously))
-                .OnExit(() =>
+                .OnExit(t =>
+                {
                     // 开门：完成当前 TCS，释放所有挂起在 CheckPauseAsync 的续体
-                    _pauseGate.TrySetResult(true))
+                    _pauseGate.TrySetResult(true);
+                    // Resume 时不取消 _runCts（任务继续）；Stop / Error 时取消。
+                    if (t.Trigger != MachineTrigger.Resume)
+                        _runCts?.Cancel();
+                })
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)  // Stop → Uninitialized
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
@@ -232,8 +258,10 @@ namespace PF.Infrastructure.Station.Basic
                     // 开门：防止 Paused → InitAlarm 时业务续体永久阻塞
                     _pauseGate.TrySetResult(true);
                     var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
+                    var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
                     _pendingAlarmCode = null;
-                    StationAlarmTriggered?.Invoke(this, code);
+                    _pendingAlarmContext = null;
+                    StationAlarmTriggered?.Invoke(this, context);
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
@@ -244,8 +272,10 @@ namespace PF.Infrastructure.Station.Basic
                     _cameFromInitAlarm = false;
                     _pauseGate.TrySetResult(true);
                     var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
+                    var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
                     _pendingAlarmCode = null;
-                    StationAlarmTriggered?.Invoke(this, code);
+                    _pendingAlarmContext = null;
+                    StationAlarmTriggered?.Invoke(this, context);
                 })
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
@@ -287,24 +317,32 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         private Task OnStartRunningAsync()
         {
+            // Resume 场景：旧任务仍存活（暂停中），复用它而非新建
+            if (_workflowTask is { IsCompleted: false })
+            {
+                return Task.CompletedTask;
+            }
+
+            // Start 场景：新建 CTS 和任务
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
+            _isPaused = false;
             _alarmInterrupted = false;
             _cancelledIntentionally = false;
+
+            // 向所有模组注入暂停感知委托
+            var pauseCheck = CreatePauseCheckDelegate();
+            foreach (var m in GetMechanisms())
+                m.PauseCheckAsync = pauseCheck;
+
             _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token));
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// Running 状态同步出口：仅发出取消信号。
-        /// 不在此处等待任务结束——OnStopRunning 在 _stateLock 持有期间被调用，
-        /// 若同时等待可能阻塞后台任务调用 Fire(Error) 时的加锁请求，造成死锁。
-        /// 任务的彻底终止由下次 OnStartRunningAsync 的 await _workflowTask 保证。
+        /// Running 状态出口逻辑已内联至状态机配置（OnExit lambda），
+        /// 按触发条件区分：Pause 不取消 _runCts，Stop/Error 正常取消。
         /// </summary>
-        private void OnStopRunning()
-        {
-            _runCts?.Cancel();
-        }
 
         /// <summary>
         /// 内部包装器，负责全局的异常捕获，防止子线程崩溃导致程序闪退
@@ -375,7 +413,10 @@ namespace PF.Infrastructure.Station.Basic
         public void Pause()
         {
             _cancelledIntentionally = true;
+            _isPaused = true;
             Fire(MachineTrigger.Pause);
+            // 物理减速停止所有轴（异步不阻塞状态机）
+            _ = OnPhysicalPauseAsync();
         }
 
         /// <summary>
@@ -400,7 +441,9 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         public async Task ResumeAsync()
         {
-            await CancelAndAwaitOldTaskAsync().ConfigureAwait(false);
+            _isPaused = false;
+            // Resume 不取消旧任务、不重建任务 — 仅触发状态跳转让 pauseGate 开门，
+            // 旧业务线程从断点继续执行。
             await FireAsync(MachineTrigger.Resume);
         }
 
@@ -470,6 +513,31 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         protected virtual Task OnPhysicalStopAsync() => Task.CompletedTask;
 
+        /// <summary>
+        /// 暂停时物理减速停止所有轴。默认委托给 OnPhysicalStopAsync。
+        /// 子类若需区分暂停制动与停止制动的行为可单独重写。
+        /// </summary>
+        protected virtual Task OnPhysicalPauseAsync() => OnPhysicalStopAsync();
+
+        /// <summary>
+        /// 返回本工站所有模组实例，供基站在启动时注入暂停感知委托。
+        /// 派生工站必须重写此方法以暴露其内部模组。
+        /// </summary>
+        protected virtual IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
+            => Enumerable.Empty<PF.Infrastructure.Mechanisms.BaseMechanism>();
+
+        /// <summary>
+        /// 创建暂停感知委托，注入到所有模组的 PauseCheckAsync 属性。
+        /// 若工站处于暂停状态，调用时会挂起直到恢复后返回 true；非暂停时立即返回 false。
+        /// </summary>
+        private Func<CancellationToken, Task<bool>> CreatePauseCheckDelegate() => async token =>
+        {
+            if (!_isPaused) return false;
+            // 挂起直到 Resume 触发 pauseGate 开门
+            await CheckPauseAsync(token).ConfigureAwait(false);
+            return true;
+        };
+
         #endregion
 
         #region 7. 报警与复位控制 (Alarm & Reset Control)
@@ -499,6 +567,19 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
+        /// 携带报警码 + 运行时描述的外部触发重载。
+        /// <paramref name="runtimeMessage"/> 将覆盖弹窗的报警描述文字（如"Z轴运动超时"）。
+        /// </summary>
+        public void TriggerAlarm(string errorCode, string? runtimeMessage)
+        {
+            _pendingAlarmCode = errorCode;
+            _pendingAlarmContext = runtimeMessage != null
+                ? new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage }
+                : null;
+            TriggerAlarm();
+        }
+
+        /// <summary>
         /// 业务代码报警入口（供子类工艺循环内调用）。
         /// 设置精确报警码后立即触发报警流程——取消当前业务线程并切换至 Alarm 状态。
         /// </summary>
@@ -506,6 +587,30 @@ namespace PF.Infrastructure.Station.Basic
         {
             if (_cancelledIntentionally) return;
             _pendingAlarmCode = errorCode;
+            TriggerAlarm();
+        }
+
+        /// <summary>
+        /// 携带报警码 + 运行时描述的业务报警入口（推荐）。
+        /// <paramref name="runtimeMessage"/> 将覆盖弹窗的报警描述文字（如"Z轴运动超时"）。
+        /// </summary>
+        protected void RaiseAlarm(string errorCode, string runtimeMessage)
+        {
+            if (_cancelledIntentionally) return;
+            _pendingAlarmCode = errorCode;
+            _pendingAlarmContext = new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage };
+            TriggerAlarm();
+        }
+
+        /// <summary>
+        /// 携带丰富上下文的报警入口（推荐用于模组报警传播）。
+        /// 保留 HardwareName、RuntimeMessage 等信息，避免在上层丢失运行时详情。
+        /// </summary>
+        protected void RaiseAlarm(StationAlarmEventArgs context)
+        {
+            if (_cancelledIntentionally) return;
+            _pendingAlarmCode = context.ErrorCode;
+            _pendingAlarmContext = context;
             TriggerAlarm();
         }
 

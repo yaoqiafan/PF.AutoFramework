@@ -187,22 +187,6 @@
                                     Content="⚡ 手动触发报警"
                                     Style="{DynamicResource ButtonDashedDanger}"
                                     ToolTip="模拟触发报警状态（仅用于调试测试）" />
-                                <Button
-                                    Height="40"
-                                    Margin="3"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding TriggerTestAlarmCommand}"
-                                    Content="🔔 触发测试报警"
-                                    Style="{DynamicResource ButtonDashedDanger}"
-                                    ToolTip="向 AlarmService 注入测试报警（复合键链路 + 历史落盘验证）" />
-                                <Button
-                                    Height="40"
-                                    Margin="3"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding ClearTestAlarmCommand}"
-                                    Content="✓ 清除测试报警"
-                                    Style="{DynamicResource ButtonInfo}"
-                                    ToolTip="清除本工站所有活跃报警，并触发 HardwareResetRequestedEvent 广播" />
                             </UniformGrid>
                         </pf:Card>
 

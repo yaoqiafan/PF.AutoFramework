@@ -163,10 +163,16 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// </summary>
         protected override void OnAfterResetSuccess()
         {
-            _logger.Info("【Demo机台主控】各工站物理复位完毕，正在重置 global 作用域信号量...");
-
-            // 仅重置全局作用域的信号池，确保复位后不会因为上一模残存的按钮信号导致意外启动
-            _sync.ResetScope("global");
+            // 仅初始化报警复位时重置全局信号量；运行期报警复位保留信号量以支持断点续跑
+            if (MasterCameFromInitAlarm)
+            {
+                _logger.Info("【Demo机台主控】初始化报警复位，重置 global 作用域信号量...");
+                _sync.ResetScope("global");
+            }
+            else
+            {
+                _logger.Info("【Demo机台主控】运行期报警复位，保留信号量以支持断点续跑。");
+            }
         }
 
         #endregion

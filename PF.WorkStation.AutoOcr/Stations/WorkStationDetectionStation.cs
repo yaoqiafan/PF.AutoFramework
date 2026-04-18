@@ -113,7 +113,13 @@ namespace PF.WorkStation.AutoOcr.Stations
         private void OnMechanismAlarm(object? sender, MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            RaiseAlarm(e.ErrorCode ?? AlarmCodes.System.StationSyncError);
+            RaiseAlarm(new StationAlarmEventArgs
+            {
+                ErrorCode = e.ErrorCode ?? AlarmCodes.System.StationSyncError,
+                RuntimeMessage = e.ErrorMessage,
+                HardwareName = e.HardwareName,
+                InternalException = e.InternalException
+            });
         }
 
         public override async Task ExecuteInitializeAsync(CancellationToken token)
@@ -174,7 +180,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (_detectionModule != null)
                     await _detectionModule.ResetAsync(token);
 
-                _sync.ResetScope(StationName);
+                // 仅初始化报警复位时重置信号量；运行期报警复位保留信号量以支持断点续跑
+                if (CameFromInitAlarm)
+                    _sync.ResetScope(StationName);
 
                 _logger.Success($"[{StationName}] 复位完成，将从步序 [{_currentStep}] 继续执行。");
                 await FireAsync(ResetCompletionTrigger);  // Resetting → Idle 或 Uninitialized
@@ -191,6 +199,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             if (_detectionModule != null)
                 await _detectionModule.StopAsync().ConfigureAwait(false);
+        }
+
+        protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
+        {
+            if (_detectionModule != null) yield return _detectionModule;
         }
 
         protected override Task ProcessDryRunLoopAsync(CancellationToken token)
@@ -236,7 +249,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             {
                                 _logger.Error($"[{StationName}] 等待任务池异常中断。错误信息: {doneTask.Exception?.InnerException?.Message}");
                                 _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
-                                TriggerAlarm();
+                                TriggerAlarm(AlarmCodesExtensions.Process.StationSignalTimeout, "等待工位检测信号任务池异常中断");
                                 break;
                             }
 
@@ -535,30 +548,30 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _currentStep = _currentworkSpace == E_WorkSpace.工位1
                             ? StationDetectionStep.去工位1检测位置
                             : StationDetectionStep.去工位2检测位置;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, $"龙门模组移动到{_currentworkSpace}检测位置失败");
                         break;
 
                     case StationDetectionStep.触发检测异常:
                         _logger.Error($"[{StationName}] 相机握手失败，光源或相机可能掉线。请复位，将重新尝试发指令。");
                         _currentStep = StationDetectionStep.触发检测;
-                        TriggerAlarm(AlarmCodesExtensions.Process.CameraTriggerFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.CameraTriggerFailed, "相机握手失败，光源或相机可能掉线");
                         break;
 
                     case StationDetectionStep.检测完成Z轴回安全位异常:
                         _logger.Error($"[{StationName}] 相机 Z 轴无法抬起！为避免下发通行证后拉料机构撞击相机，已将其紧急锁死。");
                         _currentStep = StationDetectionStep.检测完成Z轴回安全位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "相机Z轴无法抬起避位");
                         break;
 
                     case StationDetectionStep.写入检测数据异常:
                         _logger.Error($"[{StationName}] 本地磁盘存图或写入内存数据库失败。请复位重写，防止断档丢单。");
                         _currentStep = StationDetectionStep.写入检测数据;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataWriteFailed);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataWriteFailed, "检测数据写入失败");
                         break;
 
                     default:
                         _logger.Error($"[{StationName}] 状态机越界：步序 [{_currentStep}] 未定义。");
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationUnexpectedStep);
+                        TriggerAlarm(AlarmCodesExtensions.Process.StationUnexpectedStep, $"状态机越界，未定义步序[{_currentStep}]");
                         break;
 
                         #endregion

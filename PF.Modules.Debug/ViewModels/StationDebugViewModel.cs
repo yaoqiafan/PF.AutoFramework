@@ -1,6 +1,7 @@
 using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
+using PF.Core.Events;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station.Basic;
@@ -282,8 +283,10 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
-        private void OnMasterAlarmTriggered(object sender, string message) =>
-            LastAlarmMessage = message;
+        private void OnMasterAlarmTriggered(object sender, StationAlarmEventArgs e) =>
+            LastAlarmMessage = string.IsNullOrEmpty(e.RuntimeMessage)
+                ? e.ErrorCode
+                : $"{e.ErrorCode}: {e.RuntimeMessage}";
 
         private static void Log(Exception ex) =>
             System.Diagnostics.Debug.WriteLine($"[StationDebug] 指令执行失败: {ex.Message}");

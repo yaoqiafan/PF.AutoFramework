@@ -1,4 +1,5 @@
 ﻿using PF.Core.Enums;
+using PF.Core.Events;
 using PF.Core.Models;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,8 @@ namespace PF.Core.Interfaces.Station
         OperationMode CurrentMode { get; }
 
         event EventHandler<MachineState> MasterStateChanged;
-        event EventHandler<string> MasterAlarmTriggered;
+        /// <summary>丰富报警事件，携带硬件名、运行时消息等上下文</summary>
+        event EventHandler<StationAlarmEventArgs> MasterAlarmTriggered;
 
         Task InitializeAllAsync();
         Task StartAllAsync();
