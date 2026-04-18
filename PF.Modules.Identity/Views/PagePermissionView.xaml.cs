@@ -38,17 +38,15 @@ namespace PF.Modules.Identity.Views
         /// </summary>
         public bool Invert { get; set; }
 
+        /// <summary>将 Null/空值转换为 Visibility</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // 判断是否为 null 或者 空字符串
             bool isNullOrEmpty = value == null || (value is string str && string.IsNullOrWhiteSpace(str));
-
-            // 根据 Invert 属性决定最终的可见状态
             bool isVisible = Invert ? isNullOrEmpty : !isNullOrEmpty;
-
             return isVisible ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException("NullToVisibilityConverter 不支持反向转换。");
