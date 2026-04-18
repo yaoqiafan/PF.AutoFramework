@@ -9,7 +9,10 @@ namespace PF.SecsGem.DataBase
     /// </summary>
     public class GenericRepository<T> : IGenericRepository<T> where T : class, new()
     {
+        /// <summary>获取数据库上下文</summary>
         protected SecsGemDbContext Context { get; }
+
+        /// <summary>获取实体数据集</summary>
         protected DbSet<T> DbSet { get; }
 
         /// <summary>

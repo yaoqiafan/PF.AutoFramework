@@ -29,10 +29,7 @@ namespace PF.Modules.Identity.Converter
             "admin",
         };
 
-        /// <summary>
-        /// 当用户名属于受保护账号时返回 false（禁用按钮），否则返回 true（启用按钮）。
-        /// </summary>
-        /// <summary>判断用户名是否属于受保护账号</summary>
+        /// <summary>判断用户名是否属于受保护账号，属于时返回 false（禁用按钮），否则返回 true</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is not string userName) return true;
@@ -46,6 +43,7 @@ namespace PF.Modules.Identity.Converter
             return true;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotSupportedException($"{nameof(SystemUserToBoolConverter)} 不支持反向转换。");
     }
