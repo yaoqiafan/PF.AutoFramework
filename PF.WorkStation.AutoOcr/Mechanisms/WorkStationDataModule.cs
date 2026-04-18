@@ -478,7 +478,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="station">工站名</param>
         /// <param name="ocrtext">相机视觉工具返回的原始 OCR 字符串</param>
-        /// <returns>Item1: 校验是否成功；Item2: 匹配的晶圆实体</returns>
+        /// <returns>Item1: 校验是否成功；Item2: 匹配的晶圆实体</returns> 
+        /// <param name="token">取消令牌</param>
         public Task<(bool, WaferInfo)> CheckOcrTextAsync(E_WorkSpace station, string ocrtext, CancellationToken token = default)
         {
             WaferInfo info = null;
