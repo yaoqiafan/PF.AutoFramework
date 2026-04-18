@@ -21,6 +21,36 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
+            <!--  设备总控栏  -->
+            <Border Grid.Row="0" Margin="10,10,10,0" Padding="8"
+                    Background="{DynamicResource RegionBrush}"
+                    CornerRadius="5">
+                <DockPanel>
+                    <!--  左侧：状态指示  -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                        <Ellipse Width="10" Height="10" Margin="0,0,6,0"
+                                 Fill="{Binding StatusBrush}" />
+                        <TextBlock FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{Binding StatusBrush}"
+                                   Text="{Binding StatusText}" />
+                    </StackPanel>
+
+                    <!--  停止按钮：红色警告样式放最右  -->
+                    <Button DockPanel.Dock="Right" Margin="3,4,8,4"
+                            Content="⏹ 停止" MinWidth="80"
+                            Command="{Binding StopCommand}"
+                            Style="{DynamicResource ButtonWarning}" />
+
+                    <!--  控制按钮组  -->
+                    <UniformGrid Columns="4" Margin="8,4">
+                        <Button Margin="3" Content="初始化" Command="{Binding InitializeCommand}" />
+                        <Button Margin="3" Content="{Binding SmartStartText}" Command="{Binding SmartStartCommand}" />
+                        <Button Margin="3" Content="⏸ 暂停" Command="{Binding PauseCommand}" />
+                        <Button Margin="3" Content="⟳ 复位" Command="{Binding ResetCommand}" />
+                    </UniformGrid>
+                </DockPanel>
+            </Border>
+
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
