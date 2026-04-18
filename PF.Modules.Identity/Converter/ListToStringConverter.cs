@@ -19,6 +19,7 @@ namespace PF.Modules.Identity.Converter
             return string.Empty;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException($"{nameof(ListToStringConverter)} 不支持反向转换。");
     }

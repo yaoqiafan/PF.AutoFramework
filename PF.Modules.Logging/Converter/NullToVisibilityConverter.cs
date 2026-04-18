@@ -21,12 +21,12 @@ namespace PF.Modules.Logging.Converter
             return visible ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
     }
-
 
 
     /// <summary>
@@ -53,6 +53,7 @@ namespace PF.Modules.Logging.Converter
             return value.ToString();
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();

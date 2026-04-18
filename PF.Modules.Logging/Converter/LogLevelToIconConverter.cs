@@ -28,6 +28,7 @@ namespace PF.Modules.Logging.Converter
             return "📝";
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();

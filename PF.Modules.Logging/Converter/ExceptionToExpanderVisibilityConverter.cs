@@ -25,6 +25,7 @@ namespace PF.Modules.Logging.Converter
                 : Visibility.Collapsed;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
