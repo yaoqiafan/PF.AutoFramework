@@ -34,6 +34,7 @@ namespace PF.Modules.Identity.Views
     /// <summary>绑定代理，用于在 DataTemplate 中传递 DataContext</summary>
     public class BindingProxy : Freezable
     {
+        /// <summary>创建实例核心</summary>
         protected override Freezable CreateInstanceCore()
         {
             return new BindingProxy();
@@ -46,6 +47,7 @@ namespace PF.Modules.Identity.Views
             set { SetValue(DataProperty, value); }
         }
 
+        /// <summary>数据依赖属性</summary>
         public static readonly DependencyProperty DataProperty =
             DependencyProperty.Register("Data", typeof(object), typeof(BindingProxy), new UIPropertyMetadata(null));
     }

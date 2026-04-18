@@ -175,9 +175,10 @@ namespace PF.Infrastructure.SecsGem.Incentive
         {
             try
             {
+                //首位为0x00表示为secsgem消息0x01表示为系统返回信息
                 var data1 = e.Data;
 
-                /**首位为0x00表示为secsgem消息0x01表示为系统返回信息***/
+
                 //解析到为SECSGem消息
                 if (data1[0] == 0x00)
                 {

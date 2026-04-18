@@ -7,11 +7,11 @@ namespace PF.Modules.Parameter.ViewModels.Models
     public class BooleanParamView:BindableBase
     {
         private bool _Value;
+        /// <summary>获取或设置布尔值</summary>
         [DefaultSettingValue("")]
         [CategoryAttribute("参数属性")]
         [DisplayNameAttribute("参数值")]
         [BrowsableAttribute(true)]
-        /// <summary>获取或设置布尔值</summary>
         public bool Value
         {
             get { return _Value; }
