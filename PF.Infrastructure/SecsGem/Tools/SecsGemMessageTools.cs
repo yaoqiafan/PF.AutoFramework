@@ -54,6 +54,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         }
 
 
+        /// <summary>创建二进制节点</summary>
         public static SecsGemNodeMessage CreateBinaryNode(byte[] value)
         {
             byte[] data = value;
@@ -66,6 +67,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建I4类型节点</summary>
         public static SecsGemNodeMessage CreateI4Node(int value)
         {
             byte[] data = BitConverter.GetBytes(value);
@@ -78,6 +80,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建U2类型节点</summary>
         public static SecsGemNodeMessage CreateU2Node(ushort value)
         {
             byte[] data = BitConverter.GetBytes(value);
@@ -90,6 +93,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建U4类型节点</summary>
         public static SecsGemNodeMessage CreateU4Node(uint value)
         {
             byte[] data = BitConverter.GetBytes(value);
@@ -102,6 +106,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建U8类型节点</summary>
         public static SecsGemNodeMessage CreateU8Node(ulong value)
         {
             byte[] data = BitConverter.GetBytes(value);
@@ -114,6 +119,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建F4类型节点</summary>
         public static SecsGemNodeMessage CreateF4Node(float value)
         {
             byte[] data = BitConverter.GetBytes(value);
@@ -126,6 +132,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建列表节点</summary>
         public static SecsGemNodeMessage CreateListNode(params SecsGemNodeMessage[] subNodes)
         {
             return new SecsGemNodeMessage
@@ -137,6 +144,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>创建指定长度列表节点</summary>
         public static SecsGemNodeMessage CreateListNode(int length)
         {
             return new SecsGemNodeMessage
@@ -153,6 +161,7 @@ namespace PF.Infrastructure.SecsGem.Tools
 
         private const int HeaderLength = 10;
 
+        /// <summary>生成SECS二进制数据</summary>
         public static  byte[] GenerateSecsBytes(SecsGemMessage secsMessage, byte[] deviced)
         {
             try
@@ -329,6 +338,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         #endregion  消息生成（Message对象 → 字节数组）
 
         #region 辅助方法
+        /// <summary>字节数组转十六进制字符串</summary>
         public static string ByteArrayToHexStringWithSeparator(byte[] bytes, string separator = " ", bool upperCase = true)
         {
             if (bytes == null || bytes.Length == 0)
@@ -367,6 +377,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         }
 
 
+        /// <summary>解析Stream/Function</summary>
         public static string[]? ParseSF(string input)
         {
             // 正则表达式匹配 S数字F数字 的格式

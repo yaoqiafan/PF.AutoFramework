@@ -77,7 +77,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="velocity">运动速度（工程单位，如 mm/s）</param>
         /// <param name="Acc">运动加速度（工程单位）</param>
         /// <param name="Dec">运动减速度（工程单位）</param>
-        ///  <param name="Dec">S段速度（工程单位）</param>
+        ///  <param name="STime">S段速度（工程单位）</param>
         /// <param name="token">取消令牌</param>
         Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 
@@ -87,7 +87,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="velocity">运动速度（工程单位，如 mm/s）</param>
         /// <param name="Acc">运动加速度（工程单位）</param>
         /// <param name="Dec">运动减速度（工程单位）</param>
-        ///  <param name="Dec">S段速度（工程单位）</param>
+        ///  <param name="STime">S段速度（工程单位）</param>
         /// <param name="token">取消令牌</param>
         Task<bool> MoveRelativeAsync(int axisIndex, double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);
 

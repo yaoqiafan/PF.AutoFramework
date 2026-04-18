@@ -9,6 +9,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
     /// </summary>
     public class EtherCatAxisParamViewMapper : ViewDataMapperBase
     {
+        /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
             if (viewInstance is EtherCatAxisParamView view && data is HardwareConfig config)
@@ -29,6 +30,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
             return false;
         }
 
+        /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
             if (viewInstance is EtherCatAxisParamView view)

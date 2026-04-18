@@ -18,12 +18,13 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     /// </summary>
     public class SecsConnectionViewModel : BindableBase
     {
-        private readonly ISecsGemManger _manager;
+        private readonly ISecsGemManager _manager;
         private readonly ISecsGemDataBase _db;
         private readonly SecsLogViewModel _log;
         private readonly DispatcherTimer _timer;
 
-        public SecsConnectionViewModel(ISecsGemManger manager, ISecsGemDataBase db, SecsLogViewModel log)
+        /// <summary>初始化实例</summary>
+        public SecsConnectionViewModel(ISecsGemManager manager, ISecsGemDataBase db, SecsLogViewModel log)
         {
             _manager = manager;
             _db      = db;
@@ -57,6 +58,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         // ── 连接状态属性 ───────────────────────────────────────────────────────
 
         private bool _isConnected;
+        /// <summary>获取或设置是否已连接</summary>
         public bool IsConnected
         {
             get => _isConnected;
@@ -71,6 +73,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private bool _isInitializing;
+        /// <summary>获取或设置是否正在初始化</summary>
         public bool IsInitializing
         {
             get => _isInitializing;
@@ -78,16 +81,20 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private bool _isConnecting;
+        /// <summary>获取或设置是否正在连接</summary>
         public bool IsConnecting
         {
             get => _isConnecting;
             set => SetProperty(ref _isConnecting, value);
         }
 
+        /// <summary>获取状态颜色</summary>
         public string StatusColor          => IsConnected ? "#4CAF50" : "#F44336";
+        /// <summary>获取连接状态文本</summary>
         public string ConnectionStatusText => IsConnected ? "已连接 (Connected)" : "未连接 (Disconnected)";
 
         private bool _isDbEmpty;
+        /// <summary>获取或设置数据库是否为空</summary>
         public bool IsDbEmpty
         {
             get => _isDbEmpty;
@@ -95,6 +102,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private string _dbEmptyMessage;
+        /// <summary>获取或设置数据库空库提示消息</summary>
         public string DbEmptyMessage
         {
             get => _dbEmptyMessage;
@@ -103,8 +111,11 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 命令 ───────────────────────────────────────────────────────────────
 
+        /// <summary>初始化命令</summary>
         public DelegateCommand InitializeCommand  { get; }
+        /// <summary>连接命令</summary>
         public DelegateCommand ConnectCommand     { get; }
+        /// <summary>断开连接命令</summary>
         public DelegateCommand DisconnectCommand  { get; }
 
         // ── 生命周期 ───────────────────────────────────────────────────────────
@@ -121,6 +132,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 数据库空库检测 ─────────────────────────────────────────────────────
 
+        /// <summary>检查数据库是否为空</summary>
         public async Task CheckDbEmptyAsync()
         {
             try

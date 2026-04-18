@@ -47,6 +47,7 @@ namespace PF.SecsGem.DataBase
         /// </summary>
         public DbSet<ResponseEntity> ResponseCommands { get; set; }
 
+        /// <summary>配置数据模型创建规则</summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -12,16 +12,19 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     /// </summary>
     public class SecsLogViewModel : BindableBase
     {
+        /// <summary>初始化实例</summary>
         public SecsLogViewModel()
         {
             ClearLogCommand = new DelegateCommand(() => TransactionLogs.Clear());
         }
 
         // ── 集合 ───────────────────────────────────────────────────────────────
+        /// <summary>获取通信日志集合</summary>
         public ObservableCollection<TransactionLogEntry> TransactionLogs { get; } = new();
 
         // ── 自动滚动 ───────────────────────────────────────────────────────────
         private bool _autoScrollLog = false;
+        /// <summary>获取或设置是否自动滚动日志</summary>
         public bool AutoScrollLog
         {
             get => _autoScrollLog;
@@ -29,6 +32,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         // ── 命令 ───────────────────────────────────────────────────────────────
+        /// <summary>清空日志命令</summary>
         public DelegateCommand ClearLogCommand { get; }
 
         // ── 写入方法 ───────────────────────────────────────────────────────────

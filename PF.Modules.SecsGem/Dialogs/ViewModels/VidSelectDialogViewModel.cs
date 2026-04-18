@@ -7,8 +7,10 @@ using System.Linq;
 
 namespace PF.Modules.SecsGem.Dialogs.ViewModels
 {
+    /// <summary>VID选择对话框视图模型</summary>
     public class VidSelectDialogViewModel : PFDialogViewModelBase
     {
+        /// <summary>初始化VID选择对话框</summary>
         public VidSelectDialogViewModel()
         {
             Title = "选择变量 (VID)";
@@ -23,9 +25,11 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // 属性
         // ──────────────────────────────────────────────
 
+        /// <summary>获取VID选项集合</summary>
         public ObservableCollection<VidDisplayItem> VidItems { get; }
 
         private VidDisplayItem _selectedVidItem;
+        /// <summary>获取或设置选中的VID项</summary>
         public VidDisplayItem SelectedVidItem
         {
             get => _selectedVidItem;
@@ -36,6 +40,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // 生命周期
         // ──────────────────────────────────────────────
 
+        /// <summary>对话框打开时调用</summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             var vids = parameters.GetValue<IEnumerable<VIDEntity>>("Vids");
@@ -72,15 +77,19 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // 辅助类
         // ──────────────────────────────────────────────
 
+        /// <summary>VID显示项</summary>
         public class VidDisplayItem
         {
+            /// <summary>初始化VID显示项</summary>
             public VidDisplayItem(VIDEntity entity)
             {
                 Entity = entity;
                 DisplayText = $"[{entity.Code}]  {entity.Comment}  ({entity.Type})  [{entity.Description}]";
             }
 
+            /// <summary>获取VID实体</summary>
             public VIDEntity Entity { get; }
+            /// <summary>获取显示文本</summary>
             public string DisplayText { get; }
         }
     }

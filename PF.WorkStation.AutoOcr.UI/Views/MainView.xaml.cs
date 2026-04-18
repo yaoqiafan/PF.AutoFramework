@@ -17,13 +17,14 @@ using System.Windows.Shapes;
 
 namespace PF.WorkStation.AutoOcr.UI.Views
 {
+    /// <summary>
+    /// MainView
+    /// </summary>
     [ModuleNavigation(NavigationConstants.Views.MainView, "主显界面", GroupIcon = "/PF.UI.Resources;component/Images/PNG/11.png",
        GroupName = "开始", Order = 1, GroupOrder = 0,
        Icon = "NailGeometry"
      )]
-    /// <summary>
-    /// MainView
-    /// </summary>
+
     public partial class MainView : UserControl
     {
         /// <summary>

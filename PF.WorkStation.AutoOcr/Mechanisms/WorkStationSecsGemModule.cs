@@ -48,7 +48,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     {
         #region Fields & Properties (依赖服务与核心状态)
 
-        private readonly ISecsGemManger _secsGemManger;
+        private readonly ISecsGemManager _secsGemManger;
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IContainerProvider _containerProvider;
         private readonly Infrastructure.Logging.CategoryLogger _secsGemlog;
@@ -88,7 +88,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public WorkStationSecsGemModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
-            ISecsGemManger secsGemManger,
+            ISecsGemManager secsGemManger,
             IRecipeService<OCRRecipeParam> recipeService,
             IContainerProvider containerProvider,
             ILogService logger)
@@ -144,7 +144,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Message Router (全局消息路由派发)
 
         /// <summary>
-        /// 全局 SECS/GEM 消息接收与派发中枢，订阅自 <see cref="ISecsGemManger.MessageReceived"/>。
+        /// 全局 SECS/GEM 消息接收与派发中枢，订阅自 <see cref="ISecsGemManager.MessageReceived"/>。
         /// </summary>
         private void SecsGemManger_MessageReceived(object? sender, SecsMessageReceivedEventArgs e)
         {

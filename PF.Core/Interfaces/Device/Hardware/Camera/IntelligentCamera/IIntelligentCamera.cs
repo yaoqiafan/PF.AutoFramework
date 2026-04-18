@@ -38,6 +38,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera
         /// 修改智能相机程序号
         /// </summary>
         /// <param name="ProgramNumber">程序号</param>
+        /// <param name="token">取消令牌</param>
         /// <returns></returns>
         Task<bool> ChangeProgram(object ProgramNumber, CancellationToken token = default);
 
@@ -53,6 +54,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera
         /// 判断相机程式是否存在
         /// </summary>
         /// <param name="programName"></param>
+        /// <param name="token">取消令牌</param>
         /// <returns></returns>
         Task<bool> DetermineProgramExits(object programName,CancellationToken token =default );
 

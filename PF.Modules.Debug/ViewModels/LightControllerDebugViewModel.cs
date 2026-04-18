@@ -111,6 +111,7 @@ namespace PF.Modules.Debug.ViewModels
 
         private int _lightValue1;
 
+        /// <summary>获取或设置光源通道1亮度值</summary>
         public int LightValue1
         {
             get => _lightValue1;
@@ -129,6 +130,7 @@ namespace PF.Modules.Debug.ViewModels
 
         private int _lightValue2;
 
+        /// <summary>获取或设置光源通道2亮度值</summary>
         public int LightValue2
         {
             get => _lightValue2;
@@ -148,6 +150,7 @@ namespace PF.Modules.Debug.ViewModels
 
         private int _lightValue3;
 
+        /// <summary>获取或设置光源通道3亮度值</summary>
         public int LightValue3
         {
             get => _lightValue3;
@@ -166,6 +169,7 @@ namespace PF.Modules.Debug.ViewModels
 
         private int _lightValue4;
 
+        /// <summary>获取或设置光源通道4亮度值</summary>
         public int LightValue4
         {
             get => _lightValue4;

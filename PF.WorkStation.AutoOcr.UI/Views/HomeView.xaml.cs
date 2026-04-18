@@ -16,14 +16,15 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace PF.WorkStation.AutoOcr.UI.Views
-{
+{ 
+    /// <summary>
+   /// HomeView
+   /// </summary>
     [ModuleNavigation(NavigationConstants.Views.HomeView, "运行",
         GroupName = "开始", Order = 2,
         Icon = "NailGeometry"
       )]
-    /// <summary>
-    /// HomeView
-    /// </summary>
+
     public partial class HomeView : UserControl
     {
         /// <summary>

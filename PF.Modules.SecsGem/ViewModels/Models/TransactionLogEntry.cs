@@ -8,6 +8,7 @@ namespace PF.Modules.SecsGem.ViewModels
     /// </summary>
     public class TransactionLogEntry
     {
+        /// <summary>时间戳</summary>
         public DateTime Timestamp { get; set; }
 
         /// <summary>
@@ -30,6 +31,7 @@ namespace PF.Modules.SecsGem.ViewModels
         /// </summary>
         public string SmlText { get; set; }
 
+        /// <summary>是否为接收消息</summary>
         public bool IsIncoming { get; set; }
 
         /// <summary>

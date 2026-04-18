@@ -198,18 +198,22 @@ namespace PF.Modules.Debug.ViewModels
     /// </summary>
     public class IOPortModel : BindableBase
     {
+        /// <summary>获取或设置IO端口索引</summary>
         public int Index { get; set; }
+        /// <summary>获取或设置端口名称</summary>
         public string PortName { get; set; }
+        /// <summary>获取或设置是否为输出端口</summary>
         public bool IsOutput { get; set; }
 
         private bool _state;
+        /// <summary>获取或设置端口状态</summary>
         public bool State
         {
             get => _state;
             set => SetProperty(ref _state, value);
         }
 
-        // 仅对于输出(DO)有效的切换命令
+        /// <summary>切换端口状态命令</summary>
         public DelegateCommand<IOPortModel> ToggleCommand { get; set; }
     }
 }

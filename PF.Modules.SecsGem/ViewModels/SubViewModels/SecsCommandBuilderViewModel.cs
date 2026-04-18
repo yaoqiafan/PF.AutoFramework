@@ -19,15 +19,16 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     /// </summary>
     public class SecsCommandBuilderViewModel : ViewModelBase
     {
-        private readonly ISecsGemManger _manager;
+        private readonly ISecsGemManager _manager;
         private readonly ISecsGemDataBase _db;
         private readonly SecsLogViewModel _log;
         private readonly SecsConnectionViewModel _connection;
 
         private SFCommand _currentCommand;
 
+        /// <summary>初始化实例</summary>
         public SecsCommandBuilderViewModel(
-            ISecsGemManger manager,
+            ISecsGemManager manager,
             ISecsGemDataBase db,
             SecsLogViewModel log,
             SecsConnectionViewModel connection)
@@ -62,21 +63,26 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         // ── 左侧命令树 ─────────────────────────────────────────────────────────
+        /// <summary>获取主动命令树</summary>
         public ObservableCollection<CommandGroupViewModel> IncentiveCommandsTree { get; }
+        /// <summary>获取应答命令树</summary>
         public ObservableCollection<CommandGroupViewModel> ResponseCommandsTree  { get; }
 
         // ── 中间报文编辑器 ─────────────────────────────────────────────────────
 
         private string _currentCommandHeader = "当前选中: (请从左侧选择命令)";
+        /// <summary>获取或设置当前命令头</summary>
         public string CurrentCommandHeader
         {
             get => _currentCommandHeader;
             set => SetProperty(ref _currentCommandHeader, value);
         }
 
+        /// <summary>获取当前消息节点集合</summary>
         public ObservableCollection<SecsNodeViewModel> CurrentMessageNodes { get; }
 
         private bool _waitReply = true;
+        /// <summary>获取或设置是否等待回复</summary>
         public bool WaitReply
         {
             get => _waitReply;
@@ -84,6 +90,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         private bool _isWBitWarningVisible;
+        /// <summary>获取或设置W位警告是否可见</summary>
         public bool IsWBitWarningVisible
         {
             get => _isWBitWarningVisible;
@@ -91,17 +98,26 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         }
 
         // ── 命令 ───────────────────────────────────────────────────────────────
+        /// <summary>导入命令命令</summary>
         public DelegateCommand ImportCommandsCommand  { get; }
+        /// <summary>导出命令命令</summary>
         public DelegateCommand ExportCommandsCommand  { get; }
+        /// <summary>重载命令命令</summary>
         public DelegateCommand ReloadCommandsCommand  { get; }
+        /// <summary>更新变量命令</summary>
         public DelegateCommand UpdateVariablesCommand { get; }
+        /// <summary>发送命令</summary>
         public DelegateCommand SendCommand            { get; }
+        /// <summary>保存报文命令</summary>
         public DelegateCommand SaveMessageCommand     { get; }
+        /// <summary>添加新命令命令</summary>
         public DelegateCommand AddNewCommandCommand   { get; }
+        /// <summary>选择命令叶节点命令</summary>
         public DelegateCommand<CommandLeafViewModel> SelectCommandLeafCommand { get; }
 
         // ── 命令树加载 ─────────────────────────────────────────────────────────
 
+        /// <summary>加载命令树</summary>
         public async Task LoadCommandTreesAsync()
         {
             try
@@ -155,6 +171,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 命令选中与叶子事件 ─────────────────────────────────────────────────
 
+        /// <summary>命令叶节点选中处理</summary>
         public void OnCommandLeafSelected(CommandLeafViewModel leaf)
         {
             if (leaf?.Command == null) return;

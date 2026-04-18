@@ -27,6 +27,7 @@ namespace PF.Core.Attributes
         /// <param name="message">描述</param>
         /// <param name="severity">严重程度</param>
         /// <param name="solution">排故指导 SOP</param>
+        /// <param name="imagePath">图片路径</param>
         public AlarmInfoAttribute(string category, string message, AlarmSeverity severity, string solution, string? imagePath=null)
         {
             Category = category;

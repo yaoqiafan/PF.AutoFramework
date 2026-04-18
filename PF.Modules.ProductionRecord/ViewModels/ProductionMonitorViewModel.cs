@@ -22,9 +22,11 @@ namespace PF.Modules.Production.ViewModels
         //  属性
         // ══════════════════════════════════════════════════════
 
+        /// <summary>获取最近的生产记录列表</summary>
         public ObservableCollection<ProductionRecord> RecentRecords { get; } = [];
 
         private string? _filterRecordType;
+        /// <summary>获取或设置过滤记录类型</summary>
         public string? FilterRecordType
         {
             get => _filterRecordType;
@@ -32,6 +34,7 @@ namespace PF.Modules.Production.ViewModels
         }
 
         private int _totalCount;
+        /// <summary>获取或设置总记录数</summary>
         public int TotalCount
         {
             get => _totalCount;
@@ -42,13 +45,16 @@ namespace PF.Modules.Production.ViewModels
         //  命令
         // ══════════════════════════════════════════════════════
 
+        /// <summary>清空记录命令</summary>
         public DelegateCommand ClearCommand { get; }
+        /// <summary>导出记录命令</summary>
         public DelegateCommand<string?> ExportCommand { get; }
 
         // ══════════════════════════════════════════════════════
         //  构造
         // ══════════════════════════════════════════════════════
 
+        /// <summary>初始化生产监控 ViewModel</summary>
         public ProductionMonitorViewModel()
         {
             _service = ServiceProvider.GetRequiredService<IProductionDataService>();
@@ -134,6 +140,7 @@ namespace PF.Modules.Production.ViewModels
         //  销毁
         // ══════════════════════════════════════════════════════
 
+        /// <summary>销毁 ViewModel 并取消事件订阅</summary>
         public override void Destroy()
         {
             _service.DataRecorded -= OnDataRecorded;

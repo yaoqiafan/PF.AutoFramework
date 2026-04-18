@@ -29,7 +29,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         // 核心修改：改用接口抽象，不依赖具体实现类
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
-        private readonly ISecsGemManger _secsGemManger;
+        private readonly ISecsGemManager _secsGemManger;
         private readonly IHardwareManagerService _hardwareManagerService;
         private readonly IIntelligentCamera _camera;
 
@@ -37,7 +37,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>
         /// OcrRecipeManageViewModel 构造函数
         /// </summary>
-        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService, ISecsGemManger secsGemManger, IHardwareManagerService hardwareManagerService)
+        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService, ISecsGemManager secsGemManger, IHardwareManagerService hardwareManagerService)
         {
             _recipeService = recipeService ?? throw new ArgumentNullException(nameof(recipeService));
             _secsGemManger = secsGemManger ?? throw new ArgumentNullException(nameof(secsGemManger));

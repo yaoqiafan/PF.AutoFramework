@@ -7,6 +7,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
     /// <summary>字符串参数视图映射器</summary>
     public class StringParamViewMapper : ViewDataMapperBase
     {
+        /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
             if (viewInstance is StringParamView stringView && data is string stringValue)
@@ -18,6 +19,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
             return false;
         }
 
+        /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
             if (viewInstance is StringParamView stringView)
@@ -35,6 +37,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
     /// <typeparam name="T">数值类型</typeparam>
     public class NumericParamViewMapper<T> : ViewDataMapperBase where T : struct
     {
+        /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
             // 使用反射获取泛型类型的Value属性
@@ -51,6 +54,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
             return false;
         }
 
+        /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
             var viewType = viewInstance.GetType();
@@ -64,6 +68,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
             return null;
         }
 
+        /// <summary>尝试自定义转换</summary>
         protected override bool TryCustomConversion(object target, PropertyInfo targetProp, object sourceValue)
         {
             // 处理数值类型的字符串转换
@@ -93,6 +98,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
     /// </summary>
     public class BooleanParamViewMapper : ViewDataMapperBase
     {
+        /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
             if (viewInstance is BooleanParamView boolView)
@@ -115,6 +121,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
             return false;
         }
 
+        /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
             if (viewInstance is BooleanParamView boolView)

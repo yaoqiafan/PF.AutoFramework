@@ -12,7 +12,7 @@ namespace PF.Infrastructure.SecsGem
     /// <summary>
     /// SecsGem管理器
     /// </summary>
-    public class SecsGemManger : Core.Interfaces.SecsGem.ISecsGemManger
+    public class SecsGemManger : Core.Interfaces.SecsGem.ISecsGemManager
     {
         private readonly IParams _paramManger;
         private readonly ICommandManager _commandManager;
@@ -247,7 +247,7 @@ namespace PF.Infrastructure.SecsGem
             GC.SuppressFinalize(this);
         }
 
-        // 析构函数
+        /// <summary>析构函数</summary>
         ~SecsGemManger()
         {
             Dispose(false);

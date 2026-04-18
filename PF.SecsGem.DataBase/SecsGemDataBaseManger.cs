@@ -96,6 +96,7 @@ namespace PF.SecsGem.DataBase
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>释放资源</summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)

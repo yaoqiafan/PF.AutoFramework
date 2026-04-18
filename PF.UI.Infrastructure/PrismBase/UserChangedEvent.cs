@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PF.Core.Entities.Identity;
 
 namespace PF.UI.Infrastructure.PrismBase
 {
-    using PF.Core.Entities.Identity;
-    using Prism.Events;
-
     /// <summary>
-    /// PubSubEvent<UserInfo?>
+    /// 用户改变事件
     /// </summary>
     public class UserChangedEvent : PubSubEvent<UserInfo?>
     {

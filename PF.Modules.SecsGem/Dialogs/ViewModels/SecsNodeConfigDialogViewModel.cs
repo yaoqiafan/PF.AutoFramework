@@ -9,10 +9,12 @@ using System.Windows;
 
 namespace PF.Modules.SecsGem.Dialogs.ViewModels
 {
+    /// <summary>Secs节点配置对话框视图模型</summary>
     public class SecsNodeConfigDialogViewModel : PFDialogViewModelBase
     {
         private IEnumerable<VIDEntity> _availableVids;
 
+        /// <summary>初始化Secs节点配置对话框</summary>
         public SecsNodeConfigDialogViewModel()
         {
             Title = "添加节点";
@@ -31,9 +33,11 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // 核心属性
         // ──────────────────────────────────────────────
 
+        /// <summary>获取数据类型选项集合</summary>
         public ObservableCollection<DataType> DataTypeOptions { get; }
 
         private DataType _selectedDataType = DataType.ASCII;
+        /// <summary>获取或设置选中的数据类型</summary>
         public DataType SelectedDataType
         {
             get => _selectedDataType;
@@ -53,6 +57,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private bool _isVariableNode;
+        /// <summary>获取或设置是否为变量节点</summary>
         public bool IsVariableNode
         {
             get => _isVariableNode;
@@ -67,6 +72,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private uint _variableCode;
+        /// <summary>获取或设置变量代码</summary>
         public uint VariableCode
         {
             get => _variableCode;
@@ -74,6 +80,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private string _variableDescription = string.Empty;
+        /// <summary>获取或设置变量描述</summary>
         public string VariableDescription
         {
             get => _variableDescription;
@@ -81,6 +88,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         }
 
         private string _value = string.Empty;
+        /// <summary>获取或设置值</summary>
         public string Value
         {
             get => _value;
@@ -91,15 +99,19 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // 计算可见性属性
         // ──────────────────────────────────────────────
 
+        /// <summary>获取是否可以绑定变量</summary>
         public bool CanBindVariable => _selectedDataType != DataType.LIST;
 
+        /// <summary>获取列表提示是否可见</summary>
         public Visibility IsListTipVisible =>
             _selectedDataType == DataType.LIST ? Visibility.Visible : Visibility.Collapsed;
 
+        /// <summary>获取变量面板是否可见</summary>
         public Visibility IsVariablePanelVisible =>
             (_isVariableNode && _selectedDataType != DataType.LIST)
                 ? Visibility.Visible : Visibility.Collapsed;
 
+        /// <summary>获取值输入区域是否可见</summary>
         public Visibility IsValueInputVisible =>
             (!_isVariableNode && _selectedDataType != DataType.LIST)
                 ? Visibility.Visible : Visibility.Collapsed;
@@ -108,12 +120,14 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         // 命令
         // ──────────────────────────────────────────────
 
+        /// <summary>选择VID命令</summary>
         public DelegateCommand SelectVidCommand { get; }
 
         // ──────────────────────────────────────────────
         // 生命周期
         // ──────────────────────────────────────────────
 
+        /// <summary>对话框打开时调用</summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             _availableVids = parameters.GetValue<IEnumerable<VIDEntity>>("Vids");

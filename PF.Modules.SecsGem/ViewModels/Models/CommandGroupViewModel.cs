@@ -14,6 +14,7 @@ namespace PF.Modules.SecsGem.ViewModels
     {
         private readonly ISFCommand _commandStore;
 
+        /// <summary>初始化实例</summary>
         public CommandGroupViewModel(uint stream, uint function, ISFCommand commandStore)
         {
             Stream = stream;
@@ -23,7 +24,9 @@ namespace PF.Modules.SecsGem.ViewModels
             AddCommandCommand = new DelegateCommand(ExecuteAddCommand);
         }
 
+        /// <summary>获取流编号</summary>
         public uint Stream { get; }
+        /// <summary>获取功能编号</summary>
         public uint Function { get; }
 
         /// <summary>
@@ -31,8 +34,10 @@ namespace PF.Modules.SecsGem.ViewModels
         /// </summary>
         public string GroupKey => $"S{Stream}F{Function}";
 
+        /// <summary>获取显示名称</summary>
         public string DisplayName => GroupKey;
 
+        /// <summary>获取子节点集合</summary>
         public ObservableCollection<CommandLeafViewModel> Children { get; }
 
         /// <summary>

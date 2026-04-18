@@ -73,12 +73,19 @@ namespace PF.Infrastructure.Station
         public event EventHandler<StationAlarmEventArgs> MasterAlarmTriggered;
 
         // 基础服务依赖
+        /// <summary>全局日志记录服务。</summary>
         protected readonly ILogService _logger;
+
+        /// <summary>底层硬件输入事件总线，用于监听物理按键等信号。</summary>
         protected readonly HardwareInputEventBus _hardwareEventBus;
+
+        /// <summary>已注册的受控子工站实例集合。</summary>
         protected readonly List<StationBase<StationMemoryBaseParam>> _subStations;
+
         private readonly IAlarmService? _alarmService;
 
         // 核心状态机
+        /// <summary>全局核心状态机实例，控制主控在各种运行状态之间的流转。</summary>
         protected readonly StateMachine<MachineState, MachineTrigger> _globalMachine;
 
         /// <summary>
@@ -113,6 +120,10 @@ namespace PF.Infrastructure.Station
         /// <summary>
         /// 实例化全局主控调度器
         /// </summary>
+        /// <param name="logger">日志服务实例。</param>
+        /// <param name="hardwareEventBus">硬件输入事件总线。</param>
+        /// <param name="subStations">需被调度的子工站集合。</param>
+        /// <param name="alarmService">全局报警处理服务（可选）。</param>
         protected BaseMasterController(
             ILogService logger,
             HardwareInputEventBus hardwareEventBus,
@@ -236,8 +247,9 @@ namespace PF.Infrastructure.Station
         #region Hardware Smart Routing (物理输入与智能路由)
 
         /// <summary>
-        /// 处理底层物理按键/信号的输入并路由到对应的状态指令
+        /// 处理底层物理按键/信号的输入并路由到对应的状态指令。
         /// </summary>
+        /// <param name="inputType">物理输入事件的类型（如 Start, Pause, Reset）。</param>
         protected virtual void OnHardwareInputReceived(string inputType)
         {
             switch (inputType)
@@ -369,12 +381,14 @@ namespace PF.Infrastructure.Station
 
         #region Global Core API (全局核心指令)
 
-        /// <summary>全线启动</summary>
+        /// <summary>触发全线子工站启动操作。</summary>
+        /// <returns>表示异步状态流转的任务。</returns>
         public async Task StartAllAsync() => await FireAsync(MachineTrigger.Start);
 
         /// <summary>
         /// 全线异步停止：并行等待所有子工站物理停稳后，主控退回未初始化状态。
         /// </summary>
+        /// <returns>表示异步停止与状态流转的任务。</returns>
         public async Task StopAllAsync()
         {
             _subStationStopsAreIntentional = true;
@@ -391,15 +405,18 @@ namespace PF.Infrastructure.Station
             await FireAsync(MachineTrigger.Stop);
         }
 
-        /// <summary>全线挂起暂停</summary>
+        /// <summary>全线挂起暂停当前所有的工作流程。</summary>
         public void PauseAll() => Fire(MachineTrigger.Pause);
 
-        /// <summary>全线恢复运行</summary>
+        /// <summary>触发全线子工站从暂停状态恢复运行。</summary>
+        /// <returns>表示异步恢复状态流转的任务。</returns>
         public async Task ResumeAllAsync() => await FireAsync(MachineTrigger.Resume);
 
         /// <summary>
         /// 切换设备运行模式（仅在待机状态允许切换）
         /// </summary>
+        /// <param name="mode">要设置的运行模式枚举值。</param>
+        /// <returns>如果状态允许且切换成功返回 true，否则返回 false。</returns>
         public bool SetMode(OperationMode mode)
         {
             if (CurrentState != MachineState.Idle) return false;
@@ -413,8 +430,9 @@ namespace PF.Infrastructure.Station
         }
 
         /// <summary>
-        /// 执行全线并发限流初始化
+        /// 执行全线并发限流初始化。
         /// </summary>
+        /// <returns>表示异步初始化操作的任务。</returns>
         public async Task InitializeAllAsync()
         {
             if (!CanFire(MachineTrigger.Initialize)) return;
@@ -448,8 +466,9 @@ namespace PF.Infrastructure.Station
         }
 
         /// <summary>
-        /// 执行全线并发限流硬件复位与清警
+        /// 执行全线并发限流硬件复位与清警。
         /// </summary>
+        /// <returns>表示异步复位操作的任务。</returns>
         public async Task ResetAllAsync()
         {
             if (!CanFire(MachineTrigger.Reset)) return;
@@ -515,6 +534,7 @@ namespace PF.Infrastructure.Station
         /// 精准机构级复位路由：按 Source 匹配异常工站并在后台单独执行清警复位。
         /// 通常响应 UI 端或事件聚合器发起的局部硬件复位请求。
         /// </summary>
+        /// <param name="request">包含受影响工站来源和错误代码集合的复位请求对象。</param>
         public virtual void OnHardwareResetRequested(HardwareResetRequest request)
         {
             if (request == null) return;

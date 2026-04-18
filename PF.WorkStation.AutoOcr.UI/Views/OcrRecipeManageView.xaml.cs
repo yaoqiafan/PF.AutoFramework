@@ -18,13 +18,14 @@ using System.Windows.Shapes;
 
 namespace PF.WorkStation.AutoOcr.UI.Views
 {
+    /// <summary>
+    /// OcrRecipeManageView
+    /// </summary>
     [ModuleNavigation(nameof(OcrRecipeManageView), "程式", GroupIcon = "/PF.UI.Resources;component/Images/PNG/10.png",
        GroupName = "程式管理", Order = 1, GroupOrder = 3,
        Icon = "NailGeometry"
      )]
-    /// <summary>
-    /// OcrRecipeManageView
-    /// </summary>
+    
     public partial class OcrRecipeManageView : UserControl
     {
         /// <summary>
@@ -35,14 +36,14 @@ namespace PF.WorkStation.AutoOcr.UI.Views
             InitializeComponent();
         }
     }
+
+
+
+
+
     /// <summary>
     /// StringListToStringConverter
     /// </summary>
-
-
-
-
-
     [ValueConversion(typeof(List<string>), typeof(string))]
     public class StringListToStringConverter : IValueConverter
     {
