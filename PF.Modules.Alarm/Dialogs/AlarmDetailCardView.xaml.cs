@@ -20,6 +20,7 @@ namespace PF.Modules.Alarm.Dialogs
     /// </summary>
     public partial class AlarmDetailCardView : UserControl
     {
+        /// <summary>初始化报警详情卡片视图</summary>
         public AlarmDetailCardView()
         {
             InitializeComponent();

@@ -23,6 +23,7 @@ namespace PF.Modules.Identity.Views
         NavigationParameter = "UserLoginParam")]
     public partial class UserManagementView : UserControl
     {
+        /// <summary>初始化用户管理视图</summary>
         public UserManagementView()
         {
             InitializeComponent();
@@ -30,6 +31,7 @@ namespace PF.Modules.Identity.Views
     }
 
 
+    /// <summary>绑定代理，用于在 DataTemplate 中传递 DataContext</summary>
     public class BindingProxy : Freezable
     {
         protected override Freezable CreateInstanceCore()
@@ -37,6 +39,7 @@ namespace PF.Modules.Identity.Views
             return new BindingProxy();
         }
 
+        /// <summary>获取或设置绑定的数据对象</summary>
         public object Data
         {
             get { return (object)GetValue(DataProperty); }

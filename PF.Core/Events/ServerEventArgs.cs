@@ -11,9 +11,14 @@ namespace PF.Core.Events
     /// </summary>
     public class ServerEventArgs : EventArgs
     {
+        /// <summary>消息内容</summary>
         public string Message { get; }
+        /// <summary>时间戳</summary>
         public DateTime Timestamp { get; }
 
+        /// <summary>
+        /// 初始化服务器事件参数
+        /// </summary>
         public ServerEventArgs(string message)
         {
             Message = message;

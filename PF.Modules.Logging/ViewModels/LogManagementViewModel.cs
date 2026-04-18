@@ -17,11 +17,13 @@ using PF.UI.Infrastructure.Dialog.Basic;
 
 namespace PF.Modules.Logging.ViewModels
 {
+    /// <summary>日志管理 ViewModel</summary>
     public class LogManagementViewModel : RegionViewModelBase
     {
         private readonly ILogService _logService;
         private readonly ObservableCollection<LogEntry> _rawLogsSource; // 原始数据源
 
+        /// <summary>初始化日志管理 ViewModel</summary>
         public LogManagementViewModel(ILogService logService, IMessageService messageService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
@@ -53,9 +55,11 @@ namespace PF.Modules.Logging.ViewModels
         #region 属性
 
         // 对外暴露的视图，UI绑定这个
+        /// <summary>获取日志集合视图</summary>
         public ICollectionView LogsView { get; }
 
         private DateTime _startDate;
+        /// <summary>获取或设置开始日期</summary>
         public DateTime StartDate
         {
             get => _startDate;
@@ -63,6 +67,7 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private DateTime _endDate;
+        /// <summary>获取或设置结束日期</summary>
         public DateTime EndDate
         {
             get => _endDate;
@@ -70,6 +75,7 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private string _queryKeyword;
+        /// <summary>获取或设置查询关键词</summary>
         public string QueryKeyword
         {
             get => _queryKeyword;
@@ -82,9 +88,11 @@ namespace PF.Modules.Logging.ViewModels
 
         // --- 筛选属性 ---
 
+        /// <summary>获取日志级别过滤选项</summary>
         public ObservableCollection<string> FilterLevels { get; }
 
         private string _selectedFilterLevel;
+        /// <summary>获取或设置选中的过滤级别</summary>
         public string SelectedFilterLevel
         {
             get => _selectedFilterLevel;
@@ -95,9 +103,11 @@ namespace PF.Modules.Logging.ViewModels
             }
         }
 
+        /// <summary>获取分类过滤选项</summary>
         public ObservableCollection<string> FilterCategories { get; }
 
         private string _selectedFilterCategory;
+        /// <summary>获取或设置选中的过滤分类</summary>
         public string SelectedFilterCategory
         {
             get => _selectedFilterCategory;
@@ -111,6 +121,7 @@ namespace PF.Modules.Logging.ViewModels
         // --- 状态属性 ---
 
         private bool _isQuerying;
+        /// <summary>获取或设置是否正在查询</summary>
         public bool IsQuerying
         {
             get => _isQuerying;
@@ -118,6 +129,7 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private string _queryStatusMessage;
+        /// <summary>获取或设置查询状态消息</summary>
         public string QueryStatusMessage
         {
             get => _queryStatusMessage;
@@ -128,9 +140,13 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 命令
 
+        /// <summary>清空日志命令</summary>
         public DelegateCommand ClearLogsCommand { get; }
+        /// <summary>导出日志命令</summary>
         public DelegateCommand ExportLogsCommand { get; }
+        /// <summary>刷新命令</summary>
         public DelegateCommand RefreshCommand { get; }
+        /// <summary>查询历史日志命令</summary>
         public DelegateCommand QueryHistoryCommand { get; }
 
         #endregion

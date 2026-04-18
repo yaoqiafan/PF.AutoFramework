@@ -11,9 +11,15 @@ using System.Windows.Input;
 
 namespace PF.Application.Shell.ViewModels
 {
+    /// <summary>
+    /// ViewModelBase 视图模型
+    /// </summary>
     public class BaseParamsViewModel : ViewModelBase
     {
         private readonly CommonSettings _commonSettings;
+        /// <summary>
+        /// BaseParamsViewModel 视图模型
+        /// </summary>
         public BaseParamsViewModel(CommonSettings commonSettings )
         {
             _commonSettings = commonSettings;
@@ -22,8 +28,14 @@ namespace PF.Application.Shell.ViewModels
 
 
 
+        /// <summary>
+        /// Params
+        /// </summary>
         public CommonSettings Params => _commonSettings;
 
+        /// <summary>
+        /// SaveCommmand
+        /// </summary>
         public ICommand SaveCommmand { get; private set; }
     }
 }

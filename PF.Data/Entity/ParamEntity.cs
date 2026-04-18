@@ -15,23 +15,41 @@ namespace PF.Data.Entity
     /// </summary>
     public abstract class ParamEntity : BasicEntity
     {
+        /// <summary>
+        /// 名称
+        /// </summary>
         [Required]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>
+        /// 描述
+        /// </summary>
         [MaxLength(500)]
         public string Description { get; set; } = string.Empty;
 
+        /// <summary>
+        /// TypeFull名称
+        /// </summary>
         [Required]
         [MaxLength(200)]
         public string? TypeFullName { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Json值
+        /// </summary>
         [Required]
         public string JsonValue { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Category
+        /// </summary>
         [MaxLength(50)]
         public string Category { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Version
+        /// </summary>
         public int Version { get; set; } = 1;
     }
 

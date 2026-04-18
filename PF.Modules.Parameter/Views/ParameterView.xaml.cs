@@ -36,6 +36,7 @@ namespace PF.Modules.Parameter.Views
     //    NavigationParameter = "UserLoginParam")]
     public partial class ParameterView : UserControl
     {
+        /// <summary>初始化参数视图</summary>
         public ParameterView()
         {
             InitializeComponent();
@@ -47,6 +48,7 @@ namespace PF.Modules.Parameter.Views
 
 
 
+    /// <summary>绑定代理</summary>
     public class BindingProxy : Freezable
     {
         protected override Freezable CreateInstanceCore()
@@ -54,6 +56,7 @@ namespace PF.Modules.Parameter.Views
             return new BindingProxy();
         }
 
+        /// <summary>获取或设置绑定的数据对象</summary>
         public object Data
         {
             get { return (object)GetValue(DataProperty); }

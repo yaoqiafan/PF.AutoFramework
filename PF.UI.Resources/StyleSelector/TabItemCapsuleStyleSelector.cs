@@ -5,8 +5,14 @@ using PF.UI.Shared.Tools;
 
 namespace PF.UI.Resources;
 
+/// <summary>
+/// StyleSelector 选择器
+/// </summary>
 public class TabItemCapsuleStyleSelector : StyleSelector
 {
+    /// <summary>
+    /// 选择模板
+    /// </summary>
     public override Style SelectStyle(object item, DependencyObject container)
     {
         if (container is TabItem tabItem && VisualHelper.GetParent<TabControl>(tabItem) is { } tabControl)

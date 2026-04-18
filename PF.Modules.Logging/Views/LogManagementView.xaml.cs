@@ -24,6 +24,7 @@ namespace PF.Modules.Logging.Views
    
     public partial class LogManagementView : UserControl
     {
+        /// <summary>初始化日志管理视图</summary>
         public LogManagementView()
         {
             InitializeComponent();

@@ -7,11 +7,20 @@ using System.Threading.Tasks;
 
 namespace PF.UI.Infrastructure.Dialog.ViewModels
 {
+    /// <summary>
+    /// PFDialogViewModelBase 视图模型
+    /// </summary>
     public class WaitDialogViewModel : PFDialogViewModelBase
     {
         private string _message;
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public string Message { get => _message; set => SetProperty(ref _message, value); }
 
+        /// <summary>
+        /// 处理DialogOpened事件
+        /// </summary>
         public override async void OnDialogOpened(IDialogParameters parameters)
         {
             base.OnDialogOpened(parameters);

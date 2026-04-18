@@ -9,6 +9,7 @@ using System.Windows;
 
 namespace PF.Modules.Identity.ViewModels
 {
+    /// <summary>页面权限管理 ViewModel</summary>
     public class PagePermissionViewModel : RegionViewModelBase
     {
         private readonly IUserService _userService;
@@ -23,6 +24,7 @@ namespace PF.Modules.Identity.ViewModels
 
         private readonly List<PermissionCheckItem> _allSystemViews;
 
+        /// <summary>初始化页面权限管理 ViewModel</summary>
         public PagePermissionViewModel(
             IUserService userService,
             ILogService logService,
@@ -48,10 +50,14 @@ namespace PF.Modules.Identity.ViewModels
             _ = LoadUsersAsync();
         }
 
+        /// <summary>保存权限配置命令</summary>
         public DelegateCommand SaveCommand { get; }
+        /// <summary>刷新用户列表命令</summary>
         public DelegateCommand RefreshUsersCommand { get; }
+        /// <summary>应用默认权限命令</summary>
         public DelegateCommand ApplyDefaultPermissionsCommand { get; }
 
+        /// <summary>获取或设置是否正在加载</summary>
         public bool IsLoading
         {
             get => _isLoading;
@@ -68,12 +74,14 @@ namespace PF.Modules.Identity.ViewModels
             set => SetProperty(ref _hasUnsavedDefaults, value);
         }
 
+        /// <summary>获取或设置用户列表</summary>
         public ObservableCollection<UserInfo> Users
         {
             get => _users;
             set => SetProperty(ref _users, value);
         }
 
+        /// <summary>获取或设置选中的用户</summary>
         public UserInfo SelectedUser
         {
             get => _selectedUser;
@@ -87,6 +95,7 @@ namespace PF.Modules.Identity.ViewModels
             }
         }
 
+        /// <summary>获取或设置权限列表</summary>
         public ObservableCollection<PermissionCheckItem> PermissionList
         {
             get => _permissionList;

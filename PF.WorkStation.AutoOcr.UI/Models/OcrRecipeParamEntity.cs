@@ -1,4 +1,4 @@
-﻿using PF.UI.Controls;
+using PF.UI.Controls;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.UI.UserControls;
 using System.ComponentModel;
@@ -7,9 +7,15 @@ using System.Windows.Controls;
 
 namespace PF.WorkStation.AutoOcr.UI.Models
 {
+    /// <summary>
+    /// OcrRecipeParamEntity
+    /// </summary>
     public class OcrRecipeParamEntity : BindableBase
     {
         private string _recipeName;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue("Test")]
         [CategoryAttribute("A.基本参数")]
         [DisplayNameAttribute("1.配方名称")]
@@ -23,6 +29,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
 
 
         private int _CodeCount = 2;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(2)]
         [CategoryAttribute("A.基本参数")]
         [DisplayNameAttribute("2.条码个数")]
@@ -37,6 +46,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
 
 
         private string _OCRRecipeName = string.Empty;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue("")]
         [CategoryAttribute("A.基本参数")]
         [DisplayNameAttribute("3.关联相机程式")]
@@ -49,6 +61,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private E_WafeSize _WafeSize = E_WafeSize._12寸;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(E_WafeSize._12寸)]
         [CategoryAttribute("A.基本参数")]
         [DisplayNameAttribute("4.晶圆尺寸")]
@@ -60,6 +75,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private double _1PosX = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
         [DisplayNameAttribute("1.X轴位置(um)")]
@@ -75,6 +93,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private double _1PosY = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
         [DisplayNameAttribute("2.Y轴位置(um)")]
@@ -90,6 +111,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private double _1PosZ = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位1OCR相机坐标参数")]
         [DisplayNameAttribute("3.Z轴位置(um)")]
@@ -107,6 +131,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
 
 
         private double _2PosX = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
         [DisplayNameAttribute("1.X轴位置(um)")]
@@ -122,6 +149,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private double _2PosY = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
         [DisplayNameAttribute("2.Y轴位置(um)")]
@@ -137,6 +167,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private double _2PosZ = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [CategoryAttribute("B.工位2OCR相机坐标参数")]
         [DisplayNameAttribute("3.Z轴位置(um)")]
@@ -154,6 +187,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
 
 
         private string _1PosXYZ = "(0),(0),(0)";
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [BrowsableAttribute(false)]
         public string PosXYZ_1
@@ -164,6 +200,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
 
 
         private string _2PosXYZ = "(0),(0),(0)";
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0.0)]
         [BrowsableAttribute(false)]
         public string PosXYZ_2
@@ -173,6 +212,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private int _GuestStartIndex = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0)]
         [CategoryAttribute("C.比对参数")]
         [DisplayNameAttribute("1.客批比对开始索引")]
@@ -184,6 +226,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private int _GuestLength = 6;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(6)]
         [CategoryAttribute("C.比对参数")]
         [DisplayNameAttribute("2.客批比对长度")]
@@ -195,6 +240,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         private bool _IsOCRCodePate = true;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(true)]
         [CategoryAttribute("D.状态参数")]
         [DisplayNameAttribute("1.OCR标签是否张贴")]
@@ -204,11 +252,17 @@ namespace PF.WorkStation.AutoOcr.UI.Models
             get { return _IsOCRCodePate; }
             set { SetProperty(ref _IsOCRCodePate, value); }
         }
+        /// <summary>
+        /// 获取或设置 CameraPrograms
+        /// </summary>
 
         [BrowsableAttribute(false)]
         public List<string> CameraPrograms { get; set; } = new List<string>();
 
         private List<string> _AssociateProduct = new List<string>();
+        /// <summary>
+        /// 成员
+        /// </summary>
         [CategoryAttribute("E.关联参数")]
         [DisplayNameAttribute("1.关联工位配方名称列表")]
         [BrowsableAttribute(true)]
@@ -222,6 +276,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
 
 
         private int _light1Value = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0)]
         [CategoryAttribute("F.光源亮度")]
         [DisplayNameAttribute("1.红外光源亮度")]
@@ -232,6 +289,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
             set { SetProperty(ref _light1Value, value); }
         }
         private int _light2Value = 0;
+        /// <summary>
+        /// 成员
+        /// </summary>
         [DefaultValue(0)]
         [CategoryAttribute("F.光源亮度")]
         [DisplayNameAttribute("2.白光光源亮度")]
@@ -243,12 +303,18 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
     }
+    /// <summary>
+    /// OCRRecipePropertyEditor
+    /// </summary>
 
 
 
     public class OCRRecipePropertyEditor : PropertyEditorBase
     {
         // 重写对应的控件构建类，用于返回UI需要显示的控件实例
+        /// <summary>
+        /// CreateElement
+        /// </summary>
         public override FrameworkElement CreateElement(PropertyItem propertyItem)
         {
             var entity = propertyItem.Value as OcrRecipeParamEntity;
@@ -262,15 +328,24 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         // 设置对应实体属性与控件关联的依赖属性
+        /// <summary>
+        /// GetDependencyProperty
+        /// </summary>
         public override DependencyProperty GetDependencyProperty()
         {
             return ListBox.SelectedItemProperty;
         }
     }
+    /// <summary>
+    /// AssociateProductPropertyEditor
+    /// </summary>
 
     public class AssociateProductPropertyEditor : PropertyEditorBase
     {
         // 重写对应的控件构建类，用于返回UI需要显示的控件实例
+        /// <summary>
+        /// CreateElement
+        /// </summary>
         public override FrameworkElement CreateElement(PropertyItem propertyItem)
         {
             AssociateProductListView associateProductListView = new AssociateProductListView();
@@ -278,6 +353,9 @@ namespace PF.WorkStation.AutoOcr.UI.Models
         }
 
         // 设置对应实体属性与控件关联的依赖属性
+        /// <summary>
+        /// GetDependencyProperty
+        /// </summary>
         public override DependencyProperty GetDependencyProperty()
         {
             return AssociateProductListView.AssociatesProperty;

@@ -20,6 +20,9 @@ namespace PF.UI.Infrastructure.Dialog
     /// </summary>
     public partial class WaitDialogView : UserControl
     {
+        /// <summary>
+        /// WaitDialogView 视图
+        /// </summary>
         public WaitDialogView()
         {
             InitializeComponent();

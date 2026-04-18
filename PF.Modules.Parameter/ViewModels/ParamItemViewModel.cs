@@ -4,6 +4,7 @@ using System;
 
 namespace PF.Modules.Parameter.ViewModels
 {
+    /// <summary>参数类型 ViewModel</summary>
     public class ParamTypeViewModel : BindableBase
     {
         public Type TypeInstence { get; set; }
@@ -17,6 +18,7 @@ namespace PF.Modules.Parameter.ViewModels
         }
     }
 
+    /// <summary>参数项 ViewModel</summary>
     public class ParamItemViewModel : BindableBase
     {
         private string _name;

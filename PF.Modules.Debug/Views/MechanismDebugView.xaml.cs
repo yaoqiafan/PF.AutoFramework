@@ -24,7 +24,8 @@ namespace PF.Modules.Debug.Views
     [ModuleNavigation(NavigationConstants.Views.MechanismDebugView, "业务模组调试", GroupName = "系统调试", Icon = "DebugIcon" ,Order =2)]
     public partial class MechanismDebugView : UserControl
     {
-        public MechanismDebugView(IRegionManager regionManager) 
+        /// <summary>初始化模组调试视图</summary>
+        public MechanismDebugView(IRegionManager regionManager)
         {
             // 2. 【核心修复】在初始化 XAML 之前，检查并移除残留的嵌套 Region
             string regionName = NavigationConstants.Regions.MechanismContentRegion;

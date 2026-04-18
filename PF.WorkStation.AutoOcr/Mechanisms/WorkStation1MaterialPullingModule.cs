@@ -53,9 +53,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public enum YAxisPoint
         {
+            /// <summary>待机位置</summary>
             待机位置,         // Y轴退回最深处的安全位，不干涉 Z轴升降 与 上下料
+            /// <summary>晶圆取料位置</summary>
             晶圆取料位置,     // Y轴伸入料盒内部，夹爪中心对准铁环的位置
+            /// <summary>晶圆拉出位置</summary>
             晶圆拉出位置,     // 夹持晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
+            /// <summary>取出安全位置</summary>
             取出安全位置,     // 晶圆完全离开料盒后的安全驻留位
         }
 
@@ -79,15 +83,22 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private E_WafeSize _currentWafeSize = E_WafeSize._12寸;
 
         // ── 公开硬件绑定属性 (供 ViewModel/UI 面板调试使用) ──
+        /// <summary>获取Y轴实例</summary>
         public IAxis YAxis => _yAxis;
+        /// <summary>获取IO控制器实例</summary>
         public IIOController IO => _io;
+        /// <summary>获取扫码枪实例</summary>
         public IBarcodeScan CodeScan => _codeScan;
+        /// <summary>获取光源控制器实例</summary>
         public ILightController LightController => _lightController;
 
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化工位1推拉晶圆模组
+        /// </summary>
         public WorkStation1MaterialPullingModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
@@ -158,6 +169,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             return true;
         }
 
+        /// <summary>
+        /// 模组急停/停止
+        /// </summary>
         protected override async Task InternalStopAsync()
         {
             if (_yAxis != null)

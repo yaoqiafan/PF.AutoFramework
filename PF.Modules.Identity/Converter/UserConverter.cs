@@ -12,8 +12,10 @@ using System.Windows.Data;
 namespace PF.Modules.Identity.Converter
 {
     [ValueConversion(typeof(UserLevel), typeof(string))]
+    /// <summary>用户等级转背景色转换器</summary>
     public class UserBackGroundConnver : IValueConverter
     {
+        /// <summary>将用户等级转换为背景色</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             string str = string.Empty;
@@ -39,6 +41,7 @@ namespace PF.Modules.Identity.Converter
             return str;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
@@ -46,9 +49,11 @@ namespace PF.Modules.Identity.Converter
     }
 
 
+    /// <summary>用户等级转文本转换器</summary>
     [ValueConversion(typeof(UserLevel), typeof(string))]
     public class UserTextConnver : IValueConverter
     {
+        /// <summary>将用户等级转换为中文文本</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             string str = string.Empty;
@@ -74,6 +79,7 @@ namespace PF.Modules.Identity.Converter
             return str;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
@@ -82,9 +88,11 @@ namespace PF.Modules.Identity.Converter
 
 
 
+    /// <summary>用户可见性转换器</summary>
     [ValueConversion(typeof(UserLevel), typeof(string))]
     public class UserVisibilityConnver : IValueConverter
     {
+        /// <summary>根据用户等级判断控件可见性</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             Visibility str = Visibility.Collapsed;
@@ -102,6 +110,7 @@ namespace PF.Modules.Identity.Converter
             return str;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();

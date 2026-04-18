@@ -82,6 +82,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化SECS/GEM通讯模组
+        /// </summary>
         public WorkStationSecsGemModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
@@ -97,6 +100,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _containerProvider = containerProvider;
         }
 
+        /// <summary>
+        /// 模组初始化：建立SECS/GEM通讯连接
+        /// </summary>
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token = default)
         {
             if (_secsGemManger == null)
@@ -121,6 +127,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             return true;
         }
 
+        /// <summary>
+        /// 模组停止：断开SECS/GEM通讯
+        /// </summary>
         protected override async Task InternalStopAsync()
         {
             if (_secsGemManger != null)

@@ -15,14 +15,23 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
+    /// <summary>
+    /// Workstation2FeedingModelDebugViewModel
+    /// </summary>
     public class Workstation2FeedingModelDebugViewModel : RegionViewModelBase
     {
         private readonly WorkStation2FeedingModule? _feedingModule;
         private DispatcherTimer _monitorTimer;
+        /// <summary>
+        /// 获取或设置 FeedingModule
+        /// </summary>
 
         public WorkStation2FeedingModule? FeedingModule => _feedingModule;
 
         private string _debugMessage = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string DebugMessage
         {
             get => _debugMessage;
@@ -30,6 +39,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private int _targetLayer;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public int TargetLayer
         {
             get => _targetLayer;
@@ -39,59 +51,143 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #region Status Monitor Properties
 
         private double _zAxisPosition;
+        /// <summary>
+        /// 获取或设置 ZAxisPosition
+        /// </summary>
         public double ZAxisPosition { get => _zAxisPosition; set => SetProperty(ref _zAxisPosition, value); }
 
         private double _xAxisPosition;
+        /// <summary>
+        /// 获取或设置 XAxisPosition
+        /// </summary>
         public double XAxisPosition { get => _xAxisPosition; set => SetProperty(ref _xAxisPosition, value); }
 
         private bool _zAxisHasAlarm;
+        /// <summary>
+        /// 获取或设置 ZAxisHasAlarm
+        /// </summary>
         public bool ZAxisHasAlarm { get => _zAxisHasAlarm; set => SetProperty(ref _zAxisHasAlarm, value); }
 
         private bool _xAxisHasAlarm;
+        /// <summary>
+        /// 获取或设置 XAxisHasAlarm
+        /// </summary>
         public bool XAxisHasAlarm { get => _xAxisHasAlarm; set => SetProperty(ref _xAxisHasAlarm, value); }
 
         private bool _isBoxCommonInPlace;
+        /// <summary>
+        /// 获取或设置 IsBoxCommonInPlace
+        /// </summary>
         public bool IsBoxCommonInPlace { get => _isBoxCommonInPlace; set => SetProperty(ref _isBoxCommonInPlace, value); }
 
         private bool _is8InchInPlace;
+        /// <summary>
+        /// 获取或设置 Is8InchInPlace
+        /// </summary>
         public bool Is8InchInPlace { get => _is8InchInPlace; set => SetProperty(ref _is8InchInPlace, value); }
 
         private bool _is12InchInPlace;
+        /// <summary>
+        /// 获取或设置 Is12InchInPlace
+        /// </summary>
         public bool Is12InchInPlace { get => _is12InchInPlace; set => SetProperty(ref _is12InchInPlace, value); }
 
         private bool _isGripperOpen;
+        /// <summary>
+        /// 获取或设置 IsGripperOpen
+        /// </summary>
         public bool IsGripperOpen { get => _isGripperOpen; set => SetProperty(ref _isGripperOpen, value); }
         #endregion
 
         #region Point Collections
+        /// <summary>
+        /// 获取或设置 ZAxisOriginalPoints
+        /// </summary>
         public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        /// <summary>
+        /// 获取或设置 XAxisOriginalPoints
+        /// </summary>
         public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        /// <summary>
+        /// 获取或设置 ArrayedPoints
+        /// </summary>
         public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        /// <summary>
+        /// 获取或设置 RawMappingPoints1
+        /// </summary>
 
         public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = new ObservableCollection<RawMappingItem>();
+        /// <summary>
+        /// 获取或设置 RawMappingPoints2
+        /// </summary>
         public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = new ObservableCollection<RawMappingItem>();
+        /// <summary>
+        /// 获取或设置 FilteredMappingPoints
+        /// </summary>
         public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = new ObservableCollection<FilteredMappingItem>();
         #endregion
 
         #region Commands
+        /// <summary>
+        /// InitializeModule 命令
+        /// </summary>
         public DelegateCommand InitializeModuleCommand { get; }
+        /// <summary>
+        /// ResetModule 命令
+        /// </summary>
         public DelegateCommand ResetModuleCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
+        /// <summary>
+        /// InitState 命令
+        /// </summary>
 
         public DelegateCommand InitStateCommand { get; }
+        /// <summary>
+        /// DetectSize 命令
+        /// </summary>
         public DelegateCommand DetectSizeCommand { get; }
+        /// <summary>
+        /// SwitchProduction 命令
+        /// </summary>
         public DelegateCommand<string> SwitchProductionCommand { get; }
+        /// <summary>
+        /// CanMoveZ 命令
+        /// </summary>
 
         public DelegateCommand CanMoveZCommand { get; }
+        /// <summary>
+        /// CanMoveX 命令
+        /// </summary>
         public DelegateCommand CanMoveXCommand { get; }
+        /// <summary>
+        /// CanPullOut 命令
+        /// </summary>
         public DelegateCommand CanPullOutCommand { get; }
+        /// <summary>
+        /// SearchLayer 命令
+        /// </summary>
 
         public DelegateCommand SearchLayerCommand { get; }
+        /// <summary>
+        /// GoToLayer 命令
+        /// </summary>
         public DelegateCommand GoToLayerCommand { get; }
+        /// <summary>
+        /// SaveZAxisPoints 命令
+        /// </summary>
 
         public DelegateCommand SaveZAxisPointsCommand { get; }
+        /// <summary>
+        /// SaveXAxisPoints 命令
+        /// </summary>
         public DelegateCommand SaveXAxisPointsCommand { get; }
         #endregion
+        /// <summary>
+        /// Workstation2FeedingModelDebugViewModel 构造函数
+        /// </summary>
 
         public Workstation2FeedingModelDebugViewModel(IContainerProvider containerProvider)
         {

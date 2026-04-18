@@ -20,14 +20,38 @@ namespace PF.CommonTools.Reflection
         /// </summary>
         public class TypeScanOptions : IEquatable<TypeScanOptions>
         {
+            /// <summary>
+            /// IncludeAbstract
+            /// </summary>
             public bool IncludeAbstract { get; set; }
+            /// <summary>
+            /// IncludeInterface
+            /// </summary>
             public bool IncludeInterface { get; set; }
+            /// <summary>
+            /// IncludeGenericDefinitions
+            /// </summary>
             public bool IncludeGenericDefinitions { get; set; }
+            /// <summary>
+            /// CacheResults
+            /// </summary>
             public bool CacheResults { get; set; } = true;
+            /// <summary>
+            /// Assemblys名称
+            /// </summary>
             public string[] AssemblyNames { get; set; }
+            /// <summary>
+            /// spaces名称
+            /// </summary>
             public string[] Namespaces { get; set; }
+            /// <summary>
+            /// CustomFilter
+            /// </summary>
             public Func<Type, bool> CustomFilter { get; set; }
 
+            /// <summary>
+            /// 判断是否相等
+            /// </summary>
             public bool Equals(TypeScanOptions other)
             {
                 if (other is null) return false;
@@ -42,8 +66,14 @@ namespace PF.CommonTools.Reflection
                        Equals(CustomFilter, other.CustomFilter);
             }
 
+            /// <summary>
+            /// 判断是否相等
+            /// </summary>
             public override bool Equals(object obj) => Equals(obj as TypeScanOptions);
 
+            /// <summary>
+            /// 获取HashCode
+            /// </summary>
             public override int GetHashCode()
             {
                 unchecked

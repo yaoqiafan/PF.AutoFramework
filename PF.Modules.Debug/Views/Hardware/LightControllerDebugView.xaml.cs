@@ -20,6 +20,7 @@ namespace PF.Modules.Debug.Views.Hardware
     /// </summary>
     public partial class LightControllerDebugView : UserControl
     {
+        /// <summary>初始化光源控制器调试视图</summary>
         public LightControllerDebugView()
         {
             InitializeComponent();

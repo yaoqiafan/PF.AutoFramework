@@ -1,4 +1,4 @@
-﻿using PF.UI.Infrastructure.PrismBase;
+using PF.UI.Infrastructure.PrismBase;
 using PF.WorkStation.AutoOcr.CostParam;
 using System;
 using System.Collections.Generic;
@@ -9,6 +9,9 @@ using System.Windows.Input;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
+    /// <summary>
+    /// ChangeLotViewModel
+    /// </summary>
     public class ChangeLotViewModel : PFDialogViewModelBase
     {
 
@@ -16,6 +19,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 参数
 
         private string _userid = "";
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string UserId
         {
@@ -24,6 +30,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private string _lotid = "";
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string LotId
         {
@@ -41,6 +50,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         private bool _isOk = false;
+        /// <summary>
+        /// ChangeLotViewModel 构造函数
+        /// </summary>
 
         public ChangeLotViewModel()
         {
@@ -53,11 +65,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion 
 
         #region Dialog 生命周期
+        /// <summary>
+        /// OnDialogOpened
+        /// </summary>
 
         public override void OnDialogOpened(IDialogParameters parameters)
         {
 
         }
+        /// <summary>
+        /// OnDialogClosed
+        /// </summary>
 
         public override void OnDialogClosed()
         {

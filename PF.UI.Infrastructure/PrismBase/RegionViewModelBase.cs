@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PF.UI.Infrastructure.PrismBase
 {
+    /// <summary>
+    /// IConfirmNavigationRequest
+    /// </summary>
     public abstract class RegionViewModelBase : ViewModelBase, INavigationAware, IConfirmNavigationRequest
     {
         /// <summary>

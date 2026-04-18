@@ -10,6 +10,7 @@ namespace PF.Modules.Logging.Converter
     /// </summary>
     public class LogLevelToBrushConverter : IValueConverter
     {
+        /// <summary>将日志级别转换为对应颜色</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is LogLevel level)

@@ -101,6 +101,9 @@ namespace PF.Application.Shell
 
         #region 程序启动与自检
 
+        /// <summary>
+        /// 应用程序启动时执行的自检与初始化逻辑
+        /// </summary>
         protected override async void OnStartup(StartupEventArgs e)
         {
             try
@@ -135,6 +138,9 @@ namespace PF.Application.Shell
             }
         }
 
+        /// <summary>
+        /// 应用程序退出时释放资源
+        /// </summary>
         protected override void OnExit(ExitEventArgs e)
         {
             base.OnExit(e);
@@ -196,6 +202,9 @@ namespace PF.Application.Shell
 
         #region Prism 框架核心
 
+        /// <summary>
+        /// 创建主窗口并执行启动画面初始化
+        /// </summary>
         protected override Window CreateShell()
         {
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -234,6 +243,9 @@ namespace PF.Application.Shell
             return Container.Resolve<MainWindow>();
         }
 
+        /// <summary>
+        /// 模块初始化完成后的导航注册与静默登录
+        /// </summary>
         protected override void OnInitialized()
         {
             // 解析导航服务并扫描当前程序集自动注册菜单
@@ -268,6 +280,9 @@ namespace PF.Application.Shell
             base.OnInitialized();
         }
 
+        /// <summary>
+        /// 注册依赖注入容器中的所有服务与类型
+        /// </summary>
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             CommonSettings commonSettings = CommonSettings.Load();
@@ -326,6 +341,9 @@ namespace PF.Application.Shell
             RegisterAlarmServices(containerRegistry);
         }
 
+        /// <summary>
+        /// 配置模块目录，注册所有功能模块
+        /// </summary>
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
             base.ConfigureModuleCatalog(moduleCatalog);

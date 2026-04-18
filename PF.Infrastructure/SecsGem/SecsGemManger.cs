@@ -9,6 +9,9 @@ using PF.Core.Entities.SecsGem.Message;
 
 namespace PF.Infrastructure.SecsGem
 {
+    /// <summary>
+    /// SecsGem管理器
+    /// </summary>
     public class SecsGemManger : Core.Interfaces.SecsGem.ISecsGemManger
     {
         private readonly IParams _paramManger;
@@ -17,6 +20,9 @@ namespace PF.Infrastructure.SecsGem
         private readonly ISecsGemMessageUpdater _messageUpdater;
         private bool _disposed = false;
 
+        /// <summary>
+        /// 构造SecsGem管理器
+        /// </summary>
         public SecsGemManger(IParams paramManger, ICommandManager commandManager, IinternalClient secsGemClient, ISecsGemMessageUpdater messageUpdater)
         {
             _paramManger = paramManger ?? throw new ArgumentNullException(nameof(paramManger));
@@ -25,17 +31,38 @@ namespace PF.Infrastructure.SecsGem
             _messageUpdater = messageUpdater ?? throw new ArgumentNullException(nameof(messageUpdater));
         }
 
+        /// <summary>
+        /// 是否已连接
+        /// </summary>
         public bool IsConnected => _secsGemClient.SecsGemStatus;
 
+        /// <summary>
+        /// 参数管理器
+        /// </summary>
         public IParams ParamsManager => _paramManger;
 
+        /// <summary>
+        /// 命令管理器
+        /// </summary>
         public ICommandManager CommandManager => _commandManager;
 
+        /// <summary>
+        /// SecsGem客户端
+        /// </summary>
         public IinternalClient SecsGemClient => _secsGemClient;
+        /// <summary>
+        /// 消息更新器
+        /// </summary>
         public ISecsGemMessageUpdater MessageUpdater => _messageUpdater;
 
+        /// <summary>
+        /// 消息接收事件
+        /// </summary>
         public event EventHandler<SecsMessageReceivedEventArgs> MessageReceived;
 
+        /// <summary>
+        /// 异步初始化
+        /// </summary>
         public async Task<bool> InitializeAsync()
         {
             try
@@ -59,6 +86,9 @@ namespace PF.Infrastructure.SecsGem
             }
         }
 
+        /// <summary>
+        /// 异步连接
+        /// </summary>
         public async Task<bool> ConnectAsync()
         {
             try
@@ -83,6 +113,9 @@ namespace PF.Infrastructure.SecsGem
             }
         }
 
+        /// <summary>
+        /// 异步断开连接
+        /// </summary>
         public async Task DisconnectAsync()
         {
             try
@@ -98,6 +131,9 @@ namespace PF.Infrastructure.SecsGem
             }
         }
 
+        /// <summary>
+        /// 异步发送消息
+        /// </summary>
         public async Task SendMessageAsync(SecsGemMessage message)
         {
             if (!IsConnected)
@@ -122,6 +158,9 @@ namespace PF.Infrastructure.SecsGem
             }
         }
 
+        /// <summary>
+        /// 发送消息并等待回复
+        /// </summary>
         public async Task<bool> WaitSendMessageAsync(SecsGemMessage message, string systemBytesHex)
         {
             if (!IsConnected)
@@ -163,6 +202,9 @@ namespace PF.Infrastructure.SecsGem
 
         #region IDisposable Implementation
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -196,6 +238,9 @@ namespace PF.Infrastructure.SecsGem
             }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

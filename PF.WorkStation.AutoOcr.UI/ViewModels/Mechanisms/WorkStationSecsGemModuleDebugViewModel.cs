@@ -1,4 +1,4 @@
-﻿using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using System;
@@ -10,13 +10,22 @@ using System.Windows;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
+    /// <summary>
+    /// WorkStationSecsGemModuleDebugViewModel
+    /// </summary>
     public  class WorkStationSecsGemModuleDebugViewModel : RegionViewModelBase
     {
         private readonly WorkStationSecsGemModule? _secsgemModule;
+        /// <summary>
+        /// 获取或设置 SecsGemModule
+        /// </summary>
 
         public WorkStationSecsGemModule? SecsGemModule => _secsgemModule;
 
         private string _debugMessage = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string DebugMessage
         {
             get => _debugMessage;
@@ -27,10 +36,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         #region Commands 定义
         // 1. 顶部全局生命周期控制
+        /// <summary>
+        /// InitializeModule 命令
+        /// </summary>
         public DelegateCommand InitializeModuleCommand { get; }
+        /// <summary>
+        /// ResetModule 命令
+        /// </summary>
         public DelegateCommand ResetModuleCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
         #endregion Commands 定义
+        /// <summary>
+        /// WorkStationSecsGemModuleDebugViewModel 构造函数
+        /// </summary>
 
         public WorkStationSecsGemModuleDebugViewModel(IContainerProvider containerProvider)
         {

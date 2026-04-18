@@ -10,13 +10,22 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.SecsGem.Tools
 {
+    /// <summary>
+    /// SecsGem消息工具类
+    /// </summary>
     public static class SecsGemMessageTools
     {
 
+        /// <summary>
+        /// 随机数生成器
+        /// </summary>
         public static Random SysRandom { get; set; } = new Random();
 
 
         #region 辅助方法：快速构建Message节点（自动填充TypedValue）
+        /// <summary>
+        /// 创建ASCII类型节点
+        /// </summary>
         public static SecsGemNodeMessage CreateAsciiNode(string value)
         {
             byte[] data = Encoding.ASCII.GetBytes(value ?? string.Empty);
@@ -29,6 +38,9 @@ namespace PF.Infrastructure.SecsGem.Tools
             };
         }
 
+        /// <summary>
+        /// 创建Boolean类型节点
+        /// </summary>
         public static SecsGemNodeMessage CreateBooleanNode(bool value)
         {
             byte[] data = new[] { (byte)(value ? 0x01 : 0x00) };

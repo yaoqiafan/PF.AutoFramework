@@ -30,6 +30,9 @@ using System.Windows.Input;
 
 namespace PF.Application.Shell.ViewModels
 {
+    /// <summary>
+    /// RegionViewModelBase 视图模型
+    /// </summary>
     public class MainWindowViewModel : RegionViewModelBase
     {
         #region 私有字段
@@ -53,10 +56,16 @@ namespace PF.Application.Shell.ViewModels
         #endregion
 
         #region 公共集合
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public ObservableCollection<NavigationItem> MenuItems { get; } = new ObservableCollection<NavigationItem>();
         #endregion
 
         #region 构造函数
+        /// <summary>
+        /// MainWindowViewModel 视图模型
+        /// </summary>
         public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider, CommonSettings commonSettings, IAlarmService alarmService)
         {
             _paramService          = paramService;
@@ -329,6 +338,9 @@ namespace PF.Application.Shell.ViewModels
 
         #region 公共属性
         private string _SoftWareName = string.Empty;
+        /// <summary>
+        /// SoftWareName
+        /// </summary>
         public string SoftWareName
         {
             get { return _SoftWareName; }
@@ -336,6 +348,9 @@ namespace PF.Application.Shell.ViewModels
         }
 
         private object _selectedMenuItem;
+        /// <summary>
+        /// SelectedMenuItem
+        /// </summary>
         public object SelectedMenuItem
         {
             get { return _selectedMenuItem; }
@@ -343,6 +358,9 @@ namespace PF.Application.Shell.ViewModels
         }
 
         private string _CoName = string.Empty;
+        /// <summary>
+        /// CoName
+        /// </summary>
         public string CoName
         {
             get { return _CoName; }
@@ -350,6 +368,9 @@ namespace PF.Application.Shell.ViewModels
         }
 
         private string _sysTime = string.Empty;
+        /// <summary>
+        /// SysTime
+        /// </summary>
         public string SysTime
         {
             get { return _sysTime; }
@@ -357,6 +378,9 @@ namespace PF.Application.Shell.ViewModels
         }
 
         private UserInfo _currentUser = new UserInfo();
+        /// <summary>
+        /// CurrentUser
+        /// </summary>
         public UserInfo CurrentUser
         {
             get { return _currentUser; }
@@ -364,6 +388,9 @@ namespace PF.Application.Shell.ViewModels
         }
 
         private ExpandMode _ExpandMode = ExpandMode.ShowAll;
+        /// <summary>
+        /// Expand
+        /// </summary>
         public ExpandMode Expand
         {
             get { return _ExpandMode; }
@@ -372,8 +399,17 @@ namespace PF.Application.Shell.ViewModels
         #endregion
 
         #region 命令属性
+        /// <summary>
+        /// LoadCommand
+        /// </summary>
         public ICommand LoadCommand { get; set; }
+        /// <summary>
+        /// SwitchItemCmd
+        /// </summary>
         public ICommand SwitchItemCmd { get; set; }
+        /// <summary>
+        /// ChangeExpandCmd
+        /// </summary>
         public ICommand ChangeExpandCmd { get; set; }
         #endregion
 
@@ -404,6 +440,9 @@ namespace PF.Application.Shell.ViewModels
         #endregion
 
         #region 公共时间刷新
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void UPdataTime()
         {
             _cts = new CancellationTokenSource();
@@ -415,6 +454,9 @@ namespace PF.Application.Shell.ViewModels
             );
         }
 
+        /// <summary>
+        /// 停止Async
+        /// </summary>
         public async Task StopAsync()
         {
             _cts?.Cancel();

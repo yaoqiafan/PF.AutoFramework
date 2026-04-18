@@ -10,6 +10,7 @@ using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>智能相机调试 ViewModel</summary>
     public class CameraDebugViewModel : RegionViewModelBase
     {
         // 假设 BaseIntelligentCamera 继承自 BaseDevice，且包含触发和读码等方法
@@ -17,6 +18,7 @@ namespace PF.Modules.Debug.ViewModels
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
 
+        /// <summary>初始化智能相机调试 ViewModel</summary>
         public CameraDebugViewModel()
         {
             InitializeCommands();
@@ -31,6 +33,7 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>导航进入时加载相机设备数据</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
@@ -62,6 +65,7 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        /// <summary>导航离开时停止轮询</summary>
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
@@ -73,18 +77,23 @@ namespace PF.Modules.Debug.ViewModels
         #region 【设备信息与状态属性】
 
         private string _deviceName = "未选中相机";
+        /// <summary>获取或设置设备名称</summary>
         public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
 
         private string _deviceDescription = "等待设备接入...";
+        /// <summary>获取或设置设备描述</summary>
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
         private bool _isConnected;
+        /// <summary>获取或设置是否已连接</summary>
         public bool IsConnected { get => _isConnected; set => SetProperty(ref _isConnected, value); }
 
         private bool _isAlarm;
+        /// <summary>获取或设置是否报警</summary>
         public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
         private List<string> _cameraPrograms=new List<string>();
+        /// <summary>获取或设置相机程序列表</summary>
         public List<string> CameraPrograms
         {
             get { return _cameraPrograms; }
@@ -106,10 +115,15 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【控制命令定义】
 
+        /// <summary>连接命令</summary>
         public DelegateCommand ConnectCommand { get; private set; }
+        /// <summary>断开连接命令</summary>
         public DelegateCommand DisconnectCommand { get; private set; }
+        /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
+        /// <summary>触发检测命令</summary>
         public DelegateCommand TriggerCommand { get; private set; }
+        /// <summary>切换程序命令</summary>
         public DelegateCommand ChangeJobCommand { get; private set; }
 
         private void InitializeCommands()

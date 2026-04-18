@@ -11,10 +11,12 @@ using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>光源控制器调试 ViewModel</summary>
     public  class LightControllerDebugViewModel : RegionViewModelBase
     {
 
 
+        /// <summary>初始化光源控制器调试 ViewModel</summary>
         public LightControllerDebugViewModel ()
         {
             InitializeCommands();
@@ -33,12 +35,14 @@ namespace PF.Modules.Debug.ViewModels
 
 
         #region 【Prism 导航生命周期】
+        /// <summary>导航离开时停止轮询</summary>
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
             _pollingTimer.Stop();
             _cts?.Cancel();
         }
+        /// <summary>导航进入时加载光源控制器设备数据</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
@@ -58,18 +62,23 @@ namespace PF.Modules.Debug.ViewModels
         #region 【设备信息与状态属性】
 
         private string _deviceName = "未选中扫码枪";
+        /// <summary>获取或设置设备名称</summary>
         public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
 
         private string _deviceDescription = "等待设备接入...";
+        /// <summary>获取或设置设备描述</summary>
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
         private bool _isConnected;
+        /// <summary>获取或设置是否已连接</summary>
         public bool IsConnected { get => _isConnected; set => SetProperty(ref _isConnected, value); }
 
         private bool _hasAlarm;
+        /// <summary>获取或设置是否报警</summary>
         public bool HasAlarm { get => _hasAlarm; set => SetProperty(ref _hasAlarm, value); }
 
 
+        /// <summary>获取串口地址</summary>
         public string COMAdress => _lightController.ComName;
 
         #endregion
@@ -80,8 +89,11 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【控制命令定义】
 
+        /// <summary>连接命令</summary>
         public DelegateCommand ConnectCommand { get; private set; }
+        /// <summary>断开连接命令</summary>
         public DelegateCommand DisconnectCommand { get; private set; }
+        /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
 
 

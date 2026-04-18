@@ -15,6 +15,9 @@ namespace PF.Data.Entity.Category
     [Table("UserLoginParams")]
     public class UserLoginParam : ParamEntity
     {
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public override string ID { get; set; } = Guid.NewGuid().ToString();

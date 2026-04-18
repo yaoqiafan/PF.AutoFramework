@@ -9,6 +9,7 @@ namespace PF.Modules.Logging.Converter
     /// </summary>
     public class LogLevelToSymbolConverter : IValueConverter
     {
+        /// <summary>将日志级别转换为对应符号</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is LogLevel level)

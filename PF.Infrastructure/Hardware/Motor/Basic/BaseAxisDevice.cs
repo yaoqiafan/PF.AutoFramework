@@ -49,6 +49,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
         #endregion
 
+        /// <summary>
+        /// 构造轴设备
+        /// </summary>
         protected BaseAxisDevice(
             string deviceId,
             string deviceName,
@@ -65,8 +68,14 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
         // ── IAxis 点表管理 ──────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 点位表（只读）
+        /// </summary>
         public IReadOnlyList<AxisPoint> PointTable => _pointTable.AsReadOnly();
 
+        /// <summary>
+        /// 新增或更新点位
+        /// </summary>
         public void AddOrUpdatePoint(AxisPoint point)
         {
             var existing = _pointTable.FirstOrDefault(p => p.Name == point.Name);
@@ -85,6 +94,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             }
         }
 
+        /// <summary>
+        /// 删除点位
+        /// </summary>
         public bool DeletePoint(string pointName)
         {
             var target = _pointTable.FirstOrDefault(p => p.Name == pointName);
@@ -94,6 +106,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             return true;
         }
 
+        /// <summary>
+        /// 保存点位表到文件
+        /// </summary>
         public void SavePointTable()
         {
             try
@@ -109,6 +124,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             }
         }
 
+        /// <summary>
+        /// 移动到指定点位
+        /// </summary>
         public async Task<bool> MoveToPointAsync(string pointName, CancellationToken token = default)
         {
             var point = _pointTable.FirstOrDefault(p => p.Name == pointName)
@@ -131,6 +149,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public abstract int AxisIndex { get; }
 
 
+        /// <summary>
+        /// 轴参数配置
+        /// </summary>
         public abstract AxisParam Param { get; set; }
 
         // ── IAxis 轴状态属性（委托给 ParentCard 读取，替代原来的抽象属性）──────────
@@ -147,6 +168,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         }
 
 
+        /// <summary>
+        /// 轴IO状态
+        /// </summary>
         public virtual MotionIOStatus? AxisIOStatus
         {
             get
@@ -239,6 +263,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
         
+        /// <summary>
+        /// 设置锁存模式
+        /// </summary>
         public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
@@ -249,6 +276,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
         
+        /// <summary>
+        /// 获取锁存编号
+        /// </summary>
         public virtual async Task<int> GetLatchNumber(int LatchNo, CancellationToken token = default)
         {
             EnsureCardAttached();
@@ -258,6 +288,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
 
+        /// <summary>
+        /// 获取锁存位置
+        /// </summary>
         public virtual async Task<double?> GetLatchPos(int LatchNo, CancellationToken token = default)
         {
             EnsureCardAttached();

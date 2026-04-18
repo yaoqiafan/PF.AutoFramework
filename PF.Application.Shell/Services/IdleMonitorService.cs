@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -58,6 +58,9 @@ namespace PF.Application.Shell.Services
             IdleTimeout?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             if (_disposed) return;

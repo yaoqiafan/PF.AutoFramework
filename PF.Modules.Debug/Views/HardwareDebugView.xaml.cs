@@ -22,10 +22,12 @@ namespace PF.Modules.Debug.Views
     /// <summary>
     /// 将 DataContext 透传进 HierarchicalDataTemplate 内部绑定（ToggleDeviceSimulationCommand）
     /// </summary>
+    /// <summary>绑定代理，用于在 HierarchicalDataTemplate 中传递 DataContext</summary>
     public class BindingProxy : Freezable
     {
         protected override Freezable CreateInstanceCore() => new BindingProxy();
 
+        /// <summary>获取或设置绑定的数据对象</summary>
         public object Data
         {
             get => GetValue(DataProperty);
@@ -40,6 +42,7 @@ namespace PF.Modules.Debug.Views
     [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "设备综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 1, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
     public partial class HardwareDebugView : UserControl
     {
+        /// <summary>初始化硬件调试视图</summary>
         public HardwareDebugView(IRegionManager regionManager)
         {
             // 2. 【核心修复】在初始化 XAML 之前，检查并移除残留的嵌套 Region

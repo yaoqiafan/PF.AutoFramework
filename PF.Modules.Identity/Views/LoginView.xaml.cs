@@ -21,6 +21,7 @@ namespace PF.Modules.Identity.Views
     [ModuleNavigation(NavigationConstants.Dialogs.LoginView, "权限获取", GroupName = "权限管控", Icon = "LoginInIcon", GroupOrder = 7, Order = 1)]
     public partial class LoginView : UserControl
     {
+        /// <summary>初始化登录视图</summary>
         public LoginView(IContainerExtension containerExtension)
         {
             InitializeComponent();

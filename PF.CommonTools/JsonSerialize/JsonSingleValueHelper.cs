@@ -7,21 +7,33 @@ using System.Threading.Tasks;
 
 namespace PF.CommonTools.JsonSerialize
 {
+    /// <summary>
+    /// JsonSingleValueHelper 工具类
+    /// </summary>
     public static class JsonSingleValueHelper
     {
         // 序列化单个值
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public static string SerializeSingleValue<T>(T value)
         {
             return JsonSerializer.Serialize(value);
         }
 
         // 反序列化单个值
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public static T DeserializeSingleValue<T>(string json)
         {
             return JsonSerializer.Deserialize<T>(json);
         }
 
         // 动态反序列化，根据 JSON 内容自动判断类型
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public static object DeserializeDynamic(string json)
         {
             JsonElement element = JsonSerializer.Deserialize<JsonElement>(json);

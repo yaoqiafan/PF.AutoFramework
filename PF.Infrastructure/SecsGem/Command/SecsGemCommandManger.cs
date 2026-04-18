@@ -29,9 +29,18 @@ namespace PF.Infrastructure.SecsGem.Command
         private IncentiveCommand _incentiveCommands;
         private ResponseCommand _responseCommands;
 
+        /// <summary>
+        /// 主动命令管理器
+        /// </summary>
         public ISFCommand IncentiveCommands => _incentiveCommands;
+        /// <summary>
+        /// 应答命令管理器
+        /// </summary>
         public ISFCommand ResponseCommands => _responseCommands;
 
+        /// <summary>
+        /// 配方配置
+        /// </summary>
         public FormulaConfiguration FormulaConfiguration { get; private set; }
 
         /// <summary>
@@ -611,6 +620,9 @@ namespace PF.Infrastructure.SecsGem.Command
                 .ToList();
         }
 
+        /// <summary>
+        /// 更新命令集合
+        /// </summary>
         public async Task UPDataCommondCollection(FormulaConfiguration formulaConfiguration)
         {
             _incentiveCommands._commandDictionary = formulaConfiguration.IncentiveCommandDictionary;

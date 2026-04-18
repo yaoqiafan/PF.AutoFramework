@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -10,6 +10,9 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
     public partial class AssociateProductListView : UserControl
     {
         // 1. 定义依赖属性
+        /// <summary>
+        /// AssociatesProperty
+        /// </summary>
         public static readonly DependencyProperty AssociatesProperty =
             DependencyProperty.Register(
                 nameof(Associates),
@@ -19,6 +22,9 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
                     null,
                     FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
                     OnAssociatesChanged));
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public List<string> Associates
         {
@@ -27,9 +33,15 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
         }
 
         // 用于 UI 绑定的内部可观察集合
+        /// <summary>
+        /// 获取或设置 InternalList
+        /// </summary>
         public ObservableCollection<StringWrapper> InternalList { get; } = new ObservableCollection<StringWrapper>();
 
         private bool _isSyncing = false;
+        /// <summary>
+        /// AssociateProductListView 构造函数
+        /// </summary>
 
         public AssociateProductListView()
         {
@@ -114,6 +126,9 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
     public class StringWrapper : INotifyPropertyChanged
     {
         private string _value;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string Value
         {
             get => _value;
@@ -126,6 +141,9 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
                 }
             }
         }
+        /// <summary>
+        /// PropertyChanged
+        /// </summary>
 
         public event PropertyChangedEventHandler PropertyChanged;
     }

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PF.Data.Entity.Category;
 
 namespace PF.Data
@@ -12,11 +12,17 @@ namespace PF.Data
     /// </summary>
     public class ProductionDbContext : DbContext
     {
+        /// <summary>
+        /// ProductionDbContext 数据库上下文
+        /// </summary>
         public ProductionDbContext(DbContextOptions<ProductionDbContext> options)
             : base(options)
         {
         }
 
+        /// <summary>
+        /// ProductionData
+        /// </summary>
         public DbSet<ProductionDataEntity> ProductionData { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

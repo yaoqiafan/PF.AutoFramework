@@ -4,6 +4,7 @@ using System;
 
 namespace PF.Modules.Identity.ViewModels
 {
+    /// <summary>登录对话框 ViewModel</summary>
     public class LoginViewModel : PFDialogViewModelBase
     {
         private readonly IUserService _userService;
@@ -12,6 +13,7 @@ namespace PF.Modules.Identity.ViewModels
         private string _errorMessage;
         private bool _isLoggingIn;
 
+        /// <summary>初始化登录 ViewModel</summary>
         public LoginViewModel(IUserService userService)
         {
             _userService = userService;
@@ -28,32 +30,39 @@ namespace PF.Modules.Identity.ViewModels
             CancelCommand = new DelegateCommand(ExecuteCancel);
         }
 
+        /// <summary>获取或设置用户名</summary>
         public string UserName
         {
             get => _userName;
             set => SetProperty(ref _userName, value);
         }
 
+        /// <summary>获取或设置密码</summary>
         public string Password
         {
             get => _password;
             set => SetProperty(ref _password, value);
         }
 
+        /// <summary>获取或设置错误消息</summary>
         public string ErrorMessage
         {
             get => _errorMessage;
             set => SetProperty(ref _errorMessage, value);
         }
 
+        /// <summary>获取或设置是否正在登录</summary>
         public bool IsLoggingIn
         {
             get => _isLoggingIn;
             set => SetProperty(ref _isLoggingIn, value);
         }
 
+        /// <summary>登录命令</summary>
         public DelegateCommand LoginCommand { get; }
+        /// <summary>取消命令</summary>
         public DelegateCommand CancelCommand { get; }
+        /// <summary>注销命令</summary>
         public DelegateCommand LogoutCommand { get; }
 
         private bool CanExecuteLogin()

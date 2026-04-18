@@ -18,8 +18,12 @@ namespace PF.WorkStation.AutoOcr.CostParam
         // ─────────────────────────────────────────────────────────────────────
         // 工艺层 (PRC_*)
         // ─────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// 工艺层报警代码
+        /// </summary>
         public static class Process
         {
+            /// <summary>OCR识别连续失败</summary>
             [AlarmInfo("工艺异常", "OCR 识别连续失败，超过阈值", AlarmSeverity.Warning,
                 "1. 检查相机焦距是否正确（参数页面调整）;\n" +
                 "2. 调整光源亮度配方;\n" +
@@ -28,6 +32,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "5. 联系工艺工程师调整识别参数;")]
             public const string OcrFailure = "PRC_OCR_001";
 
+            /// <summary>批次产品数量与预期不符</summary>
             [AlarmInfo("工艺异常", "批次产品数量与预期不符", AlarmSeverity.Error,
                 "1. 手动核对当前产品数量;\n" +
                 "2. 检查上料是否符合批次要求;\n" +
@@ -35,6 +40,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 确认无误后手动纠正批次记录并复位;")]
             public const string BatchCountError = "PRC_BCH_001";
 
+            /// <summary>工站运动超时</summary>
             [AlarmInfo("工艺异常", "工站运动超时，轴未到达目标位", AlarmSeverity.Fatal,
                 "1. 检查运动轴是否被卡死或碰到异物;\n" +
                 "2. 检查限位传感器指示状态;\n" +
@@ -43,6 +49,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "5. 点击【复位】继续生产;")]
             public const string StationMotionTimeout = "PRC_MOT_001";
 
+            /// <summary>上料工站送料超时</summary>
             [AlarmInfo("工艺异常", "上料工站送料超时", AlarmSeverity.Error,
                 "1. 检查料盘是否有料;\n" +
                 "2. 检查送料机构是否被卡住;\n" +

@@ -9,6 +9,9 @@ namespace PF.UI.Infrastructure.PrismBase
     using PF.Core.Entities.Identity;
     using Prism.Events;
 
+    /// <summary>
+    /// PubSubEvent<UserInfo?>
+    /// </summary>
     public class UserChangedEvent : PubSubEvent<UserInfo?>
     {
     }

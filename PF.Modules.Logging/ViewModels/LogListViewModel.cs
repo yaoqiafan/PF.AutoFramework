@@ -20,6 +20,7 @@ using PF.Infrastructure.Logging;
 
 namespace PF.Modules.Logging.ViewModels
 {
+    /// <summary>日志列表 ViewModel</summary>
     public class LogListViewModel : ViewModelBase
     {
         private readonly ILogService _logService;
@@ -32,6 +33,7 @@ namespace PF.Modules.Logging.ViewModels
         private bool _showOnlyCurrentDay = false;
         private DateTime? _selectedDate = DateTime.Today;
 
+        /// <summary>初始化日志列表 ViewModel</summary>
         public LogListViewModel()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
@@ -96,13 +98,16 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 属性
 
+        /// <summary>获取日志集合视图</summary>
         public ICollectionView LogEntriesView => _logEntriesView;
 
+        /// <summary>获取或设置日志条目集合</summary>
         public ObservableCollection<LogEntry> LogEntries { get; set; }
 
         private LogEntry _selectedLogEntry;
 
         // 选中项属性
+        /// <summary>获取或设置选中的日志条目</summary>
         public LogEntry SelectedLogEntry
         {
             get => _selectedLogEntry;
@@ -121,6 +126,7 @@ namespace PF.Modules.Logging.ViewModels
             // 可以在这里处理选中逻辑，但不要再写 Debug 日志，否则可能导致死循环或刷屏
         }
 
+        /// <summary>获取或设置搜索文本</summary>
         public string SearchText
         {
             get => _searchText;
@@ -134,6 +140,7 @@ namespace PF.Modules.Logging.ViewModels
             }
         }
 
+        /// <summary>获取或设置选中的日志级别</summary>
         public LogLevel? SelectedLogLevel
         {
             get => _selectedLogLevel;
@@ -147,12 +154,14 @@ namespace PF.Modules.Logging.ViewModels
             }
         }
 
+        /// <summary>获取或设置是否自动滚动</summary>
         public bool AutoScroll
         {
             get => _autoScroll;
             set => SetProperty(ref _autoScroll, value);
         }
 
+        /// <summary>获取或设置是否仅显示当天日志</summary>
         public bool ShowOnlyCurrentDay
         {
             get => _showOnlyCurrentDay;
@@ -166,6 +175,7 @@ namespace PF.Modules.Logging.ViewModels
             }
         }
 
+        /// <summary>获取或设置选中的日期</summary>
         public DateTime? SelectedDate
         {
             get => _selectedDate;
@@ -179,23 +189,28 @@ namespace PF.Modules.Logging.ViewModels
             }
         }
 
+        /// <summary>获取日志总数</summary>
         public int TotalLogCount
         {
             get => _totalLogCount;
             private set => SetProperty(ref _totalLogCount, value);
         }
 
+        /// <summary>获取筛选后的日志数量</summary>
         public int FilteredLogCount
         {
             get => _filteredLogCount;
             private set => SetProperty(ref _filteredLogCount, value);
         }
 
+        /// <summary>获取日志级别选项列表</summary>
         public List<LogLevel?> LogLevels { get; }
 
+        /// <summary>获取日期范围选项列表</summary>
         public List<DateRangeOption> DateRanges { get; }
 
         private DateRangeOption _selectedDateRange;
+        /// <summary>获取或设置选中的日期范围</summary>
         public DateRangeOption SelectedDateRange
         {
             get => _selectedDateRange;
@@ -209,6 +224,7 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private bool _isLoading;
+        /// <summary>获取或设置是否正在加载</summary>
         public bool IsLoading
         {
             get => _isLoading;
@@ -219,13 +235,20 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 命令
 
+        /// <summary>清空日志命令</summary>
         public ICommand ClearLogsCommand { get; }
+        /// <summary>导出日志命令</summary>
         public ICommand ExportLogsCommand { get; }
+        /// <summary>复制选中日志命令</summary>
         public ICommand CopySelectedCommand { get; }
+        /// <summary>复制全部日志命令</summary>
         public ICommand CopyAllCommand { get; }
+        /// <summary>切换日期过滤命令</summary>
         public ICommand ToggleDateFilterCommand { get; }
+        /// <summary>刷新命令</summary>
         public ICommand RefreshCommand { get; }
 
+        /// <summary>测试命令</summary>
         public ICommand test { get; }
 
 
@@ -482,6 +505,7 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 清理
 
+        /// <summary>取消订阅日志事件</summary>
         public void Unsubscribe()
         {
             if (_logService != null)

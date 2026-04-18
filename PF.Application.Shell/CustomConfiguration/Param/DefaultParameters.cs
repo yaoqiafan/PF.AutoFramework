@@ -11,6 +11,9 @@ using System.Text.Json;
 
 namespace PF.Application.Shell.CustomConfiguration.Param
 {
+    /// <summary>
+    /// IDefaultParam
+    /// </summary>
     public class DefaultParameters : IDefaultParam
     {
 

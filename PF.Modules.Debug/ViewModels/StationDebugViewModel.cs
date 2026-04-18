@@ -47,6 +47,7 @@ namespace PF.Modules.Debug.ViewModels
         private static readonly Brush _defaultBrush = new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75));
 
         private MachineState _controllerState;
+        /// <summary>获取主控器当前状态</summary>
         public MachineState ControllerState
         {
             get => _controllerState;
@@ -58,6 +59,7 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private OperationMode _currentMode;
+        /// <summary>获取当前运行模式</summary>
         public OperationMode CurrentMode
         {
             get => _currentMode;
@@ -65,26 +67,35 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private string _lastAlarmMessage = "无";
+        /// <summary>获取最近报警消息</summary>
         public string LastAlarmMessage
         {
             get => _lastAlarmMessage;
             private set => SetProperty(ref _lastAlarmMessage, value);
         }
 
+        /// <summary>获取状态颜色画刷</summary>
         public Brush StatusBrush =>
             _stateBrushMap.TryGetValue(_controllerState, out var b) ? b : _defaultBrush;
 
         // ── 主控指令 ─────────────────────────────────────────────────────────
 
+        /// <summary>初始化全部命令</summary>
         public DelegateCommand InitializeAllCommand { get; }
+        /// <summary>启动全部命令</summary>
         public DelegateCommand StartAllCommand      { get; }
+        /// <summary>暂停全部命令</summary>
         public DelegateCommand PauseAllCommand      { get; }
+        /// <summary>恢复全部命令</summary>
         public DelegateCommand ResumeAllCommand     { get; }
+        /// <summary>停止全部命令</summary>
         public DelegateCommand StopAllCommand       { get; }
+        /// <summary>复位全部命令</summary>
         public DelegateCommand ResetAllCommand      { get; }
 
         // ── 流水线信号量树（Scope → Signal）──────────────────────────────────
 
+        /// <summary>获取信号量作用域节点列表</summary>
         public ObservableCollection<ScopeTreeNode> ScopeNodes { get; } = new();
 
         /// <summary>在 ContextMenu 中释放一个信号量（计数 +1）</summary>
@@ -95,9 +106,11 @@ namespace PF.Modules.Debug.ViewModels
 
         // ── 工站导航列表 ─────────────────────────────────────────────────────
 
+        /// <summary>获取工站导航列表</summary>
         public ObservableCollection<StationNavItem> NavItems { get; } = new();
 
         private StationNavItem _selectedItem;
+        /// <summary>获取或设置选中的工站导航项</summary>
         public StationNavItem SelectedItem
         {
             get => _selectedItem;
@@ -108,6 +121,7 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        /// <summary>初始化工站调试 ViewModel</summary>
         public StationDebugViewModel(
             IEnumerable<StationBase<StationMemoryBaseParam>> stations,
             IMasterController controller,
@@ -291,12 +305,14 @@ namespace PF.Modules.Debug.ViewModels
         private static void Log(Exception ex) =>
             System.Diagnostics.Debug.WriteLine($"[StationDebug] 指令执行失败: {ex.Message}");
 
+        /// <summary>释放资源</summary>
         public void Dispose()
         {
             _pollTimer.Stop();
             _controller.MasterAlarmTriggered -= OnMasterAlarmTriggered;
         }
 
+        /// <summary>销毁 ViewModel</summary>
         public override void Destroy() => Dispose();
     }
 

@@ -1,4 +1,4 @@
-﻿using NPOI.SS.UserModel.Charts;
+using NPOI.SS.UserModel.Charts;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
@@ -16,6 +16,9 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
+    /// <summary>
+    /// WorkStationDataModuleDebugViewModel
+    /// </summary>
     public class WorkStationDataModuleDebugViewModel : RegionViewModelBase
     {
         private readonly WorkStationDataModule? _dataModule;
@@ -30,6 +33,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public WorkStationDataModule? DataModule => _dataModule;
 
         private string _debugMessage = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string DebugMessage
         {
             get => _debugMessage;
@@ -39,6 +45,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #region 工位 1/2 MES 派生属性（简单文本）
 
         private string _station1InternalBatches = string.Empty;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string Station1InternalBatches
         {
             get => _station1InternalBatches;
@@ -46,6 +55,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private string _station2InternalBatches = string.Empty;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string Station2InternalBatches
         {
             get => _station2InternalBatches;
@@ -54,6 +66,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
         private string _Station1RecipeName = string.Empty;
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string Station1RecipeName
         {
@@ -63,6 +78,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private string _Station2RecipeName = string.Empty;
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string Station2RecipeName
         {
@@ -74,6 +92,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         #region 数据集合
         private ObservableCollection<WaferInfo> _Station1MesDetection = new ObservableCollection<WaferInfo>();
+        /// <summary>
+        /// 获取或设置 Station1MesDetection
+        /// </summary>
         public ObservableCollection<WaferInfo> Station1MesDetection
         {
             get => _Station1MesDetection;
@@ -82,6 +103,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
         private ObservableCollection<WaferInfo> _Station2MesDetection = new ObservableCollection<WaferInfo>();
+        /// <summary>
+        /// 获取或设置 Station2MesDetection
+        /// </summary>
 
         public ObservableCollection<WaferInfo> Station2MesDetection
         {
@@ -89,6 +113,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _Station2MesDetection, value);
         }
         private ObservableCollection<MachineDetectionData> _Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
+        /// <summary>
+        /// 获取或设置 Station1MachineDetection
+        /// </summary>
         public ObservableCollection<MachineDetectionData> Station1MachineDetection
         {
             get => _Station1MachineDetection;
@@ -96,6 +123,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private ObservableCollection<MachineDetectionData> _Station2MachineDetection = new ObservableCollection<MachineDetectionData>();
+        /// <summary>
+        /// 获取或设置 Station2MachineDetection
+        /// </summary>
         public ObservableCollection<MachineDetectionData> Station2MachineDetection
         {
             get => _Station2MachineDetection;
@@ -103,6 +133,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private ObservableCollection<MachineDetectionData> _AllMachineDetection = new ObservableCollection<MachineDetectionData>();
+        /// <summary>
+        /// 获取或设置 AllMachineDetection
+        /// </summary>
         public ObservableCollection<MachineDetectionData> AllMachineDetection
         {
             get => _AllMachineDetection;
@@ -120,8 +153,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #region Commands
 
         // 1. 顶部全局生命周期控制
+        /// <summary>
+        /// InitializeModule 命令
+        /// </summary>
         public DelegateCommand InitializeModuleCommand { get; }
+        /// <summary>
+        /// ResetModule 命令
+        /// </summary>
         public DelegateCommand ResetModuleCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
 
 
@@ -131,20 +173,35 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// 手动刷新数据（从 DataModule 重新拉取一次派生字段）
         /// </summary>
         public DelegateCommand RefreshDataCommand { get; }
+        /// <summary>
+        /// Station1ChangeLot 命令
+        /// </summary>
 
 
 
         public DelegateCommand Station1ChangeLotCommand { get; }
+        /// <summary>
+        /// Station2ChangeLot 命令
+        /// </summary>
 
 
         public DelegateCommand Station2ChangeLotCommand { get; }
+        /// <summary>
+        /// AddStation1Det 命令
+        /// </summary>
 
 
         public DelegateCommand AddStation1DetCommand { get; set; }
+        /// <summary>
+        /// AddStation2Det 命令
+        /// </summary>
 
         public DelegateCommand AddStation2DetCommand { get; set; }
 
         #endregion
+        /// <summary>
+        /// WorkStationDataModuleDebugViewModel 构造函数
+        /// </summary>
 
         public WorkStationDataModuleDebugViewModel(IContainerProvider containerProvider)
         {

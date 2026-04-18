@@ -19,12 +19,14 @@ namespace PF.Modules.Alarm
         private readonly IRegionManager _regionManager;
         private readonly ILogService _logService;
 
+        /// <summary>初始化报警模块</summary>
         public AlarmModule(IRegionManager regionManager, ILogService logService)
         {
             _regionManager = regionManager;
             _logService    = logService;
         }
 
+        /// <summary>注册报警模块的视图和对话框</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<AlarmCenterView, AlarmCenterViewModel>(
@@ -41,6 +43,7 @@ namespace PF.Modules.Alarm
             containerRegistry.RegisterDialog<AlarmDetailCardView, AlarmDetailCardViewModel>(nameof(AlarmDetailCardView));
         }
 
+        /// <summary>模块初始化时加载报警字典并注册菜单</summary>
         public async void OnInitialized(IContainerProvider containerProvider)
         {
             try

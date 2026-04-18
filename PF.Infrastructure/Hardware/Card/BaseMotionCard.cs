@@ -130,9 +130,10 @@ namespace PF.Infrastructure.Hardware.Card
 
 
 
+        /// <inheritdoc/>
         public abstract MotionIOStatus GetMotionIOStatus(int axisIndex);
 
-
+        /// <inheritdoc/>
         public abstract Task <bool > ClearAxisError(int axisIndex);
 
         #endregion
@@ -156,13 +157,21 @@ namespace PF.Infrastructure.Hardware.Card
 
         #region 位置锁存
 
+        /// <summary>
+        /// 设置锁存模式
+        /// </summary>
         public abstract Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
 
 
+        /// <summary>
+        /// 获取锁存编号
+        /// </summary>
         public abstract Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
 
-
+        /// <summary>
+        /// 获取锁存位置
+        /// </summary>
         public abstract Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
 
         #endregion 位置锁存

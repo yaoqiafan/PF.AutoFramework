@@ -10,13 +10,22 @@ namespace PF.WorkStation.AutoOcr.CostParam
     /// </summary>
     public class HardwareInputConfig : IHardwareInputConfig
     {
+        /// <summary>获取输入类型</summary>
         public string InputType { get; }
+        /// <summary>获取端口号</summary>
         public int Port { get; }
+        /// <summary>获取防抖时间(ms)</summary>
         public int DebounceMs { get; }
+        /// <summary>获取输入名称</summary>
         public string Name { get; }
+        /// <summary>获取扫描分组</summary>
         public InputScanGroup ScanGroup { get; }
+        /// <summary>获取或设置是否静默</summary>
         public bool IsMuted { get; set; } = false;
 
+        /// <summary>
+        /// 初始化硬件输入配置
+        /// </summary>
         public HardwareInputConfig(
             string inputType,
             int port,
@@ -40,8 +49,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
     /// </summary>
     public class PanelIoConfig : IPanelIoConfig
     {
+        /// <summary>获取IO设备ID</summary>
         public string IoDeviceId { get; } = "IO_Collectorll";
 
+        /// <summary>获取监控的输入列表</summary>
         public IEnumerable<IHardwareInputConfig> MonitoredInputs { get; } =
             new List<IHardwareInputConfig>
             {

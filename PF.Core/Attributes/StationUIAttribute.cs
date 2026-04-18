@@ -24,6 +24,9 @@ namespace PF.Core.Attributes
         /// <summary>侧边栏排序序号（数字越小越靠前，默认 99）</summary>
         public int Order { get; set; } = 99;
 
+        /// <summary>
+        /// 初始化工站UI特性
+        /// </summary>
         public StationUIAttribute(string title, string viewName, int order = 99)
         {
             Title   = title;

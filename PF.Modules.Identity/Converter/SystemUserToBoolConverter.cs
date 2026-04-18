@@ -32,6 +32,7 @@ namespace PF.Modules.Identity.Converter
         /// <summary>
         /// 当用户名属于受保护账号时返回 false（禁用按钮），否则返回 true（启用按钮）。
         /// </summary>
+        /// <summary>判断用户名是否属于受保护账号</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is not string userName) return true;

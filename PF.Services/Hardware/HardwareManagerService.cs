@@ -1,4 +1,4 @@
-using PF.Core.Entities.Hardware;
+﻿using PF.Core.Entities.Hardware;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -50,9 +50,18 @@ namespace PF.Services.Hardware
         // 内存配置缓存（在 LoadAndInitializeAsync 后有效）
         private List<HardwareConfig> _configs = new();
 
+        /// <summary>
+        /// DeviceAdded
+        /// </summary>
         public event EventHandler<IHardwareDevice>? DeviceAdded;
+        /// <summary>
+        /// DeviceRemoved
+        /// </summary>
         public event EventHandler<string>? DeviceRemoved;
 
+        /// <summary>
+        /// ActiveDevices
+        /// </summary>
         public IEnumerable<IHardwareDevice> ActiveDevices => _activeDevices.Values;
 
         /// <summary>
@@ -70,6 +79,9 @@ namespace PF.Services.Hardware
 
         // ── 工厂注册 ───────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// RegisterFactory 工厂
+        /// </summary>
         public void RegisterFactory(string implementationClassName, Func<HardwareConfig, IHardwareDevice> factory)
         {
             _factories[implementationClassName] = factory;
@@ -81,6 +93,9 @@ namespace PF.Services.Hardware
         /// <summary>返回内存缓存中的所有配置（LoadAndInitializeAsync 后有效）</summary>
         public IEnumerable<HardwareConfig> GetAllConfigs() => _configs.AsReadOnly();
 
+        /// <summary>
+        /// 获取Config
+        /// </summary>
         public HardwareConfig? GetConfig(string deviceId)
             => _configs.FirstOrDefault(c => c.DeviceId == deviceId);
 
@@ -223,6 +238,9 @@ namespace PF.Services.Hardware
             });
         }
 
+        /// <summary>
+        /// ReloadAllAsync异步操作
+        /// </summary>
         public async Task ReloadAllAsync()
         {
             _logger.Info("[HardwareManager] 热重载：正在释放所有活跃设备...");
@@ -263,6 +281,9 @@ namespace PF.Services.Hardware
             _logger.Success($"[HardwareManager] 全局模拟模式配置已更新为: {(enabled ? "模拟" : "真实硬件")}，请手动重载硬件生效。");
         }
 
+        /// <summary>
+        /// 获取Device
+        /// </summary>
         public IHardwareDevice? GetDevice(string deviceId)
             => _activeDevices.TryGetValue(deviceId, out var d) ? d : null;
 
@@ -391,6 +412,9 @@ namespace PF.Services.Hardware
             }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             foreach (var device in _activeDevices.Values)

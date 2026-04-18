@@ -13,14 +13,23 @@ namespace PF.Core.Entities.SecsGem.Message
     /// </summary>
     public class SecsGemNodeMessage
     {
+        /// <summary>
+        /// 默认构造函数
+        /// </summary>
         public SecsGemNodeMessage() { }
 
+        /// <summary>数据类型</summary>
         public DataType DataType { get; set; }
-        [JsonIgnore] // �����л�Data����
+        /// <summary>原始字节数据</summary>
+        [JsonIgnore]
         public byte[] Data { get; set; }
+        /// <summary>数据长度</summary>
         public int Length { get; set; }
+        /// <summary>子节点列表</summary>
         public List<SecsGemNodeMessage> SubNode { get; set; } = new List<SecsGemNodeMessage>();
+        /// <summary>是否为变量节点</summary>
         public bool IsVariableNode { get; set; }
+        /// <summary>变量编号</summary>
         public uint VariableCode { get; set; }
         /// <summary>
         /// �������ǿ����ֵ���Զ���䣬ֱ��ʹ�ã�
@@ -29,6 +38,9 @@ namespace PF.Core.Entities.SecsGem.Message
         public object TypedValue { get; set; }
 
 
+        /// <summary>
+        /// 根据数据类型和值构造节点消息
+        /// </summary>
         public SecsGemNodeMessage(DataType dataType, object _value)
         {
             switch (dataType)

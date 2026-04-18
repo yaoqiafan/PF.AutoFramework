@@ -1,4 +1,4 @@
-﻿using PF.Core.Attributes;
+using PF.Core.Attributes;
 using PF.Core.Constants;
 using System;
 using System.Collections.Generic;
@@ -22,13 +22,22 @@ namespace PF.WorkStation.AutoOcr.UI.Views
        GroupName = "程式管理", Order = 1, GroupOrder = 3,
        Icon = "NailGeometry"
      )]
+    /// <summary>
+    /// OcrRecipeManageView
+    /// </summary>
     public partial class OcrRecipeManageView : UserControl
     {
+        /// <summary>
+        /// OcrRecipeManageView 构造函数
+        /// </summary>
         public OcrRecipeManageView()
         {
             InitializeComponent();
         }
     }
+    /// <summary>
+    /// StringListToStringConverter
+    /// </summary>
 
 
 
@@ -43,6 +52,9 @@ namespace PF.WorkStation.AutoOcr.UI.Views
         public string Separator { get; set; } = ", ";
 
         // List<string> -> string (用于UI显示)
+        /// <summary>
+        /// 成员
+        /// </summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is IEnumerable<string> list)
@@ -55,6 +67,9 @@ namespace PF.WorkStation.AutoOcr.UI.Views
         }
 
         // string -> List<string> (用于UI修改后回传给ViewModel，比如绑定在TextBox上时)
+        /// <summary>
+        /// 成员
+        /// </summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is string str)

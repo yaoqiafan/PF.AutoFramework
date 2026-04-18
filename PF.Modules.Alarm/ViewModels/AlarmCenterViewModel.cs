@@ -23,12 +23,15 @@ namespace PF.Modules.Alarm.ViewModels
 
         // ── 集合 ────────────────────────────────────────────────────────────
 
+        /// <summary>获取或设置当前活跃报警列表</summary>
         public ObservableCollection<AlarmRecord> ActiveAlarms     { get; } = new();
+        /// <summary>获取或设置历史报警列表</summary>
         public ObservableCollection<AlarmRecord> HistoricalAlarms { get; } = new();
 
         // ── 过滤条件 ─────────────────────────────────────────────────────────
 
         private int _queryYear = DateTime.Now.Year;
+        /// <summary>获取或设置查询年份</summary>
         public int QueryYear
         {
             get => _queryYear;
@@ -36,6 +39,7 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private string? _queryCategory;
+        /// <summary>获取或设置查询类别</summary>
         public string? QueryCategory
         {
             get => _queryCategory;
@@ -45,6 +49,7 @@ namespace PF.Modules.Alarm.ViewModels
         // ── 选中的报警（联动 SOP 看板） ─────────────────────────────────────
 
         private AlarmRecord? _selectedAlarm;
+        /// <summary>获取或设置选中的报警记录</summary>
         public AlarmRecord? SelectedAlarm
         {
             get => _selectedAlarm;
@@ -68,8 +73,11 @@ namespace PF.Modules.Alarm.ViewModels
 
         // ── 命令 ─────────────────────────────────────────────────────────────
 
+        /// <summary>清除所有报警命令</summary>
         public DelegateCommand ClearAllCommand      { get; }
+        /// <summary>查询历史报警命令</summary>
         public DelegateCommand QueryHistoryCommand  { get; }
+        /// <summary>清除选中报警命令</summary>
         public DelegateCommand ClearSelectedCommand { get; }
         /// <summary>
         /// 系统复位命令：发布 SystemResetRequestedEvent，由 Shell 桥接到 IMasterController.RequestSystemResetAsync()。
@@ -79,6 +87,7 @@ namespace PF.Modules.Alarm.ViewModels
 
         // ── 构造 ─────────────────────────────────────────────────────────────
 
+        /// <summary>初始化报警中心 ViewModel</summary>
         public AlarmCenterViewModel(IAlarmService alarmService) : base()
         {
             _alarmService = alarmService;
@@ -164,6 +173,7 @@ namespace PF.Modules.Alarm.ViewModels
 
         // ── 清理 ─────────────────────────────────────────────────────────────
 
+        /// <summary>销毁 ViewModel 并取消事件订阅</summary>
         public override void Destroy()
         {
             // 显式取消订阅，防止僵尸订阅残留

@@ -42,13 +42,19 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         /// <summary>物理启动按钮按下，触发工位 2 流转</summary>
         工位2启动按钮按下,
+        /// <summary>工位2允许拉料</summary>
         工位2允许拉料,
+        /// <summary>工位2拉料完成</summary>
         工位2拉料完成,
+        /// <summary>工位2允许退料</summary>
         工位2允许退料,
+        /// <summary>工位2退料完成</summary>
         工位2退料完成,
         /// <summary>工位 2 拉料就位，允许执行检测</summary>
         工位2允许检测,
+        /// <summary>工位2检测完成</summary>
         工位2检测完成,
+        /// <summary>工位2人工下料完成</summary>
         工位2人工下料完成
     }
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using PF.Data.Entity.Alarm;
 
@@ -18,13 +18,22 @@ namespace PF.Data.Context
         /// <summary>当前上下文对应的年份（决定分表名称）</summary>
         public int CurrentYear { get; }
 
+        /// <summary>
+        /// AlarmDbContext 数据库上下文
+        /// </summary>
         public AlarmDbContext(DbContextOptions<AlarmDbContext> options, int year = 0)
             : base(options)
         {
             CurrentYear = year > 0 ? year : DateTime.Now.Year;
         }
 
+        /// <summary>
+        /// AlarmDefinitions
+        /// </summary>
         public DbSet<AlarmDefinitionEntity> AlarmDefinitions { get; set; } = null!;
+        /// <summary>
+        /// AlarmRecords
+        /// </summary>
         public DbSet<AlarmRecordEntity> AlarmRecords { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

@@ -69,6 +69,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化数据中枢模块
+        /// </summary>
         public WorkStationDataModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
@@ -228,6 +231,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         [JsonInclude]
         private ConcurrentDictionary<string, List<MachineDetectionData>> _machineDataByBatch = new ConcurrentDictionary<string, List<MachineDetectionData>>();
 
+        /// <summary>获取按批次归档的检测数据字典</summary>
         public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch => _machineDataByBatch;
 
         /// <summary>
@@ -754,6 +758,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>不良排查使用的视觉留存原图路径</summary>
         public string ImagePath { get; set; } = "NONE";
 
+        /// <summary>返回检测数据的字符串表示</summary>
         public override string ToString()
         {
             return $"Time: {DateTime.FromOADate(Time):yyyy-MM-dd HH:mm:ss} \r\n OCR: {OcrText}";

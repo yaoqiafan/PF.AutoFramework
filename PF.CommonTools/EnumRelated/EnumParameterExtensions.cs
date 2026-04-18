@@ -14,9 +14,21 @@ namespace PF.CommonTools.EnumRelated
     /// </summary>
     public class EnumParamInfo
     {
+        /// <summary>
+        /// 描述
+        /// </summary>
         public string Description { get; set; }
+        /// <summary>
+        /// Category
+        /// </summary>
         public string Category { get; set; }
+        /// <summary>
+        /// Default值
+        /// </summary>
         public object DefaultValue { get; set; }
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public string TypeFullName => DefaultValue?.GetType().FullName;
     }
 
@@ -77,12 +89,21 @@ namespace PF.CommonTools.EnumRelated
 
         // --- 快捷调用方法（全部改为泛型支持） ---
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public static string GetDescription<T>(this T value) where T : struct, Enum
             => value.GetParamInfo().Description;
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public static string GetCategory<T>(this T value) where T : struct, Enum
             => value.GetParamInfo().Category;
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public static object GetDefaultValue<T>(this T value) where T : struct, Enum
             => value.GetParamInfo().DefaultValue;
 

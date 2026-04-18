@@ -24,31 +24,52 @@ namespace PF.UI.Resources
     public partial class Splash : PF.UI.Controls.Window
     {
        
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public Splash()
         {
             InitializeComponent();
         }
 
+        /// <summary>
+        /// WelcomeTextProperty
+        /// </summary>
         public static readonly DependencyProperty WelcomeTextProperty = DependencyProperty.Register(
            nameof(WelcomeText), typeof(string), typeof(Splash), new PropertyMetadata(String.Empty));
 
+        /// <summary>
+        /// WelcomeText
+        /// </summary>
         public string WelcomeText
         {
             get => (string)GetValue(WelcomeTextProperty);
             set => SetValue(WelcomeTextProperty, value);
         }
 
+        /// <summary>
+        /// VersionNumberProperty
+        /// </summary>
         public static readonly DependencyProperty VersionNumberProperty = DependencyProperty.Register(
            nameof(VersionNumber), typeof(string), typeof(Splash), new PropertyMetadata(String.Empty));
 
+        /// <summary>
+        /// VersionNumber
+        /// </summary>
         public string VersionNumber
         {
             get => (string)GetValue(VersionNumberProperty);
             set => SetValue(VersionNumberProperty, value);
         }
 
+        /// <summary>
+        /// WelcomeText_smallProperty
+        /// </summary>
         public static readonly DependencyProperty WelcomeText_smallProperty = DependencyProperty.Register(
           nameof(WelcomeText_small), typeof(string), typeof(Splash), new PropertyMetadata(String.Empty));
+        /// <summary>
+        /// WelcomeText_small
+        /// </summary>
         public string WelcomeText_small
         {
             get => (string)GetValue(WelcomeText_smallProperty);
@@ -56,8 +77,14 @@ namespace PF.UI.Resources
         }
 
 
+        /// <summary>
+        /// MessageinfoProperty
+        /// </summary>
         public static readonly DependencyProperty MessageinfoProperty = DependencyProperty.Register(
          nameof(Messageinfo), typeof(string), typeof(Splash), new PropertyMetadata("Loading..."));
+        /// <summary>
+        /// Messageinfo
+        /// </summary>
         public string Messageinfo
         {
             get => (string)GetValue(MessageinfoProperty);
@@ -66,9 +93,15 @@ namespace PF.UI.Resources
 
 
       
+        /// <summary>
+        /// MessageTypeProperty
+        /// </summary>
         public static readonly DependencyProperty MessageTypeProperty = DependencyProperty.Register(
             nameof(MessageType), typeof(MsgType), typeof(Splash), new PropertyMetadata(default));
 
+        /// <summary>
+        /// MessageType
+        /// </summary>
         public MsgType MessageType
         {
             get => (MsgType)GetValue(MessageTypeProperty);
@@ -77,8 +110,14 @@ namespace PF.UI.Resources
 
 
 
+        /// <summary>
+        /// 加载ingAction
+        /// </summary>
         public Func<Task<bool>> LoadingAction { get; set; } = () => Task.FromResult(true);
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public async void SplashLoaded()
         {
             bool res = true;
@@ -101,6 +140,9 @@ namespace PF.UI.Resources
 
 
 
+        /// <summary>
+        /// 更新Message
+        /// </summary>
         public void UpdateMessage(string status, MsgType msgType = MsgType.Info)
         {
             Messageinfo = status;
@@ -114,6 +156,9 @@ namespace PF.UI.Resources
     /// </summary>
     public class MessageTypeToBrushConverter : IValueConverter
     {
+        /// <summary>
+        /// 转换值
+        /// </summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is MsgType level)
@@ -130,6 +175,9 @@ namespace PF.UI.Resources
             return Brushes.Gray;
         }
 
+        /// <summary>
+        /// 转换值
+        /// </summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();

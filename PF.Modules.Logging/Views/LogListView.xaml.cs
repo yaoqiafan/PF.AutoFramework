@@ -8,6 +8,7 @@ using System.Windows.Media;
 
 namespace PF.Modules.Logging.Views
 {
+    /// <summary>日志列表视图</summary>
     public partial class LogListView : UserControl
     {
         private ScrollViewer _scrollViewer;
@@ -16,6 +17,7 @@ namespace PF.Modules.Logging.Views
         private readonly IContainerProvider _containerProvider;
         private ILogService logService;
 
+        /// <summary>初始化日志列表视图</summary>
         public LogListView(IContainerProvider containerProvider)
         {
             InitializeComponent();

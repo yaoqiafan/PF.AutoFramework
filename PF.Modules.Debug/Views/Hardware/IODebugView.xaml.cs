@@ -20,6 +20,7 @@ namespace PF.Modules.Debug.Views
     /// </summary>
     public partial class IODebugView : UserControl
     {
+        /// <summary>初始化 IO 调试视图</summary>
         public IODebugView()
         {
             InitializeComponent();

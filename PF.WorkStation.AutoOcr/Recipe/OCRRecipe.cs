@@ -14,20 +14,28 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Recipe
 {
+    /// <summary>
+    /// OCR配方管理类
+    /// </summary>
     public class OCRRecipe<T> : BaseRecipe<T> where T : OCRRecipeParam
     {
 
         private readonly IHardwareManagerService _hardwareservice;
+        /// <summary>
+        /// 初始化OCR配方
+        /// </summary>
         public OCRRecipe(ILogService logger, IHardwareManagerService hardwareservice) : base(logger: logger)
         {
             _hardwareservice = hardwareservice;
         }
 
+        /// <summary>下载配方</summary>
         public override Task<bool> DownLoadRecipe(T RecipeParam, CancellationToken token = default)
         {
             return Task.FromResult(true);
         }
 
+        /// <summary>配方变更时切换OCR相机程序</summary>
         public override async Task<bool> RecipeChangedAsync(T RecipeParam, CancellationToken token = default)
         {
             /***切换OCR相机配方***/
@@ -40,6 +48,7 @@ namespace PF.WorkStation.AutoOcr.Recipe
 
         }
 
+        /// <summary>更新配方</summary>
         public override Task<bool> RecipeUpdateAsync(T RecipeParam, CancellationToken token = default)
         {
             return Task.FromResult(true);

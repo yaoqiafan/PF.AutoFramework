@@ -27,6 +27,7 @@ namespace PF.Core.Interfaces.Device.Mechanisms
         /// </summary>
         bool HasAlarm { get; }
 
+        /// <summary>模组报警事件</summary>
         event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
 
         /// <summary>

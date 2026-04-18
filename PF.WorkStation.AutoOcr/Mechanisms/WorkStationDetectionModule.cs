@@ -37,18 +37,24 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     {
         #region Enums (轴关键点位枚举)
 
+        /// <summary>X轴点位枚举</summary>
         public enum XAxisPoint
         {
+            /// <summary>待机位</summary>
             待机位 = 0,
         }
 
+        /// <summary>Y轴点位枚举</summary>
         public enum YAxisPoint
         {
+            /// <summary>待机位</summary>
             待机位 = 0,
         }
 
+        /// <summary>Z轴点位枚举</summary>
         public enum ZAxisPoint
         {
+            /// <summary>待机位</summary>
             待机位 = 0, // Z轴必须退回到最高安全位，防止 XY 移动时相机撞击下方的料盒或干涉物
         }
 
@@ -77,15 +83,22 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private string _curOCRRecipeName;
 
         // ── 公开硬件绑定属性 (供 ViewModel/UI 面板调试使用) ──
+        /// <summary>获取X轴实例</summary>
         public IAxis XAxis => _xAxis;
+        /// <summary>获取Y轴实例</summary>
         public IAxis YAxis => _yAxis;
+        /// <summary>获取Z轴实例</summary>
         public IAxis ZAxis => _zAxis;
+        /// <summary>获取相机实例</summary>
         public IIntelligentCamera Camera => _camera;
 
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化全局视觉检测模组
+        /// </summary>
         public WorkStationDetectionModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,

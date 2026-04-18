@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PF.Data.Entity.Category
@@ -10,6 +10,9 @@ namespace PF.Data.Entity.Category
     [Table("ProductionData")]
     public class ProductionDataEntity
     {
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public string ID { get; set; } = Guid.NewGuid().ToString();

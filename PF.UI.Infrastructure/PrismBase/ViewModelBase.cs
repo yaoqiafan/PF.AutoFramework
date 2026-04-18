@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace PF.UI.Infrastructure.PrismBase
 {
+    /// <summary>
+    /// IDestructible
+    /// </summary>
     public abstract class ViewModelBase : BindableBase, IDestructible
     {
         /// <summary>
@@ -21,6 +24,9 @@ namespace PF.UI.Infrastructure.PrismBase
             MessageService = ContainerLocator.Container.Resolve<IMessageService>();
         }
 
+        /// <summary>
+        /// ServiceProvider 服务
+        /// </summary>
         public IServiceProvider ServiceProvider { get; }
 
         /// <summary>
@@ -34,6 +40,9 @@ namespace PF.UI.Infrastructure.PrismBase
         protected IDialogService DialogService { get; }
 
 
+        /// <summary>
+        /// 消息服务
+        /// </summary>
         protected IMessageService MessageService { get; }
         /// <summary>
         /// 销毁

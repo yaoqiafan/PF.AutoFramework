@@ -16,6 +16,7 @@ namespace PF.Modules.Alarm.Views
         Icon = "Bell")]
     public partial class AlarmCenterView : UserControl
     {
+        /// <summary>初始化报警中心视图</summary>
         public AlarmCenterView()
         {
             InitializeComponent();

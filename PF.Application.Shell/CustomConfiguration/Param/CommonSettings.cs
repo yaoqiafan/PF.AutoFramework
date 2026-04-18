@@ -1,4 +1,4 @@
-using PF.Core.Constants;
+﻿using PF.Core.Constants;
 using PF.UI.Shared.Data;
 using System.ComponentModel;
 using System.Configuration;
@@ -9,61 +9,107 @@ using System.Text.Json.Serialization;
 namespace PF.Application.Shell.CustomConfiguration.Param
 {
     /// <summary>
-    /// 系统公共参数设置（JSON 文件存储，支持 PropertyGrid 展示）
+    /// 彩纸特效类型
     /// </summary>
-    /// 
-
     public enum ConfettiEffectType
     {
+        /// <summary>
+        /// 基础礼炮效果
+        /// </summary>
         BasicCannon,
+        /// <summary>
+        /// 随机方向效果
+        /// </summary>
         RandomDirection,
+        /// <summary>
+        /// 真实外观效果
+        /// </summary>
         RealisticLook,
+        /// <summary>
+        /// 烟花效果
+        /// </summary>
         Fireworks,
+        /// <summary>
+        /// 星星效果
+        /// </summary>
         Stars,
+        /// <summary>
+        /// 雪花效果
+        /// </summary>
         Snow,
+        /// <summary>
+        /// 校园风效果
+        /// </summary>
         SchoolPride,
     }
+    /// <summary>
+    /// 系统公共参数设置（JSON 文件存储，支持 PropertyGrid 展示）
+    /// </summary>
     public class CommonSettings
     {
         // ==========================================
         // 1. 配置属性区 (PropertyGrid 会读取这里的标签)
         // ==========================================
 
+        /// <summary>
+        /// 是否开机自启动
+        /// </summary>
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("1.开机自启动")]
         [BrowsableAttribute(true)]
         public bool AutoStart { get; set; } = false;
 
+        /// <summary>
+        /// CO名称
+        /// </summary>
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("2.公司名称")]
         [BrowsableAttribute(true)]
         public string COName { get; set; } = "聚力";
 
+        /// <summary>
+        /// CO_EN名称
+        /// </summary>
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("3.公司名称(英文)")]
         [BrowsableAttribute(true)]
         public string COName_EN { get; set; } = "PowerFocus";
 
+        /// <summary>
+        /// SoftWare名称
+        /// </summary>
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("4.软件名称")]
         [BrowsableAttribute(true)]
         public string SoftWareName { get; set; } = "聚力智能标准软件框架";
 
+        /// <summary>
+        /// SoftWare_EN名称
+        /// </summary>
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("5.软件名称(英文)")]
         [BrowsableAttribute(true)]
         public string SoftWareName_EN { get; set; } = "PowerFocus Standard Software Framework";
 
+        /// <summary>
+        /// 软件主题皮肤
+        /// </summary>
         [CategoryAttribute("A.系统参数")]
         [DisplayNameAttribute("6.软件主题")]
         [BrowsableAttribute(true)]
         public SkinType Skin { get; set; } =  SkinType.Dark;
 
+        /// <summary>
+        /// 是否启用操作员登录动画
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("1.启用操作员登录动画")]
         [BrowsableAttribute(true)]
         public bool EnableOperatorAnimation { get; set; } = false;
 
+        /// <summary>
+        /// 操作员登录动画类型
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("2.操作员登录主题")]
         [BrowsableAttribute(true)]
@@ -72,11 +118,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         // ==========================================
         // 工程师 (Engineer)
         // ==========================================
+        /// <summary>
+        /// 是否启用工程师登录动画
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("3.启用工程师登录动画")]
         [BrowsableAttribute(true)]
         public bool EnableEngineerAnimation { get; set; } = false;
 
+        /// <summary>
+        /// 工程师登录动画类型
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("4.工程师登录主题")]
         [BrowsableAttribute(true)]
@@ -85,11 +137,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         // ==========================================
         // 管理员 (Administrator)
         // ==========================================
+        /// <summary>
+        /// 是否启用管理员登录动画
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("5.启用管理员登录动画")]
         [BrowsableAttribute(true)]
         public bool EnableAdministratorAnimation { get; set; } = false;
 
+        /// <summary>
+        /// 管理员登录动画类型
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("6.管理员登录主题")]
         [BrowsableAttribute(true)]
@@ -98,11 +156,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         // ==========================================
         // 超级用户 (Superuser)
         // ==========================================
+        /// <summary>
+        /// 是否启用超级用户登录动画
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("7.启用超级用户登录动画")]
         [BrowsableAttribute(true)]
         public bool EnableSuperuserAnimation { get; set; } = true;
 
+        /// <summary>
+        /// 超级用户登录动画类型
+        /// </summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("8.超级用户登录主题")]
         [BrowsableAttribute(true)]

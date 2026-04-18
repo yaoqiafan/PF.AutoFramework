@@ -20,6 +20,9 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.SecsGem.Incentive
 {
+    /// <summary>
+    /// SecsGem内部客户端
+    /// </summary>
     public class InternalClient : IinternalClient
     {
         private readonly IClient _client;
@@ -29,6 +32,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private byte[] _deviceId;
+        /// <summary>
+        /// 消息接收事件
+        /// </summary>
         public event EventHandler<SecsMessageReceivedEventArgs> MessageReceived;
 
         // 状态管理
@@ -39,14 +45,23 @@ namespace PF.Infrastructure.SecsGem.Incentive
         private readonly Channel<byte[]> _receiveReplyInfo = Channel.CreateUnbounded<byte[]>();
 
         // 回复消息缓存
+        /// <summary>
+        /// 回复消息缓存
+        /// </summary>
         public ConcurrentDictionary<string, SecsGemMessage> ReplyMessageInfo { get; } = new ConcurrentDictionary<string, SecsGemMessage>();
 
         // 日志路径
         private readonly string _logPathName = @"D:\SWLog\PC\MESLog";
         private static readonly object _logLock = new object();
 
+        /// <summary>
+        /// SecsGem连接状态
+        /// </summary>
         public bool SecsGemStatus => _status;
 
+        /// <summary>
+        /// 构造内部客户端
+        /// </summary>
         public InternalClient(IParams @params, ICommandManager commandManager, SecsGemMessageProcessor secsGemMessageProcessor)
         {
             _client = new TCPClient();
@@ -55,6 +70,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
             _secsGemMessageProcessor = secsGemMessageProcessor;
         }
 
+        /// <summary>
+        /// 初始化客户端
+        /// </summary>
         public async Task<bool> InitializationClient()
         {
             try
@@ -416,6 +434,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
         #region IDisposable Support
         private bool _disposed = false;
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -429,6 +450,9 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

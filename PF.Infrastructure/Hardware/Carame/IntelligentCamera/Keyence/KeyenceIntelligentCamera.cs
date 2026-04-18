@@ -10,8 +10,14 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 {
+    /// <summary>
+    /// 基恩士智能相机实现
+    /// </summary>
     public class KeyenceIntelligentCamera : BaseIntelligentCamera
     {
+        /// <summary>
+        /// 构造基恩士智能相机
+        /// </summary>
         public KeyenceIntelligentCamera(string IP, int port, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
             this.IPAdress = IP;
@@ -27,10 +33,19 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
        
 
         private string TiggerRec = string.Empty;
+        /// <summary>
+        /// IP地址
+        /// </summary>
         public override string IPAdress { get; }
 
+        /// <summary>
+        /// 触发端口
+        /// </summary>
         public override int TiggerPort { get; }
 
+        /// <summary>
+        /// 超时时间（毫秒）
+        /// </summary>
         public override int TimeOutMs { get; }
 
 
@@ -77,6 +92,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
 
 
+        /// <summary>
+        /// 切换程序
+        /// </summary>
         public async override Task<bool> ChangeProgram(object ProgramNumber, CancellationToken token = default)
         {
             try
@@ -99,6 +117,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             }
         }
 
+        /// <summary>
+        /// 触发拍照
+        /// </summary>
         public async override Task<string> Tigger(CancellationToken token = default)
         {
             try
@@ -119,6 +140,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             }
         }
 
+        /// <summary>
+        /// 内部连接实现
+        /// </summary>
         protected async override Task<bool> InternalConnectAsync(CancellationToken token = default)
         {
             if (IsSimulated) { return true; }
@@ -133,18 +157,27 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
       
 
+        /// <summary>
+        /// 内部断开连接实现
+        /// </summary>
         protected async override Task InternalDisconnectAsync()
         {
             if (IsSimulated) { return; }
             await tiggerclient.DisconnectAsync();
         }
 
+        /// <summary>
+        /// 内部复位实现
+        /// </summary>
         protected async override Task InternalResetAsync(CancellationToken token)
         {
             if (IsSimulated) { return; }
             //await tiggerclient.ReconnectAsync();
         }
 
+        /// <summary>
+        /// 内部健康检查实现
+        /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (!IsSimulated)
@@ -158,6 +191,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
 
 
+        /// <summary>
+        /// 相机程序列表
+        /// </summary>
         public override List<string> CameraProgram => GetCamProgramFromFile();
 
 
@@ -242,6 +278,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
 
 
+        /// <summary>
+        /// 判断程序是否存在
+        /// </summary>
         public async override Task<bool> DetermineProgramExits(object programName, CancellationToken token = default)
         {
             try

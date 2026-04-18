@@ -4,6 +4,7 @@ using System.Numerics;
 
 namespace PF.Modules.Parameter.ViewModels.Models
 {
+    /// <summary>数值参数视图模型</summary>
     public class NumericParamView<T> : BindableBase
     where T : struct, INumber<T>
     {

@@ -67,25 +67,38 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             #region 正常流程 (0 - 80)
 
+            /// <summary>等待工位1或工位2允许检测</summary>
             等待工位1或工位2允许检测 = 0,
+            /// <summary>去工位1检测位置</summary>
             去工位1检测位置 = 10,
+            /// <summary>去工位2检测位置</summary>
             去工位2检测位置 = 20,
+            /// <summary>触发检测</summary>
             触发检测 = 30,
 
+            /// <summary>检测完成Z轴回安全位</summary>
             检测完成Z轴回安全位 = 40,
 
+            /// <summary>数据比对</summary>
             数据比对 = 50,
+            /// <summary>写入检测数据</summary>
             写入检测数据 = 60,
+            /// <summary>检测完成后避位</summary>
             检测完成后避位 = 70,
+            /// <summary>检测完成</summary>
             检测完成 = 80,
 
             #endregion
 
             #region 异常流程 (100000+)
 
+            /// <summary>去工位检测位置异常</summary>
             去工位检测位置异常 = 100001,
+            /// <summary>触发检测异常</summary>
             触发检测异常 = 100002,
+            /// <summary>写入检测数据异常</summary>
             写入检测数据异常 = 100003,
+            /// <summary>检测完成Z轴回安全位异常</summary>
             检测完成Z轴回安全位异常 = 100004,
 
             #endregion
@@ -95,6 +108,9 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化检测工站
+        /// </summary>
         public WorkStationDetectionStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
             : base(nameof(E_WorkStation.OCR检测工站), logger)
         {
@@ -122,6 +138,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             });
         }
 
+        /// <summary>执行工站初始化</summary>
         public override async Task ExecuteInitializeAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
@@ -170,6 +187,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        /// <summary>执行工站复位</summary>
         public override async Task ExecuteResetAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Reset);  // Alarm → Resetting
@@ -195,17 +213,20 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        /// <summary>物理急停回调</summary>
         protected override async Task OnPhysicalStopAsync()
         {
             if (_detectionModule != null)
                 await _detectionModule.StopAsync().ConfigureAwait(false);
         }
 
+        /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
         {
             if (_detectionModule != null) yield return _detectionModule;
         }
 
+        /// <summary>空跑流程</summary>
         protected override Task ProcessDryRunLoopAsync(CancellationToken token)
         {
             throw new NotImplementedException();
@@ -215,6 +236,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Main State Machine Loop (主业务循环)
 
+        /// <summary>正常生产主循环</summary>
         protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)

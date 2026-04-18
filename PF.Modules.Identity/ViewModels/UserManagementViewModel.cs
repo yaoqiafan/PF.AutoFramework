@@ -10,6 +10,7 @@ using System.Windows;
 
 namespace PF.Modules.Identity.ViewModels
 {
+    /// <summary>用户管理 ViewModel</summary>
     public class UserManagementViewModel : RegionViewModelBase
     {
         private readonly IUserService    _userService;
@@ -89,6 +90,7 @@ namespace PF.Modules.Identity.ViewModels
 
         // ── 构造函数 ──────────────────────────────────────────────────────────
 
+        /// <summary>初始化用户管理 ViewModel</summary>
         public UserManagementViewModel(
             IUserService    userService,
             IMessageService messageService,

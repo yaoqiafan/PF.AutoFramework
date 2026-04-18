@@ -10,10 +10,12 @@ using System.Threading.Tasks;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>轴参数对话框 ViewModel</summary>
     public class AxisParamDialogViewModel:PFDialogViewModelBase
     {
 
-        public AxisParamDialogViewModel() 
+        /// <summary>初始化轴参数对话框 ViewModel</summary>
+        public AxisParamDialogViewModel()
         {
             Title = "轴参数更改";
 
@@ -32,6 +34,7 @@ namespace PF.Modules.Debug.ViewModels
 
 
         private AxisParamViewModel _ParamInstence;
+        /// <summary>获取或设置轴参数实例</summary>
         public AxisParamViewModel ParamInstence
         {
             get { return _ParamInstence; }
@@ -40,6 +43,7 @@ namespace PF.Modules.Debug.ViewModels
 
 
         #region 接口实现
+        /// <summary>对话框打开时加载轴参数</summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             base.OnDialogOpened(parameters);
@@ -155,6 +159,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("A. 基本运行参数")]
         [DisplayNameAttribute("1.运行速度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置运行速度</summary>
         public double Vel
         {
             get { return _vel; }
@@ -165,6 +170,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("A. 基本运行参数")]
         [DisplayNameAttribute("2.运行加速度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置运行加速度</summary>
         public double Acc
         {
             get { return _acc; }
@@ -175,6 +181,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("A. 基本运行参数")]
         [DisplayNameAttribute("3.运行减速度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置运行减速度</summary>
         public double Dec
         {
             get { return _dec; }
@@ -186,6 +193,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("A. 基本运行参数")]
         [DisplayNameAttribute("4.定位精度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置定位精度</summary>
         public double PositioningAccuracy
         {
             get { return _positioningAccuracy; }
@@ -201,6 +209,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("B. 限位与极限参数")]
         [DisplayNameAttribute("1.正极限硬限位启用")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置正极限硬限位启用</summary>
         public bool PelVisEnabled
         {
             get { return _pelVisEnabled; }
@@ -211,6 +220,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("B. 限位与极限参数")]
         [DisplayNameAttribute("2.负极限硬限位启用")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置负极限硬限位启用</summary>
         public bool MelVisEnabled
         {
             get { return _melVisEnabled; }
@@ -221,6 +231,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("B. 限位与极限参数")]
         [DisplayNameAttribute("3.原点限位启用")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置原点限位启用</summary>
         public bool ORGVisEnabled
         {
             get { return _orgVisEnabled; }
@@ -231,6 +242,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("B. 限位与极限参数")]
         [DisplayNameAttribute("4.软限位启用")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置软限位启用</summary>
         public bool LimitVisEnable
         {
             get { return _limitVisEnable; }
@@ -241,6 +253,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("B. 限位与极限参数")]
         [DisplayNameAttribute("5.正极限软限位")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置正极限软限位</summary>
         public double LimitPel
         {
             get { return _limitPel; }
@@ -251,6 +264,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("B. 限位与极限参数")]
         [DisplayNameAttribute("6.负极限软限位")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置负极限软限位</summary>
         public double LimitMel
         {
             get { return _limitMel; }
@@ -265,6 +279,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("1.回零模式")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置回零模式</summary>
         public int HomeModel
         {
             get { return _homeModel; }
@@ -275,6 +290,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("2.回零模式固定标志")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置回零模式固定标志</summary>
         public bool HomeModelFixed
         {
             get { return _homeModelFixed; }
@@ -285,6 +301,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("3.正极限回零模式")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置正极限回零模式</summary>
         public int PelHomeModel
         {
             get { return _pelHomeModel; }
@@ -295,6 +312,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("4.负极限回零模式")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置负极限回零模式</summary>
         public int MelHomeModel
         {
             get { return _melHomeModel; }
@@ -305,6 +323,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("5.回零速度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置回零速度</summary>
         public double HomeVel
         {
             get { return _homeVel; }
@@ -315,6 +334,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("6.回零加速度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置回零加速度</summary>
         public double HomeAcc
         {
             get { return _homeAcc; }
@@ -325,6 +345,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("7.回零减速度")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置回零减速度</summary>
         public double HomeDec
         {
             get { return _homeDec; }
@@ -335,6 +356,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("8.回零偏移")]
         [BrowsableAttribute(true)]
+        /// <summary>获取或设置回零偏移</summary>
         public double HomeOffest
         {
             get { return _homeOffest; }

@@ -20,6 +20,9 @@ namespace PF.UI.Infrastructure.Dialog
     /// </summary>
     public partial class MessageDialogView : UserControl
     {
+        /// <summary>
+        /// MessageDialogView 视图
+        /// </summary>
         public MessageDialogView()
         {
             InitializeComponent();

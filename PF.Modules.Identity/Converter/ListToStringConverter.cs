@@ -10,6 +10,7 @@ namespace PF.Modules.Identity.Converter
     [ValueConversion(typeof(IEnumerable<string>), typeof(string))]
     public class ListToStringConverter : IValueConverter
     {
+        /// <summary>将字符串列表转换为中文显示名称</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is IEnumerable<string> list)

@@ -11,8 +11,14 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.Motor
 {
+    /// <summary>
+    /// EtherCAT轴设备实现
+    /// </summary>
     public class EtherCatAxis : BaseAxisDevice
     {
+        /// <summary>
+        /// 构造EtherCAT轴设备
+        /// </summary>
         public EtherCatAxis(string deviceId, int axisIndex, AxisParam  axisParam, string deviceName, bool isSimulated, ILogService logger, string dataDirectory)
             : base(
                 deviceId: deviceId,
@@ -26,21 +32,36 @@ namespace PF.Infrastructure.Hardware.Motor
             Param = axisParam ;
         }
 
+        /// <summary>
+        /// 轴索引号
+        /// </summary>
         public override int AxisIndex { get; }
 
+        /// <summary>
+        /// 轴参数
+        /// </summary>
         public override AxisParam Param { get; set; } = new AxisParam();
 
+        /// <summary>
+        /// 内部连接实现
+        /// </summary>
         protected override Task<bool> InternalConnectAsync(CancellationToken token)
         {
             return Task.FromResult(true);
         }
 
+        /// <summary>
+        /// 内部断开连接实现
+        /// </summary>
         protected override Task InternalDisconnectAsync()
         {
             return Task.FromResult(true);
         }
 
 
+        /// <summary>
+        /// 内部复位实现
+        /// </summary>
         protected override Task InternalResetAsync(CancellationToken token)
         {
             EnsureCardAttached();
@@ -68,6 +89,9 @@ namespace PF.Infrastructure.Hardware.Motor
             }
         }
 
+        /// <summary>
+        /// 内部健康检查实现
+        /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (ParentCard == null) return Task.CompletedTask;

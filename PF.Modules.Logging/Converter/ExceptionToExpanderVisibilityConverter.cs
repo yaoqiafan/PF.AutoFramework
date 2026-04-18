@@ -10,6 +10,7 @@ namespace PF.Modules.Logging.Converter
     /// </summary>
     public class ExceptionToExpanderVisibilityConverter : IMultiValueConverter
     {
+        /// <summary>将异常和选中状态转换为可见性</summary>
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             if (values.Length != 2)

@@ -3,6 +3,7 @@ using System.Configuration;
 
 namespace PF.Modules.Parameter.ViewModels.Models
 {
+    /// <summary>字符串参数视图模型</summary>
     public  class StringParamView : BindableBase
     {
         private string _Value;
