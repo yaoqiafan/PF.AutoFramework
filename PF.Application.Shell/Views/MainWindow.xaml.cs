@@ -28,6 +28,9 @@ namespace PF.Application.Shell.Views
         private readonly IEventAggregator _eventAggregator;
         private readonly IEnumerable<IMechanism> _mechanismslist;
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public MainWindow(IMessageService messageService, CommonSettings commonSettings, IEnumerable<IMechanism> mechanisms, IEventAggregator eventAggregator)
         {
             InitializeComponent();

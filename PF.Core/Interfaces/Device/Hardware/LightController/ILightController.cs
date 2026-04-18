@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Device.Hardware.LightController
 {
+    /// <summary>
+    /// 光源控制器接口
+    /// </summary>
     public interface ILightController : IHardwareDevice
     {
 

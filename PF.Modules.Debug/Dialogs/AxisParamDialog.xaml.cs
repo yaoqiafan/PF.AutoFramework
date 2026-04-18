@@ -20,6 +20,7 @@ namespace PF.Modules.Debug.Dialogs
     /// </summary>
     public partial class AxisParamDialog : UserControl
     {
+        /// <summary>初始化轴参数对话框</summary>
         public AxisParamDialog()
         {
             InitializeComponent();

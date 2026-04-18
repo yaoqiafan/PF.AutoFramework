@@ -11,12 +11,19 @@ namespace PF.Core.Enums
     /// </summary>
     public enum LogLevel
     {
-        All = -1,      // 新增：显示所有级别
+        /// <summary>显示所有级别</summary>
+        All = -1,
+        /// <summary>调试级别</summary>
         Debug = 0,
+        /// <summary>信息级别</summary>
         Info = 1,
+        /// <summary>成功级别</summary>
         Success = 2,
+        /// <summary>警告级别</summary>
         Warn = 3,
+        /// <summary>错误级别</summary>
         Error = 4,
+        /// <summary>致命级别</summary>
         Fatal = 5
     }
 }

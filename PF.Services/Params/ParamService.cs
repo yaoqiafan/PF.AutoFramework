@@ -22,8 +22,14 @@ namespace PF.Services.Params
         private readonly Dictionary<Type, Type> _paramTypeMapping;
 
         // 参数更改事件
+        /// <summary>
+        /// ParamChanged
+        /// </summary>
         public event EventHandler<ParamChangedEventArgs>? ParamChanged;
 
+        /// <summary>
+        /// ParamService 服务
+        /// </summary>
         public ParamService(
             IContainerProvider containerProvider,
             ILogService logService)
@@ -398,6 +404,9 @@ namespace PF.Services.Params
             }
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public async Task<T> GetParamAsync<T>(string name, T defaultValue) 
         {
             var result = await GetParamAsync<T>(name);
@@ -550,6 +559,9 @@ namespace PF.Services.Params
             };
         }
 
+        /// <summary>
+        /// TModel>() 模型
+        /// </summary>
         public void RegisterParamType<TEntity, TModel>()
             where TEntity : IEntity
             where TModel : class
@@ -563,6 +575,9 @@ namespace PF.Services.Params
             }
         }
 
+        /// <summary>
+        /// 获取TypeFromAnyAssembly
+        /// </summary>
         public static Type? GetTypeFromAnyAssembly(string typeName)
         {
             Type? type = Type.GetType(typeName);

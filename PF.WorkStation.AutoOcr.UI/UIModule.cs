@@ -1,4 +1,4 @@
-﻿using PF.Core.Constants;
+using PF.Core.Constants;
 using PF.Infrastructure.Station;
 using PF.UI.Infrastructure.Navigation;
 using PF.WorkStation.AutoOcr.Stations;
@@ -13,8 +13,14 @@ using System.Reflection;
 
 namespace PF.WorkStation.AutoOcr.UI
 {
+    /// <summary>
+    /// AutoOcrUIModule
+    /// </summary>
     public class AutoOcrUIModule : IModule
     {
+        /// <summary>
+        /// OnInitialized
+        /// </summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
@@ -27,6 +33,9 @@ namespace PF.WorkStation.AutoOcr.UI
 
            
         }
+        /// <summary>
+        /// RegisterTypes
+        /// </summary>
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {

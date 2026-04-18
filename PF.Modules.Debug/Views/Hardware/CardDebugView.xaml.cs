@@ -9,6 +9,7 @@ namespace PF.Modules.Debug.Views
     /// </summary>
     public partial class CardDebugView : UserControl
     {
+        /// <summary>初始化板卡调试视图</summary>
         public CardDebugView()
         {
             InitializeComponent();

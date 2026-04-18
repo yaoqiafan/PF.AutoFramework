@@ -12,12 +12,19 @@ namespace PF.Core.Entities.Logging
     /// </summary>
     public class LogQueryParams
     {
+        /// <summary>查询起始时间</summary>
         public DateTime StartTime { get; set; }
+        /// <summary>查询结束时间</summary>
         public DateTime EndTime { get; set; }
+        /// <summary>日志级别过滤</summary>
         public LogLevel[]? LogLevels { get; set; }
+        /// <summary>分类过滤</summary>
         public string[]? Categories { get; set; }
+        /// <summary>关键词过滤</summary>
         public string? Keyword { get; set; }
+        /// <summary>最大返回数量</summary>
         public int MaxResults { get; set; } = 10000;
+        /// <summary>是否按降序排列</summary>
         public bool OrderByDescending { get; set; } = true;
 
         /// <summary>

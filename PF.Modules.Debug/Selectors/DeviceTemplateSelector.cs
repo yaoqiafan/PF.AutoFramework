@@ -11,12 +11,16 @@ namespace PF.Modules.Debug.Selectors
     /// </summary>
     public class DeviceTemplateSelector : DataTemplateSelector
     {
-        // 定义可供选择的各种模板属性
+        /// <summary>空节点模板</summary>
         public DataTemplate NullTemplate { get; set; }
+        /// <summary>轴设备模板</summary>
         public DataTemplate AxisTemplate { get; set; }
+        /// <summary>IO 设备模板</summary>
         public DataTemplate IOTemplate { get; set; }
+        /// <summary>默认硬件模板</summary>
         public DataTemplate DefaultHardwareTemplate { get; set; }
 
+        /// <summary>根据设备类型选择对应的 UI 模板</summary>
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
             // 1. 如果没有选中任何节点 (Payload 为空)

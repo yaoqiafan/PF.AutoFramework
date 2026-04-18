@@ -3,6 +3,7 @@ using System.Configuration;
 
 namespace PF.Modules.Parameter.ViewModels.Models
 {
+    /// <summary>枚举参数视图模型</summary>
     public class EnumParamView<T>: BindableBase where T : struct, Enum
     {
         private T _Value;

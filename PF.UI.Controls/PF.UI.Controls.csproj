@@ -8,6 +8,7 @@
     <IsPackable>true</IsPackable>
     <Description>WPF 自定义控件库：Growl、Drawer、Steps 等高颜值控件</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+    <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

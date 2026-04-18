@@ -8,11 +8,17 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.LightController.CTS
 {
+    /// <summary>
+    /// 康视达光源控制器实现
+    /// </summary>
     public class CTSLightController : BaseLightController
     {
 
 
 
+        /// <summary>
+        /// 构造康视达光源控制器
+        /// </summary>
         public CTSLightController(string Com, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
 
@@ -20,12 +26,24 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
 
         }
 
+        /// <summary>
+        /// 串口名称
+        /// </summary>
         public override string ComName { get; }
 
+        /// <summary>
+        /// IP地址
+        /// </summary>
         public override string IPAdress { get; }
 
+        /// <summary>
+        /// 端口号
+        /// </summary>
         public override int Port { get; }
 
+        /// <summary>
+        /// 设置光源亮度值
+        /// </summary>
         public override Task SetLightValue(int Channel, int LightValue)
         {
             try
@@ -50,6 +68,9 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
             }
         }
         private Int64 controllerHandle = 0;
+        /// <summary>
+        /// 内部连接实现
+        /// </summary>
         protected override Task<bool> InternalConnectAsync(CancellationToken token)
         {
             try
@@ -85,6 +106,9 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
 
         }
 
+        /// <summary>
+        /// 内部断开连接实现
+        /// </summary>
         protected override Task InternalDisconnectAsync()
         {
             try
@@ -109,11 +133,17 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
             }
         }
 
+        /// <summary>
+        /// 内部复位实现
+        /// </summary>
         protected override Task InternalResetAsync(CancellationToken token)
         {
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// 内部健康检查实现
+        /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (!IsSimulated)

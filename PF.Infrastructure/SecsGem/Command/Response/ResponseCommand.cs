@@ -16,6 +16,9 @@ namespace PF.Infrastructure.SecsGem.Command.Response
     public class ResponseCommand : ISFCommand
     {
         private readonly string ResponseCommandExcelPath = Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemCommandConfig.xlsx");
+        /// <summary>
+        /// 命令字典
+        /// </summary>
         public ConcurrentDictionary<string, SFCommand> _commandDictionary = new();
         private bool _isInitialized = false;
         private readonly SemaphoreSlim _initSemaphore = new(1, 1);

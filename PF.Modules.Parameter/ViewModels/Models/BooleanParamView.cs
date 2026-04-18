@@ -3,6 +3,7 @@ using System.Configuration;
 
 namespace PF.Modules.Parameter.ViewModels.Models
 {
+    /// <summary>布尔参数视图模型</summary>
     public class BooleanParamView:BindableBase
     {
         private bool _Value;

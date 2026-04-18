@@ -1,4 +1,4 @@
-using PF.Core.Constants;
+﻿using PF.Core.Constants;
 using PF.Core.Enums;
 using System.Collections.Generic;
 
@@ -54,6 +54,9 @@ namespace PF.UI.Infrastructure.Navigation
             => DefaultPermissions.GetAccessibleViews(level);
 
         // 系统内置账号名称集合（登录优先拦截，UI 列表过滤）
+        /// <summary>
+        /// BuiltInUserNames
+        /// </summary>
         public static readonly IReadOnlySet<string> BuiltInUserNames = new HashSet<string>
         {
             "Operator", "Engineer", "Administrator", "SuperUser", "System"

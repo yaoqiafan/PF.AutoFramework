@@ -4,9 +4,7 @@ using System.Reflection;
 
 namespace PF.Modules.Parameter.Dialog.Mappers
 {
-    /// <summary>
-    /// 字符串参数视图映射器
-    /// </summary>
+    /// <summary>字符串参数视图映射器</summary>
     public class StringParamViewMapper : ViewDataMapperBase
     {
         protected override bool HasSpecificMapping(object viewInstance, object data)

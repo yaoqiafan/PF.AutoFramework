@@ -9,8 +9,14 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Recipe
 {
+    /// <summary>
+    /// 配方服务基类
+    /// </summary>
     public abstract class BaseRecipe<T> : IRecipeService<T> where T : RecipeParamBase
     {
+        /// <summary>
+        /// 配方文件目录路径
+        /// </summary>
         public string RecipeDirPath => $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\Recipe";
 
 
@@ -19,9 +25,15 @@ namespace PF.Infrastructure.Recipe
 
 
 
+        /// <summary>
+        /// 配方专用日志记录器
+        /// </summary>
         public readonly Logging.CategoryLogger RecipeLogger;
 
 
+        /// <summary>
+        /// 构造配方服务
+        /// </summary>
         public BaseRecipe(ILogService logger)
         {
             RecipeLogger = Logging.CategoryLoggerFactory.Recipe(logger);
@@ -35,6 +47,9 @@ namespace PF.Infrastructure.Recipe
 
 
 
+        /// <summary>
+        /// 获取所有配方名称列表
+        /// </summary>
         public List<string> RecipeNames
         {
             get
@@ -63,6 +78,9 @@ namespace PF.Infrastructure.Recipe
         }
 
 
+        /// <summary>
+        /// 配方变更通知
+        /// </summary>
         public abstract Task<bool> RecipeChangedAsync(T RecipeParam, CancellationToken token = default);
 
 
@@ -70,6 +88,9 @@ namespace PF.Infrastructure.Recipe
      
 
 
+        /// <summary>
+        /// 写入配方参数到文件
+        /// </summary>
         public Task<bool> RecipeParamWriteAsync(T RecipeParam, bool IsCover = false, CancellationToken token = default)
         {
             try
@@ -107,6 +128,9 @@ namespace PF.Infrastructure.Recipe
             }
         }
 
+        /// <summary>
+        /// 删除指定配方
+        /// </summary>
         public Task<bool> RecipeDeleteAsync(T RecipeParam, CancellationToken token = default)
         {
             try
@@ -123,6 +147,9 @@ namespace PF.Infrastructure.Recipe
 
 
 
+        /// <summary>
+        /// 获取所有配方对象列表
+        /// </summary>
         public async Task<List<T>> GetAllRecipes(CancellationToken token = default)
         {
             List<T> list = new List<T>();
@@ -141,6 +168,9 @@ namespace PF.Infrastructure.Recipe
 
 
 
+        /// <summary>
+        /// 按名称删除配方
+        /// </summary>
         public Task<bool> RecipeDeleteAsync(string RecipeName, CancellationToken token = default)
         {
             try
@@ -161,8 +191,14 @@ namespace PF.Infrastructure.Recipe
 
 
 
+        /// <summary>
+        /// 更新配方
+        /// </summary>
         public abstract Task<bool> RecipeUpdateAsync(T RecipeParam, CancellationToken token = default);
 
+        /// <summary>
+        /// 下载配方
+        /// </summary>
         public abstract Task<bool> DownLoadRecipe(T RecipeParam, CancellationToken token = default);
 
 
@@ -171,6 +207,9 @@ namespace PF.Infrastructure.Recipe
 
 
 
+        /// <summary>
+        /// 复制配方
+        /// </summary>
         public Task<T> CopyRecipeAsync(string RecipeName, T RecipeParam, CancellationToken token = default)
         {
             if (this.RecipeNames.FindIndex(x => x == RecipeName) != -1)
@@ -190,6 +229,9 @@ namespace PF.Infrastructure.Recipe
             }
         }
 
+        /// <summary>
+        /// 修改配方名称
+        /// </summary>
         public Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default)
         {
             if (this.RecipeNames.FindIndex(x => x == NewRecipeName) != -1)
@@ -228,6 +270,9 @@ namespace PF.Infrastructure.Recipe
             }
         }
 
+        /// <summary>
+        /// 按名称读取配方参数
+        /// </summary>
         public Task<T> RecipeParam(string? requestedPpid)
         {
             try

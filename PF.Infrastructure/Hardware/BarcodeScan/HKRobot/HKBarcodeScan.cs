@@ -9,8 +9,14 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 {
+    /// <summary>
+    /// 海康扫码枪实现
+    /// </summary>
     public class HKBarcodeScan : BaseBarcodeScan
     {
+        /// <summary>
+        /// 构造海康扫码枪
+        /// </summary>
         public HKBarcodeScan(string IP, int tiggerPort, int userPort, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
 
@@ -21,12 +27,24 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         }
 
+        /// <summary>
+        /// IP地址
+        /// </summary>
         public override string IPAdress { get; }
 
+        /// <summary>
+        /// 触发端口
+        /// </summary>
         public override int TiggerPort { get; }
 
+        /// <summary>
+        /// 用户端口
+        /// </summary>
         public override int UserPort { get; }
 
+        /// <summary>
+        /// 超时时间（毫秒）
+        /// </summary>
         public override int TimeOutMs { get; }
 
         /// <summary>
@@ -50,6 +68,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         private string UserParmRec = string.Empty;
 
+        /// <summary>
+        /// 切换用户参数
+        /// </summary>
         public override async Task<bool> ChangeUserParam(object UserInfo, CancellationToken token = default)
         {
             try
@@ -139,6 +160,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 
         }
 
+        /// <summary>
+        /// 触发扫码
+        /// </summary>
         public override async Task<string> Tigger(CancellationToken token = default)
         {
             try
@@ -171,6 +195,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             }
         }
 
+        /// <summary>
+        /// 内部连接实现
+        /// </summary>
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
         {
             if (!await tiggerclient.ConnectAsync(IPAdress, TiggerPort))
@@ -201,17 +228,26 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             TiggerEvent.Set();
         }
 
+        /// <summary>
+        /// 内部断开连接实现
+        /// </summary>
         protected override async Task InternalDisconnectAsync()
         {
             await tiggerclient.DisconnectAsync();
             await Userpowerclient.DisconnectAsync();
         }
 
+        /// <summary>
+        /// 内部复位实现
+        /// </summary>
         protected override async Task InternalResetAsync(CancellationToken token)
         {
             await tiggerclient.ReconnectAsync();
         }
 
+        /// <summary>
+        /// 内部健康检查实现
+        /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (!IsSimulated)

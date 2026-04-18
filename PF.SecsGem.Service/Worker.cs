@@ -1,4 +1,4 @@
-using PF.Core.Entities.SecsGem.Message;
+﻿using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Enums;
 using PF.Core.Events;
@@ -14,6 +14,9 @@ using DataReceivedEventArgs = PF.Core.Events.DataReceivedEventArgs;
 
 namespace PF.SecsGem.Service
 {
+    /// <summary>
+    /// BackgroundService 服务
+    /// </summary>
     public class Worker : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
@@ -442,6 +445,9 @@ namespace PF.SecsGem.Service
 
         #endregion Methods
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public Worker(ILogger<Worker> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;

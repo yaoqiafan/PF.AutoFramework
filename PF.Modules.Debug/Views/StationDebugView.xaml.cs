@@ -10,6 +10,7 @@ namespace PF.Modules.Debug.Views
     [ModuleNavigation(NavigationConstants.Views.StationDebugView, "工站调试", GroupName = "系统调试", Icon = "DebugIcon", GroupOrder = 5, Order = 3)]
     public partial class StationDebugView : UserControl
     {
+        /// <summary>初始化工站调试视图</summary>
         public StationDebugView(IRegionManager regionManager)
         {
             // 防止嵌套 Region 重复注册导致 RegionAlreadyRegisteredException

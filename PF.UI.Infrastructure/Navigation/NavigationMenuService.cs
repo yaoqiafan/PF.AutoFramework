@@ -7,10 +7,19 @@ using System.Reflection;
 
 namespace PF.UI.Infrastructure.Navigation
 {
+    /// <summary>
+    /// INavigationMenuService 服务
+    /// </summary>
     public class NavigationMenuService : INavigationMenuService
     {
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public ObservableCollection<NavigationItem> MenuItems { get; } = new ObservableCollection<NavigationItem>();
 
+        /// <summary>
+        /// 注册Assembly
+        /// </summary>
         public void RegisterAssembly(Assembly assembly)
         {
             Type[] types;

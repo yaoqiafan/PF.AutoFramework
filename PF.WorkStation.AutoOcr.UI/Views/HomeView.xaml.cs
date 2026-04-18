@@ -1,4 +1,4 @@
-﻿using PF.Core.Attributes;
+using PF.Core.Attributes;
 using PF.Core.Constants;
 using System;
 using System.Collections.Generic;
@@ -21,8 +21,14 @@ namespace PF.WorkStation.AutoOcr.UI.Views
         GroupName = "开始", Order = 2,
         Icon = "NailGeometry"
       )]
+    /// <summary>
+    /// HomeView
+    /// </summary>
     public partial class HomeView : UserControl
     {
+        /// <summary>
+        /// HomeView 构造函数
+        /// </summary>
         public HomeView()
         {
             InitializeComponent();

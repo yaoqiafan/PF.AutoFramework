@@ -1,4 +1,4 @@
-﻿using PF.Core.Attributes;
+using PF.Core.Attributes;
 using PF.Core.Constants;
 using System;
 using System.Collections.Generic;
@@ -21,8 +21,14 @@ namespace PF.WorkStation.AutoOcr.UI.Views
        GroupName = "开始", Order = 1, GroupOrder = 0,
        Icon = "NailGeometry"
      )]
+    /// <summary>
+    /// MainView
+    /// </summary>
     public partial class MainView : UserControl
     {
+        /// <summary>
+        /// MainView 构造函数
+        /// </summary>
         public MainView()
         {
             InitializeComponent();

@@ -6,8 +6,10 @@ using System.Reflection;
 
 namespace PF.Modules.Identity
 {
+    /// <summary>身份认证与权限管理模块</summary>
     public class IdentityModule : IModule
     {
+        /// <summary>模块初始化时注册导航菜单</summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
@@ -15,6 +17,7 @@ namespace PF.Modules.Identity
 
         }
 
+        /// <summary>注册身份模块的视图和服务</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<LoginViewModel>();

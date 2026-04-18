@@ -62,57 +62,88 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             #region 阶段 A：取料前置准备与动作 (0 - 80)
 
+            /// <summary>等待允许取料</summary>
             等待允许取料 = 0,
+            /// <summary>获取当前配方</summary>
             获取当前配方 = 10,
+            /// <summary>判断流道尺寸</summary>
             判断流道尺寸 = 20,
+            /// <summary>调整流道尺寸</summary>
             调整流道尺寸 = 30,
+            /// <summary>移动到取料位</summary>
             移动到取料位 = 40,
+            /// <summary>关闭夹爪</summary>
             关闭夹爪 = 50,
+            /// <summary>检测叠料</summary>
             检测叠料 = 60,
 
             #endregion
 
             #region 阶段 B：检测与视觉交互 (100 - 150)
 
+            /// <summary>移动到检测位</summary>
             移动到检测位 = 100,
+            /// <summary>发送拉料完成</summary>
             发送拉料完成 = 110,
+            /// <summary>扫码识别</summary>
             扫码识别 = 120,
+            /// <summary>允许检测位检测</summary>
             允许检测位检测 = 130,
+            /// <summary>等待检测位检测完成</summary>
             等待检测位检测完成 = 140,
 
             #endregion
 
             #region 阶段 C：退料与收尾 (200 - 250)
 
+            /// <summary>等待允许送料</summary>
             等待允许送料 = 200,
+            /// <summary>送料到取料位</summary>
             送料到取料位 = 210,
+            /// <summary>打开夹爪</summary>
             打开夹爪 = 220,
+            /// <summary>移动到待机位</summary>
             移动到待机位 = 230,
+            /// <summary>判断带片</summary>
             判断带片 = 240,
+            /// <summary>发送退料完成</summary>
             发送退料完成 = 250,
 
             #endregion
 
             #region 阶段 D：异常拦截与断点续跑节点 (100000+)
 
+            /// <summary>获取配方失败</summary>
             获取配方失败 = 100001,
+            /// <summary>调整流道尺寸失败</summary>
             调整流道尺寸失败 = 100002,
+            /// <summary>移动到取料位失败</summary>
             移动到取料位失败 = 100003,
+            /// <summary>关闭夹爪失败</summary>
             关闭夹爪失败 = 100004,
+            /// <summary>检测到叠料异常</summary>
             检测到叠料异常 = 100005,
+            /// <summary>移动到检测位失败</summary>
             移动到检测位失败 = 100006,
+            /// <summary>送料到取料位失败</summary>
             送料到取料位失败 = 100007,
+            /// <summary>打开夹爪失败</summary>
             打开夹爪失败 = 100008,
+            /// <summary>移动到待机位失败</summary>
             移动到待机位失败 = 100009,
+            /// <summary>判断带片异常</summary>
             判断带片异常 = 100010,
 
-            #endregion 
+            #endregion
         }
 
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化工位1拉料工站
+        /// </summary>
         public WorkStation1MaterialPullingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
             : base(E_WorkStation.工位1拉料工站.ToString(), logger)
         {
@@ -140,6 +171,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             });
         }
 
+        /// <summary>执行工站初始化</summary>
         public override async Task ExecuteInitializeAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
@@ -171,6 +203,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        /// <summary>执行工站复位</summary>
         public override async Task ExecuteResetAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Reset);  // Alarm → Resetting
@@ -199,17 +232,20 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        /// <summary>物理急停回调</summary>
         protected override async Task OnPhysicalStopAsync()
         {
             if (_pullingModule != null)
                 await _pullingModule.StopAsync().ConfigureAwait(false);
         }
 
+        /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
         {
             if (_pullingModule != null) yield return _pullingModule;
         }
 
+        /// <summary>空跑流程</summary>
         protected override Task ProcessDryRunLoopAsync(CancellationToken token)
         {
             // 空跑模式预留
@@ -220,6 +256,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Main State Machine Loop (主业务循环)
 
+        /// <summary>正常生产主循环</summary>
         protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)

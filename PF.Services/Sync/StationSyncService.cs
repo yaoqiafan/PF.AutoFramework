@@ -1,4 +1,4 @@
-using PF.Core.Interfaces.Logging;
+﻿using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -55,6 +55,9 @@ namespace PF.Services.Sync
 
         // ── 构造 ─────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// StationSyncService 服务
+        /// </summary>
         public StationSyncService(ILogService logger) => _logger = logger;
 
         // ── 注册 ─────────────────────────────────────────────────────────────
@@ -252,6 +255,9 @@ namespace PF.Services.Sync
 
         // ── 销毁 ─────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             foreach (var ctx in _scopes.Values)

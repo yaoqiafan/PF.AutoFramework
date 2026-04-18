@@ -109,11 +109,17 @@ namespace PF.Core.Interfaces.Production
     /// </summary>
     public class ProductionRecord
     {
+        /// <summary>记录ID</summary>
         public string Id { get; set; } = string.Empty;
+        /// <summary>JSON序列化值</summary>
         public string JsonValue { get; set; } = string.Empty;
+        /// <summary>类型全名</summary>
         public string? TypeFullName { get; set; }
+        /// <summary>记录类型</summary>
         public string? RecordType { get; set; }
+        /// <summary>记录时间</summary>
         public DateTime RecordTime { get; set; }
+        /// <summary>创建时间</summary>
         public DateTime CreateTime { get; set; }
 
         /// <summary>反序列化 JsonValue 为目标类型（便捷方法）</summary>
@@ -128,8 +134,12 @@ namespace PF.Core.Interfaces.Production
     //  事件参数
     // ══════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// 生产数据记录事件参数
+    /// </summary>
     public class ProductionDataRecordedEventArgs : EventArgs
     {
+        /// <summary>生产数据记录</summary>
         public ProductionRecord Record { get; set; } = null!;
     }
 }

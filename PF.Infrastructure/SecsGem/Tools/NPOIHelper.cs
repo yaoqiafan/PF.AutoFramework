@@ -10,11 +10,17 @@ using System.Text.Json;
 
 namespace PF.Infrastructure.SecsGem.Tools
 {
+    /// <summary>
+    /// NPOI Excel操作辅助类
+    /// </summary>
     public static  class NPOIHelper
     {
         #region ValidateConfiguration
         private static readonly object _lock = new object();
 
+        /// <summary>
+        /// 保存验证配置到文件
+        /// </summary>
         public static void SaveValidate(string filePath, ValidateConfiguration configuration)
         {
             lock (_lock)
@@ -38,6 +44,9 @@ namespace PF.Infrastructure.SecsGem.Tools
             }
         }
 
+        /// <summary>
+        /// 从Excel加载验证配置
+        /// </summary>
         public static async Task<bool> LoadValidateFromExcel(string filePath, ValidateConfiguration configuration)
         {
             try
@@ -445,6 +454,9 @@ namespace PF.Infrastructure.SecsGem.Tools
 
 
         #region IncentiveCommand
+        /// <summary>
+        /// 从Excel加载主动命令配置
+        /// </summary>
         public static async Task<bool> LoadIncentiveCommandFromExcel(string filePath, ConcurrentDictionary<string, SFCommand> _commandDictionary)
         {
             try
@@ -621,6 +633,9 @@ namespace PF.Infrastructure.SecsGem.Tools
 
 
 
+        /// <summary>
+        /// 保存主动命令到Excel
+        /// </summary>
         public static async Task SaveIncentiveCommandToExcel(string filePath,ConcurrentDictionary<string, SFCommand> _commandDictionary)
         {
             IWorkbook workbook;
@@ -709,6 +724,9 @@ namespace PF.Infrastructure.SecsGem.Tools
 
 
         #region ResponseCommand
+        /// <summary>
+        /// 从Excel加载应答命令配置
+        /// </summary>
         public static async Task<bool> LoadResponseCommandFromExcel(string filePath, ConcurrentDictionary<string, SFCommand> _commandDictionary)
         {
             try
@@ -864,6 +882,9 @@ namespace PF.Infrastructure.SecsGem.Tools
 
 
 
+        /// <summary>
+        /// 保存应答命令到Excel
+        /// </summary>
         public static async Task SaveResponseCommandToExcel(string filePath, ConcurrentDictionary<string, SFCommand> _commandDictionary)
         {
             IWorkbook workbook;

@@ -6,9 +6,11 @@ using System.Text.Json;
 
 namespace PF.Modules.Parameter.Dialog.DialogViewModel
 {
+    /// <summary>通用参数修改对话框 ViewModel</summary>
     public class CommonChangeParamDialogViewModel : PFDialogViewModelBase
     {
      
+        /// <summary>初始化通用参数修改对话框 ViewModel</summary>
         public CommonChangeParamDialogViewModel()
         {
             Title = "通用参数修改";
@@ -27,6 +29,7 @@ namespace PF.Modules.Parameter.Dialog.DialogViewModel
        
 
         private ParamItemViewModel _selectedParameter;
+        /// <summary>获取或设置选中的参数项</summary>
         public ParamItemViewModel SelectedParameter
         {
             get => _selectedParameter;
@@ -34,6 +37,7 @@ namespace PF.Modules.Parameter.Dialog.DialogViewModel
         }
 
         private object _ValueInstance;
+        /// <summary>获取或设置参数值实例</summary>
         public object ValueInstance
         {
             get { return _ValueInstance; }
@@ -44,6 +48,7 @@ namespace PF.Modules.Parameter.Dialog.DialogViewModel
 
 
         #region 接口实现
+        /// <summary>对话框打开时加载参数数据</summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             base.OnDialogOpened(parameters);

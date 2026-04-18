@@ -14,14 +14,23 @@ namespace PF.Data.Repositories
     /// </summary>
     public class ParamRepository<T> : GenericRepository<T>, IParamRepository<T> where T : class, IEntity, new()
     {
+        /// <summary>
+        /// ParamRepository 仓储
+        /// </summary>
         public ParamRepository(DbContext context) : base(context) { }
 
+        /// <summary>
+        /// 获取ByNameAsync
+        /// </summary>
         public async Task<T?> GetByNameAsync(string name)
         {
             // 使用 EF.Property 替代手写反射 Expression，EF Core 会自动将其翻译为 SQL 查询
             return await DbSet.FirstOrDefaultAsync(p => EF.Property<string>(p, "Name") == name);
         }
 
+        /// <summary>
+        /// 获取ByCategoryAsync
+        /// </summary>
         public async Task<List<T>> GetByCategoryAsync(string category)
         {
             return await DbSet.Where(p => EF.Property<string>(p, "Category") == category)
@@ -29,11 +38,17 @@ namespace PF.Data.Repositories
                              .ToListAsync();
         }
 
+        /// <summary>
+        /// ExistsAsync异步操作
+        /// </summary>
         public async Task<bool> ExistsAsync(string name)
         {
             return await DbSet.AnyAsync(p => EF.Property<string>(p, "Name") == name);
         }
 
+        /// <summary>
+        /// 更新VersionAsync
+        /// </summary>
         public async Task<int> UpdateVersionAsync(string id, int version)
         {
             var param = await DbSet.FindAsync(id);

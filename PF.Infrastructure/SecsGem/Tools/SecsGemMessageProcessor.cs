@@ -731,12 +731,18 @@ namespace PF.Infrastructure.SecsGem.Tools
     #endregion 弃用
 
 
+    /// <summary>
+    /// SecsGem消息处理器，负责消息的序列化和反序列化
+    /// </summary>
     public class SecsGemMessageProcessor
     {
         private readonly ILogService _logService;
         private const int HeaderLength = 10;
         private readonly Encoding _jis8Encoding;
 
+        /// <summary>
+        /// 构造消息处理器
+        /// </summary>
         public SecsGemMessageProcessor(ILogService logService)
         {
             try
@@ -752,6 +758,9 @@ namespace PF.Infrastructure.SecsGem.Tools
         }
 
         #region 消息生成
+        /// <summary>
+        /// 生成SECS消息字节数组
+        /// </summary>
         public byte[] GenerateSecsBytes(SecsGemMessage secsMessage, byte[] deviceId, byte[] systemBytes)
         {
             try
@@ -844,6 +853,9 @@ namespace PF.Infrastructure.SecsGem.Tools
         #endregion
 
         #region 消息解析
+        /// <summary>
+        /// 解析SECS消息字节数组
+        /// </summary>
         public SecsGemMessage ParseSecsBytes(byte[] secsBytes)
         {
             try

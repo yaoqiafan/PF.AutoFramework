@@ -8,8 +8,14 @@ using System.Windows.Input;
 
 namespace PF.UI.Infrastructure.Behaviors
 {
+    /// <summary>
+    /// EnterKeyTraversalBehavior 行为
+    /// </summary>
     public  class EnterKeyTraversalBehavior
     {
+        /// <summary>
+        /// IsEnabledProperty
+        /// </summary>
         public static readonly DependencyProperty IsEnabledProperty =
             DependencyProperty.RegisterAttached(
                 "IsEnabled",
@@ -17,9 +23,15 @@ namespace PF.UI.Infrastructure.Behaviors
                 typeof(EnterKeyTraversalBehavior),
                 new PropertyMetadata(false, OnIsEnabledChanged));
 
+        /// <summary>
+        /// 设置IsEnabled
+        /// </summary>
         public static void SetIsEnabled(DependencyObject element, bool value) =>
             element.SetValue(IsEnabledProperty, value);
 
+        /// <summary>
+        /// 获取IsEnabled
+        /// </summary>
         public static bool GetIsEnabled(DependencyObject element) =>
             (bool)element.GetValue(IsEnabledProperty);
 

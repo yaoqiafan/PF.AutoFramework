@@ -7,8 +7,14 @@ using System.Windows.Controls;
 
 namespace PF.UI.Resources;
 
+/// <summary>
+/// StyleSelector 选择器
+/// </summary>
 public class ComboBoxItemCapsuleStyleSelector : StyleSelector
 {
+    /// <summary>
+    /// 选择模板
+    /// </summary>
     public override Style SelectStyle(object item, DependencyObject container)
     {
         if (container is ComboBoxItem comboBoxItem && VisualHelper.GetParent<ComboBox>(comboBoxItem) is { } comboBox)

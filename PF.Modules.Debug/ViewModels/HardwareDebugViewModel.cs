@@ -16,14 +16,17 @@ using System.Threading.Tasks;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>硬件调试 ViewModel</summary>
     public class HardwareDebugViewModel : RegionViewModelBase
     {
         private readonly IHardwareManagerService _hardwareManager;
         private readonly IUserService _userService;
 
+        /// <summary>获取硬件调试树节点列表</summary>
         public ObservableCollection<DebugTreeNode> TreeNodes { get; } = new();
 
         private DebugTreeNode _selectedNode;
+        /// <summary>获取或设置选中的树节点</summary>
         public DebugTreeNode SelectedNode
         {
             get => _selectedNode;
@@ -59,6 +62,7 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        /// <summary>导航到设备调试命令</summary>
         public DelegateCommand<object> NavigateToDebugCommand { get; }
 
         /// <summary>一键切换全局模拟模式（仅 SuperUser 可见）</summary>
@@ -67,6 +71,7 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>切换单个设备的模拟模式</summary>
         public DelegateCommand<DebugTreeNode> ToggleDeviceSimulationCommand { get; }
 
+        /// <summary>初始化硬件调试 ViewModel</summary>
         public HardwareDebugViewModel(IHardwareManagerService hardwareManager, IUserService userService)
         {
             _hardwareManager = hardwareManager;

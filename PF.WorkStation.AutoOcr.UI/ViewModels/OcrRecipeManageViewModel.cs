@@ -1,4 +1,4 @@
-﻿using PF.Core.Constants;
+using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -22,6 +22,9 @@ using System.Windows;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
+    /// <summary>
+    /// OcrRecipeManageViewModel
+    /// </summary>
     public class OcrRecipeManageViewModel : RegionViewModelBase
     {
         // 核心修改：改用接口抽象，不依赖具体实现类
@@ -31,6 +34,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IIntelligentCamera _camera;
 
         // 通过 Prism 容器注入接口
+        /// <summary>
+        /// OcrRecipeManageViewModel 构造函数
+        /// </summary>
         public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService, ISecsGemManger secsGemManger, IHardwareManagerService hardwareManagerService)
         {
             _recipeService = recipeService ?? throw new ArgumentNullException(nameof(recipeService));
@@ -57,10 +63,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             // 初始加载数据
             ExecuteLoadRecipes();
         }
+        /// <summary>
+        /// 获取或设置 Parameters
+        /// </summary>
 
         public ObservableCollection<OcrRecipeParamEntity> Parameters { get; set; }
 
         private OcrRecipeParamEntity _SelectedParameter;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public OcrRecipeParamEntity SelectedParameter
         {
             get { return _SelectedParameter; }
@@ -68,17 +80,41 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         #region Commands
+        /// <summary>
+        /// LoadRecipes 命令
+        /// </summary>
 
         public DelegateCommand LoadRecipesCommand { get; private set; }
+        /// <summary>
+        /// NewRecipe 命令
+        /// </summary>
         public DelegateCommand NewRecipeCommand { get; private set; }
+        /// <summary>
+        /// SaveRecipe 命令
+        /// </summary>
         public DelegateCommand SaveRecipeCommand { get; private set; }
+        /// <summary>
+        /// DeleteRecipe 命令
+        /// </summary>
         public DelegateCommand DeleteRecipeCommand { get; private set; }
+        /// <summary>
+        /// UPLoadRecipe 命令
+        /// </summary>
 
         public DelegateCommand UPLoadRecipeCommand { get; private set; }
+        /// <summary>
+        /// ChangeRecipeName 命令
+        /// </summary>
 
         public DelegateCommand ChangeRecipeNameCommand { get; private set; }
+        /// <summary>
+        /// CloneRecipe 命令
+        /// </summary>
 
         public DelegateCommand CloneRecipeCommand { get; private set; }
+        /// <summary>
+        /// ShowDebugView 命令
+        /// </summary>
 
         public DelegateCommand ShowDebugViewCommand { get; private set; }
 

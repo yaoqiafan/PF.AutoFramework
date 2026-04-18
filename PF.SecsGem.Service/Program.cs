@@ -5,13 +5,19 @@ using PF.SecsGem.DataBase;
 
 namespace PF.SecsGem.Service;
 
+/// <summary>
+/// Program ä¸»å…¥å£ç±»
+/// </summary>
 public class Program
 {
     private static readonly string filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemConfig.db");
+    /// <summary>
+    /// ç¨‹åºä¸»å…¥å£
+    /// </summary>
     public static void Main(string[] args)
     {
         var host = CreateHostBuilder(args).Build();
-        // ´´½¨Êı¾İ¿â
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ¿ï¿½
         using (var scope = host.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<SecsGemDbContext>();
@@ -20,6 +26,9 @@ public class Program
         host.Run();
     }
 
+    /// <summary>
+    /// åˆ›å»ºä¸»æœºæ„å»ºå™¨
+    /// </summary>
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
             .UseWindowsService(options =>
@@ -29,12 +38,12 @@ public class Program
             .ConfigureServices((hostContext, services) =>
             {
                 ConfigureDatabase(services);
-                // ×¢²áWorker×÷ÎªºóÌ¨·şÎñ
+                // ×¢ï¿½ï¿½Workerï¿½ï¿½Îªï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½
                 services.AddHostedService<Worker>();
             })
             .ConfigureLogging((context, logging) =>
             {
-                // ÅäÖÃÈÕÖ¾£¬°üÀ¨ÊÂ¼şÈÕÖ¾
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ö¾
                 logging.ClearProviders();
                 logging.AddConfiguration(context.Configuration.GetSection("Logging"));
 

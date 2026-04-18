@@ -7,6 +7,9 @@ using System.Windows.Input;
 
 namespace PF.UI.Infrastructure.PrismBase
 {
+    /// <summary>
+    /// IDialogAware
+    /// </summary>
     public abstract class PFDialogViewModelBase: ViewModelBase, IDialogAware
     {
         // 私有字段：对话框标题
@@ -46,16 +49,25 @@ namespace PF.UI.Infrastructure.PrismBase
         /// </summary>
         public DialogCloseListener RequestClose { get; set; }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public virtual bool CanCloseDialog()
         {
             return true;
         }
 
+        /// <summary>
+        /// 处理DialogClosed事件
+        /// </summary>
         public virtual void OnDialogClosed()
         {
            
         }
 
+        /// <summary>
+        /// 处理DialogOpened事件
+        /// </summary>
         public virtual void OnDialogOpened(IDialogParameters parameters)
         {
            

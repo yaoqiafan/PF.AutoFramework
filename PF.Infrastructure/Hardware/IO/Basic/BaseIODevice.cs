@@ -41,6 +41,9 @@ namespace PF.Infrastructure.Hardware.IO.Basic
 
         #endregion
 
+        /// <summary>
+        /// 构造IO设备
+        /// </summary>
         protected BaseIODevice(string deviceId, string deviceName, bool isSimulated, ILogService logger)
             : base(deviceId, deviceName, isSimulated, logger)
         {
@@ -76,6 +79,9 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         }
 
 
+        /// <summary>
+        /// 使用枚举名称读取输入端口
+        /// </summary>
         public virtual bool? ReadInput<T>(T InPutName) where T : Enum
         {
             if (IsSimulated)
@@ -99,6 +105,9 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             return ParentCard!.WriteOutputPort(portIndex, value);
         }
 
+        /// <summary>
+        /// 使用枚举名称写入输出端口
+        /// </summary>
         public virtual bool WriteOutput<T>(T OutputName, bool value) where T : Enum
         {
             if (IsSimulated)
@@ -122,6 +131,9 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             return ParentCard!.ReadOutputPort(portIndex);
         }
 
+        /// <summary>
+        /// 使用枚举名称读取输出端口
+        /// </summary>
         public virtual bool? ReadOutput<T>(T InPutName) where T : Enum
         {
             if (IsSimulated)
@@ -188,6 +200,9 @@ namespace PF.Infrastructure.Hardware.IO.Basic
 
 
 
+        /// <summary>
+        /// 使用枚举名称异步等待输入端口达到目标状态
+        /// </summary>
         public virtual Task<bool> WaitInputAsync<T>(T InputName, bool targetState, int timeoutMs = 5000, CancellationToken token = default) where T : Enum
         {
             return this.WaitInputAsync(Convert.ToInt32(InputName), targetState, timeoutMs, token);

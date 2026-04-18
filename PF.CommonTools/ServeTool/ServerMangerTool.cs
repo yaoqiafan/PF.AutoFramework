@@ -7,6 +7,9 @@ using System.ServiceProcess;
 
 namespace PF.CommonTools.ServeTool
 {
+    /// <summary>
+    /// ServerMangerTool 工具类
+    /// </summary>
     public class ServerMangerTool
     {
 

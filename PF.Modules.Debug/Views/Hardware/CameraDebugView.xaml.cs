@@ -20,6 +20,7 @@ namespace PF.Modules.Debug.Views
     /// </summary>
     public partial class CameraDebugView : UserControl
     {
+        /// <summary>初始化相机调试视图</summary>
         public CameraDebugView()
         {
             InitializeComponent();

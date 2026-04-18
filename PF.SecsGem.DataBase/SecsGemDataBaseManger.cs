@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Data;
 using PF.Core.Interfaces.SecsGem.DataBase;
@@ -8,12 +8,18 @@ using PF.SecsGem.DataBase.Entities.Variable;
 
 namespace PF.SecsGem.DataBase
 {
+    /// <summary>
+    /// IDisposable
+    /// </summary>
     public class SecsGemDataBaseManger : ISecsGemDataBase, IDisposable
     {
         private readonly SecsGemDbContext _context;
         private readonly Dictionary<SecsDbSet, object> _repositories;
         private bool _disposed = false;
 
+        /// <summary>
+        /// SecsGemDataBaseManger 管理器
+        /// </summary>
         public SecsGemDataBaseManger(SecsGemDbContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -81,6 +87,9 @@ namespace PF.SecsGem.DataBase
             }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

@@ -6,11 +6,17 @@ namespace PF.Core.Constants
     /// </summary>
     public static class HardwareInputType
     {
+        /// <summary>启动按钮</summary>
         public const string Start        = "Start";
+        /// <summary>暂停按钮</summary>
         public const string Pause        = "Pause";
+        /// <summary>复位按钮</summary>
         public const string Reset        = "Reset";
+        /// <summary>急停按钮</summary>
         public const string EStop        = "EStop";
+        /// <summary>安全门</summary>
         public const string SafeDoor     = "SafeDoor";
+        /// <summary>光幕</summary>
         public const string LightCurtain = "LightCurtain";
     }
 }

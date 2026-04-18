@@ -8,6 +8,7 @@ using System.Reflection;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>模组调试 ViewModel</summary>
     public class MechanismDebugViewModel : RegionViewModelBase
     {
         private readonly IRegionManager _regionManager;
@@ -17,9 +18,11 @@ namespace PF.Modules.Debug.ViewModels
         // 缓存：模组实例 -> 对应的视图名称 (ViewName)
         private readonly Dictionary<object, string> _mechanismViewMap = new Dictionary<object, string>();
 
+        /// <summary>获取模组树节点列表</summary>
         public ObservableCollection<DebugTreeNode> TreeNodes { get; } = new ObservableCollection<DebugTreeNode>();
 
         private DebugTreeNode _selectedNode;
+        /// <summary>获取或设置选中的树节点</summary>
         public DebugTreeNode SelectedNode
         {
             get => _selectedNode;
@@ -33,6 +36,7 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         // 注入 IRegionManager 用于动态加载页面
+        /// <summary>初始化模组调试 ViewModel</summary>
         public MechanismDebugViewModel(IEnumerable<IMechanism> mechanisms, IRegionManager regionManager)
         {
             _regionManager = regionManager;

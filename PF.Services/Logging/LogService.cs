@@ -50,6 +50,9 @@ namespace PF.Services.Logging
 
         #region 单例
         private static readonly Lazy<LogService> _instance = new Lazy<LogService>(() => new LogService());
+        /// <summary>
+        /// 单例实例
+        /// </summary>
         public static LogService Instance => _instance.Value;
         #endregion
 
@@ -80,6 +83,9 @@ namespace PF.Services.Logging
         #region 公共属性
         // 注意：接口 ILogService 需要同步修改，将此处类型改为 IEnumerable 或 IReadOnlyList
         // 这里返回副本以保证线程安全
+        /// <summary>
+        /// LogEntries
+        /// </summary>
         public IEnumerable<LogEntry> LogEntries
         {
             get
@@ -91,6 +97,9 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// ChatEntries
+        /// </summary>
         public IEnumerable<ChatInfoModel> ChatEntries
         {
             get
@@ -102,12 +111,21 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// OnLogAdded
+        /// </summary>
         public event Action<LogEntry> OnLogAdded;
         #endregion
 
         #region 构造函数
+        /// <summary>
+        /// LogService 服务
+        /// </summary>
         public LogService() : this(new LogConfiguration().ConfigureDefaultCategories()) { }
 
+        /// <summary>
+        /// LogService 服务
+        /// </summary>
         public LogService(LogConfiguration configuration)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -338,6 +356,9 @@ namespace PF.Services.Logging
         #endregion
 
         #region ILogService 实现 - 基础日志方法
+        /// <summary>
+        /// 配置
+        /// </summary>
         public void Configure(LogConfiguration configuration)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -349,11 +370,17 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// 获取Configuration
+        /// </summary>
         public LogConfiguration GetConfiguration()
         {
             return _configuration;
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Log(LogLevel level, string message, string category = null, Exception exception = null)
         {
             if (!ShouldLog(level, category))
@@ -389,11 +416,17 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void ShowUiMessage(string message, LogLevel level = LogLevel.Info)
         {
             Log(level, message, UI_CATEGORY);
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void ShowChatMessage(ChatInfoModel chatInfoModel)
         {
             if (chatInfoModel == null)
@@ -413,15 +446,36 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Debug(string message, string category = null, Exception exception = null) => Log(LogLevel.Debug, message, category, exception);
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Info(string message, string category = null) => Log(LogLevel.Info, message, category);
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Success(string message, string category = null) => Log(LogLevel.Success, message, category);
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Warn(string message, string category = null, Exception exception = null) => Log(LogLevel.Warn, message, category, exception);
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Error(string message, string category = null, Exception exception = null) => Log(LogLevel.Error, message, category, exception);
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Fatal(string message, string category = null, Exception exception = null) => Log(LogLevel.Fatal, message, category, exception);
         #endregion
 
         #region 分类管理
+        /// <summary>
+        /// 添加Category
+        /// </summary>
         public void AddCategory(string category, LogLevel minLevel = LogLevel.Info, string fileNamePrefix = null)
         {
             _configuration.AddCategory(category, minLevel, fileNamePrefix);
@@ -432,6 +486,9 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// 移除Category
+        /// </summary>
         public void RemoveCategory(string category)
         {
             _configuration.RemoveCategory(category);
@@ -442,11 +499,17 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// 获取AllCategories
+        /// </summary>
         public List<string> GetAllCategories()
         {
             return _configuration.Categories.Keys.ToList();
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void ClearCategory(string category)
         {
             lock (_memoryLock)
@@ -457,6 +520,9 @@ namespace PF.Services.Logging
         #endregion
 
         #region 查询功能
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryLogs(DateTime start, DateTime end, LogLevel? level = null, string category = null)
         {
             lock (_memoryLock)
@@ -474,12 +540,18 @@ namespace PF.Services.Logging
             }
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryLogsToday(LogLevel? level = null, string category = null)
         {
             var today = DateTime.Today;
             return QueryLogs(today, today.AddDays(1), level, category);
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryHistoricalLogs(LogQueryParams queryParams)
         {
             var results = new List<LogEntry>();
@@ -522,16 +594,25 @@ namespace PF.Services.Logging
             return results;
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryAllHistoricalLogs(DateTime start, DateTime end)
         {
             return QueryHistoricalLogs(new LogQueryParams { StartTime = start, EndTime = end });
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryAllHistoricalLogs()
         {
             return QueryHistoricalLogs(LogQueryParams.ForToday());
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryInfoHistoricalLogs(DateTime start, DateTime end)
         {
             return QueryHistoricalLogs(new LogQueryParams
@@ -542,11 +623,17 @@ namespace PF.Services.Logging
             });
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryInfoHistoricalLogs()
         {
             return QueryInfoHistoricalLogs(DateTime.Today, DateTime.Today.AddDays(1));
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryErrorHistoricalLogs(DateTime start, DateTime end)
         {
             return QueryHistoricalLogs(new LogQueryParams
@@ -557,11 +644,17 @@ namespace PF.Services.Logging
             });
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryErrorHistoricalLogs()
         {
             return QueryErrorHistoricalLogs(DateTime.Today, DateTime.Today.AddDays(1));
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryWarnHistoricalLogs(DateTime start, DateTime end)
         {
             return QueryHistoricalLogs(new LogQueryParams
@@ -572,11 +665,17 @@ namespace PF.Services.Logging
             });
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QueryWarnHistoricalLogs()
         {
             return QueryWarnHistoricalLogs(DateTime.Today, DateTime.Today.AddDays(1));
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QuerySystemHistoricalLogs(DateTime start, DateTime end)
         {
             return QueryHistoricalLogs(new LogQueryParams
@@ -588,6 +687,9 @@ namespace PF.Services.Logging
             });
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public List<LogEntry> QuerySystemHistoricalLogs()
         {
             return QuerySystemHistoricalLogs(DateTime.Today, DateTime.Today.AddDays(1));
@@ -989,6 +1091,9 @@ namespace PF.Services.Logging
         #endregion
 
         #region 清理和释放
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Clear()
         {
             lock (_memoryLock)
@@ -1043,6 +1148,9 @@ namespace PF.Services.Logging
             catch { }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             if (_disposed) return;
@@ -1059,11 +1167,17 @@ namespace PF.Services.Logging
         #endregion
 
         #region 工厂方法
+        /// <summary>
+        /// Factory 工厂
+        /// </summary>
         public static class Factory
         {
             private static ILogService _service;
             private static readonly object _lock = new();
 
+            /// <summary>
+            /// GetService 服务
+            /// </summary>
             public static ILogService GetService(LogConfiguration configuration = null)
             {
                 lock (_lock)

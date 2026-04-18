@@ -6,6 +6,7 @@ using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>扫码枪调试 ViewModel</summary>
     public class BarcodeScanDebugViewModel : RegionViewModelBase
     {
         private IBarcodeScan _scanner;
@@ -13,6 +14,7 @@ namespace PF.Modules.Debug.ViewModels
         private readonly DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
 
+        /// <summary>初始化扫码枪调试 ViewModel</summary>
         public BarcodeScanDebugViewModel()
         {
             InitializeCommands();
@@ -26,6 +28,7 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>导航进入时加载扫码枪设备数据</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
@@ -54,6 +57,7 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        /// <summary>导航离开时停止轮询</summary>
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
@@ -66,44 +70,62 @@ namespace PF.Modules.Debug.ViewModels
         #region 【设备信息与状态属性】
 
         private string _deviceName = "未选中扫码枪";
+        /// <summary>获取或设置设备名称</summary>
         public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
 
         private string _deviceDescription = "等待设备接入...";
+        /// <summary>获取或设置设备描述</summary>
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
         private bool _isConnected;
+        /// <summary>获取或设置是否已连接</summary>
         public bool IsConnected { get => _isConnected; set => SetProperty(ref _isConnected, value); }
 
         private bool _hasAlarm;
+        /// <summary>获取或设置是否报警</summary>
         public bool HasAlarm { get => _hasAlarm; set => SetProperty(ref _hasAlarm, value); }
 
         // --- IBarcodeScan 接口专有属性 ---
+        /// <summary>获取 IP 地址</summary>
         public string IpAddress => _scanner?.IPAdress ?? "0.0.0.0";
+        /// <summary>获取触发端口</summary>
         public int TriggerPort => _scanner?.TiggerPort ?? 0;
+        /// <summary>获取用户端口</summary>
         public int UserPort => _scanner?.UserPort ?? 0;
+        /// <summary>获取超时时间(ms)</summary>
         public int TimeOutMs => _scanner?.TimeOutMs ?? 0;
 
         private bool _isScanning;
+        /// <summary>获取或设置是否正在扫码</summary>
         public bool IsScanning { get => _isScanning; set => SetProperty(ref _isScanning, value); }
 
         private string _lastBarcode = "等待扫码...";
+        /// <summary>获取或设置最后一次扫码结果</summary>
         public string LastBarcode { get => _lastBarcode; set => SetProperty(ref _lastBarcode, value); }
 
         private string _userInfoInput = "1"; // 默认参数集测试值
+        /// <summary>获取或设置用户参数输入</summary>
         public string UserInfoInput { get => _userInfoInput; set => SetProperty(ref _userInfoInput, value); }
 
+        /// <summary>获取扫码历史记录列表</summary>
         public ObservableCollection<ScanRecord> ScanHistory { get; } = new ObservableCollection<ScanRecord>();
 
         #endregion
 
         #region 【控制命令定义】
 
+        /// <summary>连接命令</summary>
         public DelegateCommand ConnectCommand { get; private set; }
+        /// <summary>断开连接命令</summary>
         public DelegateCommand DisconnectCommand { get; private set; }
+        /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
 
+        /// <summary>触发扫码命令</summary>
         public DelegateCommand TriggerScanCommand { get; private set; }
+        /// <summary>切换用户参数命令</summary>
         public DelegateCommand ChangeUserParamCommand { get; private set; }
+        /// <summary>清除历史命令</summary>
         public DelegateCommand ClearHistoryCommand { get; private set; }
 
         private void InitializeCommands()
@@ -189,9 +211,12 @@ namespace PF.Modules.Debug.ViewModels
         #endregion
     }
 
+    /// <summary>扫码记录</summary>
     public class ScanRecord
     {
+        /// <summary>扫码时间</summary>
         public string Time { get; set; }
+        /// <summary>条码内容</summary>
         public string Barcode { get; set; }
     }
 }

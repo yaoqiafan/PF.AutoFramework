@@ -8,6 +8,9 @@ namespace PF.Core.Attributes
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class MechanismUIAttribute : Attribute
     {
+        /// <summary>
+        /// 模组视图名称
+        /// </summary>
         public string MechanismViewName { get; }
 
         /// <summary>
@@ -20,6 +23,9 @@ namespace PF.Core.Attributes
         /// </summary>
         public int Order { get; set; } = 99;
 
+        /// <summary>
+        /// 初始化模组UI特性
+        /// </summary>
         public MechanismUIAttribute(string title, string viewName, int order = 99)
         {
             MechanismViewName = viewName;

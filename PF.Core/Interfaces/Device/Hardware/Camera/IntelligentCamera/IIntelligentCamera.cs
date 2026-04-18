@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera
 {
+    /// <summary>
+    /// 智能相机接口
+    /// </summary>
     public interface IIntelligentCamera
     {
 

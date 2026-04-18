@@ -24,7 +24,13 @@ namespace PF.Infrastructure.Communication.TCP
         private ServerStatus _status = ServerStatus.Stopped;
         private ClientStatus _clientstatus = ClientStatus.None;
 
+        /// <summary>
+        /// 服务器名称
+        /// </summary>
         public string ServerName { get; }
+        /// <summary>
+        /// 服务器状态
+        /// </summary>
         public ServerStatus Status
         {
             get => _status;
@@ -36,12 +42,27 @@ namespace PF.Infrastructure.Communication.TCP
                 }
             }
         }
+        /// <summary>
+        /// 服务器IP地址
+        /// </summary>
         public string IP { get; private set; }
+        /// <summary>
+        /// 服务器端口
+        /// </summary>
         public int Port { get; private set; }
+        /// <summary>
+        /// 已连接的客户端列表
+        /// </summary>
         public IReadOnlyList<IClientConnection> Clients => _clients.Values.ToList();
 
+        /// <summary>
+        /// 编码方式
+        /// </summary>
         public Encoding Encoding { get; set; } = Encoding.ASCII;
 
+        /// <summary>
+        /// 客户端连接状态
+        /// </summary>
         public ClientStatus ClientStatue
         {
             get => _clientstatus;
@@ -54,18 +75,39 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 服务器启动事件
+        /// </summary>
         public event EventHandler<ServerEventArgs> ServerStarted;
+        /// <summary>
+        /// 服务器停止事件
+        /// </summary>
         public event EventHandler<ServerEventArgs> ServerStopped;
+        /// <summary>
+        /// 客户端连接事件
+        /// </summary>
         public event EventHandler<ClientConnectedEventArgs> ClientConnected;
+        /// <summary>
+        /// 客户端断开事件
+        /// </summary>
         public event EventHandler<ClientDisconnectedEventArgs> ClientDisconnected;
+        /// <summary>
+        /// 数据接收事件
+        /// </summary>
         public event EventHandler<DataReceivedEventArgs> DataReceived;
 
+        /// <summary>
+        /// 构造TCP服务器
+        /// </summary>
         public TcpServer(string serverName = "Default TcpServer")
         {
             ServerName = serverName;
             _clients = new ConcurrentDictionary<string, ClientConnection>();
         }
 
+        /// <summary>
+        /// 异步启动TCP服务器
+        /// </summary>
         public async Task<bool> StartAsync(string IPipString, int port, int backlog = 10)
         {
             if (Status != ServerStatus.Stopped)
@@ -246,6 +288,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 异步停止服务器
+        /// </summary>
         public async Task StopAsync()
         {
             Status = ServerStatus.Stopping;
@@ -271,6 +316,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 向指定客户端发送数据
+        /// </summary>
         public async Task<bool> SendAsync(string clientId, byte[] data)
         {
             if (!_clients.TryGetValue(clientId, out var client))
@@ -289,6 +337,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 向所有客户端广播数据
+        /// </summary>
         public async Task<bool> BroadcastAsync(byte[] data)
         {
             var sendTasks = _clients.Values.Select(client =>
@@ -298,6 +349,9 @@ namespace PF.Infrastructure.Communication.TCP
             return results.All(r => r);
         }
 
+        /// <summary>
+        /// 异步断开指定客户端
+        /// </summary>
         public async Task<bool> DisconnectClientAsync(string clientId)
         {
             if (!_clients.TryGetValue(clientId, out var client))
@@ -318,28 +372,43 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 触发服务器启动事件
+        /// </summary>
         protected virtual void OnServerStarted(string message)
         {
             ServerStarted?.Invoke(this, new ServerEventArgs(message));
         }
 
+        /// <summary>
+        /// 触发服务器停止事件
+        /// </summary>
         protected virtual void OnServerStopped(string message)
         {
             ServerStopped?.Invoke(this, new ServerEventArgs(message));
         }
 
+        /// <summary>
+        /// 触发客户端连接事件
+        /// </summary>
         protected virtual void OnClientConnected(IClientConnection client)
         {
             ClientStatue = ClientStatus.Connected;
             ClientConnected?.Invoke(this, new ClientConnectedEventArgs(client.ClientId, this.IP));
         }
 
+        /// <summary>
+        /// 触发客户端断开事件
+        /// </summary>
         protected virtual void OnClientDisconnected(string clientId, string reason)
         {
             ClientStatue = ClientStatus.Disconnected;
             ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(clientId, reason));
         }
 
+        /// <summary>
+        /// 触发数据接收事件
+        /// </summary>
         protected virtual void OnDataReceived(string clientId, byte[] data)
         {
             DataReceived?.Invoke(this, new DataReceivedEventArgs(clientId, data));
@@ -348,6 +417,9 @@ namespace PF.Infrastructure.Communication.TCP
         #region IDisposable Support
         private bool _disposedValue = false;
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposedValue)
@@ -368,6 +440,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

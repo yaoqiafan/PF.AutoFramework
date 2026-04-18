@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Data
 {
+    /// <summary>
+    /// 数据库接口
+    /// </summary>
     public interface IDataBase
     {
         /// <summary>
@@ -17,6 +20,9 @@ namespace PF.Core.Interfaces.Data
         IGenericRepository<T> GetRepository<T>(string dbSet) where T : class, IEntity, new();
 
 
+        /// <summary>
+        /// 初始化数据库
+        /// </summary>
         Task<bool> InitializationDataBase();
 
         /// <summary>

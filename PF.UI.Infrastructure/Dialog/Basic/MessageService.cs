@@ -7,21 +7,33 @@ using System.Windows;
 
 namespace PF.UI.Infrastructure.Dialog.Basic
 {
+    /// <summary>
+    /// IMessageService 服务
+    /// </summary>
     public class MessageService : IMessageService
     {
         private readonly IDialogService _dialogService;
 
+        /// <summary>
+        /// MessageService 服务
+        /// </summary>
         public MessageService(IDialogService dialogService)
         {
             _dialogService = dialogService;
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public MessageBoxResult ShowSystemMessage(string message, string title = "提示", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.Information)
         {
             // 原生系统弹窗
             return MessageBox.Show(message, title, buttons, image);
         }
 
+        /// <summary>
+        /// ShowMessageAsync异步操作
+        /// </summary>
         public Task<ButtonResult> ShowMessageAsync(string message, string title = "提示", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.Information)
         {
             var tcs = new TaskCompletionSource<ButtonResult>();
@@ -42,6 +54,9 @@ namespace PF.UI.Infrastructure.Dialog.Basic
             return tcs.Task;
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void ShowMessage(string message, string title = "提示", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.Information, Action<ButtonResult>? callback = null)
         {
             var parameters = new DialogParameters
@@ -60,6 +75,9 @@ namespace PF.UI.Infrastructure.Dialog.Basic
             });
         }
 
+        /// <summary>
+        /// ShowInputAsync异步操作
+        /// </summary>
         public Task<string?> ShowInputAsync(string message, string title = "输入", string defaultText = "")
         {
             var tcs = new TaskCompletionSource<string?>();
@@ -88,6 +106,9 @@ namespace PF.UI.Infrastructure.Dialog.Basic
             return tcs.Task;
         }
 
+        /// <summary>
+        /// ExecuteWithWaitAsync异步操作
+        /// </summary>
         public async Task ExecuteWithWaitAsync(Func<Task> action, string message = "请稍候，正在处理中...", string title = "请稍候")
         {
             var tcs = new TaskCompletionSource<bool>();

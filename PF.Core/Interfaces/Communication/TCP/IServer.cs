@@ -14,6 +14,9 @@ namespace PF.Core.Interfaces.Communication.TCP
     public interface IServer
     {
 
+        /// <summary>
+        /// 编码方式
+        /// </summary>
         Encoding Encoding { get; set; }
         /// <summary>
         /// 服务器名称

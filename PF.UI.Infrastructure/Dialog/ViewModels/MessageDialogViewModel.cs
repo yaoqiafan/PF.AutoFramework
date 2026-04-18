@@ -8,9 +8,15 @@ using System.Windows;
 
 namespace PF.UI.Infrastructure.Dialog.ViewModels
 {
+    /// <summary>
+    /// PFDialogViewModelBase 视图模型
+    /// </summary>
     public class MessageDialogViewModel : PFDialogViewModelBase
     {
         private string _message;
+        /// <summary>
+        /// Message
+        /// </summary>
         public string Message
         {
             get => _message;
@@ -18,6 +24,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         }
 
         private string _iconText;
+        /// <summary>
+        /// IconText 上下文
+        /// </summary>
         public string IconText
         {
             get => _iconText;
@@ -25,6 +34,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         }
 
         private string _iconColor = "#333333";
+        /// <summary>
+        /// IconColor
+        /// </summary>
         public string IconColor
         {
             get => _iconColor;
@@ -33,6 +45,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
 
         // 控制按钮显示的属性
         private Visibility _okVisibility = Visibility.Collapsed;
+        /// <summary>
+        /// OkVisibility
+        /// </summary>
         public Visibility OkVisibility
         {
             get => _okVisibility;
@@ -40,6 +55,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         }
 
         private Visibility _cancelVisibility = Visibility.Collapsed;
+        /// <summary>
+        /// CancelVisibility
+        /// </summary>
         public Visibility CancelVisibility
         {
             get => _cancelVisibility;
@@ -47,6 +65,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         }
 
         private Visibility _yesVisibility = Visibility.Collapsed;
+        /// <summary>
+        /// YesVisibility
+        /// </summary>
         public Visibility YesVisibility
         {
             get => _yesVisibility;
@@ -54,6 +75,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         }
 
         private Visibility _noVisibility = Visibility.Collapsed;
+        /// <summary>
+        /// NoVisibility
+        /// </summary>
         public Visibility NoVisibility
         {
             get => _noVisibility;
@@ -61,8 +85,14 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         }
 
         // 命令
+        /// <summary>
+        /// CloseDialogCommand
+        /// </summary>
         public DelegateCommand<string> CloseDialogCommand { get; }
 
+        /// <summary>
+        /// MessageDialogViewModel 视图模型
+        /// </summary>
         public MessageDialogViewModel()
         {
             CloseDialogCommand = new DelegateCommand<string>(ExecuteCloseDialog);
@@ -81,6 +111,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
             RequestClose.Invoke(new DialogResult(result));
         }
 
+        /// <summary>
+        /// 处理DialogOpened事件
+        /// </summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             base.OnDialogOpened(parameters);

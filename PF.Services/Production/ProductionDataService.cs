@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using PF.Core.Interfaces.Production;
@@ -34,8 +34,14 @@ namespace PF.Services.Production
         private Task? _consumerTask;
         private bool _disposed;
 
+        /// <summary>
+        /// DataRecorded
+        /// </summary>
         public event EventHandler<ProductionDataRecordedEventArgs>? DataRecorded;
 
+        /// <summary>
+        /// ProductionDataService 服务
+        /// </summary>
         public ProductionDataService(DbContextOptions<ProductionDbContext> dbOptions)
         {
             _dbOptions = dbOptions ?? throw new ArgumentNullException(nameof(dbOptions));
@@ -45,6 +51,9 @@ namespace PF.Services.Production
         //  初始化
         // ══════════════════════════════════════════════════════
 
+        /// <summary>
+        /// 初始化
+        /// </summary>
         public async Task InitializeAsync()
         {
             // 建表（若不存在）
@@ -64,6 +73,9 @@ namespace PF.Services.Production
         //  写入
         // ══════════════════════════════════════════════════════
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public async Task RecordAsync<TData>(TData data, string? recordType = null)
         {
             var entity = new ProductionDataEntity
@@ -112,6 +124,9 @@ namespace PF.Services.Production
         //  查询
         // ══════════════════════════════════════════════════════
 
+        /// <summary>
+        /// QueryAsync异步操作
+        /// </summary>
         public async Task<IReadOnlyList<ProductionRecord>> QueryAsync(ProductionQueryFilter filter)
         {
             await using var ctx = new ProductionDbContext(_dbOptions);
@@ -120,6 +135,9 @@ namespace PF.Services.Production
             return entities.Select(MapToRecord).ToList();
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public async Task<IReadOnlyList<TData>> QueryDataAsync<TData>(ProductionQueryFilter filter)
             where TData : class
         {
@@ -156,6 +174,9 @@ namespace PF.Services.Production
         //  导出
         // ══════════════════════════════════════════════════════
 
+        /// <summary>
+        /// ExportToCsvAsync异步操作
+        /// </summary>
         public async Task ExportToCsvAsync(ProductionQueryFilter filter, string filePath)
         {
             var records = await QueryAsync(filter);
@@ -180,6 +201,9 @@ namespace PF.Services.Production
             }
         }
 
+        /// <summary>
+        /// ExportToExcelAsync异步操作
+        /// </summary>
         public async Task ExportToExcelAsync(ProductionQueryFilter filter, string filePath)
         {
             var records = await QueryAsync(filter);
@@ -236,6 +260,9 @@ namespace PF.Services.Production
         //  维护
         // ══════════════════════════════════════════════════════
 
+        /// <summary>
+        /// PurgeOldDataAsync异步操作
+        /// </summary>
         public async Task PurgeOldDataAsync(int retentionDays = 90)
         {
             var cutoff = DateTime.Now.AddDays(-retentionDays);
@@ -276,6 +303,9 @@ namespace PF.Services.Production
         //  Dispose
         // ══════════════════════════════════════════════════════
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             if (_disposed) return;

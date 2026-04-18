@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,6 +20,9 @@ namespace PF.WorkStation.AutoOcr.UI.Views.WorkStations
     /// </summary>
     public partial class WorkStation1MaterialPullingStationDebugView : UserControl
     {
+        /// <summary>
+        /// WorkStation1MaterialPullingStationDebugView 构造函数
+        /// </summary>
         public WorkStation1MaterialPullingStationDebugView()
         {
             InitializeComponent();

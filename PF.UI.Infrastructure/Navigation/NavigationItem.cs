@@ -13,6 +13,9 @@ namespace PF.UI.Infrastructure.Navigation
     public class NavigationItem : BindableBase
     {
         private string _title;
+        /// <summary>
+        /// Title
+        /// </summary>
         public string Title
         {
             get => _title;
@@ -20,6 +23,9 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         private string _icon;
+        /// <summary>
+        /// Icon
+        /// </summary>
         public string Icon
         {
             get => _icon;
@@ -27,6 +33,9 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         private string _viewName;
+        /// <summary>
+        /// ViewName 视图
+        /// </summary>
         public string ViewName
         {
             get => _viewName;
@@ -34,6 +43,9 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         private string _navigationParameter;
+        /// <summary>
+        /// NavigationParameter
+        /// </summary>
         public string NavigationParameter
         {
             get => _navigationParameter;
@@ -41,6 +53,9 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         private bool _isDialog;
+        /// <summary>
+        /// IsDialog
+        /// </summary>
         public bool IsDialog
         {
             get => _isDialog;
@@ -48,6 +63,9 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         private int _order;
+        /// <summary>
+        /// Order
+        /// </summary>
         public int Order
         {
             get => _order;
@@ -55,6 +73,9 @@ namespace PF.UI.Infrastructure.Navigation
         }
 
         // 子菜单项（用于存放该分组下的具体页面）
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public ObservableCollection<NavigationItem> Children { get; set; } = new ObservableCollection<NavigationItem>();
     }
 }

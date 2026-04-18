@@ -58,39 +58,63 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             #region 阶段 A：运动前准备 (0 - 100)
 
+            /// <summary>等待按下工位2启动按钮</summary>
             等待按下工位2启动按钮 = 0,
+            /// <summary>验证当前批次产品个数</summary>
             验证当前批次产品个数 = 10,
+            /// <summary>获取工位2配方参数</summary>
             获取工位2配方参数 = 20,
+            /// <summary>识别料盒尺寸</summary>
             识别料盒尺寸 = 30,
+            /// <summary>验证尺寸与配方是否匹配</summary>
             验证尺寸与配方是否匹配 = 40,
+            /// <summary>切换物料尺寸</summary>
             切换物料尺寸 = 50,
+            /// <summary>判断X轴是否具备运动条件_开始</summary>
             判断X轴是否具备运动条件_开始 = 60,
+            /// <summary>X轴到待机位</summary>
             X轴到待机位 = 70,
+            /// <summary>判断Z轴是否具备运动条件_寻层</summary>
             判断Z轴是否具备运动条件_寻层 = 80,
+            /// <summary>Z轴扫描寻层</summary>
             Z轴扫描寻层 = 90,
+            /// <summary>算法过滤层数</summary>
             算法过滤层数 = 100,
 
             #endregion
 
             #region 阶段 B：取料循环流转 (110 - 160)
 
+            /// <summary>判断Z轴是否具备运动条件_取料定位</summary>
             判断Z轴是否具备运动条件_取料定位 = 110,
+            /// <summary>切换到指定层</summary>
             切换到指定层 = 120,
+            /// <summary>判断物料可拉出条件</summary>
             判断物料可拉出条件 = 130,
+            /// <summary>等待物料拉出完成</summary>
             等待物料拉出完成 = 140,
+            /// <summary>阻塞等待物料回退完成</summary>
             阻塞等待物料回退完成 = 150,
+            /// <summary>计算下一层位置</summary>
             计算下一层位置 = 160,
 
             #endregion
 
             #region 阶段 C：生产结束与安全收尾 (200 - 400)
 
+            /// <summary>物料全部生产完毕</summary>
             物料全部生产完毕 = 200,
+            /// <summary>判断X轴是否具备运动条件_结束</summary>
             判断X轴是否具备运动条件_结束 = 210,
+            /// <summary>X轴到挡料位</summary>
             X轴到挡料位 = 220,
+            /// <summary>判断Z轴是否具备运动条件_流程结束</summary>
             判断Z轴是否具备运动条件_流程结束 = 230,
+            /// <summary>Z轴到待机位</summary>
             Z轴到待机位 = 240,
+            /// <summary>通知操作员下料</summary>
             通知操作员下料 = 300,
+            /// <summary>生产完毕</summary>
             生产完毕 = 400,
 
             #endregion
@@ -98,21 +122,33 @@ namespace PF.WorkStation.AutoOcr.Stations
             #region 阶段 D：异常拦截与断点续跑节点 (100000+)
 
             // 业务与数据校验异常
+            /// <summary>批次产品个数不正确</summary>
             批次产品个数不正确 = 100001,
+            /// <summary>料盒尺寸与配方不匹配</summary>
             料盒尺寸与配方不匹配 = 100002,
+            /// <summary>工位2配方获取失败</summary>
             工位2配方获取失败 = 100003,
+            /// <summary>料盒尺寸识别失败</summary>
             料盒尺寸识别失败 = 100004,
 
             // 轴状态与运动异常
+            /// <summary>Z轴运动条件不满足</summary>
             Z轴运动条件不满足 = 100010,
+            /// <summary>X轴运动条件不满足</summary>
             X轴运动条件不满足 = 100011,
+            /// <summary>Z轴运动超时</summary>
             Z轴运动超时 = 100020,
+            /// <summary>X轴运动超时</summary>
             X轴运动超时 = 100021,
 
             // 流程特定检测异常
+            /// <summary>Z轴寻层扫描异常</summary>
             Z轴寻层扫描异常 = 100030,
+            /// <summary>检测到物料错层</summary>
             检测到物料错层 = 100031,
+            /// <summary>寻层算法过滤异常</summary>
             寻层算法过滤异常 = 100032,
+            /// <summary>寻层算法空值判定</summary>
             寻层算法空值判定 = 100033,
 
             #endregion
@@ -122,6 +158,9 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Constructor & Lifecycle (构造与生命周期)
 
+        /// <summary>
+        /// 初始化工位2上下料工站
+        /// </summary>
         public WorkStation2FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
             : base(E_WorkStation.工位2上下料工站.ToString(), logger)
         {
@@ -155,6 +194,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             });
         }
 
+        /// <summary>执行工站初始化</summary>
         public override async Task ExecuteInitializeAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
@@ -195,6 +235,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        /// <summary>执行工站复位</summary>
         public override async Task ExecuteResetAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Reset);  // Alarm → Resetting
@@ -223,17 +264,20 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
+        /// <summary>物理急停回调</summary>
         protected override async Task OnPhysicalStopAsync()
         {
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }
 
+        /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
         {
             if (_feedingModule != null) yield return _feedingModule;
         }
 
+        /// <summary>空跑流程</summary>
         protected override Task ProcessDryRunLoopAsync(CancellationToken token)
         {
             throw new NotImplementedException();
@@ -243,6 +287,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Main State Machine Loop (主业务循环)
 
+        /// <summary>正常生产主循环</summary>
         protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)

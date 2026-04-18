@@ -9,10 +9,16 @@ using PF.Core.Enums;
 
 namespace PF.Core.Interfaces.SecsGem
 {
+    /// <summary>
+    /// SecsGem消息更新器
+    /// </summary>
     public class SecsGemMessageUpdater: ISecsGemMessageUpdater
     {
         private readonly IParams paramConfig;
 
+        /// <summary>
+        /// 构造消息更新器
+        /// </summary>
         public SecsGemMessageUpdater(IParams @params)
         {
             paramConfig = @params;

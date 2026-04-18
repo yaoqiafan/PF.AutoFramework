@@ -9,6 +9,9 @@ using PF.Core.Interfaces.Logging;
 
 namespace PF.Infrastructure.Mechanisms
 {
+    /// <summary>
+    /// 模组基类，封装硬件设备管理、报警聚合、运动控制等通用逻辑
+    /// </summary>
     public abstract class BaseMechanism : IMechanism, IDisposable
     {
         protected readonly ILogService _logger;
@@ -16,21 +19,42 @@ namespace PF.Infrastructure.Mechanisms
         protected IHardwareManagerService HardwareManagerService { get; }
 
         protected IParamService ParamService { get; }
+        /// <summary>
+        /// 模组名称
+        /// </summary>
         public string MechanismName { get; }
+        /// <summary>
+        /// 是否已初始化
+        /// </summary>
         public bool IsInitialized { get; protected set; }
+        /// <summary>
+        /// 是否存在报警
+        /// </summary>
         public bool HasAlarm { get; protected set; }
 
         /// <summary>
         /// 暂停感知委托：由工站层注入。当轴运动等待循环检测到轴停止但未到位时调用。
         /// 若工站处于暂停状态，此委托会挂起直到恢复后返回 true；非暂停时立即返回 false。
         /// </summary>
+        /// <summary>
+        /// 暂停感知委托
+        /// </summary>
         public Func<CancellationToken, Task<bool>>? PauseCheckAsync { get; set; }
 
         // 实现接口事件
+        /// <summary>
+        /// 模组报警事件
+        /// </summary>
         public event EventHandler<MechanismAlarmEventArgs> AlarmTriggered;
+        /// <summary>
+        /// 模组报警自动清除事件
+        /// </summary>
         public event EventHandler AlarmAutoCleared;
 
         // 构造函数：删除了 IEventAggregator
+        /// <summary>
+        /// 构造模组
+        /// </summary>
         protected BaseMechanism(string name, IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
         {
             MechanismName = name;
@@ -75,6 +99,9 @@ namespace PF.Infrastructure.Mechanisms
             });
         }
 
+        /// <summary>
+        /// 异步初始化模组
+        /// </summary>
         public async Task<bool> InitializeAsync(CancellationToken token = default)
         {
             _logger?.Info($"[模组 {MechanismName}] 开始初始化...");
@@ -98,6 +125,9 @@ namespace PF.Infrastructure.Mechanisms
             }
         }
 
+        /// <summary>
+        /// 异步复位模组并清除报警
+        /// </summary>
         public async Task<bool> ResetAsync(CancellationToken token = default)
         {
             _logger?.Info($"[模组 {MechanismName}] 正在复位清除报警...");
@@ -133,6 +163,9 @@ namespace PF.Infrastructure.Mechanisms
             return allOk;
         }
 
+        /// <summary>
+        /// 紧急停止模组
+        /// </summary>
         public async Task StopAsync()
         {
             _logger?.Warn($"[模组 {MechanismName}] 触发紧急停止！");
@@ -167,6 +200,9 @@ namespace PF.Infrastructure.Mechanisms
             device.HardwareAlarmAutoCleared += OnHardwareAlarmAutoCleared;
         }
 
+        /// <summary>
+        /// 释放模组资源
+        /// </summary>
         public virtual void Dispose()
         {
             foreach (var hw in _internalHardwares)
@@ -265,6 +301,9 @@ namespace PF.Infrastructure.Mechanisms
 
 
 
+        /// <summary>
+        /// 等待轴回原点完成
+        /// </summary>
         public  async Task<bool> WaitHomeDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
         {
             if (axis == null) return false;
@@ -440,6 +479,9 @@ namespace PF.Infrastructure.Mechanisms
         /// </summary>
         /// <typeparam name="TEnum">点位枚举类型</typeparam>
         /// <param name="axis">目标轴实例</param>
+        /// <summary>
+        /// 校验并补齐指定轴的点位
+        /// </summary>
         public void EnsurePointsExist<TEnum>(IAxis axis) where TEnum : struct, Enum
         {
             bool isModified = false;

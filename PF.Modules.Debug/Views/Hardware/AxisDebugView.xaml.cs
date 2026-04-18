@@ -20,6 +20,7 @@ namespace PF.Modules.Debug.Views
     /// </summary>
     public partial class AxisDebugView : UserControl
     {
+        /// <summary>初始化轴调试视图</summary>
         public AxisDebugView()
         {
             InitializeComponent();

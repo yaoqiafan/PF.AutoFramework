@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 
 namespace PF.Services.Identity
 {
+    /// <summary>
+    /// IUserService 服务
+    /// </summary>
     public class UserService : IUserService
     {
         private readonly IParamService _paramService;
@@ -33,10 +36,19 @@ namespace PF.Services.Identity
         private static readonly HashSet<string> _builtInNames =
             new HashSet<string>(_builtInUsers.Select(u => u.UserName), StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// CurrentUser
+        /// </summary>
         public UserInfo? CurrentUser { get; private set; }
 
+        /// <summary>
+        /// CurrentUserChanged
+        /// </summary>
         public event EventHandler<UserInfo?> CurrentUserChanged;
 
+        /// <summary>
+        /// UserService 服务
+        /// </summary>
         public UserService(IParamService paramService, ILogService logService)
         {
             _paramService = paramService;
@@ -46,6 +58,9 @@ namespace PF.Services.Identity
 
         private void OnCurrentUserChanged() => CurrentUserChanged?.Invoke(this, CurrentUser);
 
+        /// <summary>
+        /// LoginAsync异步操作
+        /// </summary>
         public async Task<bool> LoginAsync(string userName, string password)
         {
             try
@@ -117,6 +132,9 @@ namespace PF.Services.Identity
             }
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void Logout()
         {
             if (CurrentUser != null)
@@ -137,6 +155,9 @@ namespace PF.Services.Identity
             }
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public void ResetToOperator()
         {
             var op = _builtInUsers.First(u =>
@@ -154,12 +175,18 @@ namespace PF.Services.Identity
             OnCurrentUserChanged();
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public bool IsAuthorized(UserLevel requiredLevel)
         {
             if (CurrentUser == null) return false;
             return (int)CurrentUser.Root >= (int)requiredLevel;
         }
 
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public bool HasPagePermission(string viewName)
         {
             if (CurrentUser == null) return false;
@@ -171,6 +198,9 @@ namespace PF.Services.Identity
             return CurrentUser.AccessibleViews?.Contains(viewName) == true;
         }
 
+        /// <summary>
+        /// 获取UserListAsync
+        /// </summary>
         public async Task<ObservableCollection<UserInfo>> GetUserListAsync()
         {
             var users = new ObservableCollection<UserInfo>();
@@ -200,6 +230,9 @@ namespace PF.Services.Identity
             return users;
         }
 
+        /// <summary>
+        /// 保存UserAsync
+        /// </summary>
         public async Task<bool> SaveUserAsync(UserInfo user)
         {
             if (user == null || string.IsNullOrWhiteSpace(user.UserName)) return false;
@@ -226,6 +259,9 @@ namespace PF.Services.Identity
             }
         }
 
+        /// <summary>
+        /// 删除UserAsync
+        /// </summary>
         public async Task<bool> DeleteUserAsync(UserInfo user)
         {
             if (user == null || string.IsNullOrWhiteSpace(user.UserName)) return false;

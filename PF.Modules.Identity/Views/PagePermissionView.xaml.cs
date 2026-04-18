@@ -21,12 +21,14 @@ namespace PF.Modules.Identity.Views
     [ModuleNavigation(NavigationConstants.Views.PagePermissionView, "窗体权限更改", GroupName = "权限管控", Icon = "SettingIcon", Order = 3,GroupIcon = "/PF.UI.Resources;component/Images/PNG/3.png")]
     public partial class PagePermissionView : UserControl
     {
+        /// <summary>初始化页面权限视图</summary>
         public PagePermissionView()
         {
             InitializeComponent();
         }
     }
 
+    /// <summary>Null 转可见性转换器</summary>
     public class NullToVisibilityConverter : IValueConverter
     {
         /// <summary>

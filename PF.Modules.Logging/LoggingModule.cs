@@ -16,12 +16,14 @@ namespace PF.Modules.Logging
         private readonly IRegionManager _regionManager;
         private readonly ILogService _logService;
 
+        /// <summary>初始化日志模块</summary>
         public LoggingModule(IRegionManager regionManager, ILogService logService)
         {
             _regionManager = regionManager ?? throw new ArgumentNullException(nameof(regionManager));
             _logService = logService?? throw new ArgumentNullException(nameof(logService));
         }
 
+        /// <summary>模块初始化时注册视图和菜单</summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             try
@@ -43,6 +45,7 @@ namespace PF.Modules.Logging
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
+        /// <summary>注册日志模块的视图</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             try

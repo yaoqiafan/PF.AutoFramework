@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
 {
+    /// <summary>
+    /// 条码扫描枪接口
+    /// </summary>
     public interface IBarcodeScan : IHardwareDevice
     {
 

@@ -14,6 +14,9 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
     public class IncentiveCommand : ISFCommand
     {
         private readonly string IncentiveCommandExcelPath = Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemCommandConfig.xlsx");
+        /// <summary>
+        /// 命令字典
+        /// </summary>
         public ConcurrentDictionary<string, SFCommand> _commandDictionary { get; set; }
         private bool _isInitialized = false;
         private readonly SemaphoreSlim _initSemaphore = new(1, 1);

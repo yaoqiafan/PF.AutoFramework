@@ -22,6 +22,9 @@ namespace PF.Application.Shell.Views
         Icon = "AudioGeometry")]
     public partial class CommonParamView : UserControl
     {
+        /// <summary>
+        /// CommonParamView 视图
+        /// </summary>
         public CommonParamView()
         {
             InitializeComponent();

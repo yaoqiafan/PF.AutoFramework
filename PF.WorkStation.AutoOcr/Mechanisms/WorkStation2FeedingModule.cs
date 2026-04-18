@@ -56,14 +56,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public enum ZAxisPoint
         {
+            /// <summary>扫描结束位置_8寸</summary>
             扫描结束位置_8寸,
+            /// <summary>扫描起始位置_8寸</summary>
             扫描起始位置_8寸,
+            /// <summary>扫描结束位置_12寸</summary>
             扫描结束位置_12寸,
+            /// <summary>扫描起始位置_12寸</summary>
             扫描起始位置_12寸,
+            /// <summary>待机位</summary>
             待机位,            // 默认安全高度，通常在机械最高点以避让机械手
+            /// <summary>层1取料位_8寸</summary>
             层1取料位_8寸,    // 8寸料盒第1层晶圆的绝对坐标基准点（用于阵列推演取料点）
+            /// <summary>层1取料位_12寸</summary>
             层1取料位_12寸,   // 12寸料盒第1层晶圆的绝对坐标基准点（用于阵列推演取料点）
+            /// <summary>层1扫描点位_8寸</summary>
             层1扫描点位_8寸,  // 8寸料盒第一层扫描基准点（用于阵列推演比对点）
+            /// <summary>层1扫描点位_12寸</summary>
             层1扫描点位_12寸, // 12寸料盒第一层扫描基准点（用于阵列推演比对点）
         }
 
@@ -72,7 +81,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public enum XAxisPoint
         {
+            /// <summary>待机位</summary>
             待机位,            // 挡料机构退回的安全位置，不干涉上下料
+            /// <summary>挡料位</summary>
             挡料位,            // 适应晶圆盒宽度的挡料位置，防止拉料时料盒位移
         }
 
@@ -117,8 +128,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_12;
 
         // ── 公开硬件绑定属性 (供 ViewModel/UI 调试面板使用) ──
+        /// <summary>获取Z轴实例</summary>
         public IAxis ZAxis => _zAxis;
+        /// <summary>获取X轴实例</summary>
         public IAxis XAxis => _xAxis;
+        /// <summary>获取IO控制器实例</summary>
         public IIOController IO => _io;
 
         #endregion

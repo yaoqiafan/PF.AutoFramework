@@ -10,17 +10,28 @@ using DataType = PF.Core.Enums.DataType;
 
 namespace PF.Core.Entities.SecsGem.Params.ValidateParam
 {
+    /// <summary>
+    /// 变量标识（Variable ID）
+    /// </summary>
     public class VID : IDBase
     {
+        /// <summary>
+        /// 初始化VID
+        /// </summary>
         public VID(uint _ID, string _Description, DataType dataType)
             : base(_ID, _Description)
         {
             DataType = dataType;
         }
 
+        /// <summary>数据类型</summary>
         public DataType DataType { get; set; }
+        /// <summary>当前值</summary>
         public object? Value { get; set; }
 
+        /// <summary>
+        /// 获取强类型值
+        /// </summary>
         public T? GetValue<T>()
         {
             if (Value == null) return default;
@@ -35,6 +46,9 @@ namespace PF.Core.Entities.SecsGem.Params.ValidateParam
         }
 
 
+        /// <summary>
+        /// 设置值，根据数据类型自动转换
+        /// </summary>
         public bool SetValue(object value)
         {
             Type type = default;

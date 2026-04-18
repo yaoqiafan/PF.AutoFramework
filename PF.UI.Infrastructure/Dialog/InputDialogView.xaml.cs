@@ -20,6 +20,9 @@ namespace PF.UI.Infrastructure.Dialog
     /// </summary>
     public partial class InputDialogView : UserControl
     {
+        /// <summary>
+        /// InputDialogView 视图
+        /// </summary>
         public InputDialogView()
         {
             InitializeComponent();

@@ -10,6 +10,9 @@ using PF.UI.Shared.Tools;
 
 namespace PF.UI.Resources;
 
+/// <summary>
+/// StyleSelector 选择器
+/// </summary>
 public class ButtonGroupItemStyleSelector : StyleSelector
 {
     private static readonly Dictionary<string, Style> StyleDict = new()
@@ -36,6 +39,9 @@ public class ButtonGroupItemStyleSelector : StyleSelector
         [ResourceToken.ToggleButtonGroupItemDefault] = ResourceHelper.GetResourceInternal<Style>(ResourceToken.ToggleButtonGroupItemDefault)
     };
 
+    /// <summary>
+    /// 选择模板
+    /// </summary>
     public override Style SelectStyle(object item, DependencyObject container)
     {
         if (container is ButtonGroup buttonGroup && item is ButtonBase buttonBase)

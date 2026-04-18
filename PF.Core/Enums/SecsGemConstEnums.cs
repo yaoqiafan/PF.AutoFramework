@@ -11,22 +11,38 @@ namespace PF.Core.Enums
     /// </summary>
     public enum DataType
     {
-        LIST = 0B00000000,      // L - 列表类型
-        Binary = 0b00100000,    // B - 二进制类型
-        Boolean = 0b00100100,   // BOOLEAN - 布尔类型
-        ASCII = 0b01000000,     // A - ASCII字符串
-        JIS8 = 0b01000100,// J - JIS8字符串
+        /// <summary>列表类型</summary>
+        LIST = 0B00000000,
+        /// <summary>二进制类型</summary>
+        Binary = 0b00100000,
+        /// <summary>布尔类型</summary>
+        Boolean = 0b00100100,
+        /// <summary>ASCII字符串</summary>
+        ASCII = 0b01000000,
+        /// <summary>JIS8字符串</summary>
+        JIS8 = 0b01000100,
+        /// <summary>2字节字符</summary>
         CHARACTER_2 = 0b01001000,
-        I8 = 0b01100000,        // I8 - 8字节有符号整数
-        I1 = 6,        // I1 - 1字节有符号整数
-        I2 = 0b011000100,        // I2 - 2字节有符号整数
-        I4 = 0b01110000,        // I4 - 4字节有符号整数
-        F8 = 0b10000000,        // F8 - 8字节浮点数
-        F4 = 0b10010000,       // F4 - 4字节浮点数
-        U8 = 0b10100000,       // U8 - 8字节无符号整数
-        U1 = 0b10100100,       // U1 - 1字节无符号整数
-        U2 = 0b10101000,       // U2 - 2字节无符号整数
-        U4 = 0b10110000        // U4 - 4字节无符号整数
+        /// <summary>8字节有符号整数</summary>
+        I8 = 0b01100000,
+        /// <summary>1字节有符号整数</summary>
+        I1 = 6,
+        /// <summary>2字节有符号整数</summary>
+        I2 = 0b011000100,
+        /// <summary>4字节有符号整数</summary>
+        I4 = 0b01110000,
+        /// <summary>8字节浮点数</summary>
+        F8 = 0b10000000,
+        /// <summary>4字节浮点数</summary>
+        F4 = 0b10010000,
+        /// <summary>8字节无符号整数</summary>
+        U8 = 0b10100000,
+        /// <summary>1字节无符号整数</summary>
+        U1 = 0b10100100,
+        /// <summary>2字节无符号整数</summary>
+        U2 = 0b10101000,
+        /// <summary>4字节无符号整数</summary>
+        U4 = 0b10110000
     }
 
 
@@ -36,7 +52,9 @@ namespace PF.Core.Enums
     /// </summary>
     public enum SecsErrorCode
     {
+        /// <summary>无错误</summary>
         None = 0x00,
+        /// <summary>数据长度错误</summary>
         数据长度错误 = 0x01,
     }
 
@@ -45,22 +63,37 @@ namespace PF.Core.Enums
     /// </summary>
     public enum SecsStatus
     {
+        /// <summary>已连接</summary>
        Connected =0x01,
+        /// <summary>已断开</summary>
        Disconnected=0x02,
     }
 
+    /// <summary>
+    /// SecsGem数据库表集合
+    /// </summary>
     public enum SecsDbSet
     {
+        /// <summary>系统配置</summary>
         SystemConfigs,
+        /// <summary>命令ID</summary>
         CommnadIDs,
+        /// <summary>事件ID</summary>
         CEIDs,
+        /// <summary>报告ID</summary>
         ReportIDs,
+        /// <summary>变量ID</summary>
         VIDs,
+        /// <summary>主动命令</summary>
         IncentiveCommands,
+        /// <summary>响应命令</summary>
         ResponseCommands,
     }
 
 
+    /// <summary>
+    /// SecsGem错误代码
+    /// </summary>
     public static class SecsGemErrorCode
     {
         // 错误代码映射

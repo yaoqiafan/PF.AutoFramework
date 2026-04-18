@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,6 +20,9 @@ namespace PF.WorkStation.AutoOcr.UI.Views.Mechanisms
     /// </summary>
     public partial class WorkStationDetectionModuleDebugView : UserControl
     {
+        /// <summary>
+        /// WorkStationDetectionModuleDebugView 构造函数
+        /// </summary>
         public WorkStationDetectionModuleDebugView()
         {
             InitializeComponent();

@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
@@ -13,6 +13,9 @@ using System.Windows;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
+    /// <summary>
+    /// ProductionHistoryViewModel
+    /// </summary>
     public class ProductionHistoryViewModel : RegionViewModelBase
     {
         private readonly IProductionDataService _productionDataService;
@@ -108,28 +111,49 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         //  时间过滤 (传给底层接口)
         // ══════════════════════════════════════════════════════════
         private DateTime? _startTime = DateTime.Today;
+        /// <summary>
+        /// 获取或设置 StartTime
+        /// </summary>
         public DateTime? StartTime { get => _startTime; set => SetProperty(ref _startTime, value); }
 
         private DateTime? _endTime = DateTime.Today.AddDays(1).AddTicks(-1);
+        /// <summary>
+        /// 获取或设置 EndTime
+        /// </summary>
         public DateTime? EndTime { get => _endTime; set => SetProperty(ref _endTime, value); }
 
         // ══════════════════════════════════════════════════════════
         //  业务属性过滤 (内存级精确过滤)
         // ══════════════════════════════════════════════════════════
         private string? _filterWaferId;
+        /// <summary>
+        /// 获取或设置 FilterWaferId
+        /// </summary>
         public string? FilterWaferId { get => _filterWaferId; set => SetProperty(ref _filterWaferId, value); }
 
         private string? _filterInternalBatchId;
+        /// <summary>
+        /// 获取或设置 FilterInternalBatchId
+        /// </summary>
         public string? FilterInternalBatchId { get => _filterInternalBatchId; set => SetProperty(ref _filterInternalBatchId, value); }
 
         private string? _filterProductModel;
+        /// <summary>
+        /// 获取或设置 FilterProductModel
+        /// </summary>
         public string? FilterProductModel { get => _filterProductModel; set => SetProperty(ref _filterProductModel, value); }
 
         // 可空 bool：null表示全部，true表示匹配，false表示不匹配
         private bool? _filterIsMatch = null;
+        /// <summary>
+        /// 获取或设置 FilterIsMatch
+        /// </summary>
         public bool? FilterIsMatch { get => _filterIsMatch; set => SetProperty(ref _filterIsMatch, value); }
 
         private bool _isBusy;
+        /// <summary>
+        /// 获取或设置 IsBusy
+        /// </summary>
         public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
 
         // ══════════════════════════════════════════════════════════
@@ -148,8 +172,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         // ══════════════════════════════════════════════════════════
         //  命令与构造函数
         // ══════════════════════════════════════════════════════════
+        /// <summary>
+        /// Search 命令
+        /// </summary>
         public DelegateCommand SearchCommand { get; }
+        /// <summary>
+        /// ClearFilters 命令
+        /// </summary>
         public DelegateCommand ClearFiltersCommand { get; }
+        /// <summary>
+        /// ProductionHistoryViewModel 构造函数
+        /// </summary>
 
         public ProductionHistoryViewModel(IProductionDataService productionDataService)
         {
@@ -232,10 +265,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
     }
+    /// <summary>
+    /// MachineDetectionDataWrapper
+    /// </summary>
 
     public class MachineDetectionDataWrapper
     {
+        /// <summary>
+        /// 获取或设置 RecordTime
+        /// </summary>
         public DateTime RecordTime { get; set; }
+        /// <summary>
+        /// 获取或设置 Data
+        /// </summary>
         public MachineDetectionData Data { get; set; } = null!;
     }
 }

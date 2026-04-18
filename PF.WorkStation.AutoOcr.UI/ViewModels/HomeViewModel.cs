@@ -1,4 +1,4 @@
-﻿using NPOI.SS.Formula.Functions;
+using NPOI.SS.Formula.Functions;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Recipe;
@@ -18,6 +18,9 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
+    /// <summary>
+    /// HomeViewModel
+    /// </summary>
     public class HomeViewModel : RegionViewModelBase
     {
 
@@ -36,6 +39,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 工位 1/2 派生属性（简单文本）
 
         private string _station1InternalBatches = "NONE";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string Station1InternalBatches
         {
             get => _station1InternalBatches;
@@ -44,6 +50,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         private E_DetectionStatus _station1DetStatus = E_DetectionStatus.检测中;
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public E_DetectionStatus Station1DetStatus
         {
@@ -51,6 +60,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private E_DetectionStatus _station2DetStatus = E_DetectionStatus.检测中;
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public E_DetectionStatus Station2DetStatus
         {
@@ -59,6 +71,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         private string _station2InternalBatches = "NONE";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string Station2InternalBatches
         {
             get => _station2InternalBatches;
@@ -67,6 +82,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         private string _Station1RecipeName = "NONE";
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string Station1RecipeName
         {
@@ -76,6 +94,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private string _Station2RecipeName = "NONE";
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string Station2RecipeName
         {
@@ -89,6 +110,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 数据集合
 
         private ObservableCollection<MachineDetectionData> _Station1MachineDetection = new ObservableCollection<MachineDetectionData>();
+        /// <summary>
+        /// 获取或设置 Station1MachineDetection
+        /// </summary>
         public ObservableCollection<MachineDetectionData> Station1MachineDetection
         {
             get => _Station1MachineDetection;
@@ -96,6 +120,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private ObservableCollection<MachineDetectionData> _Station2MachineDetection = new ObservableCollection<MachineDetectionData>();
+        /// <summary>
+        /// 获取或设置 Station2MachineDetection
+        /// </summary>
         public ObservableCollection<MachineDetectionData> Station2MachineDetection
         {
             get => _Station2MachineDetection;
@@ -104,6 +131,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         private MachineDetectionData _Station1CurrentMachineDetection;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public MachineDetectionData Station1CurrentMachineDetection
         {
             get { return _Station1CurrentMachineDetection; }
@@ -111,6 +141,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private MachineDetectionData _Station2CurrentMachineDetection;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public MachineDetectionData Station2CurrentMachineDetection
         {
             get { return _Station2CurrentMachineDetection; }
@@ -123,12 +156,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         #region Command
+        /// <summary>
+        /// Station1ChangeLot 命令
+        /// </summary>
 
         public DelegateCommand Station1ChangeLotCommand { get; }
+        /// <summary>
+        /// Station2ChangeLot 命令
+        /// </summary>
 
         public DelegateCommand Station2ChangeLotCommand { get; }
 
         #endregion Command
+        /// <summary>
+        /// HomeViewModel 构造函数
+        /// </summary>
 
 
 

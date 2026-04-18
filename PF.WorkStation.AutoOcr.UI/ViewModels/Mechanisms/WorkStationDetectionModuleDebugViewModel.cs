@@ -1,4 +1,4 @@
-﻿using PF.Core.Entities.Hardware;
+using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
@@ -14,15 +14,24 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
+    /// <summary>
+    /// WorkStationDetectionModuleDebugViewModel
+    /// </summary>
     public class WorkStationDetectionModuleDebugViewModel : RegionViewModelBase
     {
         private readonly WorkStationDetectionModule? _detectionModule;
+        /// <summary>
+        /// 获取或设置 DetectionModule
+        /// </summary>
 
         public WorkStationDetectionModule? DetectionModule => _detectionModule;
 
         private DispatcherTimer _monitorTimer;
 
         private string _debugMessage = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string DebugMessage
         {
             get => _debugMessage;
@@ -30,6 +39,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private int _targetLayer;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public int TargetLayer
         {
             get => _targetLayer;
@@ -38,6 +50,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         private string _camRec = "NONE";
 
+        /// <summary>
+        /// 获取或设置 CamRec
+        /// </summary>
         public string CamRec
         {
             get => _camRec;
@@ -49,26 +64,44 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
         private double _xAxisPosition;
+        /// <summary>
+        /// 获取或设置 XAxisPosition
+        /// </summary>
         public double XAxisPosition { get => _xAxisPosition; set => SetProperty(ref _xAxisPosition, value); }
 
 
 
         private double _yAxisPosition;
+        /// <summary>
+        /// 获取或设置 YAxisPosition
+        /// </summary>
         public double YAxisPosition { get => _yAxisPosition; set => SetProperty(ref _yAxisPosition, value); }
 
         private double _zAxisPosition;
+        /// <summary>
+        /// 获取或设置 ZAxisPosition
+        /// </summary>
         public double ZAxisPosition { get => _zAxisPosition; set => SetProperty(ref _zAxisPosition, value); }
 
 
         private bool _xAxisHasAlarm;
+        /// <summary>
+        /// 获取或设置 XAxisHasAlarm
+        /// </summary>
         public bool XAxisHasAlarm { get => _xAxisHasAlarm; set => SetProperty(ref _xAxisHasAlarm, value); }
 
 
         private bool _yAxisHasAlarm;
+        /// <summary>
+        /// 获取或设置 YAxisHasAlarm
+        /// </summary>
         public bool YAxisHasAlarm { get => _yAxisHasAlarm; set => SetProperty(ref _yAxisHasAlarm, value); }
 
 
         private bool _zAxisHasAlarm;
+        /// <summary>
+        /// 获取或设置 ZAxisHasAlarm
+        /// </summary>
         public bool ZAxisHasAlarm { get => _zAxisHasAlarm; set => SetProperty(ref _zAxisHasAlarm, value); }
 
         #endregion 状态监控属性
@@ -76,9 +109,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
         #region 点位定义集合表
+        /// <summary>
+        /// 获取或设置 XAxisOriginalPoints
+        /// </summary>
 
         public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        /// <summary>
+        /// 获取或设置 YAxisOriginalPoints
+        /// </summary>
         public ObservableCollection<AxisPoint> YAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        /// <summary>
+        /// 获取或设置 ZAxisOriginalPoints
+        /// </summary>
 
         public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
 
@@ -86,28 +128,61 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
         #region Commands 定义
+        /// <summary>
+        /// InitializeModule 命令
+        /// </summary>
         public DelegateCommand InitializeModuleCommand { get; }
+        /// <summary>
+        /// ResetModule 命令
+        /// </summary>
         public DelegateCommand ResetModuleCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
 
 
 
 
         //点位保存
+        /// <summary>
+        /// SaveXAxisPoints 命令
+        /// </summary>
         public DelegateCommand SaveXAxisPointsCommand { get; }
+        /// <summary>
+        /// SaveYAxisPoints 命令
+        /// </summary>
         public DelegateCommand SaveYAxisPointsCommand { get; }
+        /// <summary>
+        /// SaveZAxisPoints 命令
+        /// </summary>
         public DelegateCommand SaveZAxisPointsCommand { get; }
 
         //工位操作
+        /// <summary>
+        /// MoveInitial 命令
+        /// </summary>
         public DelegateCommand MoveInitialCommand { get; }
+        /// <summary>
+        /// MoveStation1 命令
+        /// </summary>
 
         public DelegateCommand MoveStation1Command { get; }
+        /// <summary>
+        /// MoveStation2 命令
+        /// </summary>
 
         public DelegateCommand MoveStation2Command { get; }
+        /// <summary>
+        /// CamTigger 命令
+        /// </summary>
 
 
         public DelegateCommand CamTiggerCommand { get; }
         #endregion Commands 定义
+        /// <summary>
+        /// WorkStationDetectionModuleDebugViewModel 构造函数
+        /// </summary>
 
 
         public WorkStationDetectionModuleDebugViewModel(IContainerProvider containerProvider)

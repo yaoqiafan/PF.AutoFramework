@@ -18,6 +18,9 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
+    /// <summary>
+    /// RecipeDebugViewModel
+    /// </summary>
     public class RecipeDebugViewModel : PFDialogViewModelBase
     {
         private readonly IHardwareManagerService _hardwareManager;
@@ -38,6 +41,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
         private OCRRecipeParam _currentRecipe;
+        /// <summary>
+        /// RecipeDebugViewModel 构造函数
+        /// </summary>
 
 
         public RecipeDebugViewModel(
@@ -81,6 +87,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         #region Dialog 生命周期
+        /// <summary>
+        /// OnDialogOpened
+        /// </summary>
 
         public override void OnDialogOpened(IDialogParameters parameters)
         {
@@ -89,6 +98,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             UpdateRecipePositionDisplay();
         }
+        /// <summary>
+        /// OnDialogClosed
+        /// </summary>
 
         public override void OnDialogClosed()
         {
@@ -101,21 +113,39 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 实时状态属性
 
         private double _currentPosition;
+        /// <summary>
+        /// 获取或设置 CurrentPosition
+        /// </summary>
         public double CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
 
         private bool _isMoving;
+        /// <summary>
+        /// 获取或设置 IsMoving
+        /// </summary>
         public bool IsMoving { get => _isMoving; set => SetProperty(ref _isMoving, value); }
 
         private bool _isEnabled;
+        /// <summary>
+        /// 获取或设置 IsEnabled
+        /// </summary>
         public bool IsEnabled { get => _isEnabled; set => SetProperty(ref _isEnabled, value); }
 
         private bool _isPositiveLimit;
+        /// <summary>
+        /// 获取或设置 IsPositiveLimit
+        /// </summary>
         public bool IsPositiveLimit { get => _isPositiveLimit; set => SetProperty(ref _isPositiveLimit, value); }
 
         private bool _isNegativeLimit;
+        /// <summary>
+        /// 获取或设置 IsNegativeLimit
+        /// </summary>
         public bool IsNegativeLimit { get => _isNegativeLimit; set => SetProperty(ref _isNegativeLimit, value); }
 
         private bool _isAlarm;
+        /// <summary>
+        /// 获取或设置 IsAlarm
+        /// </summary>
         public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
         #endregion
@@ -123,27 +153,48 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 运动参数属性
 
         private double _targetPosition;
+        /// <summary>
+        /// 获取或设置 TargetPosition
+        /// </summary>
         public double TargetPosition { get => _targetPosition; set => SetProperty(ref _targetPosition, value); }
 
         private double _absVelocity;
+        /// <summary>
+        /// 获取或设置 AbsVelocity
+        /// </summary>
         public double AbsVelocity { get => _absVelocity; set => SetProperty(ref _absVelocity, value); }
 
         private double _relativeDistance;
+        /// <summary>
+        /// 获取或设置 RelativeDistance
+        /// </summary>
         public double RelativeDistance { get => _relativeDistance; set => SetProperty(ref _relativeDistance, value); }
 
         private double _relVelocity;
+        /// <summary>
+        /// 获取或设置 RelVelocity
+        /// </summary>
         public double RelVelocity { get => _relVelocity; set => SetProperty(ref _relVelocity, value); }
 
         private double _jogVelocity;
+        /// <summary>
+        /// 获取或设置 JogVelocity
+        /// </summary>
         public double JogVelocity { get => _jogVelocity; set => SetProperty(ref _jogVelocity, value); }
 
         #endregion
 
         #region 轴/工位选择属性
+        /// <summary>
+        /// 获取或设置 AxisList
+        /// </summary>
 
         public ObservableCollection<IAxis?> AxisList { get; }
 
         private IAxis _selectedAxis;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public IAxis SelectedAxis
         {
             get => _selectedAxis;
@@ -157,12 +208,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         private E_WorkSpace _currentStation = E_WorkSpace.工位1;
+        /// <summary>
+        /// 获取或设置 CurrentStation
+        /// </summary>
         public E_WorkSpace CurrentStation { get => _currentStation; set => SetProperty(ref _currentStation, value); }
 
         private string _currentRecipePosition = "(X=0.000, Y=0.000, Z=0.000)";
+        /// <summary>
+        /// 获取或设置 CurrentRecipePosition
+        /// </summary>
         public string CurrentRecipePosition { get => _currentRecipePosition; set => SetProperty(ref _currentRecipePosition, value); }
 
         private double _recipeAxisPosition;
+        /// <summary>
+        /// 获取或设置 RecipeAxisPosition
+        /// </summary>
         public double RecipeAxisPosition { get => _recipeAxisPosition; set => SetProperty(ref _recipeAxisPosition, value); }
 
         #endregion
@@ -170,6 +230,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 光源参数属性
 
         private double _infraredLightValue;
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public double InfraredLightValue
         {
@@ -186,6 +249,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private double _whiteLightValue;
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public double WhiteLightValue
         {
@@ -211,27 +277,81 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion 光源参数属性
 
         #region 命令定义
+        /// <summary>
+        /// SwitchRecipe 命令
+        /// </summary>
 
         public DelegateCommand SwitchRecipeCommand { get; private set; }
+        /// <summary>
+        /// TriggerScan 命令
+        /// </summary>
         public DelegateCommand TriggerScanCommand { get; private set; }
+        /// <summary>
+        /// TriggerOcr 命令
+        /// </summary>
         public DelegateCommand TriggerOcrCommand { get; private set; }
+        /// <summary>
+        /// OpenScannerSoftware 命令
+        /// </summary>
         public DelegateCommand OpenScannerSoftwareCommand { get; private set; }
+        /// <summary>
+        /// OpenCameraSoftware 命令
+        /// </summary>
         public DelegateCommand OpenCameraSoftwareCommand { get; private set; }
+        /// <summary>
+        /// Connect 命令
+        /// </summary>
 
         public DelegateCommand ConnectCommand { get; private set; }
+        /// <summary>
+        /// Disconnect 命令
+        /// </summary>
         public DelegateCommand DisconnectCommand { get; private set; }
+        /// <summary>
+        /// Enable 命令
+        /// </summary>
         public DelegateCommand EnableCommand { get; private set; }
+        /// <summary>
+        /// Disable 命令
+        /// </summary>
         public DelegateCommand DisableCommand { get; private set; }
+        /// <summary>
+        /// Home 命令
+        /// </summary>
         public DelegateCommand HomeCommand { get; private set; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; private set; }
+        /// <summary>
+        /// Reset 命令
+        /// </summary>
         public DelegateCommand ResetCommand { get; private set; }
+        /// <summary>
+        /// MoveAbsolute 命令
+        /// </summary>
 
         public DelegateCommand MoveAbsoluteCommand { get; private set; }
+        /// <summary>
+        /// MoveRelative 命令
+        /// </summary>
         public DelegateCommand MoveRelativeCommand { get; private set; }
+        /// <summary>
+        /// JogPositive 命令
+        /// </summary>
         public DelegateCommand JogPositiveCommand { get; private set; }
+        /// <summary>
+        /// JogNegative 命令
+        /// </summary>
         public DelegateCommand JogNegativeCommand { get; private set; }
+        /// <summary>
+        /// SyncAdjust 命令
+        /// </summary>
 
         public DelegateCommand SyncAdjustCommand { get; private set; }
+        /// <summary>
+        /// MoveToRecipePosition 命令
+        /// </summary>
         public DelegateCommand MoveToRecipePositionCommand { get; private set; }
 
         private void InitializeCommands()

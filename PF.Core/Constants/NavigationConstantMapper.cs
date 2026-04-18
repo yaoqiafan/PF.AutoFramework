@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Constants
 {
+    /// <summary>
+    /// 导航常量到分类的映射器
+    /// </summary>
     public static class NavigationConstantMapper
     {
         private static readonly Dictionary<string, Type> _map;
@@ -33,6 +36,9 @@ namespace PF.Core.Constants
             }
         }
 
+        /// <summary>
+        /// 根据导航常量值获取所属分类名称
+        /// </summary>
         public static string GetCategory(string constantValue)
         {
             return _map.TryGetValue(constantValue, out var type) ? type.Name : null;

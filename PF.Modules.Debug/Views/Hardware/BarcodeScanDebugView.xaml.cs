@@ -20,6 +20,7 @@ namespace PF.Modules.Debug.Views
     /// </summary>
     public partial class BarcodeScanDebugView : UserControl
     {
+        /// <summary>初始化扫码枪调试视图</summary>
         public BarcodeScanDebugView()
         {
             InitializeComponent();

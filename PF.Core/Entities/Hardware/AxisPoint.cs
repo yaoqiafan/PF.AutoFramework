@@ -90,8 +90,14 @@ namespace PF.Core.Entities.Hardware
             set { _Dec = value; OnPropertyChanged(); }
         }
 
+        /// <summary>
+        /// 属性变更事件
+        /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        /// <summary>
+        /// 触发属性变更通知
+        /// </summary>
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

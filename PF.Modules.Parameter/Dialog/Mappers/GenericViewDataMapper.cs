@@ -7,6 +7,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers
     /// <summary>
     /// 通用视图数据映射器
     /// </summary>
+    /// <summary>通用视图数据映射器</summary>
     public class GenericViewDataMapper : ViewDataMapperBase
     {
         // 缓存反射信息

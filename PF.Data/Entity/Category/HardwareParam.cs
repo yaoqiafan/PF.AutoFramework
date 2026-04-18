@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PF.Data.Entity.Category
@@ -13,6 +13,9 @@ namespace PF.Data.Entity.Category
     [Table("HardwareParams")]
     public class HardwareParam : ParamEntity
     {
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public override string ID { get; set; } = Guid.NewGuid().ToString();

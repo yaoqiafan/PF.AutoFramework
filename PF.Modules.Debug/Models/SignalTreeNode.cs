@@ -7,11 +7,15 @@ namespace PF.Modules.Debug.Models
     /// </summary>
     public class SignalTreeNode : BindableBase
     {
+        /// <summary>获取信号名称</summary>
         public string SignalName { get; }
+        /// <summary>获取父级作用域</summary>
         public string ParentScope { get; }
+        /// <summary>获取初始计数</summary>
         public int InitialCount { get; }
 
         private int _currentCount;
+        /// <summary>获取或设置当前计数</summary>
         public int CurrentCount
         {
             get => _currentCount;
@@ -25,6 +29,7 @@ namespace PF.Modules.Debug.Models
         /// <summary> 显示文本，例如 "允许拉料  [1 / 1]" </summary>
         public string StatusText => $"{SignalName}  [{CurrentCount} / {InitialCount}]";
 
+        /// <summary>初始化信号节点</summary>
         public SignalTreeNode(string signalName, string parentScope, int initialCount, int currentCount)
         {
             SignalName   = signalName;
@@ -33,6 +38,7 @@ namespace PF.Modules.Debug.Models
             _currentCount = currentCount;
         }
 
+        /// <summary>更新当前计数</summary>
         public void Update(int currentCount) => CurrentCount = currentCount;
     }
 }

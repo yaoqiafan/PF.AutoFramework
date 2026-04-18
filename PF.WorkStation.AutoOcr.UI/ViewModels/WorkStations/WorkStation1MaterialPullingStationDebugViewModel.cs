@@ -1,4 +1,4 @@
-﻿using PF.Core.Entities.Identity;
+using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Sync;
@@ -16,6 +16,9 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 {
+    /// <summary>
+    /// WorkStation1MaterialPullingStationDebugViewModel
+    /// </summary>
     public class WorkStation1MaterialPullingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
         private readonly WorkStation1MaterialPullingStation <StationMemoryBaseParam> _station;
@@ -25,6 +28,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
 
         private MachineState _currentState;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public MachineState CurrentState
         {
             get => _currentState;
@@ -32,6 +38,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private string _currentStepDescription = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string CurrentStepDescription
         {
             get => _currentStepDescription;
@@ -39,6 +48,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private OperationMode _currentMode;
+        /// <summary>
+        /// 获取或设置 CurrentMode
+        /// </summary>
         public OperationMode CurrentMode
         {
             get => _currentMode;
@@ -46,6 +58,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private Brush _statusBrush;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
@@ -53,22 +68,58 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         // ── 权限控制 ─────────────────────────────────────────────────────────
+        /// <summary>
+        /// 获取或设置 CanManualControl
+        /// </summary>
 
         public bool CanManualControl => _userService.IsAuthorized(UserLevel.SuperUser);
 
         // ── 命令 ─────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Initialize 命令
+        /// </summary>
 
         public DelegateCommand InitializeCommand { get; }
+        /// <summary>
+        /// Start 命令
+        /// </summary>
         public DelegateCommand StartCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
+        /// <summary>
+        /// Pause 命令
+        /// </summary>
         public DelegateCommand PauseCommand { get; }
+        /// <summary>
+        /// Resume 命令
+        /// </summary>
         public DelegateCommand ResumeCommand { get; }
+        /// <summary>
+        /// Reset 命令
+        /// </summary>
         public DelegateCommand ResetCommand { get; }
+        /// <summary>
+        /// TriggerAlarm 命令
+        /// </summary>
         public DelegateCommand TriggerAlarmCommand { get; }
+        /// <summary>
+        /// TriggerAllowDec 命令
+        /// </summary>
 
         public DelegateCommand TriggerAllowDecCommand { get; }
+        /// <summary>
+        /// TriggerPullingOver 命令
+        /// </summary>
         public DelegateCommand TriggerPullingOverCommand { get; }
+        /// <summary>
+        /// TriggerPushOver 命令
+        /// </summary>
         public DelegateCommand TriggerPushOverCommand { get; }
+        /// <summary>
+        /// WorkStation1MaterialPullingStationDebugViewModel 构造函数
+        /// </summary>
 
         public WorkStation1MaterialPullingStationDebugViewModel(IContainerProvider containerProvider)
         {
@@ -223,12 +274,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         // ── 销毁 ─────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Dispose
+        /// </summary>
 
         public void Dispose()
         {
             _pollTimer.Stop();
             _userService.CurrentUserChanged -= OnCurrentUserChanged;
         }
+        /// <summary>
+        /// Destroy
+        /// </summary>
 
         public override void Destroy()
         {

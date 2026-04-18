@@ -14,6 +14,9 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 {
+    /// <summary>
+    /// WorkStation1FeedingStationDebugViewModel
+    /// </summary>
     public class WorkStation1FeedingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
         private readonly WorkStation1FeedingStation<StationMemoryBaseParam> _station;
@@ -24,6 +27,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         // ── 看板只读属性 ────────────────────────────────────────────────────
 
         private MachineState _currentState;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public MachineState CurrentState
         {
             get => _currentState;
@@ -31,6 +37,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private string _currentStepDescription = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string CurrentStepDescription
         {
             get => _currentStepDescription;
@@ -38,6 +47,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private OperationMode _currentMode;
+        /// <summary>
+        /// 获取或设置 CurrentMode
+        /// </summary>
         public OperationMode CurrentMode
         {
             get => _currentMode;
@@ -45,6 +57,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private Brush _statusBrush;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
@@ -52,22 +67,61 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         // ── 权限控制 ─────────────────────────────────────────────────────────
+        /// <summary>
+        /// 获取或设置 CanManualControl
+        /// </summary>
 
         public bool CanManualControl => _userService.IsAuthorized(UserLevel.SuperUser);
 
         // ── 命令 ─────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Initialize 命令
+        /// </summary>
 
         public DelegateCommand InitializeCommand { get; }
+        /// <summary>
+        /// Start 命令
+        /// </summary>
         public DelegateCommand StartCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
+        /// <summary>
+        /// Pause 命令
+        /// </summary>
         public DelegateCommand PauseCommand { get; }
+        /// <summary>
+        /// Resume 命令
+        /// </summary>
         public DelegateCommand ResumeCommand { get; }
+        /// <summary>
+        /// Reset 命令
+        /// </summary>
         public DelegateCommand ResetCommand { get; }
+        /// <summary>
+        /// TriggerAlarm 命令
+        /// </summary>
         public DelegateCommand TriggerAlarmCommand { get; }
+        /// <summary>
+        /// TriggerStart 命令
+        /// </summary>
         public DelegateCommand TriggerStartCommand { get; }
+        /// <summary>
+        /// TriggerAllowFeed 命令
+        /// </summary>
         public DelegateCommand TriggerAllowFeedCommand { get; }
+        /// <summary>
+        /// TriggerAllowBack 命令
+        /// </summary>
         public DelegateCommand TriggerAllowBackCommand { get; }
+        /// <summary>
+        /// TriggerFinish 命令
+        /// </summary>
         public DelegateCommand TriggerFinishCommand { get; }
+        /// <summary>
+        /// WorkStation1FeedingStationDebugViewModel 构造函数
+        /// </summary>
         public WorkStation1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
             _station = containerProvider.Resolve<WorkStation1FeedingStation<StationMemoryBaseParam>>(nameof(WorkStation1FeedingStation<StationMemoryBaseParam>));
@@ -227,12 +281,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _sync.Release(WorkstationSignals.工位1允许退料.ToString(), E_WorkStation.工位1上下料工站.ToString());
         }
         // ── 销毁 ─────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Dispose
+        /// </summary>
 
         public void Dispose()
         {
             _pollTimer.Stop();
             _userService.CurrentUserChanged -= OnCurrentUserChanged;
         }
+        /// <summary>
+        /// Destroy
+        /// </summary>
 
         public override void Destroy()
         {

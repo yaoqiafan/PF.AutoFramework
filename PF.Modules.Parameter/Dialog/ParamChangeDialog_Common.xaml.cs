@@ -20,6 +20,7 @@ namespace PF.Modules.Parameter.Dialog
     /// </summary>
     public partial class ParamChangeDialog_Common : UserControl
     {
+        /// <summary>初始化通用参数修改对话框</summary>
         public ParamChangeDialog_Common()
         {
             InitializeComponent();

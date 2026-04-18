@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Communication.TCP
 {
+    /// <summary>
+    /// TCP客户端
+    /// </summary>
     public class TCPClient : IClient
     {
         private System.Net.Sockets.TcpClient _tcpClient;
@@ -31,8 +34,14 @@ namespace PF.Infrastructure.Communication.TCP
         // 新增：用于记录当前是否启用了后台异步接收
         private bool _isAsyncMode;
 
+        /// <summary>
+        /// 客户端标识
+        /// </summary>
         public string ClientId => _clientId;
 
+        /// <summary>
+        /// 客户端状态
+        /// </summary>
         public ClientStatus Status
         {
             get => _status;
@@ -45,30 +54,84 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 服务器IP地址
+        /// </summary>
         public string ServerIp => _serverIp;
+        /// <summary>
+        /// 服务器端口
+        /// </summary>
         public int ServerPort => _serverPort;
+        /// <summary>
+        /// 本地端点
+        /// </summary>
         public string LocalEndPoint => _localEndPoint;
+        /// <summary>
+        /// 远程端点
+        /// </summary>
         public string RemoteEndPoint => _remoteEndPoint;
+        /// <summary>
+        /// 连接时间
+        /// </summary>
         public DateTime ConnectTime => _connectTime;
 
+        /// <summary>
+        /// 编码方式
+        /// </summary>
         public Encoding Encoding { get; set; } = Encoding.ASCII;
+        /// <summary>
+        /// 接收缓冲区大小
+        /// </summary>
         public int ReceiveBufferSize { get; set; } = 8192;
+        /// <summary>
+        /// 发送超时时间
+        /// </summary>
         public int SendTimeout { get; set; } = 3000;
+        /// <summary>
+        /// 接收超时时间
+        /// </summary>
         public int ReceiveTimeout { get; set; } = 3000;
+        /// <summary>
+        /// 连接超时时间
+        /// </summary>
         public int ConnectTimeout { get; set; } = 5000;
+        /// <summary>
+        /// 是否自动重连
+        /// </summary>
         public bool AutoReconnect { get; set; } = false;
+        /// <summary>
+        /// 重连间隔（毫秒）
+        /// </summary>
         public int ReconnectInterval { get; set; } = 5000;
 
+        /// <summary>
+        /// 连接成功事件
+        /// </summary>
         public event EventHandler<ClientConnectedEventArgs> Connected;
+        /// <summary>
+        /// 断开连接事件
+        /// </summary>
         public event EventHandler<ClientDisconnectedEventArgs> Disconnected;
+        /// <summary>
+        /// 数据接收事件
+        /// </summary>
         public event EventHandler<DataReceivedEventArgs> DataReceived;
+        /// <summary>
+        /// 错误发生事件
+        /// </summary>
         public event EventHandler<ErrorOccurredEventArgs> ErrorOccurred;
 
+        /// <summary>
+        /// 构造TCP客户端
+        /// </summary>
         public TCPClient(string clientId = null)
         {
             _clientId = clientId ?? Guid.NewGuid().ToString();
         }
 
+        /// <summary>
+        /// 异步连接到服务器
+        /// </summary>
         public async Task<bool> ConnectAsync(string serverIp, int serverPort, bool IsAsync = true)
         {
             await _connectLock.WaitAsync();
@@ -193,6 +256,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 异步发送字节数据
+        /// </summary>
         public async Task<bool> SendAsync(byte[] data)
         {
             if (Status != ClientStatus.Connected || _stream == null)
@@ -220,6 +286,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 异步发送字符串数据
+        /// </summary>
         public async Task<bool> SendStringAsync(string data)
         {
             if (string.IsNullOrEmpty(data)) return true;
@@ -311,6 +380,9 @@ namespace PF.Infrastructure.Communication.TCP
 
         // ============================================== //
 
+        /// <summary>
+        /// 异步断开连接
+        /// </summary>
         public async Task DisconnectAsync()
         {
             await _connectLock.WaitAsync();
@@ -328,6 +400,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 异步重连
+        /// </summary>
         public async Task ReconnectAsync()
         {
             if (string.IsNullOrEmpty(_serverIp) || _serverPort == 0)
@@ -386,11 +461,17 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 触发连接成功事件
+        /// </summary>
         protected virtual void OnConnected(string message)
         {
             Connected?.Invoke(this, new ClientConnectedEventArgs(_clientId, $"{_serverIp}:{_serverPort}"));
         }
 
+        /// <summary>
+        /// 触发断开连接事件
+        /// </summary>
         protected virtual void OnDisconnected(string reason, bool isManual)
         {
             if (Status != ClientStatus.Disconnected)
@@ -400,11 +481,17 @@ namespace PF.Infrastructure.Communication.TCP
             Disconnected?.Invoke(this, new ClientDisconnectedEventArgs(_clientId, isManual ? $"手动断开: {reason}" : reason));
         }
 
+        /// <summary>
+        /// 触发数据接收事件
+        /// </summary>
         protected virtual void OnDataReceived(byte[] data)
         {
             DataReceived?.Invoke(this, new DataReceivedEventArgs(_clientId, data));
         }
 
+        /// <summary>
+        /// 触发错误发生事件
+        /// </summary>
         protected virtual void OnErrorOccurred(string errorMessage, Exception exception)
         {
             ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(_clientId, errorMessage, exception));
@@ -413,6 +500,9 @@ namespace PF.Infrastructure.Communication.TCP
         #region IDisposable Support
         private bool _disposedValue = false;
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposedValue)
@@ -441,6 +531,9 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);

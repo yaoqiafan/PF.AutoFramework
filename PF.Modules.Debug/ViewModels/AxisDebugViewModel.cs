@@ -19,6 +19,7 @@ using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace PF.Modules.Debug.ViewModels
 {
+    /// <summary>轴调试 ViewModel</summary>
     public class AxisDebugViewModel : RegionViewModelBase
     {
         private IAxis _axis;
@@ -27,6 +28,7 @@ namespace PF.Modules.Debug.ViewModels
         private CancellationTokenSource _cts;
         private readonly IParamService _paramService;
 
+        /// <summary>初始化轴调试 ViewModel</summary>
         public AxisDebugViewModel( IParamService paramService)
         {
             _paramService= paramService;
@@ -48,6 +50,7 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>导航进入时加载轴设备数据</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
@@ -77,6 +80,7 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        /// <summary>导航离开时停止轮询</summary>
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
@@ -89,38 +93,49 @@ namespace PF.Modules.Debug.ViewModels
         #region 【设备信息与状态属性】
 
         private string _deviceName = "未选中轴";
+        /// <summary>获取或设置设备名称</summary>
         public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
 
         private string _deviceDescription = "等待设备接入...";
+        /// <summary>获取或设置设备描述</summary>
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
         private int  _currentPosition;
+        /// <summary>获取或设置当前位置</summary>
         public int  CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
 
         private bool _isMoving;
+        /// <summary>获取或设置是否运动中</summary>
         public bool IsMoving { get => _isMoving; set => SetProperty(ref _isMoving, value); }
 
         private bool _isEnabled;
+        /// <summary>获取或设置是否使能</summary>
         public bool IsEnabled { get => _isEnabled; set => SetProperty(ref _isEnabled, value); }
 
         private bool _isPositiveLimit;
+        /// <summary>获取或设置正限位状态</summary>
         public bool IsPositiveLimit { get => _isPositiveLimit; set => SetProperty(ref _isPositiveLimit, value); }
 
         private bool _isNegativeLimit;
+        /// <summary>获取或设置负限位状态</summary>
         public bool IsNegativeLimit { get => _isNegativeLimit; set => SetProperty(ref _isNegativeLimit, value); }
 
         private bool _isConnected;
+        /// <summary>获取或设置是否已连接</summary>
         public bool IsConnected { get => _isConnected; set => SetProperty(ref _isConnected, value); }
 
         private bool _isAlarm;
+        /// <summary>获取或设置是否报警</summary>
         public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
         private bool _isORG;
 
+        /// <summary>获取或设置是否在原点</summary>
         public bool IsORG { get => _isORG; set => SetProperty(ref _isORG, value); }
 
         private bool _isHoming;
 
+        /// <summary>获取或设置是否正在回原点</summary>
         public bool IsHoming { get => _isHoming; set => SetProperty(ref _isHoming, value); }
 
 
@@ -129,18 +144,23 @@ namespace PF.Modules.Debug.ViewModels
         #region 【运动输入参数属性】
 
         private double _targetPosition;
+        /// <summary>获取或设置目标位置</summary>
         public double TargetPosition { get => _targetPosition; set => SetProperty(ref _targetPosition, value); }
 
         private double _absVelocity;
+        /// <summary>获取或设置绝对运动速度</summary>
         public double AbsVelocity { get => _absVelocity; set => SetProperty(ref _absVelocity, value); }
 
         private double _relativeDistance;
+        /// <summary>获取或设置相对运动距离</summary>
         public double RelativeDistance { get => _relativeDistance; set => SetProperty(ref _relativeDistance, value); }
 
         private double _relVelocity;
+        /// <summary>获取或设置相对运动速度</summary>
         public double RelVelocity { get => _relVelocity; set => SetProperty(ref _relVelocity, value); }
 
         private double _jogVelocity;
+        /// <summary>获取或设置点动速度</summary>
         public double JogVelocity { get => _jogVelocity; set => SetProperty(ref _jogVelocity, value); }
 
         #endregion
@@ -148,6 +168,7 @@ namespace PF.Modules.Debug.ViewModels
         #region 【点表管理属性】
 
         private ObservableCollection<AxisPoint> _pointTable = new ObservableCollection<AxisPoint>();
+        /// <summary>获取或设置点位表</summary>
         public ObservableCollection<AxisPoint> PointTable
         {
             get => _pointTable;
@@ -155,6 +176,7 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private AxisPoint _selectedPoint;
+        /// <summary>获取或设置选中的点位</summary>
         public AxisPoint SelectedPoint
         {
             get => _selectedPoint;
@@ -166,25 +188,42 @@ namespace PF.Modules.Debug.ViewModels
         #region 【控制命令定义】
 
         // 基础控制命令
+        /// <summary>显示轴参数对话框</summary>
         public DelegateCommand ShowAxisParamDialog { get; private set; }
 
+        /// <summary>连接命令</summary>
         public DelegateCommand ConnectCommand { get; private set; }
+        /// <summary>断开连接命令</summary>
         public DelegateCommand DisconnectCommand { get; private set; }
+        /// <summary>使能命令</summary>
         public DelegateCommand EnableCommand { get; private set; }
+        /// <summary>去使能命令</summary>
         public DelegateCommand DisableCommand { get; private set; }
+        /// <summary>回原点命令</summary>
         public DelegateCommand HomeCommand { get; private set; }
+        /// <summary>停止命令</summary>
         public DelegateCommand StopCommand { get; private set; }
+        /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
+        /// <summary>绝对运动命令</summary>
         public DelegateCommand MoveAbsoluteCommand { get; private set; }
+        /// <summary>相对运动命令</summary>
         public DelegateCommand MoveRelativeCommand { get; private set; }
+        /// <summary>正向点动命令</summary>
         public DelegateCommand JogPositiveCommand { get; private set; }
+        /// <summary>反向点动命令</summary>
         public DelegateCommand JogNegativeCommand { get; private set; }
+        /// <summary>轴停止命令</summary>
         public DelegateCommand AxisStop { get; private set; }
 
         // 点表控制命令
+        /// <summary>添加点位命令</summary>
         public DelegateCommand AddPointCommand { get; private set; }
+        /// <summary>删除点位命令</summary>
         public DelegateCommand DeletePointCommand { get; private set; }
+        /// <summary>保存点位命令</summary>
         public DelegateCommand SavePointsCommand { get; private set; }
+        /// <summary>走到点位命令</summary>
         public DelegateCommand GoToPointCommand { get; private set; }
 
         private void InitializeCommands()

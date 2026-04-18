@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PF.Core.Constants
 {
+    /// <summary>
+    /// 全局常量参数
+    /// </summary>
     public static class ConstGlobalParam
     {
         /// <summary>

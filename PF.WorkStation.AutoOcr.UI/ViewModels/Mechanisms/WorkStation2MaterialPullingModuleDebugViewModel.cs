@@ -16,9 +16,15 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
+    /// <summary>
+    /// WorkStation2MaterialPullingModuleDebugViewModel
+    /// </summary>
     public class WorkStation2MaterialPullingModuleDebugViewModel : RegionViewModelBase
     {
         private readonly WorkStation2MaterialPullingModule? _materialPullingModule;
+        /// <summary>
+        /// 获取或设置 MaterialPullingModule
+        /// </summary>
 
         public WorkStation2MaterialPullingModule? MaterialPullingModule => _materialPullingModule;
 
@@ -26,6 +32,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         private DispatcherTimer _monitorTimer;
         private string _debugMessage = "就绪";
+        /// <summary>
+        /// 成员
+        /// </summary>
         public string DebugMessage
         {
             get => _debugMessage;
@@ -33,6 +42,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private int _targetLayer;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public int TargetLayer
         {
             get => _targetLayer;
@@ -40,38 +52,71 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         private string _coderec = "NONE";
+        /// <summary>
+        /// 获取或设置 Coderec
+        /// </summary>
         public string Coderec { get => _coderec; set => SetProperty(ref _coderec, value); }
 
         #region Status Monitor Properties
 
         private double _yAxisPosition;
+        /// <summary>
+        /// 获取或设置 YAxisPosition
+        /// </summary>
         public double YAxisPosition { get => _yAxisPosition; set => SetProperty(ref _yAxisPosition, value); }
 
         private bool _yAxisHasAlarm;
+        /// <summary>
+        /// 获取或设置 YAxisHasAlarm
+        /// </summary>
         public bool YAxisHasAlarm { get => _yAxisHasAlarm; set => SetProperty(ref _yAxisHasAlarm, value); }
 
         private bool _gipperOpen;
+        /// <summary>
+        /// 获取或设置 GipperOpen
+        /// </summary>
         public bool GipperOpen { get => _gipperOpen; set => SetProperty(ref _gipperOpen, value); }
 
         private bool _gipperclose;
+        /// <summary>
+        /// 获取或设置 GipperClose
+        /// </summary>
         public bool GipperClose { get => _gipperclose; set => SetProperty(ref _gipperclose, value); }
 
         private bool _adjustedopen;
+        /// <summary>
+        /// 获取或设置 AdjustedOpen
+        /// </summary>
         public bool AdjustedOpen { get => _adjustedopen; set => SetProperty(ref _adjustedopen, value); }
 
         private bool _adjustedclose;
+        /// <summary>
+        /// 获取或设置 AdjustedClose
+        /// </summary>
         public bool AdjustedClose { get => _adjustedclose; set => SetProperty(ref _adjustedclose, value); }
 
         private bool _isIronTested;
+        /// <summary>
+        /// 获取或设置 IsIronTested
+        /// </summary>
         public bool IsIronTested { get => _isIronTested; set => SetProperty(ref _isIronTested, value); }
 
         private bool _stackingdetection;
+        /// <summary>
+        /// 获取或设置 Stackingdetection
+        /// </summary>
         public bool Stackingdetection { get => _stackingdetection; set => SetProperty(ref _stackingdetection, value); }
 
         private bool _wafeInPlace1;
+        /// <summary>
+        /// 获取或设置 WafeInPlace1
+        /// </summary>
         public bool WafeInPlace1 { get => _wafeInPlace1; set => SetProperty(ref _wafeInPlace1, value); }
 
         private bool _wafeInPlace2;
+        /// <summary>
+        /// 获取或设置 WafeInPlace2
+        /// </summary>
         public bool WafeInPlace2 { get => _wafeInPlace2; set => SetProperty(ref _wafeInPlace2, value); }
 
         #endregion
@@ -79,6 +124,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #region Light Properties
 
         private double _infraredLightValue;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public double InfraredLightValue
         {
             get => _infraredLightValue;
@@ -101,31 +149,82 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         #endregion
 
         #region Point Collections
+        /// <summary>
+        /// 获取或设置 YAxisOriginalPoints
+        /// </summary>
         public ObservableCollection<AxisPoint> YAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
         #endregion
 
         #region Commands
+        /// <summary>
+        /// InitializeModule 命令
+        /// </summary>
         public DelegateCommand InitializeModuleCommand { get; }
+        /// <summary>
+        /// ResetModule 命令
+        /// </summary>
         public DelegateCommand ResetModuleCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
+        /// <summary>
+        /// IsCanReset 命令
+        /// </summary>
 
         public DelegateCommand IsCanResetCommand { get; }
+        /// <summary>
+        /// SaveLightValue 命令
+        /// </summary>
         public DelegateCommand SaveLightValueCommand { get; }
+        /// <summary>
+        /// InitializeGipper 命令
+        /// </summary>
         public DelegateCommand InitializeGipper { get; }
+        /// <summary>
+        /// Change_8Status 命令
+        /// </summary>
 
         public DelegateCommand Change_8StatusCommand { get; }
+        /// <summary>
+        /// Change_12Status 命令
+        /// </summary>
         public DelegateCommand Change_12StatusCommand { get; }
+        /// <summary>
+        /// OpenGipper 命令
+        /// </summary>
 
         public DelegateCommand OpenGipperCommand { get; }
+        /// <summary>
+        /// CloseGipper 命令
+        /// </summary>
         public DelegateCommand CloseGipperCommand { get; }
+        /// <summary>
+        /// MoveFeeding 命令
+        /// </summary>
 
         public DelegateCommand MoveFeedingCommand { get; }
+        /// <summary>
+        /// MoveDetection 命令
+        /// </summary>
         public DelegateCommand MoveDetectionCommand { get; }
+        /// <summary>
+        /// MoveInitial 命令
+        /// </summary>
         public DelegateCommand MoveInitialCommand { get; }
 
+        /// <summary>
+        /// CodeTigger 命令
+        /// </summary>
         public DelegateCommand CodeTiggerCommand { get; }
+        /// <summary>
+        /// SavePoint 命令
+        /// </summary>
         public DelegateCommand SavePointCommand { get; }
         #endregion
+        /// <summary>
+        /// WorkStation2MaterialPullingModuleDebugViewModel 构造函数
+        /// </summary>
 
         public WorkStation2MaterialPullingModuleDebugViewModel(IContainerProvider containerProvider, IParamService paramService)
         {

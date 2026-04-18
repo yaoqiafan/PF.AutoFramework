@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PF.Data.Entity;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
@@ -6,22 +6,52 @@ using PF.Data.Entity.Category.Basic;
 namespace PF.Application.Shell.CustomConfiguration.Param
 {
 
+    /// <summary>
+    /// ParamType 枚举
+    /// </summary>
     public enum ParamType
     {
+        /// <summary>
+        /// UserLoginParams
+        /// </summary>
         UserLoginParams,
+        /// <summary>
+        /// SystemConfigParams
+        /// </summary>
         SystemConfigParams,
+        /// <summary>
+        /// HardwareParams
+        /// </summary>
         HardwareParams
     }
 
 
+    /// <summary>
+    /// DbContext 数据库上下文
+    /// </summary>
     public class AppParamDbContext : DbContext
     {
+        /// <summary>
+        /// AppParamDbContext 数据库上下文
+        /// </summary>
         public AppParamDbContext(DbContextOptions<AppParamDbContext> options) : base(options) { }
 
+        /// <summary>
+        /// UserLogins参数
+        /// </summary>
         public DbSet<UserLoginParam> UserLoginParams { get; set; }
+        /// <summary>
+        /// SystemParams配置
+        /// </summary>
         public DbSet<SystemConfigParam> SystemConfigParams { get; set; }
+        /// <summary>
+        /// Hardwares参数
+        /// </summary>
         public DbSet<HardwareParam> HardwareParams { get; set; }
 
+        /// <summary>
+        /// OnModelCreating 模型
+        /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -40,6 +70,9 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 .IsUnique();
         }
 
+        /// <summary>
+        /// 保存ChangesAsync
+        /// </summary>
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             // 自动设置UpdateTime

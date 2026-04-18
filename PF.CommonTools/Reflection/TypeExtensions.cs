@@ -7,8 +7,14 @@ using System.Threading.Tasks;
 
 namespace PF.CommonTools.Reflection
 {
+    /// <summary>
+    /// TypeClassExtensions 扩展
+    /// </summary>
     public static class TypeClassExtensions
     {
+        /// <summary>
+        /// 获取TypeFromAnyAssembly
+        /// </summary>
         public static Type GetTypeFromAnyAssembly( string typeName)
         {
             // 尝试直接获取
@@ -40,6 +46,9 @@ namespace PF.CommonTools.Reflection
             return null;
         }
 
+        /// <summary>
+        /// 获取TypeWithAssembly
+        /// </summary>
         public static Type GetTypeWithAssembly(string typeName, string assemblyPath)
         {
             Assembly assembly = Assembly.LoadFrom(assemblyPath);

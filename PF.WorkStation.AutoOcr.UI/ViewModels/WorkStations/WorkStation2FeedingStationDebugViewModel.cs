@@ -14,6 +14,9 @@ using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 {
+    /// <summary>
+    /// WorkStation2FeedingStationDebugViewModel
+    /// </summary>
     public class WorkStation2FeedingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
         private readonly WorkStation2FeedingStation<StationMemoryBaseParam> _station;
@@ -22,6 +25,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private readonly DispatcherTimer _pollTimer;
 
         private MachineState _currentState;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public MachineState CurrentState
         {
             get => _currentState;
@@ -29,6 +35,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private string _currentStepDescription = "就绪";
+        /// <summary>
+        /// 获取或设置 CurrentStepDescription
+        /// </summary>
         public string CurrentStepDescription
         {
             get => _currentStepDescription;
@@ -36,6 +45,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private OperationMode _currentMode;
+        /// <summary>
+        /// 成员
+        /// </summary>
         public OperationMode CurrentMode
         {
             get => _currentMode;
@@ -43,25 +55,67 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         }
 
         private Brush _statusBrush;
+        /// <summary>
+        /// 获取或设置 StatusBrush
+        /// </summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
             private set => SetProperty(ref _statusBrush, value);
         }
+        /// <summary>
+        /// 获取或设置 CanManualControl
+        /// </summary>
 
         public bool CanManualControl => _userService.IsAuthorized(UserLevel.SuperUser);
+        /// <summary>
+        /// Initialize 命令
+        /// </summary>
 
         public DelegateCommand InitializeCommand { get; }
+        /// <summary>
+        /// Start 命令
+        /// </summary>
         public DelegateCommand StartCommand { get; }
+        /// <summary>
+        /// Stop 命令
+        /// </summary>
         public DelegateCommand StopCommand { get; }
+        /// <summary>
+        /// Pause 命令
+        /// </summary>
         public DelegateCommand PauseCommand { get; }
+        /// <summary>
+        /// Resume 命令
+        /// </summary>
         public DelegateCommand ResumeCommand { get; }
+        /// <summary>
+        /// Reset 命令
+        /// </summary>
         public DelegateCommand ResetCommand { get; }
+        /// <summary>
+        /// TriggerAlarm 命令
+        /// </summary>
         public DelegateCommand TriggerAlarmCommand { get; }
+        /// <summary>
+        /// TriggerStart 命令
+        /// </summary>
         public DelegateCommand TriggerStartCommand { get; }
+        /// <summary>
+        /// TriggerAllowFeed 命令
+        /// </summary>
         public DelegateCommand TriggerAllowFeedCommand { get; }
+        /// <summary>
+        /// TriggerAllowBack 命令
+        /// </summary>
         public DelegateCommand TriggerAllowBackCommand { get; }
+        /// <summary>
+        /// TriggerFinish 命令
+        /// </summary>
         public DelegateCommand TriggerFinishCommand { get; }
+        /// <summary>
+        /// WorkStation2FeedingStationDebugViewModel 构造函数
+        /// </summary>
 
         public WorkStation2FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
@@ -209,12 +263,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         {
             _sync.Release(WorkstationSignals.工位2允许退料.ToString(), E_WorkStation.工位2上下料工站.ToString());
         }
+        /// <summary>
+        /// Dispose
+        /// </summary>
 
         public void Dispose()
         {
             _pollTimer.Stop();
             _userService.CurrentUserChanged -= OnCurrentUserChanged;
         }
+        /// <summary>
+        /// Destroy
+        /// </summary>
 
         public override void Destroy()
         {

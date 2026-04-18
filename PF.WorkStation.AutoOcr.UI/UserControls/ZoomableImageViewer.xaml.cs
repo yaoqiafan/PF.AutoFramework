@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.IO;
 using System.Windows;
@@ -28,9 +28,15 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
         // ══════════════════════════════════════════════════════════
 
         // 1. 主图片路径 (string)
+        /// <summary>
+        /// SourceProperty
+        /// </summary>
         public static readonly DependencyProperty SourceProperty =
             DependencyProperty.Register("Source", typeof(string), typeof(ZoomableImageViewer),
                 new PropertyMetadata(null, OnSourceChanged));
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public string Source
         {
@@ -47,9 +53,15 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
         }
 
         // 2. 错误占位图 (ImageSource 类型，常用于绑定内置资源)
+        /// <summary>
+        /// ErrorSourceProperty
+        /// </summary>
         public static readonly DependencyProperty ErrorSourceProperty =
             DependencyProperty.Register("ErrorSource", typeof(ImageSource), typeof(ZoomableImageViewer),
                 new PropertyMetadata(null, OnErrorSourceChanged));
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public ImageSource ErrorSource
         {
@@ -67,8 +79,14 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
         }
 
         // 3. 自定义 OSD 标注内容
+        /// <summary>
+        /// AnnotationContentProperty
+        /// </summary>
         public static readonly DependencyProperty AnnotationContentProperty =
             DependencyProperty.Register("AnnotationContent", typeof(object), typeof(ZoomableImageViewer), new PropertyMetadata(null));
+        /// <summary>
+        /// 成员
+        /// </summary>
 
         public object AnnotationContent
         {
@@ -86,6 +104,9 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
 
         // 记录当前实际显示的物理文件路径（仅物理文件允许执行“另存为”）
         private string _currentDisplayedPath = null;
+        /// <summary>
+        /// ZoomableImageViewer 构造函数
+        /// </summary>
 
         public ZoomableImageViewer()
         {

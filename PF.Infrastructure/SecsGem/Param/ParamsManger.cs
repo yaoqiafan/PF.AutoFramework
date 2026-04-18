@@ -13,6 +13,9 @@ using System.Collections.Concurrent;
 
 namespace PF.Infrastructure.SecsGem.Param
 {
+    /// <summary>
+    /// SecsGem参数管理器
+    /// </summary>
     public class ParamsManger : IParams
     {
         private readonly ISecsGemDataBase _secsGemDataBase;
@@ -21,8 +24,14 @@ namespace PF.Infrastructure.SecsGem.Param
         private readonly object _lock = new object();
 
         // 参数更改事件
+        /// <summary>
+        /// 参数变更事件
+        /// </summary>
         public event EventHandler<ParamChangedEventArgs> ParamChanged;
 
+        /// <summary>
+        /// 配方验证错误事件
+        /// </summary>
         public event EventHandler<FormulaValidateErrorEventArgs> FormulaValidateError;
 
         /// <summary>
@@ -40,6 +49,9 @@ namespace PF.Infrastructure.SecsGem.Param
             };
         }
 
+        /// <summary>
+        /// 初始化参数
+        /// </summary>
         public async Task<bool> InitializationParams()
         {
             try
@@ -197,6 +209,9 @@ namespace PF.Infrastructure.SecsGem.Param
             }
         }
 
+        /// <summary>
+        /// 保存参数
+        /// </summary>
         public void SaveParam(ParamType paramType)
         {
             lock (_lock)
@@ -223,6 +238,9 @@ namespace PF.Infrastructure.SecsGem.Param
 
         private bool SaveSecsGemFormula(string path) { return true; }
 
+        /// <summary>
+        /// 验证命令配置
+        /// </summary>
         public async Task<bool> ValidateCommand()
         {
             var validate = ((ValidateConfiguration)_params[ParamType.Validate]);

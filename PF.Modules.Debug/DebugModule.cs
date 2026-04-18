@@ -15,6 +15,7 @@ namespace PF.Modules.Debug
     /// </summary>
     public class DebugModule : IModule
     {
+        /// <summary>模块初始化时注册导航菜单</summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
             // 解析导航菜单服务，自动扫描当前程序集
@@ -23,6 +24,7 @@ namespace PF.Modules.Debug
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
+        /// <summary>注册调试模块的视图和对话框</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             // 1. 注册硬件调试视图

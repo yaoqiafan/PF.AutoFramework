@@ -7,7 +7,9 @@ namespace PF.Core.Interfaces.Device.Hardware
     /// </summary>
     public enum InputScanGroup
     {
+        /// <summary>普通按键（允许防抖）</summary>
         Standard,
+        /// <summary>安全传感器（零延迟）</summary>
         Safety
     }
 

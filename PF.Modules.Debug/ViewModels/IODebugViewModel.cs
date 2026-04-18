@@ -19,6 +19,7 @@ namespace PF.Modules.Debug.ViewModels
         private readonly IIOMappingService _ioMappingService;
 
         // 构造函数注入映射服务
+        /// <summary>初始化 IO 调试 ViewModel</summary>
         public IODebugViewModel(IIOMappingService ioMappingService)
         {
             _ioMappingService = ioMappingService;
@@ -38,6 +39,7 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>导航进入时加载 IO 设备数据</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
@@ -66,6 +68,7 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        /// <summary>导航离开时停止轮询</summary>
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             base.OnNavigatedFrom(navigationContext);
@@ -77,16 +80,22 @@ namespace PF.Modules.Debug.ViewModels
         #region 【设备基础属性】
 
         private string _deviceName = "未选中IO板卡";
+        /// <summary>获取或设置设备名称</summary>
         public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
 
         private string _deviceDescription = "等待设备接入...";
+        /// <summary>获取或设置设备描述</summary>
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
         private bool _isConnected;
+        /// <summary>获取或设置是否已连接</summary>
         public bool IsConnected { get => _isConnected; set => SetProperty(ref _isConnected, value); }
 
+        /// <summary>连接命令</summary>
         public DelegateCommand ConnectCommand { get; private set; }
+        /// <summary>断开连接命令</summary>
         public DelegateCommand DisconnectCommand { get; private set; }
+        /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
 
         #endregion
@@ -94,7 +103,9 @@ namespace PF.Modules.Debug.ViewModels
         #region 【IO 端口集合与初始化】
 
         // 输入输出端口集合，绑定到 UI 的 ItemsControl
+        /// <summary>获取输入端口列表</summary>
         public ObservableCollection<IOPortModel> InputPorts { get; } = new ObservableCollection<IOPortModel>();
+        /// <summary>获取输出端口列表</summary>
         public ObservableCollection<IOPortModel> OutputPorts { get; } = new ObservableCollection<IOPortModel>();
 
         private void InitializePorts()

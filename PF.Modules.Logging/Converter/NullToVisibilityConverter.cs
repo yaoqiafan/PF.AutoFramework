@@ -9,8 +9,10 @@ namespace PF.Modules.Logging.Converter
     /// </summary>
     public class NullToVisibilityConverter : IValueConverter
     {
+        /// <summary>是否反转逻辑</summary>
         public bool Invert { get; set; }
 
+        /// <summary>将 Null 转换为可见性</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             bool isNull = value == null || (value is string str && string.IsNullOrEmpty(str));
@@ -32,8 +34,10 @@ namespace PF.Modules.Logging.Converter
     /// </summary>
     public class NullToTextConverter : IValueConverter
     {
+        /// <summary>获取或设置 Null 时的显示文本</summary>
         public string NullText { get; set; } = "空";
 
+        /// <summary>将 Null 转换为文本</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value == null)

@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.CostParam
 {
+    /// <summary>
+    /// OCR配方参数
+    /// </summary>
     public class OCRRecipeParam : RecipeParamBase
     {
         /// <summary>
@@ -100,6 +103,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
         /// </summary>
         public int LightChanel2Value { get; set; } = 0;
 
+        /// <summary>深克隆当前配方参数</summary>
         public override OCRRecipeParam DeepClone()
         {
             // 先拷贝父类属性，再拷贝子类属性

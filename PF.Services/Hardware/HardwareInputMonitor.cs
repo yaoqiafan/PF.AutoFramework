@@ -1,4 +1,4 @@
-using PF.Core.Events;
+﻿using PF.Core.Events;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace PF.Services.Hardware
 {
+    /// <summary>
+    /// IHardwareInputMonitor 监控器
+    /// </summary>
     public class HardwareInputMonitor : IHardwareInputMonitor
     {
         private readonly IPanelIoConfig _config;
@@ -30,6 +33,9 @@ namespace PF.Services.Hardware
         private CancellationTokenSource _safetyCts;
         private Task _safetyTask;
 
+        /// <summary>
+        /// HardwareInputMonitor 监控器
+        /// </summary>
         public HardwareInputMonitor(
             IPanelIoConfig config,
             HardwareInputEventBus eventBus,
@@ -74,6 +80,9 @@ namespace PF.Services.Hardware
         // Standard (普通按键) 控制
         // ==========================================
 
+        /// <summary>
+        /// StartStandardMonitoring 监控器
+        /// </summary>
         public void StartStandardMonitoring(CancellationToken externalToken = default)
         {
             if (_standardCts != null && !_standardCts.IsCancellationRequested)
@@ -91,6 +100,9 @@ namespace PF.Services.Hardware
             _logger.Info($"【硬件输入监控】Standard 组已启动（{_standardInputs.Count} 个）。");
         }
 
+        /// <summary>
+        /// StopStandardMonitoring 监控器
+        /// </summary>
         public void StopStandardMonitoring()
         {
             if (_standardCts == null || _standardCts.IsCancellationRequested) return;
@@ -116,6 +128,9 @@ namespace PF.Services.Hardware
         // Safety (安全装置) 控制
         // ==========================================
 
+        /// <summary>
+        /// StartSafetyMonitoring 监控器
+        /// </summary>
         public void StartSafetyMonitoring(CancellationToken externalToken = default)
         {
             if (_safetyCts != null && !_safetyCts.IsCancellationRequested)
@@ -139,6 +154,9 @@ namespace PF.Services.Hardware
             _logger.Info($"【硬件输入监控】Safety 组已启动（{_safetyInputs.Count} 个）。");
         }
 
+        /// <summary>
+        /// StopSafetyMonitoring 监控器
+        /// </summary>
         public void StopSafetyMonitoring()
         {
             if (_safetyCts == null || _safetyCts.IsCancellationRequested) return;
@@ -164,6 +182,9 @@ namespace PF.Services.Hardware
         // 全局控制 & 扫描循环
         // ==========================================
 
+        /// <summary>
+        /// 停止All
+        /// </summary>
         public void StopAll()
         {
             StopSafetyMonitoring();
@@ -171,6 +192,9 @@ namespace PF.Services.Hardware
             _logger.Info("【硬件输入监控】所有扫描线程已停止。");
         }
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             StopAll();

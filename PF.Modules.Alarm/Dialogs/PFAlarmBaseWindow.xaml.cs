@@ -12,6 +12,7 @@ namespace PF.Modules.Alarm.Dialogs
     /// </summary>
     public partial class PFAlarmBaseWindow : PF.UI.Controls.Window, IDialogWindow
     {
+        /// <summary>初始化报警弹窗</summary>
         public PFAlarmBaseWindow()
         {
             InitializeComponent();
@@ -24,6 +25,7 @@ namespace PF.Modules.Alarm.Dialogs
         }
 
         // Prism IDialogWindow 接口所需属性
+        /// <summary>获取或设置对话框结果</summary>
         public IDialogResult Result { get; set; }
 
         /// <summary>

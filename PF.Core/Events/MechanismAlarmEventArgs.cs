@@ -11,10 +11,15 @@ namespace PF.Core.Events
     /// </summary>
     public class MechanismAlarmEventArgs : EventArgs
     {
+        /// <summary>模组名称</summary>
         public string MechanismName { get; set; }
-        public string HardwareName { get; set; } // 哪个底层硬件引发的报警
-        public string ErrorCode { get; set; }    // 结构化报警码，透传至 AlarmService
+        /// <summary>底层硬件名称</summary>
+        public string HardwareName { get; set; }
+        /// <summary>结构化报警码</summary>
+        public string ErrorCode { get; set; }
+        /// <summary>错误消息</summary>
         public string ErrorMessage { get; set; }
+        /// <summary>内部异常</summary>
         public Exception InternalException { get; set; }
     }
 }

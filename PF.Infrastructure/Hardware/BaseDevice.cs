@@ -14,6 +14,9 @@ namespace PF.Infrastructure.Hardware
     /// </summary>
     public abstract class BaseDevice : IHardwareDevice, INotifyPropertyChanged
     {
+        /// <summary>
+        /// 日志服务实例
+        /// </summary>
         protected readonly ILogService _logger;
         private bool _isConnected;
         private bool _hasAlarm;
@@ -25,8 +28,14 @@ namespace PF.Infrastructure.Hardware
 
         #region INotifyPropertyChanged
 
+        /// <summary>
+        /// 属性变更事件
+        /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        /// <summary>
+        /// 触发属性变更通知
+        /// </summary>
         protected void RaisePropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
@@ -34,11 +43,26 @@ namespace PF.Infrastructure.Hardware
 
         #region IHardwareDevice 属性实现
 
+        /// <summary>
+        /// 设备唯一标识
+        /// </summary>
         public string DeviceId { get; }
+        /// <summary>
+        /// 设备名称
+        /// </summary>
         public string DeviceName { get; }
+        /// <summary>
+        /// 硬件分类
+        /// </summary>
         public HardwareCategory Category { get; protected set; } = HardwareCategory.General;
+        /// <summary>
+        /// 是否为模拟模式
+        /// </summary>
         public bool IsSimulated { get; set; }
 
+        /// <summary>
+        /// 是否已连接
+        /// </summary>
         public bool IsConnected
         {
             get => _isConnected;
@@ -58,6 +82,9 @@ namespace PF.Infrastructure.Hardware
             }
         }
 
+        /// <summary>
+        /// 是否存在报警
+        /// </summary>
         public bool HasAlarm
         {
             get => _hasAlarm;
@@ -76,10 +103,22 @@ namespace PF.Infrastructure.Hardware
             }
         }
 
+        /// <summary>
+        /// 连接状态变更事件
+        /// </summary>
         public event EventHandler<bool> ConnectionChanged;
+        /// <summary>
+        /// 报警触发事件
+        /// </summary>
         public event EventHandler<DeviceAlarmEventArgs> AlarmTriggered;
+        /// <summary>
+        /// 硬件报警自动清除事件
+        /// </summary>
         public event EventHandler HardwareAlarmAutoCleared;
 
+        /// <summary>
+        /// 硬件专用日志记录器
+        /// </summary>
         public readonly CategoryLogger HardwareLogger;
 
         #endregion
@@ -168,6 +207,9 @@ namespace PF.Infrastructure.Hardware
             return false;
         }
 
+        /// <summary>
+        /// 异步断开设备连接
+        /// </summary>
         public async Task DisconnectAsync(CancellationToken token = default)
         {
             if (!IsConnected) return;
@@ -190,6 +232,9 @@ namespace PF.Infrastructure.Hardware
             }
         }
 
+        /// <summary>
+        /// 异步复位设备并清除报警
+        /// </summary>
         public async Task<bool> ResetAsync(CancellationToken token = default)
         {
             _logger?.Info($"[{DeviceName}] 正在复位并清除报警...");
@@ -374,12 +419,18 @@ namespace PF.Infrastructure.Hardware
 
         #region IDisposable 实现
 
+        /// <summary>
+        /// 释放资源
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// 释放资源的核心方法
+        /// </summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!_isDisposed)

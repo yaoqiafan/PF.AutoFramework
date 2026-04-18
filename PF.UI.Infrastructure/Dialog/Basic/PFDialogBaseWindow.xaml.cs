@@ -19,11 +19,17 @@ namespace PF.UI.Infrastructure.PrismBase
     /// </summary>
     public partial class PFDialogBaseWindow : PF.UI.Controls.Window, IDialogWindow
     {
+        /// <summary>
+        /// 初始化实例
+        /// </summary>
         public PFDialogBaseWindow()
         {
             InitializeComponent();
             CommandBindings.Add(new CommandBinding(ApplicationCommands.Close, CloseEvent));
         }
+        /// <summary>
+        /// Result
+        /// </summary>
         public IDialogResult Result { get; set; }
 
         private void CloseEvent(object sender, ExecutedRoutedEventArgs e)
