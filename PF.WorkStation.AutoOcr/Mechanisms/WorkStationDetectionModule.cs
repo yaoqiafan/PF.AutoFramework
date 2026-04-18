@@ -334,6 +334,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="IsCheckResult">是否请求中枢模块 <see cref="WorkStationDataModule"/> 对解码结果进行 MES 合法性校验</param>
         /// <param name="workStation">触发拍照所在的工位标识</param>
+        /// <param name="token">取消令牌</param>
         /// <returns>Item1: OCR 解码文本结果；Item2: 视觉设备留存的原始图片路径 (用于客诉追溯)</returns>
         public async Task<(string, string)> CameraTigger(bool IsCheckResult, E_WorkSpace workStation = E_WorkSpace.工位1, CancellationToken token = default)
         {

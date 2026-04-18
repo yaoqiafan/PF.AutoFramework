@@ -283,6 +283,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 2. 切换生产状态：拉取对应尺寸配方，计算全层坐标阵列
         /// </summary>
         /// <param name="waferSize">目标生产的晶圆尺寸</param>
+        /// <param name="token">取消令牌</param>
         public async Task<bool> SwitchProductionStateAsync(E_WafeSize waferSize, CancellationToken token = default)
         {
             CheckReady();
@@ -309,6 +310,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 5. 切换目标层：驱动 Z轴 精准定位到指定的层绝对坐标
         /// </summary>
         /// <param name="targetLayer">目标层索引 (0 代表第1层)</param>
+        /// <param name="token">取消令牌</param>
         public async Task<bool> SwitchToLayerAsync(int targetLayer, CancellationToken token = default)
         {
             CheckReady();

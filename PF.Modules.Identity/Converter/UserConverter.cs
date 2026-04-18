@@ -10,9 +10,11 @@ using System.Windows;
 using System.Windows.Data;
 
 namespace PF.Modules.Identity.Converter
-{
-    [ValueConversion(typeof(UserLevel), typeof(string))]
+{ 
+    
     /// <summary>用户等级转背景色转换器</summary>
+    [ValueConversion(typeof(UserLevel), typeof(string))]
+   
     public class UserBackGroundConnver : IValueConverter
     {
         /// <summary>将用户等级转换为背景色</summary>
