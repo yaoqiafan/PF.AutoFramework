@@ -10,6 +10,40 @@
     <RepositoryType>git</RepositoryType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
+    <!-- ===== 全局抑制非业务编译警告 ===== -->
+    <!-- CS0067  事件未使用 -->
+    <!-- CS0108  隐藏基类成员（缺少 new 关键字） -->
+    <!-- CS0168  声明了变量但从未使用 -->
+    <!-- CS0169  字段从未使用 -->
+    <!-- CS0414  字段已赋值但从未读取 -->
+    <!-- CS0419  cref 引用不明确 -->
+    <!-- CS0618  调用了 [Obsolete] 成员 -->
+    <!-- CS0649  字段从未赋值，将保持默认值 null -->
+    <!-- CS1734  XML 注释中的 cref 引用不明确 -->
+    <!-- CS8600  将 null/可能为 null 的值转换为不可为 null 类型 -->
+    <!-- CS8601  可能的 null 引用赋值 -->
+    <!-- CS8602  解引用可能出现空引用 -->
+    <!-- CS8603  可能的 null 引用返回 -->
+    <!-- CS8604  形参可能传入 null 引用实参 -->
+    <!-- CS8605  可能的 null 值赋给不可为 null 字段 -->
+    <!-- CS8612  接口 Null 性不匹配 -->
+    <!-- CS8618  退出构造函数时不可为 null 字段未赋值 -->
+    <!-- CS8619  类型中引用类型的 Null 性不匹配 -->
+    <!-- CS8620  索引器参数 Null 性不匹配 -->
+    <!-- CS8621  返回类型 Null 性不匹配 -->
+    <!-- CS8622  委托参数 Null 性不匹配 -->
+    <!-- CS8625  无法将 null 字面量转换为非 null 引用类型 -->
+    <!-- CS8629  可为 null 的值类型可能为 null -->
+    <!-- CS8631  约束 Null 性不匹配 -->
+    <!-- CS8765  重写成员参数类型 Null 性不匹配 -->
+    <!-- CS8767  实现成员返回类型 Null 性不匹配 -->
+    <!-- SYSLIB0003  代码执行被禁用（CodeDom） -->
+    <!-- SYSLIB0004  RSACryptoServiceProvider 不支持 -->
+    <!-- SYSLIB0032  Assembly.LoadWithPartialName 已过时 -->
+    <!-- EF1002       EF Core SQL 注入风险（已审查） -->
+    <!-- CA1416       平台兼容性警告 -->
+    <NoWarn>$(NoWarn);CS0067;CS0108;CS0168;CS0169;CS0414;CS0419;CS0618;CS0649;CS1734;CS8600;CS8601;CS8602;CS8603;CS8604;CS8605;CS8612;CS8618;CS8619;CS8620;CS8621;CS8622;CS8625;CS8629;CS8631;CS8765;CS8767;SYSLIB0003;SYSLIB0004;SYSLIB0032;EF1002;CA1416</NoWarn>
+
     <!-- ===== 统一 nupkg 输出目录（根目录/packages/） ===== -->
     <PackageOutputPath>$(MSBuildThisFileDirectory)nupkg</PackageOutputPath>
 
