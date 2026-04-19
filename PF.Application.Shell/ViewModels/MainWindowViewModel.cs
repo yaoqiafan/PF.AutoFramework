@@ -10,6 +10,7 @@ using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Station;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
 using PF.Modules.Alarm.Dialogs;
@@ -27,6 +28,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace PF.Application.Shell.ViewModels
 {
@@ -41,6 +43,7 @@ namespace PF.Application.Shell.ViewModels
         private readonly IUserService _userService;
         private readonly INavigationMenuService _navigationMenuService;
         private readonly IAlarmService _alarmService;
+        private readonly IMasterController _masterController;
         private ILogService _logService;
         private CommonSettings _commonSettings;
 
@@ -66,7 +69,7 @@ namespace PF.Application.Shell.ViewModels
         /// <summary>
         /// MainWindowViewModel 视图模型
         /// </summary>
-        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider, CommonSettings commonSettings, IAlarmService alarmService)
+        public MainWindowViewModel(IParamService paramService, IUserService userService, INavigationMenuService navigationMenuService, IContainerProvider containerProvider, CommonSettings commonSettings, IAlarmService alarmService, IMasterController masterController)
         {
             _paramService          = paramService;
             _userService           = userService;
@@ -74,6 +77,7 @@ namespace PF.Application.Shell.ViewModels
             _containerProvider     = containerProvider;
             _commonSettings        = commonSettings;
             _alarmService          = alarmService;
+            _masterController      = masterController;
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
@@ -396,6 +400,46 @@ namespace PF.Application.Shell.ViewModels
             get { return _ExpandMode; }
             set { SetProperty(ref _ExpandMode, value); }
         }
+
+        private MachineState _machineState = MachineState.Uninitialized;
+        /// <summary>获取设备当前运行状态</summary>
+        public MachineState MachineState
+        {
+            get => _machineState;
+            set
+            {
+                SetProperty(ref _machineState, value);
+                RaisePropertyChanged(nameof(MachineStateBrush));
+                RaisePropertyChanged(nameof(MachineStateText));
+            }
+        }
+
+        /// <summary>获取设备状态颜色画刷</summary>
+        public Brush MachineStateBrush => _machineState switch
+        {
+            MachineState.Running      => new SolidColorBrush(Color.FromRgb(0x02, 0xad, 0x8b)),
+            MachineState.Paused       => new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)),
+            MachineState.InitAlarm    => new SolidColorBrush(Color.FromRgb(0xff, 0x8f, 0x00)),
+            MachineState.RunAlarm     => new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)),
+            MachineState.Initializing => new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)),
+            MachineState.Resetting    => new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)),
+            MachineState.Idle         => new SolidColorBrush(Color.FromRgb(0x32, 0x6c, 0xf3)),
+            _ => new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75))
+        };
+
+        /// <summary>获取设备状态中文描述</summary>
+        public string MachineStateText => _machineState switch
+        {
+            MachineState.Uninitialized => "未初始化",
+            MachineState.Initializing => "初始化中",
+            MachineState.Idle => "待机",
+            MachineState.Running => "运行中",
+            MachineState.Paused => "已暂停",
+            MachineState.InitAlarm => "初始化报警",
+            MachineState.RunAlarm => "运行报警",
+            MachineState.Resetting => "复位中",
+            _ => "未知"
+        };
         #endregion
 
         #region 命令属性
@@ -471,6 +515,7 @@ namespace PF.Application.Shell.ViewModels
                 while (!ct.IsCancellationRequested)
                 {
                     SysTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    MachineState = _masterController.CurrentState;
                     await Task.Delay(500, ct);
                 }
             }
