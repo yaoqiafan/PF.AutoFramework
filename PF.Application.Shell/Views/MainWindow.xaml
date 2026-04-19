@@ -361,6 +361,17 @@
             <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Margin="0,0,4,0"
+                             Fill="{Binding MachineStateBrush}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{Binding MachineStateBrush}"
+                               Text="{Binding MachineStateText}" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <Separator />
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
                     <TextBlock Text="当前权限：" />
                     <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
                 </StackPanel>
