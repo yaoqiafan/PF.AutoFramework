@@ -61,7 +61,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     name: "工位1启动按钮", InputScanGroup.Standard),
 
                 new HardwareInputConfig(HardwareInputType.Pause, port: (int)E_InPutName.上晶圆右启动按钮, debounceMs: 20,
-                    name: "暂停按钮", InputScanGroup.Standard),
+                    name: "工位2启动按钮", InputScanGroup.Standard),
 
 
                 // ── 安全传感器（Safety 组，零延迟）───────────────────────────

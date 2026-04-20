@@ -370,6 +370,13 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (Exception ex)
             {
+                // P4 修复：在异常捕获的第一时间快照意图标志到局部变量。
+                // 原先直接在 Task.Run 内读取 _cancelledIntentionally，存在 TOCTOU 竞态窗口：
+                //   真实硬件异常恰好在 Stop() 的 _cancelledIntentionally=true 与 Fire(Stop) 之间发生，
+                //   Task.Run 执行时标志已被置位，导致真实报警被吞没。
+                // 快照后即使 Stop() 紧接着置位，也不影响本次异常的判定。
+                bool wasIntentionalStop = _cancelledIntentionally;
+
                 _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
 
                 // 业务代码未显式调用 RaiseAlarm 时兜底赋码，确保未预期崩溃能被 AlarmService 正确上报。
@@ -387,7 +394,7 @@ namespace PF.Infrastructure.Station.Basic
                         // 业务线程的 OperationCanceledException 在极端竞态下可能漏入此 catch，
                         // 若再次 Fire(Error) 会导致 Stateless 因"当前状态无此转换"抛出异常。
                         if (_machine.State != MachineState.InitAlarm && _machine.State != MachineState.RunAlarm
-                            && !_cancelledIntentionally)
+                            && !wasIntentionalStop)
                             Fire(MachineTrigger.Error);
                     }
                     catch (Exception fireEx)
@@ -857,25 +864,17 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// 同步清理（兼容路径）：发出取消信号后，将等待卸载到线程池，切断 SynchronizationContext。
+        /// 同步清理（兼容路径）：发出取消信号后不等待业务线程退出，避免阻塞调用方。
+        /// CTS 已取消，业务线程会自行安全退出；记忆参数在 CTS 取消前已由最后一轮循环持久化。
         /// </summary>
         public virtual void Dispose()
         {
             _runCts?.Cancel();
             _pauseGate.TrySetResult(true);
 
-            var task = _workflowTask;
-            if (task is { IsCompleted: false })
-            {
-                try
-                {
-                    Task.Run(async () =>
-                    {
-                        await task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-                    }).GetAwaiter().GetResult();
-                }
-                catch { }
-            }
+            // 不同步等待业务线程：取消信号已发出，线程会自行退出。
+            // 原先 Task.Run(...).GetAwaiter().GetResult() 最多阻塞 5 秒，
+            // 若业务线程卡在无 CancellationToken 的厂商 SDK 调用中会导致应用退出卡顿。
             WriteMemoryParam();
             _runCts?.Dispose();
             _stateLock?.Dispose();

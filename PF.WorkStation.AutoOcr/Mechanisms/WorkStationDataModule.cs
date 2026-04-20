@@ -156,13 +156,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Station Recipe Parameters (工位配方缓存)
 
         [JsonInclude]
-        private OCRRecipeParam _station1ReciepParam = new OCRRecipeParam();
+        private volatile OCRRecipeParam _station1ReciepParam = new OCRRecipeParam();
 
         /// <summary>工位1工艺配方参数 (如：截取规则、比对长度等)</summary>
         public OCRRecipeParam Station1ReciepParam => _station1ReciepParam;
 
         [JsonInclude]
-        private OCRRecipeParam _station2ReciepParam = new OCRRecipeParam();
+        private volatile OCRRecipeParam _station2ReciepParam = new OCRRecipeParam();
 
         /// <summary>工位2工艺配方参数</summary>
         public OCRRecipeParam Station2ReciepParam => _station2ReciepParam;
@@ -189,18 +189,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             return false;
         }
 
-        #endregion 
+        #endregion
 
         #region Local Detection Data (机台实时检测数据)
 
+        // P7 修复：MES 数据字段加 volatile，保证跨线程赋值的可见性
+        // （工站线程写入、检测线程读取、UI 线程绑定均能及时看到最新引用）
         [JsonInclude]
-        private MesDetectionParam _station1MesDetectionData = new MesDetectionParam();
+        private volatile MesDetectionParam _station1MesDetectionData = new MesDetectionParam();
 
         /// <summary>工位1当前正在执行的 MES 批次详情</summary>
         public MesDetectionParam Station1MesDetectionData => _station1MesDetectionData;
 
         [JsonInclude]
-        private MesDetectionParam _station2MesDetectionData = new MesDetectionParam();
+        private volatile MesDetectionParam _station2MesDetectionData = new MesDetectionParam();
 
         /// <summary>工位2当前正在执行的 MES 批次详情</summary>
         public MesDetectionParam Station2MesDetectionData => _station2MesDetectionData;
@@ -212,17 +214,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         [JsonInclude]
         private ConcurrentDictionary<string, int> _batchQuantityMap = new ConcurrentDictionary<string, int>();
 
+        // P7 修复：检测数据列表的读写加 lock 保护，防止并发 Add/Remove/Clear/枚举 导致
+        // InvalidOperationException 或内部状态损坏
+        private readonly object _detectionDataLock = new object();
+
         [JsonInclude]
         private List<MachineDetectionData> _sation1MachineDetectionData = new List<MachineDetectionData>();
 
         /// <summary>工位1机台实时产生的单片检测结果列表 (注: 拼写保留原代码 Sation 以防破坏 UI 绑定)</summary>
-        public List<MachineDetectionData> Sation1MachineDetectionData => _sation1MachineDetectionData;
+        public List<MachineDetectionData> Sation1MachineDetectionData
+        {
+            get { lock (_detectionDataLock) return new List<MachineDetectionData>(_sation1MachineDetectionData); }
+        }
 
         [JsonInclude]
         private List<MachineDetectionData> _sation2MachineDetectionData = new List<MachineDetectionData>();
 
         /// <summary>工位2机台实时产生的单片检测结果列表</summary>
-        public List<MachineDetectionData> Sation2MachineDetectionData => _sation2MachineDetectionData;
+        public List<MachineDetectionData> Sation2MachineDetectionData
+        {
+            get { lock (_detectionDataLock) return new List<MachineDetectionData>(_sation2MachineDetectionData); }
+        }
 
         /// <summary>
         /// 全局缓存：根据内部批次号 (InternalBatchId) 归档的所有机器检测数据字典。
@@ -242,12 +254,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (Station == E_WorkSpace.工位1)
             {
                 _station1MesDetectionData = Data;
-                _sation1MachineDetectionData.Clear();
+                lock (_detectionDataLock) { _sation1MachineDetectionData.Clear(); }
             }
             else if (Station == E_WorkSpace.工位2)
             {
                 _station2MesDetectionData = Data;
-                _sation2MachineDetectionData.Clear();
+                lock (_detectionDataLock) { _sation2MachineDetectionData.Clear(); }
             }
             else
             {
@@ -265,36 +277,41 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             if (Station == E_WorkSpace.工位1)
             {
-                // 查找当前列表是否已经存在同条码的数据（可能属于重扫或复判）
-                var kk = _sation1MachineDetectionData.Where(x => x.Barcode1 == Data.Barcode1).FirstOrDefault();
-                if (kk != null)
+                // P7 修复：List<T> 的 Where/Remove/Add 非线程安全，加锁保护
+                lock (_detectionDataLock)
                 {
-                    // 复判逻辑：如果新数据匹配成功，或者旧数据本身是不匹配的，则用新数据覆盖旧数据
-                    if (Data.IsMatch || !kk.IsMatch)
+                    var kk = _sation1MachineDetectionData.Where(x => x.Barcode1 == Data.Barcode1).FirstOrDefault();
+                    if (kk != null)
                     {
-                        _sation1MachineDetectionData.Remove(kk);
+                        if (Data.IsMatch || !kk.IsMatch)
+                        {
+                            _sation1MachineDetectionData.Remove(kk);
+                            _sation1MachineDetectionData.Add(Data);
+                        }
+                    }
+                    else
+                    {
                         _sation1MachineDetectionData.Add(Data);
                     }
-                }
-                else
-                {
-                    _sation1MachineDetectionData.Add(Data);
                 }
             }
             else if (Station == E_WorkSpace.工位2)
             {
-                var kk = _sation2MachineDetectionData.Where(x => x.Barcode1 == Data.Barcode1).FirstOrDefault();
-                if (kk != null)
+                lock (_detectionDataLock)
                 {
-                    if (Data.IsMatch || !kk.IsMatch)
+                    var kk = _sation2MachineDetectionData.Where(x => x.Barcode1 == Data.Barcode1).FirstOrDefault();
+                    if (kk != null)
                     {
-                        _sation2MachineDetectionData.Remove(kk);
+                        if (Data.IsMatch || !kk.IsMatch)
+                        {
+                            _sation2MachineDetectionData.Remove(kk);
+                            _sation2MachineDetectionData.Add(Data);
+                        }
+                    }
+                    else
+                    {
                         _sation2MachineDetectionData.Add(Data);
                     }
-                }
-                else
-                {
-                    _sation2MachineDetectionData.Add(Data);
                 }
             }
 

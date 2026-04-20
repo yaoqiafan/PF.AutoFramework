@@ -157,9 +157,11 @@ namespace PF.Services.Sync
         /// 三步走：
         ///   1. 广播取消：Cancel 旧 ResetCts，使所有 WaitAsync 调用方
         ///      立即抛出 OperationCanceledException 并执行 finally 中的 Decrement。
-        ///   2. Drain 屏障：SpinWait 等待 InFlightCount 归零（带 1000ms 超时保护，
+        ///   2. Drain 屏障：SpinWait 等待 InFlightCount 归零（带 3000ms 超时保护，
         ///      防止极端情况下业务线程阻塞导致无限等待）。
-        ///   3. 安全重建：此时无任何线程持有旧 SemaphoreSlim，可安全 Dispose 并重建。
+        ///   3. 安全重建：Drain 成功则 Dispose 旧信号量；超时则跳过 Dispose，
+        ///      避免业务线程仍在 SemaphoreSlim.WaitAsync 中时触发 ObjectDisposedException，
+        ///      旧信号量在无引用后由 GC 自然回收。
         /// </remarks>
         public void ResetScope(string scope)
         {
@@ -175,28 +177,29 @@ namespace PF.Services.Sync
             oldCts.Dispose();
 
             // ─ 步骤 2：Drain 屏障，等待 InFlightCount 归零 ───────────────────
-            // Cancel 后，所有在 SemaphoreSlim.WaitAsync 中阻塞的线程将立即被唤醒、
-            // 捕获 OperationCanceledException，并在 finally 块中执行 Decrement。
-            // SpinWait 在微秒~毫秒级完成，CPU 占用极低且不阻塞线程池。
             var sw = Stopwatch.StartNew();
             var spin = new SpinWait();
             while (Volatile.Read(ref ctx.InFlightCount) > 0)
             {
-                if (sw.ElapsedMilliseconds > 1000)
+                if (sw.ElapsedMilliseconds > 3000)
                 {
-                    _logger.Warn($"[SyncService] scope '{scope}' Drain 屏障超时（1000ms），" +
-                                  "仍有飞行中线程未退出，强制继续重建信号量。" +
-                                 $" InFlightCount={Volatile.Read(ref ctx.InFlightCount)}");
+                    _logger.Warn($"[SyncService] scope '{scope}' Drain 屏障超时（3000ms），" +
+                                 $"InFlightCount={Volatile.Read(ref ctx.InFlightCount)}。" +
+                                 "跳过旧信号量 Dispose，避免 ObjectDisposedException。");
                     break;
                 }
                 spin.SpinOnce();
             }
 
-            // ─ 步骤 3：安全重建信号量 ─────────────────────────────────────────
+            // ─ 步骤 3：按 Drain 结果决定是否 Dispose ──────────────────────────
+            // Drain 成功 → InFlightCount == 0 → 无线程持有旧信号量 → 可安全 Dispose
+            // Drain 超时 → 仍有线程在旧 SemaphoreSlim 内 → 跳过 Dispose，由 GC 回收
+            bool drainSucceeded = Volatile.Read(ref ctx.InFlightCount) == 0;
             foreach (var name in ctx.Signals.Keys)
             {
                 var old = ctx.Signals[name];
-                old.Sem.Dispose();
+                if (drainSucceeded)
+                    old.Sem.Dispose();
 
                 ctx.Signals[name] = new SignalEntry(
                     new SemaphoreSlim(old.InitialCount, old.MaxCount),
@@ -204,7 +207,8 @@ namespace PF.Services.Sync
                     old.MaxCount);
 
                 _logger.Info($"[SyncService] [{scope}] 信号量 '{name}' 已复位" +
-                              $" → 初始计数={old.InitialCount}");
+                              $" → 初始计数={old.InitialCount}" +
+                              (drainSucceeded ? "" : "（旧实例未 Dispose，待 GC 回收）"));
             }
         }
 
@@ -232,25 +236,29 @@ namespace PF.Services.Sync
             var spin = new SpinWait();
             while (Volatile.Read(ref ctx.InFlightCount) > 0)
             {
-                if (sw.ElapsedMilliseconds > 1000)
+                if (sw.ElapsedMilliseconds > 3000)
                 {
-                    _logger.Warn($"[SyncService] scope '{scope}' 单点复位 Drain 超时（1000ms），" +
-                                 $" InFlightCount={Volatile.Read(ref ctx.InFlightCount)}，强制继续。");
+                    _logger.Warn($"[SyncService] scope '{scope}' 单点复位 Drain 超时（3000ms），" +
+                                 $"InFlightCount={Volatile.Read(ref ctx.InFlightCount)}。" +
+                                 "跳过旧信号量 Dispose，避免 ObjectDisposedException。");
                     break;
                 }
                 spin.SpinOnce();
             }
 
-            // 步骤 3：仅重建目标信号量
+            // 步骤 3：按 Drain 结果决定是否 Dispose，仅重建目标信号量
+            bool drainSucceeded = Volatile.Read(ref ctx.InFlightCount) == 0;
             var old = ctx.Signals[name];
-            old.Sem.Dispose();
+            if (drainSucceeded)
+                old.Sem.Dispose();
             ctx.Signals[name] = new SignalEntry(
                 new SemaphoreSlim(old.InitialCount, old.MaxCount),
                 old.InitialCount,
                 old.MaxCount);
 
             _logger.Info($"[SyncService] [{scope}] 信号量 '{name}' 单点复位完成" +
-                          $" → 初始计数={old.InitialCount}");
+                          $" → 初始计数={old.InitialCount}" +
+                          (drainSucceeded ? "" : "（旧实例未 Dispose，待 GC 回收）"));
         }
 
         // ── 销毁 ─────────────────────────────────────────────────────────────
