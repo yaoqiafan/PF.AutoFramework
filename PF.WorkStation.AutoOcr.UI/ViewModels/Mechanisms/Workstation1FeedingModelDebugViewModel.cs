@@ -94,11 +94,53 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// </summary>
         public bool Is12InchInPlace { get => _is12InchInPlace; set => SetProperty(ref _is12InchInPlace, value); }
 
-        private bool _isGripperOpen;
+        private bool _isErrorLayer1;
         /// <summary>
-        /// 获取或设置 IsGripperOpen
+        /// 获取或设置 IsErrorLayer1 (错层检测1)
         /// </summary>
-        public bool IsGripperOpen { get => _isGripperOpen; set => SetProperty(ref _isGripperOpen, value); }
+        public bool IsErrorLayer1 { get => _isErrorLayer1; set => SetProperty(ref _isErrorLayer1, value); }
+
+        private bool _isErrorLayer2;
+        /// <summary>
+        /// 获取或设置 IsErrorLayer2 (错层检测2)
+        /// </summary>
+        public bool IsErrorLayer2 { get => _isErrorLayer2; set => SetProperty(ref _isErrorLayer2, value); }
+
+        private bool _isIronTabDetected;
+        /// <summary>
+        /// 获取或设置 IsIronTabDetected (铁环突片检测)
+        /// </summary>
+        public bool IsIronTabDetected { get => _isIronTabDetected; set => SetProperty(ref _isIronTabDetected, value); }
+
+        private bool _is8InchIronReverse;
+        /// <summary>
+        /// 获取或设置 Is8InchIronReverse (8寸铁环防反检测)
+        /// </summary>
+        public bool Is8InchIronReverse { get => _is8InchIronReverse; set => SetProperty(ref _is8InchIronReverse, value); }
+
+        private bool _is12InchIronReverse;
+        /// <summary>
+        /// 获取或设置 Is12InchIronReverse (12寸铁环防反检测)
+        /// </summary>
+        public bool Is12InchIronReverse { get => _is12InchIronReverse; set => SetProperty(ref _is12InchIronReverse, value); }
+
+        private bool _is8InchStopRod;
+        /// <summary>
+        /// 获取或设置 Is8InchStopRod (8寸料盒挡杆检测)
+        /// </summary>
+        public bool Is8InchStopRod { get => _is8InchStopRod; set => SetProperty(ref _is8InchStopRod, value); }
+
+        private bool _is12InchStopRod1;
+        /// <summary>
+        /// 获取或设置 Is12InchStopRod1 (12寸料盒挡杆检测1)
+        /// </summary>
+        public bool Is12InchStopRod1 { get => _is12InchStopRod1; set => SetProperty(ref _is12InchStopRod1, value); }
+
+        private bool _is12InchStopRod2;
+        /// <summary>
+        /// 获取或设置 Is12InchStopRod2 (12寸料盒挡杆检测2)
+        /// </summary>
+        public bool Is12InchStopRod2 { get => _is12InchStopRod2; set => SetProperty(ref _is12InchStopRod2, value); }
         #endregion
 
         #region 点位数据集合
@@ -427,11 +469,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 // 刷新 IO 状态
                 if (_feedingModule.IO != null)
                 {
-                    // 注意：这里的枚举需要确保你的工程中定义过 E_InPutName
                     IsBoxCommonInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左料盒公用到位检测) == true;
                     Is8InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸料盒到位检测) == true;
                     Is12InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒到位检测) == true;
-                    
+                    IsErrorLayer1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左错层公共检测) == true;
+                    IsErrorLayer2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左错层12寸检测) == true;
+                    IsIronTabDetected = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左铁环突片检测) == true;
+                    Is8InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸铁环防反检测) == true;
+                    Is12InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸铁环防反检测) == true;
+                    Is8InchStopRod = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸料盒挡杆检测) == true;
+                    Is12InchStopRod1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测1) == true;
+                    Is12InchStopRod2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测2) == true;
                 }
             };
             _monitorTimer.Start();
