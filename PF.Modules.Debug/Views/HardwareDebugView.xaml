@@ -25,110 +25,97 @@
                 <ColumnDefinition Width="15" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border
-                Grid.Column="0"
-                Background="{DynamicResource RegionBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="3"
-                CornerRadius="5">
-                <DockPanel Grid.Column="0" Margin="5">
-                    <TextBlock
-                        Margin="12,12,12,4"
-                        DockPanel.Dock="Top"
-                        FontSize="{DynamicResource FontSize.H1.Large}"
-                        FontWeight="SemiBold"
-                        Text="硬件综合调试" />
+
+            <!--  左侧：顶部全局切换 + 设备树  -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  全局模拟模式切换区（SuperUser 专属）  -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,0,0,6"
+                    Padding="10,8"
+                    Background="#FFF8E1"
+                    BorderBrush="#FFB300"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Visibility="{Binding IsSuperUser, Converter={StaticResource BoolToVis}}">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                        <!--  全局模拟模式切换区（SuperUser 专属）  -->
-                        <Border
-                            Grid.Row="0"
-                            Margin="0,0,0,6"
-                            Padding="10,8"
-                            Background="#FFF8E1"
-                            BorderBrush="#FFB300"
-                            BorderThickness="1"
-                            CornerRadius="5"
-                            Visibility="{Binding IsSuperUser, Converter={StaticResource BoolToVis}}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                FontWeight="SemiBold"
+                                Foreground="#E65100"
+                                Text="全局模拟模式" />
+                            <TextBlock
+                                FontSize="10"
+                                Foreground="#BF360C"
+                                Text="{Binding IsGlobalSimulated, StringFormat='当前：{0}'}" />
+                        </StackPanel>
 
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                    <TextBlock
-                                        FontSize="{DynamicResource FontSize.Caption.Mini}"
-                                        FontWeight="SemiBold"
-                                        Foreground="#E65100"
-                                        Text="全局模拟模式" />
-                                    <TextBlock
-                                        FontSize="10"
-                                        Foreground="#BF360C"
-                                        Text="{Binding IsGlobalSimulated, StringFormat='当前：{0}'}" />
-                                </StackPanel>
-
-                                <!--  Switch 开关：点击触发一键切换命令  -->
-                                <ToggleButton
-                                    Grid.Column="1"
-                                    Command="{Binding ToggleGlobalSimulationCommand}"
-                                    IsChecked="{Binding IsGlobalSimulated, Mode=OneWay}"
-                                    IsEnabled="{Binding IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
-                                    Style="{StaticResource ToggleButtonSwitch.Small}"
-                                    ToolTip="一键切换所有设备的模拟/真实模式（需重载硬件）" />
-                            </Grid>
-                        </Border>
-
-                        <!--  设备层级树  -->
-                        <Border Grid.Row="1" CornerRadius="5" >
-                            <TreeView BorderBrush="{DynamicResource TextIconBrush}"
-                                BorderThickness="1"
-                                ItemsSource="{Binding TreeNodes}"
-                                SelectedItemChanged="TreeView_SelectedItemChanged"
-                                Style="{StaticResource TreeView.Small}">
-                                <TreeView.ItemContainerStyle>
-                                    <Style BasedOn="{StaticResource {x:Type TreeViewItem}}" TargetType="TreeViewItem">
-                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                                    </Style>
-                                </TreeView.ItemContainerStyle>
-                                <TreeView.ItemTemplate>
-                                    <HierarchicalDataTemplate DataType="{x:Type models:DebugTreeNode}" ItemsSource="{Binding Children}">
-                                        <Grid Margin="0,3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                VerticalAlignment="Center"
-                                                FontSize="{DynamicResource FontSize.Body.Standard}"
-                                                Text="{Binding NodeName}" />
-
-                                            <!--  单设备模拟开关（仅有设备负载的节点显示）  -->
-                                            <ToggleButton
-                                                Grid.Column="1"
-                                                Margin="6,0,0,0"
-                                                Command="{Binding Source={StaticResource Proxy}, Path=Data.ToggleDeviceSimulationCommand}"
-                                                CommandParameter="{Binding}"
-                                                IsChecked="{Binding IsSimulated, Mode=TwoWay}"
-                                                IsEnabled="{Binding Source={StaticResource Proxy}, Path=Data.IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
-                                                Style="{StaticResource ToggleButtonSwitch.Small}"
-                                                ToolTip="{Binding IsSimulated, StringFormat='模拟模式: {0}'}"
-                                                Visibility="{Binding Source={StaticResource Proxy}, Path=Data.IsSuperUser, Converter={StaticResource BoolToVis}}" />
-                                        </Grid>
-                                    </HierarchicalDataTemplate>
-                                </TreeView.ItemTemplate>
-                            </TreeView>
-                        </Border>
+                        <!--  Switch 开关：点击触发一键切换命令  -->
+                        <ToggleButton 
+                            Grid.Column="1"
+                            Command="{Binding ToggleGlobalSimulationCommand}"
+                            IsChecked="{Binding IsGlobalSimulated, Mode=OneWay}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
+                            Style="{StaticResource ToggleButtonSwitch.Small}"
+                            ToolTip="一键切换所有设备的模拟/真实模式（需重载硬件）" />
                     </Grid>
+                </Border>
 
-                </DockPanel>
-            </Border>
+                <!--  设备层级树  -->
+                <Border Grid.Row="1" CornerRadius="5">
+                    <TreeView
+                        BorderThickness="3"
+                        ItemsSource="{Binding TreeNodes}"
+                        SelectedItemChanged="TreeView_SelectedItemChanged"
+                        Style="{StaticResource TreeView.Small}">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type models:DebugTreeNode}" ItemsSource="{Binding Children}">
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                                        Text="{Binding NodeName}" />
+
+                                    <!--  单设备模拟开关（仅有设备负载的节点显示）  -->
+                                    <ToggleButton 
+                                        Grid.Column="1"
+                                        Margin="6,0,0,0"
+                                        Command="{Binding Source={StaticResource Proxy}, Path=Data.ToggleDeviceSimulationCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsChecked="{Binding IsSimulated, Mode=TwoWay}"
+                                        IsEnabled="{Binding Source={StaticResource Proxy}, Path=Data.IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
+                                        Style="{StaticResource ToggleButtonSwitch.Small}"
+                                        ToolTip="{Binding IsSimulated, StringFormat='模拟模式: {0}'}"
+                                        Visibility="{Binding Source={StaticResource Proxy}, Path=Data.IsSuperUser, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Border>
+            </Grid>
+
             <!--  右侧：调试内容区  -->
             <Border Grid.Column="2" CornerRadius="5">
                 <ContentControl prism:RegionManager.RegionName="{x:Static tokens:NavigationConstants+Regions.DebugViewRegion}">

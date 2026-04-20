@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- ===== 统一版本与作者信息 ===== -->
     <Version>1.0.0</Version>
-    <Authors>Ethen.Ge</Authors>
+    <Authors>葛大大</Authors>
     <Company>聚力智能</Company>
     <Copyright>Copyright © 2025 聚力智能</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
