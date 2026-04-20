@@ -96,7 +96,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (parameters.ContainsKey("CurrentRepice"))
                 _currentRecipe = parameters.GetValue<OCRRecipeParam>("CurrentRepice");
 
+            // 从配方初始化光源值
+            InfraredLightValue = _currentRecipe?.LightChanel1Value ?? 0;
+            WhiteLightValue = _currentRecipe?.LightChanel2Value ?? 0;
+
             UpdateRecipePositionDisplay();
+
+            if (_axis != null) _pollingTimer.Start();
         }
         /// <summary>
         /// OnDialogClosed
@@ -225,6 +231,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         public double RecipeAxisPosition { get => _recipeAxisPosition; set => SetProperty(ref _recipeAxisPosition, value); }
 
+        private string _scanResult = "等待扫码...";
+        /// <summary>
+        /// 获取或设置 ScanResult
+        /// </summary>
+        public string ScanResult { get => _scanResult; set => SetProperty(ref _scanResult, value); }
+
+        private string _ocrResult = "等待OCR...";
+        /// <summary>
+        /// 获取或设置 OcrResult
+        /// </summary>
+        public string OcrResult { get => _ocrResult; set => SetProperty(ref _ocrResult, value); }
+
         #endregion
 
         #region 光源参数属性
@@ -262,7 +280,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     SetProperty(ref _whiteLightValue, (int)value);
                     UpdateLihtValue(2, (int)value);
-                    _currentRecipe.LightChanel1Value = (int)value;
+                    _currentRecipe.LightChanel2Value = (int)value;
                 }
             }
         }
@@ -353,6 +371,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// MoveToRecipePosition 命令
         /// </summary>
         public DelegateCommand MoveToRecipePositionCommand { get; private set; }
+        /// <summary>
+        /// GetCurrentPosition 命令
+        /// </summary>
+        public DelegateCommand GetCurrentPositionCommand { get; private set; }
+        /// <summary>
+        /// UpdateRecipePosition 命令
+        /// </summary>
+        public DelegateCommand UpdateRecipePositionCommand { get; private set; }
 
         private void InitializeCommands()
         {
@@ -428,6 +454,31 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 RefreshCancellationToken();
                 await _axis.MoveAbsoluteAsync(RecipeAxisPosition, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token);
             });
+            GetCurrentPositionCommand = new DelegateCommand(() =>
+            {
+                if (_axis == null) return;
+                RecipeAxisPosition = (int)(_axis.CurrentPosition ?? 0);
+            });
+            UpdateRecipePositionCommand = new DelegateCommand(() =>
+            {
+                if (_currentRecipe == null || _axis == null) return;
+                if (_axis == _axisX)
+                {
+                    if (CurrentStation == E_WorkSpace.工位1) _currentRecipe._1PosX = RecipeAxisPosition;
+                    else _currentRecipe._2PosX = RecipeAxisPosition;
+                }
+                else if (_axis == _axisY)
+                {
+                    if (CurrentStation == E_WorkSpace.工位1) _currentRecipe._1PosY = RecipeAxisPosition;
+                    else _currentRecipe._2PosY = RecipeAxisPosition;
+                }
+                else if (_axis == _axisZ)
+                {
+                    if (CurrentStation == E_WorkSpace.工位1) _currentRecipe._1PosZ = RecipeAxisPosition;
+                    else _currentRecipe._2PosZ = RecipeAxisPosition;
+                }
+                UpdateRecipePositionDisplay();
+            });
         }
 
         #endregion
@@ -439,20 +490,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (_currentRecipe == null) return;
             try
             {
-                ////var recipeManger = _recipeService as IRecipeManger<OCRRecipeParam>;
-                //switch (CurrentStation)
-                //{
-                //    case E_WorkSpace.工位1:
-                //        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位2.ToString(), _currentRecipe);
-                //       CurrentStation = E_WorkSpace.工位2;
-                //        break;
-                //    case E_WorkSpace.工位2:
-                //        await recipeManger?.ChangedStationRecipe(E_WorkSpace.工位1.ToString(), _currentRecipe);
-                //        CurrentStation = E_WorkSpace.工位1;
-                //        break;
-                //    default:
-                //        break;
-                //}
+                CurrentStation = CurrentStation == E_WorkSpace.工位1
+                    ? E_WorkSpace.工位2
+                    : E_WorkSpace.工位1;
                 OnSelectedStationChanged();
             }
             catch (Exception ex)
@@ -466,17 +506,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var scanner = CurrentStation == 0 ? _scanner1 : _scanner2;
             if (scanner == null)
             {
-                MessageService.ShowMessage($"工位{CurrentStation + 1}扫码枪未连接", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ScanResult = $"工位{CurrentStation + 1}扫码枪未连接";
                 return;
             }
             try
             {
+                ScanResult = "扫码中...";
                 var result = await scanner.Tigger();
-                MessageService.ShowMessage($"扫码结果: {result}", "触发扫码", MessageBoxButton.OK, MessageBoxImage.Information);
+                ScanResult = result ?? "(空)";
             }
             catch (Exception ex)
             {
-                MessageService.ShowMessage($"触发扫码失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                ScanResult = $"扫码失败: {ex.Message}";
             }
         }
 
@@ -484,17 +525,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (_camera == null)
             {
-                MessageService.ShowMessage("OCR相机未连接", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                OcrResult = "OCR相机未连接";
                 return;
             }
             try
             {
+                OcrResult = "OCR识别中...";
                 var result = await _camera.Tigger();
-                MessageService.ShowMessage($"OCR结果: {result}", "触发OCR", MessageBoxButton.OK, MessageBoxImage.Information);
+                OcrResult = result ?? "(空)";
             }
             catch (Exception ex)
             {
-                MessageService.ShowMessage($"触发OCR失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                OcrResult = $"OCR失败: {ex.Message}";
             }
         }
 

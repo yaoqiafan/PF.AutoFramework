@@ -328,14 +328,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnDialogCallback(IDialogResult result)
         {
-            if (result.Result == ButtonResult.Yes)
+            if (result.Result == ButtonResult.OK)
             {
                 try
                 {
                     var paramItem = result.Parameters.GetValue<OCRRecipeParam>("CallBackRecipe");
                     if (paramItem != null)
                     {
-                        SelectedParameter = MapToEntity(paramItem);
+                        // 更新集合中对应的实体（而非替换引用，否则 DataGrid 不会刷新）
+                        var updatedEntity = MapToEntity(paramItem);
+                        var index = Parameters.IndexOf(SelectedParameter);
+                        if (index >= 0)
+                        {
+                            Parameters[index] = updatedEntity;
+                            SelectedParameter = updatedEntity;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -371,8 +378,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 IsOCRCodePate = param.IsOCRCodePate,
                 AssociateProduct = param.AssociateProduct != null ? new List<string>(param.AssociateProduct) : new List<string>(),
                 CameraPrograms = _camera?.CameraProgram ?? new List<string>(),
-                Light1Value=param ?.LightChanel1Value ?? 0,
-                Light2Value=param ?.LightChanel1Value ?? 0
+                Light1Value=param?.LightChanel1Value ?? 0,
+                Light2Value=param?.LightChanel2Value ?? 0
             };
         }
 
@@ -395,7 +402,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 GuestStartIndex = entity.GuestStartIndex,
                 GuestLength = entity.GuestLength,
                 IsOCRCodePate = entity.IsOCRCodePate,
-                AssociateProduct = entity.AssociateProduct != null ? new List<string>(entity.AssociateProduct) : new List<string>()
+                AssociateProduct = entity.AssociateProduct != null ? new List<string>(entity.AssociateProduct) : new List<string>(),
+                LightChanel1Value = entity.Light1Value,
+                LightChanel2Value = entity.Light2Value
             };
         }
 
