@@ -210,6 +210,118 @@
                                             </Ellipse>
                                             <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="12寸专属到位" />
                                         </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsErrorLayer1}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="错层检测1" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsErrorLayer2}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="错层检测2" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsIronTabDetected}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="铁环突片检测" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Is8InchIronReverse}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="8寸铁环防反检测" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Is12InchIronReverse}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="12寸铁环防反检测" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Is8InchStopRod}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="8寸料盒挡杆检测" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Is12InchStopRod1}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="12寸料盒挡杆检测1" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse>
+                                                <Ellipse.Style>
+                                                    <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Is12InchStopRod2}" Value="True">
+                                                                <Setter Property="Fill" Value="#2ECC71" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15" Text="12寸料盒挡杆检测2" />
+                                        </StackPanel>
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>

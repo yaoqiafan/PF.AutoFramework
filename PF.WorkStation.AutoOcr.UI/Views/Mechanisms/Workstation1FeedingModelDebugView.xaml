@@ -454,7 +454,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsErrorLayer1}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -472,7 +472,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsErrorLayer2}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -490,7 +490,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsIronTabDetected}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -509,7 +509,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is8InchIronReverse}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -528,7 +528,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is12InchIronReverse}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -547,7 +547,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is8InchStopRod}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -566,7 +566,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is12InchStopRod1}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -585,7 +585,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is12InchStopRod2}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
