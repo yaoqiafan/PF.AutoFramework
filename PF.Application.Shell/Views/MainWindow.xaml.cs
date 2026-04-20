@@ -115,7 +115,7 @@ namespace PF.Application.Shell.Views
                     Background = (Brush)FindResource("LightPrimaryBrush"), // 还原原有的背景色
                     Margin = new Thickness(0, 0, 0, 10),
                     Icon = CreateIconElement(group.Icon), // 渲染组图标
-                    IsExpanded = true// 渲染子节点图标
+                    IsExpanded = false// 渲染子节点图标
                 };
 
                 foreach (var child in group.Children)
@@ -126,7 +126,7 @@ namespace PF.Application.Shell.Views
                         Tag = child,
                         DataContext = child,
                         Icon = CreateIconElement(child.Icon),
-                        IsExpanded = true// 渲染子节点图标
+                        IsExpanded = false// 渲染子节点图标
                     };
 
                     groupItem.Items.Add(childItem);
