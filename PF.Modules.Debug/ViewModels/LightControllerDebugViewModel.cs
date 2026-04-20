@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Device.Hardware.LightController;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using System;
@@ -95,6 +96,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand DisconnectCommand { get; private set; }
         /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
+        /// <summary>模拟硬件报警命令</summary>
+        public DelegateCommand SimulateAlarmCommand { get; private set; }
 
 
         private void InitializeCommands()
@@ -102,6 +105,10 @@ namespace PF.Modules.Debug.ViewModels
             ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
+            SimulateAlarmCommand = new DelegateCommand(() =>
+            {
+                _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.LightControllerError, "调试页面手动模拟光源控制器报警");
+            });
         }
 
         #endregion 【控制命令定义】

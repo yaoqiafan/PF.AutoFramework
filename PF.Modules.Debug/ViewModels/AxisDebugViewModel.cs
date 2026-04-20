@@ -215,6 +215,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand JogNegativeCommand { get; private set; }
         /// <summary>轴停止命令</summary>
         public DelegateCommand AxisStop { get; private set; }
+        /// <summary>模拟硬件报警命令</summary>
+        public DelegateCommand SimulateAlarmCommand { get; private set; }
 
         // 点表控制命令
         /// <summary>添加点位命令</summary>
@@ -265,21 +267,19 @@ namespace PF.Modules.Debug.ViewModels
             JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity * 5, JogVelocity * 5); });
             JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity * 5, JogVelocity * 5); });
             AxisStop = new DelegateCommand(async () => { if (_axis != null) await _axis.StopAsync(); });
+            SimulateAlarmCommand = new DelegateCommand(() =>
+            {
+                _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.ServoError, "调试页面手动模拟伺服报警");
+            });
             // ===== 点表管理命令 =====
             AddPointCommand = new DelegateCommand(() =>
             {
                 if (_axis == null) return;
-                int nextOrder = PointTable.Any() ? PointTable.Max(p => p.SortOrder) + 10 : 10;
-                var newPoint = new AxisPoint
+                if (SelectedPoint != null)
                 {
-                    Name = $"新点位_{DateTime.Now:HHmmss}",
-                    TargetPosition = CurrentPosition, // 默认记录当前位置
-                    Speed = AbsVelocity,
-                    SortOrder = nextOrder
-                };
-                PointTable.Add(newPoint);
-                _axis.AddOrUpdatePoint(newPoint);
-                SelectedPoint = newPoint;
+                    SelectedPoint.TargetPosition = CurrentPosition;
+                    _axis.AddOrUpdatePoint(SelectedPoint);
+                }
             });
 
             DeletePointCommand = new DelegateCommand(() =>

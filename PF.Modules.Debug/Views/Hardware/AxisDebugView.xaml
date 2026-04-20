@@ -242,6 +242,12 @@
                                 Command="{Binding ResetCommand}"
                                 Content="报警复位 (RESET)"
                                 Style="{DynamicResource ButtonDefault}" />
+                            <Button
+                                Height="36"
+                                Margin="0,5"
+                                Command="{Binding SimulateAlarmCommand}"
+                                Content="模拟硬件报警"
+                                Style="{DynamicResource ButtonDanger}" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -514,7 +520,7 @@
                                     Margin="0,0,10,0"
                                     Padding="15,0"
                                     Command="{Binding AddPointCommand}"
-                                    Content="新增当前位置"
+                                    Content="获取当前位置"
                                     Style="{DynamicResource ButtonSuccess}" />
                                 <Button
                                     Height="32"

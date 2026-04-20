@@ -103,6 +103,7 @@
                                 <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" Content="连接硬件" Style="{DynamicResource ButtonDefault}" />
                                 <Button Height="36" Margin="5,0,0,5" Command="{Binding DisconnectCommand}" Content="断开连接" Style="{DynamicResource ButtonDefault}" />
                                 <Button Height="36" Margin="0,5,5,0" Command="{Binding ResetCommand}" Content="报警复位" Style="{DynamicResource ButtonWarning}" />
+                                <Button Height="36" Margin="5,5,0,0" Command="{Binding SimulateAlarmCommand}" Content="模拟报警测试" Style="{DynamicResource ButtonDanger}" />
                             </UniformGrid>
 
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">

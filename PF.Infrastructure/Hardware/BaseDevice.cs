@@ -415,6 +415,18 @@ namespace PF.Infrastructure.Hardware
             });
         }
 
+        /// <summary>
+        /// 外部触发模拟硬件报警（供调试页面使用）。
+        /// 无论是否处于模拟模式，均可调用，用于验证完整的报警级联链路：
+        /// Device → Mechanism → Station → MasterController。
+        /// </summary>
+        /// <param name="errorCode">报警码</param>
+        /// <param name="message">报警描述</param>
+        public void SimulateAlarm(string errorCode, string message)
+        {
+            RaiseAlarm(errorCode, message);
+        }
+
         #endregion
 
         #region IDisposable 实现
