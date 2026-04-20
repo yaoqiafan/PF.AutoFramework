@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     d:DesignHeight="220"
-    d:DesignWidth="380"
+    Width="380"
     mc:Ignorable="d">
 
     <Border
