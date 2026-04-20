@@ -259,12 +259,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     _logger.Success($"[{MechanismName}] 识别到 8寸 晶圆料盒。");
                     _currentWaferSize = E_WafeSize._8寸;
+                    bool is8inchReverse = _io.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
+                    if (is8inchReverse)
+                    {
+                        throw new Exception($"[{MechanismName}] 8寸晶圆放反，请检查。");
+                    }
                     return E_WafeSize._8寸;
                 }
                 else if (is12inch && !is8inch)
                 {
                     _logger.Success($"[{MechanismName}] 识别到 12寸 晶圆料盒。");
                     _currentWaferSize = E_WafeSize._12寸;
+
+                    bool is12inchReverse = _io.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
+                    if (is12inchReverse)
+                    {
+                        throw new Exception($"[{MechanismName}] 12寸晶圆放反，请检查。");
+                    }
                     return E_WafeSize._12寸;
                 }
                 else
@@ -384,13 +395,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            // 【刚性互锁】晶圆夹爪闭合时（可能夹着晶圆），X挡板伸缩会导致机械干涉撞击
-            if (_io.ReadInput(E_InPutName.晶圆夹爪右气缸张开) != true)
+            if (_io.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) != true)
             {
-                _logger.Warn($"[{MechanismName}] X轴运动检查失败：夹爪未张开，禁止X轴运动以防夹碎晶圆。");
+                _logger.Warn($"[{MechanismName}] X轴运动检查失败：存在突片。");
                 return false;
             }
-
             return true;
         }
 
@@ -406,7 +415,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Warn($"[{MechanismName}] 拉料检查失败：模组未初始化。");
                 return false;
             }
-            // 预留区：后续补充夹爪闭合状态、料片真空吸附检测等逻辑...
+
+            switch (_currentWaferSize)
+            {
+                case E_WafeSize._8寸:
+                    if (_io.ReadInput(E_InPutName.上晶圆右8寸料盒挡杆检测) != true)
+                    {
+                        _logger.Warn($"[{MechanismName}] 晶圆盒挡杆未打开。");
+                        return false;
+                    }
+                    break;
+                case E_WafeSize._12寸:
+                    if (_io.ReadInput(E_InPutName.上晶圆右12寸料盒挡杆检测1) != true || _io.ReadInput(E_InPutName.上晶圆右12寸料盒挡杆检测2) != true)
+                    {
+                        _logger.Warn($"[{MechanismName}] 晶圆盒挡杆未打开。");
+                        return false;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
             return true;
         }
 

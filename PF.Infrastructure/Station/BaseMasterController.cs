@@ -116,6 +116,12 @@ namespace PF.Infrastructure.Station
         private readonly HashSet<string> _reportedAlarmKeys = new();
 
         /// <summary>
+        /// 初始化阶段的取消令牌源：当任意工站初始化失败时，通过取消此令牌中断其余工站的初始化。
+        /// 仅在主控处于 Initializing 状态期间有效。
+        /// </summary>
+        private CancellationTokenSource? _initCts;
+
+        /// <summary>
         /// 硬件复位请求委托：由外部框架（如 Prism EA）通过 <see cref="RegisterHardwareResetHandler(Action{HardwareResetRequest})"/> 注入，实现低耦合路由。
         /// </summary>
         private Action<HardwareResetRequest>? _hardwareResetHandler;
@@ -320,6 +326,14 @@ namespace PF.Infrastructure.Station
             var stationName = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
             var masterState = CurrentState;
 
+            // 初始化阶段：工站进入报警态 → 立即取消共享令牌，中断其余工站初始化
+            if (masterState == MachineState.Initializing
+                && (e.NewState == MachineState.InitAlarm || e.NewState == MachineState.RunAlarm))
+            {
+                _logger.Warn($"【主控】工站 [{stationName}] 初始化失败({e.NewState})，取消其余工站初始化。");
+                try { _initCts?.Cancel(); } catch { }
+            }
+
             // 撕裂判定：仅在意非预期地回落到 Uninitialized 的异常场景
             if (!_subStationStopsAreIntentional
                 && (masterState == MachineState.Running || masterState == MachineState.Paused)
@@ -457,13 +471,13 @@ namespace PF.Infrastructure.Station
             _logger.Info("【主控】开始全线初始化(限流模式)...");
             Fire(MachineTrigger.Initialize);
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            _initCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
             try
             {
                 var parallelOptions = new ParallelOptions
                 {
                     MaxDegreeOfParallelism = 4, // 限制峰值并发降低硬件瞬时负荷
-                    CancellationToken = cts.Token
+                    CancellationToken = _initCts.Token
                 };
 
                 await Parallel.ForEachAsync(_subStations, parallelOptions, async (station, token) =>
@@ -471,15 +485,38 @@ namespace PF.Infrastructure.Station
                     await station.ExecuteInitializeAsync(token);
                 });
             }
+            catch (OperationCanceledException)
+            {
+                // 某工站失败取消了令牌，或超时，以下方的工站状态检查为准
+            }
             catch (Exception ex)
             {
                 _logger.Error($"【主控】初始化异常: {ex.Message}");
                 _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout,"设备复位时间过长，请调整复位参数！");
+                _initCts.Dispose();
+                _initCts = null;
                 Fire(MachineTrigger.Error);
                 return;
             }
+            finally
+            {
+                _initCts.Dispose();
+                _initCts = null;
+            }
 
-            Fire(MachineTrigger.InitializeDone);
+            // 检查是否有工站进入了报警态（Fire(Error); return 不会抛异常，Parallel 视为成功）
+            bool hasFailedStation = _subStations.Any(s =>
+                s.CurrentState == MachineState.InitAlarm || s.CurrentState == MachineState.RunAlarm);
+
+            if (hasFailedStation)
+            {
+                _logger.Error("【主控】部分工站初始化失败，进入初始化报警。");
+                Fire(MachineTrigger.Error);
+            }
+            else
+            {
+                Fire(MachineTrigger.InitializeDone);
+            }
         }
 
         /// <summary>
