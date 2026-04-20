@@ -193,7 +193,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             // ④ 伺服上电使能 (Servo On)
             if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
-
+            if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
             // ⑤ 异常待处理：回原点 (Home) 前需检查传感器确认物料是否处于安全位置，防止硬碰撞。
             // if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
             // if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
