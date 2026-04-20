@@ -391,9 +391,9 @@
 
                                         <pf:Card.Footer>
                                             <pf:ButtonGroup Margin="10">
-                                                <Button Content="移动到" />
-                                                <Button Content="获取当前轴位置" />
-                                                <Button Content="更新"   />
+                                                <Button Command="{Binding MoveToRecipePositionCommand}" Content="移动到" />
+                                                <Button Command="{Binding GetCurrentPositionCommand}" Content="获取当前轴位置" />
+                                                <Button Command="{Binding UpdateRecipePositionCommand}" Content="更新" />
                                             </pf:ButtonGroup>
                                         </pf:Card.Footer>
                                     </pf:Card>
@@ -424,7 +424,7 @@
                                                 VerticalAlignment="Stretch"
                                                 FontSize="40"
                                                 IsReadOnly="True"
-                                                Text=""
+                                                Text="{Binding ScanResult}"
                                                 TextAlignment="Center" />
                                         </Border>
 
@@ -462,7 +462,7 @@
                                                 VerticalAlignment="Stretch"
                                                 FontSize="40"
                                                 IsReadOnly="True"
-                                                Text=""
+                                                Text="{Binding OcrResult}"
                                                 TextAlignment="Center" />
                                         </Border>
 
