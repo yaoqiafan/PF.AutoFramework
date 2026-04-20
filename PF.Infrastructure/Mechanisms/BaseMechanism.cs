@@ -145,7 +145,11 @@ namespace PF.Infrastructure.Mechanisms
             if (allResetOk)
                 allResetOk = await InternalResetAsync(token);
 
-            if (allResetOk) HasAlarm = false;
+            if (allResetOk)
+            {
+                HasAlarm = false;
+                IsInitialized = true;
+            }
             return allResetOk;
         }
 
@@ -162,7 +166,11 @@ namespace PF.Infrastructure.Mechanisms
                     allOk = false;
             }
 
-            if (allOk) HasAlarm = false;
+            if (allOk)
+            {
+                HasAlarm = false;
+                IsInitialized = true;
+            }
             return allOk;
         }
 

@@ -109,6 +109,13 @@ namespace PF.Infrastructure.Station
         protected bool MasterCameFromInitAlarm => _masterCameFromInitAlarm;
 
         /// <summary>
+        /// 报警去重集合：记录已上报到 AlarmService 的 (ErrorCode + HardwareName) 组合键。
+        /// 防止共享硬件设备经由多个工站重复上报产生重复弹窗。
+        /// 进入 Resetting 状态时自动清除。
+        /// </summary>
+        private readonly HashSet<string> _reportedAlarmKeys = new();
+
+        /// <summary>
         /// 硬件复位请求委托：由外部框架（如 Prism EA）通过 <see cref="RegisterHardwareResetHandler(Action{HardwareResetRequest})"/> 注入，实现低耦合路由。
         /// </summary>
         private Action<HardwareResetRequest>? _hardwareResetHandler;
@@ -236,6 +243,7 @@ namespace PF.Infrastructure.Station
 
             // 8. 复位中状态
             _globalMachine.Configure(MachineState.Resetting)
+                .OnEntry(() => _reportedAlarmKeys.Clear())
                 .Permit(MachineTrigger.ResetDone, MachineState.Idle)
                 .Permit(MachineTrigger.ResetDoneUninitialized, MachineState.Uninitialized)
                 .PermitDynamic(MachineTrigger.Error,
@@ -347,14 +355,22 @@ namespace PF.Infrastructure.Station
                 return;
 
             var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
-            _logger.Fatal($"【报警】{source} | {e.ErrorCode}" +
-                (e.HardwareName != null ? $" | 硬件:{e.HardwareName}" : "") +
-                (e.RuntimeMessage != null ? $" | {e.RuntimeMessage}" : ""));
 
-            _alarmService?.TriggerAlarm(source, e.ErrorCode, e.RuntimeMessage);
-            MasterAlarmTriggered?.Invoke(this, e);
+            // 去重：相同 (ErrorCode + HardwareName) 只上报 AlarmService 一次
+            string dedupKey = $"{e.ErrorCode}:{e.HardwareName ?? ""}";
+            bool shouldReport = _reportedAlarmKeys.Add(dedupKey);
 
-            // 脱离调用栈，防止底层同步调用链引发死锁
+            if (shouldReport)
+            {
+                _logger.Fatal($"【报警】{source} | {e.ErrorCode}" +
+                    (e.HardwareName != null ? $" | 硬件:{e.HardwareName}" : "") +
+                    (e.RuntimeMessage != null ? $" | {e.RuntimeMessage}" : ""));
+
+                _alarmService?.TriggerAlarm(source, e.ErrorCode, e.RuntimeMessage);
+                MasterAlarmTriggered?.Invoke(this, e);
+            }
+
+            // 即使是重复报警也触发主控状态机级联（确保所有工站进入报警态）
             Task.Run(() =>
             {
                 try
