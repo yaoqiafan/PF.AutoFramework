@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Infrastructure.Hardware;
@@ -80,6 +81,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand DisconnectCommand { get; }
         /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; }
+        /// <summary>模拟硬件报警命令</summary>
+        public DelegateCommand SimulateAlarmCommand { get; }
 
         // ── 静态颜色 ──────────────────────────────────────────────────────────
         private static readonly Brush GreenBrush = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
@@ -92,6 +95,10 @@ namespace PF.Modules.Debug.ViewModels
             ConnectCommand    = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             ResetCommand      = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
+            SimulateAlarmCommand = new DelegateCommand(() =>
+            {
+                _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.MotionCardBusError, "调试页面手动模拟板卡通讯报警");
+            });
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _pollingTimer.Tick += OnPollingTimerTick;
