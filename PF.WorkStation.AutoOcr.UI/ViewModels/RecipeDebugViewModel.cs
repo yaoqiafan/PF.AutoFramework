@@ -363,6 +363,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         public DelegateCommand JogNegativeCommand { get; private set; }
         /// <summary>
+        /// 轴停止命令
+        /// </summary>
+        public DelegateCommand AxisStopCommand { get; private set; }
+        /// <summary>
         /// SyncAdjust 命令
         /// </summary>
 
@@ -444,6 +448,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             JogNegativeCommand = new DelegateCommand(async () =>
             {
                 if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity * 5, JogVelocity * 5);
+            });
+            AxisStopCommand = new DelegateCommand(async () =>
+            {
+                if (_axis != null) await _axis.StopAsync();
             });
 
             // 程式点位命令
