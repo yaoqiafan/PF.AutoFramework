@@ -252,6 +252,10 @@ namespace PF.Infrastructure.Mechanisms
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
 
+            // P6 修复：将报警事件参数暂存到局部变量，在 catch 外部触发事件，
+            // 避免在 catch 块中同步调用事件链导致 _stateLock 等待延迟报警响应。
+            MechanismAlarmEventArgs? pendingAlarm = null;
+
             try
             {
                 while (true)
@@ -292,18 +296,23 @@ namespace PF.Infrastructure.Mechanisms
 
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待运动完成超时（{timeoutMs} ms）");
-                    // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
-                    AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
+                    // 暂存报警参数，在 catch 外部触发事件
+                    pendingAlarm = new MechanismAlarmEventArgs
                     {
                         MechanismName = this.MechanismName,
                         HardwareName = axisName,
                         ErrorCode = AlarmCodes.Hardware.AxisMoveTimeout,
                         ErrorMessage = $"等待轴运动完成超时（{timeoutMs} ms）"
-                    });
+                    };
                 }
-
-                return false;
             }
+
+            // 在 catch 外部触发报警事件，避免在异常处理上下文中同步调用事件链
+            // （事件链会进入 StationBase.RaiseAlarm → Fire(Error) → 获取 _stateLock）
+            if (pendingAlarm != null)
+                AlarmTriggered?.Invoke(this, pendingAlarm);
+
+            return false;
         }
 
 
@@ -314,7 +323,7 @@ namespace PF.Infrastructure.Mechanisms
         public  async Task<bool> WaitHomeDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
         {
             if (axis == null) return false;
-            
+
             // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
             if ((axis as IHardwareDevice)?.IsSimulated == true)
                 return true;
@@ -330,6 +339,9 @@ namespace PF.Infrastructure.Mechanisms
 
                 return false;
             }
+
+            // P6 修复：暂存报警参数，在 catch 外部触发事件
+            MechanismAlarmEventArgs? pendingAlarm = null;
 
             try
             {
@@ -350,17 +362,20 @@ namespace PF.Infrastructure.Mechanisms
                 {
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待回零完成超时（{timeoutMs} ms）");
-                    // 触发报警事件链，确保上层工站感知到模组超时失败，阻断后续危险动作
-                    AlarmTriggered?.Invoke(this, new MechanismAlarmEventArgs
+                    pendingAlarm = new MechanismAlarmEventArgs
                     {
                         MechanismName = this.MechanismName,
                         HardwareName = axisName,
                         ErrorCode = AlarmCodes.Hardware.HomingTimeout,
                         ErrorMessage = $"等待回零完成超时（{timeoutMs} ms）"
-                    });
+                    };
                 }
-                return false;
             }
+
+            if (pendingAlarm != null)
+                AlarmTriggered?.Invoke(this, pendingAlarm);
+
+            return false;
         }
 
         /// <summary>

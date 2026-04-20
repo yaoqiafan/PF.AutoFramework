@@ -278,8 +278,11 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 任务正常结束：判定究竟是哪个工站赢得了竞争
                             if (doneTask == task1)
                             {
-                                // 💡 必须取消未胜出的 task2，释放其底层的定时器资源，且避免其在未来意外获取工位2的信号
                                 raceCts.Cancel();
+                                // 检测失败方是否吞没了信号量并补发，防止活锁
+                                await SafeReleaseLoserSignalAsync(task2,
+                                    nameof(WorkstationSignals.工位2允许检测),
+                                    nameof(E_WorkStation.工位2拉料工站)).ConfigureAwait(false);
                                 _currentworkSpace = E_WorkSpace.工位1;
                                 _logger.Info($"[{StationName}] 工位1 胜出，抢占视觉检测资源成功。");
                                 _currentStep = StationDetectionStep.去工位1检测位置;
@@ -287,6 +290,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else if (doneTask == task2)
                             {
                                 raceCts.Cancel();
+                                await SafeReleaseLoserSignalAsync(task1,
+                                    nameof(WorkstationSignals.工位1允许检测),
+                                    nameof(E_WorkStation.工位1拉料工站)).ConfigureAwait(false);
                                 _currentworkSpace = E_WorkSpace.工位2;
                                 _logger.Info($"[{StationName}] 工位2 胜出，抢占视觉检测资源成功。");
                                 _currentStep = StationDetectionStep.去工位2检测位置;
@@ -598,6 +604,42 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         #endregion
                 }
+            }
+        }
+
+        #endregion
+
+        #region Signal Race Safety (信号竞争安全保护)
+
+        /// <summary>
+        /// 安全释放竞争失败方可能吞没的信号量。
+        ///
+        /// 场景：Task.WhenAny 竞争中，失败方可能在被取消前已经通过
+        /// SemaphoreSlim.WaitAsync 消费了信号量，但其结果被 WhenAny 丢弃。
+        /// 若不补发，该信号永久丢失，下一轮循环中对应工站的 WaitAsync 将永久阻塞 → 活锁。
+        ///
+        /// 本方法等待失败方任务完成落定，检测其是否成功消费了信号量（RanToCompletion），
+        /// 若是则立即释放回等量的信号，恢复流水线正常节拍。
+        /// </summary>
+        /// <param name="loserTask">竞争失败的等待任务</param>
+        /// <param name="signalName">该任务等待的信号量名称</param>
+        /// <param name="scope">信号量所属 scope（工站）</param>
+        private async Task SafeReleaseLoserSignalAsync(Task loserTask, string signalName, string scope)
+        {
+            // 等待失败方任务完成落定，确保能准确读取其最终状态
+            try
+            {
+                await loserTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { /* 预期取消，安全忽略 */ }
+            catch { /* 其他异常也忽略，不影响胜出方的正常流程 */ }
+
+            // RanToCompletion 说明失败方在被取消前已成功获取信号量
+            // 该信号量已被消费但结果被 WhenAny 丢弃，必须补发防止活锁
+            if (loserTask.Status == TaskStatus.RanToCompletion)
+            {
+                _sync.Release(signalName, scope);
+                _logger.Warn($"[{StationName}] 检测到竞争失败方已消费信号 [{scope}/{signalName}]，已补发防止活锁。");
             }
         }
 
