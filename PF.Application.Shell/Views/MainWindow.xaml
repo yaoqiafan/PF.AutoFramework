@@ -361,6 +361,7 @@
             <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="设备状态：" />
                     <Ellipse Width="8" Height="8" Margin="0,0,4,0"
                              Fill="{Binding MachineStateBrush}" />
                     <TextBlock FontWeight="SemiBold"

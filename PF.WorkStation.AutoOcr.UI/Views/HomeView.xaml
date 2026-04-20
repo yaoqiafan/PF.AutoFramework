@@ -13,6 +13,29 @@
         <Style BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
         </Style>
+
+        <!--  ButtonGroup 按钮模板：Tag 属性传入悬停字体颜色  -->
+        <ControlTemplate x:Key="HoverButtonTemplate" TargetType="RadioButton">
+            <Border
+                x:Name="BorderRoot"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{Binding Path=(pf:BorderElement.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                <ContentPresenter
+                    x:Name="contentPresenter"
+                    Margin="{TemplateBinding Padding}"
+                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                    RecognizesAccessKey="True"
+                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="contentPresenter" Property="TextElement.Foreground" Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
     </UserControl.Resources>
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid>
@@ -22,32 +45,78 @@
             </Grid.RowDefinitions>
 
             <!--  设备总控栏  -->
-            <Border Grid.Row="0" Margin="10,10,10,0" Padding="8"
-                    Background="{DynamicResource RegionBrush}"
-                    CornerRadius="5">
+            <Border
+                Grid.Row="0"
+                Margin="10,10,10,0"
+                Padding="8"
+                Background="{DynamicResource RegionBrush}"
+                CornerRadius="5">
                 <DockPanel>
                     <!--  左侧：状态指示  -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
-                        <Ellipse Width="10" Height="10" Margin="0,0,6,0"
-                                 Fill="{Binding StatusBrush}" />
-                        <TextBlock FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{Binding StatusBrush}"
-                                   Text="{Binding StatusText}" />
+                    <StackPanel
+                        Width="100"
+                        Margin="8,0"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                        <Ellipse
+                            Width="10"
+                            Height="10"
+                            Margin="0,0,6,0"
+                            Fill="{Binding StatusBrush}" />
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{Binding StatusBrush}"
+                            Text="{Binding StatusText}" />
                     </StackPanel>
 
-                    <!--  停止按钮：红色警告样式放最右  -->
-                    <Button DockPanel.Dock="Right" Margin="3,4,8,4"
-                            Content="⏹ 停止" MinWidth="80"
-                            Command="{Binding StopCommand}"
-                            Style="{DynamicResource ButtonWarning}" />
-
                     <!--  控制按钮组  -->
-                    <UniformGrid Columns="4" Margin="8,4">
-                        <Button Margin="3" Content="初始化" Command="{Binding InitializeCommand}" />
-                        <Button Margin="3" Content="{Binding SmartStartText}" Command="{Binding SmartStartCommand}" />
-                        <Button Margin="3" Content="⏸ 暂停" Command="{Binding PauseCommand}" />
-                        <Button Margin="3" Content="⟳ 复位" Command="{Binding ResetCommand}" />
-                    </UniformGrid>
+
+                    <pf:ButtonGroup HorizontalAlignment="Stretch">
+                        <RadioButton
+                            Height="45"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding InitializeCommand}"
+                            Content="💠 初始化"
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            Tag="{StaticResource InfoBrush}"
+                            Template="{StaticResource HoverButtonTemplate}" />
+                        <RadioButton
+                            Height="45"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding SmartStartCommand}"
+                            Content="{Binding SmartStartText}"
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            Tag="{StaticResource PrimaryBrush}"
+                            Template="{StaticResource HoverButtonTemplate}" />
+                        <RadioButton
+                            Height="45"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding PauseCommand}"
+                            Content="⏸ 暂停"
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            Tag="{StaticResource WarningBrush}"
+                            Template="{StaticResource HoverButtonTemplate}" />
+                        <RadioButton
+                            Height="45"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding ResetCommand}"
+                            Content="🔄️ 复位"
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            Tag="{DynamicResource SuccessBrush}"
+                            Template="{StaticResource HoverButtonTemplate}" />
+                        <RadioButton
+                            Height="45"
+                            HorizontalAlignment="Stretch"
+                            Command="{Binding StopCommand}"
+                            Content="⏹ 停止"
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            Tag="{StaticResource DangerBrush}"
+                            Template="{StaticResource HoverButtonTemplate}" />
+                    </pf:ButtonGroup>
+
+
+
                 </DockPanel>
             </Border>
 
