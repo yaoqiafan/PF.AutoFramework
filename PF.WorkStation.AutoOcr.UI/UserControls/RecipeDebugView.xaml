@@ -385,7 +385,7 @@
                                                 HorizontalAlignment="Stretch"
                                                 VerticalAlignment="Stretch"
                                                 FontSize="40"
-                                                Text="{Binding RecipeAxisPosition, StringFormat={}{0:F3}}"
+                                                Text="{Binding RecipeAxisPosition}"
                                                 TextAlignment="Center" />
                                         </Border>
 

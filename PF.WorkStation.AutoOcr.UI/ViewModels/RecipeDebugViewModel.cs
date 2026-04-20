@@ -614,7 +614,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 z = _currentRecipe._2PosZ;
             }
 
-            CurrentRecipePosition = $"(X={x:F3}, Y={y:F3}, Z={z:F3})";
+            CurrentRecipePosition = $"(X={x}, Y={y}, Z={z})";
 
             // 根据当前选中的轴确定 RecipeAxisPosition
             if (_axis == null) return;
