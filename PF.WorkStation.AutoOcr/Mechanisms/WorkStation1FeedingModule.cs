@@ -260,7 +260,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     _logger.Success($"[{MechanismName}] 识别到 8寸 晶圆料盒。");
                     _currentWaferSize = E_WafeSize._8寸;
-                    bool is8inchReverse = _io.ReadInput(E_InPutName.上晶圆左12寸料盒到位检测) == true;// 12寸料盒特征感应位
+                    bool is8inchReverse = _io.ReadInput(E_InPutName.上晶圆左8寸料盒到位检测) == true;// 12寸料盒特征感应位
                     if (is8inchReverse)
                     {
                         throw new Exception($"[{MechanismName}] 8寸晶圆放反，请检查。");
@@ -396,7 +396,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            if (_io.ReadInput(E_InPutName.上晶圆左铁环突片检测) != true)
+            if (_io.ReadInput(E_InPutName.上晶圆左铁环突片检测) == true)
             {
                 _logger.Warn($"[{MechanismName}] X轴运动检查失败：存在突片。");
                 return false;
@@ -420,14 +420,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             switch (_currentWaferSize)
             {
                 case E_WafeSize._8寸:
-                    if (_io.ReadInput(E_InPutName.上晶圆左8寸料盒挡杆检测) != true)
+                    if (_io.ReadInput(E_InPutName.上晶圆左8寸料盒挡杆检测) == true)
                     {
                         _logger.Warn($"[{MechanismName}] 晶圆盒挡杆未打开。");
                         return false;
                     }
                     break;
                 case E_WafeSize._12寸:
-                    if (_io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测1) != true|| _io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测2) != true)
+                    if (_io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测1) == true|| _io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测2) == true)
                     {
                         _logger.Warn($"[{MechanismName}] 晶圆盒挡杆未打开。");
                         return false;
