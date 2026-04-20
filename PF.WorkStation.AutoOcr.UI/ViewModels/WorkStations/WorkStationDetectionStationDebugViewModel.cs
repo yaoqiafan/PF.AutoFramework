@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
@@ -239,7 +240,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[StationDebug] 复位失败: {ex.Message}"); }
         }
 
-        private void ExecuteTriggerAlarm() => _station.TriggerAlarm();
+        private void ExecuteTriggerAlarm() => _station.TriggerAlarm(AlarmCodes.System.ManualTestAlarm, "调试页面手动触发报警");
 
         private void ExecuteTriggerStation1Detection()
             => _sync.Release(WorkstationSignals.工位1检测完成.ToString(), E_WorkStation.OCR检测工站.ToString());

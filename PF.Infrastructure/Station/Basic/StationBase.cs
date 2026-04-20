@@ -269,7 +269,10 @@ namespace PF.Infrastructure.Station.Basic
                     _cameFromInitAlarm = true;
                     // 开门：防止 Paused → InitAlarm 时业务续体永久阻塞
                     _pauseGate.TrySetResult(true);
-                    var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
+                    // 区分级联与真实报警：
+                    //   · _pendingAlarmCode 非空 → 真实报警（RaiseAlarm / TriggerAlarm(code) 设定）
+                    //   · _pendingAlarmCode 为空 → 主控级联（TriggerAlarm() 无参调用），使用专用标识
+                    var code = _pendingAlarmCode ?? AlarmCodes.System.CascadeAlarm;
                     var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
                     _pendingAlarmCode = null;
                     _pendingAlarmContext = null;
@@ -283,7 +286,8 @@ namespace PF.Infrastructure.Station.Basic
                 {
                     _cameFromInitAlarm = false;
                     _pauseGate.TrySetResult(true);
-                    var code = _pendingAlarmCode ?? AlarmCodes.System.StationSyncError;
+                    // 区分级联与真实报警（同 InitAlarm 逻辑）
+                    var code = _pendingAlarmCode ?? AlarmCodes.System.CascadeAlarm;
                     var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
                     _pendingAlarmCode = null;
                     _pendingAlarmContext = null;
@@ -605,7 +609,8 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         protected void RaiseAlarm(string errorCode)
         {
-            if (_cancelledIntentionally) return;
+            // 仅在 Stop() 主动停止时忽略；Pause 状态下硬件报警仍需正常上报
+            if (_cancelledIntentionally && !_isPaused) return;
             _pendingAlarmCode = errorCode;
             TriggerAlarm();
         }
@@ -616,7 +621,8 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         protected void RaiseAlarm(string errorCode, string runtimeMessage)
         {
-            if (_cancelledIntentionally) return;
+            // 仅在 Stop() 主动停止时忽略；Pause 状态下硬件报警仍需正常上报
+            if (_cancelledIntentionally && !_isPaused) return;
             _pendingAlarmCode = errorCode;
             _pendingAlarmContext = new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage };
             TriggerAlarm();
@@ -628,7 +634,8 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         protected void RaiseAlarm(StationAlarmEventArgs context)
         {
-            if (_cancelledIntentionally) return;
+            // 仅在 Stop() 主动停止时忽略；Pause 状态下硬件报警仍需正常上报
+            if (_cancelledIntentionally && !_isPaused) return;
             _pendingAlarmCode = context.ErrorCode;
             _pendingAlarmContext = context;
             TriggerAlarm();

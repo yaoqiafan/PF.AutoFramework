@@ -233,6 +233,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 Fire(MachineTrigger.Error); // Initializing → Alarm
                 throw;
             }
+            this._currentStep = Station2FeedingStep.等待按下工位2启动按钮;
         }
 
         /// <summary>执行工站复位</summary>

@@ -337,12 +337,13 @@ namespace PF.Infrastructure.Station
 
         /// <summary>
         /// 处理子工站报警事件：写入 AlarmService 并触发主控状态跳转。
-        /// 工站同步异常（StationSyncError）为级联产生的兜底码，静默忽略。
+        /// 级联标识码（CascadeAlarm）为主控全局报警时级联触发的内部标记，静默忽略。
+        /// StationSyncError 为真实的兜底报警（非预期异常、缺少报警码），必须正常上报。
         /// </summary>
         private void OnSubStationAlarm(object sender, StationAlarmEventArgs e)
         {
-            // 静默忽略：级联产生的兜底同步码，非真实根因报警
-            if (e.ErrorCode == AlarmCodes.System.StationSyncError)
+            // 静默忽略：仅限主控级联 TriggerAlarm() 产生的内部标识码
+            if (e.ErrorCode == AlarmCodes.System.CascadeAlarm)
                 return;
 
             var source = (sender as StationBase<StationMemoryBaseParam>)?.StationName ?? "未知工站";
@@ -440,7 +441,7 @@ namespace PF.Infrastructure.Station
             _logger.Info("【主控】开始全线初始化(限流模式)...");
             Fire(MachineTrigger.Initialize);
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
             try
             {
                 var parallelOptions = new ParallelOptions
@@ -457,7 +458,7 @@ namespace PF.Infrastructure.Station
             catch (Exception ex)
             {
                 _logger.Error($"【主控】初始化异常: {ex.Message}");
-                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout);
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout,"设备复位时间过长，请调整复位参数！");
                 Fire(MachineTrigger.Error);
                 return;
             }

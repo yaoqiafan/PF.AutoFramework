@@ -150,6 +150,18 @@ namespace PF.Core.Constants
                 "4. 重启同步服务（重启软件）;")]
             public const string StationSyncError = "SYS_SYNC_001";
 
+            /// <summary>
+            /// 级联报警内部标识码。
+            /// 仅用于主控级联 TriggerAlarm 时标识非根因报警，不应对外暴露。
+            /// 与 StationSyncError（真实兜底报警码）严格区分，避免真实报警被静默吞没。
+            /// </summary>
+            public const string CascadeAlarm = "SYS_CASCADE_INTERNAL";
+
+            /// <summary>调试页面手动触发报警</summary>
+            [AlarmInfo("调试测试", "调试页面手动触发的模拟报警", AlarmSeverity.Warning,
+                "此为调试测试报警，复位后即可恢复;")]
+            public const string ManualTestAlarm = "SYS_TEST_001";
+
         }
 
        
