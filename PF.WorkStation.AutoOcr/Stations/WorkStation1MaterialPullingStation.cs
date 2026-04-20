@@ -201,6 +201,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 Fire(MachineTrigger.Error); // Initializing → Alarm
                 throw;
             }
+            this._currentStep = Station1PullingStep.等待允许取料;
         }
 
         /// <summary>执行工站复位</summary>

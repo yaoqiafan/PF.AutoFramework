@@ -185,6 +185,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 Fire(MachineTrigger.Error); // Initializing → Alarm
                 throw;
             }
+            this._currentStep = StationDetectionStep.等待工位1或工位2允许检测;
         }
 
         /// <summary>执行工站复位</summary>
