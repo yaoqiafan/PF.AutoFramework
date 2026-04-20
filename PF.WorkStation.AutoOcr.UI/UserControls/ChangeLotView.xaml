@@ -14,9 +14,7 @@
     <Border
         Padding="20"
         Background="{DynamicResource RegionColorBrush}"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8">
+       >
 
         <Grid>
             <Grid.RowDefinitions>
@@ -37,7 +35,6 @@
                     VerticalAlignment="Center"
                     FontSize="{DynamicResource FontSize.Body.Standard}"
                     FontWeight="SemiBold"
-                    Foreground="#475569"
                     Text="内部批次:" />
                 <TextBox
                     Grid.Column="1"
@@ -58,7 +55,6 @@
                     VerticalAlignment="Center"
                     FontSize="{DynamicResource FontSize.Body.Standard}"
                     FontWeight="SemiBold"
-                    Foreground="#475569"
                     Text="工       号:" />
                 <TextBox
                     Grid.Column="1"
