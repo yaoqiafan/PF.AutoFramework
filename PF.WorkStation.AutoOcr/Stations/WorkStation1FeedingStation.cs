@@ -1,5 +1,3 @@
-using NPOI.OpenXmlFormats.Wordprocessing;
-using NPOI.SS.Formula.Functions;
 using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
@@ -7,6 +5,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -218,7 +217,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                     return;
                 }
 
-                if (await _feedingModule.InitializeFeedingStateAsync(token: token))
+                var initResult = await _feedingModule.InitializeFeedingStateAsync(token: token);
+                if (initResult.IsSuccess)
                 {
                     _logger.Success($"[{StationName}] 初始化完成，机构已退回安全位就绪。");
                     _feedingModule.ResumeHealthMonitoring();
@@ -226,7 +226,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 }
                 else
                 {
-                    _logger.Error($"[{StationName}] 初始化失败，模组未能回归安全状态。");
+                    _logger.Error($"[{StationName}] 初始化失败：{initResult.ErrorMessage}");
+                    TriggerAlarm(initResult.ErrorCode, initResult.ErrorMessage);
                     Fire(MachineTrigger.Error);
                 }
             }
@@ -349,16 +350,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.识别料盒尺寸:
                         CurrentStepDescription = "识别料盒尺寸...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
                         {
-                            _detectedWaferSize = await _feedingModule.GetWaferBoxSizeAsync(token).ConfigureAwait(false);
-                            _logger.Info($"[{StationName}] 料盒尺寸识别成功：{_detectedWaferSize}。");
-                            _currentStep = Station1FeedingStep.验证尺寸与配方是否匹配;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error($"[{StationName}] 料盒尺寸识别失败：{ex.Message}");
-                            _currentStep = Station1FeedingStep.料盒尺寸识别失败;
+                            var sizeResult = await _feedingModule.GetWaferBoxSizeAsync(token).ConfigureAwait(false);
+                            if (sizeResult.IsSuccess)
+                            {
+                                _detectedWaferSize = sizeResult.Data;
+                                _logger.Info($"[{StationName}] 料盒尺寸识别成功：{_detectedWaferSize}。");
+                                _currentStep = Station1FeedingStep.验证尺寸与配方是否匹配;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 料盒尺寸识别失败：{sizeResult.ErrorMessage}");
+                                _currentStep = Station1FeedingStep.料盒尺寸识别失败;
+                                TriggerAlarm(sizeResult.ErrorCode, sizeResult.ErrorMessage);
+                                break;
+                            }
                         }
                         break;
 
@@ -380,29 +386,35 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.切换物料尺寸:
                         CurrentStepDescription = "切换物料尺寸...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token).ConfigureAwait(false))
+                        var switchResult = await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token).ConfigureAwait(false);
+                        if (switchResult.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] 切换物料尺寸成功，继续执行。");
                             _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
                         }
                         else
                         {
-                            _logger.Error($"[{StationName}] 料盒尺寸不匹配：实际={_detectedWaferSize}，配方要求={_cachedRecipe.WafeSize}。");
+                            _logger.Error($"[{StationName}] 切换物料尺寸失败：{switchResult.ErrorMessage}");
                             _currentStep = Station1FeedingStep.料盒尺寸与配方不匹配;
+                            TriggerAlarm(switchResult.ErrorCode, switchResult.ErrorMessage);
+                            break;
                         }
                         break;
 
                     case Station1FeedingStep.判断X轴是否具备运动条件_开始:
                         CurrentStepDescription = "检查X轴运动条件（开始）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false))
+                        var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
+                        if (canMoveXResult.IsSuccess)
                         {
                             _currentStep = Station1FeedingStep.X轴到待机位;
                         }
                         else
                         {
-                            _logger.Error($"[{StationName}] X轴运动条件不满足（开始阶段），请检查夹爪状态。");
+                            _logger.Error($"[{StationName}] X轴运动条件不满足：{canMoveXResult.ErrorMessage}");
                             _currentStep = Station1FeedingStep.X轴运动条件不满足;
+                            TriggerAlarm(canMoveXResult.ErrorCode, canMoveXResult.ErrorMessage);
+                            break;
                         }
                         break;
 
@@ -438,55 +450,50 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.Z轴扫描寻层:
                         CurrentStepDescription = "Z轴扫描寻层...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
                         {
-                            _rawMappingData = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
-                            if (_rawMappingData.Count > 0)
+                            var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
+                            if (scanResult.IsSuccess && scanResult.Data.Count > 0)
                             {
+                                _rawMappingData = scanResult.Data;
                                 _logger.Info($"[{StationName}] 寻层扫描完成，进入算法过滤。");
                                 _currentStep = Station1FeedingStep.算法过滤层数;
                             }
                             else
                             {
-                                _logger.Error($"[{StationName}] 寻层扫描结果为0层，料盒可能为空或扫描异常。");
+                                _logger.Error($"[{StationName}] Z轴寻层扫描异常：{(scanResult.IsSuccess ? "结果为0层" : scanResult.ErrorMessage)}");
                                 _currentStep = Station1FeedingStep.Z轴寻层扫描异常;
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error($"[{StationName}] Z轴寻层扫描异常：{ex.Message}");
-                            _currentStep = Station1FeedingStep.Z轴寻层扫描异常;
                         }
                         break;
 
                     case Station1FeedingStep.算法过滤层数:
                         CurrentStepDescription = "算法过滤与防呆验证...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
                         {
-                            var validWafersDict = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
-                            _layersToProcess = validWafersDict.Keys.OrderBy(layerIndex => layerIndex).ToList();
-
-                            _totalLayerCount = _layersToProcess.Count;
-                            _currentLayerIndex = 0;
-
-                            if (_layersToProcess.Count == 0)
+                            var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
+                            if (filterResult.IsSuccess)
                             {
-                                _logger.Warn($"[{StationName}] 寻层过滤结果为空，料盒内未检测到任何有效晶圆！");
-                                _currentStep = Station1FeedingStep.寻层算法空值判定;
+                                _layersToProcess = filterResult.Data.Keys.OrderBy(layerIndex => layerIndex).ToList();
+                                _totalLayerCount = _layersToProcess.Count;
+                                _currentLayerIndex = 0;
+
+                                if (_layersToProcess.Count == 0)
+                                {
+                                    _logger.Warn($"[{StationName}] 寻层过滤结果为空，料盒内未检测到任何有效晶圆！");
+                                    _currentStep = Station1FeedingStep.寻层算法空值判定;
+                                }
+                                else
+                                {
+                                    _logger.Info($"[{StationName}] 过滤完成！共识别到 {_totalLayerCount} 片有效晶圆。实际存在的层级索引为：{string.Join(", ", _layersToProcess)}");
+                                    _logger.Info($"[{StationName}] 开始进入后续取料循环运动流程...");
+                                    _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
+                                }
                             }
                             else
                             {
-                                _logger.Info($"[{StationName}] 过滤完成！共识别到 {_totalLayerCount} 片有效晶圆。实际存在的层级索引为：{string.Join(", ", _layersToProcess)}");
-                                _logger.Info($"[{StationName}] 开始进入后续取料循环运动流程...");
-                                _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
+                                _logger.Error($"[{StationName}] 寻层算法过滤发生异常: {filterResult.ErrorMessage}");
+                                _currentStep = Station1FeedingStep.寻层算法过滤异常;
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            // 捕获到底层抛出的严重防呆错误（斜片、重叠片等）
-                            _logger.Error($"[{StationName}] 寻层算法过滤发生异常: {ex.Message}");
-                            _currentStep = Station1FeedingStep.寻层算法过滤异常;
                         }
                         break;
 
@@ -731,7 +738,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1FeedingStep.料盒尺寸识别失败:
                         _logger.Error($"[{StationName}] 料盒尺寸识别失败（传感器信号异常或料盒未放正）。请检查料盒位置后复位，将重新识别尺寸。");
-                        _currentStep = Station1FeedingStep.识别料盒尺寸; // 仅需重新识别
+                        _currentStep = Station1FeedingStep.识别料盒尺寸;
                         TriggerAlarm(AlarmCodesExtensions.WS1Feeding.SizeDetectionSensorFailed, "料盒尺寸识别失败，传感器信号异常");
                         break;
 

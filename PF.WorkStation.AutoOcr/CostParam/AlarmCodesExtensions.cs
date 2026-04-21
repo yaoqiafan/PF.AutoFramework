@@ -175,6 +175,151 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 重启软件后重新运行;\n" +
                 "4. 提供日志文件给技术支持;")]
             public const string UndefinedStep = "PROC_WS1F_SYS_001";
+
+            // ── 模组内部方法级错误码 ──
+
+            /// <summary>初始化上料状态失败（Z/X轴运动到待机位失败）</summary>
+            [AlarmInfo("流程异常/运动", "工位1上下料-初始化上料状态失败（Z/X轴运动到待机位失败）", AlarmSeverity.Error,
+                "1. 检查Z轴和X轴是否处于报警状态;\n" +
+                "2. 手动点动确认各轴运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string InitFeedingStateFailed = "PROC_WS1F_MOT_005";
+
+            /// <summary>料盒公用底座未检测到物体</summary>
+            [AlarmInfo("流程异常/传感器", "工位1上下料-料盒公用底座未检测到物体", AlarmSeverity.Error,
+                "1. 确认料盒是否正确放入;\n" +
+                "2. 检查底座光电传感器是否正常;\n" +
+                "3. 清洁传感器感应面;\n" +
+                "4. 复位后重新检测;")]
+            public const string BoxBaseNotDetected = "PROC_WS1F_SEN_003";
+
+            /// <summary>8寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位1上下料-8寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer8InchReversed = "PROC_WS1F_SEN_004";
+
+            /// <summary>12寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位1上下料-12寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer12InchReversed = "PROC_WS1F_SEN_005";
+
+            /// <summary>料盒尺寸传感器信号冲突</summary>
+            [AlarmInfo("流程异常/传感器", "工位1上下料-料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）", AlarmSeverity.Error,
+                "1. 检查料盒是否倾斜或放歪;\n" +
+                "2. 检查8寸和12寸传感器安装位置;\n" +
+                "3. 清洁传感器感应面;\n" +
+                "4. 复位后重新检测;")]
+            public const string BoxSizeConflict = "PROC_WS1F_SEN_006";
+
+            /// <summary>目标层数超出有效范围</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-目标层数超出有效范围", AlarmSeverity.Error,
+                "1. 检查配方中最大层数设置;\n" +
+                "2. 确认料盒规格;\n" +
+                "3. 复位后重新运行;")]
+            public const string LayerOutOfRange = "PROC_WS1F_ALG_003";
+
+            /// <summary>未找到目标层的阵列点位</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-未找到目标层的阵列点位（可能未执行生产状态切换）", AlarmSeverity.Error,
+                "1. 确认已执行切换生产状态步骤;\n" +
+                "2. 检查配方参数是否完整;\n" +
+                "3. 复位后重新运行;")]
+            public const string LayerPointNotFound = "PROC_WS1F_ALG_004";
+
+            /// <summary>Z轴切换层运动失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1上下料-Z轴切换层运动失败", AlarmSeverity.Error,
+                "1. 检查Z轴伺服是否报警;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string LayerMoveFailed = "PROC_WS1F_MOT_006";
+
+            /// <summary>Z轴互锁失败：料盒未到位禁止升降</summary>
+            [AlarmInfo("流程异常/运动", "工位1上下料-Z轴互锁失败：料盒未到位禁止升降", AlarmSeverity.Error,
+                "1. 确认料盒已完全落座;\n" +
+                "2. 检查底座到位传感器;\n" +
+                "3. 复位后重新检查;")]
+            public const string ZAxisBoxNotInPlace = "PROC_WS1F_MOT_007";
+
+            /// <summary>X轴互锁失败：存在铁环突片</summary>
+            [AlarmInfo("流程异常/运动", "工位1上下料-X轴互锁失败：存在铁环突片", AlarmSeverity.Error,
+                "1. 检查铁环突片检测传感器;\n" +
+                "2. 确认铁环安装方向;\n" +
+                "3. 复位后重新检查;")]
+            public const string XAxisTabDetected = "PROC_WS1F_MOT_008";
+
+            /// <summary>拉料互锁失败：晶圆盒挡杆未打开</summary>
+            [AlarmInfo("流程异常/执行器", "工位1上下料-拉料互锁失败：晶圆盒挡杆未打开", AlarmSeverity.Error,
+                "1. 检查挡杆驱动气缸状态;\n" +
+                "2. 确认挡杆传感器信号;\n" +
+                "3. 复位后重新检查;")]
+            public const string PullOutLeverNotOpen = "PROC_WS1F_ACT_001";
+
+            /// <summary>寻层扫描移动到起点失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1上下料-寻层扫描移动到起点失败", AlarmSeverity.Error,
+                "1. 检查Z轴是否卡在中途;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string ScanMoveToStartFailed = "PROC_WS1F_MOT_009";
+
+            /// <summary>寻层扫描硬件锁存配置失败</summary>
+            [AlarmInfo("流程异常/传感器", "工位1上下料-寻层扫描硬件锁存配置失败", AlarmSeverity.Error,
+                "1. 检查运动控制卡连接;\n" +
+                "2. 确认传感器接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string ScanLatchConfigFailed = "PROC_WS1F_SEN_007";
+
+            /// <summary>寻层扫描移动到终点失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1上下料-寻层扫描移动到终点失败", AlarmSeverity.Error,
+                "1. 检查Z轴是否卡在中途;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string ScanMoveToEndFailed = "PROC_WS1F_MOT_010";
+
+            /// <summary>寻层算法理论层坐标未初始化</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法理论层坐标未初始化", AlarmSeverity.Error,
+                "1. 确认已执行切换生产状态;\n" +
+                "2. 检查配方参数是否完整;\n" +
+                "3. 复位后重新运行;")]
+            public const string AlgorithmNotInitialized = "PROC_WS1F_ALG_005";
+
+            /// <summary>寻层算法传感器原始数据不足</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法传感器原始数据不足", AlarmSeverity.Error,
+                "1. 检查传感器信号线连接;\n" +
+                "2. 确认料盒位置正确;\n" +
+                "3. 复位后重新运行;")]
+            public const string AlgorithmRawDataMissing = "PROC_WS1F_ALG_006";
+
+            /// <summary>寻层算法双传感器识别数量差异过大</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法双传感器识别数量差异过大（疑似斜片或传感器失效）", AlarmSeverity.Error,
+                "1. 检查左右传感器信号;\n" +
+                "2. 确认物料摆放无倾斜;\n" +
+                "3. 复位后重新运行;")]
+            public const string AlgorithmCountMismatch = "PROC_WS1F_ALG_007";
+
+            /// <summary>寻层算法检测到严重斜片(Cross-slot)</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法检测到严重斜片(Cross-slot)", AlarmSeverity.Error,
+                "1. 人工检查料盒内物料状态;\n" +
+                "2. 小心处理斜片物料;\n" +
+                "3. 复位后重新执行寻层;")]
+            public const string AlgorithmCrossSlot = "PROC_WS1F_ALG_008";
+
+            /// <summary>寻层算法检测到重叠片(Double-wafer)</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法检测到重叠片(Double-wafer)", AlarmSeverity.Error,
+                "1. 人工检查料盒内物料状态;\n" +
+                "2. 小心分离重叠物料;\n" +
+                "3. 复位后重新执行寻层;")]
+            public const string AlgorithmDoubleWafer = "PROC_WS1F_ALG_009";
+
+            /// <summary>寻层算法晶圆偏离标准槽位</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法晶圆严重偏离标准槽位（可能未插到底）", AlarmSeverity.Error,
+                "1. 检查物料是否正确插入槽位;\n" +
+                "2. 确认料盒无损坏;\n" +
+                "3. 复位后重新执行寻层;")]
+            public const string AlgorithmSlotMismatch = "PROC_WS1F_ALG_010";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -282,6 +427,151 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 重启软件后重新运行;\n" +
                 "4. 提供日志文件给技术支持;")]
             public const string UndefinedStep = "PROC_WS2F_SYS_001";
+
+            // ── 模组内部方法级错误码 ──
+
+            /// <summary>初始化上料状态失败（Z/X轴运动到待机位失败）</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-初始化上料状态失败（Z/X轴运动到待机位失败）", AlarmSeverity.Error,
+                "1. 检查Z轴和X轴是否处于报警状态;\n" +
+                "2. 手动点动确认各轴运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string InitFeedingStateFailed = "PROC_WS2F_MOT_005";
+
+            /// <summary>料盒公用底座未检测到物体</summary>
+            [AlarmInfo("流程异常/传感器", "工位2上下料-料盒公用底座未检测到物体", AlarmSeverity.Error,
+                "1. 确认料盒是否正确放入;\n" +
+                "2. 检查底座光电传感器是否正常;\n" +
+                "3. 清洁传感器感应面;\n" +
+                "4. 复位后重新检测;")]
+            public const string BoxBaseNotDetected = "PROC_WS2F_SEN_003";
+
+            /// <summary>8寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位2上下料-8寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer8InchReversed = "PROC_WS2F_SEN_004";
+
+            /// <summary>12寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位2上下料-12寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer12InchReversed = "PROC_WS2F_SEN_005";
+
+            /// <summary>料盒尺寸传感器信号冲突</summary>
+            [AlarmInfo("流程异常/传感器", "工位2上下料-料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）", AlarmSeverity.Error,
+                "1. 检查料盒是否倾斜或放歪;\n" +
+                "2. 检查8寸和12寸传感器安装位置;\n" +
+                "3. 清洁传感器感应面;\n" +
+                "4. 复位后重新检测;")]
+            public const string BoxSizeConflict = "PROC_WS2F_SEN_006";
+
+            /// <summary>目标层数超出有效范围</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-目标层数超出有效范围", AlarmSeverity.Error,
+                "1. 检查配方中最大层数设置;\n" +
+                "2. 确认料盒规格;\n" +
+                "3. 复位后重新运行;")]
+            public const string LayerOutOfRange = "PROC_WS2F_ALG_003";
+
+            /// <summary>未找到目标层的阵列点位</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-未找到目标层的阵列点位（可能未执行生产状态切换）", AlarmSeverity.Error,
+                "1. 确认已执行切换生产状态步骤;\n" +
+                "2. 检查配方参数是否完整;\n" +
+                "3. 复位后重新运行;")]
+            public const string LayerPointNotFound = "PROC_WS2F_ALG_004";
+
+            /// <summary>Z轴切换层运动失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-Z轴切换层运动失败", AlarmSeverity.Error,
+                "1. 检查Z轴伺服是否报警;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string LayerMoveFailed = "PROC_WS2F_MOT_006";
+
+            /// <summary>Z轴互锁失败：料盒未到位禁止升降</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-Z轴互锁失败：料盒未到位禁止升降", AlarmSeverity.Error,
+                "1. 确认料盒已完全落座;\n" +
+                "2. 检查底座到位传感器;\n" +
+                "3. 复位后重新检查;")]
+            public const string ZAxisBoxNotInPlace = "PROC_WS2F_MOT_007";
+
+            /// <summary>X轴互锁失败：存在铁环突片</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-X轴互锁失败：存在铁环突片", AlarmSeverity.Error,
+                "1. 检查铁环突片检测传感器;\n" +
+                "2. 确认铁环安装方向;\n" +
+                "3. 复位后重新检查;")]
+            public const string XAxisTabDetected = "PROC_WS2F_MOT_008";
+
+            /// <summary>拉料互锁失败：晶圆盒挡杆未打开</summary>
+            [AlarmInfo("流程异常/执行器", "工位2上下料-拉料互锁失败：晶圆盒挡杆未打开", AlarmSeverity.Error,
+                "1. 检查挡杆驱动气缸状态;\n" +
+                "2. 确认挡杆传感器信号;\n" +
+                "3. 复位后重新检查;")]
+            public const string PullOutLeverNotOpen = "PROC_WS2F_ACT_001";
+
+            /// <summary>寻层扫描移动到起点失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-寻层扫描移动到起点失败", AlarmSeverity.Error,
+                "1. 检查Z轴是否卡在中途;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string ScanMoveToStartFailed = "PROC_WS2F_MOT_009";
+
+            /// <summary>寻层扫描硬件锁存配置失败</summary>
+            [AlarmInfo("流程异常/传感器", "工位2上下料-寻层扫描硬件锁存配置失败", AlarmSeverity.Error,
+                "1. 检查运动控制卡连接;\n" +
+                "2. 确认传感器接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string ScanLatchConfigFailed = "PROC_WS2F_SEN_007";
+
+            /// <summary>寻层扫描移动到终点失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-寻层扫描移动到终点失败", AlarmSeverity.Error,
+                "1. 检查Z轴是否卡在中途;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string ScanMoveToEndFailed = "PROC_WS2F_MOT_010";
+
+            /// <summary>寻层算法理论层坐标未初始化</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法理论层坐标未初始化", AlarmSeverity.Error,
+                "1. 确认已执行切换生产状态;\n" +
+                "2. 检查配方参数是否完整;\n" +
+                "3. 复位后重新运行;")]
+            public const string AlgorithmNotInitialized = "PROC_WS2F_ALG_005";
+
+            /// <summary>寻层算法传感器原始数据不足</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法传感器原始数据不足", AlarmSeverity.Error,
+                "1. 检查传感器信号线连接;\n" +
+                "2. 确认料盒位置正确;\n" +
+                "3. 复位后重新运行;")]
+            public const string AlgorithmRawDataMissing = "PROC_WS2F_ALG_006";
+
+            /// <summary>寻层算法双传感器识别数量差异过大</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法双传感器识别数量差异过大（疑似斜片或传感器失效）", AlarmSeverity.Error,
+                "1. 检查左右传感器信号;\n" +
+                "2. 确认物料摆放无倾斜;\n" +
+                "3. 复位后重新运行;")]
+            public const string AlgorithmCountMismatch = "PROC_WS2F_ALG_007";
+
+            /// <summary>寻层算法检测到严重斜片(Cross-slot)</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法检测到严重斜片(Cross-slot)", AlarmSeverity.Error,
+                "1. 人工检查料盒内物料状态;\n" +
+                "2. 小心处理斜片物料;\n" +
+                "3. 复位后重新执行寻层;")]
+            public const string AlgorithmCrossSlot = "PROC_WS2F_ALG_008";
+
+            /// <summary>寻层算法检测到重叠片(Double-wafer)</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法检测到重叠片(Double-wafer)", AlarmSeverity.Error,
+                "1. 人工检查料盒内物料状态;\n" +
+                "2. 小心分离重叠物料;\n" +
+                "3. 复位后重新执行寻层;")]
+            public const string AlgorithmDoubleWafer = "PROC_WS2F_ALG_009";
+
+            /// <summary>寻层算法晶圆偏离标准槽位</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法晶圆严重偏离标准槽位（可能未插到底）", AlarmSeverity.Error,
+                "1. 检查物料是否正确插入槽位;\n" +
+                "2. 确认料盒无损坏;\n" +
+                "3. 复位后重新执行寻层;")]
+            public const string AlgorithmSlotMismatch = "PROC_WS2F_ALG_010";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -366,6 +656,177 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 检查夹爪内传感器;\n" +
                 "4. 确认无料后复位;")]
             public const string WaferStuckInGripper = "PROC_WS1P_MAT_002";
+
+            // ── 模组内部方法级错误码 ──
+
+            /// <summary>初始化拉料流程失败（Y轴运动到待机位失败）</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-初始化拉料流程失败（Y轴运动到待机位失败）", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string InitPullingFailed = "PROC_WS1P_MOT_006";
+
+            /// <summary>轨道有物料阻止尺寸切换</summary>
+            [AlarmInfo("流程异常/物料", "工位1拉料-轨道有物料，无法执行尺寸切换", AlarmSeverity.Error,
+                "1. 清除轨道上的残留物料;\n" +
+                "2. 确认轨道无料后复位;")]
+            public const string ChangeSizeTrackHasMaterial = "PROC_WS1P_MAT_003";
+
+            /// <summary>尺寸切换气缸IO操作失败</summary>
+            [AlarmInfo("流程异常/执行器", "工位1拉料-尺寸切换气缸IO操作失败", AlarmSeverity.Error,
+                "1. 检查IO模块输出信号;\n" +
+                "2. 确认电磁阀接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string ChangeSizeCylinderFailed = "PROC_WS1P_ACT_003";
+
+            /// <summary>尺寸切换气缸超时</summary>
+            [AlarmInfo("流程异常/执行器", "工位1拉料-尺寸切换气缸动作超时", AlarmSeverity.Error,
+                "1. 检查气源压力是否正常;\n" +
+                "2. 确认磁性开关信号;\n" +
+                "3. 复位后重新运行;")]
+            public const string ChangeSizeCylinderTimeout = "PROC_WS1P_ACT_004";
+
+            /// <summary>夹爪张开气缸操作失败</summary>
+            [AlarmInfo("流程异常/执行器", "工位1拉料-夹爪张开气缸操作失败", AlarmSeverity.Error,
+                "1. 检查IO模块输出信号;\n" +
+                "2. 确认气缸接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperOpenCylinderFailed = "PROC_WS1P_ACT_005";
+
+            /// <summary>夹爪张开超时</summary>
+            [AlarmInfo("流程异常/执行器", "工位1拉料-夹爪张开超时，未感应到张开信号", AlarmSeverity.Error,
+                "1. 检查气源压力;\n" +
+                "2. 确认气缸张开传感器信号;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperOpenTimeout = "PROC_WS1P_ACT_006";
+
+            /// <summary>夹爪闭合气缸操作失败</summary>
+            [AlarmInfo("流程异常/执行器", "工位1拉料-夹爪闭合气缸操作失败", AlarmSeverity.Error,
+                "1. 检查IO模块输出信号;\n" +
+                "2. 确认气缸接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperCloseCylinderFailed = "PROC_WS1P_ACT_007";
+
+            /// <summary>夹爪闭合超时</summary>
+            [AlarmInfo("流程异常/执行器", "工位1拉料-夹爪闭合超时，未感应到闭合信号", AlarmSeverity.Error,
+                "1. 检查气源压力;\n" +
+                "2. 确认气缸闭合传感器信号;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperCloseTimeout = "PROC_WS1P_ACT_008";
+
+            /// <summary>夹爪闭合后未检测到铁环</summary>
+            [AlarmInfo("流程异常/传感器", "工位1拉料-夹爪闭合后未检测到铁环（空夹）", AlarmSeverity.Error,
+                "1. 确认晶圆铁环是否在正确位置;\n" +
+                "2. 检查铁环检测传感器;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperCloseNoRing = "PROC_WS1P_SEN_001";
+
+            /// <summary>移动到待机位失败（带余料防呆）</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-移动到待机位失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveInitialFailed = "PROC_WS1P_MOT_007";
+
+            /// <summary>待机位检测到残留物料</summary>
+            [AlarmInfo("流程异常/传感器", "工位1拉料-待机位检测到残留物料", AlarmSeverity.Error,
+                "1. 人工确认夹爪内是否有残留物料;\n" +
+                "2. 清除残留物料后复位;")]
+            public const string MoveInitialResidualMaterial = "PROC_WS1P_SEN_002";
+
+            /// <summary>移动到待机位失败（无检测模式）</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-移动到待机位失败（强制复位）", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveInitialNoScanFailed = "PROC_WS1P_MOT_008";
+
+            /// <summary>移动到取出安全位置失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-移动到取出安全位置失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string PutOverMoveFailed = "PROC_WS1P_MOT_009";
+
+            /// <summary>卸料后物料粘连未脱落</summary>
+            [AlarmInfo("流程异常/传感器", "工位1拉料-卸料后夹爪物料粘连未脱落", AlarmSeverity.Error,
+                "1. 人工排查夹爪是否粘连带料;\n" +
+                "2. 小心取下残留物料;\n" +
+                "3. 复位后重新运行;")]
+            public const string PutOverMaterialStuck = "PROC_WS1P_SEN_003";
+
+            /// <summary>移动到取料位置失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-移动到取料位置失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string InitialMoveFeedingFailed = "PROC_WS1P_MOT_010";
+
+            /// <summary>拉出运动触发失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-拉出运动触发失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 确认运动控制卡连接;\n" +
+                "3. 复位后重新运行;")]
+            public const string PullOutTriggerFailed = "PROC_WS1P_MOT_011";
+
+            /// <summary>拉出过程卡料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-拉出过程卡料报警，已紧急停止", AlarmSeverity.Fatal,
+                "1. 人工检查是否有物料卡阻;\n" +
+                "2. 确认轨道无异物;\n" +
+                "3. 处理后复位;")]
+            public const string PullOutJamAlarm = "PROC_WS1P_MOT_012";
+
+            /// <summary>拉出过程丢料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-拉出过程丢料报警，已紧急停止", AlarmSeverity.Fatal,
+                "1. 人工检查物料是否脱落;\n" +
+                "2. 小心回收脱落的物料;\n" +
+                "3. 处理后复位;")]
+            public const string PullOutDropAlarm = "PROC_WS1P_MOT_013";
+
+            /// <summary>拉出运动超时</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-Y轴拉出运动超时", AlarmSeverity.Error,
+                "1. 检查Y轴是否卡在中途;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string PullOutTimeout = "PROC_WS1P_MOT_014";
+
+            /// <summary>送入运动触发失败</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-送入运动触发失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 确认运动控制卡连接;\n" +
+                "3. 复位后重新运行;")]
+            public const string PushBackTriggerFailed = "PROC_WS1P_MOT_015";
+
+            /// <summary>送入过程卡料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-送入过程卡料报警，已紧急刹停", AlarmSeverity.Fatal,
+                "1. 人工检查是否有物料卡阻;\n" +
+                "2. 确认轨道无异物;\n" +
+                "3. 处理后复位;")]
+            public const string PushBackJamAlarm = "PROC_WS1P_MOT_016";
+
+            /// <summary>送入过程丢料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-送入过程丢料报警，已紧急刹停", AlarmSeverity.Fatal,
+                "1. 人工检查物料是否脱落;\n" +
+                "2. 小心回收脱落的物料;\n" +
+                "3. 处理后复位;")]
+            public const string PushBackDropAlarm = "PROC_WS1P_MOT_017";
+
+            /// <summary>送入运动超时</summary>
+            [AlarmInfo("流程异常/运动", "工位1拉料-送入运动超时", AlarmSeverity.Error,
+                "1. 检查Y轴是否卡在中途;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string PushBackTimeout = "PROC_WS1P_MOT_018";
+
+            /// <summary>扫码失败</summary>
+            [AlarmInfo("流程异常/相机", "工位1拉料-扫码失败或校验不合法", AlarmSeverity.Error,
+                "1. 检查扫码枪连接;\n" +
+                "2. 确认光源亮度;\n" +
+                "3. 清洁扫码枪镜头;\n" +
+                "4. 复位后重新运行;")]
+            public const string CodeScanFailed = "PROC_WS1P_CAM_001";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -450,6 +911,177 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 检查夹爪内传感器;\n" +
                 "4. 确认无料后复位;")]
             public const string WaferStuckInGripper = "PROC_WS2P_MAT_002";
+
+            // ── 模组内部方法级错误码 ──
+
+            /// <summary>初始化拉料流程失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-初始化拉料流程失败（Y轴运动到待机位失败）", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string InitPullingFailed = "PROC_WS2P_MOT_006";
+
+            /// <summary>轨道有物料阻止尺寸切换</summary>
+            [AlarmInfo("流程异常/物料", "工位2拉料-轨道有物料，无法执行尺寸切换", AlarmSeverity.Error,
+                "1. 清除轨道上的残留物料;\n" +
+                "2. 确认轨道无料后复位;")]
+            public const string ChangeSizeTrackHasMaterial = "PROC_WS2P_MAT_003";
+
+            /// <summary>尺寸切换气缸IO操作失败</summary>
+            [AlarmInfo("流程异常/执行器", "工位2拉料-尺寸切换气缸IO操作失败", AlarmSeverity.Error,
+                "1. 检查IO模块输出信号;\n" +
+                "2. 确认电磁阀接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string ChangeSizeCylinderFailed = "PROC_WS2P_ACT_003";
+
+            /// <summary>尺寸切换气缸超时</summary>
+            [AlarmInfo("流程异常/执行器", "工位2拉料-尺寸切换气缸动作超时", AlarmSeverity.Error,
+                "1. 检查气源压力是否正常;\n" +
+                "2. 确认磁性开关信号;\n" +
+                "3. 复位后重新运行;")]
+            public const string ChangeSizeCylinderTimeout = "PROC_WS2P_ACT_004";
+
+            /// <summary>夹爪张开气缸操作失败</summary>
+            [AlarmInfo("流程异常/执行器", "工位2拉料-夹爪张开气缸操作失败", AlarmSeverity.Error,
+                "1. 检查IO模块输出信号;\n" +
+                "2. 确认气缸接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperOpenCylinderFailed = "PROC_WS2P_ACT_005";
+
+            /// <summary>夹爪张开超时</summary>
+            [AlarmInfo("流程异常/执行器", "工位2拉料-夹爪张开超时，未感应到张开信号", AlarmSeverity.Error,
+                "1. 检查气源压力;\n" +
+                "2. 确认气缸张开传感器信号;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperOpenTimeout = "PROC_WS2P_ACT_006";
+
+            /// <summary>夹爪闭合气缸操作失败</summary>
+            [AlarmInfo("流程异常/执行器", "工位2拉料-夹爪闭合气缸操作失败", AlarmSeverity.Error,
+                "1. 检查IO模块输出信号;\n" +
+                "2. 确认气缸接线;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperCloseCylinderFailed = "PROC_WS2P_ACT_007";
+
+            /// <summary>夹爪闭合超时</summary>
+            [AlarmInfo("流程异常/执行器", "工位2拉料-夹爪闭合超时，未感应到闭合信号", AlarmSeverity.Error,
+                "1. 检查气源压力;\n" +
+                "2. 确认气缸闭合传感器信号;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperCloseTimeout = "PROC_WS2P_ACT_008";
+
+            /// <summary>夹爪闭合后未检测到铁环</summary>
+            [AlarmInfo("流程异常/传感器", "工位2拉料-夹爪闭合后未检测到铁环（空夹）", AlarmSeverity.Error,
+                "1. 确认晶圆铁环是否在正确位置;\n" +
+                "2. 检查铁环检测传感器;\n" +
+                "3. 复位后重新运行;")]
+            public const string GripperCloseNoRing = "PROC_WS2P_SEN_001";
+
+            /// <summary>移动到待机位失败（带余料防呆）</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-移动到待机位失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveInitialFailed = "PROC_WS2P_MOT_007";
+
+            /// <summary>待机位检测到残留物料</summary>
+            [AlarmInfo("流程异常/传感器", "工位2拉料-待机位检测到残留物料", AlarmSeverity.Error,
+                "1. 人工确认夹爪内是否有残留物料;\n" +
+                "2. 清除残留物料后复位;")]
+            public const string MoveInitialResidualMaterial = "PROC_WS2P_SEN_002";
+
+            /// <summary>移动到待机位失败（无检测模式）</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-移动到待机位失败（强制复位）", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveInitialNoScanFailed = "PROC_WS2P_MOT_008";
+
+            /// <summary>移动到取出安全位置失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-移动到取出安全位置失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string PutOverMoveFailed = "PROC_WS2P_MOT_009";
+
+            /// <summary>卸料后物料粘连未脱落</summary>
+            [AlarmInfo("流程异常/传感器", "工位2拉料-卸料后夹爪物料粘连未脱落", AlarmSeverity.Error,
+                "1. 人工排查夹爪是否粘连带料;\n" +
+                "2. 小心取下残留物料;\n" +
+                "3. 复位后重新运行;")]
+            public const string PutOverMaterialStuck = "PROC_WS2P_SEN_003";
+
+            /// <summary>移动到取料位置失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-移动到取料位置失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string InitialMoveFeedingFailed = "PROC_WS2P_MOT_010";
+
+            /// <summary>拉出运动触发失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-拉出运动触发失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 确认运动控制卡连接;\n" +
+                "3. 复位后重新运行;")]
+            public const string PullOutTriggerFailed = "PROC_WS2P_MOT_011";
+
+            /// <summary>拉出过程卡料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-拉出过程卡料报警，已紧急停止", AlarmSeverity.Fatal,
+                "1. 人工检查是否有物料卡阻;\n" +
+                "2. 确认轨道无异物;\n" +
+                "3. 处理后复位;")]
+            public const string PullOutJamAlarm = "PROC_WS2P_MOT_012";
+
+            /// <summary>拉出过程丢料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-拉出过程丢料报警，已紧急停止", AlarmSeverity.Fatal,
+                "1. 人工检查物料是否脱落;\n" +
+                "2. 小心回收脱落的物料;\n" +
+                "3. 处理后复位;")]
+            public const string PullOutDropAlarm = "PROC_WS2P_MOT_013";
+
+            /// <summary>拉出运动超时</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-Y轴拉出运动超时", AlarmSeverity.Error,
+                "1. 检查Y轴是否卡在中途;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string PullOutTimeout = "PROC_WS2P_MOT_014";
+
+            /// <summary>送入运动触发失败</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-送入运动触发失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 确认运动控制卡连接;\n" +
+                "3. 复位后重新运行;")]
+            public const string PushBackTriggerFailed = "PROC_WS2P_MOT_015";
+
+            /// <summary>送入过程卡料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-送入过程卡料报警，已紧急刹停", AlarmSeverity.Fatal,
+                "1. 人工检查是否有物料卡阻;\n" +
+                "2. 确认轨道无异物;\n" +
+                "3. 处理后复位;")]
+            public const string PushBackJamAlarm = "PROC_WS2P_MOT_016";
+
+            /// <summary>送入过程丢料报警</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-送入过程丢料报警，已紧急刹停", AlarmSeverity.Fatal,
+                "1. 人工检查物料是否脱落;\n" +
+                "2. 小心回收脱落的物料;\n" +
+                "3. 处理后复位;")]
+            public const string PushBackDropAlarm = "PROC_WS2P_MOT_017";
+
+            /// <summary>送入运动超时</summary>
+            [AlarmInfo("流程异常/运动", "工位2拉料-送入运动超时", AlarmSeverity.Error,
+                "1. 检查Y轴是否卡在中途;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string PushBackTimeout = "PROC_WS2P_MOT_018";
+
+            /// <summary>扫码失败</summary>
+            [AlarmInfo("流程异常/相机", "工位2拉料-扫码失败或校验不合法", AlarmSeverity.Error,
+                "1. 检查扫码枪连接;\n" +
+                "2. 确认光源亮度;\n" +
+                "3. 清洁扫码枪镜头;\n" +
+                "4. 复位后重新运行;")]
+            public const string CodeScanFailed = "PROC_WS2P_CAM_001";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -507,6 +1139,101 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 重启软件后重新运行;\n" +
                 "4. 提供日志文件给技术支持;")]
             public const string UndefinedStep = "PROC_DET_SYS_001";
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 数据模组 (PROC_DATA_*)
+        // ─────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// 数据模组报警代码
+        /// </summary>
+        public static class DataModule
+        {
+            /// <summary>MES查询失败</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-MES查询失败", AlarmSeverity.Error,
+                "1. 检查MES服务器连接状态;\n" +
+                "2. 确认网络配置正确;\n" +
+                "3. 检查MES接口参数;\n" +
+                "4. 联系MES维护人员;")]
+            public const string MesQueryFailed = "PROC_DATA_MES_001";
+
+            /// <summary>配方更新失败</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-配方更新失败", AlarmSeverity.Error,
+                "1. 检查配方数据格式;\n" +
+                "2. 确认配方版本兼容性;\n" +
+                "3. 检查存储空间;\n" +
+                "4. 重新下发配方;")]
+            public const string RecipeUpdateFailed = "PROC_DATA_REC_001";
+
+            /// <summary>OCR校验失败</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-OCR校验失败", AlarmSeverity.Error,
+                "1. 检查OCR识别结果;\n" +
+                "2. 确认校验规则配置;\n" +
+                "3. 调整OCR参数后重试;")]
+            public const string OcrValidationFailed = "PROC_DATA_OCR_001";
+
+            /// <summary>数据持久化失败</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-数据持久化失败", AlarmSeverity.Error,
+                "1. 检查数据库连接;\n" +
+                "2. 确认磁盘空间充足;\n" +
+                "3. 检查文件读写权限;\n" +
+                "4. 重启数据服务;")]
+            public const string DataPersistenceFailed = "PROC_DATA_DB_001";
+
+            /// <summary>批次数据不完整</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-批次数据不完整", AlarmSeverity.Error,
+                "1. 检查MES下发的批次数据;\n" +
+                "2. 确认所有必填字段已填充;\n" +
+                "3. 重新请求批次数据;")]
+            public const string BatchDataIncomplete = "PROC_DATA_BAT_001";
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // SECS/GEM 模组 (PROC_SECS_*)
+        // ─────────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// SECS/GEM模组报警代码
+        /// </summary>
+        public static class SecsGemModule
+        {
+            /// <summary>SECS/GEM初始化失败</summary>
+            [AlarmInfo("流程异常/通讯", "SECS/GEM模组-初始化失败", AlarmSeverity.Error,
+                "1. 检查通讯板卡连接;\n" +
+                "2. 确认IP地址配置;\n" +
+                "3. 检查端口占用情况;\n" +
+                "4. 重启通讯服务;")]
+            public const string InitializationFailed = "PROC_SECS_INIT_001";
+
+            /// <summary>协议处理失败</summary>
+            [AlarmInfo("流程异常/通讯", "SECS/GEM模组-协议处理失败", AlarmSeverity.Error,
+                "1. 检查消息格式;\n" +
+                "2. 确认协议版本兼容性;\n" +
+                "3. 查看通讯日志;\n" +
+                "4. 重新建立连接;")]
+            public const string ProtocolProcessingFailed = "PROC_SECS_PROT_001";
+
+            /// <summary>消息发送失败</summary>
+            [AlarmInfo("流程异常/通讯", "SECS/GEM模组-消息发送失败", AlarmSeverity.Error,
+                "1. 检查网络连接;\n" +
+                "2. 确认目标主机可达;\n" +
+                "3. 检查防火墙设置;\n" +
+                "4. 重试发送消息;")]
+            public const string MessageSendFailed = "PROC_SECS_SEND_001";
+
+            /// <summary>消息接收超时</summary>
+            [AlarmInfo("流程异常/通讯", "SECS/GEM模组-消息接收超时", AlarmSeverity.Error,
+                "1. 检查主机响应状态;\n" +
+                "2. 确认消息处理逻辑;\n" +
+                "3. 调整超时时间;\n" +
+                "4. 重新发送请求;")]
+            public const string MessageReceiveTimeout = "PROC_SECS_RECV_001";
+
+            /// <summary>连接断开</summary>
+            [AlarmInfo("流程异常/通讯", "SECS/GEM模组-连接断开", AlarmSeverity.Error,
+                "1. 检查物理连接;\n" +
+                "2. 确认主机状态;\n" +
+                "3. 自动重连或手动复位;")]
+            public const string ConnectionLost = "PROC_SECS_CONN_001";
         }
     }
 }

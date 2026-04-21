@@ -1,5 +1,6 @@
 using Prism.Ioc;
 using PF.Core.Attributes;
+using PF.Core.Models;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
@@ -347,15 +348,16 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station2FeedingStep.识别料盒尺寸:
                         CurrentStepDescription = "识别料盒尺寸...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
+                        var sizeResult = await _feedingModule.GetWaferBoxSizeAsync(token).ConfigureAwait(false);
+                        if (sizeResult.IsSuccess)
                         {
-                            _detectedWaferSize = await _feedingModule.GetWaferBoxSizeAsync(token).ConfigureAwait(false);
+                            _detectedWaferSize = sizeResult.Data;
                             _logger.Info($"[{StationName}] 料盒尺寸识别成功：{_detectedWaferSize}。");
                             _currentStep = Station2FeedingStep.验证尺寸与配方是否匹配;
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            _logger.Error($"[{StationName}] 料盒尺寸识别失败：{ex.Message}");
+                            _logger.Error($"[{StationName}] 料盒尺寸识别失败：{sizeResult.ErrorMessage}");
                             _currentStep = Station2FeedingStep.料盒尺寸识别失败;
                         }
                         break;
@@ -436,23 +438,16 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station2FeedingStep.Z轴扫描寻层:
                         CurrentStepDescription = "Z轴扫描寻层...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
+                        var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
+                        if (scanResult.IsSuccess && scanResult.Data.Count > 0)
                         {
-                            _rawMappingData = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
-                            if (_rawMappingData.Count > 0)
-                            {
-                                _logger.Info($"[{StationName}] 寻层扫描完成，进入算法过滤。");
-                                _currentStep = Station2FeedingStep.算法过滤层数;
-                            }
-                            else
-                            {
-                                _logger.Error($"[{StationName}] 寻层扫描结果为0层，料盒可能为空或扫描异常。");
-                                _currentStep = Station2FeedingStep.Z轴寻层扫描异常;
-                            }
+                            _rawMappingData = scanResult.Data;
+                            _logger.Info($"[{StationName}] 寻层扫描完成，进入算法过滤。");
+                            _currentStep = Station2FeedingStep.算法过滤层数;
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            _logger.Error($"[{StationName}] Z轴寻层扫描异常：{ex.Message}");
+                            _logger.Error($"[{StationName}] Z轴寻层扫描异常：{(scanResult.IsSuccess ? "扫描结果为0层" : scanResult.ErrorMessage)}");
                             _currentStep = Station2FeedingStep.Z轴寻层扫描异常;
                         }
                         break;
@@ -460,11 +455,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station2FeedingStep.算法过滤层数:
                         CurrentStepDescription = "算法过滤与防呆验证...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
+                        var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
+                        if (filterResult.IsSuccess)
                         {
-                            var validWafersDict = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
-                            _layersToProcess = validWafersDict.Keys.OrderBy(layerIndex => layerIndex).ToList();
-
+                            _layersToProcess = filterResult.Data.Keys.OrderBy(layerIndex => layerIndex).ToList();
                             _totalLayerCount = _layersToProcess.Count;
                             _currentLayerIndex = 0;
 
@@ -480,10 +474,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_取料定位;
                             }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            // 捕获到底层抛出的严重防呆错误（斜片、重叠片等）
-                            _logger.Error($"[{StationName}] 寻层算法过滤发生异常: {ex.Message}");
+                            _logger.Error($"[{StationName}] 寻层算法过滤发生异常: {filterResult.ErrorMessage}");
                             _currentStep = Station2FeedingStep.寻层算法过滤异常;
                         }
                         break;
