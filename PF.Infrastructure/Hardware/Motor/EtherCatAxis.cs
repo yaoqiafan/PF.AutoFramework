@@ -72,6 +72,19 @@ namespace PF.Infrastructure.Hardware.Motor
             return ParentCard!.ClearAxisError (AxisIndex);
         }
 
+        /// <summary>
+        /// 仅清除驱动器层报警标志（不清除轴错误码，用于硬件清警路径）
+        /// </summary>
+        protected override Task InternalResetHardwareAlarmAsync(CancellationToken token)
+        {
+            EnsureCardAttached();
+            if (IsSimulated)
+            {
+                return Task.CompletedTask;
+            }
+            return ParentCard!.ClearAxisError(AxisIndex);
+        }
+
 
 
         // ── 私有工具 ────────────────────────────────────────────────────────────
