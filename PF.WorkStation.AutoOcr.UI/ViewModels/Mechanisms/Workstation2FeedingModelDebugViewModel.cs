@@ -1,5 +1,6 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -275,14 +276,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteCheckAsync(string actionName, Func<Task<bool>> action)
+        private async Task ExecuteCheckAsync(string actionName, Func<Task<MechResult>> action)
         {
             if (action == null) return;
             try
             {
                 DebugMessage = $"检查 {actionName} 中...";
-                bool result = await action.Invoke();
-                DebugMessage = $"结果: {actionName} = {(result ? "满足 (True)" : "不满足 (False)")}";
+                var result = await action.Invoke();
+                DebugMessage = result.IsSuccess
+                    ? $"结果: {actionName} = 满足 (True)"
+                    : $"结果: {actionName} = 不满足 (False) [{result.ErrorCode}] {result.ErrorMessage}";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -315,8 +318,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "开始寻层扫描...";
-                var rawMap = await _feedingModule.SearchLayerAsync();
+                var scanResult = await _feedingModule.SearchLayerAsync();
+                if (!scanResult.IsSuccess)
+                {
+                    DebugMessage = $"寻层扫描失败: {scanResult.ErrorMessage}";
+                    MessageService.ShowMessage(DebugMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
+                var rawMap = scanResult.Data;
                 RawMappingPoints1.Clear();
                 RawMappingPoints2.Clear();
 
@@ -336,8 +346,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 }
 
                 DebugMessage = "数据获取完成，正在进行算法过滤...";
-                var filteredMap = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                if (!filterResult.IsSuccess)
+                {
+                    DebugMessage = $"算法过滤失败: {filterResult.ErrorMessage}";
+                    MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
+                var filteredMap = filterResult.Data;
                 FilteredMappingPoints.Clear();
                 foreach (var kvp in filteredMap.OrderBy(k => k.Key))
                 {

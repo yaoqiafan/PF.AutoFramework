@@ -7,6 +7,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -403,8 +404,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "扫码识别...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        List<string> coderec = await _pullingModule.CodeScanTigger(token);
-                        _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(coderec != null ? string.Join(", ", coderec) : "未扫到码或校验不合法")}");
+                        var codeResult = await _pullingModule.CodeScanTigger(token);
+                        _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(codeResult.IsSuccess ? string.Join(", ", codeResult.Data) : "未扫到码或校验不合法")}");
 
                         _currentStep = Station1PullingStep.允许检测位检测;
                         break;
