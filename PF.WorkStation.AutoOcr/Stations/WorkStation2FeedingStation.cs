@@ -220,6 +220,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (await _feedingModule.InitializeFeedingStateAsync(token: token))
                 {
                     _logger.Success($"[{StationName}] 初始化完成，机构已退回安全位就绪。");
+                    _feedingModule.ResumeHealthMonitoring();
                     Fire(MachineTrigger.InitializeDone); // Initializing → Idle
                 }
                 else

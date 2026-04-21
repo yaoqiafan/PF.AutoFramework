@@ -110,9 +110,18 @@ namespace PF.Infrastructure.Mechanisms
             _logger?.Info($"[模组 {MechanismName}] 开始初始化...");
             HasAlarm = false;
 
+            // 初始化前：抑制所有已注册硬件的健康监控，防止瞬态信号级联中断初始化
+            foreach (var hw in _internalHardwares)
+                hw.SuppressHealthMonitoring = true;
+
             try
             {
                 IsInitialized = await InternalInitializeAsync(token);
+
+                // InternalInitializeAsync 可能注册新硬件，确保也被抑制
+                foreach (var hw in _internalHardwares)
+                    hw.SuppressHealthMonitoring = true;
+
                 if (IsInitialized)
                     _logger?.Success($"[模组 {MechanismName}] 初始化完成！");
                 else
@@ -148,7 +157,7 @@ namespace PF.Infrastructure.Mechanisms
             if (allResetOk)
             {
                 HasAlarm = false;
-                IsInitialized = true;
+                IsInitialized = false; // 复位后需要重新初始化，不应标记为已初始化
             }
             return allResetOk;
         }
@@ -169,9 +178,18 @@ namespace PF.Infrastructure.Mechanisms
             if (allOk)
             {
                 HasAlarm = false;
-                IsInitialized = true;
+                IsInitialized = false; // 清警后需要重新初始化
             }
             return allOk;
+        }
+
+        /// <summary>
+        /// 恢复所有内部硬件的健康监控（由工站在初始化完成、回零成功后调用）
+        /// </summary>
+        public void ResumeHealthMonitoring()
+        {
+            foreach (var hw in _internalHardwares)
+                hw.SuppressHealthMonitoring = false;
         }
 
         /// <summary>

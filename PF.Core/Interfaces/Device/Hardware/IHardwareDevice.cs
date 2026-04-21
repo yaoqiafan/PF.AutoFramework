@@ -29,6 +29,12 @@ namespace PF.Core.Interfaces.Device.Hardware
 
         /// <summary>设备是否处于报警或故障状态</summary>
         bool HasAlarm { get; }
+
+        /// <summary>
+        /// 暂停健康监控报警上报（由模组在初始化期间设置，防止瞬态信号级联中断初始化流程）
+        /// </summary>
+        bool SuppressHealthMonitoring { get; set; }
+
         /// <summary>设备分类</summary>
         HardwareCategory Category { get; }
         /// <summary>是否为模拟设备（用于脱机调试模式）。可在运行时修改，修改后重新调用 ConnectAsync 即可进入新模式。</summary>
