@@ -696,31 +696,31 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station2FeedingStep.批次产品个数不正确:
                         _logger.Error($"[{StationName}] 批次产品个数为 0，无法启动生产。请重新下发 MES 批次数据后复位重启。");
                         _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid, "批次产品个数为0，无法启动生产");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.BatchCountZero, "批次产品个数为0，无法启动生产");
                         break;
 
                     case Station2FeedingStep.料盒尺寸与配方不匹配:
                         _logger.Error($"[{StationName}] 料盒尺寸（{_detectedWaferSize}）与配方要求（{_cachedRecipe?.WafeSize}）不匹配。请更换正确料盒或修改配方后复位重启。");
                         _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid, $"料盒尺寸({_detectedWaferSize})与配方({_cachedRecipe?.WafeSize})不匹配");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.WaferSizeMismatch, $"料盒尺寸({_detectedWaferSize})与配方({_cachedRecipe?.WafeSize})不匹配");
                         break;
 
                     case Station2FeedingStep.工位2配方获取失败:
                         _logger.Error($"[{StationName}] 工位2配方参数为空，无法继续。请确认配方已正确下发后复位重启。");
                         _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataInvalid, "工位2配方参数为空");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.RecipeNull, "工位2配方参数为空");
                         break;
 
                     case Station2FeedingStep.寻层算法空值判定:
                         _logger.Error($"[{StationName}] 寻层算法判定为0层！请确认是否正确放置物料。");
                         _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationAlgorithmError, "寻层算法判定为0层");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.AlgorithmZeroLayers, "寻层算法判定为0层");
                         break;
 
                     case Station2FeedingStep.寻层算法过滤异常:
                         _logger.Error($"[{StationName}] 寻层算法出现严重异常！");
                         _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationAlgorithmError, "寻层算法出现严重异常");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.AlgorithmException, "寻层算法出现严重异常");
                         break;
 
 
@@ -729,48 +729,48 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station2FeedingStep.料盒尺寸识别失败:
                         _logger.Error($"[{StationName}] 料盒尺寸识别失败（传感器信号异常或料盒未放正）。请检查料盒位置后复位，将重新识别尺寸。");
                         _currentStep = Station2FeedingStep.识别料盒尺寸; // 仅需重新识别
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationSensorError, "料盒尺寸识别失败，传感器信号异常");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.SizeDetectionSensorFailed, "料盒尺寸识别失败，传感器信号异常");
                         break;
 
                     case Station2FeedingStep.Z轴运动条件不满足:
                         _logger.Error($"[{StationName}] Z轴运动条件不满足（轴报警或互锁信号未就绪）。请处理轴故障后复位，将重新评估 Z 轴状态。");
                         _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_寻层; // 退回最早的 Z 轴安全检查点
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "Z轴运动条件不满足");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.ZAxisPreconditionFailed, "Z轴运动条件不满足");
                         break;
 
                     case Station2FeedingStep.X轴运动条件不满足:
                         _logger.Error($"[{StationName}] X轴运动条件不满足（夹爪未张开或轴报警）。请处理后复位，将重新评估 X 轴状态。");
                         _currentStep = Station2FeedingStep.判断X轴是否具备运动条件_开始;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "X轴运动条件不满足");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.XAxisPreconditionFailed, "X轴运动条件不满足");
                         break;
 
                     case Station2FeedingStep.Z轴寻层扫描异常:
                         _logger.Error($"[{StationName}] Z轴寻层扫描异常（扫描结果为空或过程出错）。请检查料盒与传感器后复位，将重新执行扫描。");
                         _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_寻层; // 重新寻层
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationSensorError, "Z轴寻层扫描异常");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.LayerScanFailed, "Z轴寻层扫描异常");
                         break;
 
                     case Station2FeedingStep.检测到物料错层:
                         _logger.Error($"[{StationName}] 检测到第 {(_layersToProcess.Count > _currentLayerIndex ? _layersToProcess[_currentLayerIndex] + 1 : _currentLayerIndex + 1)} 层物料错层翘起！请人工处理后复位，将重新检查该层。");
                         _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_取料定位; // 索引不变，原地重入该层
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMaterialError, "物料错层翘起");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.MaterialTiltedMisaligned, "物料错层翘起");
                         break;
 
                     case Station2FeedingStep.Z轴运动超时:
                         _logger.Error($"[{StationName}] Z轴运动超时！请确认轴无卡阻后复位，将重新检查 Z 轴条件并重试运动。");
                         _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_取料定位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "Z轴运动超时");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.ZAxisMoveTimeout, "Z轴运动超时");
                         break;
 
                     case Station2FeedingStep.X轴运动超时:
                         _logger.Error($"[{StationName}] X轴运动超时！请确认轴无卡阻后复位，将重新检查 X 轴条件并重试运动。");
                         _currentStep = Station2FeedingStep.判断X轴是否具备运动条件_开始;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "X轴运动超时");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.XAxisMoveTimeout, "X轴运动超时");
                         break;
 
                     default:
                         _logger.Error($"[{StationName}] 状态机指针漂移，进入未定义步序 [{_currentStep}]，触发保护性报警。");
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationUnexpectedStep, $"状态机指针漂移，未定义步序[{_currentStep}]");
+                        TriggerAlarm(AlarmCodesExtensions.WS2Feeding.UndefinedStep, $"状态机指针漂移，未定义步序[{_currentStep}]");
                         break;
 
                         #endregion
