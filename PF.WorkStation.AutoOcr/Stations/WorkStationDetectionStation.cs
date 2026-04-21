@@ -272,7 +272,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             {
                                 _logger.Error($"[{StationName}] 等待任务池异常中断。错误信息: {doneTask.Exception?.InnerException?.Message}");
                                 _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
-                                TriggerAlarm(AlarmCodesExtensions.Process.StationSignalTimeout, "等待工位检测信号任务池异常中断");
+                                TriggerAlarm(AlarmCodesExtensions.Detection.SignalWaitFault, "等待工位检测信号任务池异常中断");
                                 break;
                             }
 
@@ -577,30 +577,30 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _currentStep = _currentworkSpace == E_WorkSpace.工位1
                             ? StationDetectionStep.去工位1检测位置
                             : StationDetectionStep.去工位2检测位置;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, $"龙门模组移动到{_currentworkSpace}检测位置失败");
+                        TriggerAlarm(AlarmCodesExtensions.Detection.GantryMoveFailed, $"龙门模组移动到{_currentworkSpace}检测位置失败");
                         break;
 
                     case StationDetectionStep.触发检测异常:
                         _logger.Error($"[{StationName}] 相机握手失败，光源或相机可能掉线。请复位，将重新尝试发指令。");
                         _currentStep = StationDetectionStep.触发检测;
-                        TriggerAlarm(AlarmCodesExtensions.Process.CameraTriggerFailed, "相机握手失败，光源或相机可能掉线");
+                        TriggerAlarm(AlarmCodesExtensions.Detection.CameraTriggerFailed, "相机握手失败，光源或相机可能掉线");
                         break;
 
                     case StationDetectionStep.检测完成Z轴回安全位异常:
                         _logger.Error($"[{StationName}] 相机 Z 轴无法抬起！为避免下发通行证后拉料机构撞击相机，已将其紧急锁死。");
                         _currentStep = StationDetectionStep.检测完成Z轴回安全位;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationMotionFailed, "相机Z轴无法抬起避位");
+                        TriggerAlarm(AlarmCodesExtensions.Detection.ZAxisRetractAfterScan, "相机Z轴无法抬起避位");
                         break;
 
                     case StationDetectionStep.写入检测数据异常:
                         _logger.Error($"[{StationName}] 本地磁盘存图或写入内存数据库失败。请复位重写，防止断档丢单。");
                         _currentStep = StationDetectionStep.写入检测数据;
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationDataWriteFailed, "检测数据写入失败");
+                        TriggerAlarm(AlarmCodesExtensions.Detection.DataWriteFailed, "检测数据写入失败");
                         break;
 
                     default:
                         _logger.Error($"[{StationName}] 状态机越界：步序 [{_currentStep}] 未定义。");
-                        TriggerAlarm(AlarmCodesExtensions.Process.StationUnexpectedStep, $"状态机越界，未定义步序[{_currentStep}]");
+                        TriggerAlarm(AlarmCodesExtensions.Detection.UndefinedStep, $"状态机越界，未定义步序[{_currentStep}]");
                         break;
 
                         #endregion
