@@ -649,6 +649,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     await _yAxis.StopAsync();
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutDropAlarm, "拉出过程中触发【丢料报警】，已紧急停止");
                 }
+                if (finishedTask== taskC)
+                {
+                    await _yAxis.StopAsync();
+                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "拉料动作被终止;");
+                }
 
                 // 只有 taskC (运动完成) 是真正的成功
                 if (finishedTask == taskC)

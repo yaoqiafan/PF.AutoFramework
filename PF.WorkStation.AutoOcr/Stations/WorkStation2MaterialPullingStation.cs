@@ -270,7 +270,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     Fire(MachineTrigger.Error);
                     return;
                 }
-
+                _sync.ResetScope(StationName);//初始化所有标志位
                 _logger.Success($"[{StationName}] 初始化完成，就绪。");
                 _pullingModule.ResumeHealthMonitoring();
                 Fire(MachineTrigger.InitializeDone); // Initializing → Idle
