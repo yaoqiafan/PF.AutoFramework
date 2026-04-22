@@ -219,7 +219,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// SearchLayer 命令
         /// </summary>
 
-        public DelegateCommand<double> SearchLayerCommand { get; }
+        public DelegateCommand<double?> SearchLayerCommand { get; }
         /// <summary>
         /// GoToLayer 命令
         /// </summary>
@@ -267,7 +267,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             CanMoveXCommand = new DelegateCommand(async () => await ExecuteCheckAsync("X轴可动条件", () => _feedingModule?.CanMoveXAxesAsync()));
             CanPullOutCommand = new DelegateCommand(async () => await ExecuteCheckAsync("允许拉料条件", () => _feedingModule?.CanPullOutMaterialAsync()));
 
-            SearchLayerCommand = new DelegateCommand<double>(async (t) => await ExecuteSearchLayerAsync(t));
+            SearchLayerCommand = new DelegateCommand<double?>(async (t) => await ExecuteSearchLayerAsync(t));
             GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
 
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
@@ -332,12 +332,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteSearchLayerAsync(double runTimes)
+        private async Task ExecuteSearchLayerAsync(double? runTimes)
         {
             if (_feedingModule == null) return;
 
             // 将 double 转换为 int，并确保至少运行 1 次
-            int totalRuns = (int)Math.Max(1, runTimes);
+            int totalRuns = (int)Math.Max((double)1, (double)runTimes);
 
             try
             {

@@ -351,6 +351,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                 _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
                 _resumeStep = Station2FeedingStep.等待按下工位2启动按钮;
+
+                _sync.ResetScope(StationName);//初始化所有标志位
             }
             catch
             {
