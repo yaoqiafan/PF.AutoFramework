@@ -345,7 +345,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.等待允许取料:
                         CurrentStepDescription = "等待允许拉出物料...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待上下料工站的允许拉料信号...");
 
                         await _sync.WaitAsync(nameof(WorkstationSignals.工位1允许拉料), token, scope: nameof(E_WorkStation.工位1上下料工站)).ConfigureAwait(false);
@@ -356,7 +356,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.获取当前配方:
                         CurrentStepDescription = "获取当前配方...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 正在获取当前配方...");
 
                         _cachedRecipe = _dataModule.Station1ReciepParam;
@@ -373,7 +373,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.判断流道尺寸:
                         CurrentStepDescription = "判断流道尺寸...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         if (await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
                         {
@@ -388,7 +388,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.调整流道尺寸:
                         CurrentStepDescription = "切换流道尺寸...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         if (await _pullingModule.ChangeWafeSizeControl(_cachedRecipe.WafeSize, token))
                         {
@@ -403,7 +403,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.移动到取料位:
                         CurrentStepDescription = "移动到取料位...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         if (await _pullingModule.InitialMoveFeeding(token))
                         {
@@ -418,7 +418,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.关闭夹爪:
                         CurrentStepDescription = "关闭夹爪...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         if (await _pullingModule.CloseWafeGipper(token))
                         {
@@ -433,7 +433,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.检测叠料:
                         CurrentStepDescription = "检测叠料...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         if (await _pullingModule.CheckStackedPieces(token))
                         {
@@ -452,7 +452,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.移动到检测位:
                         CurrentStepDescription = "移动到检测位...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         if (await _pullingModule.MoveDetection(token).ConfigureAwait(false))
                         {
@@ -468,7 +468,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.扫码识别:
                         CurrentStepDescription = "扫码识别...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         var codeResult = await _pullingModule.CodeScanTigger(token);
                         _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(codeResult.IsSuccess ? string.Join(", ", codeResult.Data) : "未扫到码或校验不合法")}");
@@ -478,7 +478,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.允许检测位检测:
                         CurrentStepDescription = "通知 OCR 视觉执行检测...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         _logger.Info($"[{StationName}] 发送允许检测信号，交给视觉工站处理");
                         _sync.Release(nameof(WorkstationSignals.工位1允许检测), StationName);
@@ -488,7 +488,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.等待检测位检测完成:
                         CurrentStepDescription = "等待检测位检测完成...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         _logger.Info($"[{StationName}] 等待视觉工站检测完成信号...");
                         await _sync.WaitAsync(nameof(WorkstationSignals.工位1检测完成), token, scope: nameof(E_WorkStation.OCR检测工站)).ConfigureAwait(false);
@@ -503,7 +503,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.等待允许送料:
                         CurrentStepDescription = "等待允许退料...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         _logger.Info($"[{StationName}] 等待上下料工站 Z 轴安全避让信号...");
                         await _sync.WaitAsync(nameof(WorkstationSignals.工位1允许退料), token, scope: nameof(E_WorkStation.工位1上下料工站)).ConfigureAwait(false);
@@ -514,7 +514,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.送料到取料位:
                         CurrentStepDescription = "正在退料回料盒...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] Y 轴送料回料盒...");
 
                         if (!await _pullingModule.OpenWafeGipper(token))
@@ -536,7 +536,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.打开夹爪:
                         CurrentStepDescription = "打开夹爪...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 正在松开夹爪...");
 
                         if (await _pullingModule.OpenWafeGipper(token))
@@ -552,7 +552,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.移动到待机位:
                         CurrentStepDescription = "移动到待机位...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] Y 轴撤回待机避让位...");
 
                         if (await _pullingModule.PutOverMove(token))
@@ -568,7 +568,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.判断带片:
                         CurrentStepDescription = "检查夹爪是否残留带片...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 执行防呆：判断夹爪是否粘连带片...");
 
                         if (await _pullingModule.CheckGipperInsidePro(token))
@@ -584,7 +584,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station1PullingStep.发送退料完成:
                         CurrentStepDescription = "发送退料完成信号...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         _logger.Info($"[{StationName}] 释放退料完成信号，闭环结束本层动作");
                         _sync.Release(nameof(WorkstationSignals.工位1退料完成), StationName);

@@ -16,11 +16,11 @@ namespace PF.Infrastructure.Station.Basic
     ///
     /// 【状态生命周期 (State Lifecycle)】
     ///   Uninitialized ──(Initialize)──→ Initializing ──(InitializeDone)─────────→ Idle
-    ///                                                └─────────(Error)──────────────────→ Alarm
+    ///                                                  └─────────(Error)──────────────────→ Alarm
     ///   Idle          ──(Start)───────→ Running
     ///   Running       ──(Stop)────────→ Idle
     ///   Alarm         ──(Reset)───────→ Resetting  ──(ResetDone)────────────────→ Idle          (运行期报警复位)
-    ///                                                └─────────(ResetDoneUninitialized)─→ Uninitialized (初始化报警复位，强制重置)
+    ///                                                  └─────────(ResetDoneUninitialized)─→ Uninitialized (初始化报警复位，强制重置)
     ///
     /// 【并发安全设计 (Concurrency  和 Thread Safety)】
     ///   · 独占变迁：所有状态变迁（<see cref="Fire(MachineTrigger)"/> / <see cref="FireAsync(MachineTrigger)"/>）均受 <see cref="_stateLock"/> 信号量保护，杜绝后台硬件报警与 UI 交互命令（如 Stop/Pause）导致的并发状态撕裂。
@@ -30,7 +30,7 @@ namespace PF.Infrastructure.Station.Basic
     /// 派生具体工艺工站时，需遵循以下方法重写规范：
     ///
     /// 1. 核心业务大循环（必须实现 <see langword="abstract"/>）：
-    ///   - <see cref="ProcessNormalLoopAsync"/> : 正常生产节拍。内部须由 <see langword="while"/> (!<see cref="CancellationToken.IsCancellationRequested"/>) 驱动，并严格埋点 <see langword="await"/> <see cref="CheckPauseAsync(CancellationToken)"/> 响应暂停，配合 <see cref="WaitIOAsync"/> 执行非阻塞硬件交互。
+    ///   - <see cref="ProcessNormalLoopAsync"/> : 正常生产节拍。内部须由 <see langword="while"/> (!<see cref="CancellationToken.IsCancellationRequested"/>) 驱动，配合 <see cref="WaitIOAsync"/> 执行非阻塞硬件交互。
     ///   - <see cref="ProcessDryRunLoopAsync"/> : 空跑验证节拍。主要用于设备无料脱机跑合，应故意跳过外部物料交互与同步协同逻辑。
     ///
     /// 2. 硬件控制与生命周期钩子（强烈建议重写 <see langword="virtual"/>）：
@@ -140,12 +140,11 @@ namespace PF.Infrastructure.Station.Basic
         private CancellationTokenSource _runCts;
         private Task _workflowTask;
 
-        // 异步暂停门：volatile 保证多线程可见性；RunContinuationsAsynchronously 防止 TrySetResult 内联执行续体导致死锁。
-        // Paused.OnEntry 替换为新建未完成 TCS（关门），Paused.OnExit / Alarm.OnEntry 调用 TrySetResult(true)（开门）。
-        private volatile TaskCompletionSource<bool> _pauseGate;
+        // 【重构注】：已移除 _pauseGate(TaskCompletionSource)。
+        // 新架构下 Pause 直接取消 _runCts 打断当前执行树，Resume 时依赖子类的 _resumeStep 重建任务断点续跑。
+        // 彻底杜绝硬件状态与逻辑挂起之间的撕裂与死锁风险。
 
         // 暂停状态标记：Pause 时置 true，Resume 时置 false。
-        // BaseMechanism.WaitAxisMoveDoneAsync 通过 PauseCheckAsync 委托间接读取此标记。
         private volatile bool _isPaused = false;
 
         // 标记当前业务线程是被"外部报警"打断（true），还是"正常停止"打断（false）。
@@ -186,10 +185,6 @@ namespace PF.Infrastructure.Station.Basic
         {
             StationName = name;
             _logger = logger;
-
-            // 初始状态：未暂停（gate 已完成，业务线程可直接通过）
-            _pauseGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _pauseGate.TrySetResult(true);
 
             // 初始状态：Uninitialized（硬件未就绪，禁止直接启动）
             _machine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
@@ -236,28 +231,16 @@ namespace PF.Infrastructure.Station.Basic
                 .OnEntryAsync(OnStartRunningAsync)
                 .OnExit(t =>
                 {
-                    // Pause 时不取消 _runCts — 任务仅挂起不销毁，恢复后从断点继续。
-                    // Stop / Error 时正常取消。
-                    if (t.Trigger != MachineTrigger.Pause)
-                        _runCts?.Cancel();
+                    // 【重构】：无论 Pause、Stop 还是 Error，退出 Running 时绝对取消当前业务树。
+                    _runCts?.Cancel();
                 })
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)  // Stop → Uninitialized（物理停稳后再改状态）
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
             // --- 暂停状态 ---
+            // 【重构】：移除了复杂的开门关门逻辑，依赖 OnStartRunningAsync 重新拉起线程。
             _machine.Configure(MachineState.Paused)
-                .OnEntry(() =>
-                    // 关门：新建未完成 TCS，业务线程在 CheckPauseAsync 处挂起（不占用线程）
-                    _pauseGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously))
-                .OnExit(t =>
-                {
-                    // 开门：完成当前 TCS，释放所有挂起在 CheckPauseAsync 的续体
-                    _pauseGate.TrySetResult(true);
-                    // Resume 时不取消 _runCts（任务继续）；Stop / Error 时取消。
-                    if (t.Trigger != MachineTrigger.Resume)
-                        _runCts?.Cancel();
-                })
                 .Permit(MachineTrigger.Resume, MachineState.Running)
                 .Permit(MachineTrigger.Stop, MachineState.Uninitialized)  // Stop → Uninitialized
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
@@ -267,8 +250,6 @@ namespace PF.Infrastructure.Station.Basic
                 .OnEntry(() =>
                 {
                     _cameFromInitAlarm = true;
-                    // 开门：防止 Paused → InitAlarm 时业务续体永久阻塞
-                    _pauseGate.TrySetResult(true);
                     // 区分级联与真实报警：
                     //   · _pendingAlarmCode 非空 → 真实报警（RaiseAlarm / TriggerAlarm(code) 设定）
                     //   · _pendingAlarmCode 为空 → 主控级联（TriggerAlarm() 无参调用），使用专用标识
@@ -285,7 +266,6 @@ namespace PF.Infrastructure.Station.Basic
                 .OnEntry(() =>
                 {
                     _cameFromInitAlarm = false;
-                    _pauseGate.TrySetResult(true);
                     // 区分级联与真实报警（同 InitAlarm 逻辑）
                     var code = _pendingAlarmCode ?? AlarmCodes.System.CascadeAlarm;
                     var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
@@ -327,26 +307,19 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// Running 状态同步入口（已简化）：
+        /// Running 状态同步入口：
         ///   旧任务的取消与等待已由 StartAsync/ResumeAsync 在锁外完成，
-        ///   此处仅负责建立新 CTS、启动新任务。
+        ///   此处统一建立新 CTS，启动新任务（断点续跑由子类 _resumeStep 保证）。
         /// </summary>
         private Task OnStartRunningAsync()
         {
-            // Resume 场景：旧任务仍存活（暂停中），复用它而非新建
-            if (_workflowTask is { IsCompleted: false })
-            {
-                return Task.CompletedTask;
-            }
-
-            // Start 场景：新建 CTS 和任务
             _runCts?.Dispose();
             _runCts = new CancellationTokenSource();
             _isPaused = false;
             _alarmInterrupted = false;
             _cancelledIntentionally = false;
 
-            // 向所有模组注入暂停感知委托
+            // 向所有模组注入暂停感知委托（为兼容旧模组接口保留空实现）
             var pauseCheck = CreatePauseCheckDelegate();
             foreach (var m in GetMechanisms())
                 m.PauseCheckAsync = pauseCheck;
@@ -366,11 +339,19 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (OperationCanceledException)
             {
-                if (_alarmInterrupted)
+                if (_isPaused)
+                {
+                    _logger?.Info($"[{StationName}] 工站已响应暂停命令，当前业务线程中止，等待恢复续跑...");
+                }
+                else if (_alarmInterrupted)
+                {
                     _logger?.Warn($"[{StationName}] 业务流程被外部报警打断，线程安全退出。");
+                    _alarmInterrupted = false;
+                }
                 else
+                {
                     _logger?.Warn($"[{StationName}] 子线程被安全打断并退出。");
-                _alarmInterrupted = false;
+                }
             }
             catch (Exception ex)
             {
@@ -432,12 +413,13 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// 同步挂起/暂停工站业务（发出暂停标志，触发物理减速，状态切入 Paused）。
+        /// 同步挂起/暂停工站业务（拉闸取消业务令牌，触发物理减速，状态切入 Paused）。
         /// </summary>
         public void Pause()
         {
             _cancelledIntentionally = true;
             _isPaused = true;
+            _runCts?.Cancel(); // 立即打断当前任务流，不再挂起
             Fire(MachineTrigger.Pause);
             // 物理减速停止所有轴（异步不阻塞状态机）
             _ = OnPhysicalPauseAsync();
@@ -461,13 +443,12 @@ namespace PF.Infrastructure.Station.Basic
 
         /// <summary>
         /// 异步恢复工站（Paused → Running）。
-        ///   同 StartAsync，先在锁外等待旧任务退出，再持锁触发 Resume 跳转。
+        ///   重构：先在锁外等待被 Cancel 的任务彻底退出，再触发 Resume 进入新循环。
         /// </summary>
         public async Task ResumeAsync()
         {
             _isPaused = false;
-            // Resume 不取消旧任务、不重建任务 — 仅触发状态跳转让 pauseGate 开门，
-            // 旧业务线程从断点继续执行。
+            await CancelAndAwaitOldTaskAsync().ConfigureAwait(false);
             await FireAsync(MachineTrigger.Resume);
         }
 
@@ -552,14 +533,11 @@ namespace PF.Infrastructure.Station.Basic
 
         /// <summary>
         /// 创建暂停感知委托，注入到所有模组的 PauseCheckAsync 属性。
-        /// 若工站处于暂停状态，调用时会挂起直到恢复后返回 true；非暂停时立即返回 false。
+        /// 【重构兼容】：因主循环已改为依靠 CancelToken 跳出，此处不再挂起，直接返回 false。
         /// </summary>
-        private Func<CancellationToken, Task<bool>> CreatePauseCheckDelegate() => async token =>
+        private Func<CancellationToken, Task<bool>> CreatePauseCheckDelegate() => token =>
         {
-            if (!_isPaused) return false;
-            // 挂起直到 Resume 触发 pauseGate 开门
-            await CheckPauseAsync(token).ConfigureAwait(false);
-            return true;
+            return Task.FromResult(false);
         };
 
         #endregion
@@ -700,39 +678,18 @@ namespace PF.Infrastructure.Station.Basic
         // ─────────────────────────────────────────────────────────────────────
         // 所有等待方法均接受 CancellationToken。
         // 当以下任一情况发生时，token 会被取消，方法立即抛出 OperationCanceledException：
-        //   · Stop() 被调用        → _runCts 由 OnStopRunning() 取消
-        //   · TriggerAlarm() 被调用 → _runCts 由 TriggerAlarm() 主动取消
+        //   · Stop() / Pause() 被调用  → _runCts 被主动取消
+        //   · TriggerAlarm() 被调用     → _runCts 由 TriggerAlarm() 主动取消
         // ProcessWrapperAsync 统一捕获该异常，业务代码无需处理取消逻辑。
         // ─────────────────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// 异步暂停检查点：工站处于 Paused 状态时挂起当前 async 流程（不占用线程），恢复后继续执行。
-        /// </summary>
-        protected Task CheckPauseAsync(CancellationToken token)
-        {
-            var gate = _pauseGate;
-            return gate.Task.IsCompleted
-                ? Task.CompletedTask
-                : gate.Task.WaitAsync(token);
-        }
-
-       
-
-        /// <summary>工艺延时：支持暂停中断（每 50ms 检查一次暂停状态）和取消令牌。</summary>
+        /// <summary>工艺延时：原生支持取消令牌。不再使用繁琐的 Chunk 分块与线程挂起。</summary>
         protected async Task WaitAsync(int milliseconds, CancellationToken token)
         {
-            const int ChunkMs = 50;
-            int remaining = milliseconds;
-            while (remaining > 0)
-            {
-                await CheckPauseAsync(token).ConfigureAwait(false);
-                int chunk = Math.Min(ChunkMs, remaining);
-                await Task.Delay(chunk, token).ConfigureAwait(false);
-                remaining -= chunk;
-            }
+            await Task.Delay(milliseconds, token).ConfigureAwait(false);
         }
 
-        /// <summary>等待任意 bool 条件成立（轮询模式）。</summary>
+        /// <summary>等待任意 bool 条件成立（轮询模式）。支持及时响应取消令牌。</summary>
         protected async Task<bool> WaitConditionAsync(Func<bool> condition, int timeoutMs = 5_000, CancellationToken token = default, int pollIntervalMs = 20)
         {
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
@@ -741,7 +698,7 @@ namespace PF.Infrastructure.Station.Basic
             {
                 while (true)
                 {
-                    await CheckPauseAsync(linked.Token).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested(); // 及时响应外部取消（如暂停、停止）
                     if (condition()) return true;
                     await Task.Delay(pollIntervalMs, linked.Token).ConfigureAwait(false);
                 }
@@ -761,7 +718,6 @@ namespace PF.Infrastructure.Station.Basic
         protected async Task<bool> WaitIOAsync(IIOController io, int portIndex, bool targetState, int timeoutMs = 5_000, CancellationToken token = default)
         {
             _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] → {targetState}");
-            await CheckPauseAsync(token).ConfigureAwait(false);
             bool result = await io.WaitInputAsync(portIndex, targetState, timeoutMs, token).ConfigureAwait(false);
             if (!result)
                 _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] = {targetState} 超时（{timeoutMs} ms）");
@@ -772,7 +728,6 @@ namespace PF.Infrastructure.Station.Basic
         protected async Task<bool> WaitIOAsync<TEnum>(IIOController io, TEnum inputName, bool targetState, int timeoutMs = 5_000, CancellationToken token = default) where TEnum : Enum
         {
             _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] → {targetState}");
-            await CheckPauseAsync(token).ConfigureAwait(false);
             bool result = await io.WaitInputAsync(inputName, targetState, timeoutMs, token).ConfigureAwait(false);
             if (!result)
                 _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] = {targetState} 超时（{timeoutMs} ms）");
@@ -849,7 +804,6 @@ namespace PF.Infrastructure.Station.Basic
         public virtual async ValueTask DisposeAsync()
         {
             _runCts?.Cancel();
-            _pauseGate.TrySetResult(true);
 
             if (_workflowTask is { IsCompleted: false })
             {
@@ -875,7 +829,6 @@ namespace PF.Infrastructure.Station.Basic
         public virtual void Dispose()
         {
             _runCts?.Cancel();
-            _pauseGate.TrySetResult(true);
 
             // 不同步等待业务线程：取消信号已发出，线程会自行退出。
             // 原先 Task.Run(...).GetAwaiter().GetResult() 最多阻塞 5 秒，
