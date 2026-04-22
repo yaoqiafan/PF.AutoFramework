@@ -898,4 +898,50 @@ namespace PF.Infrastructure.Station.Basic
         /// <summary>获取或设置是否处于写入过程的内部标志（业务代码一般不直接干预）。</summary>
         public bool IsWrite { get; set; }
     }
+
+    /// <summary>
+    /// 带步序枚举泛型的工站基类，在 <see cref="StationBase{T}"/> 基础上下沉业务步序指针与异常路由机制。
+    /// 适用于需要断点续跑的复杂业务工站。
+    /// </summary>
+    /// <typeparam name="TMemory">工站记忆参数类型</typeparam>
+    /// <typeparam name="TStep">业务步序枚举类型，必须为 struct 枚举</typeparam>
+    public abstract class StationBase<TMemory, TStep> : StationBase<TMemory>
+        where TMemory : StationMemoryBaseParam
+        where TStep : struct, Enum
+    {
+        /// <summary>状态机当前执行的业务步序指针</summary>
+        protected TStep _currentStep;
+
+        /// <summary>报警解除后应恢复执行的断点步序</summary>
+        protected TStep _resumeStep;
+
+        /// <summary>缓存模组返回的错误码，供异常步序路由时读取</summary>
+        protected string? _cachedErrorCode;
+
+        /// <summary>
+        /// 初始化带步序枚举的工站基类
+        /// </summary>
+        /// <param name="name">工站唯一名称</param>
+        /// <param name="logger">日志服务</param>
+        /// <param name="initialStep">初始步序值，同时初始化 <see cref="_currentStep"/> 与 <see cref="_resumeStep"/></param>
+        protected StationBase(string name, ILogService logger, TStep initialStep)
+            : base(name, logger)
+        {
+            _currentStep = initialStep;
+            _resumeStep = initialStep;
+        }
+
+        /// <summary>
+        /// 将步序路由到指定的异常节点，并记录复位后的恢复步序与可选错误码。
+        /// </summary>
+        /// <param name="errorStep">要切换至的异常步序（状态机将挂起在此处等待复位）</param>
+        /// <param name="resumeStep">复位成功后应恢复至的正常步序（断点续跑入口）</param>
+        /// <param name="errorCode">可选的错误码，将缓存供后续报警上报使用</param>
+        protected void RouteToError(TStep errorStep, TStep resumeStep, string? errorCode = null)
+        {
+            _currentStep = errorStep;
+            _resumeStep = resumeStep;
+            _cachedErrorCode = errorCode;
+        }
+    }
 }
