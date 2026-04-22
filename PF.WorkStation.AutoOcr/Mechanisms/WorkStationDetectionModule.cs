@@ -436,7 +436,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 辅助方法：检索指定目录下创建时间最新的文件
         /// </summary>
-        public string GetLatestCreatedFile(string folderPath)
+        private string GetLatestCreatedFile(string folderPath)
         {
             if (!Directory.Exists(folderPath)) return null;
 
