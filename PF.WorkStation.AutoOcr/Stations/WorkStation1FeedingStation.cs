@@ -19,25 +19,173 @@ using System.Threading.Tasks;
 namespace PF.WorkStation.AutoOcr.Stations
 {
     /// <summary>
+    /// 定义上下料工站的完整生命周期与断点续跑异常状态节点
+    /// </summary>
+    public enum Station1FeedingStep
+    {
+        #region 阶段 A：运动前准备 (0 - 100)
+
+        /// <summary>等待按下工位1启动按钮</summary>
+        等待按下工位1启动按钮 = 0,
+        /// <summary>验证当前批次产品个数</summary>
+        验证当前批次产品个数 = 10,
+        /// <summary>获取工位1配方参数</summary>
+        获取工位1配方参数 = 20,
+        /// <summary>识别料盒尺寸</summary>
+        识别料盒尺寸 = 30,
+        /// <summary>验证尺寸与配方是否匹配</summary>
+        验证尺寸与配方是否匹配 = 40,
+        /// <summary>切换物料尺寸</summary>
+        切换物料尺寸 = 50,
+        /// <summary>判断X轴是否具备运动条件_开始</summary>
+        判断X轴是否具备运动条件_开始 = 60,
+        /// <summary>X轴到待机位</summary>
+        X轴到待机位 = 70,
+        /// <summary>判断Z轴是否具备运动条件_寻层</summary>
+        判断Z轴是否具备运动条件_寻层 = 80,
+        /// <summary>Z轴扫描寻层</summary>
+        Z轴扫描寻层 = 90,
+        /// <summary>算法过滤层数</summary>
+        算法过滤层数 = 100,
+
+        #endregion
+
+        #region 阶段 B：取料循环流转 (110 - 160)
+
+        /// <summary>判断Z轴是否具备运动条件_取料定位</summary>
+        判断Z轴是否具备运动条件_取料定位 = 110,
+        /// <summary>切换到指定层</summary>
+        切换到指定层 = 120,
+        /// <summary>判断物料可拉出条件</summary>
+        判断物料可拉出条件 = 130,
+        /// <summary>等待物料拉出完成</summary>
+        等待物料拉出完成 = 140,
+        /// <summary>阻塞等待物料回退完成</summary>
+        阻塞等待物料回退完成 = 150,
+        /// <summary>计算下一层位置</summary>
+        计算下一层位置 = 160,
+
+        #endregion
+
+        #region 阶段 C：生产结束与安全收尾 (200 - 400)
+
+        /// <summary>物料全部生产完毕</summary>
+        物料全部生产完毕 = 200,
+        /// <summary>判断X轴是否具备运动条件_结束</summary>
+        判断X轴是否具备运动条件_结束 = 210,
+        /// <summary>X轴到挡料位</summary>
+        X轴到挡料位 = 220,
+        /// <summary>判断Z轴是否具备运动条件_流程结束</summary>
+        判断Z轴是否具备运动条件_流程结束 = 230,
+        /// <summary>Z轴到待机位</summary>
+        Z轴到待机位 = 240,
+        /// <summary>通知操作员下料</summary>
+        通知操作员下料 = 300,
+        /// <summary>生产完毕</summary>
+        生产完毕 = 400,
+
+        #endregion
+
+        #region 阶段 D：异常拦截与断点续跑节点 (100000+)
+
+        // ── 业务与数据校验异常 (10000X) ──
+        /// <summary>批次产品个数为0，无法启动生产</summary>
+        批次产品个数不正确 = 100001,
+        /// <summary>料盒尺寸与配方不匹配</summary>
+        料盒尺寸与配方不匹配 = 100002,
+        /// <summary>工位1配方获取失败</summary>
+        工位1配方获取失败 = 100003,
+
+        // ── 传感器与硬件状态异常 (10001X) ──
+        /// <summary>料盒尺寸识别失败（传感器信号异常）</summary>
+        料盒尺寸识别失败 = 100010,
+        /// <summary>料盒公用底座未检测到物体</summary>
+        料盒公用底座未检测到物体 = 100011,
+        /// <summary>8寸晶圆放反</summary>
+        八寸晶圆放反 = 100012,
+        /// <summary>12寸晶圆放反</summary>
+        十二寸晶圆放反 = 100013,
+        /// <summary>料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）</summary>
+        料盒尺寸传感器信号冲突 = 100014,
+        /// <summary>寻层扫描硬件锁存配置失败</summary>
+        寻层扫描硬件锁存配置失败 = 100015,
+
+        // ── 运动互锁与条件检测异常 (10002X) ──
+        /// <summary>Z轴运动条件不满足</summary>
+        Z轴运动条件不满足 = 100020,
+        /// <summary>X轴运动条件不满足</summary>
+        X轴运动条件不满足 = 100021,
+        /// <summary>Z轴互锁失败：料盒未到位禁止升降</summary>
+        Z轴互锁失败_料盒未到位 = 100022,
+        /// <summary>X轴互锁失败：存在铁环突片</summary>
+        X轴互锁失败_存在铁环突片 = 100023,
+        /// <summary>拉料互锁失败：晶圆盒挡杆未打开</summary>
+        拉料互锁失败_挡杆未打开 = 100024,
+
+        // ── 运动执行与超时异常 (10003X) ──
+        /// <summary>Z轴运动超时</summary>
+        Z轴运动超时 = 100030,
+        /// <summary>X轴运动超时</summary>
+        X轴运动超时 = 100031,
+        /// <summary>初始化上料状态失败（Z/X轴运动到待机位失败）</summary>
+        初始化上料状态失败 = 100032,
+        /// <summary>Z轴切换层运动失败</summary>
+        Z轴切换层运动失败 = 100033,
+        /// <summary>寻层扫描移动到起点失败</summary>
+        寻层扫描移动到起点失败 = 100034,
+        /// <summary>寻层扫描移动到终点失败</summary>
+        寻层扫描移动到终点失败 = 100035,
+
+        // ── 流程特定检测与算法异常 (10004X) ──
+        /// <summary>Z轴寻层扫描异常（结果为空或过程出错）</summary>
+        Z轴寻层扫描异常 = 100040,
+        /// <summary>寻层算法空值判定（判定为0层）</summary>
+        寻层算法空值判定 = 100041,
+        /// <summary>寻层算法出现严重异常</summary>
+        寻层算法过滤异常 = 100042,
+        /// <summary>目标层数超出有效范围</summary>
+        目标层数超出有效范围 = 100043,
+        /// <summary>未找到目标层的阵列点位</summary>
+        未找到目标层的阵列点位 = 100044,
+        /// <summary>寻层算法理论层坐标未初始化</summary>
+        寻层算法理论层坐标未初始化 = 100045,
+        /// <summary>寻层算法传感器原始数据不足</summary>
+        寻层算法传感器原始数据不足 = 100046,
+        /// <summary>寻层算法双传感器识别数量差异过大</summary>
+        寻层算法双传感器识别数量差异过大 = 100047,
+
+        // ── 物料姿态具体异常 (10005X) ──
+        /// <summary>物料错层翘起，禁止拉料</summary>
+        检测到物料错层 = 100050,
+        /// <summary>寻层算法检测到严重斜片(Cross-slot)</summary>
+        寻层算法检测到严重斜片 = 100051,
+        /// <summary>寻层算法检测到重叠片(Double-wafer)</summary>
+        寻层算法检测到重叠片 = 100052,
+        /// <summary>寻层算法晶圆严重偏离标准槽位（可能未插到底）</summary>
+        寻层算法晶圆偏离标准槽位 = 100053,
+
+        // ── 系统级异常 (10009X) ──
+        /// <summary>状态机指针漂移，进入未定义步序</summary>
+        状态机进入未定义步序 = 100099
+
+        #endregion
+    }
+
+    /// <summary>
     /// 【工位1】上下料工站业务流转控制器 (Feeding Station Controller)
-    /// 
+    ///
     /// <para>架构定位：</para>
     /// 作为工位1的主业务状态机，继承自 <see cref="StationBase{T}"/>。负责统筹调度底层 <see cref="WorkStation1FeedingModule"/>（硬件机构）
     /// 与 <see cref="WorkStationDataModule"/>（数据中枢），并通过 <see cref="IStationSyncService"/> 与拉料工站、检测工站进行跨工站握手协作。
     /// </summary>
     [StationUI("工位1上下料工站", "WorkStation1FeedingStationDebugView", order: 1)]
-    public class WorkStation1FeedingStation<T> : StationBase<T> where T : StationMemoryBaseParam
+    public class WorkStation1FeedingStation<T> : StationBase<T, Station1FeedingStep> where T : StationMemoryBaseParam
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
         private readonly WorkStation1FeedingModule? _feedingModule;
         private readonly WorkStationDataModule? _dataModule;
         private readonly IStationSyncService _sync;
-
-        /// <summary>
-        /// 状态机当前执行的业务步序指针
-        /// </summary>
-        private Station1FeedingStep _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
 
         // ── 跨步序流转的缓存字段 ──
         private OCRRecipeParam? _cachedRecipe;
@@ -46,7 +194,6 @@ namespace PF.WorkStation.AutoOcr.Stations
         private int _totalLayerCount;
         private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
-        private string? _cachedErrorCode; // 缓存模组返回的错误码
         private bool _scanRetried = false; // 标记是否已重试扫描
 
         #endregion
@@ -96,170 +243,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #endregion
 
-        #region State Machine Enums (业务步序枚举)
-
-        /// <summary>
-        /// 定义上下料工站的完整生命周期与断点续跑异常状态节点
-        /// </summary>
-        public enum Station1FeedingStep
-        {
-            #region 阶段 A：运动前准备 (0 - 100)
-
-            /// <summary>等待按下工位1启动按钮</summary>
-            等待按下工位1启动按钮 = 0,
-            /// <summary>验证当前批次产品个数</summary>
-            验证当前批次产品个数 = 10,
-            /// <summary>获取工位1配方参数</summary>
-            获取工位1配方参数 = 20,
-            /// <summary>识别料盒尺寸</summary>
-            识别料盒尺寸 = 30,
-            /// <summary>验证尺寸与配方是否匹配</summary>
-            验证尺寸与配方是否匹配 = 40,
-            /// <summary>切换物料尺寸</summary>
-            切换物料尺寸 = 50,
-            /// <summary>判断X轴是否具备运动条件_开始</summary>
-            判断X轴是否具备运动条件_开始 = 60,
-            /// <summary>X轴到待机位</summary>
-            X轴到待机位 = 70,
-            /// <summary>判断Z轴是否具备运动条件_寻层</summary>
-            判断Z轴是否具备运动条件_寻层 = 80,
-            /// <summary>Z轴扫描寻层</summary>
-            Z轴扫描寻层 = 90,
-            /// <summary>算法过滤层数</summary>
-            算法过滤层数 = 100,
-
-            #endregion
-
-            #region 阶段 B：取料循环流转 (110 - 160)
-
-            /// <summary>判断Z轴是否具备运动条件_取料定位</summary>
-            判断Z轴是否具备运动条件_取料定位 = 110,
-            /// <summary>切换到指定层</summary>
-            切换到指定层 = 120,
-            /// <summary>判断物料可拉出条件</summary>
-            判断物料可拉出条件 = 130,
-            /// <summary>等待物料拉出完成</summary>
-            等待物料拉出完成 = 140,
-            /// <summary>阻塞等待物料回退完成</summary>
-            阻塞等待物料回退完成 = 150,
-            /// <summary>计算下一层位置</summary>
-            计算下一层位置 = 160,
-
-            #endregion
-
-            #region 阶段 C：生产结束与安全收尾 (200 - 400)
-
-            /// <summary>物料全部生产完毕</summary>
-            物料全部生产完毕 = 200,
-            /// <summary>判断X轴是否具备运动条件_结束</summary>
-            判断X轴是否具备运动条件_结束 = 210,
-            /// <summary>X轴到挡料位</summary>
-            X轴到挡料位 = 220,
-            /// <summary>判断Z轴是否具备运动条件_流程结束</summary>
-            判断Z轴是否具备运动条件_流程结束 = 230,
-            /// <summary>Z轴到待机位</summary>
-            Z轴到待机位 = 240,
-            /// <summary>通知操作员下料</summary>
-            通知操作员下料 = 300,
-            /// <summary>生产完毕</summary>
-            生产完毕 = 400,
-
-            #endregion
-
-            #region 阶段 D：异常拦截与断点续跑节点 (100000+)
-
-            // ── 业务与数据校验异常 (10000X) ──
-            /// <summary>批次产品个数为0，无法启动生产</summary>
-            批次产品个数不正确 = 100001,
-            /// <summary>料盒尺寸与配方不匹配</summary>
-            料盒尺寸与配方不匹配 = 100002,
-            /// <summary>工位1配方获取失败</summary>
-            工位1配方获取失败 = 100003,
-
-            // ── 传感器与硬件状态异常 (10001X) ──
-            /// <summary>料盒尺寸识别失败（传感器信号异常）</summary>
-            料盒尺寸识别失败 = 100010,
-            /// <summary>料盒公用底座未检测到物体</summary>
-            料盒公用底座未检测到物体 = 100011,
-            /// <summary>8寸晶圆放反</summary>
-            八寸晶圆放反 = 100012,
-            /// <summary>12寸晶圆放反</summary>
-            十二寸晶圆放反 = 100013,
-            /// <summary>料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）</summary>
-            料盒尺寸传感器信号冲突 = 100014,
-            /// <summary>寻层扫描硬件锁存配置失败</summary>
-            寻层扫描硬件锁存配置失败 = 100015,
-
-            // ── 运动互锁与条件检测异常 (10002X) ──
-            /// <summary>Z轴运动条件不满足</summary>
-            Z轴运动条件不满足 = 100020,
-            /// <summary>X轴运动条件不满足</summary>
-            X轴运动条件不满足 = 100021,
-            /// <summary>Z轴互锁失败：料盒未到位禁止升降</summary>
-            Z轴互锁失败_料盒未到位 = 100022,
-            /// <summary>X轴互锁失败：存在铁环突片</summary>
-            X轴互锁失败_存在铁环突片 = 100023,
-            /// <summary>拉料互锁失败：晶圆盒挡杆未打开</summary>
-            拉料互锁失败_挡杆未打开 = 100024,
-
-            // ── 运动执行与超时异常 (10003X) ──
-            /// <summary>Z轴运动超时</summary>
-            Z轴运动超时 = 100030,
-            /// <summary>X轴运动超时</summary>
-            X轴运动超时 = 100031,
-            /// <summary>初始化上料状态失败（Z/X轴运动到待机位失败）</summary>
-            初始化上料状态失败 = 100032,
-            /// <summary>Z轴切换层运动失败</summary>
-            Z轴切换层运动失败 = 100033,
-            /// <summary>寻层扫描移动到起点失败</summary>
-            寻层扫描移动到起点失败 = 100034,
-            /// <summary>寻层扫描移动到终点失败</summary>
-            寻层扫描移动到终点失败 = 100035,
-
-            // ── 流程特定检测与算法异常 (10004X) ──
-            /// <summary>Z轴寻层扫描异常（结果为空或过程出错）</summary>
-            Z轴寻层扫描异常 = 100040,
-            /// <summary>寻层算法空值判定（判定为0层）</summary>
-            寻层算法空值判定 = 100041,
-            /// <summary>寻层算法出现严重异常</summary>
-            寻层算法过滤异常 = 100042,
-            /// <summary>目标层数超出有效范围</summary>
-            目标层数超出有效范围 = 100043,
-            /// <summary>未找到目标层的阵列点位</summary>
-            未找到目标层的阵列点位 = 100044,
-            /// <summary>寻层算法理论层坐标未初始化</summary>
-            寻层算法理论层坐标未初始化 = 100045,
-            /// <summary>寻层算法传感器原始数据不足</summary>
-            寻层算法传感器原始数据不足 = 100046,
-            /// <summary>寻层算法双传感器识别数量差异过大</summary>
-            寻层算法双传感器识别数量差异过大 = 100047,
-
-            // ── 物料姿态具体异常 (10005X) ──
-            /// <summary>物料错层翘起，禁止拉料</summary>
-            检测到物料错层 = 100050,
-            /// <summary>寻层算法检测到严重斜片(Cross-slot)</summary>
-            寻层算法检测到严重斜片 = 100051,
-            /// <summary>寻层算法检测到重叠片(Double-wafer)</summary>
-            寻层算法检测到重叠片 = 100052,
-            /// <summary>寻层算法晶圆严重偏离标准槽位（可能未插到底）</summary>
-            寻层算法晶圆偏离标准槽位 = 100053,
-
-            // ── 系统级异常 (10009X) ──
-            /// <summary>状态机指针漂移，进入未定义步序</summary>
-            状态机进入未定义步序 = 100099
-
-            #endregion
-        }
-
-        #endregion
-
         #region Constructor & Lifecycle (构造与生命周期)
 
         /// <summary>
         /// 初始化工位1上下料工站
         /// </summary>
         public WorkStation1FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
-            : base(E_WorkStation.工位1上下料工站.ToString(), logger)
+            : base(E_WorkStation.工位1上下料工站.ToString(), logger, Station1FeedingStep.等待按下工位1启动按钮)
         {
             _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1FeedingModule)) as WorkStation1FeedingModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
