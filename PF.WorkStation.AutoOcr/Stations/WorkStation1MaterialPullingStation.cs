@@ -265,7 +265,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     Fire(MachineTrigger.Error);
                     return;
                 }
-
+                _sync.ResetScope(StationName);//初始化所有标志位
                 _logger.Success($"[{StationName}] 初始化完成，就绪。");
                 _pullingModule.ResumeHealthMonitoring();
                 Fire(MachineTrigger.InitializeDone); // Initializing → Idle
@@ -454,7 +454,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "移动到检测位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        if (await _pullingModule.MoveDetection(token))
+                        if (await _pullingModule.MoveDetection(token).ConfigureAwait(false))
                         {
                             _logger.Info($"[{StationName}] 运动到检测位成功");
                             _sync.Release(nameof(WorkstationSignals.工位1拉料完成), StationName);
