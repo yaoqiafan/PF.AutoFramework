@@ -118,13 +118,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 复位后重新运行;")]
             public const string XAxisMoveTimeout = "PROC_WS1F_MOT_004";
 
-            /// <summary>状态机指针漂移，进入未定义步序</summary>
-            [AlarmInfo("流程异常/系统", "工位1上下料-状态机指针漂移，进入未定义步序", AlarmSeverity.Fatal,
-                "1. 记录当前操作步骤并联系开发人员;\n" +
-                "2. 查看日志中异常步序编号;\n" +
-                "3. 重启软件后重新运行;\n" +
-                "4. 提供日志文件给技术支持;")]
-            public const string UndefinedStep = "PROC_WS1F_SYS_001";
+            
 
             // ── 模组内部方法级错误码 ──
 
@@ -370,13 +364,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 复位后重新运行;")]
             public const string XAxisMoveTimeout = "PROC_WS2F_MOT_004";
 
-            /// <summary>状态机指针漂移，进入未定义步序</summary>
-            [AlarmInfo("流程异常/系统", "工位2上下料-状态机指针漂移，进入未定义步序", AlarmSeverity.Fatal,
-                "1. 记录当前操作步骤并联系开发人员;\n" +
-                "2. 查看日志中异常步序编号;\n" +
-                "3. 重启软件后重新运行;\n" +
-                "4. 提供日志文件给技术支持;")]
-            public const string UndefinedStep = "PROC_WS2F_SYS_001";
+          
 
             // ── 模组内部方法级错误码 ──
 
@@ -1082,13 +1070,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 联系维护人员检查数据库;")]
             public const string DataWriteFailed = "PROC_DET_DATA_001";
 
-            /// <summary>状态机越界，进入未定义步序</summary>
-            [AlarmInfo("流程异常/系统", "OCR检测-状态机越界，进入未定义步序", AlarmSeverity.Fatal,
-                "1. 记录当前操作步骤并联系开发人员;\n" +
-                "2. 查看日志中异常步序编号;\n" +
-                "3. 重启软件后重新运行;\n" +
-                "4. 提供日志文件给技术支持;")]
-            public const string UndefinedStep = "PROC_DET_SYS_001";
+         
 
             // ── 模组内部方法级错误码 ──
 
