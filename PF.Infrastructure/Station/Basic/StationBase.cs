@@ -716,9 +716,7 @@ namespace PF.Infrastructure.Station.Basic
                 : gate.Task.WaitAsync(token);
         }
 
-        /// <summary>检查暂停信号</summary>
-        [Obsolete("请在 async 方法中改用 await CheckPauseAsync(token)，避免同步阻塞线程池线程。")]
-        protected void CheckPause(CancellationToken token) => _pauseGate.Task.Wait(token);
+       
 
         /// <summary>工艺延时：支持暂停中断（每 50ms 检查一次暂停状态）和取消令牌。</summary>
         protected async Task WaitAsync(int milliseconds, CancellationToken token)

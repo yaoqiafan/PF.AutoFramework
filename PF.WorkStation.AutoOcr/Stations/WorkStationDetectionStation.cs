@@ -240,6 +240,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
             _resumeStep = StationDetectionStep.等待工位1或工位2允许检测;
+            _sync.ResetScope(StationName);//初始化所有标志位
         }
 
         /// <summary>执行工站复位</summary>

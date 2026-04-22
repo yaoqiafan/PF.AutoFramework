@@ -200,8 +200,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private int _totalLayerCount;
         private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
-        private bool _scanRetried = false; // 标记是否已重试扫描
-
+     
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)
@@ -251,20 +250,12 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 switch (_currentStep)
                 {
-                    case Station1FeedingStep.等待物料拉出完成:
-                    case Station1FeedingStep.阻塞等待物料回退完成:
-                    case Station1FeedingStep.计算下一层位置:
-                        _logger.Info($"[{StationName}] 恢复取料流程，当前处理层: {_currentLayerIndex + 1}/{_totalLayerCount}");
-                        await SyncPullingStationStateAsync(token);
-                        break;
-
                     case Station1FeedingStep.Z轴扫描寻层:
                     case Station1FeedingStep.算法过滤层数:
                         _logger.Info($"[{StationName}] 重新初始化寻层状态");
                         _rawMappingData = [];
                         _layersToProcess = [];
                         _currentLayerIndex = 0;
-                        _scanRetried = false;
                         break;
 
                     default:
@@ -279,22 +270,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
         }
 
-        private async Task SyncPullingStationStateAsync(CancellationToken token)
-        {
-            try
-            {
-                _sync.Release(nameof(WorkstationSignals.工位1允许拉料), StationName);
-                if (_currentStep == Station1FeedingStep.等待物料拉出完成)
-                {
-                    _logger.Info($"[{StationName}] 等待拉料工站完成信号...");
-                    await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[{StationName}] 同步拉料工站状态失败: {ex.Message}");
-            }
-        }
+        
         /// <summary>
         /// 初始化
         /// </summary>
@@ -357,6 +333,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 // 统一交由基类的属性管理
                 _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
                 _resumeStep = Station1FeedingStep.等待按下工位1启动按钮;
+
+                _sync.ResetScope(StationName);//初始化所有标志位
             }
             catch
             {
@@ -659,14 +637,6 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else
                             {
                                 _logger.Error($"[{StationName}] 寻层异常：{(scanResult.IsSuccess ? "结果为0层" : scanResult.ErrorMessage)}");
-                                if (!_scanRetried)
-                                {
-                                    _scanRetried = true;
-                                    _logger.Warn($"[{StationName}] 尝试重试寻层...");
-                                    await Task.Delay(1000, token);
-                                    continue;
-                                }
-                                _scanRetried = false;
                                 RouteToError(Station1FeedingStep.Z轴寻层扫描异常, Station1FeedingStep.判断Z轴是否具备运动条件_寻层);
                             }
                         }
@@ -735,12 +705,15 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
-                            if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
+                            var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+
+                            if (switchToLayerres.IsSuccess)
                             {
                                 _currentStep = Station1FeedingStep.判断物料可拉出条件;
                             }
                             else
                             {
+                                _cachedErrorCode = switchToLayerres.ErrorCode;
                                 RouteToError(Station1FeedingStep.Z轴运动超时, Station1FeedingStep.切换到指定层);
                             }
                         }
@@ -775,30 +748,18 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.等待物料拉出完成:
                         CurrentStepDescription = "等待物料拉出完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
-                        {
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
                             _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
                             _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
-                        }
-                        catch (Exception ex)
-                        {
-                            RouteToError(Station1FeedingStep.状态机进入未定义步序, Station1FeedingStep.判断Z轴是否具备运动条件_取料定位);
-                        }
                         break;
 
                     case Station1FeedingStep.阻塞等待物料回退完成:
                         CurrentStepDescription = "阻塞等待物料回退完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
-                        {
+                      
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
                             _currentStep = Station1FeedingStep.计算下一层位置;
-                        }
-                        catch (Exception ex)
-                        {
-                            RouteToError(Station1FeedingStep.状态机进入未定义步序, Station1FeedingStep.计算下一层位置);
-                        }
+                       
                         break;
 
                     case Station1FeedingStep.计算下一层位置:
@@ -907,11 +868,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _layersToProcess = [];
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
-                            _scanRetried = false;
-
-                            // 已交由基类管理：_cachedErrorCode = null;
-
-                            _sync.Release(nameof(WorkstationSignals.工位1人工下料完成), StationName);
+                            
+                            _sync.Release(nameof(WorkstationSignals.工位1人工下料完成));
                             _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
                         }
                         catch (Exception ex)
