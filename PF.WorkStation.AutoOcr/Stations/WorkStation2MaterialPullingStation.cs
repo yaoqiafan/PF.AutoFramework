@@ -6,6 +6,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -151,12 +152,12 @@ namespace PF.WorkStation.AutoOcr.Stations
             // 订阅底层模组的硬件报警并上抛
             if (_pullingModule != null)
             {
-                _pullingModule.AlarmTriggered += _pullingModule_AlarmTriggered;
+                _pullingModule.AlarmTriggered += PullingModule_AlarmTriggered;
                 _pullingModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
             }
         }
 
-        private void _pullingModule_AlarmTriggered(object? sender, MechanismAlarmEventArgs e)
+        private void PullingModule_AlarmTriggered(object? sender, MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
             RaiseAlarm(new StationAlarmEventArgs
@@ -183,7 +184,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                     return;
                 }
 
-                if (!await _pullingModule.MoveInitialNoScan(token))
+                var initResult = await _pullingModule.MoveInitialNoScan(token);
+                if (!initResult.IsSuccess)
                 {
                     _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
                     Fire(MachineTrigger.Error);
@@ -315,14 +317,15 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "切换流道尺寸...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        if (await _pullingModule.ChangeWafeSizeControl(_cachedRecipe.WafeSize, token))
+                        var changeResult = await _pullingModule.ChangeWafeSizeControl(_cachedRecipe.WafeSize, token);
+                        if (changeResult.IsSuccess)
                         {
-                            // 调整完成后，退回判断节点二次确认防呆
                             this._currentStep = Station2PullingStep.判断流道尺寸;
                         }
                         else
                         {
-                            this._currentStep = Station2PullingStep.调整流道尺寸失败;
+                            _currentStep = Station2PullingStep.调整流道尺寸失败;
+                            TriggerAlarm(changeResult.ErrorCode, changeResult.ErrorMessage);
                         }
                         break;
 
@@ -330,7 +333,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "移动到取料位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        if (await _pullingModule.InitialMoveFeeding(token))
+                        var moveResult = await _pullingModule.InitialMoveFeeding(token);
+                        if (moveResult.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] 运动到取料位成功");
                             _currentStep = Station2PullingStep.关闭夹爪;
@@ -338,6 +342,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         else
                         {
                             _currentStep = Station2PullingStep.移动到取料位失败;
+                            TriggerAlarm(moveResult.ErrorCode, moveResult.ErrorMessage);
                         }
                         break;
 
@@ -345,7 +350,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "关闭夹爪...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        if (await _pullingModule.CloseWafeGipper(token))
+                        var closeResult = await _pullingModule.CloseWafeGipper(token);
+                        if (closeResult.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] 关闭夹爪成功");
                             _currentStep = Station2PullingStep.检测叠料;
@@ -353,6 +359,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         else
                         {
                             _currentStep = Station2PullingStep.关闭夹爪失败;
+                            TriggerAlarm(closeResult.ErrorCode, closeResult.ErrorMessage);
                         }
                         break;
 
@@ -382,7 +389,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "移动到检测位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        if (await _pullingModule.MoveDetection(token))
+                        var detectMoveResult = await _pullingModule.MoveDetection(token);
+                        if (detectMoveResult.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] 运动到检测位成功");
 
@@ -393,6 +401,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         else
                         {
                             _currentStep = Station2PullingStep.移动到检测位失败;
+                            TriggerAlarm(detectMoveResult.ErrorCode, detectMoveResult.ErrorMessage);
                         }
                         break;
 
@@ -400,8 +409,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "扫码识别...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        List<string> coderec = await _pullingModule.CodeScanTigger(token);
-                        _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(coderec != null ? string.Join(", ", coderec) : "未扫到码或校验不合法")}");
+                        var scanResult = await _pullingModule.CodeScanTigger(token);
+                        _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(scanResult.IsSuccess ? string.Join(", ", scanResult.Data) : "未扫到码或校验不合法")}");
 
                         _currentStep = Station2PullingStep.允许检测位检测;
                         break;
@@ -451,13 +460,16 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] Y 轴送料回料盒...");
 
-                        if (!await _pullingModule.OpenWafeGipper(token))
+                        var feedOpenResult = await _pullingModule.OpenWafeGipper(token);
+                        if (!feedOpenResult.IsSuccess)
                         {
                             _currentStep = Station2PullingStep.送料到取料位失败;
+                            TriggerAlarm(feedOpenResult.ErrorCode, feedOpenResult.ErrorMessage);
                             break;
                         }
 
-                        if (await _pullingModule.FeedingMaterialToBox(token))
+                        var feedResult = await _pullingModule.FeedingMaterialToBox(token);
+                        if (feedResult.IsSuccess)
                         {
                             _currentStep = Station2PullingStep.打开夹爪;
                             _logger.Info($"[{StationName}] 退料回料盒成功");
@@ -465,6 +477,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         else
                         {
                             _currentStep = Station2PullingStep.送料到取料位失败;
+                            TriggerAlarm(feedResult.ErrorCode, feedResult.ErrorMessage);
                         }
                         break;
 
@@ -473,7 +486,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 正在松开夹爪...");
 
-                        if (await _pullingModule.OpenWafeGipper(token))
+                        var openResult = await _pullingModule.OpenWafeGipper(token);
+                        if (openResult.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] 松开夹爪成功");
                             _currentStep = Station2PullingStep.移动到待机位;
@@ -481,6 +495,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         else
                         {
                             _currentStep = Station2PullingStep.打开夹爪失败;
+                            TriggerAlarm(openResult.ErrorCode, openResult.ErrorMessage);
                         }
                         break;
 
@@ -489,7 +504,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] Y 轴撤回待机避让位...");
 
-                        if (await _pullingModule.PutOverMove(token))
+                        var putOverResult = await _pullingModule.PutOverMove(token);
+                        if (putOverResult.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] Y 轴移动到待机位成功");
                             _currentStep = Station2PullingStep.判断带片;
@@ -497,6 +513,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         else
                         {
                             _currentStep = Station2PullingStep.移动到待机位失败;
+                            TriggerAlarm(putOverResult.ErrorCode, putOverResult.ErrorMessage);
                         }
                         break;
 

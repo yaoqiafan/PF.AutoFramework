@@ -330,14 +330,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         MessageService.ShowMessage($"{Userid}用户不存在 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    var info = await _dataModule?.QueryMesAsync(lotid, Userid);
-                    if (info == null)
+                    var mesResult = await _dataModule?.QueryMesAsync(lotid, Userid);
+                    if (mesResult == null || !mesResult.IsSuccess)
                     {
                         MessageService.ShowMessage($"{lotid}获取检测数据错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
+                    var info = mesResult.Data;
 
-                    if (!await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位1, info))
+                    if (!(await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位1, info)).IsSuccess)
                     {
                         MessageService.ShowMessage($"工位1切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
@@ -349,7 +350,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位1, kk))
+                    if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位1, kk).IsSuccess)
                     {
                         MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
@@ -374,13 +375,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     string Userid = param.GetValue<string>("Userid");
                     string lotid = param.GetValue<string>("Lotid");
 
-                    var info = await _dataModule?.QueryMesAsync(lotid, Userid);
-                    if (info == null)
+                    var mesResult = await _dataModule?.QueryMesAsync(lotid, Userid);
+                    if (mesResult == null || !mesResult.IsSuccess)
                     {
                         MessageService.ShowMessage($"{lotid}获取检测数据错误 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    if (await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位2, info))
+                    var info = mesResult.Data;
+                    if ((await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位2, info)).IsSuccess)
                     {
                         MessageService.ShowMessage($"工位2切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     }

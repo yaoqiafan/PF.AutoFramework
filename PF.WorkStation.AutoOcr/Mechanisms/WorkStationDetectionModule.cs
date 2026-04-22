@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Prism.Ioc;
 using PF.Core.Attributes;
 using PF.Core.Enums;
@@ -9,6 +9,7 @@ using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using PF.Infrastructure.Mechanisms;
 using PF.Services.Hardware;
 using PF.Workstation.AutoOcr.CostParam;
@@ -24,10 +25,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 {
     /// <summary>
     /// 【全局视觉检测模组】 (OCR Detection Module)
-    /// 
+    ///
     /// <para>物理架构：</para>
     /// 包含 X、Y、Z 三个直角坐标轴组成的三轴龙门模组，以及搭载在 Z 轴末端的智能 OCR 相机。
-    /// 
+    ///
     /// <para>软件职责：</para>
     /// 负责在工位1和工位2之间调度相机位置，根据不同工位的产品动态切换相机内部的检测配方 (Program)，
     /// 触发相机拍照解码，并维护检测源图片的本地存根，以便工程师在发生误判时进行图像追溯。
@@ -58,7 +59,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             待机位 = 0, // Z轴必须退回到最高安全位，防止 XY 移动时相机撞击下方的料盒或干涉物
         }
 
-        #endregion 
+        #endregion
 
         #region Fields & Properties (硬件实例与配方缓存)
 
@@ -192,136 +193,157 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 移动到全局待机避让位置。
         /// <para>防碰撞逻辑：必须先提升 Z 轴至安全位，确认到位后再移动 X、Y 轴。</para>
         /// </summary>
-        public async Task<bool> MoveInitial(CancellationToken token = default)
+        public async Task<MechResult> MoveInitial(CancellationToken token = default)
         {
-            CheckReady();
-
-            // 1. Z轴优先抬升撤离
-            if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
+            try
             {
-                _logger.Error($"[{MechanismName}] Z轴移动到待机位失败");
-                return false;
-            }
+                CheckReady();
 
-            // 2. XY水平轴安全归位
-            if (!await MoveMultiAxesToPointsAsync(new[] {
-                (_xAxis, nameof(XAxisPoint.待机位)),
-                (_yAxis, nameof(YAxisPoint.待机位)) }, token: token))
+                // 1. Z轴优先抬升撤离
+                if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveInitialFailed, "Z轴移动到待机位失败");
+                }
+
+                // 2. XY水平轴安全归位
+                if (!await MoveMultiAxesToPointsAsync(new[] {
+                    (_xAxis, nameof(XAxisPoint.待机位)),
+                    (_yAxis, nameof(YAxisPoint.待机位)) }, token: token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveInitialFailed, "XY轴移动到待机位失败");
+                }
+
+                _logger.Info($"[{MechanismName}] 移动到待机位成功");
+                return MechResult.Success();
+            }
+            catch (Exception ex)
             {
-                _logger.Error($"[{MechanismName}] XY轴移动到待机位失败");
-                return false;
+                _logger.Warn(ex.Message);
+                return MechResult.Fail(AlarmCodesExtensions.Detection.MoveInitialFailed, ex.Message);
             }
-
-            _logger.Info($"[{MechanismName}] 移动到待机位成功");
-            return true;
         }
 
         /// <summary>
         /// 仅将相机 Z 轴提升到安全位置（用于工位内的小范围避让）
         /// </summary>
-        public async Task<bool> MoveZSafePos(CancellationToken token = default)
+        public async Task<MechResult> MoveZSafePos(CancellationToken token = default)
         {
-            CheckReady();
-            if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
+            try
             {
-                _logger.Error($"[{MechanismName}] Z轴移动到安全位置失败");
-                return false;
-            }
+                CheckReady();
+                if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveZSafePosFailed, "Z轴移动到安全位置失败");
+                }
 
-            _logger.Info($"[{MechanismName}] Z轴移动到安全位置成功");
-            return true;
+                _logger.Info($"[{MechanismName}] Z轴移动到安全位置成功");
+                return MechResult.Success();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex.Message);
+                return MechResult.Fail(AlarmCodesExtensions.Detection.MoveZSafePosFailed, ex.Message);
+            }
         }
 
         /// <summary>
         /// 驱动相机模组前往【工位1】执行检测。
         /// 动作包含：读取动态配方坐标 -> 三轴联动寻址 -> 动态切换相机匹配程序。
         /// </summary>
-        public async Task<bool> MoveToStation1(CancellationToken token = default)
+        public async Task<MechResult> MoveToStation1(CancellationToken token = default)
         {
-            CheckReady();
-            _1StationRecipe = _dataModule.Station1ReciepParam;
-            if (_1StationRecipe == null)
+            try
             {
-                _logger.Error($"工位1未加载配方");
-                return false;
-            }
-
-            // 发起三轴联动 (使用轴默认参数)
-            if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
-                !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token) ||
-                !await _zAxis.MoveAbsoluteAsync(_1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.1, token))
-            {
-                _logger.Error($"[{MechanismName}] 移动到工位1触发失败");
-                return false;
-            }
-
-            // 在轴运动的同时，后台并行下发指令切换相机的视觉配方，节省 Cycle Time
-            if (IsChangedOcrCamera(E_WorkSpace.工位1))
-            {
-                if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
+                CheckReady();
+                _1StationRecipe = _dataModule.Station1ReciepParam;
+                if (_1StationRecipe == null)
                 {
-                    _logger.Error($"[{MechanismName}] 切换到工位1的OCR配方失败");
-                    _curOCRRecipeName = string.Empty;
-                    return false;
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1RecipeNull, "工位1未加载配方");
                 }
-                _curOCRRecipeName = _1StationRecipe.OCRRecipeName; // 记录成功切换的状态
-            }
 
-            // 等待物理运动最终到位
-            int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
-            if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
-                !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
-                !await WaitAxisMoveDoneAsync(_zAxis, timeout, token))
-            {
-                _logger.Error($"[{MechanismName}] XYZ轴移动到工位1超时");
-                return false;
+                // 发起三轴联动 (使用轴默认参数)
+                if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
+                    !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token) ||
+                    !await _zAxis.MoveAbsoluteAsync(_1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.1, token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1MoveFailed, "移动到工位1触发失败");
+                }
+
+                // 在轴运动的同时，后台并行下发指令切换相机的视觉配方，节省 Cycle Time
+                if (IsChangedOcrCamera(E_WorkSpace.工位1))
+                {
+                    if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
+                    {
+                        _curOCRRecipeName = string.Empty;
+                        return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1RecipeSwitchFailed, "切换到工位1的OCR配方失败");
+                    }
+                    _curOCRRecipeName = _1StationRecipe.OCRRecipeName;
+                }
+
+                // 等待物理运动最终到位
+                int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
+                if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
+                    !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
+                    !await WaitAxisMoveDoneAsync(_zAxis, timeout, token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1MoveTimeout, "XYZ轴移动到工位1超时");
+                }
+                return MechResult.Success();
             }
-            return true;
+            catch (Exception ex)
+            {
+                _logger.Warn(ex.Message);
+                return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1MoveFailed, ex.Message);
+            }
         }
 
         /// <summary>
         /// 驱动相机模组前往【工位2】执行检测。
         /// </summary>
-        public async Task<bool> MoveToStation2(CancellationToken token = default)
+        public async Task<MechResult> MoveToStation2(CancellationToken token = default)
         {
-            CheckReady();
-            _2StationRecipe = _dataModule.Station2ReciepParam;
-            if (_2StationRecipe == null)
+            try
             {
-                _logger.Error($"工位2未加载配方");
-                return false;
-            }
-
-            // 发起三轴联动 (修复：统一使用底层轴参数替代未初始化的 XVel 等字段)
-            if (!await _xAxis.MoveAbsoluteAsync(_2StationRecipe._2PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
-                !await _yAxis.MoveAbsoluteAsync(_2StationRecipe._2PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token) ||
-                !await _zAxis.MoveAbsoluteAsync(_2StationRecipe._2PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.1, token))
-            {
-                _logger.Error($"[{MechanismName}] 移动到工位2触发失败");
-                return false;
-            }
-
-            // 并行切换配方
-            if (IsChangedOcrCamera(E_WorkSpace.工位2))
-            {
-                if (!await _camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
+                CheckReady();
+                _2StationRecipe = _dataModule.Station2ReciepParam;
+                if (_2StationRecipe == null)
                 {
-                    _logger.Error($"[{MechanismName}] 切换到工位2的OCR配方失败");
-                    _curOCRRecipeName = string.Empty;
-                    return false;
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2RecipeNull, "工位2未加载配方");
                 }
-                _curOCRRecipeName = _2StationRecipe.OCRRecipeName;
-            }
 
-            int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
-            if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
-                !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
-                !await WaitAxisMoveDoneAsync(_zAxis, timeout, token))
-            {
-                _logger.Error($"[{MechanismName}] XYZ轴移动到工位2超时");
-                return false;
+                // 发起三轴联动
+                if (!await _xAxis.MoveAbsoluteAsync(_2StationRecipe._2PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
+                    !await _yAxis.MoveAbsoluteAsync(_2StationRecipe._2PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token) ||
+                    !await _zAxis.MoveAbsoluteAsync(_2StationRecipe._2PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.1, token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2MoveFailed, "移动到工位2触发失败");
+                }
+
+                // 并行切换配方
+                if (IsChangedOcrCamera(E_WorkSpace.工位2))
+                {
+                    if (!await _camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
+                    {
+                        _curOCRRecipeName = string.Empty;
+                        return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2RecipeSwitchFailed, "切换到工位2的OCR配方失败");
+                    }
+                    _curOCRRecipeName = _2StationRecipe.OCRRecipeName;
+                }
+
+                int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
+                if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
+                    !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
+                    !await WaitAxisMoveDoneAsync(_zAxis, timeout, token))
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2MoveTimeout, "XYZ轴移动到工位2超时");
+                }
+                return MechResult.Success();
             }
-            return true;
+            catch (Exception ex)
+            {
+                _logger.Warn(ex.Message);
+                return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2MoveFailed, ex.Message);
+            }
         }
 
         #endregion
@@ -335,8 +357,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="IsCheckResult">是否请求中枢模块 <see cref="WorkStationDataModule"/> 对解码结果进行 MES 合法性校验</param>
         /// <param name="workStation">触发拍照所在的工位标识</param>
         /// <param name="token">取消令牌</param>
-        /// <returns>Item1: OCR 解码文本结果；Item2: 视觉设备留存的原始图片路径 (用于客诉追溯)</returns>
-        public async Task<(string, string)> CameraTigger(bool IsCheckResult, E_WorkSpace workStation = E_WorkSpace.工位1, CancellationToken token = default)
+        /// <returns>MechResult，Data 包含 (OcrText, ImagePath) 元组</returns>
+        public async Task<MechResult<(string OcrText, string ImagePath)>> CameraTigger(bool IsCheckResult, E_WorkSpace workStation = E_WorkSpace.工位1, CancellationToken token = default)
         {
             try
             {
@@ -348,7 +370,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     DeleteDir(originalPathDir);
                     string ocreec = await _camera.Tigger(token);
                     string path = GetLatestCreatedFile(originalPathDir);
-                    return (ocreec, path);
+                    return MechResult<(string, string)>.Success((ocreec, path));
                 }
                 else
                 {
@@ -360,20 +382,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                         // 提交数据中枢进行逻辑比对
                         var flag = await _dataModule.CheckOcrTextAsync(workStation, rec, token);
-                        if (flag.Item1)
+                        if (flag.IsSuccess)
                         {
                             break; // 校验成功，跳出重试
                         }
                     }
 
                     // 获取当前拍摄最新生成的图像物理路径
-                    string path = GetLatestCreatedFile(originalPathDir);
-                    return (rec, path);
+                    string imagePath = GetLatestCreatedFile(originalPathDir);
+                    return MechResult<(string, string)>.Success((rec, imagePath));
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return (null, null);
+                return MechResult<(string, string)>.Fail(AlarmCodesExtensions.Detection.CameraTiggerFailed, $"相机拍照触发异常: {ex.Message}");
             }
         }
 

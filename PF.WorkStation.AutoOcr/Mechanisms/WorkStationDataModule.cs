@@ -7,6 +7,7 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Production;
+using PF.Core.Models;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -120,7 +121,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="UserID">当前登录的检测人工号</param>
         /// <param name="token">异步取消令牌</param>
         /// <returns>返回反序列化后的 <see cref="MesDetectionParam"/> 实体；若通讯失败返回 null</returns>
-        public async Task<MesDetectionParam> QueryMesAsync(string LotID, string UserID, CancellationToken token = default)
+        public async Task<MechResult<MesDetectionParam>> QueryMesAsync(string LotID, string UserID, CancellationToken token = default)
         {
             try
             {
@@ -142,12 +143,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         WaferId = $"{i:D2}"        // 模拟的晶圆槽位编号 (01~25)
                     });
                 }
-                return param;
+                return MechResult<MesDetectionParam>.Success(param);
             }
             catch (Exception ex)
             {
                 _logger?.Error($"{MechanismName} 查询MES数据失败: {ex.Message}");
-                return null;
+                return MechResult<MesDetectionParam>.Fail(AlarmCodesExtensions.DataModule.MesQueryFailed, $"查询MES数据失败: {ex.Message}");
             }
         }
 
@@ -170,23 +171,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 动态下发并更新指定工位的配方参数，同时触发 UI 刷新
         /// </summary>
-        public bool UpdateStationRecipeParam(E_WorkSpace Station, OCRRecipeParam Param)
+        public MechResult UpdateStationRecipeParam(E_WorkSpace Station, OCRRecipeParam Param)
         {
             if (Station == E_WorkSpace.工位1)
             {
                 _station1ReciepParam = Param;
                 RaiseDataChanged();
-                return true;
+                return MechResult.Success();
             }
 
             if (Station == E_WorkSpace.工位2)
             {
                 _station2ReciepParam = Param;
                 RaiseDataChanged();
-                return true;
+                return MechResult.Success();
             }
 
-            return false;
+            return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"不支持的工位: {Station}");
         }
 
         #endregion
@@ -249,7 +250,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 扫码换批逻辑：更新指定工位的 MES 校验基准信息，并清空对应工位的旧版机台检测列表（开始全新批次）
         /// </summary>
-        public async Task<bool> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data, CancellationToken token = default)
+        public async Task<MechResult> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data, CancellationToken token = default)
         {
             if (Station == E_WorkSpace.工位1)
             {
@@ -263,17 +264,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             else
             {
-                return false;
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.MesInfoUpdateFailed, $"不支持的工位: {Station}");
             }
 
             RaiseDataChanged();
-            return true;
+            return MechResult.Success();
         }
 
         /// <summary>
         /// 数据上报入口：新增一条晶圆机台检测数据 (OCR/Barcode 结果)。
         /// </summary>
-        public async Task<bool> AddMachineDetectionAsync(E_WorkSpace Station, MachineDetectionData Data)
+        public async Task<MechResult> AddMachineDetectionAsync(E_WorkSpace Station, MachineDetectionData Data)
         {
             if (Station == E_WorkSpace.工位1)
             {
@@ -318,7 +319,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // 将数据异步追加到全局批次字典中
             await AddAllDic(Station, Data);
             RaiseDataChanged();
-            return true;
+            return MechResult.Success();
         }
 
         /// <summary>
@@ -402,7 +403,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="codes">扫码枪提取出的原始条码列表</param>
         /// <param name="token">异步取消令牌</param>
         /// <returns>Item1: 是否合法通过；Item2: 过滤后的合规条码列表；Item3: 匹配出的具体晶圆实体</returns>
-        public Task<(bool, List<string>, WaferInfo)> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        public Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
         {
             WaferInfo info = null;
             try
@@ -411,23 +412,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     List<string> OKcodes = new List<string>();
 
-                    // 1. 按照当前配方规则 (GuestStartIndex, GuestLength) 截取 MES 下发的标准客户批次号
                     var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
                     {
                         CustomerBatch = x.CustomerBatch.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength),
                         WaferId = x.WaferId
                     }).ToList();
 
-                    // 2. 遍历扫描枪读出的原始条码
                     for (int i = 0; i < codes?.Count; i++)
                     {
-                        // 现代 C# 模式匹配语法：尝试按 '-' 分割，若成功且长度为2，则装载进 parts 数组
                         if (codes[i].Split('-') is { Length: 2 } parts)
                         {
-                            // 按照同样的配方规则截取扫码内容
                             string code = parts[0].Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
 
-                            // 校验比对：客户批次号必须一致，且 WaferID 必须匹配
                             if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
                             {
                                 OKcodes.Add(codes[i]);
@@ -436,19 +432,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                     }
 
-                    // 若比对成功的数量达到了配方要求的必须扫码条数，则放行
                     if (OKcodes.Count == _station1ReciepParam.CodeCount)
                     {
-                        return Task.FromResult((true, OKcodes, info));
+                        return Task.FromResult(MechResult<WaferInfo>.Success(info));
                     }
                     else
                     {
-                        return Task.FromResult((false, codes, info));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, "工位1条码校验不通过"));
                     }
                 }
                 else if (station == E_WorkSpace.工位2)
                 {
-                    // 与工位1逻辑一致，操作 Station2 的数据源
                     List<string> OKcodes = new List<string>();
                     var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
                     {
@@ -472,21 +466,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                     if (OKcodes.Count == _station2ReciepParam.CodeCount)
                     {
-                        return Task.FromResult((true, OKcodes, info));
+                        return Task.FromResult(MechResult<WaferInfo>.Success(info));
                     }
                     else
                     {
-                        return Task.FromResult((false, codes, info));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, "工位2条码校验不通过"));
                     }
                 }
                 else
                 {
-                    return Task.FromResult((false, codes, info));
+                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, $"不支持的工位: {station}"));
                 }
             }
             catch (Exception ex)
             {
-                return Task.FromResult((false, codes, info));
+                return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, $"条码校验异常: {ex.Message}"));
             }
         }
 
@@ -497,7 +491,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="ocrtext">相机视觉工具返回的原始 OCR 字符串</param>
         /// <returns>Item1: 校验是否成功；Item2: 匹配的晶圆实体</returns> 
         /// <param name="token">取消令牌</param>
-        public Task<(bool, WaferInfo)> CheckOcrTextAsync(E_WorkSpace station, string ocrtext, CancellationToken token = default)
+        public Task<MechResult<WaferInfo>> CheckOcrTextAsync(E_WorkSpace station, string ocrtext, CancellationToken token = default)
         {
             WaferInfo info = null;
             try
@@ -510,18 +504,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         WaferId = x.WaferId
                     }).ToList();
 
-                    // 兼容两种 OCR 格式：包含3段的（例如 批次-槽位-校验码） 或 2段的（批次-槽位）
                     if (ocrtext.Split('-') is { Length: 3 } parts)
                     {
                         string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
                         {
                             info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
-                            return Task.FromResult((true, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult((false, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过"));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -530,21 +523,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
                         {
                             info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)).FirstOrDefault();
-                            return Task.FromResult((true, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult((false, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过"));
                         }
                     }
                     else
                     {
-                        return Task.FromResult((false, info));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位1 OCR格式异常: {ocrtext}"));
                     }
                 }
                 else if (station == E_WorkSpace.工位2)
                 {
-                    // 与工位1逻辑一致
                     var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
                     {
                         CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength),
@@ -557,11 +549,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
                         {
                             info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
-                            return Task.FromResult((true, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult((false, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过"));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -570,26 +562,26 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
                         {
                             info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)).FirstOrDefault();
-                            return Task.FromResult((true, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult((false, info));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过"));
                         }
                     }
                     else
                     {
-                        return Task.FromResult((false, info));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位2 OCR格式异常: {ocrtext}"));
                     }
                 }
                 else
                 {
-                    return Task.FromResult((false, info));
+                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"不支持的工位: {station}"));
                 }
             }
             catch (Exception ex)
             {
-                return Task.FromResult((false, info));
+                return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"OCR校验异常: {ex.Message}"));
             }
         }
 

@@ -194,8 +194,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _io.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] IO模块连接失败"); return false; }
 
             // ④ 伺服上电使能 (Servo On)
-            if (!await _zAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
-            if (!await _xAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
+            if (!await _zAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
+            if (!await _xAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
 
             // ⑤ 异常待处理：回原点 (Home) 前需检查传感器确认物料是否处于安全位置，防止硬碰撞。
             // if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
@@ -226,10 +226,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
             // 并发控制指令：多轴插补运动提升设备初始化节拍 (Cycle Time)
-            if (await MoveMultiAxesToPointsAsync(new[] {
+            if (await MoveMultiAxesToPointsAsync([
                     (_xAxis, nameof(XAxisPoint.挡料位)),
                     (_zAxis, nameof(ZAxisPoint.待机位))
-                }, token: token))
+                ], token: token))
             {
                 _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
                 return MechResult.Success();
@@ -493,7 +493,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.ScanMoveToEndFailed, $"移动到 {end} 位置超时");
 
                 // Step 4: 读取底层板卡 FIFO 缓存的坐标数据
-                int[] latchChannels = { latchNo1, latchNo2 };
+                int[] latchChannels = [latchNo1, latchNo2];
                 foreach (var latchId in latchChannels)
                 {
                     int latchCount = await _zAxis.GetLatchNumber(latchId, token);
@@ -537,7 +537,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             var ScanPositions = _currentWaferSize == E_WafeSize._8寸 ? ScanPosition_8 : ScanPosition_12;
             var pickpoints = _currentWaferSize == E_WafeSize._8寸 ? PickingPosition_8 : PickingPosition_12;
 
-            if (ScanPositions == null || ScanPositions.Count == 0)
+            if (ScanPositions == null || ScanPositions.IsEmpty)
                 return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmNotInitialized, "理论层坐标未初始化，请先执行生产状态切换");
 
             if (rawMappingData.Keys.Count < 2)
@@ -563,7 +563,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 : await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_12.ToString());
 
             // [防呆2：斜片验证与双端数据融合]
-            List<double> mergedRawPositions = new List<double>();
+            List<double> mergedRawPositions = [];
             foreach (var z1 in sensor1Data)
             {
                 var closestZ2 = sensor2Data.OrderBy(z2 => Math.Abs(z2 - z1)).FirstOrDefault();
@@ -620,12 +620,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 私有辅助方法：利用 NPOI 将锁存生成的坐标原始数据写入本地 Excel 表格，方便算法工程师溯源。
         /// </summary>
-        private void SavePoint(string FilePath, Dictionary<int, List<double>> point)
+        private static void  SavePoint(string FilePath, Dictionary<int, List<double>> point)
         {
-            FileInfo file = new FileInfo(FilePath);
+            FileInfo file = new(FilePath);
             if (!Directory.Exists(file.DirectoryName)) Directory.CreateDirectory(file.DirectoryName);
 
-            using (XSSFWorkbook wk = new XSSFWorkbook())
+            using (XSSFWorkbook wk = new())
             {
                 int count = 0;
                 ISheet sheet = wk.CreateSheet("point");

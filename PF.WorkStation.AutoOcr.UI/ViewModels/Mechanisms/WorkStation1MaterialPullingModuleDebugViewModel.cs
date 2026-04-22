@@ -5,6 +5,7 @@ using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -184,7 +185,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// 获取或设置 YAxisOriginalPoints
         /// </summary>
 
-        public ObservableCollection<AxisPoint> YAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> YAxisOriginalPoints { get; set; } = [];
 
 
         #endregion 点位集合
@@ -292,14 +293,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
             Change_8StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到8寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._8寸)));
             Change_12StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
-            OpenGipperCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
+            OpenGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
 
-            CloseGipperCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开夹爪", () => _materialPullingModule?.CloseWafeGipper()));
+            CloseGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("闭合夹爪", () => _materialPullingModule?.CloseWafeGipper()));
             SavePointCommand = new DelegateCommand(SavePoint);
 
-            MoveFeedingCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到拉料位", () => _materialPullingModule?.InitialMoveFeeding()));
-            MoveDetcetionCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
-            MoveInitialCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
+            MoveFeedingCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到拉料位", () => _materialPullingModule?.InitialMoveFeeding()));
+            MoveDetcetionCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
+            MoveInitialCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
             CodeTiggerCommand = new DelegateCommand(async () => await ExecuteAsync(() => TiggerCode()));
             SaveLightValueCommand = new DelegateCommand(async () => await ExecuteAsync(() => SaveLightValue()));
             LoadOriginalPoints();
@@ -361,6 +362,31 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+
+        private async Task ExecuteMechResultAsync(string actionName, Func<Task<MechResult>> action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = $"执行 {actionName} 中...";
+                var result = await action.Invoke();
+                if (result.IsSuccess)
+                {
+                    DebugMessage = $"结果: {actionName} 成功";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    DebugMessage = $"结果: {actionName} 失败 [{result.ErrorCode}] {result.ErrorMessage}";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
         private void LoadOriginalPoints()
         {
             if (_materialPullingModule == null) return;
@@ -391,20 +417,20 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         private async Task TiggerCode(CancellationToken token = default)
         {
             if (_materialPullingModule?.YAxis == null) return;
-            var res = await _materialPullingModule.CodeScanTigger();
-            if (res == null)
+            var res = await _materialPullingModule.CodeScanTigger(token);
+            if (res.IsSuccess && res.Data != null)
             {
-                Coderec = "ERROR";
+                Coderec = string.Join('&', res.Data);
             }
             else
             {
-                Coderec = string.Join('&', res);
+                Coderec = $"ERROR: {res.ErrorMessage}";
             }
 
         }
 
 
-        private async Task SaveLightValue(CancellationToken token = default)
+        private async Task SaveLightValue()
         {
             // 使用非泛型重载，避免 double 作为引用类型约束的泛型参数
             var info = await _paramService.SetParamAsync(
