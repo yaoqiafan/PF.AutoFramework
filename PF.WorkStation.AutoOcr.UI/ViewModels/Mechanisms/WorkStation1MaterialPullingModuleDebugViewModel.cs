@@ -9,11 +9,13 @@ using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
+using Prism.Commands;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -62,6 +64,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// </summary>
 
         public string Coderec { get => _coderec; set => SetProperty(ref _coderec, value); }
+
+        private bool _isBusy;
+        /// <summary>
+        /// 正在执行测试标志，用于锁定 UI 按钮防连点
+        /// </summary>
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                if (SetProperty(ref _isBusy, value))
+                {
+                    // 状态改变时通知 UI 刷新按钮的可用性 (IsEnabled)
+                    TestPullOutCommand?.RaiseCanExecuteChanged();
+                    TestPushBackCommand?.RaiseCanExecuteChanged();
+                    TestFullFlowCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
 
         #region 状态监控属性 (UI 实时刷新)
 
@@ -273,6 +294,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         public DelegateCommand SavePointCommand { get; }
 
+        /// <summary>
+        /// TestPullOut 命令
+        /// </summary>
+        public DelegateCommand TestPullOutCommand { get; }
+        /// <summary>
+        /// TestPushBack 命令
+        /// </summary>
+        public DelegateCommand TestPushBackCommand { get; }
+        /// <summary>
+        /// TestFullFlow 命令
+        /// </summary>
+        public DelegateCommand TestFullFlowCommand { get; }
+
         #endregion Command定义
         /// <summary>
         /// WorkStation1MaterialPullingModuleDebugViewModel 构造函数
@@ -303,6 +337,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             MoveInitialCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
             CodeTiggerCommand = new DelegateCommand(async () => await ExecuteAsync(() => TiggerCode()));
             SaveLightValueCommand = new DelegateCommand(async () => await ExecuteAsync(() => SaveLightValue()));
+
+            TestPullOutCommand = new DelegateCommand(async () => await ExecuteTestPullOutAsync(), CanExecuteTest);
+            TestPushBackCommand = new DelegateCommand(async () => await ExecuteTestPushBackAsync(), CanExecuteTest);
+            TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), CanExecuteTest);
+
             LoadOriginalPoints();
 
             StartMonitor();
@@ -329,7 +368,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-       
+
 
         private async Task ExecuteMechResultAsync(string actionName, Func<Task<MechResult>> action)
         {
@@ -433,6 +472,122 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 E_Params.WorkStation1LightBrightness.ToString(),
                 InfraredLightValue
             );
+        }
+
+        // 判断当前是否可以执行测试（设备未在忙碌中）
+        private bool CanExecuteTest() => !IsBusy;
+
+        /// <summary>
+        /// 测试：仅执行拉料流程 (到取料位 -> 关夹爪 -> 检测叠料 -> 拉出到检测位)
+        /// </summary>
+        private async Task ExecuteTestPullOutAsync()
+        {
+            if (_materialPullingModule == null) return;
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugMessage = "[调试] 开始执行单步测试：拉料流程...";
+                await InternalTestPullOutAsync(cts.Token);
+                DebugMessage = "[调试] 单步测试：拉料流程完成。";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"[调试] 拉料流程测试中断: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// 测试：仅执行推料流程 (送料入料盒 -> 开夹爪 -> 退回待机位 -> 防呆检查)
+        /// </summary>
+        private async Task ExecuteTestPushBackAsync()
+        {
+            if (_materialPullingModule == null) return;
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugMessage = "[调试] 开始执行单步测试：推料流程...";
+                await InternalTestPushBackAsync(cts.Token);
+                DebugMessage = "[调试] 单步测试：推料流程完成。";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"[调试] 推料流程测试中断: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// 测试：执行完整闭环 (拉料 + 模拟视觉延时 + 推料)
+        /// </summary>
+        private async Task ExecuteTestFullFlowAsync()
+        {
+            if (_materialPullingModule == null) return;
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugMessage = "[调试] 开始执行完整闭环测试...";
+
+                await InternalTestPullOutAsync(cts.Token);
+
+                DebugMessage = "[调试] 模拟视觉检测中...";
+                await Task.Delay(1500, cts.Token);
+
+                await InternalTestPushBackAsync(cts.Token);
+
+                DebugMessage = "[调试] 完整拉送料闭环测试完成。";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"[调试] 完整闭环测试中断: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task InternalTestPullOutAsync(CancellationToken token)
+        {
+            var resMove = await _materialPullingModule!.InitialMoveFeeding(token);
+            if (!resMove.IsSuccess) throw new Exception($"移动到取料位失败: {resMove.ErrorMessage}");
+
+            var resClose = await _materialPullingModule.CloseWafeGipper(token);
+            if (!resClose.IsSuccess) throw new Exception($"关闭夹爪失败: {resClose.ErrorMessage}");
+
+            if (!await _materialPullingModule.CheckStackedPieces(token)) throw new Exception("检测到叠料异常");
+
+            var resDetect = await _materialPullingModule.MoveDetection(token);
+            if (!resDetect.IsSuccess) throw new Exception($"拉出至检测位失败: {resDetect.ErrorMessage}");
+        }
+
+        private async Task InternalTestPushBackAsync(CancellationToken token)
+        {
+            var resFeed = await _materialPullingModule!.FeedingMaterialToBox(token);
+            if (!resFeed.IsSuccess) throw new Exception($"送料入料盒失败: {resFeed.ErrorMessage}");
+
+            var resOpen = await _materialPullingModule.OpenWafeGipper(token);
+            if (!resOpen.IsSuccess) throw new Exception($"打开夹爪失败: {resOpen.ErrorMessage}");
+
+            var resRetract = await _materialPullingModule.PutOverMove(token);
+            if (!resRetract.IsSuccess) throw new Exception($"退回待机避让位失败: {resRetract.ErrorMessage}");
+
+            if (!await _materialPullingModule.CheckGipperInsidePro(token)) throw new Exception("退回后夹爪内仍检测到残留带片");
         }
 
 

@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.Views.Mechanisms"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="800"
     d:DesignWidth="1100"
@@ -248,11 +249,18 @@
                                     Margin="0,0,0,5"
                                     Foreground="Gray"
                                     Text="核心业务流测试" />
-                                <Button
-                                    Height="35"
-                                    Margin="0,0,0,5"
-                                    Command="{Binding SearchLayerCommand}"
-                                    Content="执行: Z轴扫描寻层 (SearchLayer)" />
+
+                                <StackPanel Margin="0,0,0,5" Orientation="Horizontal">
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="次数："></TextBlock>
+                                    <pf:NumericUpDown Width="55" Margin="10,0" x:Name="times"></pf:NumericUpDown>
+                                    <Button HorizontalAlignment="Right"
+                                        Height="35"
+                                        Command="{Binding SearchLayerCommand}"
+                                        Content="执行: Z轴扫描寻层 (SearchLayer)" CommandParameter="{Binding ElementName=times, Path=Value}" />
+
+                                   
+                                </StackPanel>
+
 
                                 <Grid Margin="0,0,0,5">
                                     <Grid.ColumnDefinitions>
@@ -279,7 +287,7 @@
                                         Content="执行: 切换层" />
                                 </Grid>
 
-                              
+
                             </StackPanel>
                         </ScrollViewer>
                     </GroupBox>

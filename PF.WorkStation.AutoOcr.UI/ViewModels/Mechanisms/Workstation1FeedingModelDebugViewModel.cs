@@ -219,7 +219,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// SearchLayer 命令
         /// </summary>
 
-        public DelegateCommand SearchLayerCommand { get; }
+        public DelegateCommand<double> SearchLayerCommand { get; }
         /// <summary>
         /// GoToLayer 命令
         /// </summary>
@@ -267,7 +267,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             CanMoveXCommand = new DelegateCommand(async () => await ExecuteCheckAsync("X轴可动条件", () => _feedingModule?.CanMoveXAxesAsync()));
             CanPullOutCommand = new DelegateCommand(async () => await ExecuteCheckAsync("允许拉料条件", () => _feedingModule?.CanPullOutMaterialAsync()));
 
-            SearchLayerCommand = new DelegateCommand(async () => await ExecuteSearchLayerAsync());
+            SearchLayerCommand = new DelegateCommand<double>(async (t) => await ExecuteSearchLayerAsync(t));
             GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
 
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
@@ -332,57 +332,74 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteSearchLayerAsync()
+        private async Task ExecuteSearchLayerAsync(double runTimes)
         {
             if (_feedingModule == null) return;
+
+            // 将 double 转换为 int，并确保至少运行 1 次
+            int totalRuns = (int)Math.Max(1, runTimes);
+
             try
             {
-                DebugMessage = "开始寻层扫描...";
-
-                var scanResult = await _feedingModule.SearchLayerAsync();
-                if (!scanResult.IsSuccess)
+                for (int i = 0; i < totalRuns; i++)
                 {
-                    DebugMessage = $"寻层扫描失败: {scanResult.ErrorMessage}";
-                    MessageService.ShowMessage(DebugMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
+                    int currentRun = i + 1;
+                    DebugMessage = $"开始第 {currentRun}/{totalRuns} 次寻层扫描...";
+
+                    var scanResult = await _feedingModule.SearchLayerAsync();
+                    if (!scanResult.IsSuccess)
+                    {
+                        DebugMessage = $"第 {currentRun} 次寻层扫描失败: {scanResult.ErrorMessage}";
+                        MessageService.ShowMessage(DebugMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return; // 失败则退出整个方法；如果想忽略错误继续下一次循环，请改为 continue;
+                    }
+
+                    var rawMap = scanResult.Data;
+                    RawMappingPoints1.Clear();
+                    RawMappingPoints2.Clear();
+
+                    var keys = rawMap.Keys.ToList();
+                    if (keys.Count > 0)
+                    {
+                        int index1 = 1;
+                        foreach (var z in rawMap[keys[0]])
+                            RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
+                    }
+
+                    if (keys.Count > 1)
+                    {
+                        int index2 = 1;
+                        foreach (var z in rawMap[keys[1]])
+                            RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
+                    }
+
+                    DebugMessage = $"第 {currentRun}/{totalRuns} 次数据获取完成，正在进行算法过滤...";
+                    var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                    if (!filterResult.IsSuccess)
+                    {
+                        DebugMessage = $"第 {currentRun} 次算法过滤失败: {filterResult.ErrorMessage}";
+                        MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var filteredMap = filterResult.Data;
+                    FilteredMappingPoints.Clear();
+                    foreach (var kvp in filteredMap.OrderBy(k => k.Key))
+                    {
+                        FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
+                    }
+
+                    DebugMessage = $"第 {currentRun} 次寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
+
+                    // 如果有多次循环，建议加一个短暂的延迟，避免硬件指令发送过快导致冲突
+                    if (currentRun < totalRuns)
+                    {
+                        await Task.Delay(500); // 延时 500ms，可根据实际硬件要求调整或删除
+                    }
                 }
 
-                var rawMap = scanResult.Data;
-                RawMappingPoints1.Clear();
-                RawMappingPoints2.Clear();
-
-                var keys = rawMap.Keys.ToList();
-                if (keys.Count > 0)
-                {
-                    int index1 = 1;
-                    foreach (var z in rawMap[keys[0]])
-                        RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
-                }
-
-                if (keys.Count > 1)
-                {
-                    int index2 = 1;
-                    foreach (var z in rawMap[keys[1]])
-                        RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
-                }
-
-                DebugMessage = "数据获取完成，正在进行算法过滤...";
-                var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
-                if (!filterResult.IsSuccess)
-                {
-                    DebugMessage = $"算法过滤失败: {filterResult.ErrorMessage}";
-                    MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                var filteredMap = filterResult.Data;
-                FilteredMappingPoints.Clear();
-                foreach (var kvp in filteredMap.OrderBy(k => k.Key))
-                {
-                    FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
-                }
-
-                DebugMessage = $"寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
+                // 所有循环顺利结束后，统一弹窗提示
+                DebugMessage = $"任务完成: 共计执行 {totalRuns} 次寻层均已成功。";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
