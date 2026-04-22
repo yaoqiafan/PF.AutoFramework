@@ -612,9 +612,33 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     }
                 }, linkedToken);
 
+                // 等待任意任务完成（不管是正常完成、异常退出还是被取消）
                 Task finishedTask = await Task.WhenAny(taskA, taskB, taskC);
-                cts.Cancel();
+                cts.Cancel(); // 取消其他未完成的任务
 
+                // 【修复 1】优先检查是否被外部信号取消
+                if (token.IsCancellationRequested)
+                {
+                    await _yAxis.StopAsync();
+                    return MechResult.Fail(-1, "操作已被外部取消"); // 这里可以根据你们的业务定义专门的错误码
+                }
+
+                // 【修复 2】检查是否是因为超时导致的取消
+                if (timeoutcts.IsCancellationRequested)
+                {
+                    await _yAxis.StopAsync();
+                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTimeout, "Y轴拉出运动超时");
+                }
+
+                // 【修复 3】防御性检查：如果任务是因为未知异常崩溃的
+                if (finishedTask.IsFaulted)
+                {
+                    await _yAxis.StopAsync();
+                    _logger.Warn(finishedTask.Exception?.InnerException?.Message ?? "任务发生未知异常");
+                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "状态检测任务发生异常");
+                }
+
+                // 此时可以确保 finishedTask 是“正常检测到条件并 return”的
                 if (finishedTask == taskA)
                 {
                     await _yAxis.StopAsync();
@@ -626,12 +650,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutDropAlarm, "拉出过程中触发【丢料报警】，已紧急停止");
                 }
 
-                return MechResult.Success();
+                // 只有 taskC (运动完成) 是真正的成功
+                if (finishedTask == taskC)
+                {
+                    return MechResult.Success();
+                }
+
+                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "未知的执行逻辑");
             }
-            catch (OperationCanceledException) when (timeoutcts.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
+                // 这里主要是抓取 _yAxis.MoveToPointAsync 内部因为 token 取消抛出的异常
                 await _yAxis.StopAsync();
-                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTimeout, "Y轴拉出运动超时");
+                if (timeoutcts.IsCancellationRequested)
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTimeout, "Y轴拉出运动超时");
+                }
+                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "操作已被外部取消");
             }
             catch (Exception ex)
             {
