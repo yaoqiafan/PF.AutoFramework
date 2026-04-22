@@ -312,7 +312,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.等待工位1或工位2允许检测:
                         CurrentStepDescription = "等待工位1或工位2发起的检测请求...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 在公共资源池中等待工位1或工位2的检测信号...");
 
                         // 💡 优雅并发设计：创建一个独立的可取消源，用于随时结束未抢占到资源的那个工位的等待任务
@@ -370,7 +370,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.去工位1检测位置:
                         CurrentStepDescription = "OCR模组移动到工位1检测位置...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         _cachedRecipe = _dataModule?.Station1ReciepParam;
                         if (_cachedRecipe == null)
@@ -402,7 +402,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.去工位2检测位置:
                         CurrentStepDescription = "OCR模组移动到工位2检测位置...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         _cachedRecipe = _dataModule?.Station2ReciepParam;
                         if (_cachedRecipe == null)
@@ -434,7 +434,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.触发检测:
                         CurrentStepDescription = $"触发OCR相机拍照解码（对象：{_currentworkSpace}）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             // 发送拍照指令，且直接使用相机原始识别结果 (false 标识不在此处校验，交由后续阶段比对)
@@ -459,7 +459,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.检测完成Z轴回安全位:
                         CurrentStepDescription = $"提升 Z 轴脱离干涉区（{_currentworkSpace}）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 为了允许拉料工站尽早退料，必须先将视觉 Z 轴抬高，解除空间干涉
                         var zRetractResult = await _detectionModule.MoveZSafePos(token);
@@ -476,7 +476,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.数据比对:
                         CurrentStepDescription = "OCR数据与MES工单数据交叉比对...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 请求数据中枢验证当前字符串是否在 MES 允许名单内
                         var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.OcrText, token).ConfigureAwait(false);
@@ -523,7 +523,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.写入检测数据:
                         CurrentStepDescription = "将检测结果写入持久化存储...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (_cachedDetectionData != null && _dataModule != null)
@@ -542,7 +542,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.检测完成:
                         CurrentStepDescription = "业务闭环，释放通行证...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 释放本轮执行工位的放行信号，通知目标工位的拉料机构可以将晶圆退回料盒了
                         if (_currentworkSpace == E_WorkSpace.工位1)
@@ -566,7 +566,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case StationDetectionStep.检测完成后避位:
                         CurrentStepDescription = "龙门退回全局待机原点...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 确保整个大龙门机构退回最高最深处，不挡任何人的道
                         var retreatResult = await _detectionModule.MoveInitial(token);

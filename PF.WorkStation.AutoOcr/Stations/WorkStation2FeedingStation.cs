@@ -445,7 +445,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.等待按下工位2启动按钮:
                         CurrentStepDescription = "等待按下工位2启动按钮...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Info($"[{StationName}] 等待操作员按下工位2启动按钮...");
 
                         await _sync.WaitAsync(nameof(WorkstationSignals.工位2启动按钮按下), token).ConfigureAwait(false);
@@ -456,7 +456,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.验证当前批次产品个数:
                         CurrentStepDescription = "验证当前批次产品个数...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         if (_dataModule.Station2MesDetectionData.Quantity != 0)
                         {
                             _logger.Info($"[{StationName}] 批次产品个数验证通过：{_dataModule.Station2MesDetectionData.Quantity}。");
@@ -471,7 +471,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.获取工位2配方参数:
                         CurrentStepDescription = "获取工位2配方参数...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _cachedRecipe = _dataModule.Station2ReciepParam;
                         if (_cachedRecipe != null)
                         {
@@ -487,7 +487,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.识别料盒尺寸:
                         CurrentStepDescription = "识别料盒尺寸...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             var sizeResult = await _feedingModule.GetWaferBoxSizeAsync(token).ConfigureAwait(false);
@@ -520,7 +520,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.验证尺寸与配方是否匹配:
                         CurrentStepDescription = "验证料盒尺寸与配方是否匹配...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         if (_detectedWaferSize == _cachedRecipe.WafeSize)
                         {
                             _logger.Info($"[{StationName}] 料盒尺寸与配方匹配（{_detectedWaferSize}）。");
@@ -535,7 +535,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.切换物料尺寸:
                         CurrentStepDescription = "切换物料尺寸...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             var switchResult = await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token).ConfigureAwait(false);
@@ -558,7 +558,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.判断X轴是否具备运动条件_开始:
                         CurrentStepDescription = "检查X轴运动条件（开始）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
@@ -587,7 +587,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.X轴到待机位:
                         CurrentStepDescription = "X轴移动到待机位...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WorkStation2FeedingModule.XAxisPoint.待机位), token: token).ConfigureAwait(false))
@@ -610,7 +610,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.判断Z轴是否具备运动条件_寻层:
                         CurrentStepDescription = "检查Z轴运动条件（寻层）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
@@ -632,7 +632,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.Z轴扫描寻层:
                         CurrentStepDescription = "Z轴扫描寻层...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
@@ -664,7 +664,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.算法过滤层数:
                         CurrentStepDescription = "算法过滤与防呆验证...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
                         if (filterResult.IsSuccess)
                         {
@@ -696,7 +696,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.判断Z轴是否具备运动条件_取料定位:
                         CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
@@ -717,7 +717,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.切换到指定层:
                         CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
@@ -737,7 +737,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.判断物料可拉出条件:
                         CurrentStepDescription = "判断物料可拉出条件...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.CanPullOutMaterialAsync(token).ConfigureAwait(false))
@@ -759,7 +759,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.等待物料拉出完成:
                         CurrentStepDescription = "等待物料拉出完成...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2拉料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
@@ -774,7 +774,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.阻塞等待物料回退完成:
                         CurrentStepDescription = "阻塞等待物料回退完成...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2退料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
@@ -788,7 +788,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.计算下一层位置:
                         CurrentStepDescription = "计算下一层位置...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _currentLayerIndex++;
                         if (_currentLayerIndex >= _layersToProcess.Count)
                         {
@@ -807,14 +807,14 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.物料全部生产完毕:
                         CurrentStepDescription = "物料全部生产完毕，更新状态...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         _logger.Success($"[{StationName}] 晶圆上料闭环完毕。");
                         _currentStep = Station2FeedingStep.判断X轴是否具备运动条件_结束;
                         break;
 
                     case Station2FeedingStep.判断X轴是否具备运动条件_结束:
                         CurrentStepDescription = "检查X轴运动条件（结束）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false))
@@ -830,7 +830,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.X轴到挡料位:
                         CurrentStepDescription = "X轴移动到挡料位...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WorkStation2FeedingModule.XAxisPoint.挡料位), token: token).ConfigureAwait(false))
@@ -846,7 +846,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.判断Z轴是否具备运动条件_流程结束:
                         CurrentStepDescription = "检查Z轴运动条件（流程结束）...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
@@ -862,7 +862,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.Z轴到待机位:
                         CurrentStepDescription = "Z轴退回待机位...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.ZAxis, nameof(WorkStation2FeedingModule.ZAxisPoint.待机位), token: token).ConfigureAwait(false))
@@ -878,14 +878,14 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     case Station2FeedingStep.通知操作员下料:
                         CurrentStepDescription = "通知操作员下料，等待确认...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         await _sync.WaitAsync(nameof(WorkstationSignals.工位2人工下料完成), token).ConfigureAwait(false);
                         _currentStep = Station2FeedingStep.生产完毕;
                         break;
 
                     case Station2FeedingStep.生产完毕:
                         CurrentStepDescription = "本批次生产完毕，复位准备下一批...";
-                        await CheckPauseAsync(token).ConfigureAwait(false);
+                       // await CheckPauseAsync(token).ConfigureAwait(false);
                         try
                         {
                             _cachedRecipe = null;
