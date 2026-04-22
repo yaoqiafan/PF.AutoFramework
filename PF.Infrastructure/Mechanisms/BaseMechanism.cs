@@ -157,7 +157,7 @@ namespace PF.Infrastructure.Mechanisms
             if (allResetOk)
             {
                 HasAlarm = false;
-                IsInitialized = false; // 复位后需要重新初始化，不应标记为已初始化
+                //IsInitialized = false; // 复位后需要重新初始化，不应标记为已初始化
             }
             return allResetOk;
         }
@@ -178,7 +178,7 @@ namespace PF.Infrastructure.Mechanisms
             if (allOk)
             {
                 HasAlarm = false;
-                IsInitialized = false; // 清警后需要重新初始化
+                //IsInitialized = false; // 清警后需要重新初始化
             }
             return allOk;
         }

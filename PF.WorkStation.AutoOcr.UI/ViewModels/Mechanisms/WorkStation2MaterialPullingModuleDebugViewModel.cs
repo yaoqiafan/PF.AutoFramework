@@ -2,6 +2,7 @@ using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -239,13 +240,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
             Change_8StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到8寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._8寸)));
             Change_12StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
-            OpenGipperCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
-            CloseGipperCommand = new DelegateCommand(async () => await ExecuteCheckAsync("关闭夹爪", () => _materialPullingModule?.CloseWafeGipper()));
+            OpenGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
+            CloseGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("关闭夹爪", () => _materialPullingModule?.CloseWafeGipper()));
             SavePointCommand = new DelegateCommand(SavePoint);
 
-            MoveFeedingCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到拉料位", () => _materialPullingModule?.InitialMoveFeeding()));
-            MoveDetectionCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
-            MoveInitialCommand = new DelegateCommand(async () => await ExecuteCheckAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
+            MoveFeedingCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到拉料位", () => _materialPullingModule?.InitialMoveFeeding()));
+            MoveDetectionCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
+            MoveInitialCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
             CodeTiggerCommand = new DelegateCommand(async () => await ExecuteAsync(() => TriggerCode()));
             SaveLightValueCommand = new DelegateCommand(async () => await ExecuteAsync(() => SaveLightValue()));
 
@@ -305,6 +306,31 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
+        private async Task ExecuteMechResultAsync(string actionName, Func<Task<MechResult>> action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = $"执行 {actionName} 中...";
+                var result = await action.Invoke();
+                if (result.IsSuccess)
+                {
+                    DebugMessage = $"结果: {actionName} 成功";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    DebugMessage = $"结果: {actionName} 失败 [{result.ErrorCode}] {result.ErrorMessage}";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         private void LoadOriginalPoints()
         {
             if (_materialPullingModule == null) return;
@@ -330,14 +356,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         private async Task TriggerCode(CancellationToken token = default)
         {
             if (_materialPullingModule?.YAxis == null) return;
-            var res = await _materialPullingModule.CodeScanTigger();
-            if (res == null)
+            var res = await _materialPullingModule.CodeScanTigger(token);
+            if (res.IsSuccess && res.Data != null)
             {
-                Coderec = "ERROR";
+                Coderec = string.Join('&', res.Data);
             }
             else
             {
-                Coderec = string.Join('&', res);
+                Coderec = $"ERROR: {res.ErrorMessage}";
             }
         }
 

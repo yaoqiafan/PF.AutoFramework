@@ -725,7 +725,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     else
                     {
                         var flag = await _dataModule.CheckCodeAsync(E_WorkSpace.工位1, str.Split('&').ToList(), token);
-                        if (flag.Item1)
+                        if (flag.IsSuccess)
                         {
                             _logger.Info($"[{MechanismName}] 扫码结果校验通过: {str}");
                             return MechResult<List<string>>.Success(str.Split('&').ToList());

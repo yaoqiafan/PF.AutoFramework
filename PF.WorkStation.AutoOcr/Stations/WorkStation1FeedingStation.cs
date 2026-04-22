@@ -42,9 +42,9 @@ namespace PF.WorkStation.AutoOcr.Stations
         // ── 跨步序流转的缓存字段 ──
         private OCRRecipeParam? _cachedRecipe;
         private E_WafeSize _detectedWaferSize;
-        private Dictionary<int, List<double>> _rawMappingData = new Dictionary<int, List<double>>();
+        private Dictionary<int, List<double>> _rawMappingData = [];
         private int _totalLayerCount;
-        private List<int> _layersToProcess = new();
+        private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
 
         #endregion
@@ -473,7 +473,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
                             if (filterResult.IsSuccess)
                             {
-                                _layersToProcess = filterResult.Data.Keys.OrderBy(layerIndex => layerIndex).ToList();
+                                _layersToProcess = [.. filterResult.Data.Keys.OrderBy(layerIndex => layerIndex)];
                                 _totalLayerCount = _layersToProcess.Count;
                                 _currentLayerIndex = 0;
 
@@ -684,7 +684,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         // 清理批次内存状态，重置指针准备迎接下一整盒料
                         _cachedRecipe = null;
-                        _layersToProcess = new List<int>();
+                        _layersToProcess = [];
                         _currentLayerIndex = 0;
                         _totalLayerCount = 0;
                         _currentStep = Station1FeedingStep.等待按下工位1启动按钮;

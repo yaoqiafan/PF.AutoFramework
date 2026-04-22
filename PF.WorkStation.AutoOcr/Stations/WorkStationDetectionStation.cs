@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
@@ -50,9 +51,9 @@ namespace PF.WorkStation.AutoOcr.Stations
         private OCRRecipeParam? _cachedRecipe;
 
         /// <summary>
-        /// 缓存相机执行结果。Item1: OCR 解码文本串；Item2: 原图物理路径
+        /// 缓存相机执行结果。OcrText: OCR 解码文本串；ImagePath: 原图物理路径
         /// </summary>
-        private (string, string) _cachedOcrResult;
+        private (string OcrText, string ImagePath) _cachedOcrResult;
 
         private MachineDetectionData? _cachedDetectionData;
 
@@ -169,7 +170,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 }
 
                 // 三轴回零后，驱动龙门回到最高最深处的绝对安全待机位
-                if (!await _detectionModule.MoveInitial(token))
+                var initMoveResult = await _detectionModule.MoveInitial(token);
+                if (!initMoveResult.IsSuccess)
                 {
                     _logger.Error($"[{StationName}] 初始化失败，模组移动至待机避让位失败。");
                     Fire(MachineTrigger.Error);
@@ -321,15 +323,17 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
                         }
 
-                        if (await _detectionModule.MoveToStation1(token).ConfigureAwait(false))
+                        var move1Result = await _detectionModule.MoveToStation1(token).ConfigureAwait(false);
+                        if (move1Result.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] OCR 龙门已就位工位1上空。");
                             _currentStep = StationDetectionStep.触发检测;
                         }
                         else
                         {
-                            _logger.Error($"[{StationName}] OCR 模组移动到工位1超时。");
+                            _logger.Error($"[{StationName}] OCR 模组移动到工位1失败: {move1Result.ErrorMessage}");
                             _currentStep = StationDetectionStep.去工位检测位置异常;
+                            TriggerAlarm(move1Result.ErrorCode, move1Result.ErrorMessage);
                         }
                         break;
 
@@ -345,15 +349,17 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
                         }
 
-                        if (await _detectionModule.MoveToStation2(token).ConfigureAwait(false))
+                        var move2Result = await _detectionModule.MoveToStation2(token).ConfigureAwait(false);
+                        if (move2Result.IsSuccess)
                         {
                             _logger.Info($"[{StationName}] OCR 龙门已就位工位2上空。");
                             _currentStep = StationDetectionStep.触发检测;
                         }
                         else
                         {
-                            _logger.Error($"[{StationName}] OCR 模组移动到工位2超时。");
+                            _logger.Error($"[{StationName}] OCR 模组移动到工位2失败: {move2Result.ErrorMessage}");
                             _currentStep = StationDetectionStep.去工位检测位置异常;
+                            TriggerAlarm(move2Result.ErrorCode, move2Result.ErrorMessage);
                         }
                         break;
 
@@ -363,8 +369,16 @@ namespace PF.WorkStation.AutoOcr.Stations
                         try
                         {
                             // 发送拍照指令，且直接使用相机原始识别结果 (false 标识不在此处校验，交由后续阶段比对)
-                            _cachedOcrResult = await _detectionModule.CameraTigger(false, _currentworkSpace, token: token).ConfigureAwait(false);
-                            _logger.Info($"[{StationName}] 拍照解码完成，读取原始条码串：[{_cachedOcrResult.Item1}]。");
+                            var camResult = await _detectionModule.CameraTigger(false, _currentworkSpace, token: token).ConfigureAwait(false);
+                            if (!camResult.IsSuccess)
+                            {
+                                _logger.Error($"[{StationName}] OCR相机拍照失败: {camResult.ErrorMessage}");
+                                _currentStep = StationDetectionStep.触发检测异常;
+                                TriggerAlarm(camResult.ErrorCode, camResult.ErrorMessage);
+                                break;
+                            }
+                            _cachedOcrResult = camResult.Data;
+                            _logger.Info($"[{StationName}] 拍照解码完成，读取原始条码串：[{_cachedOcrResult.OcrText}]。");
 
                             _currentStep = StationDetectionStep.检测完成Z轴回安全位;
                         }
@@ -380,10 +394,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 为了允许拉料工站尽早退料，必须先将视觉 Z 轴抬高，解除空间干涉
-                        if (!await _detectionModule.MoveZSafePos(token))
+                        var zRetractResult = await _detectionModule.MoveZSafePos(token);
+                        if (!zRetractResult.IsSuccess)
                         {
                             _logger.Error($"[{StationName}] 提升相机避位失败，禁止继续，防止撞机！");
                             _currentStep = StationDetectionStep.检测完成Z轴回安全位异常;
+                            TriggerAlarm(zRetractResult.ErrorCode, zRetractResult.ErrorMessage);
                         }
                         else
                         {
@@ -396,32 +412,32 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 请求数据中枢验证当前字符串是否在 MES 允许名单内
-                        var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.Item1, token).ConfigureAwait(false);
+                        var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.OcrText, token).ConfigureAwait(false);
                         string path = string.Empty;
 
                         // [图像存根]
-                        if (!kk.Item1)
+                        if (!kk.IsSuccess)
                         {
                             // 验证 NG：生成缺陷存档图
-                            path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
+                            path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
                         }
                         else
                         {
                             // 验证 OK：按批次/槽位号正规存档
-                            path = await _detectionModule.SaveImage(_cachedOcrResult.Item2, _currentworkSpace, kk.Item2, token);
+                            path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
                         }
 
                         // 装配用于写入数据库与推给 MES 的单片检测快照实体
                         _cachedDetectionData = new MachineDetectionData()
                         {
-                            CustomerBatch = kk.Item2?.CustomerBatch ?? "ERROR",
-                            WaferId = kk.Item2?.WaferId ?? "ERROR",
+                            CustomerBatch = kk.Data?.CustomerBatch ?? "ERROR",
+                            WaferId = kk.Data?.WaferId ?? "ERROR",
                             InternalBatchId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.InternalBatchId : _dataModule.Station2MesDetectionData.InternalBatchId,
                             Barcode1 = "CODE1",
                             Barcode2 = "CODE2",
                             Barcode3 = "CODE3",
-                            IsMatch = kk.Item1,
-                            ErrorMessage = kk.Item1 ? "NONE" : "OCR结果与MES工单不匹配",
+                            IsMatch = kk.IsSuccess,
+                            ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
                             ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
                             OperatorId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.OperatorId : _dataModule.Station2MesDetectionData.OperatorId,
                             RecipeName = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.RecipeName : _dataModule.Station2MesDetectionData.RecipeName,
@@ -543,7 +559,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         // 清理缓存，准备下一次抢占
                         _cachedRecipe = null;
-                        _cachedOcrResult = ("", "");
+                        _cachedOcrResult = default;
                         _cachedDetectionData = null;
 
                         _currentStep = StationDetectionStep.检测完成后避位;
@@ -554,10 +570,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
                         // 确保整个大龙门机构退回最高最深处，不挡任何人的道
-                        if (!await _detectionModule.MoveInitial(token))
+                        var retreatResult = await _detectionModule.MoveInitial(token);
+                        if (!retreatResult.IsSuccess)
                         {
                             _logger.Error($"[{StationName}] 归位途中遭遇干涉或超时。");
                             _currentStep = StationDetectionStep.去工位检测位置异常;
+                            TriggerAlarm(retreatResult.ErrorCode, retreatResult.ErrorMessage);
                         }
                         else
                         {

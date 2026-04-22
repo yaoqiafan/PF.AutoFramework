@@ -1,5 +1,6 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -190,8 +191,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             // 依赖注入获取模组实例
             _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDetectionModule)) as WorkStationDetectionModule;
             // --- 绑定全局生命周期指令 ---
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.InitializeAsync()));
-            ResetModuleCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.ResetAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.InitializeAsync()));
+            ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.StopAsync()));
 
 
@@ -199,9 +200,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             SaveYAxisPointsCommand = new DelegateCommand(SaveYAxisPoints);
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
 
-            MoveInitialCommand = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveInitial()));
-            MoveStation1Command = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveToStation1()));
-            MoveStation2Command = new DelegateCommand(async () => await ExecuteResultAsync(() => _detectionModule?.MoveToStation2()));
+            MoveInitialCommand = new DelegateCommand(async () => await ExecuteMechResultAsync(() => _detectionModule?.MoveInitial()));
+            MoveStation1Command = new DelegateCommand(async () => await ExecuteMechResultAsync(() => _detectionModule?.MoveToStation1()));
+            MoveStation2Command = new DelegateCommand(async () => await ExecuteMechResultAsync(() => _detectionModule?.MoveToStation2()));
             CamTiggerCommand = new DelegateCommand(async () => await CamTiggerAsync());
             StartMonitor();
 
@@ -232,14 +233,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
 
-        private async Task ExecuteResultAsync(Func<Task<bool>>? action)
+        private async Task ExecuteMechResultAsync(Func<Task<MechResult>>? action)
         {
             if (action == null) return;
             try
             {
                 DebugMessage = "执行中...";
-                var flag = await action.Invoke();
-                DebugMessage =  flag ? "执行成功" : "执行失败";
+                var result = await action.Invoke();
+                if (result.IsSuccess)
+                {
+                    DebugMessage = "执行成功";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    DebugMessage = $"执行失败 [{result.ErrorCode}] {result.ErrorMessage}";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
             catch (Exception ex)
             {
@@ -255,16 +265,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "触发相机";
-                string rec = (await _detectionModule.CameraTigger(false )).Item1 ;
-                if (string.IsNullOrEmpty(rec))
+                var camResult = await _detectionModule.CameraTigger(false);
+                if (camResult.IsSuccess && !string.IsNullOrEmpty(camResult.Data.OcrText))
                 {
-                    DebugMessage = "相机读取失败";
-                    CamRec = "ERROR";
+                    DebugMessage = "相机读取成功";
+                    CamRec = camResult.Data.OcrText;
                 }
                 else
                 {
-                    DebugMessage = "相机读取成功";
-                    CamRec = rec;
+                    DebugMessage = $"相机读取失败: {camResult.ErrorMessage}";
+                    CamRec = $"ERROR: {camResult.ErrorMessage}";
                 }
             }
             catch (Exception ex)

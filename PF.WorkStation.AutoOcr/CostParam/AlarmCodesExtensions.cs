@@ -1139,6 +1139,88 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 重启软件后重新运行;\n" +
                 "4. 提供日志文件给技术支持;")]
             public const string UndefinedStep = "PROC_DET_SYS_001";
+
+            // ── 模组内部方法级错误码 ──
+
+            /// <summary>移动到待机位失败</summary>
+            [AlarmInfo("流程异常/运动", "OCR检测-移动到待机位失败（Z轴或XY轴运动失败）", AlarmSeverity.Error,
+                "1. 检查XYZ轴伺服是否报警;\n" +
+                "2. 手动点动确认各轴运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveInitialFailed = "PROC_DET_MOT_003";
+
+            /// <summary>Z轴安全位移动失败</summary>
+            [AlarmInfo("流程异常/运动", "OCR检测-Z轴移动到安全位置失败", AlarmSeverity.Error,
+                "1. 检查Z轴伺服是否报警;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveZSafePosFailed = "PROC_DET_MOT_004";
+
+            /// <summary>工位1配方为空，无法定位</summary>
+            [AlarmInfo("流程异常/数据", "OCR检测-工位1配方为空，无法获取目标坐标", AlarmSeverity.Error,
+                "1. 确认工位1配方已正确下发;\n" +
+                "2. 检查配方参数是否完整;\n" +
+                "3. 重新下发配方后复位;")]
+            public const string MoveToStation1RecipeNull = "PROC_DET_DATA_002";
+
+            /// <summary>移动到工位1轴运动触发失败</summary>
+            [AlarmInfo("流程异常/运动", "OCR检测-移动到工位1轴运动触发失败", AlarmSeverity.Error,
+                "1. 检查XYZ轴伺服是否报警;\n" +
+                "2. 确认运动控制卡连接;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveToStation1MoveFailed = "PROC_DET_MOT_005";
+
+            /// <summary>工位1 OCR相机配方切换失败</summary>
+            [AlarmInfo("流程异常/相机", "OCR检测-切换到工位1的OCR配方失败", AlarmSeverity.Error,
+                "1. 检查相机通讯连接;\n" +
+                "2. 确认配方名称是否正确;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveToStation1RecipeSwitchFailed = "PROC_DET_CAM_002";
+
+            /// <summary>移动到工位1轴运动超时</summary>
+            [AlarmInfo("流程异常/运动", "OCR检测-移动到工位1 XYZ轴运动超时", AlarmSeverity.Error,
+                "1. 检查各轴是否卡在中途;\n" +
+                "2. 手动点动确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string MoveToStation1MoveTimeout = "PROC_DET_MOT_006";
+
+            /// <summary>工位2配方为空，无法定位</summary>
+            [AlarmInfo("流程异常/数据", "OCR检测-工位2配方为空，无法获取目标坐标", AlarmSeverity.Error,
+                "1. 确认工位2配方已正确下发;\n" +
+                "2. 检查配方参数是否完整;\n" +
+                "3. 重新下发配方后复位;")]
+            public const string MoveToStation2RecipeNull = "PROC_DET_DATA_003";
+
+            /// <summary>移动到工位2轴运动触发失败</summary>
+            [AlarmInfo("流程异常/运动", "OCR检测-移动到工位2轴运动触发失败", AlarmSeverity.Error,
+                "1. 检查XYZ轴伺服是否报警;\n" +
+                "2. 确认运动控制卡连接;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveToStation2MoveFailed = "PROC_DET_MOT_007";
+
+            /// <summary>工位2 OCR相机配方切换失败</summary>
+            [AlarmInfo("流程异常/相机", "OCR检测-切换到工位2的OCR配方失败", AlarmSeverity.Error,
+                "1. 检查相机通讯连接;\n" +
+                "2. 确认配方名称是否正确;\n" +
+                "3. 复位后重新运行;")]
+            public const string MoveToStation2RecipeSwitchFailed = "PROC_DET_CAM_003";
+
+            /// <summary>移动到工位2轴运动超时</summary>
+            [AlarmInfo("流程异常/运动", "OCR检测-移动到工位2 XYZ轴运动超时", AlarmSeverity.Error,
+                "1. 检查各轴是否卡在中途;\n" +
+                "2. 手动点动确认运动正常;\n" +
+                "3. 检查运动参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string MoveToStation2MoveTimeout = "PROC_DET_MOT_008";
+
+            /// <summary>相机拍照触发失败</summary>
+            [AlarmInfo("流程异常/相机", "OCR检测-相机拍照触发失败或通讯异常", AlarmSeverity.Error,
+                "1. 检查相机连接状态;\n" +
+                "2. 确认相机触发参数;\n" +
+                "3. 手动触发相机确认功能;\n" +
+                "4. 复位后重新运行;")]
+            public const string CameraTiggerFailed = "PROC_DET_CAM_004";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -1186,6 +1268,20 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认所有必填字段已填充;\n" +
                 "3. 重新请求批次数据;")]
             public const string BatchDataIncomplete = "PROC_DATA_BAT_001";
+
+            /// <summary>MES批次信息更新失败</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-MES批次信息更新失败", AlarmSeverity.Error,
+                "1. 检查工位标识是否合法;\n" +
+                "2. 确认MES数据格式正确;\n" +
+                "3. 重新尝试切换批次;")]
+            public const string MesInfoUpdateFailed = "PROC_DATA_MES_002";
+
+            /// <summary>条码校验失败</summary>
+            [AlarmInfo("流程异常/数据", "数据模组-条码校验失败", AlarmSeverity.Error,
+                "1. 检查扫码枪读取结果;\n" +
+                "2. 确认条码格式与配方规则匹配;\n" +
+                "3. 核对MES下发的客户批次名单;")]
+            public const string CodeValidationFailed = "PROC_DATA_CODE_001";
         }
 
         // ─────────────────────────────────────────────────────────────────────
