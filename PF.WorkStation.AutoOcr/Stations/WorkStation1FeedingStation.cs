@@ -1010,12 +1010,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                     default:
                         if ((int)_currentStep >= 100000)
                         {
-                            TriggerAlarm(AlarmCodesExtensions.WS1Feeding.UndefinedStep, $"遇到未定义的异常步序: {_currentStep}");
+                            TriggerAlarm(AlarmCodes.System.UndefinedStep, $"遇到未定义的异常步序: {_currentStep}");
                             _currentStep = (int)_resumeStep != 0 ? _resumeStep : Station1FeedingStep.等待按下工位1启动按钮;
                         }
                         else
                         {
-                            TriggerAlarm(AlarmCodesExtensions.WS1Feeding.UndefinedStep, $"状态机指针漂移，未定义步序[{_currentStep}]");
+                            TriggerAlarm(AlarmCodes.System.UndefinedStep, $"状态机指针漂移，未定义步序[{_currentStep}]");
                             _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
                         }
                         break;

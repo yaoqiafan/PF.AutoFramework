@@ -170,6 +170,15 @@ namespace PF.Core.Constants
                 "此为调试测试报警，复位后即可恢复;")]
             public const string ManualTestAlarm = "SYS_TEST_001";
 
+
+            /// <summary>状态机指针漂移，进入未定义步序</summary>
+            [AlarmInfo("系统异常", "状态机指针漂移，进入未定义步序", AlarmSeverity.Fatal,
+                "1. 记录当前操作步骤并联系开发人员;\n" +
+                "2. 查看日志中异常步序编号;\n" +
+                "3. 重启软件后重新运行;\n" +
+                "4. 提供日志文件给技术支持;")]
+            public const string UndefinedStep = "SYS_SYNC_002";
+
         }
 
        
