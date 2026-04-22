@@ -46,6 +46,53 @@ namespace PF.WorkStation.AutoOcr.Stations
         private int _totalLayerCount;
         private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
+        private string? _cachedErrorCode; // 缓存模组返回的错误码
+        private bool _scanRetried = false; // 标记是否已重试扫描
+
+        #endregion
+
+        #region Helper Methods (辅助方法)
+
+        /// <summary>
+        /// 处理步序异常并设置恢复步序
+        /// </summary>
+        private void HandleStepException(Exception ex, Station1FeedingStep errorStep, Station1FeedingStep recoveryStep, string errorMessage, ErrorCode? errorCode = null)
+        {
+            _logger.Error($"[{StationName}] {errorMessage}: {ex.Message}");
+            _currentStep = errorStep;
+
+            // 触发报警
+            var alarmCode = errorCode ?? AlarmCodesExtensions.WS1Feeding.GenericError;
+            TriggerAlarm(alarmCode, errorMessage);
+        }
+
+        /// <summary>
+        /// 智能跳步 - 根据错误类型决定是重试还是跳过
+        /// </summary>
+        private Station1FeedingStep GetRecoveryStep(Station1FeedingStep errorStep)
+        {
+            // 可重试的错误 - 退回前置安全检查点
+            switch (errorStep)
+            {
+                case Station1FeedingStep.料盒尺寸识别失败:
+                case Station1FeedingStep.Z轴运动条件不满足:
+                case Station1FeedingStep.X轴运动条件不满足:
+                case Station1FeedingStep.Z轴寻层扫描异常:
+                case Station1FeedingStep.检测到物料错层:
+                case Station1FeedingStep.Z轴运动超时:
+                case Station1FeedingStep.X轴运动超时:
+                    return errorStep; // 保持当前步序，等待复位后重试
+
+                // 致命错误 - 必须从头开始
+                case Station1FeedingStep.批次产品个数不正确:
+                case Station1FeedingStep.料盒尺寸与配方不匹配:
+                case Station1FeedingStep.工位1配方获取失败:
+                case Station1FeedingStep.寻层算法空值判定:
+                case Station1FeedingStep.寻层算法过滤异常:
+                default:
+                    return Station1FeedingStep.等待按下工位1启动按钮;
+            }
+        }
 
         #endregion
 
@@ -121,35 +168,85 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             #region 阶段 D：异常拦截与断点续跑节点 (100000+)
 
-            // 业务与数据校验异常
-            /// <summary>批次产品个数不正确</summary>
+            // ── 业务与数据校验异常 (10000X) ──
+            /// <summary>批次产品个数为0，无法启动生产</summary>
             批次产品个数不正确 = 100001,
             /// <summary>料盒尺寸与配方不匹配</summary>
             料盒尺寸与配方不匹配 = 100002,
             /// <summary>工位1配方获取失败</summary>
             工位1配方获取失败 = 100003,
-            /// <summary>料盒尺寸识别失败</summary>
-            料盒尺寸识别失败 = 100004,
 
-            // 轴状态与运动异常
+            // ── 传感器与硬件状态异常 (10001X) ──
+            /// <summary>料盒尺寸识别失败（传感器信号异常）</summary>
+            料盒尺寸识别失败 = 100010,
+            /// <summary>料盒公用底座未检测到物体</summary>
+            料盒公用底座未检测到物体 = 100011,
+            /// <summary>8寸晶圆放反</summary>
+            八寸晶圆放反 = 100012,
+            /// <summary>12寸晶圆放反</summary>
+            十二寸晶圆放反 = 100013,
+            /// <summary>料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）</summary>
+            料盒尺寸传感器信号冲突 = 100014,
+            /// <summary>寻层扫描硬件锁存配置失败</summary>
+            寻层扫描硬件锁存配置失败 = 100015,
+
+            // ── 运动互锁与条件检测异常 (10002X) ──
             /// <summary>Z轴运动条件不满足</summary>
-            Z轴运动条件不满足 = 100010,
+            Z轴运动条件不满足 = 100020,
             /// <summary>X轴运动条件不满足</summary>
-            X轴运动条件不满足 = 100011,
-            /// <summary>Z轴运动超时</summary>
-            Z轴运动超时 = 100020,
-            /// <summary>X轴运动超时</summary>
-            X轴运动超时 = 100021,
+            X轴运动条件不满足 = 100021,
+            /// <summary>Z轴互锁失败：料盒未到位禁止升降</summary>
+            Z轴互锁失败_料盒未到位 = 100022,
+            /// <summary>X轴互锁失败：存在铁环突片</summary>
+            X轴互锁失败_存在铁环突片 = 100023,
+            /// <summary>拉料互锁失败：晶圆盒挡杆未打开</summary>
+            拉料互锁失败_挡杆未打开 = 100024,
 
-            // 流程特定检测异常
-            /// <summary>Z轴寻层扫描异常</summary>
-            Z轴寻层扫描异常 = 100030,
-            /// <summary>检测到物料错层</summary>
-            检测到物料错层 = 100031,
-            /// <summary>寻层算法过滤异常</summary>
-            寻层算法过滤异常 = 100032,
-            /// <summary>寻层算法空值判定</summary>
-            寻层算法空值判定 = 100033,
+            // ── 运动执行与超时异常 (10003X) ──
+            /// <summary>Z轴运动超时</summary>
+            Z轴运动超时 = 100030,
+            /// <summary>X轴运动超时</summary>
+            X轴运动超时 = 100031,
+            /// <summary>初始化上料状态失败（Z/X轴运动到待机位失败）</summary>
+            初始化上料状态失败 = 100032,
+            /// <summary>Z轴切换层运动失败</summary>
+            Z轴切换层运动失败 = 100033,
+            /// <summary>寻层扫描移动到起点失败</summary>
+            寻层扫描移动到起点失败 = 100034,
+            /// <summary>寻层扫描移动到终点失败</summary>
+            寻层扫描移动到终点失败 = 100035,
+
+            // ── 流程特定检测与算法异常 (10004X) ──
+            /// <summary>Z轴寻层扫描异常（结果为空或过程出错）</summary>
+            Z轴寻层扫描异常 = 100040,
+            /// <summary>寻层算法空值判定（判定为0层）</summary>
+            寻层算法空值判定 = 100041,
+            /// <summary>寻层算法出现严重异常</summary>
+            寻层算法过滤异常 = 100042,
+            /// <summary>目标层数超出有效范围</summary>
+            目标层数超出有效范围 = 100043,
+            /// <summary>未找到目标层的阵列点位</summary>
+            未找到目标层的阵列点位 = 100044,
+            /// <summary>寻层算法理论层坐标未初始化</summary>
+            寻层算法理论层坐标未初始化 = 100045,
+            /// <summary>寻层算法传感器原始数据不足</summary>
+            寻层算法传感器原始数据不足 = 100046,
+            /// <summary>寻层算法双传感器识别数量差异过大</summary>
+            寻层算法双传感器识别数量差异过大 = 100047,
+
+            // ── 物料姿态具体异常 (10005X) ──
+            /// <summary>物料错层翘起，禁止拉料</summary>
+            检测到物料错层 = 100050,
+            /// <summary>寻层算法检测到严重斜片(Cross-slot)</summary>
+            寻层算法检测到严重斜片 = 100051,
+            /// <summary>寻层算法检测到重叠片(Double-wafer)</summary>
+            寻层算法检测到重叠片 = 100052,
+            /// <summary>寻层算法晶圆严重偏离标准槽位（可能未插到底）</summary>
+            寻层算法晶圆偏离标准槽位 = 100053,
+
+            // ── 系统级异常 (10009X) ──
+            /// <summary>状态机指针漂移，进入未定义步序</summary>
+            状态机进入未定义步序 = 100099
 
             #endregion
         }
@@ -194,6 +291,72 @@ namespace PF.WorkStation.AutoOcr.Stations
             });
         }
 
+        /// <summary>
+        /// 从断点继续执行 - 根据当前步序执行相应的恢复逻辑
+        /// </summary>
+        private async Task ExecuteResumeFromBreakpointAsync(CancellationToken token)
+        {
+            _logger.Info($"[{StationName}] 开始执行断点续跑，当前步序: {_currentStep}");
+
+            try
+            {
+                switch (_currentStep)
+                {
+                    // 如果是取料过程中的断点，恢复取料状态
+                    case Station1FeedingStep.等待物料拉出完成:
+                    case Station1FeedingStep.阻塞等待物料回退完成:
+                    case Station1FeedingStep.计算下一层位置:
+                        _logger.Info($"[{StationName}] 恢复取料流程，当前处理层: {_currentLayerIndex + 1}/{_totalLayerCount}");
+                        // 需要同步拉料工站状态
+                        await SyncPullingStationStateAsync(token);
+                        break;
+
+                    // 如果是扫描或寻层过程中的断点，重新初始化扫描状态
+                    case Station1FeedingStep.Z轴扫描寻层:
+                    case Station1FeedingStep.算法过滤层数:
+                        _logger.Info($"[{StationName}] 重新初始化寻层状态");
+                        _rawMappingData = [];
+                        _layersToProcess = [];
+                        _currentLayerIndex = 0;
+                        _scanRetried = false;
+                        break;
+
+                    // 其他情况保持当前步序
+                    default:
+                        _logger.Info($"[{StationName}] 保持当前步序: {_currentStep}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{StationName}] 执行断点续跑时发生异常: {ex.Message}");
+                _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
+            }
+        }
+
+        /// <summary>
+        /// 同步拉料工站状态
+        /// </summary>
+        private async Task SyncPullingStationStateAsync(CancellationToken token)
+        {
+            try
+            {
+                // 通知拉料工站当前状态
+                _sync.Release(nameof(WorkstationSignals.工位1允许拉料), StationName);
+
+                // 如果等待拉料完成，需要重新等待信号
+                if (_currentStep == Station1FeedingStep.等待物料拉出完成)
+                {
+                    _logger.Info($"[{StationName}] 等待拉料工站完成信号...");
+                    await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{StationName}] 同步拉料工站状态失败: {ex.Message}");
+            }
+        }
+
         /// <summary>执行工站初始化</summary>
         public override async Task ExecuteInitializeAsync(CancellationToken token)
         {
@@ -201,43 +364,80 @@ namespace PF.WorkStation.AutoOcr.Stations
             try
             {
                 _logger.Info($"[{StationName}] 正在初始化上下料模组...");
-                if (!await _feedingModule.InitializeAsync(token))
-                    throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
 
-                if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.ZAxis, token: token))
+                // 初始化重试机制
+                var initAttempts = 0;
+                const int maxInitAttempts = 3;
+
+                while (initAttempts < maxInitAttempts)
                 {
-                    _logger.Error($"[{StationName}] 初始化失败，Z轴回零失败。");
-                    Fire(MachineTrigger.Error);
-                    return;
-                }
-                if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.XAxis, token: token))
-                {
-                    _logger.Error($"[{StationName}] 初始化失败，X轴回零失败。");
-                    Fire(MachineTrigger.Error);
-                    return;
+                    try
+                    {
+                        initAttempts++;
+                        _logger.Info($"[{StationName}] 初始化尝试 {initAttempts}/{maxInitAttempts}...");
+
+                        if (!await _feedingModule.InitializeAsync(token))
+                            throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
+
+                        if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.ZAxis, token: token))
+                        {
+                            _logger.Error($"[{StationName}] 初始化失败，Z轴回零失败。");
+                            throw new Exception("Z轴回零失败");
+                        }
+                        if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.XAxis, token: token))
+                        {
+                            _logger.Error($"[{StationName}] 初始化失败，X轴回零失败。");
+                            throw new Exception("X轴回零失败");
+                        }
+
+                        var initResult = await _feedingModule.InitializeFeedingStateAsync(token: token);
+                        if (initResult.IsSuccess)
+                        {
+                            _logger.Success($"[{StationName}] 初始化完成，机构已退回安全位就绪。");
+                            _feedingModule.ResumeHealthMonitoring();
+                            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+                            break;
+                        }
+                        else
+                        {
+                            _logger.Error($"[{StationName}] 初始化失败：{initResult.ErrorMessage}");
+                            if (initAttempts == maxInitAttempts)
+                            {
+                                TriggerAlarm(initResult.ErrorCode, initResult.ErrorMessage);
+                                Fire(MachineTrigger.Error);
+                            }
+                            else
+                            {
+                                _logger.Warn($"[{StationName}] 初始化失败，等待1秒后重试...");
+                                await Task.Delay(1000, token);
+                                continue;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"[{StationName}] 初始化过程中发生异常: {ex.Message}");
+                        if (initAttempts == maxInitAttempts)
+                        {
+                            Fire(MachineTrigger.Error); // Initializing → Alarm
+                            throw;
+                        }
+                        else
+                        {
+                            _logger.Warn($"[{StationName}] 初始化失败，等待1秒后重试...");
+                            await Task.Delay(1000, token);
+                            continue;
+                        }
+                    }
                 }
 
-                var initResult = await _feedingModule.InitializeFeedingStateAsync(token: token);
-                if (initResult.IsSuccess)
-                {
-                    _logger.Success($"[{StationName}] 初始化完成，机构已退回安全位就绪。");
-                    _feedingModule.ResumeHealthMonitoring();
-                    Fire(MachineTrigger.InitializeDone); // Initializing → Idle
-                }
-                else
-                {
-                    _logger.Error($"[{StationName}] 初始化失败：{initResult.ErrorMessage}");
-                    TriggerAlarm(initResult.ErrorCode, initResult.ErrorMessage);
-                    Fire(MachineTrigger.Error);
-                }
+                this._currentStep = Station1FeedingStep.等待按下工位1启动按钮;
             }
             catch
             {
                 Fire(MachineTrigger.Error); // Initializing → Alarm
                 throw;
             }
-
-            this._currentStep = Station1FeedingStep.等待按下工位1启动按钮;
         }
 
         /// <summary>执行工站复位</summary>
@@ -248,17 +448,61 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 _logger.Info($"[{StationName}] 正在执行工站复位清警（断点续跑机制，将恢复至步序：[{_currentStep}]）...");
 
-                // 调用模组硬件层复位：清除伺服报警标志位，无轴物理运动
-                if (_feedingModule != null)
-                    await _feedingModule.ResetAsync(token);
+                // 尝试复位硬件模组，最多重试3次
+                var resetAttempts = 0;
+                const int maxResetAttempts = 3;
+
+                while (resetAttempts < maxResetAttempts)
+                {
+                    try
+                    {
+                        resetAttempts++;
+                        _logger.Info($"[{StationName}] 硬件模组复位尝试 {resetAttempts}/{maxResetAttempts}...");
+
+                        if (_feedingModule != null)
+                        {
+                            var resetResult = await _feedingModule.ResetAsync(token);
+                            if (!resetResult)
+                            {
+                                throw new Exception("硬件模组复位失败");
+                            }
+                        }
+
+                        break; // 复位成功，退出重试循环
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"[{StationName}] 硬件模组复位失败 (尝试 {resetAttempts}/{maxResetAttempts}): {ex.Message}");
+
+                        if (resetAttempts == maxResetAttempts)
+                        {
+                            _logger.Error($"[{StationName}] 硬件模组复位达到最大重试次数，继续执行...");
+                            break;
+                        }
+
+                        _logger.Warn($"[{StationName}] 等待1秒后重试...");
+                        await Task.Delay(1000, token);
+                    }
+                }
 
                 // 仅初始化报警复位时重置信号量；运行期报警复位保留信号量以支持断点续跑
                 if (CameFromInitAlarm)
+                {
+                    _logger.Info($"[{StationName}] 重置跨工站信号量...");
                     _sync.ResetScope(StationName);
+                }
 
                 // ⚠️ 核心设计：不重置 _currentStep！断点续跑的恢复节点已在各异常 case 中设定完毕。
 
                 _logger.Success($"[{StationName}] 复位完成，将从步序 [{_currentStep}] 继续执行。");
+
+                // 如果是断点续跑，确保恢复时重置状态
+                if (!CameFromInitAlarm)
+                {
+                    _logger.Info($"[{StationName}] 执行断点续跑状态恢复...");
+                    await ExecuteResumeFromBreakpointAsync(token);
+                }
+
                 await FireAsync(ResetCompletionTrigger);  // Resetting → Idle 或 Uninitialized
             }
             catch (Exception ex)
@@ -350,6 +594,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.识别料盒尺寸:
                         CurrentStepDescription = "识别料盒尺寸...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
+                        try
                         {
                             var sizeResult = await _feedingModule.GetWaferBoxSizeAsync(token).ConfigureAwait(false);
                             if (sizeResult.IsSuccess)
@@ -361,10 +606,23 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else
                             {
                                 _logger.Error($"[{StationName}] 料盒尺寸识别失败：{sizeResult.ErrorMessage}");
-                                _currentStep = Station1FeedingStep.料盒尺寸识别失败;
-                                TriggerAlarm(sizeResult.ErrorCode, sizeResult.ErrorMessage);
-                                break;
+                                _cachedErrorCode = sizeResult.ErrorCode;
+
+                                // 根据具体的错误码设置相应的异常步序
+                                _currentStep = sizeResult.ErrorCode switch
+                                {
+                                    _ when sizeResult.ErrorCode.Contains("SensorConflict") => Station1FeedingStep.料盒尺寸传感器信号冲突,
+                                    _ when sizeResult.ErrorCode.Contains("NoObject") => Station1FeedingStep.料盒公用底座未检测到物体,
+                                    _ when sizeResult.ErrorCode.Contains("WaferReversed") && _detectedWaferSize == E_WafeSize.E_8 => Station1FeedingStep.八寸晶圆放反,
+                                    _ when sizeResult.ErrorCode.Contains("WaferReversed") && _detectedWaferSize == E_WafeSize.E_12 => Station1FeedingStep.十二寸晶圆放反,
+                                    _ => Station1FeedingStep.料盒尺寸识别失败
+                                };
                             }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"[{StationName}] 识别料盒尺寸时发生异常: {ex.Message}");
+                            _currentStep = Station1FeedingStep.料盒尺寸识别失败;
                         }
                         break;
 
@@ -386,49 +644,79 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.切换物料尺寸:
                         CurrentStepDescription = "切换物料尺寸...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        var switchResult = await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token).ConfigureAwait(false);
-                        if (switchResult.IsSuccess)
+                        try
                         {
-                            _logger.Info($"[{StationName}] 切换物料尺寸成功，继续执行。");
-                            _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
+                            var switchResult = await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token).ConfigureAwait(false);
+                            if (switchResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 切换物料尺寸成功，继续执行。");
+                                _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 切换物料尺寸失败：{switchResult.ErrorMessage}");
+                                _cachedErrorCode = switchResult.ErrorCode;
+                                _currentStep = Station1FeedingStep.料盒尺寸与配方不匹配;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] 切换物料尺寸失败：{switchResult.ErrorMessage}");
+                            _logger.Error($"[{StationName}] 切换物料尺寸时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.料盒尺寸与配方不匹配;
-                            TriggerAlarm(switchResult.ErrorCode, switchResult.ErrorMessage);
-                            break;
                         }
                         break;
 
                     case Station1FeedingStep.判断X轴是否具备运动条件_开始:
                         CurrentStepDescription = "检查X轴运动条件（开始）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
-                        if (canMoveXResult.IsSuccess)
+                        try
                         {
-                            _currentStep = Station1FeedingStep.X轴到待机位;
+                            var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
+                            if (canMoveXResult.IsSuccess)
+                            {
+                                _currentStep = Station1FeedingStep.X轴到待机位;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] X轴运动条件不满足：{canMoveXResult.ErrorMessage}");
+                                _cachedErrorCode = canMoveXResult.ErrorCode;
+
+                                // 根据具体错误码设置更精确的异常步序
+                                _currentStep = canMoveXResult.ErrorCode switch
+                                {
+                                    _ when canMoveXResult.ErrorCode.Contains("ClawNotOpen") => Station1FeedingStep.X轴互锁失败_存在铁环突片,
+                                    _ when canMoveXResult.ErrorCode.Contains("IronRing") => Station1FeedingStep.X轴互锁失败_存在铁环突片,
+                                    _ when canMoveXResult.ErrorCode.Contains("InterlockFailed") => Station1FeedingStep.X轴互锁失败_存在铁环突片,
+                                    _ => Station1FeedingStep.X轴运动条件不满足
+                                };
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] X轴运动条件不满足：{canMoveXResult.ErrorMessage}");
+                            _logger.Error($"[{StationName}] 检查X轴运动条件时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.X轴运动条件不满足;
-                            TriggerAlarm(canMoveXResult.ErrorCode, canMoveXResult.ErrorMessage);
-                            break;
                         }
                         break;
 
                     case Station1FeedingStep.X轴到待机位:
                         CurrentStepDescription = "X轴移动到待机位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WorkStation1FeedingModule.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+                        try
                         {
-                            _logger.Info($"[{StationName}] X轴已到达待机位，开始循环取料。");
-                            _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_寻层;
+                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WorkStation1FeedingModule.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+                            {
+                                _logger.Info($"[{StationName}] X轴已到达待机位，开始循环取料。");
+                                _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_寻层;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] X轴移动到待机位失败（运动超时）。");
+                                _currentStep = Station1FeedingStep.X轴运动超时;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] X轴移动到待机位失败（运动超时）。");
+                            _logger.Error($"[{StationName}] X轴移动到待机位时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.X轴运动超时;
                         }
                         break;
@@ -436,13 +724,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.判断Z轴是否具备运动条件_寻层:
                         CurrentStepDescription = "检查Z轴运动条件（寻层）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                        try
                         {
-                            _currentStep = Station1FeedingStep.Z轴扫描寻层;
+                            if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                            {
+                                _currentStep = Station1FeedingStep.Z轴扫描寻层;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] Z轴运动条件不满足（寻层阶段），请检查轴状态与互锁信号。");
+                                _currentStep = Station1FeedingStep.Z轴运动条件不满足;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] Z轴运动条件不满足（寻层阶段），请检查轴状态与互锁信号。");
+                            _logger.Error($"[{StationName}] 检查Z轴运动条件时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.Z轴运动条件不满足;
                         }
                         break;
@@ -450,6 +746,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.Z轴扫描寻层:
                         CurrentStepDescription = "Z轴扫描寻层...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
+                        try
                         {
                             var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
                             if (scanResult.IsSuccess && scanResult.Data.Count > 0)
@@ -461,8 +758,24 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else
                             {
                                 _logger.Error($"[{StationName}] Z轴寻层扫描异常：{(scanResult.IsSuccess ? "结果为0层" : scanResult.ErrorMessage)}");
+
+                                // 如果是初次扫描失败，尝试重试一次
+                                if (!_scanRetried)
+                                {
+                                    _scanRetried = true;
+                                    _logger.Warn($"[{StationName}] 寻层扫描失败，尝试重试...");
+                                    await Task.Delay(1000, token); // 等待1秒后重试
+                                    continue;
+                                }
+
+                                _scanRetried = false; // 重置重试标志
                                 _currentStep = Station1FeedingStep.Z轴寻层扫描异常;
                             }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"[{StationName}] Z轴扫描寻层时发生异常: {ex.Message}");
+                            _currentStep = Station1FeedingStep.Z轴寻层扫描异常;
                         }
                         break;
 
@@ -507,13 +820,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.判断Z轴是否具备运动条件_取料定位:
                         CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                        try
                         {
-                            _currentStep = Station1FeedingStep.切换到指定层;
+                            if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                            {
+                                _currentStep = Station1FeedingStep.切换到指定层;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] Z轴运动条件不满足（取料定位阶段，第{_currentLayerIndex + 1}层）。");
+                                _currentStep = Station1FeedingStep.Z轴运动条件不满足;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] Z轴运动条件不满足（取料定位阶段，第{_currentLayerIndex + 1}层）。");
+                            _logger.Error($"[{StationName}] 检查Z轴运动条件时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.Z轴运动条件不满足;
                         }
                         break;
@@ -521,14 +842,22 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.切换到指定层:
                         CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
+                        try
                         {
-                            _logger.Info($"[{StationName}] Z轴已到达第{_layersToProcess[_currentLayerIndex] + 1}层取料位。");
-                            _currentStep = Station1FeedingStep.判断物料可拉出条件;
+                            if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
+                            {
+                                _logger.Info($"[{StationName}] Z轴已到达第{_layersToProcess[_currentLayerIndex] + 1}层取料位。");
+                                _currentStep = Station1FeedingStep.判断物料可拉出条件;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层失败（运动超时）。");
+                                _currentStep = Station1FeedingStep.Z轴运动超时;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层失败（运动超时）。");
+                            _logger.Error($"[{StationName}] 切换到指定层时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.Z轴运动超时;
                         }
                         break;
@@ -536,17 +865,25 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.判断物料可拉出条件:
                         CurrentStepDescription = "判断物料可拉出条件...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.CanPullOutMaterialAsync(token).ConfigureAwait(false))
+                        try
                         {
-                            _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料可拉出条件通过，可执行拉料。");
+                            if (await _feedingModule.CanPullOutMaterialAsync(token).ConfigureAwait(false))
+                            {
+                                _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料可拉出条件通过，可执行拉料。");
 
-                            // 通知拉料工站：可以进场取片
-                            _sync.Release(nameof(WorkstationSignals.工位1允许拉料), StationName);
-                            _currentStep = Station1FeedingStep.等待物料拉出完成;
+                                // 通知拉料工站：可以进场取片
+                                _sync.Release(nameof(WorkstationSignals.工位1允许拉料), StationName);
+                                _currentStep = Station1FeedingStep.等待物料拉出完成;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 检测到第{_layersToProcess[_currentLayerIndex] + 1}层物料存在错层翘起，禁止拉料。");
+                                _currentStep = Station1FeedingStep.检测到物料错层;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] 检测到第{_layersToProcess[_currentLayerIndex] + 1}层物料存在错层翘起，禁止拉料。");
+                            _logger.Error($"[{StationName}] 判断物料可拉出条件时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.检测到物料错层;
                         }
                         break;
@@ -555,25 +892,41 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "等待物料拉出完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        // 阻塞等待拉料工站的完成信号
-                        await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
+                        try
+                        {
+                            // 阻塞等待拉料工站的完成信号
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
-                        _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已拉出到位。");
-                        _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+                            _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已拉出到位。");
+                            _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
 
-                        // 自身 Z 轴避让确认完毕后，通知拉料工站可以执行退料推入
-                        _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+                            // 自身 Z 轴避让确认完毕后，通知拉料工站可以执行退料推入
+                            _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"[{StationName}] 等待物料拉出完成时发生异常: {ex.Message}");
+                            _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
+                        }
                         break;
 
                     case Station1FeedingStep.阻塞等待物料回退完成:
                         CurrentStepDescription = "阻塞等待物料回退完成...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
 
-                        // 阻塞等待拉料工站将晶圆送回料盒的完成信号
-                        await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
+                        try
+                        {
+                            // 阻塞等待拉料工站将晶圆送回料盒的完成信号
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
-                        _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已安全回退至料盒。");
-                        _currentStep = Station1FeedingStep.计算下一层位置;
+                            _logger.Info($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料已安全回退至料盒。");
+                            _currentStep = Station1FeedingStep.计算下一层位置;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"[{StationName}] 等待物料回退完成时发生异常: {ex.Message}");
+                            _currentStep = Station1FeedingStep.计算下一层位置;
+                        }
                         break;
 
                     case Station1FeedingStep.计算下一层位置:
@@ -609,13 +962,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.判断X轴是否具备运动条件_结束:
                         CurrentStepDescription = "检查X轴运动条件（结束）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false))
+                        try
                         {
-                            _currentStep = Station1FeedingStep.X轴到挡料位;
+                            if (await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false))
+                            {
+                                _currentStep = Station1FeedingStep.X轴到挡料位;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] X轴运动条件不满足（结束阶段），请检查夹爪状态。");
+                                _currentStep = Station1FeedingStep.X轴运动条件不满足;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] X轴运动条件不满足（结束阶段），请检查夹爪状态。");
+                            _logger.Error($"[{StationName}] 检查X轴运动条件时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.X轴运动条件不满足;
                         }
                         break;
@@ -624,14 +985,22 @@ namespace PF.WorkStation.AutoOcr.Stations
                         CurrentStepDescription = "X轴移动到挡料位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
                         string xBlockPoint = nameof(WorkStation1FeedingModule.XAxisPoint.挡料位);
-                        if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, xBlockPoint, token: token).ConfigureAwait(false))
+                        try
                         {
-                            _logger.Info($"[{StationName}] X轴已到达挡料位（适应尺寸：{_detectedWaferSize}）。");
-                            _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_流程结束;
+                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, xBlockPoint, token: token).ConfigureAwait(false))
+                            {
+                                _logger.Info($"[{StationName}] X轴已到达挡料位（适应尺寸：{_detectedWaferSize}）。");
+                                _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_流程结束;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] X轴移动到挡料位失败（运动超时）。");
+                                _currentStep = Station1FeedingStep.X轴运动超时;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] X轴移动到挡料位失败（运动超时）。");
+                            _logger.Error($"[{StationName}] X轴移动到挡料位时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.X轴运动超时;
                         }
                         break;
@@ -639,13 +1008,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.判断Z轴是否具备运动条件_流程结束:
                         CurrentStepDescription = "检查Z轴运动条件（流程结束）...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                        try
                         {
-                            _currentStep = Station1FeedingStep.Z轴到待机位;
+                            if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                            {
+                                _currentStep = Station1FeedingStep.Z轴到待机位;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] Z轴运动条件不满足（流程结束阶段），请检查轴状态。");
+                                _currentStep = Station1FeedingStep.Z轴运动条件不满足;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] Z轴运动条件不满足（流程结束阶段），请检查轴状态。");
+                            _logger.Error($"[{StationName}] 检查Z轴运动条件时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.Z轴运动条件不满足;
                         }
                         break;
@@ -653,14 +1030,22 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.Z轴到待机位:
                         CurrentStepDescription = "Z轴退回待机位...";
                         await CheckPauseAsync(token).ConfigureAwait(false);
-                        if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.ZAxis, nameof(WorkStation1FeedingModule.ZAxisPoint.待机位), token: token).ConfigureAwait(false))
+                        try
                         {
-                            _logger.Info($"[{StationName}] Z轴已安全退回最高待机位。");
-                            _currentStep = Station1FeedingStep.通知操作员下料;
+                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.ZAxis, nameof(WorkStation1FeedingModule.ZAxisPoint.待机位), token: token).ConfigureAwait(false))
+                            {
+                                _logger.Info($"[{StationName}] Z轴已安全退回最高待机位。");
+                                _currentStep = Station1FeedingStep.通知操作员下料;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] Z轴退回待机位失败（运动超时）。");
+                                _currentStep = Station1FeedingStep.Z轴运动超时;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.Error($"[{StationName}] Z轴退回待机位失败（运动超时）。");
+                            _logger.Error($"[{StationName}] Z轴退回待机位时发生异常: {ex.Message}");
                             _currentStep = Station1FeedingStep.Z轴运动超时;
                         }
                         break;
@@ -683,11 +1068,26 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Success($"[{StationName}] ══ 本批次上料流程全部闭环完成 ══");
 
                         // 清理批次内存状态，重置指针准备迎接下一整盒料
-                        _cachedRecipe = null;
-                        _layersToProcess = [];
-                        _currentLayerIndex = 0;
-                        _totalLayerCount = 0;
-                        _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
+                        try
+                        {
+                            _cachedRecipe = null;
+                            _layersToProcess = [];
+                            _currentLayerIndex = 0;
+                            _totalLayerCount = 0;
+                            _scanRetried = false;
+                            _cachedErrorCode = null;
+
+                            // 通知拉料工站批次完成
+                            _sync.Release(nameof(WorkstationSignals.工位1批次完成), StationName);
+
+                            _logger.Info($"[{StationName}] 状态已清理，准备下一批次。");
+                            _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"[{StationName}] 清理批次状态时发生异常: {ex.Message}");
+                            _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
+                        }
                         break;
 
                     #endregion
@@ -712,7 +1112,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.料盒尺寸与配方不匹配:
                         _logger.Error($"[{StationName}] 料盒尺寸（{_detectedWaferSize}）与配方要求（{_cachedRecipe?.WafeSize}）不匹配。请更换正确料盒或修改配方后复位重启。");
                         _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.WaferSizeMismatch, $"料盒尺寸({_detectedWaferSize})与配方({_cachedRecipe?.WafeSize})不匹配");
+                        // 优先使用模组返回的错误码，否则使用默认码
+                        TriggerAlarm(_cachedErrorCode ?? AlarmCodesExtensions.WS1Feeding.WaferSizeMismatch, $"料盒尺寸({_detectedWaferSize})与配方({_cachedRecipe?.WafeSize})不匹配");
+                        _cachedErrorCode = null; // 清空缓存
                         break;
 
                     case Station1FeedingStep.工位1配方获取失败:
@@ -739,7 +1141,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.料盒尺寸识别失败:
                         _logger.Error($"[{StationName}] 料盒尺寸识别失败（传感器信号异常或料盒未放正）。请检查料盒位置后复位，将重新识别尺寸。");
                         _currentStep = Station1FeedingStep.识别料盒尺寸;
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.SizeDetectionSensorFailed, "料盒尺寸识别失败，传感器信号异常");
+                        TriggerAlarm(_cachedErrorCode ?? AlarmCodesExtensions.WS1Feeding.SizeDetectionSensorFailed, "料盒尺寸识别失败，传感器信号异常");
+                        _cachedErrorCode = null; // 清空缓存
                         break;
 
                     case Station1FeedingStep.Z轴运动条件不满足:
@@ -751,7 +1154,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.X轴运动条件不满足:
                         _logger.Error($"[{StationName}] X轴运动条件不满足（夹爪未张开或轴报警）。请处理后复位，将重新评估 X 轴状态。");
                         _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_开始;
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.XAxisPreconditionFailed, "X轴运动条件不满足");
+                        TriggerAlarm(_cachedErrorCode ?? AlarmCodesExtensions.WS1Feeding.XAxisPreconditionFailed, "X轴运动条件不满足");
+                        _cachedErrorCode = null; // 清空缓存
                         break;
 
                     case Station1FeedingStep.Z轴寻层扫描异常:
