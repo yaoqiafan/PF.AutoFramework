@@ -620,7 +620,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 if (token.IsCancellationRequested)
                 {
                     await _yAxis.StopAsync();
-                    return MechResult.Fail(-1, "操作已被外部取消"); // 这里可以根据你们的业务定义专门的错误码
+                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "操作已被外部取消"); // 这里可以根据你们的业务定义专门的错误码
                 }
 
                 // 【修复 2】检查是否是因为超时导致的取消
@@ -649,11 +649,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     await _yAxis.StopAsync();
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutDropAlarm, "拉出过程中触发【丢料报警】，已紧急停止");
                 }
-                if (finishedTask== taskC)
-                {
-                    await _yAxis.StopAsync();
-                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "拉料动作被终止;");
-                }
+                
 
                 // 只有 taskC (运动完成) 是真正的成功
                 if (finishedTask == taskC)
