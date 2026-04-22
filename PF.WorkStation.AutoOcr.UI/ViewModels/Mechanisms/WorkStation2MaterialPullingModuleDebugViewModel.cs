@@ -235,11 +235,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.StopAsync()));
-            IsCanResetCommand = new DelegateCommand(async () => await ExecuteCheckAsync("可初始化动作", () => _materialPullingModule?.CheckTrackIsMaterial()));
-            InitializeGipper = new DelegateCommand(async () => await ExecuteCheckAsync("初始化拉料工位", () => _materialPullingModule?.CheckTrackIsMaterial()));
+            IsCanResetCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("可初始化动作", () => _materialPullingModule?.CheckTrackIsMaterial()));
+            InitializeGipper = new DelegateCommand(async () => await ExecuteMechResultAsync("初始化拉料工位", () => _materialPullingModule?.CheckTrackIsMaterial()));
 
-            Change_8StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到8寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._8寸)));
-            Change_12StatusCommand = new DelegateCommand(async () => await ExecuteCheckAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
+            Change_8StatusCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("切换到8寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._8寸)));
+            Change_12StatusCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
             OpenGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
             CloseGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("关闭夹爪", () => _materialPullingModule?.CloseWafeGipper()));
             SavePointCommand = new DelegateCommand(SavePoint);
@@ -272,41 +272,34 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteCheckAsync(string actionName, Func<Task<bool>> action)
-        {
-            if (action == null) return;
-            try
-            {
-                DebugMessage = $"检查 {actionName} 中...";
-                bool result = await action.Invoke();
-                DebugMessage = $"结果: {actionName} = {(result ? "满足 (True)" : "不满足 (False)")}";
-                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                DebugMessage = $"检查异常: {ex.Message}";
-                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        private async Task ExecuteCheckAsync(string actionName, Func<Task<bool?>> action)
-        {
-            if (action == null) return;
-            try
-            {
-                DebugMessage = $"检查 {actionName} 中...";
-                bool? result = await action.Invoke();
-                DebugMessage = $"结果: {actionName} = {(result.Value ? "满足 (True)" : "不满足 (False)")}";
-                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                DebugMessage = $"检查异常: {ex.Message}";
-                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
+     
 
         private async Task ExecuteMechResultAsync(string actionName, Func<Task<MechResult>> action)
+        {
+            if (action == null) return;
+            try
+            {
+                DebugMessage = $"执行 {actionName} 中...";
+                var result = await action.Invoke();
+                if (result.IsSuccess)
+                {
+                    DebugMessage = $"结果: {actionName} 成功";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    DebugMessage = $"结果: {actionName} 失败 [{result.ErrorCode}] {result.ErrorMessage}";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"执行异常: {ex.Message}";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async Task ExecuteMechResultAsync<T>(string actionName, Func<Task<MechResult<T>>> action)
         {
             if (action == null) return;
             try

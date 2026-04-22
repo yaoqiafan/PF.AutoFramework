@@ -34,6 +34,14 @@ namespace PF.Core.Constants
                 "4. 重新上电后点击【复位】按钮;")]
             public const string IoModuleError = "HW_IO_001";
 
+            /// <summary>IO模块读取异常</summary>
+            [AlarmInfo("硬件异常", "IO 模块连接失败", AlarmSeverity.Error,
+                "1. 检查 EtherCAT 通讯线是否正确连接;\n" +
+                "2. 检查 IO 模块供电是否正常;\n" +
+                "3. 在调试页面尝试重新初始化硬件;\n" +
+                "4. 重新上电后点击【复位】按钮;")]
+            public const string IoGetError = "HW_IO_002";
+
             /// <summary>运动控制卡初始化失败</summary>
             [AlarmInfo("硬件异常", "运动控制卡初始化失败", AlarmSeverity.Fatal,
                 "1. 检查运动控制卡是否安装到位;\n" +

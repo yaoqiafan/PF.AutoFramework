@@ -87,7 +87,7 @@ namespace PF.Infrastructure.Mechanisms
         {
             var device = sender as IHardwareDevice;
             HasAlarm = true;
-            IsInitialized = false;
+            //IsInitialized = false;
 
             _logger?.Error($"[模组 {MechanismName}] 内部硬件 [{device?.DeviceName}] 发生报警: {e.ErrorMessage}");
 

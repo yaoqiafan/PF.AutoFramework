@@ -1,7 +1,7 @@
 using NPOI.HSSF.Record;
 using NPOI.SS.Formula.Functions;
-using Prism.Ioc;
 using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -15,6 +15,7 @@ using PF.Core.Models;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
+using Prism.Ioc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -209,65 +210,80 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 检查轨道上是否残留有晶圆物料（初始化防呆使用，防止盲目复位导致撞片）
         /// </summary>
-        public async Task<bool?> CheckTrackIsMaterial(CancellationToken token = default)
+        public async Task<MechResult<bool>> CheckTrackIsMaterial(CancellationToken token = default)
         {
-            try
+            CheckReady(); // 保持与方法1一致的就绪检查
+            _logger.Info($"[{MechanismName}] 开始检查右侧轨道是否残留晶圆物料...");
+
+            // 读取IO信号 (替换为右侧检测)
+            bool? res1 = _io.ReadInput((int)E_InPutName.晶圆轨道右晶圆在位检测1);
+            bool? res2 = _io.ReadInput((int)E_InPutName.晶圆轨道右晶圆在位检测2);
+
+            // 如果两个信号都成功读取
+            if (res1.HasValue && res2.HasValue)
             {
-                bool? res1 = _io.ReadInput((int)E_InPutName.晶圆轨道右晶圆在位检测1);
-                if (!res1.HasValue) throw new Exception($"{E_InPutName.晶圆轨道右晶圆在位检测1} 输入信号读取失败");
-
-                bool? res2 = _io.ReadInput((int)E_InPutName.晶圆轨道右晶圆在位检测2);
-                if (!res2.HasValue) throw new Exception($"{E_InPutName.晶圆轨道右晶圆在位检测2} 输入信号读取失败");
-
                 // 任一传感器感应到即判定为有物料
-                return (res1.Value || res2.Value);
+                bool hasMaterial = res1.Value || res2.Value;
+                _logger.Info($"[{MechanismName}] 右侧轨道物料检查完成，当前状态：{(hasMaterial ? "有物料残留" : "无物料")}。");
+
+                return MechResult<bool>.Success(hasMaterial);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.Warn(ex.Message);
-                return null;
+                // 找出具体是哪个传感器读取失败，方便排查
+                string failedSensor = !res1.HasValue ? nameof(E_InPutName.晶圆轨道右晶圆在位检测1) : nameof(E_InPutName.晶圆轨道右晶圆在位检测2);
+
+                _logger.Error($"[{MechanismName}] 右侧轨道物料检查失败，未能成功读取 {failedSensor} 信号。");
+
+                // 返回硬件报警码
+                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取右侧轨道物料检测信号({failedSensor})失败");
             }
         }
 
         /// <summary>
         /// 检查当前轨道的调宽气缸与夹爪气缸是否已经处于对应尺寸的正确状态
         /// </summary>
-        public async Task<bool> CheckWafeSizeControl(E_WafeSize wafesize, CancellationToken token = default)
+        public async Task<MechResult<bool>> CheckWafeSizeControl(E_WafeSize wafesize, CancellationToken token = default)
         {
-            try
+            CheckReady();
+            _logger.Info($"[{MechanismName}] 开始检查右侧轨道与夹爪气缸是否处于 [{wafesize}] 的正确状态...");
+
+            // 1. 根据晶圆尺寸，确定需要检测的 IO 点位
+            E_InPutName trackSensor;
+            E_InPutName gripperSensor;
+
+            if (wafesize == E_WafeSize._8寸)
             {
-                if (wafesize == E_WafeSize._8寸)
-                {
-                    bool? res1 = _io.ReadInput((int)E_InPutName.晶圆轨道右调宽气缸缩回);
-                    if (!res1.HasValue) throw new Exception($"{E_InPutName.晶圆轨道右调宽气缸缩回} 输入信号读取失败");
-
-                    bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右8寸气缸缩回);
-                    if (!res2.HasValue) throw new Exception($"{E_InPutName.晶圆夹爪右8寸气缸缩回} 输入信号读取失败");
-
-                    return res1.Value && res2.Value;
-                }
-                else if (wafesize == E_WafeSize._12寸)
-                {
-                    bool? res1 = _io.ReadInput((int)E_InPutName.晶圆轨道右调宽气缸打开);
-                    if (!res1.HasValue) throw new Exception($"{E_InPutName.晶圆轨道右调宽气缸打开} 输入信号读取失败");
-
-                    bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右12寸气缸打开);
-                    if (!res2.HasValue) throw new Exception($"{E_InPutName.晶圆夹爪右12寸气缸打开} 输入信号读取失败");
-
-                    return res1.Value && res2.Value;
-                }
-                else
-                {
-                    throw new Exception("晶圆尺寸输入错误");
-                }
+                trackSensor = E_InPutName.晶圆轨道右调宽气缸缩回;
+                gripperSensor = E_InPutName.晶圆夹爪右8寸气缸缩回;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.Warn(ex.Message);
-                return false;
+                trackSensor = E_InPutName.晶圆轨道右调宽气缸打开;
+                gripperSensor = E_InPutName.晶圆夹爪右12寸气缸打开;
+            }
+
+            // 2. 统一读取 IO 信号
+            bool? trackRes = _io.ReadInput((int)trackSensor);
+            bool? gripperRes = _io.ReadInput((int)gripperSensor);
+
+            // 3. 校验读取结果并返回
+            if (trackRes.HasValue && gripperRes.HasValue)
+            {
+                bool isCorrectState = trackRes.Value && gripperRes.Value;
+                _logger.Info($"[{MechanismName}] 右侧气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
+
+                return MechResult<bool>.Success(isCorrectState);
+            }
+            else
+            {
+                // 找出具体失败的传感器名称
+                string failedSensor = !trackRes.HasValue ? trackSensor.ToString() : gripperSensor.ToString();
+
+                _logger.Error($"[{MechanismName}] 右侧气缸状态检查失败，未能成功读取 {failedSensor} 信号。");
+                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取右侧气缸检测信号({failedSensor})失败");
             }
         }
-
         /// <summary>
         /// 切换晶圆尺寸：动态驱动轨道调宽气缸与夹爪转换气缸。
         /// <para>防呆机制：切换前必须保证轨道上无物料，防止挤压碎片；控制电磁阀时采用严格的先关后开逻辑。</para>
