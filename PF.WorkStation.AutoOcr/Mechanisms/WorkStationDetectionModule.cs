@@ -115,6 +115,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
+
             _curOCRRecipeName = string.Empty;
 
             // ① 延迟解析硬件实例
@@ -167,6 +169,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _yAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Y轴连接失败"); return false; }
             if (!await _zAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] Z轴连接失败"); return false; }
 
+            token.ThrowIfCancellationRequested(); // 【新增】连接完成后检查
+
             // ④ 伺服上电使能
             if (!await _xAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
             if (!await _yAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
@@ -197,6 +201,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
                 CheckReady();
 
                 // 1. Z轴优先抬升撤离
@@ -216,6 +221,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Info($"[{MechanismName}] 移动到待机位成功");
                 return MechResult.Success();
             }
+            catch (OperationCanceledException) // 【新增】防吞噬拦截
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -230,6 +239,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
                 CheckReady();
                 if (!await MoveToPointAndWaitAsync(_zAxis, nameof(ZAxisPoint.待机位), token: token))
                 {
@@ -239,9 +249,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Info($"[{MechanismName}] Z轴移动到安全位置成功");
                 return MechResult.Success();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) // 【新增】防吞噬拦截
             {
-                
                 throw;
             }
             catch (Exception ex)
@@ -259,6 +268,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
                 CheckReady();
                 _1StationRecipe = _dataModule.Station1ReciepParam;
                 if (_1StationRecipe == null)
@@ -285,6 +295,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     _curOCRRecipeName = _1StationRecipe.OCRRecipeName;
                 }
 
+                token.ThrowIfCancellationRequested(); // 【新增】耗时指令下发后检查
+
                 // 等待物理运动最终到位
                 int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
                 if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
@@ -295,9 +307,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Success();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) // 【新增】防吞噬拦截
             {
-
                 throw;
             }
             catch (Exception ex)
@@ -314,6 +325,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
                 CheckReady();
                 _2StationRecipe = _dataModule.Station2ReciepParam;
                 if (_2StationRecipe == null)
@@ -340,6 +352,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     _curOCRRecipeName = _2StationRecipe.OCRRecipeName;
                 }
 
+                token.ThrowIfCancellationRequested(); // 【新增】耗时指令下发后检查
+
                 int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
                 if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
                     !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
@@ -349,7 +363,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Success();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) // 【新增】防吞噬拦截
             {
                 throw;
             }
@@ -376,6 +390,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
                 string originalPathDir = await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString());
 
                 if (!IsCheckResult)
@@ -392,6 +407,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     string rec = string.Empty;
                     for (int i = 0; i < 3; i++)
                     {
+                        token.ThrowIfCancellationRequested(); // 【新增】循环内取消探测
+
                         rec = await _camera.Tigger(token); // 触发拍照与底层算法解析
 
                         // 提交数据中枢进行逻辑比对
@@ -406,6 +423,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     string imagePath = GetLatestCreatedFile(originalPathDir);
                     return MechResult<(string, string)>.Success((rec, imagePath));
                 }
+            }
+            catch (OperationCanceledException) // 【新增】防吞噬拦截
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -425,6 +446,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
+
                 // 确定当前的业务上下文批次数据
                 var flag = workSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData : _dataModule.Station2MesDetectionData;
                 string baseSaveDir = await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageSavePath.ToString());
@@ -440,6 +463,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 File.Copy(Originalpath, path);
                 return path;
+            }
+            catch (OperationCanceledException) // 【新增】防吞噬拦截
+            {
+                throw;
             }
             catch (Exception)
             {

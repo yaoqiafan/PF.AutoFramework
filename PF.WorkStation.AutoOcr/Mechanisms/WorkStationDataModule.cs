@@ -125,7 +125,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口检查
+
                 // TODO: 替换为实际的 HTTP/WebAPI/TCP 客户端调用逻辑。当前为 Mock 数据生成。
+                // 注意：将来替换为 HttpClient 时，务必将 token 传入 GetAsync/PostAsync 方法中。
                 MesDetectionParam param = new MesDetectionParam();
                 param.InternalBatchId = LotID;
                 param.OperatorId = UserID;
@@ -144,6 +147,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     });
                 }
                 return MechResult<MesDetectionParam>.Success(param);
+            }
+            catch (OperationCanceledException) // 【新增】外抛防吞噬，为未来网络请求取消做准备
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -252,6 +259,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口检查
+
             if (Station == E_WorkSpace.工位1)
             {
                 _station1MesDetectionData = Data;
@@ -408,6 +417,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             WaferInfo info = null;
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口检查防空跑
+
                 if (station == E_WorkSpace.工位1)
                 {
                     List<string> OKcodes = new List<string>();
@@ -478,6 +489,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, $"不支持的工位: {station}"));
                 }
             }
+            catch (OperationCanceledException) // 【新增】拦截抛出
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, $"条码校验异常: {ex.Message}"));
@@ -496,6 +511,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             WaferInfo info = null;
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】入口检查
+
                 if (station == E_WorkSpace.工位1)
                 {
                     var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
@@ -578,6 +595,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"不支持的工位: {station}"));
                 }
+            }
+            catch (OperationCanceledException) // 【新增】拦截抛出
+            {
+                throw;
             }
             catch (Exception ex)
             {
