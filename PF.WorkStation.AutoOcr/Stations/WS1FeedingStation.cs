@@ -778,7 +778,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
 
-                            _sync.Release(nameof(WorkstationSignals.工位1人工下料完成));
+                          
                             _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
                             break;
 

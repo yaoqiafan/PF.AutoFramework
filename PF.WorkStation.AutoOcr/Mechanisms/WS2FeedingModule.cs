@@ -404,7 +404,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.XAxisPreconditionFailed, "X轴运动条件不满足：模组未初始化或处于报警状态");
             }
 
-            if (_io.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) != true)
+            if (_io.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) == true)
             {
                 _logger.Warn($"[{MechanismName}] X轴运动检查失败：存在突片。");
                 return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.XAxisTabDetected, "X轴运动条件不满足：存在铁环突片");

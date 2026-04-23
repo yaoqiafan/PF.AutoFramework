@@ -344,7 +344,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                    var kk = await _recipeService.RecipeParam("New_Recipe_100349");
+                    var kk = await _recipeService.RecipeParam("New_Recipe_141457");
                     if (kk == null)
                     {
                         MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -382,14 +382,30 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
                     var info = mesResult.Data;
-                    if ((await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位2, info)).IsSuccess)
-                    {
-                        MessageService.ShowMessage($"工位2切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    else
+
+
+
+                    if (!(await _dataModule.UpdateStationMesInfoAsync(E_WorkSpace.工位2, info)).IsSuccess)
                     {
                         MessageService.ShowMessage($"工位2切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
                     }
+
+                    var kk = await _recipeService.RecipeParam("New_Recipe_141457");
+                    if (kk == null)
+                    {
+                        MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位2, kk).IsSuccess)
+                    {
+                        MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                   
+                        MessageService.ShowMessage($"工位2切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                   
                 }
                 else
                 {

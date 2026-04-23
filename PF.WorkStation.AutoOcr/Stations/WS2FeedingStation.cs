@@ -199,7 +199,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private int _totalLayerCount;
         private List<int> _layersToProcess = new();
         private int _currentLayerIndex;
-        private bool _scanRetried = false; // 标记是否已重试扫描
+        
 
         #endregion
 
@@ -262,7 +262,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _rawMappingData = [];
                         _layersToProcess = [];
                         _currentLayerIndex = 0;
-                        _scanRetried = false;
+                      
                         break;
 
                     default:
@@ -598,7 +598,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station2FeedingStep.Z轴扫描寻层:
                             CurrentStepDescription = "Z轴扫描寻层...";
                             // 调用光纤传感器或Mapping模组进行扫层
-                            var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
+                            var scanResult = await _feedingModule.SearchLayerAsync(latchNo1: 2,latchNo2:3,token: token).ConfigureAwait(false);
                             if (scanResult.IsSuccess && scanResult.Data.Count > 0)
                             {
                                 _rawMappingData = scanResult.Data;
@@ -607,15 +607,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else
                             {
                                 _logger.Error($"[{StationName}] 寻层异常：{(scanResult.IsSuccess ? "结果为0层" : scanResult.ErrorMessage)}");
-                                // 业务层面的寻层重试逻辑
-                                if (!_scanRetried)
-                                {
-                                    _scanRetried = true;
-                                    _logger.Warn($"[{StationName}] 尝试重试寻层...");
-                                    await Task.Delay(1000, token);
-                                    continue; // 跳回循环开头重试
-                                }
-                                _scanRetried = false;
+                               
                                 RouteToError(Station2FeedingStep.Z轴寻层扫描异常, Station2FeedingStep.判断Z轴是否具备运动条件_寻层);
                             }
                             break;
@@ -780,10 +772,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _layersToProcess = [];
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
-                            _scanRetried = false;
                             _cachedErrorCode = null;
 
-                            _sync.Release(nameof(WorkstationSignals.工位2人工下料完成), StationName);
                             _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
                             break;
 
