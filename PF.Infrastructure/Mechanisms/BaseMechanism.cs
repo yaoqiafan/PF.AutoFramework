@@ -311,6 +311,7 @@ namespace PF.Infrastructure.Mechanisms
                 {
                     _logger?.Warn($"[{MechanismName}] 轴 [{axisName}] 等待被外部手动取消");
                     token.ThrowIfCancellationRequested();
+                    throw;
                 }
 
                 // 走到这里，说明外部没有取消，纯粹是 timeoutCts 触发的超时

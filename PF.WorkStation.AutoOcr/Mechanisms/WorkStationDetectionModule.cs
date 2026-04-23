@@ -239,6 +239,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Info($"[{MechanismName}] Z轴移动到安全位置成功");
                 return MechResult.Success();
             }
+            catch (OperationCanceledException)
+            {
+                
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -290,6 +295,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Success();
             }
+            catch (OperationCanceledException)
+            {
+
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -338,6 +348,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2MoveTimeout, "XYZ轴移动到工位2超时");
                 }
                 return MechResult.Success();
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

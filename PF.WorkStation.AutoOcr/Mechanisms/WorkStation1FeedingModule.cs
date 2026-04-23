@@ -223,6 +223,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<MechResult> InitializeFeedingStateAsync(CancellationToken token = default)
         {
             CheckReady();
+            token.ThrowIfCancellationRequested();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
             // 并发控制指令：多轴插补运动提升设备初始化节拍 (Cycle Time)
@@ -248,6 +249,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<MechResult<E_WafeSize>> GetWaferBoxSizeAsync(CancellationToken token = default)
         {
             CheckReady();
+            token.ThrowIfCancellationRequested();
             _logger.Info($"[{MechanismName}] 检测晶圆料盒尺寸...");
 
             // 变量解析：读取三个特征物理传感器的布尔值
@@ -257,6 +259,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             if (!iscom)
             {
+                token.ThrowIfCancellationRequested();
                 return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS1Feeding.BoxBaseNotDetected, "晶圆料盒公用底座未检测到物体，请检查料盒是否正确放入。");
             }
 
@@ -464,8 +467,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 { latchNo2, new List<double>() }
             };
 
-            try
-            {
+            //try
+            //{
+                token.ThrowIfCancellationRequested();
                 // Step 1: 移动至扫描物理起点
                 var start = _currentWaferSize == E_WafeSize._12寸 ? nameof(ZAxisPoint.扫描起始位置_12寸) : nameof(ZAxisPoint.扫描起始位置_8寸);
                 _logger.Info($"[{MechanismName}] 正在移动至扫描起点（负极限）...");
@@ -512,12 +516,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{DateTime.Now:yyyyMMddHHmmss}.xlsx", resultMap);
 
                 return MechResult<Dictionary<int, List<double>>>.Success(resultMap);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[{MechanismName}] 扫描发生异常: {ex.Message}");
-                return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.LayerScanFailed, $"扫描发生异常: {ex.Message}");
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    _logger.Error($"[{MechanismName}] 扫描发生异常: {ex.Message}");
+            //    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.LayerScanFailed, $"扫描发生异常: {ex.Message}");
+            //}
         }
 
         /// <summary>
