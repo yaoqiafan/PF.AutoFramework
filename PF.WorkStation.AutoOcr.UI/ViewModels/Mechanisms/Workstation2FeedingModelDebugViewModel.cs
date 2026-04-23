@@ -458,8 +458,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     IsBoxCommonInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右料盒公用到位) == true;
                     Is8InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右8寸料盒到位检测) == true;
                     Is12InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
-                    IsErrorLayer1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右错层检测1) == true;
-                    IsErrorLayer2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右错层检测2) == true;
+                    IsErrorLayer1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右错层公共检测) == true;
+                    IsErrorLayer2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右错层12寸检测) == true;
                     IsIronTabDetected = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) == true;
                     Is8InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右8寸铁环防反检测) == true;
                     Is12InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右12寸铁环防反检测) == true;
