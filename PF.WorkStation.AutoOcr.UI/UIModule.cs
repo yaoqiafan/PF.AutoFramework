@@ -53,29 +53,29 @@ namespace PF.WorkStation.AutoOcr.UI
              NavigationConstants.Views.ProductionHistoryView);
 
 
-            containerRegistry.RegisterForNavigation<Workstation1FeedingModelDebugView, Workstation1FeedingModelDebugViewModel>(nameof(Workstation1FeedingModelDebugView));
+            containerRegistry.RegisterForNavigation<Workstation1FeedingModelDebugView, WS1FeedingModelDebugViewModel>(nameof(Workstation1FeedingModelDebugView));
 
-            containerRegistry.RegisterForNavigation<WorkStationSecsGemModuleDebugView , WorkStationSecsGemModuleDebugViewModel >(nameof(WorkStationSecsGemModuleDebugView));
+            containerRegistry.RegisterForNavigation<WorkStationSecsGemModuleDebugView , WSSecsGemModuleDebugViewModel >(nameof(WorkStationSecsGemModuleDebugView));
 
 
-            containerRegistry.RegisterForNavigation<WorkStationDetectionModuleDebugView, WorkStationDetectionModuleDebugViewModel>(nameof(WorkStationDetectionModuleDebugView));
+            containerRegistry.RegisterForNavigation<WorkStationDetectionModuleDebugView, WSDetectionModuleDebugViewModel>(nameof(WorkStationDetectionModuleDebugView));
 
-            containerRegistry.RegisterForNavigation<WorkStation1MaterialPullingModuleDebugView, WorkStation1MaterialPullingModuleDebugViewModel>(nameof(WorkStation1MaterialPullingModuleDebugView));
+            containerRegistry.RegisterForNavigation<WorkStation1MaterialPullingModuleDebugView, WS1MaterialPullingModuleDebugViewModel>(nameof(WorkStation1MaterialPullingModuleDebugView));
 
-            containerRegistry .RegisterForNavigation <WorkStationDataModuleDebugView , WorkStationDataModuleDebugViewModel>(nameof(WorkStationDataModuleDebugView));
+            containerRegistry .RegisterForNavigation <WorkStationDataModuleDebugView , WSDataModuleDebugViewModel>(nameof(WorkStationDataModuleDebugView));
 
-            containerRegistry.RegisterForNavigation<WorkStation1FeedingStationDebugView, WorkStation1FeedingStationDebugViewModel>(
+            containerRegistry.RegisterForNavigation<WorkStation1FeedingStationDebugView, WS1FeedingStationDebugViewModel>(
              nameof(WorkStation1FeedingStationDebugView));
 
-            containerRegistry.RegisterForNavigation<WorkStationDetectionStationDebugView, WorkStationDetectionStationDebugViewModel>(
+            containerRegistry.RegisterForNavigation<WorkStationDetectionStationDebugView, WSDetectionStationDebugViewModel>(
              nameof(WorkStationDetectionStationDebugView));
-            containerRegistry.RegisterForNavigation< WorkStation1MaterialPullingStationDebugView, WorkStation1MaterialPullingStationDebugViewModel>(nameof(WorkStation1MaterialPullingStationDebugView));
+            containerRegistry.RegisterForNavigation< WorkStation1MaterialPullingStationDebugView, WS1MaterialPullingStationDebugViewModel>(nameof(WorkStation1MaterialPullingStationDebugView));
 
             // ── 工位 2 调试视图注册 ──
-            containerRegistry.RegisterForNavigation<Workstation2FeedingModelDebugView, Workstation2FeedingModelDebugViewModel>(nameof(Workstation2FeedingModelDebugView));
-            containerRegistry.RegisterForNavigation<WorkStation2MaterialPullingModuleDebugView, WorkStation2MaterialPullingModuleDebugViewModel>(nameof(WorkStation2MaterialPullingModuleDebugView));
-            containerRegistry.RegisterForNavigation<WorkStation2FeedingStationDebugView, WorkStation2FeedingStationDebugViewModel>(nameof(WorkStation2FeedingStationDebugView));
-            containerRegistry.RegisterForNavigation<WorkStation2MaterialPullingStationDebugView, WorkStation2MaterialPullingStationDebugViewModel>(nameof(WorkStation2MaterialPullingStationDebugView));
+            containerRegistry.RegisterForNavigation<Workstation2FeedingModelDebugView, WS2FeedingModelDebugViewModel>(nameof(Workstation2FeedingModelDebugView));
+            containerRegistry.RegisterForNavigation<WorkStation2MaterialPullingModuleDebugView, WS2MaterialPullingModuleDebugViewModel>(nameof(WorkStation2MaterialPullingModuleDebugView));
+            containerRegistry.RegisterForNavigation<WorkStation2FeedingStationDebugView, WS2FeedingStationDebugViewModel>(nameof(WorkStation2FeedingStationDebugView));
+            containerRegistry.RegisterForNavigation<WorkStation2MaterialPullingStationDebugView, WS2MaterialPullingStationDebugViewModel>(nameof(WorkStation2MaterialPullingStationDebugView));
 
         }
 

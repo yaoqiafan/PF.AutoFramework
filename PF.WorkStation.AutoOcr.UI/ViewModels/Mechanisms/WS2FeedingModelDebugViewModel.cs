@@ -17,17 +17,17 @@ using System.Windows.Threading;
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// Workstation2FeedingModelDebugViewModel
+    /// WS2FeedingModelDebugViewModel
     /// </summary>
-    public class Workstation2FeedingModelDebugViewModel : RegionViewModelBase
+    public class WS2FeedingModelDebugViewModel : RegionViewModelBase
     {
-        private readonly WorkStation2FeedingModule? _feedingModule;
+        private readonly WS2FeedingModule? _feedingModule;
         private DispatcherTimer _monitorTimer;
         /// <summary>
         /// 获取或设置 FeedingModule
         /// </summary>
 
-        public WorkStation2FeedingModule? FeedingModule => _feedingModule;
+        public WS2FeedingModule? FeedingModule => _feedingModule;
 
         private string _debugMessage = "就绪";
         /// <summary>
@@ -229,12 +229,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand SaveXAxisPointsCommand { get; }
         #endregion
         /// <summary>
-        /// Workstation2FeedingModelDebugViewModel 构造函数
+        /// WS2FeedingModelDebugViewModel 构造函数
         /// </summary>
 
-        public Workstation2FeedingModelDebugViewModel(IContainerProvider containerProvider)
+        public WS2FeedingModelDebugViewModel(IContainerProvider containerProvider)
         {
-            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation2FeedingModule)) as WorkStation2FeedingModule;
+            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModule)) as WS2FeedingModule;
 
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.ResetAsync()));

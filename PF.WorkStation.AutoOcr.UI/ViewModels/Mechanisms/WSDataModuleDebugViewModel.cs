@@ -17,11 +17,11 @@ using System.Windows.Threading;
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// WorkStationDataModuleDebugViewModel
+    /// WSDataModuleDebugViewModel
     /// </summary>
-    public class WorkStationDataModuleDebugViewModel : RegionViewModelBase
+    public class WSDataModuleDebugViewModel : RegionViewModelBase
     {
-        private readonly WorkStationDataModule? _dataModule;
+        private readonly WSDataModule? _dataModule;
 
         private DispatcherTimer _monitorTimer;
         int index = 0;
@@ -30,7 +30,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// <summary>
         /// 供 XAML 直接绑定底层数据集合
         /// </summary>
-        public WorkStationDataModule? DataModule => _dataModule;
+        public WSDataModule? DataModule => _dataModule;
 
         private string _debugMessage = "就绪";
         /// <summary>
@@ -200,13 +200,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         #endregion
         /// <summary>
-        /// WorkStationDataModuleDebugViewModel 构造函数
+        /// WSDataModuleDebugViewModel 构造函数
         /// </summary>
 
-        public WorkStationDataModuleDebugViewModel(IContainerProvider containerProvider)
+        public WSDataModuleDebugViewModel(IContainerProvider containerProvider)
         {
-            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule))
-                as WorkStationDataModule;
+            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule))
+                as WSDataModule;
 
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.ResetAsync()));
@@ -232,7 +232,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             else
             {
-                DebugMessage = "未解析到 WorkStationDataModule 实例";
+                DebugMessage = "未解析到 WSDataModule 实例";
             }
             RefreshAllAsync();
 
@@ -276,14 +276,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         /// <summary>
-        /// 从 WorkStationDataModule 更新对 UI 有用的派生字段。
+        /// 从 WSDataModule 更新对 UI 有用的派生字段。
         /// 集合本身直接绑定 DataModule 的 ObservableCollection，由其自己通知 UI。
         /// </summary>
         private Task RefreshAllAsync()
         {
             if (_dataModule == null)
             {
-                DebugMessage = "未解析到 WorkStationDataModule 实例";
+                DebugMessage = "未解析到 WSDataModule 实例";
                 return Task.CompletedTask;
             }
 

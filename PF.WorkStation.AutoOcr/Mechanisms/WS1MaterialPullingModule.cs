@@ -47,7 +47,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 6. 送回晶圆：调用 <see cref="FeedingMaterialToBox(CancellationToken)"/>，同样带有并发防呆监控，防止推入时撞片。
     /// </remarks>
     [MechanismUI("工位1推拉晶圆模组", "WorkStation1MaterialPullingModuleDebugView", 2)]
-    public class WorkStation1MaterialPullingModule : BaseMechanism
+    public class WS1MaterialPullingModule : BaseMechanism
     {
         #region Enums (轴点枚举定义)
 
@@ -77,7 +77,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private ILightController _lightController;  // 光源控制器 (用于扫码补光)
 
         // ── 业务状态模块 ──
-        private WorkStationDataModule? _dataModule; // 数据处理中心，用于校验扫码结果的合法性
+        private WSDataModule? _dataModule; // 数据处理中心，用于校验扫码结果的合法性
         private IContainerProvider Provider;        // DI 容器，用于手动解析依赖
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 初始化工位1推拉晶圆模组
         /// </summary>
-        public WorkStation1MaterialPullingModule(
+        public WS1MaterialPullingModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
             IContainerProvider provider,
@@ -166,10 +166,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _yAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
 
             // ⑤ 获取数据校验模块
-            _dataModule = Provider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _dataModule = Provider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             if (_dataModule == null)
             {
-                _logger.Error($"[{MechanismName}] 未找到 {nameof(WorkStationDataModule)} 模块，请检查软件依赖配置。");
+                _logger.Error($"[{MechanismName}] 未找到 {nameof(WSDataModule)} 模块，请检查软件依赖配置。");
                 return false;
             }
 

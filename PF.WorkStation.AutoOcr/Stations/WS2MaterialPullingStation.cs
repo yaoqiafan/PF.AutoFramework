@@ -169,19 +169,19 @@ namespace PF.WorkStation.AutoOcr.Stations
     ///
     /// <para>架构定位：</para>
     /// 继承自 <see cref="StationBase{T, TStep}"/>，作为拉料业务的独立状态机。
-    /// 负责调度 <see cref="WorkStation2MaterialPullingModule"/> 执行具体的水平 Y 轴推拉动作与气爪控制。
+    /// 负责调度 <see cref="WS2MaterialPullingModule"/> 执行具体的水平 Y 轴推拉动作与气爪控制。
     ///
     /// <para>跨工站协同：</para>
-    /// 通过 <see cref="IStationSyncService"/> 与 <see cref="WorkStation2FeedingStation{T}"/> (上下料 Z 轴)
-    /// 以及 <see cref="WorkStationDetectionModule"/> (OCR视觉) 进行信号握手，实现互不干涉的并发流转。
+    /// 通过 <see cref="IStationSyncService"/> 与 <see cref="WS2FeedingStation{T}"/> (上下料 Z 轴)
+    /// 以及 <see cref="WSDetectionModule"/> (OCR视觉) 进行信号握手，实现互不干涉的并发流转。
     /// </summary>
     [StationUI("工位2拉料工站", "WorkStation2MaterialPullingStationDebugView", order: 4)]
-    public class WorkStation2MaterialPullingStation<T> : StationBase<T, Station2PullingStep> where T : StationMemoryBaseParam, new()
+    public class WS2MaterialPullingStation<T> : StationBase<T, Station2PullingStep> where T : StationMemoryBaseParam, new()
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
-        private readonly WorkStation2MaterialPullingModule? _pullingModule;
-        private readonly WorkStationDataModule? _dataModule;
+        private readonly WS2MaterialPullingModule? _pullingModule;
+        private readonly WSDataModule? _dataModule;
         private readonly IStationSyncService _sync;
 
         /// <summary>
@@ -196,12 +196,12 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 初始化工位2拉料工站
         /// </summary>
-        public WorkStation2MaterialPullingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
+        public WS2MaterialPullingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
             // 接入带枚举泛型的基类，统一管理 _currentStep 和 _resumeStep
             : base(E_WorkStation.工位2拉料工站.ToString(), logger, Station2PullingStep.等待允许取料)
         {
-            _pullingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation2MaterialPullingModule)) as WorkStation2MaterialPullingModule;
-            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _pullingModule = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
+            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _sync = sync;
 
             // 订阅底层模组的硬件报警并上抛

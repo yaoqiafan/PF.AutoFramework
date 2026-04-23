@@ -23,7 +23,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     /// </summary>
     public class HomeViewModel : RegionViewModelBase
     {
-        private readonly WorkStationDataModule? _dataModule;
+        private readonly WSDataModule? _dataModule;
         private readonly IUserService _userService;
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IMasterController _controller;
@@ -198,7 +198,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller)
         {
             _controller = controller;
-            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _userService = userService;
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
 
@@ -273,7 +273,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             ResetCommand.RaiseCanExecuteChanged();
         }
 
-        /// <summary>从 WorkStationDataModule 更新 UI 派生字段</summary>
+        /// <summary>从 WSDataModule 更新 UI 派生字段</summary>
         private Task RefreshAllAsync()
         {
             if (_dataModule == null)

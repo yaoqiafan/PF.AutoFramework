@@ -577,83 +577,83 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-    new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
-    typeof(WorkStation1FeedingModule),
+    new[] { typeof(WS1FeedingModel), typeof(IMechanism) },
+    typeof(WS1FeedingModel),
     reuse: DryIoc.Reuse.Singleton,
-    serviceKey: nameof(WorkStation1FeedingModule));
+    serviceKey: nameof(WS1FeedingModel));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationDetectionModule), typeof(IMechanism) },
-               typeof(WorkStationDetectionModule),
+               new[] { typeof(WSDetectionModule), typeof(IMechanism) },
+               typeof(WSDetectionModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationDetectionModule));
+               serviceKey: nameof(WSDetectionModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStation1MaterialPullingModule), typeof(IMechanism) },
-               typeof(WorkStation1MaterialPullingModule),
+               new[] { typeof(WS1MaterialPullingModule), typeof(IMechanism) },
+               typeof(WS1MaterialPullingModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStation1MaterialPullingModule));
+               serviceKey: nameof(WS1MaterialPullingModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationDataModule), typeof(IMechanism) },
-               typeof(WorkStationDataModule),
+               new[] { typeof(WSDataModule), typeof(IMechanism) },
+               typeof(WSDataModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationDataModule));
+               serviceKey: nameof(WSDataModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationSecsGemModule), typeof(IMechanism) },
-               typeof(WorkStationSecsGemModule),
+               new[] { typeof(WSSecsGemModule), typeof(IMechanism) },
+               typeof(WSSecsGemModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationSecsGemModule));
+               serviceKey: nameof(WSSecsGemModule));
 
             // ── 工位 2 机构层注册 ──
             container.RegisterMany(
-                new[] { typeof(WorkStation2FeedingModule), typeof(IMechanism) },
-                typeof(WorkStation2FeedingModule),
+                new[] { typeof(WS2FeedingModule), typeof(IMechanism) },
+                typeof(WS2FeedingModule),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WorkStation2FeedingModule));
+                serviceKey: nameof(WS2FeedingModule));
 
             container.RegisterMany(
-                new[] { typeof(WorkStation2MaterialPullingModule), typeof(IMechanism) },
-                typeof(WorkStation2MaterialPullingModule),
+                new[] { typeof(WS2MaterialPullingModule), typeof(IMechanism) },
+                typeof(WS2MaterialPullingModule),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WorkStation2MaterialPullingModule));
+                serviceKey: nameof(WS2MaterialPullingModule));
 
             // 工站层
             container.RegisterMany(
-                new[] { typeof(WorkStation1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStation1FeedingStation<StationMemoryBaseParam>),
+                new[] { typeof(WS1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WS1FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStation1FeedingStation<StationMemoryBaseParam>)
+               serviceKey: nameof(WS1FeedingStation<StationMemoryBaseParam>)
                 );
 
 
             container.RegisterMany(
-                new[] { typeof(WorkStationDetectionStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStationDetectionStation<StationMemoryBaseParam>),
+                new[] { typeof(WSDetectionStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WSDetectionStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationDetectionStation<StationMemoryBaseParam>)
+               serviceKey: nameof(WSDetectionStation<StationMemoryBaseParam>)
                 );
 
             container.RegisterMany(
-               new[] { typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-               typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>),
+               new[] { typeof(WS1MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+               typeof(WS1MaterialPullingStation<StationMemoryBaseParam>),
                reuse: DryIoc.Reuse.Singleton);
 
             // ── 工位 2 工站层注册 ──
             container.RegisterMany(
-                new[] { typeof(WorkStation2FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStation2FeedingStation<StationMemoryBaseParam>),
+                new[] { typeof(WS2FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WS2FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WorkStation2FeedingStation<StationMemoryBaseParam>));
+                serviceKey: nameof(WS2FeedingStation<StationMemoryBaseParam>));
 
             container.RegisterMany(
-                new[] { typeof(WorkStation2MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStation2MaterialPullingStation<StationMemoryBaseParam>),
+                new[] { typeof(WS2MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                typeof(WS2MaterialPullingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton);
 
             // 主控调度器
@@ -780,13 +780,13 @@ namespace PF.Application.Shell
 
         private async Task<bool> InitializeMechanism()
         {
-            var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation1FeedingModule));
+            var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WS1FeedingModel));
             if (!await workStation1FeedingModule.InitializeAsync())
             {
                 return false;
             }
            
-            var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule));
+            var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WS1MaterialPullingModule));
 
             if (!await workStation1MaterialPullingModule.InitializeAsync())
             {
@@ -794,32 +794,32 @@ namespace PF.Application.Shell
             }
 
             // ── 工位 2 机构初始化 ──
-            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation2FeedingModule));
+            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WS2FeedingModule));
             if (!await workStation2FeedingModule.InitializeAsync())
             {
                 return false;
             }
 
-            var workStation2MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation2MaterialPullingModule));
+            var workStation2MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WS2MaterialPullingModule));
             if (!await workStation2MaterialPullingModule.InitializeAsync())
             {
                 return false;
             }
 
-            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
+            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WSDetectionModule));
             if (!await workStation1DetectionModule.InitializeAsync())
             {
                 return false;
             }
 
-            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
+            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WSDataModule));
             if (!await workStationDataModule.InitializeAsync())
             {
                 return false;
             }
 
 
-            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
+            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WSSecsGemModule));
             if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;

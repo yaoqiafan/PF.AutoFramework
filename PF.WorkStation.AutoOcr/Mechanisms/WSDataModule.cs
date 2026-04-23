@@ -42,7 +42,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// - 跨线程 UI 更新：通过触发 <see cref="DataChanged"/> 事件，通知外部 ViewModel 刷新界面绑定。
     /// </remarks>
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 6)]
-    public class WorkStationDataModule : BaseMechanism
+    public class WSDataModule : BaseMechanism
     {
         #region Fields & Properties (依赖服务与核心事件)
 
@@ -73,7 +73,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 初始化数据中枢模块
         /// </summary>
-        public WorkStationDataModule(
+        public WSDataModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
             IProductionDataService productionDataService,
