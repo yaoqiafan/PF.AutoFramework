@@ -227,6 +227,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
+            token.ThrowIfCancellationRequested();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
             // 并发控制指令：多轴插补运动提升设备初始化节拍 (Cycle Time)
@@ -254,6 +255,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
+            token.ThrowIfCancellationRequested();
             _logger.Info($"[{MechanismName}] 检测晶圆料盒尺寸...");
 
             // 变量解析：读取三个特征物理传感器的布尔值
@@ -263,6 +265,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             if (!iscom)
             {
+                token.ThrowIfCancellationRequested();
                 return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS1Feeding.BoxBaseNotDetected, "晶圆料盒公用底座未检测到物体，请检查料盒是否正确放入。");
             }
 
