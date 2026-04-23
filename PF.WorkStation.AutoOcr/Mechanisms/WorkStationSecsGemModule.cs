@@ -105,6 +105,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             if (_secsGemManger == null)
             {
                 _secsGemlog.Error("SecsGem 实例未创建，请检查软件配置逻辑。");
@@ -158,6 +160,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             string str = $"S{message.Stream}F{message.Function}";
 
             // 基于 Stream 和 Function 进行业务分发
+            // 注意：这些都是 Fire-And-Forget 异步调用，如果方法内部因为 Cancellation 抛出 OperationCanceledException
+            // Task 会安静地转入 Canceled 状态，符合预期的平滑退出逻辑。
             switch (str)
             {
                 case "S1F1":
@@ -229,6 +233,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS1F1Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             SecsGemMessage send = new SecsGemMessage()
             {
                 Stream = 1,
@@ -258,6 +264,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS1F3Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             if (message.RootNode == null || message.RootNode.SubNode == null)
             {
                 _secsGemlog.Warn($"S1F3 消息 RootNode 结构异常，无法处理消息: {message}");
@@ -337,6 +345,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS1F13Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             SecsGemMessage response = CreateS1F14Response(message, commack: 0, mdln: "T-E243-0010", softrev: "V1.0.1");
             response.IsIncoming = false;
             _secsGemlog.Info($"发送 SecsGem 消息: {response}");
@@ -373,6 +383,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS1F15Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             _isOnOffine = false; // 切换状态标识
             SecsGemMessage response = CreateS1F16Response(message, oflack: 0x00);
             response.IsIncoming = false;
@@ -398,6 +410,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS1F17Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             _isOnOffine = true; // 切换状态标识
             SecsGemMessage response = CreateS1F18Response(message, onlack: 0x00);
             response.IsIncoming = false;
@@ -425,10 +439,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 处理 S2F33 (Define Report) 消息，并回复 S2F34。
         /// <para>数据快照定制：主机通知设备将哪些 VID (变量) 组合成一个特定的 RPTID (报表)。</para>
         /// </summary>
-        private async Task HandleS2F33Message(SecsGemMessage request)
+        private async Task HandleS2F33Message(SecsGemMessage request, CancellationToken token = default) // 【新增参数】
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】
+
                 var dataId = Convert.ToUInt32(request.RootNode.SubNode[0].TypedValue);
                 var reportList = request.RootNode.SubNode[1].SubNode;
 
@@ -452,6 +468,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 response.IsIncoming = false;
                 _secsGemlog.Info($"发送 SecsGem 消息: {response}");
                 await _secsGemManger.SendMessageAsync(response);
+            }
+            catch (OperationCanceledException) // 【新增】防吞噬，取消动作不上报虚假异常回复
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -479,10 +499,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 处理 S2F35 (Link Event Report) 消息，并回复 S2F36。
         /// <para>事件链接订阅：主机通知设备，当特定的 CEID (事件) 发生时，必须一并上抛哪些定制的 RPTID (报表)。</para>
         /// </summary>
-        private async Task HandleS2F35Message(SecsGemMessage request)
+        private async Task HandleS2F35Message(SecsGemMessage request, CancellationToken token = default) // 【新增参数】
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】
+
                 var dataId = Convert.ToUInt32(request.RootNode.SubNode[0].TypedValue);
                 var eventList = request.RootNode.SubNode[1].SubNode;
 
@@ -507,6 +529,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 response.IsIncoming = false;
                 _secsGemlog.Info($"发送 SecsGem 消息: {response}");
                 await _secsGemManger.SendMessageAsync(response);
+            }
+            catch (OperationCanceledException) // 【新增】
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -536,6 +562,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS2F41Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             // HCACK: 0=接受, 1=指令不存在, 2=现在无法执行, 3=参数非法
             SecsGemMessage response = CreateS2F42Response(message, hcack: 0x00);
             response.IsIncoming = false;
@@ -570,6 +598,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS7F1Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             // PPGNT: 0x00 = OK 允许下发
             SecsGemMessage response = CreateS7F2Response(message, ppgnt: 0x00);
             response.IsIncoming = false;
@@ -595,6 +625,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS7F3Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             if (message.RootNode == null || message.RootNode.SubNode.Count != 2)
             {
                 // 格式不合法，拒绝接收 (ACKC7: 0x04 = 非法格式)
@@ -627,6 +659,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     throw new Exception($"配方保存本地实体化失败");
                 }
             }
+            catch (OperationCanceledException) // 【新增】
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _secsGemlog.Error($"SecsGem S7F3 下载配方失败: {ex.Message}");
@@ -656,6 +692,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS7F5Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             string requestedPpid = message.RootNode.TypedValue?.ToString();
 
             if (string.IsNullOrEmpty(requestedPpid))
@@ -725,6 +763,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS7F17Message(SecsGemMessage s7f17Request, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             var ppidNodes = s7f17Request.RootNode.SubNode;
 
             if (ppidNodes == null || ppidNodes.Count == 0)
@@ -785,6 +825,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private async Task HandleS7F19Message(SecsGemMessage message, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             // 通过数据中枢拼装出实际活跃的配方字串
             string currentPpid = $"{_workStationDataModule.Station1ReciepParam.RecipeName ?? ""}&{_workStationDataModule.Station2ReciepParam.RecipeName ?? ""}";
 
@@ -819,6 +861,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】
+
                 var subNodes = message.RootNode.SubNode;
                 byte tid = ((byte[])subNodes[0].Data)[0]; // 终端 ID
                 string text = subNodes[1].TypedValue.ToString(); // 主机发来的文本内容
@@ -830,6 +874,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 s10f4Response.IsIncoming = false;
                 _secsGemlog.Info($"发送 SecsGem 消息: {s10f4Response}");
                 await _secsGemManger.SendMessageAsync(s10f4Response);
+            }
+            catch (OperationCanceledException) // 【新增】
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -863,8 +911,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 本方法将自动检索绑定的报表，打包数据，并通过 <see cref="CreateS6F11"/> 生成 S6F11 上抛至 Host。
         /// </summary>
         /// <param name="ceid">设备发生变化的事件 ID</param>
-        public async Task TriggerDynamicEvent(uint ceid)
+        /// <param name="token">取消令牌</param>
+        public async Task TriggerDynamicEvent(uint ceid, CancellationToken token = default) // 【新增参数】
         {
+            token.ThrowIfCancellationRequested(); // 【新增】
+
             // 检查 S2F35 中是否为该事件订阅过报表链接，若未订阅，标准做法是可以静默忽略
             if (!_eventLinks.ContainsKey(ceid))
             {

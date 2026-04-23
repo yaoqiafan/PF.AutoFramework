@@ -158,6 +158,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         protected override async Task<bool> InternalInitializeAsync(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
+
             // ① 延迟解析硬件实例
             _zAxis = HardwareManagerService?.GetDevice(E_AxisName.工位2上料Z轴.ToString()) as IAxis;
             if (_zAxis == null)
@@ -193,9 +195,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _xAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] X轴连接失败"); return false; }
             if (!await _io.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] IO模块连接失败"); return false; }
 
+            token.ThrowIfCancellationRequested(); // 【新增】连接完成后检查
+
             // ④ 伺服上电使能 (Servo On)
             if (!await _zAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             if (!await _xAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
+
+            token.ThrowIfCancellationRequested(); // 【新增】使能完成后检查
+
             // ⑤ 异常待处理：回原点 (Home) 前需检查传感器确认物料是否处于安全位置，防止硬碰撞。
             // if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
             // if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
@@ -221,6 +228,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> InitializeFeedingStateAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
@@ -229,6 +237,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     (_zAxis, nameof(ZAxisPoint.待机位))
                 ], token: token))
             {
+                token.ThrowIfCancellationRequested(); // 【新增】耗时运动结束后的取消检查
                 _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
                 return MechResult.Success();
             }
@@ -245,6 +254,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult<E_WafeSize>> GetWaferBoxSizeAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
             _logger.Info($"[{MechanismName}] 检测晶圆料盒尺寸...");
 
@@ -293,6 +303,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="token">取消令牌</param>
         public async Task<MechResult> SwitchProductionStateAsync(E_WafeSize waferSize, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
             _logger.Info($"[{MechanismName}] 切换生产状态为 [{waferSize}]...");
             _currentWaferSize = waferSize;
@@ -308,6 +319,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 await ArrayZAxisMaterialPickingPosition(E_WafeSize._12寸);
             }
 
+            token.ThrowIfCancellationRequested(); // 【新增】计算结束后的取消检查
             _logger.Success($"[{MechanismName}] 生产状态已切换为 [{waferSize}]。");
             return MechResult.Success();
         }
@@ -319,6 +331,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="token">取消令牌</param>
         public async Task<MechResult> SwitchToLayerAsync(int targetLayer, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
 
             if (targetLayer < 0 || targetLayer >= _maxLayerCount)
@@ -340,6 +353,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
 
             bool moveResult = await MoveAbsAndWaitAsync(_zAxis, targetPoint.TargetPosition, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.08, token: token);
+            token.ThrowIfCancellationRequested(); // 【新增】耗时运动结束后的取消检查
+
             if (moveResult)
             {
                 _logger.Success($"[{MechanismName}] 成功切换至第 {targetLayer + 1} 层位置。");
@@ -357,6 +372,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> CanMoveZAxesAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             await Task.CompletedTask;
 
             if (!IsInitialized || _zAxis.HasAlarm)
@@ -379,6 +395,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> CanMoveXAxesAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             await Task.CompletedTask;
 
             if (!IsInitialized || _xAxis.HasAlarm)
@@ -400,6 +417,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> CanPullOutMaterialAsync(CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             await Task.CompletedTask;
 
             if (!IsInitialized)
@@ -445,6 +463,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             int latchNo2 = 1, int inputPort2 = 1,
             CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
             _logger.Info($"[{MechanismName}] 开始执行Z轴双传感器高速锁存寻层扫描...");
 
@@ -456,6 +475,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             try
             {
+                token.ThrowIfCancellationRequested(); // 【新增】进入核心逻辑前检查
+
                 // Step 1: 移动至扫描物理起点
                 var start = _currentWaferSize == E_WafeSize._12寸 ? nameof(ZAxisPoint.扫描起始位置_12寸) : nameof(ZAxisPoint.扫描起始位置_8寸);
                 _logger.Info($"[{MechanismName}] 正在移动至扫描起点（负极限）...");
@@ -463,6 +484,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToStartFailed, $"移动到 {start} 位置触发失败");
                 if (!await WaitAxisMoveDoneAsync(_zAxis, token: token))
                     return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToStartFailed, $"移动到 {start} 位置超时");
+
+                token.ThrowIfCancellationRequested(); // 【新增】到达起点后检查
 
                 // Step 2: 配置硬件锁存参数
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
@@ -474,6 +497,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 if (!latch1Set || !latch2Set)
                     return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanLatchConfigFailed, "底层运动控制卡位置锁存(Position Capture)配置失败");
 
+                token.ThrowIfCancellationRequested(); // 【新增】配置完成后检查
+
                 // Step 3: 开始由下至上匀速扫测
                 _logger.Info($"[{MechanismName}] 开始向上匀速扫描...");
                 var end = _currentWaferSize == E_WafeSize._12寸 ? nameof(ZAxisPoint.扫描结束位置_12寸) : nameof(ZAxisPoint.扫描结束位置_8寸);
@@ -482,15 +507,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 if (!await WaitAxisMoveDoneAsync(_zAxis, token: token))
                     return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToEndFailed, $"移动到 {end} 位置超时");
 
+                token.ThrowIfCancellationRequested(); // 【新增】扫描运动结束后检查
+
                 // Step 4: 读取底层板卡 FIFO 缓存的坐标数据
                 int[] latchChannels = [latchNo1, latchNo2];
                 foreach (var latchId in latchChannels)
                 {
+                    token.ThrowIfCancellationRequested(); // 【新增】外部通道循环取消检查
+
                     int latchCount = await _zAxis.GetLatchNumber(latchId, token);
                     _logger.Info($"[{MechanismName}] 锁存通道 {latchId} 共捕获到 {latchCount} 个信号点。");
 
                     for (int i = 0; i < latchCount; i++)
                     {
+                        token.ThrowIfCancellationRequested(); // 【新增】内部读取循环细粒度取消检查，确保硬件读取不卡死
+
                         double? pos = await _zAxis.GetLatchPos(latchId, token);
                         if (pos.HasValue) resultMap[latchId].Add(pos.Value);
                         else _logger.Warn($"[{MechanismName}] 通道 {latchId} 读取第 {i + 1} 个位置失败。");
@@ -502,6 +533,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{DateTime.Now:yyyyMMddHHmmss}.xlsx", resultMap);
 
                 return MechResult<Dictionary<int, List<double>>>.Success(resultMap);
+            }
+            catch (OperationCanceledException)
+            {
+                // 【新增】严格阻断异常吞噬：若为取消操作异常，直接上抛给状态机，确保上层能感知到任务已被打断
+                _logger.Warn($"[{MechanismName}] 寻层扫描任务已被取消。");
+                throw;
             }
             catch (Exception ex)
             {
@@ -605,7 +642,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 私有辅助方法：利用 NPOI 将锁存生成的坐标原始数据写入本地 Excel 表格，方便算法工程师溯源。
         /// </summary>
-        private static  void SavePoint(string FilePath, Dictionary<int, List<double>> point)
+        private static void SavePoint(string FilePath, Dictionary<int, List<double>> point)
         {
             FileInfo file = new FileInfo(FilePath);
             if (!Directory.Exists(file.DirectoryName)) Directory.CreateDirectory(file.DirectoryName);

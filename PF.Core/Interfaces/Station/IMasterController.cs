@@ -13,7 +13,7 @@ namespace PF.Core.Interfaces.Station
     /// 全局主控调度器接口。
     /// 负责统筹和协调整个机台或生产线上所有子工站的生命周期、状态流转以及运行模式控制。
     /// </summary>
-    public interface IMasterController
+    public interface IMasterController: IDisposable
     {
         /// <summary>
         /// 获取当前主控调度器所处的设备运行状态（如：未初始化、待机、运行中、报警等）。
