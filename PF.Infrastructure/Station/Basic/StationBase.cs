@@ -4,10 +4,12 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Infrastructure.Mechanisms;
 using Stateless;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+
 
 namespace PF.Infrastructure.Station.Basic
 {
@@ -44,35 +46,22 @@ namespace PF.Infrastructure.Station.Basic
     ///   - <see cref="ProcessLoopAsync"/>       : 模式路由分发器。若需引入非标运行模式（如 GRR 测试、设备维护模式），重写此方法进行拦截与分发。
     ///   - <see cref="DisposeAsync"/>           : 非托管资源清理。若子类独占了相机句柄、串口连接等资源，需重写以安全释放，且末尾必须调用 <see langword="await"/> 基础类的清理方法。
     /// </summary>
-    public abstract class StationBase<T> : IDisposable, IAsyncDisposable, INotifyPropertyChanged where T : StationMemoryBaseParam
+    /// namespace PF.Infrastructure.Station.Basic
+
+
+    public abstract class StationBase<T> : IStation where T : StationMemoryBaseParam, new()
     {
-        #region 1. MVVM 数据绑定与核心属性 (Properties & MVVM)
+        #region 1. MVVM 数据绑定
 
-        /// <summary>
-        /// 属性变更事件，用于实现 MVVM 双向数据绑定。
-        /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        /// <summary>
-        /// 触发属性变更事件通知 UI 刷新。
-        /// </summary>
-        /// <param name="propertyName">发生变更的属性名称，使用 CallerMemberName 自动获取。</param>
-        protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
+        protected virtual void RaisePropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-        /// <summary>
-        /// 获取当前工站的唯一名称标识。
-        /// </summary>
         public string StationName { get; }
-
-        /// <summary>当前状态机状态（状态变化时触发 PropertyChanged）</summary>
         public MachineState CurrentState => _machine.State;
 
         private string _currentStepDescription = "就绪";
-        /// <summary>
-        /// 当前步序描述，供 UI 实时显示（如"正在取料..."、"等待槽位空闲..."）。
-        /// 子类在每次步序切换时通过 protected set 赋值，自动触发 PropertyChanged。
-        /// </summary>
         public string CurrentStepDescription
         {
             get => _currentStepDescription;
@@ -85,10 +74,6 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         private OperationMode _currentMode = OperationMode.Normal;
-        /// <summary>
-        /// 当前运行模式（由 MasterController 在 Idle 状态下统一设置后下发至各工站）。
-        /// 属性变化时触发 PropertyChanged，供 UI 绑定。
-        /// </summary>
         public OperationMode CurrentMode
         {
             get => _currentMode;
@@ -102,91 +87,45 @@ namespace PF.Infrastructure.Station.Basic
 
         #endregion
 
-        #region 2. 外部交互事件 (Events)
+        #region 2. 外部交互事件
 
-        /// <summary>
-        /// 向上层（主控）抛出的报警事件，携带 ErrorCode + RuntimeMessage + HardwareName 等上下文。
-        /// </summary>
-        public event EventHandler<StationAlarmEventArgs> StationAlarmTriggered;
-
-        /// <summary>
-        /// 工站内所有机构均已自恢复（硬件清警）时触发，通知主控可主动清除 AlarmService 对应记录。
-        /// 由子类在订阅模组 AlarmAutoCleared 事件后调用 <see cref="RaiseStationAlarmAutoCleared"/>。
-        /// </summary>
-        public event EventHandler StationAlarmAutoCleared;
-
-        /// <summary>
-        /// 工站状态机发生跳转时触发，携带跳转前后的状态信息。
-        /// <see cref="BaseMasterController"/> 订阅此事件以实施防状态撕裂守卫：
-        /// 当主控处于 Running/Paused 而子站意外回到 Idle 时，主控可立即触发全线急停。
-        /// </summary>
-        public event EventHandler<StationStateChangedEventArgs> StationStateChanged;
+        public event EventHandler<StationAlarmEventArgs>? StationAlarmTriggered;
+        public event EventHandler? StationAlarmAutoCleared;
+        public event EventHandler<StationStateChangedEventArgs>? StationStateChanged;
 
         #endregion
 
-        #region 3. 核心依赖与内部状态标记 (Fields & State Variables)
+        #region 3. 核心依赖与内部状态标记
 
-        /// <summary>工站内置日志记录服务实例。</summary>
-        protected readonly ILogService _logger;
-
-        /// <summary>工站核心状态机实例，管控当前生命周期流转。</summary>
+        protected readonly ILogService? _logger;
         protected readonly StateMachine<MachineState, MachineTrigger> _machine;
-
-        // ── 并发安全：所有状态机跳转均通过此信号量独占执行 ─────────────────
-        // 使用 SemaphoreSlim 而非 lock，以支持 async/await 场景下的无死锁等待。
         private readonly SemaphoreSlim _stateLock = new(1, 1);
+        private CancellationTokenSource? _runCts;
+        private Task? _workflowTask;
 
-        // 线程生命周期管理
-        private CancellationTokenSource _runCts;
-        private Task _workflowTask;
+        // 语义解耦：
+        // _stopRequested: 用户/主控显式发起 Stop，用于抑制 workflow 异常被误判为报警
+        // _pauseRequested: 用户/主控显式发起 Pause，用于抑制 Resume 前的报警
+        // _alarmInterrupted: 硬件/业务主动触发报警
+        private volatile bool _stopRequested;
+        private volatile bool _pauseRequested;
+        private volatile bool _alarmInterrupted;
+        private volatile bool _disposed;
 
-        // 【重构注】：已移除 _pauseGate(TaskCompletionSource)。
-        // 新架构下 Pause 直接取消 _runCts 打断当前执行树，Resume 时依赖子类的 _resumeStep 重建任务断点续跑。
-        // 彻底杜绝硬件状态与逻辑挂起之间的撕裂与死锁风险。
-
-        // 暂停状态标记：Pause 时置 true，Resume 时置 false。
-        private volatile bool _isPaused = false;
-
-        // 标记当前业务线程是被"外部报警"打断（true），还是"正常停止"打断（false）。
-        // volatile 确保多线程可见性：TriggerAlarm 在状态机线程写入，ProcessWrapperAsync 在业务线程读取。
-        private volatile bool _alarmInterrupted = false;
-
-        // 结构化报警码：业务代码或外部调用在触发报警前设置，InitAlarm/RunAlarm.OnEntry 读取后上报并重置。
-        // 未显式设置时回落至 AlarmCodes.System.StationSyncError（通用工站异常兜底）。
-        private volatile string _pendingAlarmCode;
-
-        // 记录本次进入 Resetting 前的报警类型：
-        //   true  → 来自 InitAlarm（复位成功后回 Uninitialized，强制重新初始化）
-        //   false → 来自 RunAlarm（复位成功后回 Idle，可直接再启动）
-        // 用状态本身替代旧 _initializationFailed 布尔标记，语义更清晰。
-        private bool _cameFromInitAlarm = false;
-
-        /// <summary>指示当前报警来源是否为初始化阶段（InitAlarm），供派生类在 ExecuteResetAsync 中决定是否重置信号量。</summary>
-        protected bool CameFromInitAlarm => _cameFromInitAlarm;
-
-        // Stop/Pause 主动取消业务线程时置位，阻止 ProcessWrapperAsync 的 catch(Exception)
-        // 将副作用异常（非 OCE）误判为报警。Reset in OnStartRunningAsync。
-        private volatile bool _cancelledIntentionally = false;
-
-        // 丰富报警上下文：携带运行时错误详情（硬件名、运行时消息、原始异常）。
-        // 由 RaiseAlarm(StationAlarmEventArgs) 重载设置，InitAlarm/RunAlarm OnEntry 读取后重置。
+        private volatile string? _pendingAlarmCode;
         private volatile StationAlarmEventArgs? _pendingAlarmContext;
 
+        private volatile bool _cameFromInitAlarm;
+        protected bool CameFromInitAlarm => _cameFromInitAlarm;
+
         #endregion
 
-        #region 4. 构造函数与状态机配置 (Constructor & Configuration)
+        #region 4. 构造函数与状态机配置
 
-        /// <summary>
-        /// 初始化工站基类，配置基础服务与核心状态机。
-        /// </summary>
-        /// <param name="name">工站唯一名称</param>
-        /// <param name="logger">日志服务</param>
-        protected StationBase(string name, ILogService logger)
+        protected StationBase(string name, ILogService? logger)
         {
-            StationName = name;
+            StationName = name ?? throw new ArgumentNullException(nameof(name));
             _logger = logger;
-
-            // 初始状态：Uninitialized（硬件未就绪，禁止直接启动）
             _machine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
             ConfigureStateMachine();
             ReadMemoryParam();
@@ -197,381 +136,304 @@ namespace PF.Infrastructure.Station.Basic
             _machine.OnTransitioned(t =>
             {
                 _logger?.Debug($"[{StationName}] 状态变迁: {t.Source} -> {t.Destination}");
-                RaisePropertyChanged(nameof(CurrentState)); // 通知 UI 刷新状态绑定
+                RaisePropertyChanged(nameof(CurrentState));
 
-                // 通知主控发生了状态跳转：主控据此实施防撕裂守卫（如意外回到 Idle 时急停全线）
-                StationStateChanged?.Invoke(this, new StationStateChangedEventArgs
+                // 异步派发，避免订阅者同步回调引发状态机重入死锁
+                var handler = StationStateChanged;
+                if (handler != null)
                 {
-                    OldState = t.Source,
-                    NewState = t.Destination
-                });
+                    var args = new StationStateChangedEventArgs { OldState = t.Source, NewState = t.Destination };
+                    _ = Task.Run(() =>
+                    {
+                        try { handler.Invoke(this, args); }
+                        catch (Exception ex) { _logger?.Error($"[{StationName}] StationStateChanged 订阅者异常: {ex.Message}"); }
+                    });
+                }
             });
 
-            // --- 未初始化状态 ---
             _machine.Configure(MachineState.Uninitialized)
                 .Permit(MachineTrigger.Initialize, MachineState.Initializing);
 
-            // --- 初始化中状态：失败→ InitAlarm（强制重新初始化），成功→ Idle ---
             _machine.Configure(MachineState.Initializing)
-                .OnEntry(() => _cancelledIntentionally = false)  // 进入初始化时清除停止标记
+                .OnEntry(() =>
+                {
+                    _stopRequested = false;
+                    _pauseRequested = false;
+                })
                 .Permit(MachineTrigger.InitializeDone, MachineState.Idle)
                 .Permit(MachineTrigger.Error, MachineState.InitAlarm);
 
-            // --- 待机状态：允许启动、重新初始化、主动停止、运行期异常 ---
             _machine.Configure(MachineState.Idle)
                 .Permit(MachineTrigger.Start, MachineState.Running)
-                .Permit(MachineTrigger.Initialize, MachineState.Initializing)  // 支持从 Idle 重新初始化
-                .Permit(MachineTrigger.Stop, MachineState.Uninitialized)       // Stop → Uninitialized（不再 Ignore）
+                .Permit(MachineTrigger.Initialize, MachineState.Initializing)
+                .Permit(MachineTrigger.Stop, MachineState.Uninitialized)
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
-            // --- 运行状态 ---
-            // 【关键】OnEntryAsync 确保：旧任务彻底结束 → 再启动新任务，消除幽灵线程。
-            // 注意：凡触发进入 Running 的 Fire 调用（Start / Resume）均须使用 FireAsync。
             _machine.Configure(MachineState.Running)
                 .OnEntryAsync(OnStartRunningAsync)
-                .OnExit(t =>
-                {
-                    // 【重构】：无论 Pause、Stop 还是 Error，退出 Running 时绝对取消当前业务树。
-                    _runCts?.Cancel();
-                })
+                .OnExit(_ => _runCts?.Cancel())
                 .Permit(MachineTrigger.Pause, MachineState.Paused)
-                .Permit(MachineTrigger.Stop, MachineState.Uninitialized)  // Stop → Uninitialized（物理停稳后再改状态）
+                .Permit(MachineTrigger.Stop, MachineState.Uninitialized)
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
-            // --- 暂停状态 ---
-            // 【重构】：移除了复杂的开门关门逻辑，依赖 OnStartRunningAsync 重新拉起线程。
             _machine.Configure(MachineState.Paused)
                 .Permit(MachineTrigger.Resume, MachineState.Running)
-                .Permit(MachineTrigger.Stop, MachineState.Uninitialized)  // Stop → Uninitialized
+                .Permit(MachineTrigger.Stop, MachineState.Uninitialized)
                 .Permit(MachineTrigger.Error, MachineState.RunAlarm);
 
-            // --- 初始化报警：复位后强制回 Uninitialized，坐标系可能不可信 ---
             _machine.Configure(MachineState.InitAlarm)
-                .OnEntry(() =>
-                {
-                    _cameFromInitAlarm = true;
-                    // 区分级联与真实报警：
-                    //   · _pendingAlarmCode 非空 → 真实报警（RaiseAlarm / TriggerAlarm(code) 设定）
-                    //   · _pendingAlarmCode 为空 → 主控级联（TriggerAlarm() 无参调用），使用专用标识
-                    var code = _pendingAlarmCode ?? AlarmCodes.System.CascadeAlarm;
-                    var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
-                    _pendingAlarmCode = null;
-                    _pendingAlarmContext = null;
-                    StationAlarmTriggered?.Invoke(this, context);
-                })
+                .OnEntry(EnterAlarm_Init)
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
-            // --- 运行期报警：复位后回 Idle，坐标系有效，可直接再启动 ---
             _machine.Configure(MachineState.RunAlarm)
-                .OnEntry(() =>
-                {
-                    _cameFromInitAlarm = false;
-                    // 区分级联与真实报警（同 InitAlarm 逻辑）
-                    var code = _pendingAlarmCode ?? AlarmCodes.System.CascadeAlarm;
-                    var context = _pendingAlarmContext ?? new StationAlarmEventArgs { ErrorCode = code };
-                    _pendingAlarmCode = null;
-                    _pendingAlarmContext = null;
-                    StationAlarmTriggered?.Invoke(this, context);
-                })
+                .OnEntry(EnterAlarm_Run)
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
-            // --- 复位中状态：双轨出口 + 动态错误回退 ---
             _machine.Configure(MachineState.Resetting)
                 .Permit(MachineTrigger.ResetDone, MachineState.Idle)
                 .Permit(MachineTrigger.ResetDoneUninitialized, MachineState.Uninitialized)
-                // 复位失败：按来源报警类型回退，避免 InitAlarm 路径错误回到 RunAlarm
                 .PermitDynamic(MachineTrigger.Error,
                     () => _cameFromInitAlarm ? MachineState.InitAlarm : MachineState.RunAlarm);
         }
 
-        #endregion
+        private void EnterAlarm_Init() => EnterAlarmCommon(isInit: true);
+        private void EnterAlarm_Run() => EnterAlarmCommon(isInit: false);
 
-        #region 5. 线程与生命周期管控 (Thread & Lifecycle Management)
-
-        /// <summary>
-        /// 取消旧任务并等待其彻底退出，在获取 _stateLock 之前调用。
-        ///
-        /// 【关键设计】此方法必须在 FireAsync(Start/Resume) 持锁之前完成：
-        ///   若在锁内等待旧任务，而旧任务的 catch(Exception) 路径调用 Fire(Error)
-        ///   尝试同步获取同一把锁，将形成循环等待 → 永久死锁。
-        ///   将等待移至锁外，可彻底消除该循环依赖。
-        /// </summary>
-        private async Task CancelAndAwaitOldTaskAsync()
+        private void EnterAlarmCommon(bool isInit)
         {
-            _runCts?.Cancel();
-            if (_workflowTask is { IsCompleted: false })
+            _cameFromInitAlarm = isInit;
+            var code = Interlocked.Exchange(ref _pendingAlarmCode, null) ?? AlarmCodes.System.CascadeAlarm;
+            var context = Interlocked.Exchange(ref _pendingAlarmContext, null)
+                          ?? new StationAlarmEventArgs { ErrorCode = code };
+
+            // 异步派发，避免订阅者重入 Fire 死锁
+            var handler = StationAlarmTriggered;
+            if (handler != null)
             {
-                try { await _workflowTask.ConfigureAwait(false); }
-                catch { /* 旧任务取消或异常退出，均忽略 */ }
+                _ = Task.Run(() =>
+                {
+                    try { handler.Invoke(this, context); }
+                    catch (Exception ex) { _logger?.Error($"[{StationName}] StationAlarmTriggered 订阅者异常: {ex.Message}"); }
+                });
             }
         }
 
-        /// <summary>
-        /// Running 状态同步入口：
-        ///   旧任务的取消与等待已由 StartAsync/ResumeAsync 在锁外完成，
-        ///   此处统一建立新 CTS，启动新任务（断点续跑由子类 _resumeStep 保证）。
-        /// </summary>
+        #endregion
+
+        #region 5. 线程与生命周期管控
+
+        private async Task CancelAndAwaitOldTaskAsync()
+        {
+            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
+
+            var old = _workflowTask;
+            if (old is { IsCompleted: false })
+            {
+                try { await old.ConfigureAwait(false); }
+                catch { /* 忽略旧任务异常 */ }
+            }
+        }
+
         private Task OnStartRunningAsync()
         {
-            _runCts?.Dispose();
-            _runCts = new CancellationTokenSource();
-            _isPaused = false;
-            _alarmInterrupted = false;
-            _cancelledIntentionally = false;
+            // 旧 CTS 由 OnExit 负责 Cancel；此处新建
+            var oldCts = Interlocked.Exchange(ref _runCts, new CancellationTokenSource());
+            try { oldCts?.Dispose(); } catch { }
 
-            // 向所有模组注入暂停感知委托（为兼容旧模组接口保留空实现）
+            _pauseRequested = false;
+            _stopRequested = false;
+            _alarmInterrupted = false;
+
             var pauseCheck = CreatePauseCheckDelegate();
             foreach (var m in GetMechanisms())
                 m.PauseCheckAsync = pauseCheck;
 
-            _workflowTask = Task.Run(() => ProcessWrapperAsync(_runCts.Token));
+            var token = _runCts!.Token;
+            _workflowTask = Task.Run(() => ProcessWrapperAsync(token), CancellationToken.None);
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// 内部包装器，负责全局的异常捕获，防止子线程崩溃导致程序闪退
-        /// </summary>
         private async Task ProcessWrapperAsync(CancellationToken token)
         {
             try
             {
-                await ProcessLoopAsync(token);
+                await ProcessLoopAsync(token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                if (_isPaused)
-                {
-                    _logger?.Info($"[{StationName}] 工站已响应暂停命令，当前业务线程中止，等待恢复续跑...");
-                }
-                else if (_alarmInterrupted)
-                {
-                    _logger?.Warn($"[{StationName}] 业务流程被外部报警打断，线程安全退出。");
-                    _alarmInterrupted = false;
-                }
-                else
-                {
-                    _logger?.Warn($"[{StationName}] 子线程被安全打断并退出。");
-                }
+                if (_pauseRequested) _logger?.Info($"[{StationName}] 工站响应暂停命令，等待续跑...");
+                else if (_alarmInterrupted) _logger?.Warn($"[{StationName}] 被外部报警打断，线程安全退出。");
+                else _logger?.Warn($"[{StationName}] 子线程被安全打断并退出。");
+                _alarmInterrupted = false;
             }
             catch (Exception ex)
             {
-                // P4 修复：在异常捕获的第一时间快照意图标志到局部变量。
-                // 原先直接在 Task.Run 内读取 _cancelledIntentionally，存在 TOCTOU 竞态窗口：
-                //   真实硬件异常恰好在 Stop() 的 _cancelledIntentionally=true 与 Fire(Stop) 之间发生，
-                //   Task.Run 执行时标志已被置位，导致真实报警被吞没。
-                // 快照后即使 Stop() 紧接着置位，也不影响本次异常的判定。
-                bool wasIntentionalStop = _cancelledIntentionally;
+                _logger?.Error($"[{StationName}] 业务异常: {ex.Message}");
 
-                _logger?.Error($"[{StationName}] 业务逻辑发生异常: {ex.Message}");
+                // 故意停止时忽略
+                if (_stopRequested) return;
 
-                // 业务代码未显式调用 RaiseAlarm 时兜底赋码，确保未预期崩溃能被 AlarmService 正确上报。
-                // 显式调用过 RaiseAlarm 的路径 _pendingAlarmCode 已非空，?? 不会覆盖精确报警码。
-                _pendingAlarmCode ??= AlarmCodes.System.StationSyncError;
+                Interlocked.CompareExchange(ref _pendingAlarmCode, AlarmCodes.System.StationSyncError, null);
 
-                // 🚨 修复 P0 级死锁：
-                // 必须通过 Task.Run 脱离当前任务上下文，让 _workflowTask 立即结束
-                // 从而释放 OnStartRunningAsync 中的 await 锁等待，防止与 StartAsync 形成循环死锁。
+                // 独立调度以避免在 workflowTask 上下文中回触发状态机
                 _ = Task.Run(() =>
                 {
                     try
                     {
-                        // 防止重入：主控已通过 TriggerAlarm() 将本工站拉入 InitAlarm/RunAlarm 后，
-                        // 业务线程的 OperationCanceledException 在极端竞态下可能漏入此 catch，
-                        // 若再次 Fire(Error) 会导致 Stateless 因"当前状态无此转换"抛出异常。
-                        if (_machine.State != MachineState.InitAlarm && _machine.State != MachineState.RunAlarm
-                            && !wasIntentionalStop)
+                        var state = _machine.State;
+                        if (state != MachineState.InitAlarm && state != MachineState.RunAlarm)
                             Fire(MachineTrigger.Error);
                     }
                     catch (Exception fireEx)
                     {
-                        _logger?.Fatal($"[{StationName}] 业务异常后尝试触发报警状态失败: {fireEx.Message}");
+                        _logger?.Fatal($"[{StationName}] 业务异常后触发报警状态失败: {fireEx.Message}");
                     }
                 });
             }
         }
 
-        // --- 供主控调用的外层控制方法 ---
-
-        /// <summary>
-        /// 异步启动工站。
-        ///   1. 锁外：取消并等待旧任务退出（消除 Fire/FireAsync 持锁期间的循环等待死锁）。
-        ///   2. 持锁：触发 Start 状态跳转，Running.OnEntryAsync 启动新任务。
-        /// </summary>
         public async Task StartAsync()
         {
             await CancelAndAwaitOldTaskAsync().ConfigureAwait(false);
-            await FireAsync(MachineTrigger.Start);
+            await FireAsync(MachineTrigger.Start).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// 同步停止工站业务（发出停止取消信号，状态切入 Uninitialized）。
-        /// </summary>
-        public void Stop()
-        {
-            _cancelledIntentionally = true;
-            Fire(MachineTrigger.Stop);
-        }
-
-        /// <summary>
-        /// 同步挂起/暂停工站业务（拉闸取消业务令牌，触发物理减速，状态切入 Paused）。
-        /// </summary>
         public void Pause()
         {
-            _cancelledIntentionally = true;
-            _isPaused = true;
-            _runCts?.Cancel(); // 立即打断当前任务流，不再挂起
+            _pauseRequested = true;
+            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
             Fire(MachineTrigger.Pause);
-            // 物理减速停止所有轴（异步不阻塞状态机）
-            _ = OnPhysicalPauseAsync();
+            _ = Task.Run(async () =>
+            {
+                try { await OnPhysicalPauseAsync().ConfigureAwait(false); }
+                catch (Exception ex) { _logger?.Error($"[{StationName}] OnPhysicalPauseAsync 异常: {ex.Message}"); }
+            });
         }
 
-        /// <summary>
-        /// 异步停止：取消业务线程 → 等待任务退出 → 物理制动 → 推进状态机到 Uninitialized。
-        /// </summary>
         public async Task StopAsync()
         {
-            _cancelledIntentionally = true;
-            _runCts?.Cancel();
-            if (_workflowTask is { IsCompleted: false })
+            _stopRequested = true;
+            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
+
+            var wf = _workflowTask;
+            if (wf is { IsCompleted: false })
             {
-                try { await _workflowTask.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false); }
-                catch { }
+                try { await wf.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false); }
+                catch { /* 超时/异常均忽略 */ }
             }
-            await OnPhysicalStopAsync().ConfigureAwait(false);
-            Fire(MachineTrigger.Stop);
+
+            try { await OnPhysicalStopAsync().ConfigureAwait(false); }
+            catch (Exception ex) { _logger?.Error($"[{StationName}] OnPhysicalStopAsync 异常: {ex.Message}"); }
+            finally { Fire(MachineTrigger.Stop); }  // 无论物理制动是否报错，必定归位
         }
 
-        /// <summary>
-        /// 异步恢复工站（Paused → Running）。
-        ///   重构：先在锁外等待被 Cancel 的任务彻底退出，再触发 Resume 进入新循环。
-        /// </summary>
         public async Task ResumeAsync()
         {
-            _isPaused = false;
+            _pauseRequested = false;
             await CancelAndAwaitOldTaskAsync().ConfigureAwait(false);
-            await FireAsync(MachineTrigger.Resume);
+            await FireAsync(MachineTrigger.Resume).ConfigureAwait(false);
         }
 
         #endregion
 
-        #region 6. 工艺循环抽象与硬件控制契约 (Process & Hardware Hooks)
+        #region 6. 工艺循环抽象与硬件控制契约
 
-        /// <summary>
-        /// 核心工艺循环分发器。根据当前模式自动路由至对应的子类实现。
-        /// 子类通常无需重写此方法。
-        /// </summary>
         protected virtual async Task ProcessLoopAsync(CancellationToken token)
         {
             switch (CurrentMode)
             {
-                case OperationMode.Normal:
-                    await ProcessNormalLoopAsync(token);
-                    break;
-                case OperationMode.DryRun:
-                    await ProcessDryRunLoopAsync(token);
-                    break;
-                default:
-                    _logger?.Warn($"[{StationName}] 未知或不支持的运行模式: {CurrentMode}，工站业务线程安全退出。");
-                    break;
+                case OperationMode.Normal: await ProcessNormalLoopAsync(token).ConfigureAwait(false); break;
+                case OperationMode.DryRun: await ProcessDryRunLoopAsync(token).ConfigureAwait(false); break;
+                default: _logger?.Warn($"[{StationName}] 未知运行模式: {CurrentMode}"); break;
             }
         }
 
-        /// <summary>正常生产模式工艺循环</summary>
         protected abstract Task ProcessNormalLoopAsync(CancellationToken token);
-
-        /// <summary>空跑验证模式工艺循环（跳过物料等待与部分外部协同）</summary>
         protected abstract Task ProcessDryRunLoopAsync(CancellationToken token);
 
         /// <summary>
-        /// 硬件初始化钩子，由 MasterController.InitializeAllAsync() 在 Initializing 阶段顺序调用。
-        /// 基类默认实现：直接推进 Uninitialized → Initializing → Idle（无真实硬件）。
+        /// 初始化钩子。子类 override 时不要再调用 Fire，仅做物理动作。
         /// </summary>
-        public virtual async Task ExecuteInitializeAsync(CancellationToken token)
-        {
-            Fire(MachineTrigger.Initialize);    // Uninitialized → Initializing
-            await Task.CompletedTask;
-            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
-        }
+        protected virtual Task OnInitializeAsync(CancellationToken token) => Task.CompletedTask;
 
         /// <summary>
-        /// 物理复位模板：驱动本工站完整经历 Alarm → Resetting → Idle/Uninitialized 的复位路径。
-        /// 由 MasterController.ResetAllAsync() 在其自身进入 Resetting 后顺序调用。
+        /// 复位钩子。子类 override 时不要再调用 Fire，仅做物理动作。
         /// </summary>
-        public virtual async Task ExecuteResetAsync(CancellationToken token)
+        protected virtual Task OnResetAsync(CancellationToken token) => Task.CompletedTask;
+
+        public virtual async Task ExecuteInitializeAsync(CancellationToken token)
         {
-            Fire(MachineTrigger.Reset);  // InitAlarm/RunAlarm → Resetting
+            if (!Fire(MachineTrigger.Initialize)) return;  // 状态机拒绝则不推进
             try
             {
-                await Task.CompletedTask;  // 基类无硬件动作；子类 override 在此处插入硬件复位逻辑
-                await FireAsync(ResetCompletionTrigger);  // Resetting → Idle 或 Uninitialized（取决于报警来源）
+                token.ThrowIfCancellationRequested();
+                await OnInitializeAsync(token).ConfigureAwait(false);
+                Fire(MachineTrigger.InitializeDone);
             }
-            catch (Exception)
+            catch (OperationCanceledException)
             {
-                Fire(MachineTrigger.Error);  // Resetting → InitAlarm/RunAlarm，确保不卡死在 Resetting
+                _logger?.Warn($"[{StationName}] 初始化基类操作被取消。");
+                Fire(MachineTrigger.Error);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{StationName}] 初始化异常: {ex.Message}");
+                Fire(MachineTrigger.Error);
                 throw;
             }
         }
 
-        /// <summary>
-        /// 子类重写以实现机构级物理制动（停止轴、关断气缸等）。
-        /// 基类默认无操作。
-        /// </summary>
-        protected virtual Task OnPhysicalStopAsync() => Task.CompletedTask;
-
-        /// <summary>
-        /// 暂停时物理减速停止所有轴。默认委托给 OnPhysicalStopAsync。
-        /// 子类若需区分暂停制动与停止制动的行为可单独重写。
-        /// </summary>
-        protected virtual Task OnPhysicalPauseAsync() => OnPhysicalStopAsync();
-
-        /// <summary>
-        /// 返回本工站所有模组实例，供基站在启动时注入暂停感知委托。
-        /// 派生工站必须重写此方法以暴露其内部模组。
-        /// </summary>
-        protected virtual IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
-            => Enumerable.Empty<PF.Infrastructure.Mechanisms.BaseMechanism>();
-
-        /// <summary>
-        /// 创建暂停感知委托，注入到所有模组的 PauseCheckAsync 属性。
-        /// 【重构兼容】：因主循环已改为依靠 CancelToken 跳出，此处不再挂起，直接返回 false。
-        /// </summary>
-        private Func<CancellationToken, Task<bool>> CreatePauseCheckDelegate() => token =>
+        public virtual async Task ExecuteResetAsync(CancellationToken token)
         {
-            return Task.FromResult(false);
-        };
-
-        #endregion
-
-        #region 7. 报警与复位控制 (Alarm & Reset Control)
-
-        /// <summary>
-        /// 外部触发工站报警（如主控硬件异常事件）。
-        /// </summary>
-        public void TriggerAlarm()
-        {
-            _alarmInterrupted = true;
-            _runCts?.Cancel(); // 打断业务线程
-
-            // 防御性：如果自身已处于报警态，主控反向调用时直接忽略，防止重入
-            if (CurrentState != MachineState.InitAlarm && CurrentState != MachineState.RunAlarm)
+            if (!Fire(MachineTrigger.Reset)) return;
+            try
             {
+                token.ThrowIfCancellationRequested();
+                await OnResetAsync(token).ConfigureAwait(false);
+                await FireAsync(ResetCompletionTrigger).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger?.Warn($"[{StationName}] 复位基类操作被取消。");
                 Fire(MachineTrigger.Error);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{StationName}] 复位异常: {ex.Message}");
+                Fire(MachineTrigger.Error);
+                throw;
             }
         }
 
-        /// <summary>
-        /// 携带结构化报警码的外部触发重载（推荐）。
-        /// </summary>
+        protected virtual Task OnPhysicalStopAsync() => Task.CompletedTask;
+        protected virtual Task OnPhysicalPauseAsync() => OnPhysicalStopAsync();
+
+        protected virtual IEnumerable<BaseMechanism> GetMechanisms() => Enumerable.Empty<BaseMechanism>();
+
+        private Func<CancellationToken, Task<bool>> CreatePauseCheckDelegate() => _ => Task.FromResult(false);
+
+        #endregion
+
+        #region 7. 报警与复位控制
+
+        public void TriggerAlarm()
+        {
+            var state = CurrentState;
+            if (state == MachineState.InitAlarm || state == MachineState.RunAlarm) return;
+
+            _alarmInterrupted = true;
+            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
+            Fire(MachineTrigger.Error);
+        }
+
         public void TriggerAlarm(string errorCode)
         {
             _pendingAlarmCode = errorCode;
             TriggerAlarm();
         }
 
-        /// <summary>
-        /// 携带报警码 + 运行时描述的外部触发重载。
-        /// <paramref name="runtimeMessage"/> 将覆盖弹窗的报警描述文字（如"Z轴运动超时"）。
-        /// </summary>
         public void TriggerAlarm(string errorCode, string? runtimeMessage)
         {
             _pendingAlarmCode = errorCode;
@@ -581,116 +443,114 @@ namespace PF.Infrastructure.Station.Basic
             TriggerAlarm();
         }
 
-        /// <summary>
-        /// 业务代码报警入口（供子类工艺循环内调用）。
-        /// 设置精确报警码后立即触发报警流程——取消当前业务线程并切换至 Alarm 状态。
-        /// </summary>
         protected void RaiseAlarm(string errorCode)
         {
-            // 仅在 Stop() 主动停止时忽略；Pause 状态下硬件报警仍需正常上报
-            if (_cancelledIntentionally && !_isPaused) return;
+            if (_stopRequested) return;  // 仅 Stop 抑制；Pause 不抑制运行期硬件异常
             _pendingAlarmCode = errorCode;
             TriggerAlarm();
         }
 
-        /// <summary>
-        /// 携带报警码 + 运行时描述的业务报警入口（推荐）。
-        /// <paramref name="runtimeMessage"/> 将覆盖弹窗的报警描述文字（如"Z轴运动超时"）。
-        /// </summary>
         protected void RaiseAlarm(string errorCode, string runtimeMessage)
         {
-            // 仅在 Stop() 主动停止时忽略；Pause 状态下硬件报警仍需正常上报
-            if (_cancelledIntentionally && !_isPaused) return;
+            if (_stopRequested) return;
             _pendingAlarmCode = errorCode;
             _pendingAlarmContext = new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage };
             TriggerAlarm();
         }
 
-        /// <summary>
-        /// 携带丰富上下文的报警入口（推荐用于模组报警传播）。
-        /// 保留 HardwareName、RuntimeMessage 等信息，避免在上层丢失运行时详情。
-        /// </summary>
         protected void RaiseAlarm(StationAlarmEventArgs context)
         {
-            // 仅在 Stop() 主动停止时忽略；Pause 状态下硬件报警仍需正常上报
-            if (_cancelledIntentionally && !_isPaused) return;
+            if (_stopRequested) return;
             _pendingAlarmCode = context.ErrorCode;
             _pendingAlarmContext = context;
             TriggerAlarm();
         }
 
-        /// <summary>
-        /// 子类调用：通知主控此工站的硬件已自恢复，可主动清除 AlarmService 中对应的活跃报警记录。
-        /// </summary>
         protected void RaiseStationAlarmAutoCleared()
-        {
-            StationAlarmAutoCleared?.Invoke(this, EventArgs.Empty);
-        }
+            => StationAlarmAutoCleared?.Invoke(this, EventArgs.Empty);
 
-        /// <summary>触发复位流程入口</summary>
         public void ResetAlarm() => Fire(MachineTrigger.Reset);
 
-        /// <summary>复位完成时应使用的状态跳转触发器</summary>
         protected MachineTrigger ResetCompletionTrigger =>
             _cameFromInitAlarm ? MachineTrigger.ResetDoneUninitialized : MachineTrigger.ResetDone;
 
         #endregion
 
-        #region 8. 状态跳转引擎 (State Transition Engine)
+        #region 8. 状态跳转引擎
 
         /// <summary>
-        /// 线程安全的同步状态跳转。
-        /// 通过 _stateLock 确保同一时刻只有一个线程修改状态机。
+        /// 线程安全地触发状态机。返回值：是否真正执行了跳转。
         /// </summary>
-        protected void Fire(MachineTrigger trigger)
+        protected bool Fire(MachineTrigger trigger)
         {
-            _stateLock.Wait();
+            if (_disposed) return false;
+            bool acquired = false;
             try
             {
-                if (_machine.CanFire(trigger)) _machine.Fire(trigger);
+                acquired = _stateLock.Wait(TimeSpan.FromSeconds(5));
+                if (!acquired)
+                {
+                    _logger?.Error($"[{StationName}] Fire({trigger}) 获取状态锁超时 — 可能存在死锁风险。");
+                    return false;
+                }
+                if (_machine.CanFire(trigger))
+                {
+                    _machine.Fire(trigger);
+                    return true;
+                }
+                return false;
             }
+            catch (ObjectDisposedException) { return false; }
             finally
             {
-                _stateLock.Release();
+                if (acquired)
+                {
+                    try { _stateLock.Release(); } catch (ObjectDisposedException) { }
+                }
             }
         }
 
-        /// <summary>
-        /// 线程安全的异步状态跳转。
-        /// </summary>
-        protected async Task FireAsync(MachineTrigger trigger)
+        protected async Task<bool> FireAsync(MachineTrigger trigger)
         {
-            await _stateLock.WaitAsync();
+            if (_disposed) return false;
+            bool acquired = false;
             try
             {
-                if (_machine.CanFire(trigger)) await _machine.FireAsync(trigger);
+                acquired = await _stateLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                if (!acquired)
+                {
+                    _logger?.Error($"[{StationName}] FireAsync({trigger}) 获取状态锁超时 — 可能存在死锁风险。");
+                    return false;
+                }
+                if (_machine.CanFire(trigger))
+                {
+                    await _machine.FireAsync(trigger).ConfigureAwait(false);
+                    return true;
+                }
+                return false;
             }
+            catch (ObjectDisposedException) { return false; }
             finally
             {
-                _stateLock.Release();
+                if (acquired)
+                {
+                    try { _stateLock.Release(); } catch (ObjectDisposedException) { }
+                }
             }
         }
 
         #endregion
 
-        #region 9. 工站业务等待与 IO 辅助方法 (Awaiters & IO Sync)
+        #region 9. 工站业务等待与 IO 辅助方法
 
-        // ─────────────────────────────────────────────────────────────────────
-        // 所有等待方法均接受 CancellationToken。
-        // 当以下任一情况发生时，token 会被取消，方法立即抛出 OperationCanceledException：
-        //   · Stop() / Pause() 被调用  → _runCts 被主动取消
-        //   · TriggerAlarm() 被调用     → _runCts 由 TriggerAlarm() 主动取消
-        // ProcessWrapperAsync 统一捕获该异常，业务代码无需处理取消逻辑。
-        // ─────────────────────────────────────────────────────────────────────
+        protected Task WaitAsync(int milliseconds, CancellationToken token)
+            => Task.Delay(milliseconds, token);
 
-        /// <summary>工艺延时：原生支持取消令牌。不再使用繁琐的 Chunk 分块与线程挂起。</summary>
-        protected async Task WaitAsync(int milliseconds, CancellationToken token)
-        {
-            await Task.Delay(milliseconds, token).ConfigureAwait(false);
-        }
-
-        /// <summary>等待任意 bool 条件成立（轮询模式）。支持及时响应取消令牌。</summary>
-        protected async Task<bool> WaitConditionAsync(Func<bool> condition, int timeoutMs = 5_000, CancellationToken token = default, int pollIntervalMs = 20)
+        protected async Task<bool> WaitConditionAsync(
+            Func<bool> condition,
+            int timeoutMs = 5_000,
+            CancellationToken token = default,
+            int pollIntervalMs = 20)
         {
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
@@ -698,8 +558,16 @@ namespace PF.Infrastructure.Station.Basic
             {
                 while (true)
                 {
-                    token.ThrowIfCancellationRequested(); // 及时响应外部取消（如暂停、停止）
-                    if (condition()) return true;
+                    token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        if (condition()) return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.Error($"[{StationName}] WaitConditionAsync 的 condition 委托抛异常: {ex.Message}");
+                        throw;
+                    }
                     await Task.Delay(pollIntervalMs, linked.Token).ConfigureAwait(false);
                 }
             }
@@ -714,28 +582,26 @@ namespace PF.Infrastructure.Station.Basic
             }
         }
 
-        /// <summary>等待指定 IO 端口达到目标状态（按端口号）。</summary>
-        protected async Task<bool> WaitIOAsync(IIOController io, int portIndex, bool targetState, int timeoutMs = 5_000, CancellationToken token = default)
+        protected async Task<bool> WaitIOAsync(IIOController io, int portIndex, bool targetState,
+            int timeoutMs = 5_000, CancellationToken token = default)
         {
             _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] → {targetState}");
             bool result = await io.WaitInputAsync(portIndex, targetState, timeoutMs, token).ConfigureAwait(false);
-            if (!result)
-                _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] = {targetState} 超时（{timeoutMs} ms）");
+            if (!result) _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 端口[{portIndex}] = {targetState} 超时（{timeoutMs} ms）");
             return result;
         }
 
-        /// <summary>等待指定 IO 端口达到目标状态（按枚举信号名）。</summary>
-        protected async Task<bool> WaitIOAsync<TEnum>(IIOController io, TEnum inputName, bool targetState, int timeoutMs = 5_000, CancellationToken token = default) where TEnum : Enum
+        protected async Task<bool> WaitIOAsync<TEnum>(IIOController io, TEnum inputName, bool targetState,
+            int timeoutMs = 5_000, CancellationToken token = default) where TEnum : Enum
         {
             _logger?.Info($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] → {targetState}");
             bool result = await io.WaitInputAsync(inputName, targetState, timeoutMs, token).ConfigureAwait(false);
-            if (!result)
-                _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] = {targetState} 超时（{timeoutMs} ms）");
+            if (!result) _logger?.Error($"[{StationName}] 等待 [{io.DeviceName}] 信号[{inputName}] = {targetState} 超时（{timeoutMs} ms）");
             return result;
         }
 
-        /// <summary>等待工站间同步信号量（流水线节拍协同）。</summary>
-        protected async Task<bool> WaitSyncAsync(IStationSyncService sync, string signalName, int timeoutMs = 30_000, CancellationToken token = default)
+        protected async Task<bool> WaitSyncAsync(IStationSyncService sync, string signalName,
+            int timeoutMs = 30_000, CancellationToken token = default)
         {
             _logger?.Info($"[{StationName}] 等待同步信号 [{signalName}]...");
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
@@ -743,7 +609,7 @@ namespace PF.Infrastructure.Station.Basic
             try
             {
                 await sync.WaitAsync(signalName, linked.Token).ConfigureAwait(false);
-                _logger?.Info($"[{StationName}] 同步信号 [{signalName}] 已触发，继续执行");
+                _logger?.Info($"[{StationName}] 同步信号 [{signalName}] 已触发");
                 return true;
             }
             catch (OperationCanceledException)
@@ -759,135 +625,120 @@ namespace PF.Infrastructure.Station.Basic
 
         #endregion
 
-        #region 10. 记忆参数管理 (Memory & Param Management)
+        #region 10. 记忆参数管理
 
-        /// <summary>获取或设置工站的记忆参数实例（支持断电保存和读取私有业务数据）。</summary>
-        public virtual T MemoryParam { get; set; }
+        public virtual T? MemoryParam { get; set; }
+
+        private string MemoryFileDir => Path.Combine(ConstGlobalParam.ConfigPath, "StationMemoryParam");
+        private string MemoryFilePath => Path.Combine(MemoryFileDir, $"{StationName}.json");
 
         private void ReadMemoryParam()
         {
-            string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\{this.StationName}.json";
             try
             {
-                if (File.Exists(filepath))
+                var path = MemoryFilePath;
+                if (!File.Exists(path)) return;
+                var json = File.ReadAllText(path);
+                var deserialized = JsonSerializer.Deserialize<T>(json);
+                if (deserialized == null)
                 {
-                    var json = File.ReadAllText(filepath);
-                    MemoryParam = JsonSerializer.Deserialize<T>(json);
-                    MemoryParam.IsWrite = false;
+                    _logger?.Warn($"[{StationName}] 记忆参数反序列化为 null，已忽略文件。");
+                    return;
                 }
+                deserialized.IsWrite = false;
+                MemoryParam = deserialized;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 忽略或记录日志
+                _logger?.Error($"[{StationName}] 读取记忆参数失败: {ex.Message}");
             }
         }
 
         private void WriteMemoryParam()
         {
-            string filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam";
-            if (!Directory.Exists(filepath))
+            if (MemoryParam == null) return;
+            try
             {
-                Directory.CreateDirectory(filepath);
+                Directory.CreateDirectory(MemoryFileDir);
+                MemoryParam.IsWrite = true;
+
+                // 原子写入：先写临时文件，再 Replace，避免中途崩溃损坏 JSON
+                var finalPath = MemoryFilePath;
+                var tempPath = finalPath + ".tmp";
+                var json = JsonSerializer.Serialize(MemoryParam);
+                File.WriteAllText(tempPath, json);
+
+                if (File.Exists(finalPath))
+                    File.Replace(tempPath, finalPath, null);
+                else
+                    File.Move(tempPath, finalPath);
             }
-            MemoryParam.IsWrite = true;
-            string json = JsonSerializer.Serialize(MemoryParam);
-            File.WriteAllText($"{filepath}\\{this.StationName}.json", json);
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{StationName}] 写入记忆参数失败: {ex.Message}");
+            }
         }
 
         #endregion
 
-        #region 11. 资源清理 (IDisposable)
+        #region 11. 资源清理
 
-        /// <summary>
-        /// 异步清理（推荐路径）：正确等待业务任务退出，不阻塞调用方线程。
-        /// </summary>
         public virtual async ValueTask DisposeAsync()
         {
-            _runCts?.Cancel();
+            if (_disposed) return;
+            _disposed = true;
 
-            if (_workflowTask is { IsCompleted: false })
+            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
+
+            var wf = _workflowTask;
+            if (wf is { IsCompleted: false })
             {
-                try
-                {
-                    await _workflowTask.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-                }
-                catch (TimeoutException)
-                {
-                    _logger?.Warn($"[{StationName}] DisposeAsync 等待业务任务退出超时（5s）");
-                }
+                try { await wf.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
+                catch (TimeoutException) { _logger?.Warn($"[{StationName}] DisposeAsync 等待退出超时"); }
                 catch { }
             }
 
-            _runCts?.Dispose();
-            _stateLock?.Dispose();
+            WriteMemoryParam();
+
+            try { _runCts?.Dispose(); } catch { }
+            try { _stateLock.Dispose(); } catch { }
+            GC.SuppressFinalize(this);
         }
 
-        /// <summary>
-        /// 同步清理（兼容路径）：发出取消信号后不等待业务线程退出，避免阻塞调用方。
-        /// CTS 已取消，业务线程会自行安全退出；记忆参数在 CTS 取消前已由最后一轮循环持久化。
-        /// </summary>
         public virtual void Dispose()
         {
-            _runCts?.Cancel();
+            if (_disposed) return;
+            _disposed = true;
 
-            // 不同步等待业务线程：取消信号已发出，线程会自行退出。
-            // 原先 Task.Run(...).GetAwaiter().GetResult() 最多阻塞 5 秒，
-            // 若业务线程卡在无 CancellationToken 的厂商 SDK 调用中会导致应用退出卡顿。
+            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
             WriteMemoryParam();
-            _runCts?.Dispose();
-            _stateLock?.Dispose();
+            try { _runCts?.Dispose(); } catch { }
+            try { _stateLock.Dispose(); } catch { }
+            GC.SuppressFinalize(this);
         }
 
         #endregion
     }
 
-    /// <summary>
-    /// 工站记忆参数基类，供各具体工站派生以保存其私有业务持久化数据（如当前配方、上次计数等）。
-    /// </summary>
     public class StationMemoryBaseParam
     {
-        /// <summary>获取或设置是否处于写入过程的内部标志（业务代码一般不直接干预）。</summary>
         public bool IsWrite { get; set; }
     }
 
-    /// <summary>
-    /// 带步序枚举泛型的工站基类，在 <see cref="StationBase{T}"/> 基础上下沉业务步序指针与异常路由机制。
-    /// 适用于需要断点续跑的复杂业务工站。
-    /// </summary>
-    /// <typeparam name="TMemory">工站记忆参数类型</typeparam>
-    /// <typeparam name="TStep">业务步序枚举类型，必须为 struct 枚举</typeparam>
     public abstract class StationBase<TMemory, TStep> : StationBase<TMemory>
-        where TMemory : StationMemoryBaseParam
+        where TMemory : StationMemoryBaseParam, new()
         where TStep : struct, Enum
     {
-        /// <summary>状态机当前执行的业务步序指针</summary>
         protected TStep _currentStep;
-
-        /// <summary>报警解除后应恢复执行的断点步序</summary>
         protected TStep _resumeStep;
-
-        /// <summary>缓存模组返回的错误码，供异常步序路由时读取</summary>
         protected string? _cachedErrorCode;
 
-        /// <summary>
-        /// 初始化带步序枚举的工站基类
-        /// </summary>
-        /// <param name="name">工站唯一名称</param>
-        /// <param name="logger">日志服务</param>
-        /// <param name="initialStep">初始步序值，同时初始化 <see cref="_currentStep"/> 与 <see cref="_resumeStep"/></param>
-        protected StationBase(string name, ILogService logger, TStep initialStep)
-            : base(name, logger)
+        protected StationBase(string name, ILogService? logger, TStep initialStep) : base(name, logger)
         {
             _currentStep = initialStep;
             _resumeStep = initialStep;
         }
 
-        /// <summary>
-        /// 将步序路由到指定的异常节点，并记录复位后的恢复步序与可选错误码。
-        /// </summary>
-        /// <param name="errorStep">要切换至的异常步序（状态机将挂起在此处等待复位）</param>
-        /// <param name="resumeStep">复位成功后应恢复至的正常步序（断点续跑入口）</param>
-        /// <param name="errorCode">可选的错误码，将缓存供后续报警上报使用</param>
         protected void RouteToError(TStep errorStep, TStep resumeStep, string? errorCode = null)
         {
             _currentStep = errorStep;

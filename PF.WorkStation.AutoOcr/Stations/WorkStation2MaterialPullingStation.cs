@@ -176,7 +176,7 @@ namespace PF.WorkStation.AutoOcr.Stations
     /// 以及 <see cref="WorkStationDetectionModule"/> (OCR视觉) 进行信号握手，实现互不干涉的并发流转。
     /// </summary>
     [StationUI("工位2拉料工站", "WorkStation2MaterialPullingStationDebugView", order: 4)]
-    public class WorkStation2MaterialPullingStation<T> : StationBase<T, Station2PullingStep> where T : StationMemoryBaseParam
+    public class WorkStation2MaterialPullingStation<T> : StationBase<T, Station2PullingStep> where T : StationMemoryBaseParam, new()
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
@@ -343,381 +343,384 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Main State Machine Loop (主业务循环)
 
-        /// <summary>正常生产主循环</summary>
+        /// <summary>正常生产主循环 - 工位2拉料工站</summary>
+        /// <param name="token">取消令牌</param>
         protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            try
             {
-                switch (_currentStep)
+                while (!token.IsCancellationRequested)
                 {
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 A：取料前置准备与动作
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase A
+                    // 【核心校验】每一轮步序开始前，强行校验取消状态，确保流程即时停止
+                    token.ThrowIfCancellationRequested();
 
-                    case Station2PullingStep.等待允许取料:
-                        CurrentStepDescription = "等待允许拉出物料...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] 等待上下料工站的允许拉料信号...");
+                    switch (_currentStep)
+                    {
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 A：取料前置准备与动作
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase A
 
-                        // 阻塞等待 Z 轴工站给出安全的取料口令
-                        await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许拉料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
+                        case Station2PullingStep.等待允许取料:
+                            CurrentStepDescription = "等待允许拉出物料...";
+                            _logger.Info($"[{StationName}] 等待上下料工站的允许拉料信号...");
 
-                        _logger.Info($"[{StationName}] 检测到允许拉料信号，开始执行拉料流程...");
-                        _currentStep = Station2PullingStep.获取当前配方;
-                        break;
+                            // 阻塞等待 Z 轴工站给出安全的取料口令
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许拉料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
 
-                    case Station2PullingStep.获取当前配方:
-                        CurrentStepDescription = "获取当前配方...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] 正在获取当前配方...");
-
-                        _cachedRecipe = _dataModule.Station2ReciepParam;
-                        if (_cachedRecipe == null)
-                        {
-                            _logger.Error($"[{StationName}] 获取当前配方失败！");
-                            RouteToError(Station2PullingStep.配方参数为空, Station2PullingStep.等待允许取料);
+                            _logger.Info($"[{StationName}] 检测到允许拉料信号，开始执行拉料流程...");
+                            _currentStep = Station2PullingStep.获取当前配方;
                             break;
-                        }
 
-                        _logger.Info($"[{StationName}] 获取当前配方成功：{_cachedRecipe.RecipeName}");
-                        _currentStep = Station2PullingStep.判断流道尺寸;
-                        break;
+                        case Station2PullingStep.获取当前配方:
+                            CurrentStepDescription = "获取当前配方...";
+                            _logger.Info($"[{StationName}] 正在获取当前配方...");
 
-                    case Station2PullingStep.判断流道尺寸:
-                        CurrentStepDescription = "判断流道尺寸...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
+                            _cachedRecipe = _dataModule.Station2ReciepParam;
+                            if (_cachedRecipe == null)
+                            {
+                                _logger.Error($"[{StationName}] 获取当前配方失败！");
+                                RouteToError(Station2PullingStep.配方参数为空, Station2PullingStep.等待允许取料);
+                                break;
+                            }
 
-                        if (await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
-                        {
-                            _logger.Info($"[{StationName}] 当前流道尺寸符合配方要求：{_cachedRecipe.WafeSize}");
-                            _currentStep = Station2PullingStep.移动到取料位;
-                        }
-                        else
-                        {
-                            _currentStep = Station2PullingStep.调整流道尺寸;
-                        }
-                        break;
-
-                    case Station2PullingStep.调整流道尺寸:
-                        CurrentStepDescription = "切换流道尺寸...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        var changeResult = await _pullingModule.ChangeWafeSizeControl(_cachedRecipe.WafeSize, token);
-                        if (changeResult.IsSuccess)
-                        {
-                            // 调整完成后，退回判断节点二次确认防呆
+                            _logger.Info($"[{StationName}] 获取当前配方成功：{_cachedRecipe.RecipeName}");
                             _currentStep = Station2PullingStep.判断流道尺寸;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.调整流道尺寸电机异常, Station2PullingStep.判断流道尺寸, changeResult.ErrorCode);
-                        }
-                        break;
-
-                    case Station2PullingStep.移动到取料位:
-                        CurrentStepDescription = "移动到取料位...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        var moveResult = await _pullingModule.InitialMoveFeeding(token);
-                        if (moveResult.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] 运动到取料位成功");
-                            _currentStep = Station2PullingStep.关闭夹爪;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.Y轴移动到取料位置失败, Station2PullingStep.移动到取料位, moveResult.ErrorCode);
-                        }
-                        break;
-
-                    case Station2PullingStep.关闭夹爪:
-                        CurrentStepDescription = "关闭夹爪...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        var closeResult = await _pullingModule.CloseWafeGipper(token);
-                        if (closeResult.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] 关闭夹爪成功");
-                            _currentStep = Station2PullingStep.检测叠料;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.关闭夹爪失败, Station2PullingStep.关闭夹爪, closeResult.ErrorCode);
-                        }
-                        break;
-
-                    case Station2PullingStep.检测叠料:
-                        CurrentStepDescription = "检测叠料...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        if (await _pullingModule.CheckStackedPieces(token))
-                        {
-                            _logger.Info($"[{StationName}] 判断叠料无异常");
-                            _currentStep = Station2PullingStep.移动到检测位;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.检测到叠料异常, Station2PullingStep.检测叠料);
-                        }
-                        break;
-
-                    #endregion
-
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 B：检测与视觉交互 (拉出并交给 OCR 工站)
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase B
-
-                    case Station2PullingStep.移动到检测位:
-                        CurrentStepDescription = "移动到检测位...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        var detectMoveResult = await _pullingModule.MoveDetection(token);
-                        if (detectMoveResult.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] 运动到检测位成功");
-
-                            // 通知上下料工站：Y轴已经撤出安全区域，Z轴可以放心移动
-                            _sync.Release(nameof(WorkstationSignals.工位2拉料完成), StationName);
-                            _currentStep = Station2PullingStep.扫码识别;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.拉出至检测位失败_被中断, Station2PullingStep.移动到检测位, detectMoveResult.ErrorCode);
-                        }
-                        break;
-
-                    case Station2PullingStep.扫码识别:
-                        CurrentStepDescription = "扫码识别...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        var scanResult = await _pullingModule.CodeScanTigger(token);
-                        _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(scanResult.IsSuccess ? string.Join(", ", scanResult.Data) : "未扫到码或校验不合法")}");
-
-                        _currentStep = Station2PullingStep.允许检测位检测;
-                        break;
-
-                    case Station2PullingStep.允许检测位检测:
-                        CurrentStepDescription = "通知 OCR 视觉执行检测...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        _logger.Info($"[{StationName}] 发送允许检测信号，交给视觉工站处理");
-                        // 通知独立调度的 OCR 视觉龙门可以开拍
-                        _sync.Release(nameof(WorkstationSignals.工位2允许检测), StationName);
-
-                        _currentStep = Station2PullingStep.等待检测位检测完成;
-                        break;
-
-                    case Station2PullingStep.等待检测位检测完成:
-                        CurrentStepDescription = "等待检测位检测完成...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        _logger.Info($"[{StationName}] 等待视觉工站检测完成信号...");
-                        await _sync.WaitAsync(nameof(WorkstationSignals.工位2检测完成), token, scope: nameof(E_WorkStation.OCR检测工站)).ConfigureAwait(false);
-
-                        _logger.Info($"[{StationName}] 收到视觉检测完成信号");
-                        _currentStep = Station2PullingStep.等待允许送料;
-                        break;
-
-                    #endregion
-
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 C：退料与收尾 (将晶圆推回料盒)
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase C
-
-                    case Station2PullingStep.等待允许送料:
-                        CurrentStepDescription = "等待允许退料...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        _logger.Info($"[{StationName}] 等待上下料工站 Z 轴安全避让信号...");
-                        await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许退料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
-
-                        _logger.Info($"[{StationName}] 收到 Z 轴允许退料信号");
-                        _currentStep = Station2PullingStep.送料到取料位;
-                        break;
-
-                    case Station2PullingStep.送料到取料位:
-                        CurrentStepDescription = "正在退料回料盒...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] Y 轴送料回料盒...");
-
-                        var feedOpenResult = await _pullingModule.OpenWafeGipper(token);
-                        if (!feedOpenResult.IsSuccess)
-                        {
-                            RouteToError(Station2PullingStep.打开夹爪失败, Station2PullingStep.送料到取料位, feedOpenResult.ErrorCode);
                             break;
-                        }
 
-                        var feedResult = await _pullingModule.FeedingMaterialToBox(token);
-                        if (feedResult.IsSuccess)
-                        {
-                            _currentStep = Station2PullingStep.打开夹爪;
-                            _logger.Info($"[{StationName}] 退料回料盒成功");
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.推回至料盒失败_被中断, Station2PullingStep.送料到取料位, feedResult.ErrorCode);
-                        }
-                        break;
+                        case Station2PullingStep.判断流道尺寸:
+                            CurrentStepDescription = "判断流道尺寸...";
 
-                    case Station2PullingStep.打开夹爪:
-                        CurrentStepDescription = "打开夹爪...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] 正在松开夹爪...");
+                            if (await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
+                            {
+                                _logger.Info($"[{StationName}] 当前流道尺寸符合配方要求：{_cachedRecipe.WafeSize}");
+                                _currentStep = Station2PullingStep.移动到取料位;
+                            }
+                            else
+                            {
+                                _currentStep = Station2PullingStep.调整流道尺寸;
+                            }
+                            break;
 
-                        var openResult = await _pullingModule.OpenWafeGipper(token);
-                        if (openResult.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] 松开夹爪成功");
-                            _currentStep = Station2PullingStep.移动到待机位;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.打开夹爪失败, Station2PullingStep.打开夹爪, openResult.ErrorCode);
-                        }
-                        break;
+                        case Station2PullingStep.调整流道尺寸:
+                            CurrentStepDescription = "切换流道尺寸...";
 
-                    case Station2PullingStep.移动到待机位:
-                        CurrentStepDescription = "移动到待机位...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] Y 轴撤回待机避让位...");
+                            var changeResult = await _pullingModule.ChangeWafeSizeControl(_cachedRecipe.WafeSize, token);
+                            if (changeResult.IsSuccess)
+                            {
+                                // 调整完成后，退回判断节点二次确认防呆
+                                _currentStep = Station2PullingStep.判断流道尺寸;
+                            }
+                            else
+                            {
+                                // 业务层面的电机报错流转
+                                RouteToError(Station2PullingStep.调整流道尺寸电机异常, Station2PullingStep.判断流道尺寸, changeResult.ErrorCode);
+                            }
+                            break;
 
-                        var putOverResult = await _pullingModule.PutOverMove(token);
-                        if (putOverResult.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] Y 轴移动到待机位成功");
-                            _currentStep = Station2PullingStep.判断带片;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.Y轴退回待机位失败, Station2PullingStep.移动到待机位, putOverResult.ErrorCode);
-                        }
-                        break;
+                        case Station2PullingStep.移动到取料位:
+                            CurrentStepDescription = "移动到取料位...";
 
-                    case Station2PullingStep.判断带片:
-                        CurrentStepDescription = "检查夹爪是否残留带片...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] 执行防呆：判断夹爪是否粘连带片...");
+                            var moveResult = await _pullingModule.InitialMoveFeeding(token);
+                            if (moveResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 运动到取料位成功");
+                                _currentStep = Station2PullingStep.关闭夹爪;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.Y轴移动到取料位置失败, Station2PullingStep.移动到取料位, moveResult.ErrorCode);
+                            }
+                            break;
 
-                        // 确保退回安全位后，夹爪内无料
-                        if (await _pullingModule.CheckGipperInsidePro(token))
-                        {
-                            _logger.Info($"[{StationName}] 判断通过，夹爪安全空置");
-                            _currentStep = Station2PullingStep.发送退料完成;
-                        }
-                        else
-                        {
-                            RouteToError(Station2PullingStep.退回安全位后夹爪仍检测到带料, Station2PullingStep.判断带片);
-                        }
-                        break;
+                        case Station2PullingStep.关闭夹爪:
+                            CurrentStepDescription = "关闭夹爪...";
 
-                    case Station2PullingStep.发送退料完成:
-                        CurrentStepDescription = "发送退料完成信号...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
+                            var closeResult = await _pullingModule.CloseWafeGipper(token);
+                            if (closeResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 关闭夹爪成功");
+                                _currentStep = Station2PullingStep.检测叠料;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.关闭夹爪失败, Station2PullingStep.关闭夹爪, closeResult.ErrorCode);
+                            }
+                            break;
 
-                        _logger.Info($"[{StationName}] 释放退料完成信号，闭环结束本层动作");
-                        _sync.Release(nameof(WorkstationSignals.工位2退料完成), StationName);
+                        case Station2PullingStep.检测叠料:
+                            CurrentStepDescription = "检测叠料...";
 
-                        // 回归初始态，等待下一层的允许取料信号
-                        _currentStep = Station2PullingStep.等待允许取料;
-                        break;
-
-                    #endregion
-
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 D：异常拦截与断点续跑处理
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase D (Exceptions)
-
-                    // ── 1. 致命数据异常 ──
-                    case Station2PullingStep.配方参数为空:
-                        _logger.Error($"[{StationName}] 工位2配方参数为空，无法继续。请确认配方已正确下发后复位。");
-                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.RecipeNull, "工位2配方参数为空");
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 2. 物料防呆异常 ──
-                    case Station2PullingStep.检测到叠料异常:
-                    case Station2PullingStep.退回安全位后夹爪仍检测到带料:
-                    case Station2PullingStep.轨道有物料阻止尺寸切换:
-                    case Station2PullingStep.夹爪闭合后未检测到铁环:
-                    case Station2PullingStep.待机位检测到残留物料:
-                    case Station2PullingStep.卸料后夹爪物料粘连未脱落:
-                        var matCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected;
-                        TriggerAlarm(matCode, $"物料防呆异常: {_currentStep}");
-                        _cachedErrorCode = null;
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 3. 气缸与执行器异常 ──
-                    case Station2PullingStep.关闭夹爪失败:
-                    case Station2PullingStep.打开夹爪失败:
-                    case Station2PullingStep.尺寸切换气缸IO操作失败:
-                    case Station2PullingStep.尺寸切换气缸超时:
-                    case Station2PullingStep.夹爪张开气缸操作失败:
-                    case Station2PullingStep.夹爪张开超时:
-                    case Station2PullingStep.夹爪闭合气缸操作失败:
-                    case Station2PullingStep.夹爪闭合超时:
-                        var actCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.GripperCloseFailed;
-                        TriggerAlarm(actCode, $"执行器/气缸异常: {_currentStep}");
-                        _cachedErrorCode = null;
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 4. 基础定位与运动异常 ──
-                    case Station2PullingStep.调整流道尺寸电机异常:
-                    case Station2PullingStep.初始化拉料流程失败:
-                    case Station2PullingStep.Y轴移动到取料位置失败:
-                    case Station2PullingStep.Y轴退回待机位失败:
-                    case Station2PullingStep.移动到待机位失败_无检测模式:
-                    case Station2PullingStep.移动到取出安全位置失败:
-                        var motCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.YAxisToPickupFailed;
-                        TriggerAlarm(motCode, $"基础运动异常: {_currentStep}");
-                        _cachedErrorCode = null;
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 5. 核心拉送片防呆运动异常 ──
-                    case Station2PullingStep.拉出至检测位失败_被中断:
-                    case Station2PullingStep.推回至料盒失败_被中断:
-                    case Station2PullingStep.拉出运动触发失败:
-                    case Station2PullingStep.拉出过程卡料报警:
-                    case Station2PullingStep.拉出过程丢料报警:
-                    case Station2PullingStep.拉出运动超时:
-                    case Station2PullingStep.送入运动触发失败:
-                    case Station2PullingStep.送入过程卡料报警:
-                    case Station2PullingStep.送入过程丢料报警:
-                    case Station2PullingStep.送入运动超时:
-                        var pullMotCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.PullOutToInspectionFailed;
-                        TriggerAlarm(pullMotCode, $"核心拉送片异常: {_currentStep}");
-                        _cachedErrorCode = null;
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 6. 视觉系统异常 ──
-                    case Station2PullingStep.扫码失败:
-                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.CodeScanFailed, "扫码失败或校验不合法");
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 7. 兜底防护 ──
-                    default:
-                        if ((int)_currentStep >= 100000)
-                        {
-                            TriggerAlarm(AlarmCodes.System.UndefinedStep, $"遇到未定义的异常步序: {_currentStep}");
-                            _currentStep = (int)_resumeStep != 0 ? _resumeStep : Station2PullingStep.等待允许取料;
-                        }
-                        else
-                        {
-                            TriggerAlarm(AlarmCodes.System.UndefinedStep, $"状态机指针漂移，未定义步序[{_currentStep}]");
-                            _currentStep = Station2PullingStep.等待允许取料;
-                        }
-                        break;
+                            if (await _pullingModule.CheckStackedPieces(token))
+                            {
+                                _logger.Info($"[{StationName}] 判断叠料无异常");
+                                _currentStep = Station2PullingStep.移动到检测位;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.检测到叠料异常, Station2PullingStep.检测叠料);
+                            }
+                            break;
 
                         #endregion
+
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 B：检测与视觉交互 (拉出并交给 OCR 工站)
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase B
+
+                        case Station2PullingStep.移动到检测位:
+                            CurrentStepDescription = "移动到检测位...";
+
+                            var detectMoveResult = await _pullingModule.MoveDetection(token);
+                            if (detectMoveResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 运动到检测位成功");
+
+                                // 通知上下料工站：Y轴已经撤出安全区域，Z轴可以放心移动
+                                _sync.Release(nameof(WorkstationSignals.工位2拉料完成), StationName);
+                                _currentStep = Station2PullingStep.扫码识别;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.拉出至检测位失败_被中断, Station2PullingStep.移动到检测位, detectMoveResult.ErrorCode);
+                            }
+                            break;
+
+                        case Station2PullingStep.扫码识别:
+                            CurrentStepDescription = "扫码识别...";
+
+                            var scanResult = await _pullingModule.CodeScanTigger(token);
+                            _logger.Info($"[{StationName}] 扫码识别完成，识别结果：{(scanResult.IsSuccess ? string.Join(", ", scanResult.Data) : "未扫到码或校验不合法")}");
+
+                            _currentStep = Station2PullingStep.允许检测位检测;
+                            break;
+
+                        case Station2PullingStep.允许检测位检测:
+                            CurrentStepDescription = "通知 OCR 视觉执行检测...";
+
+                            _logger.Info($"[{StationName}] 发送允许检测信号，交给视觉工站处理");
+                            // 通知独立调度的 OCR 视觉龙门可以开拍
+                            _sync.Release(nameof(WorkstationSignals.工位2允许检测), StationName);
+
+                            _currentStep = Station2PullingStep.等待检测位检测完成;
+                            break;
+
+                        case Station2PullingStep.等待检测位检测完成:
+                            CurrentStepDescription = "等待检测位检测完成...";
+
+                            _logger.Info($"[{StationName}] 等待视觉工站检测完成信号...");
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2检测完成), token, scope: nameof(E_WorkStation.OCR检测工站)).ConfigureAwait(false);
+
+                            _logger.Info($"[{StationName}] 收到视觉检测完成信号");
+                            _currentStep = Station2PullingStep.等待允许送料;
+                            break;
+
+                        #endregion
+
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 C：退料与收尾 (将晶圆推回料盒)
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase C
+
+                        case Station2PullingStep.等待允许送料:
+                            CurrentStepDescription = "等待允许退料...";
+
+                            _logger.Info($"[{StationName}] 等待上下料工站 Z 轴安全避让信号...");
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许退料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
+
+                            _logger.Info($"[{StationName}] 收到 Z 轴允许退料信号");
+                            _currentStep = Station2PullingStep.送料到取料位;
+                            break;
+
+                        case Station2PullingStep.送料到取料位:
+                            CurrentStepDescription = "正在退料回料盒...";
+                            _logger.Info($"[{StationName}] Y 轴送料回料盒...");
+
+                            var feedOpenResult = await _pullingModule.OpenWafeGipper(token);
+                            if (!feedOpenResult.IsSuccess)
+                            {
+                                RouteToError(Station2PullingStep.打开夹爪失败, Station2PullingStep.送料到取料位, feedOpenResult.ErrorCode);
+                                break;
+                            }
+
+                            var feedResult = await _pullingModule.FeedingMaterialToBox(token);
+                            if (feedResult.IsSuccess)
+                            {
+                                _currentStep = Station2PullingStep.打开夹爪;
+                                _logger.Info($"[{StationName}] 退料回料盒成功");
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.推回至料盒失败_被中断, Station2PullingStep.送料到取料位, feedResult.ErrorCode);
+                            }
+                            break;
+
+                        case Station2PullingStep.打开夹爪:
+                            CurrentStepDescription = "打开夹爪...";
+                            _logger.Info($"[{StationName}] 正在松开夹爪...");
+
+                            var openResult = await _pullingModule.OpenWafeGipper(token);
+                            if (openResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 松开夹爪成功");
+                                _currentStep = Station2PullingStep.移动到待机位;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.打开夹爪失败, Station2PullingStep.打开夹爪, openResult.ErrorCode);
+                            }
+                            break;
+
+                        case Station2PullingStep.移动到待机位:
+                            CurrentStepDescription = "移动到待机位...";
+                            _logger.Info($"[{StationName}] Y 轴撤回待机避让位...");
+
+                            var putOverResult = await _pullingModule.PutOverMove(token);
+                            if (putOverResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] Y 轴移动到待机位成功");
+                                _currentStep = Station2PullingStep.判断带片;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.Y轴退回待机位失败, Station2PullingStep.移动到待机位, putOverResult.ErrorCode);
+                            }
+                            break;
+
+                        case Station2PullingStep.判断带片:
+                            CurrentStepDescription = "检查夹爪是否残留带片...";
+                            _logger.Info($"[{StationName}] 执行防呆：判断夹爪是否粘连带片...");
+
+                            // 确保退回安全位后，夹爪内无料
+                            if (await _pullingModule.CheckGipperInsidePro(token))
+                            {
+                                _logger.Info($"[{StationName}] 判断通过，夹爪安全空置");
+                                _currentStep = Station2PullingStep.发送退料完成;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.退回安全位后夹爪仍检测到带料, Station2PullingStep.判断带片);
+                            }
+                            break;
+
+                        case Station2PullingStep.发送退料完成:
+                            CurrentStepDescription = "发送退料完成信号...";
+
+                            _logger.Info($"[{StationName}] 释放退料完成信号，闭环结束本层动作");
+                            _sync.Release(nameof(WorkstationSignals.工位2退料完成), StationName);
+
+                            // 回归初始态，等待下一层的允许取料信号
+                            _currentStep = Station2PullingStep.等待允许取料;
+                            break;
+
+                        #endregion
+
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 D：异常拦截与断点续跑处理
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase D (Exceptions)
+
+                        // ── 1. 致命数据异常 ──
+                        case Station2PullingStep.配方参数为空:
+                            _logger.Error($"[{StationName}] 工位2配方参数为空，无法继续。请确认配方已正确下发后复位。");
+                            TriggerAlarm(AlarmCodesExtensions.WS2Pulling.RecipeNull, "工位2配方参数为空");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        // ── 2. 物料防呆异常 ──
+                        case Station2PullingStep.检测到叠料异常:
+                        case Station2PullingStep.退回安全位后夹爪仍检测到带料:
+                        case Station2PullingStep.轨道有物料阻止尺寸切换:
+                        case Station2PullingStep.夹爪闭合后未检测到铁环:
+                        case Station2PullingStep.待机位检测到残留物料:
+                        case Station2PullingStep.卸料后夹爪物料粘连未脱落:
+                            var matCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected;
+                            TriggerAlarm(matCode, $"物料防呆异常: {_currentStep}");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        // ── 3. 气缸与执行器异常 ──
+                        case Station2PullingStep.关闭夹爪失败:
+                        case Station2PullingStep.打开夹爪失败:
+                        case Station2PullingStep.尺寸切换气缸IO操作失败:
+                        case Station2PullingStep.尺寸切换气缸超时:
+                        case Station2PullingStep.夹爪张开气缸操作失败:
+                        case Station2PullingStep.夹爪张开超时:
+                        case Station2PullingStep.夹爪闭合气缸操作失败:
+                        case Station2PullingStep.夹爪闭合超时:
+                            var actCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.GripperCloseFailed;
+                            TriggerAlarm(actCode, $"执行器/气缸异常: {_currentStep}");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        // ── 4. 基础定位与运动异常 ──
+                        case Station2PullingStep.调整流道尺寸电机异常:
+                        case Station2PullingStep.初始化拉料流程失败:
+                        case Station2PullingStep.Y轴移动到取料位置失败:
+                        case Station2PullingStep.Y轴退回待机位失败:
+                        case Station2PullingStep.移动到待机位失败_无检测模式:
+                        case Station2PullingStep.移动到取出安全位置失败:
+                            var motCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.YAxisToPickupFailed;
+                            TriggerAlarm(motCode, $"基础运动异常: {_currentStep}");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        // ── 5. 核心拉送片防呆运动异常 ──
+                        case Station2PullingStep.拉出至检测位失败_被中断:
+                        case Station2PullingStep.推回至料盒失败_被中断:
+                        case Station2PullingStep.拉出运动触发失败:
+                        case Station2PullingStep.拉出过程卡料报警:
+                        case Station2PullingStep.拉出过程丢料报警:
+                        case Station2PullingStep.拉出运动超时:
+                        case Station2PullingStep.送入运动触发失败:
+                        case Station2PullingStep.送入过程卡料报警:
+                        case Station2PullingStep.送入过程丢料报警:
+                        case Station2PullingStep.送入运动超时:
+                            var pullMotCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.PullOutToInspectionFailed;
+                            TriggerAlarm(pullMotCode, $"核心拉送片异常: {_currentStep}");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        // ── 6. 视觉系统异常 ──
+                        case Station2PullingStep.扫码失败:
+                            TriggerAlarm(AlarmCodesExtensions.WS2Pulling.CodeScanFailed, "扫码失败或校验不合法");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        // ── 7. 兜底防护 ──
+                        default:
+                            if ((int)_currentStep >= 100000)
+                            {
+                                TriggerAlarm(AlarmCodes.System.UndefinedStep, $"遇到未定义的异常步序: {_currentStep}");
+                                _currentStep = (int)_resumeStep != 0 ? _resumeStep : Station2PullingStep.等待允许取料;
+                            }
+                            else
+                            {
+                                TriggerAlarm(AlarmCodes.System.UndefinedStep, $"状态机指针漂移，未定义步序[{_currentStep}]");
+                                _currentStep = Station2PullingStep.等待允许取料;
+                            }
+                            break;
+
+                            #endregion
+                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // 捕获任务取消：记录日志并上抛，由框架底层管理任务状态
+                _logger.Warn($"[{StationName}] 流程接收到取消请求。当前状态: {_currentStep} - {CurrentStepDescription}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // 捕获致命/非预期异常：记录Fatal日志，快照当前步序，并上抛触发全局报警或急停
+                _logger.Fatal($"[{StationName}] 业务循环崩溃！步序: {_currentStep} ({CurrentStepDescription}), 异常信息: {ex.Message}");
+                throw;
             }
         }
 
