@@ -318,7 +318,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "开始寻层扫描...";
-                var scanResult = await _feedingModule.SearchLayerAsync();
+                var scanResult = await _feedingModule.SearchLayerAsync(latchNo1:2,latchNo2:3);
                 if (!scanResult.IsSuccess)
                 {
                     DebugMessage = $"寻层扫描失败: {scanResult.ErrorMessage}";
