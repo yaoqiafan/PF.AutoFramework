@@ -108,7 +108,7 @@ namespace PF.WorkStation.AutoOcr.Stations
     /// 驱动龙门机构前往对应工位拍照解码，并通过 <see cref="WorkStationDataModule"/> 写入 MES 对比结果。
     /// </summary>
     [StationUI("OCR检测工站", "WorkStationDetectionStationDebugView", order: 5)]
-    public class WorkStationDetectionStation<T> : StationBase<T, StationDetectionStep> where T : StationMemoryBaseParam
+    public class WorkStationDetectionStation<T> : StationBase<T, StationDetectionStep> where T : StationMemoryBaseParam, new()
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
@@ -298,378 +298,364 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #region Main State Machine Loop (主业务循环)
 
-        /// <summary>正常生产主循环</summary>
+        /// <summary>正常生产主循环 - OCR检测工站</summary>
+        /// <param name="token">取消令牌</param>
         protected override async Task ProcessNormalLoopAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            try
             {
-                switch (_currentStep)
+                while (!token.IsCancellationRequested)
                 {
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 A：工位任务竞争 (共享资源的抢占调度)
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase A (Task Competition)
+                    // 【核心校验】每一轮步序流转前，强行校验取消状态，确保流程即时响应停止请求
+                    token.ThrowIfCancellationRequested();
 
-                    case StationDetectionStep.等待工位1或工位2允许检测:
-                        CurrentStepDescription = "等待工位1或工位2发起的检测请求...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        _logger.Info($"[{StationName}] 在公共资源池中等待工位1或工位2的检测信号...");
+                    switch (_currentStep)
+                    {
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 A：工位任务竞争 (共享资源的抢占调度)
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase A (Task Competition)
 
-                        // 💡 优雅并发设计：创建一个独立的可取消源，用于随时结束未抢占到资源的那个工位的等待任务
-                        using (var raceCts = CancellationTokenSource.CreateLinkedTokenSource(token))
-                        {
-                            // 创建两个独立的等待任务
-                            var task1 = _sync.WaitAsync(nameof(WorkstationSignals.工位1允许检测), raceCts.Token, scope: nameof(E_WorkStation.工位1拉料工站));
-                            var task2 = _sync.WaitAsync(nameof(WorkstationSignals.工位2允许检测), raceCts.Token, scope: nameof(E_WorkStation.工位2拉料工站));
+                        case StationDetectionStep.等待工位1或工位2允许检测:
+                            CurrentStepDescription = "等待工位1或工位2发起的检测请求...";
+                            _logger.Info($"[{StationName}] 在公共资源池中等待工位1或工位2的检测信号...");
 
-                            // 谁先发出信号，谁就获得 OCR 相机龙门的使用权
-                            var doneTask = await Task.WhenAny(task1, task2).ConfigureAwait(false);
-
-                            // 如果是操作员按下了停止或急停，立即响应全局 token 抛出取消异常退出
-                            token.ThrowIfCancellationRequested();
-
-                            // 异常安全网：若竞争过程发生底层故障
-                            if (doneTask.IsFaulted || doneTask.IsCanceled)
+                            // 💡 优雅并发设计：创建一个独立的可取消源，用于随时结束未抢占到资源的那个工位的等待任务
+                            using (var raceCts = CancellationTokenSource.CreateLinkedTokenSource(token))
                             {
-                                _logger.Error($"[{StationName}] 等待任务池异常中断。错误信息: {doneTask.Exception?.InnerException?.Message}");
-                                RouteToError(StationDetectionStep.等待检测信号异常中断, StationDetectionStep.等待工位1或工位2允许检测);
+                                // 创建两个独立的等待任务
+                                var task1 = _sync.WaitAsync(nameof(WorkstationSignals.工位1允许检测), raceCts.Token, scope: nameof(E_WorkStation.工位1拉料工站));
+                                var task2 = _sync.WaitAsync(nameof(WorkstationSignals.工位2允许检测), raceCts.Token, scope: nameof(E_WorkStation.工位2拉料工站));
+
+                                // 谁先发出信号，谁就获得 OCR 相机龙门的使用权
+                                var doneTask = await Task.WhenAny(task1, task2).ConfigureAwait(false);
+
+                                // 如果是操作员按下了停止或急停，立即响应全局 token 抛出取消异常退出
+                                token.ThrowIfCancellationRequested();
+
+                                // 异常安全网：若竞争过程发生底层故障（无需局部 catch，判断任务状态即可）
+                                if (doneTask.IsFaulted || doneTask.IsCanceled)
+                                {
+                                    _logger.Error($"[{StationName}] 等待任务池异常中断。错误信息: {doneTask.Exception?.InnerException?.Message}");
+                                    RouteToError(StationDetectionStep.等待检测信号异常中断, StationDetectionStep.等待工位1或工位2允许检测);
+                                    break;
+                                }
+
+                                // 任务正常结束：判定究竟是哪个工站赢得了竞争
+                                if (doneTask == task1)
+                                {
+                                    raceCts.Cancel(); // 终止另一方的等待任务
+
+                                    // 检测失败方是否吞没了信号量并补发，防止活锁
+                                    await SafeReleaseLoserSignalAsync(task2,
+                                        nameof(WorkstationSignals.工位2允许检测),
+                                        nameof(E_WorkStation.工位2拉料工站)).ConfigureAwait(false);
+
+                                    _currentworkSpace = E_WorkSpace.工位1;
+                                    _logger.Info($"[{StationName}] 工位1 胜出，抢占视觉检测资源成功。");
+                                    _currentStep = StationDetectionStep.去工位1检测位置;
+                                }
+                                else if (doneTask == task2)
+                                {
+                                    raceCts.Cancel();
+                                    await SafeReleaseLoserSignalAsync(task1,
+                                        nameof(WorkstationSignals.工位1允许检测),
+                                        nameof(E_WorkStation.工位1拉料工站)).ConfigureAwait(false);
+
+                                    _currentworkSpace = E_WorkSpace.工位2;
+                                    _logger.Info($"[{StationName}] 工位2 胜出，抢占视觉检测资源成功。");
+                                    _currentStep = StationDetectionStep.去工位2检测位置;
+                                }
+                            }
+                            break;
+
+                        #endregion
+
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 B：视觉运动、抓拍与数据校验
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase B (Vision & Checking)
+
+                        case StationDetectionStep.去工位1检测位置:
+                            CurrentStepDescription = "OCR模组移动到工位1检测位置...";
+
+                            _cachedRecipe = _dataModule?.Station1ReciepParam;
+                            if (_cachedRecipe == null)
+                            {
+                                _logger.Error($"[{StationName}] 工位1配方为空，无法获取目标坐标，中断移动。");
+                                RouteToError(StationDetectionStep.工位1配方为空, StationDetectionStep.等待工位1或工位2允许检测);
                                 break;
                             }
 
-                            // 任务正常结束：判定究竟是哪个工站赢得了竞争
-                            if (doneTask == task1)
+                            var move1Result = await _detectionModule.MoveToStation1(token).ConfigureAwait(false);
+                            if (move1Result.IsSuccess)
                             {
-                                raceCts.Cancel();
-                                // 检测失败方是否吞没了信号量并补发，防止活锁
-                                await SafeReleaseLoserSignalAsync(task2,
-                                    nameof(WorkstationSignals.工位2允许检测),
-                                    nameof(E_WorkStation.工位2拉料工站)).ConfigureAwait(false);
-                                _currentworkSpace = E_WorkSpace.工位1;
-                                _logger.Info($"[{StationName}] 工位1 胜出，抢占视觉检测资源成功。");
-                                _currentStep = StationDetectionStep.去工位1检测位置;
+                                _logger.Info($"[{StationName}] OCR 龙门已就位工位1上空。");
+                                _currentStep = StationDetectionStep.触发检测;
                             }
-                            else if (doneTask == task2)
+                            else
                             {
-                                raceCts.Cancel();
-                                await SafeReleaseLoserSignalAsync(task1,
-                                    nameof(WorkstationSignals.工位1允许检测),
-                                    nameof(E_WorkStation.工位1拉料工站)).ConfigureAwait(false);
-                                _currentworkSpace = E_WorkSpace.工位2;
-                                _logger.Info($"[{StationName}] 工位2 胜出，抢占视觉检测资源成功。");
-                                _currentStep = StationDetectionStep.去工位2检测位置;
+                                _logger.Error($"[{StationName}] OCR 模组移动到工位1失败: {move1Result.ErrorMessage}");
+                                var errStep = move1Result.ErrorCode switch
+                                {
+                                    AlarmCodesExtensions.Detection.MoveToStation1MoveFailed => StationDetectionStep.移动到工位1运动触发失败,
+                                    AlarmCodesExtensions.Detection.MoveToStation1MoveTimeout => StationDetectionStep.移动到工位1运动超时,
+                                    AlarmCodesExtensions.Detection.MoveToStation1RecipeSwitchFailed => StationDetectionStep.工位1相机配方切换失败,
+                                    _ => StationDetectionStep.去工位检测位置异常
+                                };
+                                RouteToError(errStep, StationDetectionStep.去工位1检测位置, move1Result.ErrorCode);
                             }
-                        }
-                        break;
-
-                    #endregion
-
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 B：视觉运动、抓拍与数据校验
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase B (Vision & Checking)
-
-                    case StationDetectionStep.去工位1检测位置:
-                        CurrentStepDescription = "OCR模组移动到工位1检测位置...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        _cachedRecipe = _dataModule?.Station1ReciepParam;
-                        if (_cachedRecipe == null)
-                        {
-                            _logger.Error($"[{StationName}] 工位1配方为空，无法获取目标坐标，中断移动。");
-                            RouteToError(StationDetectionStep.工位1配方为空, StationDetectionStep.等待工位1或工位2允许检测);
                             break;
-                        }
 
-                        var move1Result = await _detectionModule.MoveToStation1(token).ConfigureAwait(false);
-                        if (move1Result.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] OCR 龙门已就位工位1上空。");
-                            _currentStep = StationDetectionStep.触发检测;
-                        }
-                        else
-                        {
-                            _logger.Error($"[{StationName}] OCR 模组移动到工位1失败: {move1Result.ErrorMessage}");
-                            var errStep = move1Result.ErrorCode switch
+                        case StationDetectionStep.去工位2检测位置:
+                            CurrentStepDescription = "OCR模组移动到工位2检测位置...";
+
+                            _cachedRecipe = _dataModule?.Station2ReciepParam;
+                            if (_cachedRecipe == null)
                             {
-                                AlarmCodesExtensions.Detection.MoveToStation1MoveFailed => StationDetectionStep.移动到工位1运动触发失败,
-                                AlarmCodesExtensions.Detection.MoveToStation1MoveTimeout => StationDetectionStep.移动到工位1运动超时,
-                                AlarmCodesExtensions.Detection.MoveToStation1RecipeSwitchFailed => StationDetectionStep.工位1相机配方切换失败,
-                                _ => StationDetectionStep.去工位检测位置异常
-                            };
-                            RouteToError(errStep, StationDetectionStep.去工位1检测位置, move1Result.ErrorCode);
-                        }
-                        break;
+                                _logger.Error($"[{StationName}] 工位2配方为空，无法获取目标坐标，中断移动。");
+                                RouteToError(StationDetectionStep.工位2配方为空, StationDetectionStep.等待工位1或工位2允许检测);
+                                break;
+                            }
 
-                    case StationDetectionStep.去工位2检测位置:
-                        CurrentStepDescription = "OCR模组移动到工位2检测位置...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        _cachedRecipe = _dataModule?.Station2ReciepParam;
-                        if (_cachedRecipe == null)
-                        {
-                            _logger.Error($"[{StationName}] 工位2配方为空，无法获取目标坐标，中断移动。");
-                            RouteToError(StationDetectionStep.工位2配方为空, StationDetectionStep.等待工位1或工位2允许检测);
+                            var move2Result = await _detectionModule.MoveToStation2(token).ConfigureAwait(false);
+                            if (move2Result.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] OCR 龙门已就位工位2上空。");
+                                _currentStep = StationDetectionStep.触发检测;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] OCR 模组移动到工位2失败: {move2Result.ErrorMessage}");
+                                var errStep = move2Result.ErrorCode switch
+                                {
+                                    AlarmCodesExtensions.Detection.MoveToStation2MoveFailed => StationDetectionStep.移动到工位2运动触发失败,
+                                    AlarmCodesExtensions.Detection.MoveToStation2MoveTimeout => StationDetectionStep.移动到工位2运动超时,
+                                    AlarmCodesExtensions.Detection.MoveToStation2RecipeSwitchFailed => StationDetectionStep.工位2相机配方切换失败,
+                                    _ => StationDetectionStep.去工位检测位置异常
+                                };
+                                RouteToError(errStep, StationDetectionStep.去工位2检测位置, move2Result.ErrorCode);
+                            }
                             break;
-                        }
 
-                        var move2Result = await _detectionModule.MoveToStation2(token).ConfigureAwait(false);
-                        if (move2Result.IsSuccess)
-                        {
-                            _logger.Info($"[{StationName}] OCR 龙门已就位工位2上空。");
-                            _currentStep = StationDetectionStep.触发检测;
-                        }
-                        else
-                        {
-                            _logger.Error($"[{StationName}] OCR 模组移动到工位2失败: {move2Result.ErrorMessage}");
-                            var errStep = move2Result.ErrorCode switch
-                            {
-                                AlarmCodesExtensions.Detection.MoveToStation2MoveFailed => StationDetectionStep.移动到工位2运动触发失败,
-                                AlarmCodesExtensions.Detection.MoveToStation2MoveTimeout => StationDetectionStep.移动到工位2运动超时,
-                                AlarmCodesExtensions.Detection.MoveToStation2RecipeSwitchFailed => StationDetectionStep.工位2相机配方切换失败,
-                                _ => StationDetectionStep.去工位检测位置异常
-                            };
-                            RouteToError(errStep, StationDetectionStep.去工位2检测位置, move2Result.ErrorCode);
-                        }
-                        break;
+                        case StationDetectionStep.触发检测:
+                            CurrentStepDescription = $"触发OCR相机拍照解码（对象：{_currentworkSpace}）...";
 
-                    case StationDetectionStep.触发检测:
-                        CurrentStepDescription = $"触发OCR相机拍照解码（对象：{_currentworkSpace}）...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
-                        {
-                            // 发送拍照指令，且直接使用相机原始识别结果 (false 标识不在此处校验，交由后续阶段比对)
+                            // 发送拍照指令，直接使用相机原始识别结果（裸跑 await，异常会上弹）
                             var camResult = await _detectionModule.CameraTigger(false, _currentworkSpace, token: token).ConfigureAwait(false);
                             if (!camResult.IsSuccess)
                             {
                                 _logger.Error($"[{StationName}] OCR相机拍照失败: {camResult.ErrorMessage}");
                                 RouteToError(StationDetectionStep.触发检测异常, StationDetectionStep.触发检测, camResult.ErrorCode);
-                                break;
                             }
-                            _cachedOcrResult = camResult.Data;
-                            _logger.Info($"[{StationName}] 拍照解码完成，读取原始条码串：[{_cachedOcrResult.OcrText}]。");
+                            else
+                            {
+                                _cachedOcrResult = camResult.Data;
+                                _logger.Info($"[{StationName}] 拍照解码完成，读取原始条码串：[{_cachedOcrResult.OcrText}]。");
+                                _currentStep = StationDetectionStep.检测完成Z轴回安全位;
+                            }
+                            break;
 
-                            _currentStep = StationDetectionStep.检测完成Z轴回安全位;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error($"[{StationName}] OCR相机物理触发失败或通讯异常：{ex.Message}");
-                            RouteToError(StationDetectionStep.触发检测异常, StationDetectionStep.触发检测);
-                        }
-                        break;
+                        case StationDetectionStep.检测完成Z轴回安全位:
+                            CurrentStepDescription = $"提升 Z 轴脱离干涉区（{_currentworkSpace}）...";
 
-                    case StationDetectionStep.检测完成Z轴回安全位:
-                        CurrentStepDescription = $"提升 Z 轴脱离干涉区（{_currentworkSpace}）...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
+                            // 为了允许拉料工站尽早退料，必须先将视觉 Z 轴抬高，解除空间干涉
+                            var zRetractResult = await _detectionModule.MoveZSafePos(token);
+                            if (!zRetractResult.IsSuccess)
+                            {
+                                _logger.Error($"[{StationName}] 提升相机避位失败，禁止继续，防止撞机！");
+                                RouteToError(StationDetectionStep.检测完成Z轴回安全位异常, StationDetectionStep.检测完成Z轴回安全位, zRetractResult.ErrorCode);
+                            }
+                            else
+                            {
+                                _currentStep = StationDetectionStep.数据比对;
+                            }
+                            break;
 
-                        // 为了允许拉料工站尽早退料，必须先将视觉 Z 轴抬高，解除空间干涉
-                        var zRetractResult = await _detectionModule.MoveZSafePos(token);
-                        if (!zRetractResult.IsSuccess)
-                        {
-                            _logger.Error($"[{StationName}] 提升相机避位失败，禁止继续，防止撞机！");
-                            RouteToError(StationDetectionStep.检测完成Z轴回安全位异常, StationDetectionStep.检测完成Z轴回安全位, zRetractResult.ErrorCode);
-                        }
-                        else
-                        {
-                            _currentStep = StationDetectionStep.数据比对;
-                        }
-                        break;
+                        case StationDetectionStep.数据比对:
+                            CurrentStepDescription = "OCR数据与MES工单数据交叉比对...";
 
-                    case StationDetectionStep.数据比对:
-                        CurrentStepDescription = "OCR数据与MES工单数据交叉比对...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
+                            // 请求数据中枢验证当前字符串是否在 MES 允许名单内
+                            var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.OcrText, token).ConfigureAwait(false);
+                            string path = string.Empty;
 
-                        // 请求数据中枢验证当前字符串是否在 MES 允许名单内
-                        var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.OcrText, token).ConfigureAwait(false);
-                        string path = string.Empty;
+                            // [图像存根]
+                            if (!kk.IsSuccess)
+                            {
+                                // 验证 NG：生成缺陷存档图
+                                path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
+                            }
+                            else
+                            {
+                                // 验证 OK：按批次/槽位号正规存档
+                                path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
+                            }
 
-                        // [图像存根]
-                        if (!kk.IsSuccess)
-                        {
-                            // 验证 NG：生成缺陷存档图
-                            path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
-                        }
-                        else
-                        {
-                            // 验证 OK：按批次/槽位号正规存档
-                            path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
-                        }
+                            // 装配用于写入数据库与推给 MES 的单片检测快照实体
+                            _cachedDetectionData = new MachineDetectionData()
+                            {
+                                CustomerBatch = kk.Data?.CustomerBatch ?? "ERROR",
+                                WaferId = kk.Data?.WaferId ?? "ERROR",
+                                InternalBatchId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.InternalBatchId : _dataModule.Station2MesDetectionData.InternalBatchId,
+                                Barcode1 = "CODE1",
+                                Barcode2 = "CODE2",
+                                Barcode3 = "CODE3",
+                                IsMatch = kk.IsSuccess,
+                                ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
+                                ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
+                                OperatorId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.OperatorId : _dataModule.Station2MesDetectionData.OperatorId,
+                                RecipeName = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.RecipeName : _dataModule.Station2MesDetectionData.RecipeName,
+                                ImagePath = path
+                            };
 
-                        // 装配用于写入数据库与推给 MES 的单片检测快照实体
-                        _cachedDetectionData = new MachineDetectionData()
-                        {
-                            CustomerBatch = kk.Data?.CustomerBatch ?? "ERROR",
-                            WaferId = kk.Data?.WaferId ?? "ERROR",
-                            InternalBatchId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.InternalBatchId : _dataModule.Station2MesDetectionData.InternalBatchId,
-                            Barcode1 = "CODE1",
-                            Barcode2 = "CODE2",
-                            Barcode3 = "CODE3",
-                            IsMatch = kk.IsSuccess,
-                            ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
-                            ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
-                            OperatorId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.OperatorId : _dataModule.Station2MesDetectionData.OperatorId,
-                            RecipeName = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.RecipeName : _dataModule.Station2MesDetectionData.RecipeName,
-                            ImagePath = path
-                        };
+                            _currentStep = StationDetectionStep.写入检测数据;
+                            break;
 
-                        _currentStep = StationDetectionStep.写入检测数据;
-                        break;
+                        #endregion
 
-                    #endregion
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 C：结果入库与交接
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase C (Archive & Handover)
 
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 C：结果入库与交接
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase C (Archive & Handover)
+                        case StationDetectionStep.写入检测数据:
+                            CurrentStepDescription = "将检测结果写入持久化存储...";
 
-                    case StationDetectionStep.写入检测数据:
-                        CurrentStepDescription = "将检测结果写入持久化存储...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-                        try
-                        {
                             if (_cachedDetectionData != null && _dataModule != null)
                             {
+                                // 裸跑 DB 写入（异常会上弹）
                                 await _dataModule.AddMachineDetectionAsync(_currentworkSpace, _cachedDetectionData).ConfigureAwait(false);
                                 _logger.Info($"[{StationName}] 检测数据已推入中枢（{_currentworkSpace}），匹配结果：{_cachedDetectionData.IsMatch}。");
                             }
                             _currentStep = StationDetectionStep.检测完成;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.Error($"[{StationName}] 数据库写入异常：{ex.Message}");
-                            RouteToError(StationDetectionStep.写入检测数据异常, StationDetectionStep.写入检测数据);
-                        }
-                        break;
+                            break;
 
-                    case StationDetectionStep.检测完成:
-                        CurrentStepDescription = "业务闭环，释放通行证...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
+                        case StationDetectionStep.检测完成:
+                            CurrentStepDescription = "业务闭环，释放通行证...";
 
-                        // 释放本轮执行工位的放行信号，通知目标工位的拉料机构可以将晶圆退回料盒了
-                        if (_currentworkSpace == E_WorkSpace.工位1)
-                        {
-                            _sync.Release(nameof(WorkstationSignals.工位1检测完成), StationName);
-                            _logger.Success($"[{StationName}] 工位1 视觉鉴定流转闭环，通行信号已下发。");
-                        }
-                        else
-                        {
-                            _sync.Release(nameof(WorkstationSignals.工位2检测完成), StationName);
-                            _logger.Success($"[{StationName}] 工位2 视觉鉴定流转闭环，通行信号已下发。");
-                        }
-
-                        // 清理缓存，准备下一次抢占
-                        _cachedRecipe = null;
-                        _cachedOcrResult = default;
-                        _cachedDetectionData = null;
-
-                        _currentStep = StationDetectionStep.检测完成后避位;
-                        break;
-
-                    case StationDetectionStep.检测完成后避位:
-                        CurrentStepDescription = "龙门退回全局待机原点...";
-                       // await CheckPauseAsync(token).ConfigureAwait(false);
-
-                        // 确保整个大龙门机构退回最高最深处，不挡任何人的道
-                        var retreatResult = await _detectionModule.MoveInitial(token);
-                        if (!retreatResult.IsSuccess)
-                        {
-                            _logger.Error($"[{StationName}] 归位途中遭遇干涉或超时。");
-                            var errStep = retreatResult.ErrorCode switch
+                            // 释放本轮执行工位的放行信号，通知目标工位的拉料机构可以将晶圆退回料盒了
+                            if (_currentworkSpace == E_WorkSpace.工位1)
                             {
-                                AlarmCodesExtensions.Detection.MoveZSafePosFailed => StationDetectionStep.Z轴安全位移动失败,
-                                _ => StationDetectionStep.移动到待机位失败
-                            };
-                            RouteToError(errStep, StationDetectionStep.检测完成后避位, retreatResult.ErrorCode);
-                        }
-                        else
-                        {
-                            // 完美收官，回到首个节点继续轮询等待
-                            _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
-                        }
-                        break;
+                                _sync.Release(nameof(WorkstationSignals.工位1检测完成), StationName);
+                                _logger.Success($"[{StationName}] 工位1 视觉鉴定流转闭环，通行信号已下发。");
+                            }
+                            else
+                            {
+                                _sync.Release(nameof(WorkstationSignals.工位2检测完成), StationName);
+                                _logger.Success($"[{StationName}] 工位2 视觉鉴定流转闭环，通行信号已下发。");
+                            }
 
-                    #endregion
+                            // 清理缓存，准备下一次抢占
+                            _cachedRecipe = null;
+                            _cachedOcrResult = default;
+                            _cachedDetectionData = null;
 
-                    // ══════════════════════════════════════════════════════════
-                    //  阶段 D：异常拦截与断点续跑处理
-                    // ══════════════════════════════════════════════════════════
-                    #region Phase D (Exceptions)
+                            _currentStep = StationDetectionStep.检测完成后避位;
+                            break;
 
-                    // ── 1. 数据校验异常 ──
-                    case StationDetectionStep.工位1配方为空:
-                        _logger.Error($"[{StationName}] 工位1配方为空，无法获取目标坐标，中断移动。");
-                        TriggerAlarm(AlarmCodesExtensions.Detection.MoveToStation1RecipeNull, "工位1配方为空");
-                        _currentStep = _resumeStep;
-                        break;
+                        case StationDetectionStep.检测完成后避位:
+                            CurrentStepDescription = "龙门退回全局待机原点...";
 
-                    case StationDetectionStep.工位2配方为空:
-                        _logger.Error($"[{StationName}] 工位2配方为空，无法获取目标坐标，中断移动。");
-                        TriggerAlarm(AlarmCodesExtensions.Detection.MoveToStation2RecipeNull, "工位2配方为空");
-                        _currentStep = _resumeStep;
-                        break;
-
-                    case StationDetectionStep.写入检测数据异常:
-                        _logger.Error($"[{StationName}] 本地磁盘存图或写入内存数据库失败。请复位重写，防止断档丢单。");
-                        TriggerAlarm(AlarmCodesExtensions.Detection.DataWriteFailed, "检测数据写入失败");
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 2. 相机与视觉异常 ──
-                    case StationDetectionStep.相机握手失败:
-                    case StationDetectionStep.工位1相机配方切换失败:
-                    case StationDetectionStep.工位2相机配方切换失败:
-                    case StationDetectionStep.触发检测异常:
-                        var camCode = _cachedErrorCode ?? AlarmCodesExtensions.Detection.CameraTiggerFailed;
-                        _logger.Error($"[{StationName}] 相机握手失败，光源或相机可能掉线。请复位，将重新尝试发指令。");
-                        TriggerAlarm(camCode, $"相机控制异常: {_currentStep}");
-                        _cachedErrorCode = null;
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 3. 运动与定位异常 ──
-                    case StationDetectionStep.去工位检测位置异常:
-                    case StationDetectionStep.移动到工位1运动触发失败:
-                    case StationDetectionStep.移动到工位1运动超时:
-                    case StationDetectionStep.移动到工位2运动触发失败:
-                    case StationDetectionStep.移动到工位2运动超时:
-                    case StationDetectionStep.移动到待机位失败:
-                    case StationDetectionStep.Z轴安全位移动失败:
-                        var motCode = _cachedErrorCode ?? AlarmCodesExtensions.Detection.GantryMoveFailed;
-                        _logger.Error($"[{StationName}] 龙门模组定位 {_currentworkSpace} 失败。请复位重试定位。");
-                        TriggerAlarm(motCode, $"龙门运动异常: {_currentStep}");
-                        _cachedErrorCode = null;
-                        _currentStep = _resumeStep;
-                        break;
-
-                    case StationDetectionStep.检测完成Z轴回安全位异常:
-                        _logger.Error($"[{StationName}] 相机 Z 轴无法抬起！为避免下发通行证后拉料机构撞击相机，已将其紧急锁死。");
-                        TriggerAlarm(AlarmCodesExtensions.Detection.ZAxisRetractAfterScan, "相机Z轴无法抬起避位");
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 4. 协同信号系统异常 ──
-                    case StationDetectionStep.等待检测信号异常中断:
-                        _logger.Error($"[{StationName}] 等待任务池异常中断。");
-                        TriggerAlarm(AlarmCodesExtensions.Detection.SignalWaitFault, "等待工位检测信号任务池异常中断");
-                        _currentStep = _resumeStep;
-                        break;
-
-                    // ── 兜底拦截 ──
-                    default:
-                        if ((int)_currentStep >= 100000)
-                        {
-                            TriggerAlarm(AlarmCodes.System.UndefinedStep, $"遇到未定义的异常步序: {_currentStep}");
-                            _currentStep = (int)_resumeStep != 0 ? _resumeStep : StationDetectionStep.等待工位1或工位2允许检测;
-                        }
-                        else
-                        {
-                            _logger.Error($"[{StationName}] 状态机越界：步序 [{_currentStep}] 未定义。");
-                            TriggerAlarm(AlarmCodes.System.UndefinedStep, $"状态机越界，未定义步序[{_currentStep}]");
-                            _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
-                        }
-                        break;
+                            // 确保整个大龙门机构退回最高最深处，不挡任何人的道
+                            var retreatResult = await _detectionModule.MoveInitial(token);
+                            if (!retreatResult.IsSuccess)
+                            {
+                                _logger.Error($"[{StationName}] 归位途中遭遇干涉或超时。");
+                                var errStep = retreatResult.ErrorCode switch
+                                {
+                                    AlarmCodesExtensions.Detection.MoveZSafePosFailed => StationDetectionStep.Z轴安全位移动失败,
+                                    _ => StationDetectionStep.移动到待机位失败
+                                };
+                                RouteToError(errStep, StationDetectionStep.检测完成后避位, retreatResult.ErrorCode);
+                            }
+                            else
+                            {
+                                // 完美收官，回到首个节点继续轮询等待
+                                _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+                            }
+                            break;
 
                         #endregion
+
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 D：异常拦截与断点续跑处理 (业务逻辑层面)
+                        // ══════════════════════════════════════════════════════════
+                        #region Phase D (Exceptions)
+
+                        case StationDetectionStep.工位1配方为空:
+                            TriggerAlarm(AlarmCodesExtensions.Detection.MoveToStation1RecipeNull, "工位1配方为空");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case StationDetectionStep.工位2配方为空:
+                            TriggerAlarm(AlarmCodesExtensions.Detection.MoveToStation2RecipeNull, "工位2配方为空");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case StationDetectionStep.写入检测数据异常:
+                            TriggerAlarm(AlarmCodesExtensions.Detection.DataWriteFailed, "检测数据写入失败");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case StationDetectionStep.相机握手失败:
+                        case StationDetectionStep.工位1相机配方切换失败:
+                        case StationDetectionStep.工位2相机配方切换失败:
+                        case StationDetectionStep.触发检测异常:
+                            var camCode = _cachedErrorCode ?? AlarmCodesExtensions.Detection.CameraTiggerFailed;
+                            TriggerAlarm(camCode, $"相机控制异常: {_currentStep}");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case StationDetectionStep.去工位检测位置异常:
+                        case StationDetectionStep.移动到工位1运动触发失败:
+                        case StationDetectionStep.移动到工位1运动超时:
+                        case StationDetectionStep.移动到工位2运动触发失败:
+                        case StationDetectionStep.移动到工位2运动超时:
+                        case StationDetectionStep.移动到待机位失败:
+                        case StationDetectionStep.Z轴安全位移动失败:
+                            var motCode = _cachedErrorCode ?? AlarmCodesExtensions.Detection.GantryMoveFailed;
+                            TriggerAlarm(motCode, $"龙门运动异常: {_currentStep}");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case StationDetectionStep.检测完成Z轴回安全位异常:
+                            TriggerAlarm(AlarmCodesExtensions.Detection.ZAxisRetractAfterScan, "相机Z轴无法抬起避位");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case StationDetectionStep.等待检测信号异常中断:
+                            TriggerAlarm(AlarmCodesExtensions.Detection.SignalWaitFault, "等待工位检测信号任务池异常中断");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        default:
+                            if ((int)_currentStep >= 100000)
+                            {
+                                TriggerAlarm(AlarmCodes.System.UndefinedStep, $"遇到未定义的业务步序: {_currentStep}");
+                                _currentStep = (int)_resumeStep != 0 ? _resumeStep : StationDetectionStep.等待工位1或工位2允许检测;
+                            }
+                            else
+                            {
+                                TriggerAlarm(AlarmCodes.System.UndefinedStep, $"状态机指针漂移，步序[{_currentStep}]未定义");
+                                _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+                            }
+                            break;
+
+                            #endregion
+                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.Warn($"[{StationName}] 视觉检测流程接收到取消请求。当前状态: {_currentStep}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.Fatal($"[{StationName}] 视觉检测大循环崩溃！步序: {_currentStep} ({CurrentStepDescription}), 异常: {ex.Message}");
+                throw;
             }
         }
 
