@@ -47,13 +47,12 @@ namespace PF.Workstation.AutoOcr.CostParam
         /// <summary>预留2</summary>
         [Browsable(false)]
         预留2 = 3,
-        /// <summary>上晶圆右错层检测1</summary>
-        上晶圆右错层检测1 = 4,
-        /// <summary>上晶圆右错层检测2</summary>
-        上晶圆右错层检测2 = 5,
-        /// <summary>预留3</summary>
-        [Browsable(false)]
-        预留3 = 6,
+        /// <summary>上晶圆右错层公共检测</summary>
+        上晶圆右错层公共检测 = 4,
+        /// <summary>上晶圆右错层12寸检测</summary>
+        上晶圆右错层8寸检测 = 5,
+        /// <summary>上晶圆右错层8寸检测</summary>
+        上晶圆右错层12寸检测 = 6,
         /// <summary>预留4</summary>
         [Browsable(false)]
         预留4 = 7,

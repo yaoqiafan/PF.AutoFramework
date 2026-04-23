@@ -673,8 +673,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 Task finishedTask = await Task.WhenAny(taskA, taskB, taskC);
                 cts.Cancel(); // 停止其他未完成的轮询任务
 
-                // 【精简点 1】只要发生了取消（无论超时还是外部干预），直接抛出异常，交由 Catch 块统一路由
-                linkedToken.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
 
                 if (finishedTask.IsFaulted)
                 {
@@ -769,8 +768,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 Task finishedTask = await Task.WhenAny(taskA, taskB, taskC);
                 linked.Cancel();
 
-                // 【精简点 1】合并检查取消状态
-                linked.Token.ThrowIfCancellationRequested();
+
+                token.ThrowIfCancellationRequested();
 
                 if (finishedTask.IsFaulted)
                 {

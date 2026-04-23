@@ -489,7 +489,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 // Step 2: 配置硬件锁存参数
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
-                inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆右错层检测2 : (int)E_InPutName.上晶圆右错层检测1;
+                inputPort1 = (int)E_InPutName.上晶圆右错层公共检测;
+                inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆右错层12寸检测 : (int)E_InPutName.上晶圆右错层8寸检测;
 
                 bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
                 bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
