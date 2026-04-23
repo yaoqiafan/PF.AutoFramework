@@ -214,11 +214,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             CheckReady(); // 保持与方法1一致的就绪检查
             _logger.Info($"[{MechanismName}] 开始检查轨道是否残留晶圆物料...");
-
+           
             // 读取IO信号
             bool? res1 = _io.ReadInput((int)E_InPutName.晶圆轨道左晶圆在位检测1);
             bool? res2 = _io.ReadInput((int)E_InPutName.晶圆轨道左晶圆在位检测2);
-
+            token.ThrowIfCancellationRequested();
             // 如果两个信号都成功读取
             if (res1.HasValue && res2.HasValue)
             {
@@ -346,6 +346,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.ChangeSizeCylinderTimeout, "切换晶圆尺寸操作气缸超时，请检查气压或传感器状态");
             }
+            catch (OperationCanceledException) 
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -382,6 +386,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             catch (OperationCanceledException) when (timeoutcts.IsCancellationRequested)
             {
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperOpenTimeout, $"等待输入信号 {E_InPutName.晶圆夹爪左气缸张开} 超时，请检查气路");
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -427,6 +435,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperCloseTimeout, $"等待输入信号 {E_InPutName.晶圆夹爪左气缸闭合} 超时");
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -447,6 +459,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 预留硬件检测叠片逻辑
                 return true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -470,6 +486,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Success();
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.MoveInitialNoScanFailed, "Y轴移动到待机位失败");
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -501,6 +521,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.MoveInitialFailed, "移动到待机位失败");
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -531,6 +555,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PutOverMoveFailed, "移动到取出安全位置失败");
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Warn(ex.Message);
@@ -553,6 +581,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Success();
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.InitialMoveFeedingFailed, "移动到晶圆取料位置失败");
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -616,29 +648,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 Task finishedTask = await Task.WhenAny(taskA, taskB, taskC);
                 cts.Cancel(); // 取消其他未完成的任务
 
-                // 【修复 1】优先检查是否被外部信号取消
-                if (token.IsCancellationRequested)
-                {
-                    await _yAxis.StopAsync();
-                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "操作已被外部取消"); // 这里可以根据你们的业务定义专门的错误码
-                }
-
-                // 【修复 2】检查是否是因为超时导致的取消
-                if (timeoutcts.IsCancellationRequested)
-                {
-                    await _yAxis.StopAsync();
-                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTimeout, "Y轴拉出运动超时");
-                }
-
-                // 【修复 3】防御性检查：如果任务是因为未知异常崩溃的
-                if (finishedTask.IsFaulted)
-                {
-                    await _yAxis.StopAsync();
-                    _logger.Warn(finishedTask.Exception?.InnerException?.Message ?? "任务发生未知异常");
-                    return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "状态检测任务发生异常");
-                }
-
-                // 此时可以确保 finishedTask 是“正常检测到条件并 return”的
+               
                 if (finishedTask == taskA)
                 {
                     await _yAxis.StopAsync();
@@ -659,16 +669,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "未知的执行逻辑");
             }
-            catch (OperationCanceledException)
-            {
-                // 这里主要是抓取 _yAxis.MoveToPointAsync 内部因为 token 取消抛出的异常
+            catch (OperationCanceledException) when (timeoutcts.IsCancellationRequested)
+            { 
                 await _yAxis.StopAsync();
                 if (timeoutcts.IsCancellationRequested)
                 {
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTimeout, "Y轴拉出运动超时");
                 }
-                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "操作已被外部取消");
+                throw;
             }
+            catch (OperationCanceledException)
+            {
+                await _yAxis.StopAsync();
+                throw;
+            }
+            
             catch (Exception ex)
             {
                 await _yAxis.StopAsync();
@@ -746,7 +761,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PushBackTimeout, "送入运动超时");
                 }
                 await _yAxis.StopAsync();
-                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PushBackTriggerFailed, "送入运动被取消");
+                
+                throw;
             }
             catch (Exception ex)
             {
