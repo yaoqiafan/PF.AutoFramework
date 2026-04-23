@@ -44,7 +44,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// - Stream 10: 终端服务/消息显示 (<see cref="HandleS10F3Message"/>)
     /// </remarks>
     [MechanismUI("SECSGEM模块", "WorkStationSecsGemModuleDebugView", 7)]
-    public class WorkStationSecsGemModule : BaseMechanism
+    public class WSSecsGemModule : BaseMechanism
     {
         #region Fields & Properties (依赖服务与核心状态)
 
@@ -52,7 +52,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IContainerProvider _containerProvider;
         private readonly Infrastructure.Logging.CategoryLogger _secsGemlog;
-        private WorkStationDataModule _workStationDataModule;
+        private WSDataModule _workStationDataModule;
 
         private bool _isOnOffine = false;
 
@@ -85,7 +85,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 初始化SECS/GEM通讯模组
         /// </summary>
-        public WorkStationSecsGemModule(
+        public WSSecsGemModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
             ISecsGemManager secsGemManger,
@@ -119,7 +119,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
 
             _secsGemlog.Info("SecsGem 连接成功。");
 
@@ -821,7 +821,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>
         /// 处理 S7F19 (Current EPPD Request) 消息，并回复 S7F20。
-        /// <para>主机询问机台当前各个工位正在执行哪套配方 (PPID)，通过 <see cref="WorkStationDataModule"/> 进行检索。</para>
+        /// <para>主机询问机台当前各个工位正在执行哪套配方 (PPID)，通过 <see cref="WSDataModule"/> 进行检索。</para>
         /// </summary>
         private async Task HandleS7F19Message(SecsGemMessage message, CancellationToken token = default)
         {

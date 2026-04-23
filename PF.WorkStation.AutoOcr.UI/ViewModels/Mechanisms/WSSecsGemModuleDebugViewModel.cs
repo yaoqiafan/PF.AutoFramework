@@ -11,16 +11,16 @@ using System.Windows;
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// WorkStationSecsGemModuleDebugViewModel
+    /// WSSecsGemModuleDebugViewModel
     /// </summary>
-    public  class WorkStationSecsGemModuleDebugViewModel : RegionViewModelBase
+    public  class WSSecsGemModuleDebugViewModel : RegionViewModelBase
     {
-        private readonly WorkStationSecsGemModule? _secsgemModule;
+        private readonly WSSecsGemModule? _secsgemModule;
         /// <summary>
         /// 获取或设置 SecsGemModule
         /// </summary>
 
-        public WorkStationSecsGemModule? SecsGemModule => _secsgemModule;
+        public WSSecsGemModule? SecsGemModule => _secsgemModule;
 
         private string _debugMessage = "就绪";
         /// <summary>
@@ -50,12 +50,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand StopCommand { get; }
         #endregion Commands 定义
         /// <summary>
-        /// WorkStationSecsGemModuleDebugViewModel 构造函数
+        /// WSSecsGemModuleDebugViewModel 构造函数
         /// </summary>
 
-        public WorkStationSecsGemModuleDebugViewModel(IContainerProvider containerProvider)
+        public WSSecsGemModuleDebugViewModel(IContainerProvider containerProvider)
         {
-            _secsgemModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationSecsGemModule)) as WorkStationSecsGemModule;
+            _secsgemModule = containerProvider.Resolve<IMechanism>(nameof(WSSecsGemModule)) as WSSecsGemModule;
 
             // --- 绑定全局生命周期指令 ---
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _secsgemModule?.InitializeAsync()));

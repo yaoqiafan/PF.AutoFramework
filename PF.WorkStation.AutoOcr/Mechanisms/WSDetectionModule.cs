@@ -34,7 +34,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 触发相机拍照解码，并维护检测源图片的本地存根，以便工程师在发生误判时进行图像追溯。
     /// </summary>
     [MechanismUI("检测模组", "WorkStationDetectionModuleDebugView", 5)]
-    public class WorkStationDetectionModule : BaseMechanism
+    public class WSDetectionModule : BaseMechanism
     {
         #region Enums (轴关键点位枚举)
 
@@ -70,7 +70,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private IIntelligentCamera _camera;
 
         // ── 业务数据通讯模块 ──
-        private WorkStationDataModule _dataModule;
+        private WSDataModule _dataModule;
         private IContainerProvider Provider;
 
         // ── 生产配方缓存 ──
@@ -100,7 +100,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 初始化全局视觉检测模组
         /// </summary>
-        public WorkStationDetectionModule(
+        public WSDetectionModule(
             IHardwareManagerService hardwareManagerService,
             IParamService paramService,
             IContainerProvider provider,
@@ -149,10 +149,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
 
             // 获取数据交互中枢模块
-            _dataModule = Provider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _dataModule = Provider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             if (_dataModule == null)
             {
-                _logger.Error($"[{MechanismName}] 未找到 {nameof(WorkStationDataModule)} 模块，请检查软件依赖。");
+                _logger.Error($"[{MechanismName}] 未找到 {nameof(WSDataModule)} 模块，请检查软件依赖。");
                 return false;
             }
 
@@ -382,7 +382,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 触发 OCR 相机拍照解码。
         /// <para>支持两种模式：无感强制刷新抓图 (主要用于视觉标定调试)；自动重试并校验 MES 合法性 (用于正式生产)。</para>
         /// </summary>
-        /// <param name="IsCheckResult">是否请求中枢模块 <see cref="WorkStationDataModule"/> 对解码结果进行 MES 合法性校验</param>
+        /// <param name="IsCheckResult">是否请求中枢模块 <see cref="WSDataModule"/> 对解码结果进行 MES 合法性校验</param>
         /// <param name="workStation">触发拍照所在的工位标识</param>
         /// <param name="token">取消令牌</param>
         /// <returns>MechResult，Data 包含 (OcrText, ImagePath) 元组</returns>

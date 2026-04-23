@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:vm="clr-namespace:PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations"
-    d:DataContext="{d:DesignInstance vm:WorkStation1MaterialPullingStationDebugViewModel,
+    d:DataContext="{d:DesignInstance vm:WS1MaterialPullingStationDebugViewModel,
                                      IsDesignTimeCreatable=False}"
     d:DesignWidth="800"
     mc:Ignorable="d">

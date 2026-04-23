@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Models;
@@ -6,30 +5,25 @@ using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.Models;
-using Prism.Commands;
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// Workstation1FeedingModelDebugViewModel
+    /// WS1FeedingModelDebugViewModel
     /// </summary>
-    public class Workstation1FeedingModelDebugViewModel : RegionViewModelBase
+    public class WS1FeedingModelDebugViewModel : RegionViewModelBase
     {
-        private readonly WorkStation1FeedingModule? _feedingModule;
+        private readonly WS1FeedingModel? _feedingModule;
         private DispatcherTimer _monitorTimer;
 
         // 供 UI 绑定底层硬件状态
         /// <summary>
         /// 获取或设置 FeedingModule
         /// </summary>
-        public WorkStation1FeedingModule? FeedingModule => _feedingModule;
+        public WS1FeedingModel? FeedingModule => _feedingModule;
 
         private string _debugMessage = "就绪";
         /// <summary>
@@ -245,13 +239,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand SaveXAxisPointsCommand { get; }
         #endregion
         /// <summary>
-        /// Workstation1FeedingModelDebugViewModel 构造函数
+        /// WS1FeedingModelDebugViewModel 构造函数
         /// </summary>
 
-        public Workstation1FeedingModelDebugViewModel(IContainerProvider containerProvider)
+        public WS1FeedingModelDebugViewModel(IContainerProvider containerProvider)
         {
             // 依赖注入获取模组实例
-            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1FeedingModule)) as WorkStation1FeedingModule;
+            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS1FeedingModel)) as WS1FeedingModel;
 
             // --- 绑定全局生命周期指令 ---
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));

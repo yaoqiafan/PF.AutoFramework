@@ -7,23 +7,26 @@ using PF.Infrastructure.Station.Basic;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Stations;
-using Prism.Commands;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 {
     /// <summary>
-    /// WorkStation2FeedingStationDebugViewModel
+    /// WS1MaterialPullingStationDebugViewModel
     /// </summary>
-    public class WorkStation2FeedingStationDebugViewModel : RegionViewModelBase, IDisposable
+    public class WS1MaterialPullingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
-        private readonly WorkStation2FeedingStation<StationMemoryBaseParam> _station;
+        private readonly WS1MaterialPullingStation <StationMemoryBaseParam> _station;
         private readonly IStationSyncService _sync;
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
+
 
         private MachineState _currentState;
         /// <summary>
@@ -37,7 +40,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private string _currentStepDescription = "就绪";
         /// <summary>
-        /// 获取或设置 CurrentStepDescription
+        /// 成员
         /// </summary>
         public string CurrentStepDescription
         {
@@ -47,7 +50,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private OperationMode _currentMode;
         /// <summary>
-        /// 成员
+        /// 获取或设置 CurrentMode
         /// </summary>
         public OperationMode CurrentMode
         {
@@ -57,18 +60,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private Brush _statusBrush;
         /// <summary>
-        /// 获取或设置 StatusBrush
+        /// 成员
         /// </summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
             private set => SetProperty(ref _statusBrush, value);
         }
+
+        // ── 权限控制 ─────────────────────────────────────────────────────────
         /// <summary>
         /// 获取或设置 CanManualControl
         /// </summary>
 
         public bool CanManualControl => _userService.IsAuthorized(UserLevel.SuperUser);
+
+        // ── 命令 ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Initialize 命令
         /// </summary>
@@ -99,28 +106,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         /// </summary>
         public DelegateCommand TriggerAlarmCommand { get; }
         /// <summary>
-        /// TriggerStart 命令
-        /// </summary>
-        public DelegateCommand TriggerStartCommand { get; }
-        /// <summary>
-        /// TriggerAllowFeed 命令
-        /// </summary>
-        public DelegateCommand TriggerAllowFeedCommand { get; }
-        /// <summary>
-        /// TriggerAllowBack 命令
-        /// </summary>
-        public DelegateCommand TriggerAllowBackCommand { get; }
-        /// <summary>
-        /// TriggerFinish 命令
-        /// </summary>
-        public DelegateCommand TriggerFinishCommand { get; }
-        /// <summary>
-        /// WorkStation2FeedingStationDebugViewModel 构造函数
+        /// TriggerAllowDec 命令
         /// </summary>
 
-        public WorkStation2FeedingStationDebugViewModel(IContainerProvider containerProvider)
+        public DelegateCommand TriggerAllowDecCommand { get; }
+        /// <summary>
+        /// TriggerPullingOver 命令
+        /// </summary>
+        public DelegateCommand TriggerPullingOverCommand { get; }
+        /// <summary>
+        /// TriggerPushOver 命令
+        /// </summary>
+        public DelegateCommand TriggerPushOverCommand { get; }
+        /// <summary>
+        /// WS1MaterialPullingStationDebugViewModel 构造函数
+        /// </summary>
+
+        public WS1MaterialPullingStationDebugViewModel(IContainerProvider containerProvider)
         {
-            _station = containerProvider.Resolve<WorkStation2FeedingStation<StationMemoryBaseParam>>(nameof(WorkStation2FeedingStation<StationMemoryBaseParam>));
+            _station = containerProvider.Resolve<WS1MaterialPullingStation <StationMemoryBaseParam>>();
             _sync = containerProvider.Resolve<IStationSyncService>();
             _userService = containerProvider.Resolve<IUserService>();
 
@@ -148,14 +152,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
                 () => CanManualControl && _station.CurrentState != MachineState.InitAlarm
                                        && _station.CurrentState != MachineState.RunAlarm);
 
-            TriggerStartCommand = new DelegateCommand(ExecuteTriggerStart,
-                () => CanManualControl && (_station.CurrentState == MachineState.Running));
-            TriggerAllowFeedCommand = new DelegateCommand(ExecuteTriggerAllowFeed,
-              () => CanManualControl && (_station.CurrentState == MachineState.Running));
-            TriggerAllowBackCommand = new DelegateCommand(ExecuteTriggerAllowBack,
-              () => CanManualControl && (_station.CurrentState == MachineState.Running));
-            TriggerFinishCommand = new DelegateCommand(ExecuteTriggerFinish,
-                () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
+            TriggerAllowDecCommand= new DelegateCommand(TriggerAllowDec,
+             () => CanManualControl && (_station.CurrentState == MachineState.Running));
+            TriggerPullingOverCommand = new DelegateCommand(TriggerPullingOver,
+             () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
+            TriggerPushOverCommand = new DelegateCommand(TriggerPushOver,
+             () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
 
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
             {
@@ -164,6 +169,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _pollTimer.Tick += OnPollTick;
             _pollTimer.Start();
         }
+
+       
+
+        // ── 轮询刷新 ─────────────────────────────────────────────────────────
 
         private void OnPollTick(object sender, EventArgs e)
         {
@@ -179,10 +188,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResumeCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
-            TriggerStartCommand.RaiseCanExecuteChanged();
-            TriggerAllowFeedCommand.RaiseCanExecuteChanged();
-            TriggerFinishCommand.RaiseCanExecuteChanged();
-            TriggerAllowBackCommand.RaiseCanExecuteChanged();
+        
+            TriggerPullingOverCommand.RaiseCanExecuteChanged();
+            TriggerAllowDecCommand.RaiseCanExecuteChanged();
+            TriggerPushOverCommand.RaiseCanExecuteChanged();
         }
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
@@ -200,6 +209,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private static Brush StateToBrush(MachineState state) =>
             _stateBrushMap.TryGetValue(state, out var brush) ? brush : _defaultBrush;
 
+        // ── 权限事件处理 ──────────────────────────────────────────────────────
+
         private void OnCurrentUserChanged(object sender, UserInfo? user)
         {
             RaisePropertyChanged(nameof(CanManualControl));
@@ -211,6 +222,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
         }
+
+        // ── 命令实现 ─────────────────────────────────────────────────────────
 
         private async void ExecuteInitialize()
         {
@@ -245,25 +258,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private void ExecuteTriggerAlarm() => _station.TriggerAlarm(AlarmCodes.System.ManualTestAlarm, "调试页面手动触发报警");
 
-        private void ExecuteTriggerStart()
+
+        private void TriggerPushOver()
         {
-            _sync.Release(WorkstationSignals.工位2启动按钮按下.ToString());
+            _sync.Release(WorkstationSignals.工位1退料完成.ToString(),E_WorkStation.工位1拉料工站.ToString());
         }
 
-        private void ExecuteTriggerFinish()
+        private void TriggerPullingOver()
         {
-            _sync.Release(WorkstationSignals.工位2人工下料完成.ToString());
+            _sync.Release(WorkstationSignals.工位1拉料完成.ToString(), E_WorkStation.工位1拉料工站.ToString());
         }
 
-        private void ExecuteTriggerAllowFeed()
+        private void TriggerAllowDec()
         {
-            _sync.Release(WorkstationSignals.工位2允许拉料.ToString(), E_WorkStation.工位2上下料工站.ToString());
+            _sync.Release(WorkstationSignals.工位1允许检测.ToString(), E_WorkStation.工位1拉料工站.ToString());
         }
 
-        private void ExecuteTriggerAllowBack()
-        {
-            _sync.Release(WorkstationSignals.工位2允许退料.ToString(), E_WorkStation.工位2上下料工站.ToString());
-        }
+        // ── 销毁 ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Dispose
         /// </summary>
@@ -281,5 +292,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         {
             Dispose();
         }
+
     }
 }

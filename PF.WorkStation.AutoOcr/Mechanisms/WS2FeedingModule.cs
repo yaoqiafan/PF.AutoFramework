@@ -23,22 +23,22 @@ using System.Threading.Tasks;
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
     /// <summary>
-    /// 【工位1】晶圆上料模组 (Wafer Feeding Mechanism)
-    /// 
+    /// 【工位2】晶圆上料模组 (Wafer Feeding Mechanism - Station 2)
+    ///
     /// <para>物理架构：</para>
     /// 包含一个控制料盒整体升降的 Z 轴（用于层级对准与高速硬件扫描）、一个控制前挡板的 X 轴（用于适配不同尺寸料盒），
     /// 以及底部的光电传感器组（用于料盒到位检测与尺寸防呆）。
-    /// 
+    ///
     /// <para>软件职责：</para>
-    /// 封装三轴与 IO 的底层联动逻辑，屏蔽硬件底层的复杂性，向上层工站状态机提供基于“业务语境”的原子操作接口。
+    /// 封装三轴与 IO 的底层联动逻辑，屏蔽硬件底层的复杂性，向上层工站状态机提供基于"业务语境"的原子操作接口。
     /// 采用硬件延迟加载策略（Proxy 模式），确保系统在 <see cref="InternalInitializeAsync(CancellationToken)"/> 阶段
     /// 完整装载底层驱动后才建立设备句柄。
     /// </summary>
     /// <remarks>
     /// 💡 【标准工艺调用时序】
-    /// 
+    ///
     /// 本模组继承自 <see cref="BaseMechanism"/>，上层主控在调度时应遵循以下安全时序：
-    /// 
+    ///
     /// 1. 状态复位：<see cref="InitializeFeedingStateAsync(CancellationToken)"/> -> 机构退回安全待机避让位。
     /// 2. 尺寸识别：<see cref="GetWaferBoxSizeAsync(CancellationToken)"/> -> 底部传感器交叉验证尺寸（8寸/12寸/异常）。
     /// 3. 配方加载：<see cref="SwitchProductionStateAsync(E_WafeSize, CancellationToken)"/> -> 载入尺寸对应的间距参数并推演生成全层坐标阵列。
@@ -47,8 +47,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 5. 数据过滤：调用 <see cref="AnalyzeAndFilterMappingData(Dictionary{int, List{double}})"/>，将扫描原始数据剔除斜片、假触发，生成有效层级映射。
     /// 6. 定位取料：调用 <see cref="SwitchToLayerAsync(int, CancellationToken)"/> 到达目标层级后，交由外部机械手拉料。
     /// </remarks>
-    [MechanismUI("工位1上晶圆模组", "Workstation1FeedingModelDebugView", 1)]
-    public class WorkStation1FeedingModule : BaseMechanism
+    [MechanismUI("工位2上晶圆模组", "Workstation2FeedingModelDebugView", 3)]
+    public class WS2FeedingModule : BaseMechanism
     {
         #region Enums (轴关键点位枚举)
 
@@ -94,8 +94,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Fields & Properties (硬件实例与配方变量)
 
         // ── 底层硬件实例（延迟加载） ──
-        private IAxis _zAxis;      // 工位1上料Z轴：控制料盒整体升降，实现层级对准与扫描
-        private IAxis _xAxis;      // 工位1挡料X轴：控制前挡料机构位置（适应8/12寸料盒差异）
+        private IAxis _zAxis;      // 工位2上料Z轴：控制料盒整体升降，实现层级对准与扫描
+        private IAxis _xAxis;      // 工位2挡料X轴：控制前挡料机构位置（适应8/12寸料盒差异）
         private IIOController _io; // EtherCat IO 模块：负责读取底座传感器状态与控制气缸
 
         // ── 生产配方状态变量 ──
@@ -110,7 +110,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 当前料盒的理论最大层数。
         /// 标准半导体料盒通常为13层或25层，作为阵列推演的最大循环边界。
         /// </summary>
-        private int _maxLayerCount = 13;
+        private readonly int _maxLayerCount = 13;
 
         /// <summary>
         /// 晶圆层间距 (Pitch)。
@@ -144,8 +144,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 实例化晶圆上料模组
         /// </summary>
-        public WorkStation1FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
-            : base(E_Mechanisms.工位1上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
+        public WS2FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
+            : base(E_Mechanisms.工位2上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
         {
             PickingPosition_8 = new ConcurrentDictionary<int, AxisPoint>();
             PickingPosition_12 = new ConcurrentDictionary<int, AxisPoint>();
@@ -161,17 +161,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
 
             // ① 延迟解析硬件实例
-            _zAxis = HardwareManagerService?.GetDevice(E_AxisName.工位1上料Z轴.ToString()) as IAxis;
+            _zAxis = HardwareManagerService?.GetDevice(E_AxisName.工位2上料Z轴.ToString()) as IAxis;
             if (_zAxis == null)
             {
-                _logger.Error($"[{MechanismName}] 未找到Z轴 '{E_AxisName.工位1上料Z轴}'，请确认硬件配置。");
+                _logger.Error($"[{MechanismName}] 未找到Z轴 '{E_AxisName.工位2上料Z轴}'，请确认硬件配置。");
                 return false;
             }
 
-            _xAxis = HardwareManagerService?.GetDevice(E_AxisName.工位1挡料X轴.ToString()) as IAxis;
+            _xAxis = HardwareManagerService?.GetDevice(E_AxisName.工位2挡料X轴.ToString()) as IAxis;
             if (_xAxis == null)
             {
-                _logger.Error($"[{MechanismName}] 未找到X轴 '{E_AxisName.工位1挡料X轴}'，请确认硬件配置。");
+                _logger.Error($"[{MechanismName}] 未找到X轴 '{E_AxisName.工位2挡料X轴}'，请确认硬件配置。");
                 return false;
             }
 
@@ -195,15 +195,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!await _xAxis.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] X轴连接失败"); return false; }
             if (!await _io.ConnectAsync(token)) { _logger.Error($"[{MechanismName}] IO模块连接失败"); return false; }
 
-            token.ThrowIfCancellationRequested(); // 【新增】物理连接完成后的取消检查
+            token.ThrowIfCancellationRequested(); // 【新增】连接完成后检查
 
             // ④ 伺服上电使能 (Servo On)
             if (!await _zAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Z轴使能失败"); return false; }
             if (!await _xAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] X轴使能失败"); return false; }
 
-            token.ThrowIfCancellationRequested(); // 【新增】伺服使能完成后的取消检查
+            token.ThrowIfCancellationRequested(); // 【新增】使能完成后检查
 
-          
+            // ⑤ 异常待处理：回原点 (Home) 前需检查传感器确认物料是否处于安全位置，防止硬碰撞。
+            // if (!await _zAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] Z轴回零失败"); return false; }
+            // if (!await _xAxis.HomeAsync(token)) { _logger.Error($"[{MechanismName}] X轴回零失败"); return false; }
+
             return true;
         }
 
@@ -229,7 +232,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
-            // 并发控制指令：多轴插补运动提升设备初始化节拍 (Cycle Time)
             if (await MoveMultiAxesToPointsAsync([
                     (_xAxis, nameof(XAxisPoint.挡料位)),
                     (_zAxis, nameof(ZAxisPoint.待机位))
@@ -242,7 +244,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             else
             {
                 _logger.Warn($"[{MechanismName}] 上料状态初始化失败。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.InitFeedingStateFailed, "初始化上料状态失败，Z/X轴运动到待机位失败");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.InitFeedingStateFailed, "初始化上料状态失败，Z/X轴运动到待机位失败");
             }
         }
 
@@ -256,24 +258,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 检测晶圆料盒尺寸...");
 
-            // 变量解析：读取三个特征物理传感器的布尔值
-            bool iscom = _io.ReadInput(E_InPutName.上晶圆左料盒公用到位检测) == true;   // 公共底座是否受压（是否有料盒）
-            bool is8inch = _io.ReadInput(E_InPutName.上晶圆左8寸料盒到位检测) == true;  // 8寸料盒特征感应位
-            bool is12inch = _io.ReadInput(E_InPutName.上晶圆左12寸料盒到位检测) == true;// 12寸料盒特征感应位
+            bool iscom = _io.ReadInput(E_InPutName.上晶圆右料盒公用到位) == true;
+            bool is8inch = _io.ReadInput(E_InPutName.上晶圆右8寸料盒到位检测) == true;
+            bool is12inch = _io.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
 
             if (!iscom)
             {
-                return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS1Feeding.BoxBaseNotDetected, "晶圆料盒公用底座未检测到物体，请检查料盒是否正确放入。");
+                return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS2Feeding.BoxBaseNotDetected, "晶圆料盒公用底座未检测到物体，请检查料盒是否正确放入。");
             }
 
             if (is8inch && !is12inch)
             {
                 _logger.Success($"[{MechanismName}] 识别到 8寸 晶圆料盒。");
                 _currentWaferSize = E_WafeSize._8寸;
-                bool is8inchReverse = _io.ReadInput(E_InPutName.上晶圆左8寸铁环防反检测) == true;
+                bool is8inchReverse = _io.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
                 if (is8inchReverse)
                 {
-                    return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS1Feeding.Wafer8InchReversed, "8寸晶圆放反，请检查。");
+                    return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS2Feeding.Wafer8InchReversed, "8寸晶圆放反，请检查。");
                 }
                 return MechResult<E_WafeSize>.Success(E_WafeSize._8寸);
             }
@@ -282,16 +283,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Success($"[{MechanismName}] 识别到 12寸 晶圆料盒。");
                 _currentWaferSize = E_WafeSize._12寸;
 
-                bool is12inchReverse = _io.ReadInput(E_InPutName.上晶圆左12寸铁环防反检测) == true;
+                bool is12inchReverse = _io.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
                 if (is12inchReverse)
                 {
-                    return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS1Feeding.Wafer12InchReversed, "12寸晶圆放反，请检查。");
+                    return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS2Feeding.Wafer12InchReversed, "12寸晶圆放反，请检查。");
                 }
                 return MechResult<E_WafeSize>.Success(E_WafeSize._12寸);
             }
             else
             {
-                return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS1Feeding.BoxSizeConflict, $"料盒尺寸识别异常（8寸={is8inch}, 12寸={is12inch}），请检查传感器或料盒放置是否倾斜。");
+                return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS2Feeding.BoxSizeConflict, $"料盒尺寸识别异常（8寸={is8inch}, 12寸={is12inch}），请检查传感器或料盒放置是否倾斜。");
             }
         }
 
@@ -307,7 +308,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _logger.Info($"[{MechanismName}] 切换生产状态为 [{waferSize}]...");
             _currentWaferSize = waferSize;
 
-            // 根据尺寸动态提取对应的工艺参数（层距），并重算坐标系
             if (waferSize == E_WafeSize._8寸)
             {
                 LayerPitch = await ParamService.GetParamAsync<double>(E_Params.LayerPitch_8.ToString());
@@ -334,28 +334,24 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
 
-            // 边界守卫：防止越界访问引发集合异常
             if (targetLayer < 0 || targetLayer >= _maxLayerCount)
             {
                 _logger.Error($"[{MechanismName}] 目标层数 {targetLayer} 超出有效范围 (0 ~ {_maxLayerCount - 1})。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.LayerOutOfRange, $"目标层数 {targetLayer} 超出有效范围 (0 ~ {_maxLayerCount - 1})");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.LayerOutOfRange, $"目标层数 {targetLayer} 超出有效范围 (0 ~ {_maxLayerCount - 1})");
             }
 
-            // 执行核心防撞互锁检查
             var zCheck = await CanMoveZAxesAsync(token);
             if (!zCheck.IsSuccess) return zCheck;
 
             _logger.Info($"[{MechanismName}] 准备切换至第 {targetLayer + 1} 层...");
 
-            // 从缓存字典中提取由 ArrayZAxisMaterialPickingPosition 算好的特定层取料点位
             var targetPoint = await GetZAxisMaterialPickingPosition(targetLayer, _currentWaferSize);
             if (targetPoint == null)
             {
                 _logger.Error($"[{MechanismName}] 未找到第 {targetLayer + 1} 层的阵列点位，可能未执行生产状态切换。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.LayerPointNotFound, $"未找到第 {targetLayer + 1} 层的阵列点位");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.LayerPointNotFound, $"未找到第 {targetLayer + 1} 层的阵列点位");
             }
 
-            // 驱动 Z 轴进行绝对位置运动，并复用示教点内的运动曲线参数 (Speed/Acc/Dec)
             bool moveResult = await MoveAbsAndWaitAsync(_zAxis, targetPoint.TargetPosition, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.08, token: token);
             token.ThrowIfCancellationRequested(); // 【新增】耗时运动结束后的取消检查
 
@@ -364,7 +360,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Success($"[{MechanismName}] 成功切换至第 {targetLayer + 1} 层位置。");
                 return MechResult.Success();
             }
-            return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.LayerMoveFailed, $"Z轴切换到第 {targetLayer + 1} 层运动失败");
+            return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.LayerMoveFailed, $"Z轴切换到第 {targetLayer + 1} 层运动失败");
         }
 
         #endregion
@@ -382,14 +378,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!IsInitialized || _zAxis.HasAlarm)
             {
                 _logger.Warn($"[{MechanismName}] Z轴运动检查失败：模组未初始化或处于报警状态。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, "Z轴运动条件不满足：模组未初始化或处于报警状态");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.ZAxisPreconditionFailed, "Z轴运动条件不满足：模组未初始化或处于报警状态");
             }
 
-            // 【刚性互锁】料盒必须完全落座。如果料盒悬空，Z轴强行升降会将其顶翻引发碎片。
-            if (_io.ReadInput(E_InPutName.上晶圆左料盒公用到位检测) != true)
+            if (_io.ReadInput(E_InPutName.上晶圆右料盒公用到位) != true)
             {
                 _logger.Warn($"[{MechanismName}] Z轴运动检查失败：料盒未到位，禁止升降以免倾覆。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.ZAxisBoxNotInPlace, "Z轴互锁失败：料盒未到位，禁止升降以免倾覆");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.ZAxisBoxNotInPlace, "Z轴互锁失败：料盒未到位，禁止升降以免倾覆");
             }
 
             return MechResult.Success();
@@ -406,13 +401,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!IsInitialized || _xAxis.HasAlarm)
             {
                 _logger.Warn($"[{MechanismName}] X轴运动检查失败：模组未初始化或处于报警状态。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.XAxisPreconditionFailed, "X轴运动条件不满足：模组未初始化或处于报警状态");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.XAxisPreconditionFailed, "X轴运动条件不满足：模组未初始化或处于报警状态");
             }
 
-            if (_io.ReadInput(E_InPutName.上晶圆左铁环突片检测) == true)
+            if (_io.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) != true)
             {
                 _logger.Warn($"[{MechanismName}] X轴运动检查失败：存在突片。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.XAxisTabDetected, "X轴运动条件不满足：存在铁环突片");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.XAxisTabDetected, "X轴运动条件不满足：存在铁环突片");
             }
             return MechResult.Success();
         }
@@ -428,23 +423,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (!IsInitialized)
             {
                 _logger.Warn($"[{MechanismName}] 拉料检查失败：模组未初始化。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, "拉料检查失败：模组未初始化");
+                return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.ZAxisPreconditionFailed, "拉料检查失败：模组未初始化");
             }
 
             switch (_currentWaferSize)
             {
                 case E_WafeSize._8寸:
-                    if (_io.ReadInput(E_InPutName.上晶圆左8寸料盒挡杆检测) == true)
+                    if (_io.ReadInput(E_InPutName.上晶圆右8寸料盒挡杆检测) != true)
                     {
                         _logger.Warn($"[{MechanismName}] 晶圆盒挡杆未打开。");
-                        return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.PullOutLeverNotOpen, "拉料互锁失败：8寸晶圆盒挡杆未打开");
+                        return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.PullOutLeverNotOpen, "拉料互锁失败：8寸晶圆盒挡杆未打开");
                     }
                     break;
                 case E_WafeSize._12寸:
-                    if (_io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测1) == true || _io.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测2) == true)
+                    if (_io.ReadInput(E_InPutName.上晶圆右12寸料盒挡杆检测1) != true || _io.ReadInput(E_InPutName.上晶圆右12寸料盒挡杆检测2) != true)
                     {
                         _logger.Warn($"[{MechanismName}] 晶圆盒挡杆未打开。");
-                        return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.PullOutLeverNotOpen, "拉料互锁失败：12寸晶圆盒挡杆未打开");
+                        return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.PullOutLeverNotOpen, "拉料互锁失败：12寸晶圆盒挡杆未打开");
                     }
                     break;
                 default:
@@ -472,7 +467,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 开始执行Z轴双传感器高速锁存寻层扫描...");
 
-            // 结果集变量
             var resultMap = new Dictionary<int, List<double>>
             {
                 { latchNo1, new List<double>() },
@@ -487,21 +481,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var start = _currentWaferSize == E_WafeSize._12寸 ? nameof(ZAxisPoint.扫描起始位置_12寸) : nameof(ZAxisPoint.扫描起始位置_8寸);
                 _logger.Info($"[{MechanismName}] 正在移动至扫描起点（负极限）...");
                 if (!await _zAxis.MoveToPointAsync(start, token: token))
-                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.ScanMoveToStartFailed, $"移动到 {start} 位置触发失败");
+                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToStartFailed, $"移动到 {start} 位置触发失败");
                 if (!await WaitAxisMoveDoneAsync(_zAxis, token: token))
-                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.ScanMoveToStartFailed, $"移动到 {start} 位置超时");
+                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToStartFailed, $"移动到 {start} 位置超时");
 
                 token.ThrowIfCancellationRequested(); // 【新增】到达起点后检查
 
                 // Step 2: 配置硬件锁存参数
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
-                inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆左错层12寸检测 : (int)E_InPutName.上晶圆左错层8寸检测;
+                inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆右错层检测2 : (int)E_InPutName.上晶圆右错层检测1;
 
                 bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
                 bool latch2Set = await _zAxis.SetLatchMode(LatchNo: latchNo2, InPutPort: inputPort2, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
 
                 if (!latch1Set || !latch2Set)
-                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.ScanLatchConfigFailed, "底层运动控制卡位置锁存(Position Capture)配置失败");
+                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanLatchConfigFailed, "底层运动控制卡位置锁存(Position Capture)配置失败");
 
                 token.ThrowIfCancellationRequested(); // 【新增】配置完成后检查
 
@@ -509,9 +503,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Info($"[{MechanismName}] 开始向上匀速扫描...");
                 var end = _currentWaferSize == E_WafeSize._12寸 ? nameof(ZAxisPoint.扫描结束位置_12寸) : nameof(ZAxisPoint.扫描结束位置_8寸);
                 if (!await _zAxis.MoveToPointAsync(end, token: token))
-                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.ScanMoveToEndFailed, $"移动到 {end} 位置触发失败");
+                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToEndFailed, $"移动到 {end} 位置触发失败");
                 if (!await WaitAxisMoveDoneAsync(_zAxis, token: token))
-                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.ScanMoveToEndFailed, $"移动到 {end} 位置超时");
+                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.ScanMoveToEndFailed, $"移动到 {end} 位置超时");
 
                 token.ThrowIfCancellationRequested(); // 【新增】扫描运动结束后检查
 
@@ -549,7 +543,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             catch (Exception ex)
             {
                 _logger.Error($"[{MechanismName}] 扫描发生异常: {ex.Message}");
-                return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS1Feeding.LayerScanFailed, $"扫描发生异常: {ex.Message}");
+                return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.LayerScanFailed, $"扫描发生异常: {ex.Message}");
             }
         }
 
@@ -563,34 +557,29 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 开始执行寻层数据的过滤与防呆验证...");
 
-            // validWafers: 过滤分析后的有效结果集 (Key: 逻辑层数索引 0-12, Value: 该层实际供后续取料的绝对高度)
             var validWafers = new Dictionary<int, double>();
 
-            // 提取基于配方生成的理论参考点集合
             var ScanPositions = _currentWaferSize == E_WafeSize._8寸 ? ScanPosition_8 : ScanPosition_12;
             var pickpoints = _currentWaferSize == E_WafeSize._8寸 ? PickingPosition_8 : PickingPosition_12;
 
             if (ScanPositions == null || ScanPositions.IsEmpty)
-                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmNotInitialized, "理论层坐标未初始化，请先执行生产状态切换");
+                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmNotInitialized, "理论层坐标未初始化，请先执行生产状态切换");
 
             if (rawMappingData.Keys.Count < 2)
-                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmRawDataMissing, "寻层计算失败，传感器原始数据缺失");
+                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmRawDataMissing, "寻层计算失败，传感器原始数据缺失");
 
-            // 剥离双通道独立数据
             var sensor1Data = rawMappingData[rawMappingData.Keys.ElementAt(0)];
             var sensor2Data = rawMappingData[rawMappingData.Keys.ElementAt(1)];
 
             // [防呆1：总体数量宏观比对]
             if (Math.Abs(sensor1Data.Count - sensor2Data.Count) > 1)
             {
-                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch,
+                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmCountMismatch,
                     $"识别数量差异过大(S1:{sensor1Data.Count}, S2:{sensor2Data.Count})，疑似斜片或传感器失效");
             }
 
-            // slotMatchTolerance: 槽位匹配容差，设定为层距(Pitch)的40%
             double slotMatchTolerance = LayerPitch * 0.4;
 
-            // SameLayerMaximum: 同一层晶圆两侧传感器捕捉高度的最大允许高度差
             int SameLayerMaximum = _currentWaferSize == E_WafeSize._8寸
                 ? await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_8.ToString())
                 : await ParamService.GetParamAsync<int>(E_Params.SameLayerMaximum_12.ToString());
@@ -608,7 +597,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 else
                 {
-                    return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmCrossSlot, "Mapping 失败：检测到严重斜片(Cross-slot)异常");
+                    return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmCrossSlot, "Mapping 失败：检测到严重斜片(Cross-slot)异常");
                 }
             }
 
@@ -629,7 +618,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         {
                             if (validWafers.ContainsKey(layerIndex))
                             {
-                                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmDoubleWafer,
+                                return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmDoubleWafer,
                                     $"Mapping 失败：第 {layerIndex + 1} 层发生重叠片(Double-wafer)异常");
                             }
                             validWafers.Add(layerIndex, pickpos.TargetPosition);
@@ -641,7 +630,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 if (!matched)
                 {
-                    return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmSlotMismatch,
+                    return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmSlotMismatch,
                         $"Mapping 失败：检测到晶圆 Z:{actualZ} 严重偏离标准槽位(可能未插到底)");
                 }
             }
@@ -655,10 +644,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private static void SavePoint(string FilePath, Dictionary<int, List<double>> point)
         {
-            FileInfo file = new(FilePath);
+            FileInfo file = new FileInfo(FilePath);
             if (!Directory.Exists(file.DirectoryName)) Directory.CreateDirectory(file.DirectoryName);
 
-            using (XSSFWorkbook wk = new())
+            using (XSSFWorkbook wk = new XSSFWorkbook())
             {
                 int count = 0;
                 ISheet sheet = wk.CreateSheet("point");

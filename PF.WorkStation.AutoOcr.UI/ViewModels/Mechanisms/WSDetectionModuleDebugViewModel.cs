@@ -16,16 +16,16 @@ using System.Windows.Threading;
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// WorkStationDetectionModuleDebugViewModel
+    /// WSDetectionModuleDebugViewModel
     /// </summary>
-    public class WorkStationDetectionModuleDebugViewModel : RegionViewModelBase
+    public class WSDetectionModuleDebugViewModel : RegionViewModelBase
     {
-        private readonly WorkStationDetectionModule? _detectionModule;
+        private readonly WSDetectionModule? _detectionModule;
         /// <summary>
         /// 获取或设置 DetectionModule
         /// </summary>
 
-        public WorkStationDetectionModule? DetectionModule => _detectionModule;
+        public WSDetectionModule? DetectionModule => _detectionModule;
 
         private DispatcherTimer _monitorTimer;
 
@@ -182,14 +182,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand CamTiggerCommand { get; }
         #endregion Commands 定义
         /// <summary>
-        /// WorkStationDetectionModuleDebugViewModel 构造函数
+        /// WSDetectionModuleDebugViewModel 构造函数
         /// </summary>
 
 
-        public WorkStationDetectionModuleDebugViewModel(IContainerProvider containerProvider)
+        public WSDetectionModuleDebugViewModel(IContainerProvider containerProvider)
         {
             // 依赖注入获取模组实例
-            _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDetectionModule)) as WorkStationDetectionModule;
+            _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
             // --- 绑定全局生命周期指令 ---
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.ResetAsync()));

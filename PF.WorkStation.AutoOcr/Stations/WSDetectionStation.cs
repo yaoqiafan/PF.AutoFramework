@@ -104,16 +104,16 @@ namespace PF.WorkStation.AutoOcr.Stations
     /// 
     /// <para>架构定位：</para>
     /// 继承自 <see cref="StationBase{T, TStep}"/>。这是整个机台中唯一一个跨工位的**公共/共享工站**。
-    /// 负责调度 <see cref="WorkStationDetectionModule"/>，在工位1和工位2的拉料工站发出检测请求时，
-    /// 驱动龙门机构前往对应工位拍照解码，并通过 <see cref="WorkStationDataModule"/> 写入 MES 对比结果。
+    /// 负责调度 <see cref="WSDetectionModule"/>，在工位1和工位2的拉料工站发出检测请求时，
+    /// 驱动龙门机构前往对应工位拍照解码，并通过 <see cref="WSDataModule"/> 写入 MES 对比结果。
     /// </summary>
     [StationUI("OCR检测工站", "WorkStationDetectionStationDebugView", order: 5)]
-    public class WorkStationDetectionStation<T> : StationBase<T, StationDetectionStep> where T : StationMemoryBaseParam, new()
+    public class WSDetectionStation<T> : StationBase<T, StationDetectionStep> where T : StationMemoryBaseParam, new()
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
-        private readonly WorkStationDetectionModule? _detectionModule;
-        private readonly WorkStationDataModule? _dataModule;
+        private readonly WSDetectionModule? _detectionModule;
+        private readonly WSDataModule? _dataModule;
         private readonly IStationSyncService _sync;
 
         /// <summary>
@@ -138,12 +138,12 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 初始化检测工站
         /// </summary>
-        public WorkStationDetectionStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
+        public WSDetectionStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
             // 接入新架构，将生命周期步序枚举托付给基类管理
             : base(nameof(E_WorkStation.OCR检测工站), logger, StationDetectionStep.等待工位1或工位2允许检测)
         {
-            _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDetectionModule)) as WorkStationDetectionModule;
-            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WorkStationDataModule)) as WorkStationDataModule;
+            _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
+            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _sync = sync;
 
             // 订阅底层模组报警，将其上抛至工站级报警流水线
