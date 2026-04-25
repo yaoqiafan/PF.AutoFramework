@@ -17,7 +17,7 @@
 
 * **🧩 极致的模块化架构**：基于 Prism 9 实现 UI、核心逻辑与数据层的彻底解耦。支持插件式开发，子模块动态加载。
 * **🏭 完整的工控生命周期**：内置标准化 8 状态机（含 `InitAlarm` / `RunAlarm` 分离），配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
-* **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice`）。
+* **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase<T>`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice`）。
 * **🎨 现代扁平化 UI**：内置高颜值自定义控件库（`Growl`、`Drawer`、步骤条等），支持深色/浅色主题。
 * **🔐 全局身份与权限管理**：内置完整身份认证模块，支持细粒度权限管控及多级用户角色。
 * **💾 动态参数与持久化系统**：基于 EF Core 9 + SQLite 提供强大的泛型参数服务，JSON 序列化存储，支持审计追踪。
@@ -75,7 +75,7 @@ PF.AutoFramework.slnx
 │   └── PF.Application.Shell          # WPF App 入口
 │
 ├── /07. Demo 工站（AutoOCR）
-│   ├── PF.WorkStation.AutoOcr        # OCR 工站业务逻辑（送料/检测/拉料三站 + 主控 + 配方）
+│   ├── PF.WorkStation.AutoOcr        # OCR 工站业务逻辑（双工位送料/检测/双工位拉料五站 + 主控 + 配方）
 │   └── PF.WorkStation.AutoOcr.UI    # OCR 工站 UI 模块（Views / ViewModels）
 │
 └── /08. 独立服务
@@ -125,6 +125,7 @@ PF.AutoFramework.slnx
 - `IMechanism` : `IDisposable` — 机构抽象接口（`InitializeAsync` / `ResetAsync` / `StopAsync`）
   - 属性：`MechanismName`、`IsInitialized`、`HasAlarm`
   - 事件：`AlarmTriggered` / `AlarmAutoCleared`
+- `IStation` — 工站统一接口（状态机、步序、启停控制）
 - `IMasterController` — 全局主控接口（`InitializeAllAsync` / `StartAllAsync` / `StopAllAsync` / `PauseAll` / `ResumeAllAsync` / `ResetAllAsync` / `SetMode` / `RequestSystemResetAsync`）
 - `ISecsGemManger` — SECS/GEM 协议管理接口（消息发送/接收/状态管理）
 - `IParamService` — 泛型参数读写接口（JSON 序列化、变更事件、批量操作）
@@ -213,9 +214,9 @@ PF.AutoFramework.slnx
 - `EnsurePointsExist<TEnum>(IAxis)` — 泛型点位自动补全：将枚举所有成员与轴点表对比，缺失的自动插入并调用 `SavePointTable()` 持久化
 - `CheckReady()` — 防呆保护，`HasAlarm` 或 `!IsInitialized` 时抛异常
 
-**StationBase**：`Stateless` 8 状态机 + 后台线程管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。暂停门使用 `TaskCompletionSource<bool>` (RunContinuationsAsynchronously) 实现异步门控。子类须实现 `ProcessNormalLoopAsync` 和 `ProcessDryRunLoopAsync` 两个抽象方法。
+**StationBase\<T\>**：`Stateless` 8 状态机 + 后台线程管理。泛型参数 `T : StationMemoryBaseParam` 提供工站运行时内存持久化（断点恢复）。另提供双泛型版本 `StationBase<TMemory, TStep>`（`TStep : struct, Enum`）用于强类型步序枚举管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。暂停门使用 `TaskCompletionSource<bool>` (RunContinuationsAsynchronously) 实现异步门控。子类须实现 `ProcessNormalLoopAsync` 和 `ProcessDryRunLoopAsync` 两个抽象方法。
 
-**BaseMasterController**：全局主控基类，编排所有工站。独立 `StateMachine` + `SemaphoreSlim(1,1)` 保护。并行操作最大并发度 4（`MaxDegreeOfParallelism`）。初始化超时 60s，复位超时 30s。内置防撕裂守卫：当子工站意外跌落到 `Uninitialized` 时自动触发全局报警。智能启动路由：根据当前状态自动决策初始化/启动/恢复。构造函数签名为 `(ILogService, HardwareInputEventBus, IEnumerable<StationBase<StationMemoryBaseParam>>, IAlarmService?)`。
+**BaseMasterController**：全局主控基类，编排所有工站。独立 `StateMachine` + `SemaphoreSlim(1,1)` 保护。并行操作最大并发度 4（`MaxDegreeOfParallelism`）。初始化超时 60s，复位超时 30s。内置防撕裂守卫：当子工站意外跌落到 `Uninitialized` 时自动触发全局报警。智能启动路由：根据当前状态自动决策初始化/启动/恢复。构造函数签名为 `(ILogService, HardwareInputEventBus?, IEnumerable<IStation>, IAlarmService?)`。
 
 ### PF.SecsGem.Service — SECS/GEM 独立后台服务
 
@@ -232,21 +233,25 @@ PF.AutoFramework.slnx
 
 ### PF.WorkStation.AutoOcr — AutoOCR Demo 工站
 
-> 框架内置的完整 Demo 工站，展示三站流水线联动。
+> 框架内置的完整 Demo 工站，展示双工位五站流水线联动（双工位送料 → 检测 → 双工位拉料）。
 
-**机构（Mechanisms）**：
-- `WorkStation1FeedingModule` — 送料模组
-- `WorkStationDetectionModule` — 视觉检测模组
-- `WorkStation1MaterialPullingModule` — 拉料模组
-- `WorkStationDataModule` — 数据记录模组
-- `WorkStationSecsGemModule` — SECS/GEM 通信模组
+**机构（Mechanisms）**（7 个）：
+- `WS1FeedingModel` — 工位一送料模组（Z/X 轴取放料、晶圆盒尺寸识别、层位扫描）
+- `WS2FeedingModule` — 工位二送料模组（与工位一对称，右侧传感器/IO）
+- `WSDetectionModule` — 视觉检测模组（X/Y/Z 龙门定位、OCR 相机触发、图像存档）
+- `WS1MaterialPullingModule` — 工位一拉料模组（Y 轴搬运、夹爪控制、条码扫描、叠片检测）
+- `WS2MaterialPullingModule` — 工位二拉料模组（与工位一对称，右侧传感器/IO）
+- `WSDataModule` — 数据记录模组（MES 批次查询、OCR 比对、检测数据归档、JSON 快照持久化）
+- `WSSecsGemModule` — SECS/GEM 通信模组（S1/S2/S6/S7/S10 流处理、动态事件触发）
 
-**工站（Stations）**：
-- `WorkStation1FeedingStation` — 来料/上料工站
-- `WorkStationDetectionStation` — OCR 检测工站
-- `WorkStation1MaterialPullingStation` — 出料/拉料工站
+**工站（Stations）**（5 个）：
+- `WS1FeedingStation` — 工位一来料/上料工站（44 步序：批次验证 → 配方加载 → 晶圆盒检测 → 层位扫描 → 逐层取料）
+- `WS2FeedingStation` — 工位二来料/上料工站（与工位一对称，44 步序）
+- `WSDetectionStation` — OCR 检测工站（28 步序：`Task.WhenAny` 双工位竞争 → 龙门运动 → OCR 拍照 → 数据比对）
+- `WS1MaterialPullingStation` — 工位一出料/拉料工站（40 步序：取料 → 条码扫描 → 送检 → 回料）
+- `WS2MaterialPullingStation` — 工位二出料/拉料工站（与工位一对称，40 步序）
 
-**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调三站联动
+**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调五站联动，16 个流水线同步信号量
 
 **配方**：`OCRRecipe<OCRRecipeParam>` — 单例配方管理，`OCRRecipeParam` 存储 OCR 检测参数
 
@@ -278,7 +283,7 @@ dotnet restore
 - 深色主题主窗口
 - 左侧导航菜单
 - 系统调试 → 设备综合调试 / 业务模组调试 / 工站调试
-- AutoOCR 三站流水线 Demo 正常运行（送料 → 检测 → 拉料）
+- AutoOCR 双工位五站流水线 Demo 正常运行（工位一送料 → 工位一拉料 → 检测 → 工位二送料 → 工位二拉料）
 
 ---
 
@@ -760,7 +765,7 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 using PF.Core.Attributes;
 
 [StationUI("你的工站调试", "YourStationDebugView", order: 1)]
-public class YourStation : StationBase
+public class YourStation : StationBase<StationMemoryBaseParam>
 {
     private readonly YourMechanism _mechanism;
     private readonly IStationSyncService _sync;
@@ -877,12 +882,12 @@ public class YourStation : StationBase
 ```csharp
 var container = containerRegistry.GetContainer();
 container.RegisterMany(
-    new[] { typeof(YourStation), typeof(StationBase) },
+    new[] { typeof(YourStation), typeof(StationBase<StationMemoryBaseParam>) },
     typeof(YourStation),
     reuse: DryIoc.Reuse.Singleton);
 ```
 
-> **并发安全说明**：`StationBase` 内置 `SemaphoreSlim(1,1)` 状态锁，所有 `Fire()` 调用均线程安全。
+> **并发安全说明**：`StationBase<T>` 内置 `SemaphoreSlim(1,1)` 状态锁，所有 `Fire()` 调用均线程安全。
 > 触发 `Running` 状态入口（`Start` / `Resume`）必须通过 `await FireAsync(...)` 异步触发，以正确等待 `OnEntryAsync` 中旧任务的彻底终止，避免"幽灵线程"并发访问硬件。
 
 ---
@@ -899,10 +904,11 @@ public class YourMasterController : BaseMasterController
 
     public YourMasterController(
         ILogService logger,
-        PhysicalButtonEventBus hardwareEventBus,   // 物理按键事件总线（必填，可传 null 忽略）
+        HardwareInputEventBus? hardwareEventBus,  // 硬件输入事件总线（可传 null 忽略）
         IStationSyncService sync,
-        IEnumerable<StationBase> stations)
-        : base(logger, hardwareEventBus, stations)
+        IEnumerable<IStation> stations,
+        IAlarmService? alarmService = null)
+        : base(logger, hardwareEventBus, stations, alarmService)
     {
         _sync = sync;
 
@@ -920,7 +926,7 @@ public class YourMasterController : BaseMasterController
 }
 ```
 
-> **PhysicalButtonEventBus 说明**：基类自动订阅物理面板按键事件（急停/启动/暂停/复位），并实现智能启动逻辑——`Uninitialized` 状态时先初始化再启动，`Paused` 时直接恢复，其他状态忽略。无物理面板时传入 `null` 即可。
+> **HardwareInputEventBus 说明**：基类自动订阅硬件输入事件（急停/启动/暂停/复位），并实现智能启动逻辑——`Uninitialized` 状态时先初始化再启动，`Paused` 时直接恢复，其他状态忽略。无物理面板时传入 `null` 即可。取代原 `PhysicalButtonEventBus`。
 
 ### 5.2 典型调用序列
 
@@ -1188,10 +1194,10 @@ BaseDevice（设备）
 BaseMechanism（机构）      ← 聚合多硬件，业务动作
     └── RegisterHardwareDevice() → 报警聚合
 
-StationBase（工站）        ← 步序状态机 + 后台线程
+StationBase<T>（工站）     ← 步序状态机 + 后台线程 + 泛型内存持久化
     ├── ProcessNormalLoopAsync  ← 正常生产循环
     ├── ProcessDryRunLoopAsync  ← 空跑循环
-    └── ExecuteResetAsync ← 智能恢复
+    └── ExecuteResetAsync ← 智能恢复（断点续跑）
 ```
 
 ### 9.2 代理模式
@@ -1339,7 +1345,7 @@ await _hwManager.ReloadAllAsync();
 |------|---------|------|
 | **模板方法** | `BaseDevice.ConnectAsync` → `InternalConnectAsync` | 定义算法骨架（模拟检查→重试循环→OnConnected），子类仅覆写钩子 |
 | **代理/委托** | `BaseAxisDevice` / `BaseIODevice` | 所有操作委托给 `ParentCard`，新增厂商仅需实现一个 `XXXMotionCard` |
-| **状态机** | `StationBase` / `BaseMasterController` | Stateless 库，8 状态 10 触发，`SemaphoreSlim` 保护并发 |
+| **状态机** | `StationBase<T>` / `BaseMasterController` | Stateless 库，8 状态 10 触发，`SemaphoreSlim` 保护并发 |
 | **MVVM** | 所有 UI 模块 | Prism ViewModelBase，View-ViewModel 绑定，Region 导航 |
 | **模块插件** | Prism `IModule` | 每个业务域独立模块，动态加载注册 |
 | **工厂** | `HardwareManagerService.RegisterFactory` | `Func<HardwareConfig, IHardwareDevice>` 字典，按类名字符串匹配 |
@@ -1348,7 +1354,7 @@ await _hwManager.ReloadAllAsync();
 | **属性自动发现** | `[ModuleNavigation]` / `[MechanismUI]` / `[StationUI]` | 反射扫描特性，零配置注册 UI 视图 |
 | **生产者-消费者** | `ProductionDataService` | `Channel<T>` 有界队列（10000）+ 单消费线程，非阻塞写入 |
 | **双重信号量互锁** | `IStationSyncService` | 流水线协同，命名信号量 + 作用域生命周期 |
-| **任务竞争** | `WorkStationDetectionStation` | `Task.WhenAny` 实现共享资源的竞争获取 |
+| **任务竞争** | `WSDetectionStation` | `Task.WhenAny` 实现双工位检测资源的竞争获取 |
 | **单例** | DryIoc `Reuse.Singleton` | 全局唯一的服务、模组、工站、主控实例 |
 
 ---
@@ -1563,9 +1569,9 @@ PF.Core（零依赖）
 
 ## 16. 应用启动流程
 
-`App.xaml.cs`（842 行）作为组合根，执行以下启动序列：
+`App.xaml.cs`（901 行）作为组合根，执行以下启动序列：
 
-1. **单实例检查**：命名 `Mutex`（`Global\PFAutoFrameworkOCRAppID-...`），防止多开
+1. **单实例检查**：命名 `Mutex`（`Global\PFAutoFrameworkOCRAppID-12345678-ABCD-EFGH-IJKL-1234567890AB`），防止多开
 2. **Prism 配置**：DryIoc 容器 + 模块目录
 3. **DI 注册**（按顺序）：
    - 日志（`log4net`）
@@ -1573,8 +1579,9 @@ PF.Core（零依赖）
    - 生产数据库（`ProductionDbContext`）
    - SECS/GEM 服务（`SecsGemDbContext` + 双 TCP 服务器）
    - 硬件工厂（6 种设备：LTDMC / EtherCat / HKBarcode / Keyence / CTS_LightController）
-   - 机制（5 个模组 Singleton）
-   - 工站（3 个站 Singleton）
+   - 硬件输入事件总线（`HardwareInputEventBus`，取代原 `PhysicalButtonEventBus`）
+   - 机制（7 个模组 Singleton：`WS1FeedingModel` / `WS2FeedingModule` / `WSDetectionModule` / `WS1MaterialPullingModule` / `WS2MaterialPullingModule` / `WSDataModule` / `WSSecsGemModule`）
+   - 工站（5 个站 Singleton：`WS1FeedingStation` / `WS2FeedingStation` / `WSDetectionStation` / `WS1MaterialPullingStation` / `WS2MaterialPullingStation`）
    - 主控（`AutoOCRMachineController` Singleton）
    - 配方（`OCRRecipe<OCRRecipeParam>`）
    - 报警服务（独立 `AlarmHistory.db`）
@@ -1585,8 +1592,8 @@ PF.Core（零依赖）
    - 注册 Shell 程序集菜单 → `PermissionHelper` 初始化
    - 静默登录（SuperUser，密码 = `DateTime.Now.ToString("yyyyMMddHH00")`）
    - 事件桥接：Prism `EventAggregator` → Infrastructure 层事件
-6. **Splash 启动画面**：进度报告 → 配置加载 → 硬件拓扑初始化 → 机制初始化
-7. **硬件监控启动**：`IHardwareInputMonitor` 启动双线程扫描
+6. **Splash 启动画面**：进度报告 → 配置加载 → 硬件拓扑初始化 → 机制初始化（按顺序：`WS1FeedingModel` → `WS1MaterialPullingModule` → `WS2FeedingModule` → `WS2MaterialPullingModule` → `WSDetectionModule` → `WSDataModule` → `WSSecsGemModule`）
+7. **硬件监控启动**：`IHardwareInputMonitor.StartStandardMonitoring()` 启动双线程扫描
 
 ---
 
@@ -1627,9 +1634,10 @@ PF.Core（零依赖）
 | `LTMDCMotionCard` | 雷泰 (LTDMC) | 运动控制卡，继承 `BaseMotionCard` |
 | `EtherCatAxis` | EtherCAT | 轴设备，继承 `BaseAxisDevice` |
 | `EtherCatIO` | EtherCAT | IO 设备，继承 `BaseIODevice` |
-| `HKBarcodeScan` | 海康机器人 | 条码扫描器（TCP 通信），继承 `BaseDevice` |
-| `KeyenceIntelligentCamera` | 基恩士 | 视觉相机，继承 `BaseDevice` |
-| `CTSLightController` / `OPTLightController` | CTS / OPT | 光源控制器，继承 `BaseDevice` |
+| `HKBarcodeScan` | 海康机器人 | 条码扫描器（TCP 通信），继承 `BaseBarcodeScan` |
+| `KeyenceIntelligentCamera` | 基恩士 | 视觉相机，继承 `BaseIntelligentCamera` |
+| `CTSLightController` | CTS | 光源控制器，继承 `BaseLightController` |
+| `OPTLightController` | OPT | 光源控制器，继承 `BaseLightController`（`internal`，桩实现） |
 
 ---
 
