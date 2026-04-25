@@ -41,6 +41,7 @@
 PF.AutoFramework.slnx
 │
 ├── /00. 全局配置
+│   ├── Directory.Build.props         # MSBuild 全局构建配置
 │   ├── Common.props                  # 全局编译属性
 │   ├── Common.Desktop.props          # 桌面 WPF 专属属性
 │   └── Directory.Packages.props      # 中央包版本管理
@@ -64,6 +65,7 @@ PF.AutoFramework.slnx
 │   └── PF.Services                   # 业务服务（ParamService、HardwareManager、ProductionDataService）
 │
 ├── /05. 业务模块 (Modules)
+│   ├── PF.Modules.Alarm              # 报警中心
 │   ├── PF.Modules.Identity           # 身份认证
 │   ├── PF.Modules.Logging            # 日志查看
 │   ├── PF.Modules.Parameter          # 参数管理
@@ -75,11 +77,14 @@ PF.AutoFramework.slnx
 │   └── PF.Application.Shell          # WPF App 入口
 │
 ├── /07. Demo 工站（AutoOCR）
-│   ├── PF.WorkStation.AutoOcr        # OCR 工站业务逻辑（双工位送料/检测/双工位拉料五站 + 主控 + 配方）
+│   ├── PF.WorkStation.AutoOcr        # OCR 工站业务逻辑（双工位五站 + 主控 + 配方 + 成本参数）
 │   └── PF.WorkStation.AutoOcr.UI    # OCR 工站 UI 模块（Views / ViewModels）
 │
-└── /08. 独立服务
-    └── PF.SecsGem.Service            # SECS/GEM Windows 后台服务（独立进程，TCP 双服务器转发）
+├── /08. 独立服务
+│   └── PF.SecsGem.Service            # SECS/GEM Windows 后台服务（独立进程，TCP 双服务器转发）
+│
+└── /09. 元包 (Meta Package)
+    └── PF.AutoFramework.Meta         # NuGet 元包，聚合所有框架项目依赖
 ```
 
 ---
@@ -99,6 +104,9 @@ PF.AutoFramework.slnx
 | **状态机** | Stateless | 5.20.1 |
 | **Excel** | NPOI | 2.7.5 |
 | **JSON** | System.Text.Json | 内置 |
+| **Windows 服务** | Microsoft.Extensions.Hosting.WindowsServices | 10.0.2 |
+| **服务控制** | System.ServiceProcess.ServiceController | 8.0.0 |
+| **XAML 编译** | XAMLTools.MSBuild | — |
 
 ---
 
@@ -108,11 +116,11 @@ PF.AutoFramework.slnx
 
 > 无任何外部依赖，所有项目均可安全引用。
 
-- `IHardwareDevice` — 硬件设备统一接口（6 个属性 + 4 个方法 + 3 个事件）
-  - 属性：`DeviceId`、`DeviceName`、`IsConnected`、`HasAlarm`、`Category`、`IsSimulated`
+- `IHardwareDevice` — 硬件设备统一接口（7 个属性 + 4 个方法 + 3 个事件），继承 `IDisposable`
+  - 属性：`DeviceId`、`DeviceName`、`IsConnected`、`HasAlarm`、`Category`、`IsSimulated`、`SuppressHealthMonitoring`
   - 方法：`ConnectAsync` / `DisconnectAsync` / `ResetAsync` / `ResetHardwareAlarmAsync`
   - 事件：`ConnectionChanged` / `AlarmTriggered`（携带 `DeviceAlarmEventArgs`）/ `HardwareAlarmAutoCleared`
-- `IMotionCard` : `IHardwareDevice` — 运动控制卡接口（18 个方法 + 4 个属性）
+- `IMotionCard` : `IHardwareDevice` — 运动控制卡接口（17 个方法 + 4 个属性）
   - 运动控制（7）：`EnableAxisAsync` / `DisableAxisAsync` / `StopAxisAsync` / `HomeAxisAsync` / `MoveAbsoluteAsync` / `MoveRelativeAsync` / `JogAsync`
   - 轴状态（3）：`GetAxisCurrentPosition` / `GetMotionIOStatus`（返回 `MotionIOStatus` 结构体）/ `ClearAxisError`
   - IO 读写（3）：`ReadInputPort` / `WriteOutputPort` / `ReadOutputPort`
@@ -120,8 +128,8 @@ PF.AutoFramework.slnx
   - 板卡配置（1）：`LoadConfigAsync`
   - 属性：`CardIndex`、`AxisCount`、`InputCount`、`OutputCount`
 - `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
-- `IAxis` : `IHardwareDevice`, `IAttachedDevice` — 单轴控制器接口（点表管理 + 运动控制 + 位置锁存）
-- `IIOController` : `IHardwareDevice`, `IAttachedDevice` — 数字 IO 接口（含泛型枚举重载）
+- `IAxis` : `IHardwareDevice` — 单轴控制器接口（点表管理 + 运动控制 + 位置锁存）
+- `IIOController` : `IHardwareDevice` — 数字 IO 接口（含泛型枚举重载）
 - `IMechanism` : `IDisposable` — 机构抽象接口（`InitializeAsync` / `ResetAsync` / `StopAsync`）
   - 属性：`MechanismName`、`IsInitialized`、`HasAlarm`
   - 事件：`AlarmTriggered` / `AlarmAutoCleared`
@@ -156,7 +164,7 @@ PF.AutoFramework.slnx
 - `DbContextFactory<TContext>` — 静态线程安全工厂，`ConcurrentDictionary` 缓存 DbContext 配置
 - `ParamEntity` — 所有参数实体的基类（Name, JsonValue, Category, Version, TypeFullName）
 - `HardwareParam` — 硬件配置参数实体（存储 `HardwareConfig` 的 JSON 序列化结果）
-- `ProductionDataEntity` — 生产数据实体（DeviceId / RecordType / RecordTime / BatchId）
+- `ProductionDataEntity` — 生产数据实体（ID / JsonValue / TypeFullName / RecordType / RecordTime / CreateTime）
 - `UserLoginParam` — 用户登录参数实体（用户名/密码/角色持久化）
 - `SystemConfigParam` — 系统通用配置参数实体
 - `GenericRepository<T>` — 通用 CRUD 仓储
@@ -214,18 +222,18 @@ PF.AutoFramework.slnx
 - `EnsurePointsExist<TEnum>(IAxis)` — 泛型点位自动补全：将枚举所有成员与轴点表对比，缺失的自动插入并调用 `SavePointTable()` 持久化
 - `CheckReady()` — 防呆保护，`HasAlarm` 或 `!IsInitialized` 时抛异常
 
-**StationBase\<T\>**：`Stateless` 8 状态机 + 后台线程管理。泛型参数 `T : StationMemoryBaseParam` 提供工站运行时内存持久化（断点恢复）。另提供双泛型版本 `StationBase<TMemory, TStep>`（`TStep : struct, Enum`）用于强类型步序枚举管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `OnEntryAsync` 幽灵线程防治：先等待旧任务彻底结束再启动新任务，确保并发安全。暂停门使用 `TaskCompletionSource<bool>` (RunContinuationsAsynchronously) 实现异步门控。子类须实现 `ProcessNormalLoopAsync` 和 `ProcessDryRunLoopAsync` 两个抽象方法。
+**StationBase\<T\>** / **StationBase\<TMemory, TStep\>**：`Stateless` 8 状态机 + 后台线程管理。实现 `INotifyPropertyChanged`，提供 `CurrentStepDescription`（步序描述字符串，子类赋值自动通知 UI）。采用 `SemaphoreSlim(1,1)` 状态锁 + `CancelAndAwaitOldTaskAsync` 取消旧任务后再启动新任务，确保并发安全。暂停机制使用 `CancellationTokenSource`（`_runCts`）实现取消式暂停。子类须实现 `ProcessNormalLoopAsync` 和 `ProcessDryRunLoopAsync` 两个抽象方法。
 
-**BaseMasterController**：全局主控基类，编排所有工站。独立 `StateMachine` + `SemaphoreSlim(1,1)` 保护。并行操作最大并发度 4（`MaxDegreeOfParallelism`）。初始化超时 60s，复位超时 30s。内置防撕裂守卫：当子工站意外跌落到 `Uninitialized` 时自动触发全局报警。智能启动路由：根据当前状态自动决策初始化/启动/恢复。构造函数签名为 `(ILogService, HardwareInputEventBus?, IEnumerable<IStation>, IAlarmService?)`。
+**BaseMasterController**：全局主控基类，编排所有工站。独立 `StateMachine` + `SemaphoreSlim(1,1)` 保护。并行操作最大并发度 4（`MaxDegreeOfParallelism`）。初始化超时 120s，复位超时 30s。内置防撕裂守卫：当子工站意外跌落到 `Uninitialized` 时自动触发全局报警。智能启动路由：根据当前状态自动决策初始化/启动/恢复。构造函数签名为 `(ILogService, HardwareInputEventBus?, IEnumerable<IStation>, IAlarmService?)`。
 
 ### PF.SecsGem.Service — SECS/GEM 独立后台服务
 
 > 独立 Windows 后台服务（`BackgroundService`），与主 WPF 进程解耦，作为 SECS/GEM 协议的专用转发代理。
 
-- **双 TCP 服务器架构**：
+- **双 TCP 服务器架构**（`Worker` 私有字段）：
   - `SecsGemServer`：对外监听，负责与设备主机（Host）的 SECS/GEM 报文收发
   - `LocationServer`：对内监听（`127.0.0.1:6800`），负责与 WPF 主程序交互
-- **消息缓冲区**（`MessageBuffer`）：内置粘包/半包处理，按 SECS 协议的 4 字节长度头解帧
+- **消息缓冲区**（`MessageBuffer`，`Worker` 嵌套类）：内置粘包/半包处理，按 SECS 协议的 4 字节长度头解帧
 - **消息队列**：`ConcurrentQueue<byte[]>` + 独立消费任务，异步处理 S0F0（LinkTest）及业务报文转发
 - **状态同步**：连接/断连事件通过 `0x02` 状态帧实时通知本地客户端
 - **日志记录**：独立 `Channel` 异步写入十六进制报文日志，按年月日自动分目录，路径 `D:\SWLog\SecsGemService\`
@@ -233,9 +241,9 @@ PF.AutoFramework.slnx
 
 ### PF.WorkStation.AutoOcr — AutoOCR Demo 工站
 
-> 框架内置的完整 Demo 工站，展示双工位五站流水线联动（双工位送料 → 检测 → 双工位拉料）。
+> 框架内置的完整 Demo 工站，展示双工位五站流水线联动。项目目录结构为 `Mechanisms/` / `Stations/`（含 `AutoOCRMachineController.cs`）/ `Recipe/` / `CostParam/`。
 
-**机构（Mechanisms）**（7 个）：
+**机构（Mechanisms）**：
 - `WS1FeedingModel` — 工位一送料模组（Z/X 轴取放料、晶圆盒尺寸识别、层位扫描）
 - `WS2FeedingModule` — 工位二送料模组（与工位一对称，右侧传感器/IO）
 - `WSDetectionModule` — 视觉检测模组（X/Y/Z 龙门定位、OCR 相机触发、图像存档）
@@ -251,7 +259,7 @@ PF.AutoFramework.slnx
 - `WS1MaterialPullingStation` — 工位一出料/拉料工站（40 步序：取料 → 条码扫描 → 送检 → 回料）
 - `WS2MaterialPullingStation` — 工位二出料/拉料工站（与工位一对称，40 步序）
 
-**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调五站联动，16 个流水线同步信号量
+**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调三站联动
 
 **配方**：`OCRRecipe<OCRRecipeParam>` — 单例配方管理，`OCRRecipeParam` 存储 OCR 检测参数
 
@@ -740,7 +748,7 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 | `Initializing` | 正在执行硬件连接/回零 |
 | `Idle` | 待机，就绪等待启动 |
 | `Running` | 后台线程执行 `ProcessLoopAsync` |
-| `Paused` | `_pauseGate` 关闭（`TaskCompletionSource` 异步门控），线程挂起 |
+| `Paused` | `_runCts` 取消（`CancellationTokenSource` 取消式暂停），线程挂起 |
 | `InitAlarm` | 初始化阶段故障（来自 `Initializing` 的 Error） |
 | `RunAlarm` | 运行阶段故障（来自 `Running` / `Paused` 的 Error） |
 | `Resetting` | 正在执行物理复位（复位完成后根据来源回到 `Idle` 或 `Uninitialized`） |
@@ -888,7 +896,7 @@ container.RegisterMany(
 ```
 
 > **并发安全说明**：`StationBase<T>` 内置 `SemaphoreSlim(1,1)` 状态锁，所有 `Fire()` 调用均线程安全。
-> 触发 `Running` 状态入口（`Start` / `Resume`）必须通过 `await FireAsync(...)` 异步触发，以正确等待 `OnEntryAsync` 中旧任务的彻底终止，避免"幽灵线程"并发访问硬件。
+> 触发 `Running` 状态入口（`Start` / `Resume`）必须通过 `await FireAsync(...)` 异步触发，以正确等待 `CancelAndAwaitOldTaskAsync` 中旧任务的彻底终止，避免旧任务残留并发访问硬件。
 
 ---
 
@@ -1410,7 +1418,7 @@ await _hwManager.ReloadAllAsync();
 
 底层 WPF 工具库，不含业务逻辑：
 
-- **值转换器**：`Boolean2VisibilityConverter` / `Color2HexConverter` 等
+- **值转换器**：`BooleanToVisibilityConverter`（WPF 内置，别名 `Boolean2VisibilityConverter`）/ `Boolean2VisibilityReConverter`（自定义）/ `Color2HexStringConverter` 等
 - **扩展方法**：`DependencyObject` / `FrameworkElement` / `Color` / `String` / `Geometry`
 - **绘图/几何**：贝塞尔曲线扁平化、路径几何计算
 - **媒体效果**：`GeometryEffect` / `SketchGeometryEffect` / `ArcGeometrySource`
@@ -1534,10 +1542,6 @@ await _hwManager.ReloadAllAsync();
 
 聚合所有框架项目的 NuGet 元包，引用后自动传递所有子项目依赖。
 
-### ConsoleApp1 — 测试控制台
-
-简单控制台应用程序，引用框架项目用于快速测试和验证。
-
 ---
 
 ## 15. 完整依赖关系图
@@ -1569,9 +1573,9 @@ PF.Core（零依赖）
 
 ## 16. 应用启动流程
 
-`App.xaml.cs`（901 行）作为组合根，执行以下启动序列：
+`App.xaml.cs` 作为组合根，执行以下启动序列：
 
-1. **单实例检查**：命名 `Mutex`（`Global\PFAutoFrameworkOCRAppID-12345678-ABCD-EFGH-IJKL-1234567890AB`），防止多开
+1. **单实例检查**：命名 `Mutex`（`Global\PFAutoFrameworkOCRAppID-...`），防止多开
 2. **Prism 配置**：DryIoc 容器 + 模块目录
 3. **DI 注册**（按顺序）：
    - 日志（`log4net`）
