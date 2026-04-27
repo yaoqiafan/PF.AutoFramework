@@ -596,6 +596,19 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue("E//OCRImagePath")]
         OCRCameraImageSavePath,
 
+
+        /// <summary>工位X方向间距_8寸</summary>
+        [Category("OCR相机参数")]
+        [Description("工位X方向间距_8寸")]
+        [DefaultValue(645.0)]
+        OCRStationDistance_8,
+
+
+        /// <summary>工位X方向间距_12寸</summary>
+        [Category("OCR相机参数")]
+        [Description("工位X方向间距_12寸")]
+        [DefaultValue(540.0)]
+        OCRStationDistance_12,
         #endregion OCR相机参数
 
 
