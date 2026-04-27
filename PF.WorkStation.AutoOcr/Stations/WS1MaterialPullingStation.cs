@@ -1,4 +1,5 @@
-﻿using PF.Core.Attributes;
+﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
@@ -174,7 +175,7 @@ namespace PF.WorkStation.AutoOcr.Stations
     /// 以及 <see cref="WSDetectionModule"/> (OCR视觉) 进行信号握手，实现互不干涉的并发流转。
     /// </summary>
     [StationUI("工位1拉料工站", "WorkStation1MaterialPullingStationDebugView", order: 2)]
-    public class WS1MaterialPullingStation<T> : StationBase<T, Station1PullingStep> where T : StationMemoryBaseParam,new ()
+    public class WS1MaterialPullingStation : StationBase<PullingMemoryParam, Station1PullingStep>
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
@@ -186,6 +187,10 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// 当前批次缓存的工位工艺配方
         /// </summary>
         private OCRRecipeParam? _cachedRecipe;
+
+
+        public override PullingMemoryParam? MemoryParam { get; set; }
+
 
         #endregion
 
@@ -248,9 +253,67 @@ namespace PF.WorkStation.AutoOcr.Stations
         public override async Task ExecuteInitializeAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Initialize); // Uninitialized → Initializing
+            _logger.Info($"[{StationName}] 正在初始化拉料模组...");
             try
             {
-                _logger.Info($"[{StationName}] 正在初始化拉料模组...");
+
+                /*************当前物料在夹爪上，并且夹爪处于夹紧的状态*************/
+                if (MemoryParam.GipperState == PullingMemoryParam.E_Status.拉料 || MemoryParam.GipperState == PullingMemoryParam.E_Status.读码 || MemoryParam.GipperState == PullingMemoryParam.E_Status.检测中 || MemoryParam.GipperState == PullingMemoryParam.E_Status.检测完成 || MemoryParam.GipperState == PullingMemoryParam.E_Status.取料中)
+                {
+                    bool? res = await _pullingModule.CheckGipperIsExist(token);
+                    if (!res.HasValue)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，判断夹爪的物料状态异常");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+                    if (!res.Value)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，记忆中夹爪的状态为有料，实际检测为无料，检查轨道物料状态");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    var result = await _pullingModule.CloseWafeGipper(token);
+                    if (!result.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
+                        Fire(MachineTrigger.Error);
+                    }
+
+
+
+                }
+
+
+                /*************当前夹爪处于无料状态，需要先松开夹爪然后在复位***************/
+                else if (MemoryParam.GipperState == PullingMemoryParam.E_Status.送料完成 || MemoryParam.GipperState == PullingMemoryParam.E_Status.空闲)
+                {
+                    var result = await _pullingModule.OpenWafeGipper(token);
+                    if (!result.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，打开夹爪失败");
+                        Fire(MachineTrigger.Error);
+                    }
+                }
+
+                else if (MemoryParam.GipperState == PullingMemoryParam.E_Status.送料中)
+                {
+                    var result = await _pullingModule.CloseWafeGipper(token);
+                    if (!result.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
+                        Fire(MachineTrigger.Error);
+                    }
+                }
+
+
+                if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize))
+                {
+                    _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
+                    Fire(MachineTrigger.Error);
+                    return;
+                }
 
                 if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
                 {
@@ -276,8 +339,43 @@ namespace PF.WorkStation.AutoOcr.Stations
                 throw;
             }
 
-            _currentStep = Station1PullingStep.等待允许取料;
-            _resumeStep = Station1PullingStep.等待允许取料;
+            switch (MemoryParam.GipperState)
+            {
+                case PullingMemoryParam.E_Status.空闲:
+                case PullingMemoryParam.E_Status.送料完成:
+                    _currentStep = Station1PullingStep.等待允许取料;
+                    _resumeStep = Station1PullingStep.等待允许取料;
+                    break;
+
+                case PullingMemoryParam.E_Status.取料中:
+                    _currentStep = Station1PullingStep.关闭夹爪;
+                    _resumeStep = Station1PullingStep.关闭夹爪;
+                    break;
+                case PullingMemoryParam.E_Status.拉料:
+                    _currentStep = Station1PullingStep.移动到检测位;
+                    _resumeStep = Station1PullingStep.移动到检测位;
+                    break;
+                case PullingMemoryParam.E_Status.读码:
+                    _currentStep = Station1PullingStep.扫码识别;
+                    _resumeStep = Station1PullingStep.扫码识别;
+                    break;
+                case PullingMemoryParam.E_Status.检测中:
+                    _currentStep = Station1PullingStep.允许检测位检测;
+                    _resumeStep = Station1PullingStep.允许检测位检测;
+                    break;
+
+                case PullingMemoryParam.E_Status.检测完成:
+                    _currentStep = Station1PullingStep.等待允许送料;
+                    _resumeStep = Station1PullingStep.等待允许送料;
+                    break;
+                case PullingMemoryParam.E_Status.送料中:
+                    _currentStep = Station1PullingStep.等待允许送料;
+                    _resumeStep = Station1PullingStep.等待允许送料;
+                    break;
+
+
+            }
+
         }
 
         /// <summary>执行工站复位</summary>
@@ -428,6 +526,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1PullingStep.关闭夹爪:
                             CurrentStepDescription = "关闭夹爪...";
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.取料中;
+
                             // 气缸闭合动作
                             var closeResult = await _pullingModule.CloseWafeGipper(token);
                             if (closeResult.IsSuccess)
@@ -464,6 +564,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1PullingStep.移动到检测位:
                             CurrentStepDescription = "移动到检测位...";
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.拉料;
                             // 将晶圆拉出至相机视场中心
                             var detectMoveResult = await _pullingModule.MoveDetection(token);
                             if (detectMoveResult.IsSuccess)
@@ -480,6 +581,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
 
                         case Station1PullingStep.扫码识别:
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.读码;
                             CurrentStepDescription = "扫码识别...";
                             // 触发本地或读码器扫码逻辑
                             var scanResult = await _pullingModule.CodeScanTigger(token);
@@ -488,6 +590,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
 
                         case Station1PullingStep.允许检测位检测:
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.检测中;
                             CurrentStepDescription = "通知 OCR 视觉执行检测...";
                             _logger.Info($"[{StationName}] 发送允许检测信号，交给视觉工站接管");
                             // 释放信号给独立的视觉调度任务
@@ -500,7 +603,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _logger.Info($"[{StationName}] 等待视觉工站反馈检测完成信号...");
                             // 等待视觉工站的回执
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1检测完成), token, scope: nameof(E_WorkStation.OCR检测工站)).ConfigureAwait(false);
-
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.检测完成;
                             _logger.Info($"[{StationName}] 收到视觉检测完成信号");
                             _currentStep = Station1PullingStep.等待允许送料;
                             break;
@@ -525,7 +628,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station1PullingStep.送料到取料位:
                             CurrentStepDescription = "正在退料回料盒...";
                             _logger.Info($"[{StationName}] Y 轴送料回料盒...");
-
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.送料中;
                             // 确保推料前夹爪状态正常
                             var feedOpenResult = await _pullingModule.OpenWafeGipper(token);
                             if (!feedOpenResult.IsSuccess)
@@ -556,6 +659,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             {
                                 _logger.Info($"[{StationName}] 松开夹爪成功");
                                 _currentStep = Station1PullingStep.移动到待机位;
+                                MemoryParam.GipperState = PullingMemoryParam.E_Status.送料完成;
                             }
                             else
                             {
@@ -600,7 +704,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "发送退料完成信号...";
                             _logger.Info($"[{StationName}] 释放本层退料完成信号，流程闭环");
                             _sync.Release(nameof(WorkstationSignals.工位1退料完成), StationName);
-
+                            MemoryParam.GipperState = PullingMemoryParam.E_Status.空闲;
                             // 回归初始态，循环等待下一层的处理指令
                             _currentStep = Station1PullingStep.等待允许取料;
                             break;
@@ -706,4 +810,33 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #endregion
     }
+
+
+    public class PullingMemoryParam : StationMemoryBaseParam
+    {
+
+        public enum E_Status
+        {
+            空闲,
+            取料中,
+            拉料,
+            读码,
+            检测中,
+            检测完成,
+            送料中,
+            送料完成,
+        }
+
+
+        /// <summary>
+        /// 夹爪状态
+        /// </summary>
+        public E_Status GipperState { get; set; }
+
+
+
+
+    }
+
+
 }
