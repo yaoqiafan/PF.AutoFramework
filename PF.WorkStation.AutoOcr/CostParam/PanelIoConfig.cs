@@ -57,22 +57,26 @@ namespace PF.WorkStation.AutoOcr.CostParam
             new List<IHardwareInputConfig>
             {
                 // ── 普通按键（Standard 组，20ms 防抖）────────────────────────
-                new HardwareInputConfig(HardwareInputType.Start, port: (int)E_InPutName.上晶圆左启动按钮, debounceMs: 20,
+                new HardwareInputConfig(HardwareInputTypeExtension.WorkStation1Start, port: (int)E_InPutName.上晶圆左启动按钮, debounceMs: 20,
                     name: "工位1启动按钮", InputScanGroup.Standard),
 
-                new HardwareInputConfig(HardwareInputType.Pause, port: (int)E_InPutName.上晶圆右启动按钮, debounceMs: 20,
+                new HardwareInputConfig(HardwareInputTypeExtension.WorkStation2Start, port: (int)E_InPutName.上晶圆右启动按钮, debounceMs: 20,
                     name: "工位2启动按钮", InputScanGroup.Standard),
 
 
-                // ── 安全传感器（Safety 组，零延迟）───────────────────────────
-                new HardwareInputConfig(HardwareInputType.EStop, port: 3, debounceMs: 0,
-                    name: "急停按钮（NC）", InputScanGroup.Safety),
+             
 
-                new HardwareInputConfig(HardwareInputType.SafeDoor, port: 4, debounceMs: 0,
-                    name: "安全门1（NC）", InputScanGroup.Safety),
+                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁1_2信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁1_2信号), InputScanGroup.Safety),
 
-                new HardwareInputConfig(HardwareInputType.SafeDoor, port: 5, debounceMs: 0,
-                    name: "安全门2（NC）", InputScanGroup.Safety),
+                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁3_4信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁3_4信号), InputScanGroup.Safety),
+
+                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁5_6信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁5_6信号), InputScanGroup.Safety),
+
+                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁7_8信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁7_8信号), InputScanGroup.Safety),
             };
     }
 }
