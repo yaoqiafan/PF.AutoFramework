@@ -267,7 +267,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             try
             {
                 var persistedStep = MemoryParam.PersistedStep;
-
+                _cachedRecipe = _dataModule.Station1ReciepParam;
                 // ── 根据持久化步序推导夹爪物理状态，执行恢复动作 ──
 
                 // 夹爪持有物料（取料/拉料/检测阶段）：验证物料存在 + 确保夹爪闭合
