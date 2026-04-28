@@ -1,3 +1,4 @@
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
@@ -41,6 +42,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
         private OCRRecipeParam _currentRecipe;
+
+        private IParamService _paramservice;
         /// <summary>
         /// RecipeDebugViewModel 构造函数
         /// </summary>
@@ -48,11 +51,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         public RecipeDebugViewModel(
             IHardwareManagerService hardwareManager,
-            IRecipeService<OCRRecipeParam> recipeService)
+            IRecipeService<OCRRecipeParam> recipeService, IParamService paramService)
         {
             Title = "程式调试";
             _hardwareManager = hardwareManager;
             _recipeService = recipeService;
+            _paramservice = paramService;
 
             // 获取三个固定 OCR 轴
             _axisX = hardwareManager.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
@@ -472,8 +476,31 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 if (_currentRecipe == null || _axis == null) return;
                 if (_axis == _axisX)
                 {
-                    if (CurrentStation == E_WorkSpace.工位1) _currentRecipe._1PosX = RecipeAxisPosition;
-                    else _currentRecipe._2PosX = RecipeAxisPosition;
+                    if (CurrentStation == E_WorkSpace.工位1)
+                    {
+                        _currentRecipe._1PosX = RecipeAxisPosition;
+                        if (_currentRecipe .WafeSize == E_WafeSize._8寸 )
+                        {
+                            _currentRecipe._2PosX = RecipeAxisPosition + _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_8 .ToString ()).GetAwaiter().GetResult();
+                        }
+                        else
+                        {
+                            _currentRecipe._2PosX = RecipeAxisPosition + _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_12.ToString()).GetAwaiter().GetResult();
+                        }
+                        
+                    }
+                    else
+                    {
+                        _currentRecipe._2PosX = RecipeAxisPosition;
+                        if (_currentRecipe.WafeSize == E_WafeSize._8寸)
+                        {
+                            _currentRecipe._2PosX = RecipeAxisPosition - _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_8.ToString()).GetAwaiter().GetResult();
+                        }
+                        else
+                        {
+                            _currentRecipe._2PosX = RecipeAxisPosition - _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_12.ToString()).GetAwaiter().GetResult();
+                        }
+                    }
                 }
                 else if (_axis == _axisY)
                 {

@@ -369,6 +369,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
         }
 
+
+        /// <summary>
+        /// 判断晶圆夹爪是否有料
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task <bool ? > CheckGipperIsExist(CancellationToken token = default)
+        {
+           
+            bool ? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
+            if ( !res2 .HasValue )
+            {
+                return null;
+            }
+            return res2.Value;
+        }
+
         #endregion
 
         #region Pneumatic Control (气动夹爪控制)
