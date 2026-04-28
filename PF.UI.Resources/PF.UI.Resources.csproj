@@ -22,6 +22,7 @@
 		<None Remove="Images\PNG\DevOps-Repos.png" />
 		<None Remove="Images\PNG\DevOps-TestPlans.png" />
 		<None Remove="Images\PNG\聚力LOGO.png" />
+		<None Remove="Images\PNG\聚力LOGOico.png" />
 	</ItemGroup>
 	
 	<ItemGroup>
@@ -51,6 +52,7 @@
 		<Resource Include="Images\PNG\DevOps-Repos.png" />
 		<Resource Include="Images\PNG\DevOps-TestPlans.png" />
 		<Resource Include="Images\PNG\聚力LOGO.png" />
+		<Resource Include="Images\PNG\聚力LOGOico.png" />
 	</ItemGroup>
 
 	<ItemDefinitionGroup>

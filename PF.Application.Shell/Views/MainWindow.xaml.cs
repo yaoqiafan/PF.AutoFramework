@@ -8,7 +8,6 @@ using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
 using System.Collections.ObjectModel;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -28,6 +27,7 @@ namespace PF.Application.Shell.Views
         private readonly IEventAggregator _eventAggregator;
         private readonly IEnumerable<IMechanism> _mechanismslist;
 
+      
         /// <summary>
         /// 初始化实例
         /// </summary>
@@ -44,6 +44,7 @@ namespace PF.Application.Shell.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+           
             if (this.DataContext is MainWindowViewModel vm)
             {
                 RenderSideMenu(vm.MenuItems);
@@ -53,6 +54,8 @@ namespace PF.Application.Shell.Views
                     Dispatcher.Invoke(() => RenderSideMenu(vm.MenuItems));
                 };
             }
+
+
         }
 
         private async void OnUserLogined(UserInfo? info)
