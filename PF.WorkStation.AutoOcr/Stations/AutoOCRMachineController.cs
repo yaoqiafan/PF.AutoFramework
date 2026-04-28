@@ -150,10 +150,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     case HardwareInputTypeExtension.WorkStation1Start:
                         _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
+                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号),true);
                         break;
 
                     case HardwareInputTypeExtension.WorkStation2Start:
                         _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下));
+                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), true);
                         break;
                 }
             }

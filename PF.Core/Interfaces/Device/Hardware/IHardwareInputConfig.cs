@@ -80,6 +80,18 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 停止所有监控线程
         /// </summary>
         void StopAll();
+
+        /// <summary>
+        /// 设置指定安全门的启用状态（运行时业务控制，与 IsMuted 屏蔽参数独立）。
+        /// </summary>
+        /// <param name="name">安全门名称，对应 IHardwareInputConfig.Name。</param>
+        /// <param name="enabled">true = 启用（默认），false = 不启用。</param>
+        void SetSafetyDoorEnabled(string name, bool enabled);
+
+        /// <summary>
+        /// 获取所有安全门的当前状态快照。
+        /// </summary>
+        IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot();
     }
 
 

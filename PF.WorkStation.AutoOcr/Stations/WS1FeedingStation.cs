@@ -2,6 +2,7 @@ using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
@@ -190,6 +191,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly WS1FeedingModel? _feedingModule;
         private readonly WSDataModule? _dataModule;
         private readonly IStationSyncService _sync;
+        private readonly IHardwareInputMonitor? _hardwareInputMonitor;
 
         // 注意：_currentStep, _resumeStep, _cachedErrorCode 和 RouteToError() 均已下沉至基类。
 
@@ -217,6 +219,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS1FeedingModel)) as WS1FeedingModel;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _sync = sync;
+            _hardwareInputMonitor = containerProvider.Resolve<IHardwareInputMonitor>();
 
             if (_feedingModule != null)
             {
@@ -364,6 +367,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 token.ThrowIfCancellationRequested(); // 【新增】
                 _logger.Info($"[{StationName}] 正在执行工站复位清警（断点续跑机制，将恢复至步序：[{_currentStep}]）...");
+                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), true);
                
                     try
                     {
@@ -413,6 +417,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <returns></returns>
         protected override async Task OnPhysicalStopAsync()
         {
+            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), false);
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }

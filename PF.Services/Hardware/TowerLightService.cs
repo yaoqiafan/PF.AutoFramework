@@ -1,4 +1,5 @@
 using PF.Core.Enums;
+using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.TowerLight;
@@ -113,6 +114,8 @@ namespace PF.Services.Hardware
                 _logger.Warn($"【三色灯】读取蜂鸣器屏蔽参数失败，使用默认值 false：{ex.Message}");
                 _isBuzzerMuted = false;
             }
+
+            _paramService.ParamChanged += OnParamChanged;
         }
 
         // ── 公开控制 API ─────────────────────────────────────────────────────────
@@ -162,6 +165,12 @@ namespace PF.Services.Hardware
         }
 
         // ── 私有核心逻辑 ─────────────────────────────────────────────────────────
+
+        private void OnParamChanged(object? sender, ParamChangedEventArgs e)
+        {
+            if (e.ParamName == BuzzerMutedParamKey && e.NewValue is bool b)
+                IsBuzzerMuted = b;
+        }
 
         private LightState ComputeEffective(LightColor color, LightState requested)
             => (color == LightColor.Buzzer && _isBuzzerMuted) ? LightState.Off : requested;
