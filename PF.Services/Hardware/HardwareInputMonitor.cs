@@ -60,6 +60,8 @@ namespace PF.Services.Hardware
                 .Where(c => c.ScanGroup == InputScanGroup.Safety)
                 .Select(c => new InputScanState(c))
                 .ToList();
+
+            _paramService.ParamChanged += OnParamChanged;
         }
 
         /// <summary>
@@ -280,6 +282,50 @@ namespace PF.Services.Hardware
             }
         }
 
+        private void OnParamChanged(object? sender, ParamChangedEventArgs e)
+        {
+            if (e.NewValue is not bool b) return;
+            foreach (var state in _safetyInputs)
+            {
+                if (state.Config.MuteParamKey == e.ParamName)
+                    state.Config.IsMuted = b;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void SetSafetyDoorEnabled(string name, bool enabled)
+        {
+            var state = _safetyInputs.FirstOrDefault(s => s.Config.Name == name);
+            if (state == null)
+            {
+                _logger.Warn($"【硬件输入监控】未找到安全门 [{name}]，无法设置启用状态。");
+                return;
+            }
+            state.IsEnabled = enabled;
+            _logger.Info($"【硬件输入监控】安全门 [{name}] 已{(enabled ? "启用" : "停用")}。");
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot()
+        {
+            var result = new List<SafetyDoorState>(_safetyInputs.Count);
+            foreach (var state in _safetyInputs)
+            {
+                bool? signal = _ioCard?.ReadInput(state.Config.Port);
+                bool? isActive = signal.HasValue
+                    ? signal.Value == state.Config.NormallyOpen
+                    : null;
+
+                result.Add(new SafetyDoorState(
+                    name: state.Config.Name,
+                    isEnabled: state.IsEnabled,
+                    isMuted: state.Config.IsMuted,
+                    signalValue: signal,
+                    isActive: isActive));
+            }
+            return result;
+        }
+
         /// <summary>
         /// 处理单个输入点：同时支持常闭（NC）和常开（NO）接线方式。
         /// <para>NC（NormallyOpen=false）：静止态信号=true，触发沿=下降沿（true→false）。</para>
@@ -300,7 +346,7 @@ namespace PF.Services.Hardware
             // 当前是否处于激活态
             bool isActive  = (current == no);
 
-            if (!state.Config.IsMuted && !wasActive && isActive)
+            if (state.IsEnabled && !state.Config.IsMuted && !wasActive && isActive)
             {
                 if (state.Config.DebounceMs > 0)
                 {
@@ -326,6 +372,7 @@ namespace PF.Services.Hardware
         {
             public IHardwareInputConfig Config { get; }
             public bool LastValue { get; set; }
+            public bool IsEnabled { get; set; } = true;
 
             public InputScanState(IHardwareInputConfig config)
             {

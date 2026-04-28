@@ -75,7 +75,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     name: "工位2启动按钮", InputScanGroup.Standard,
                     normallyOpen: true),
 
-                // ── 安全门（Safety 组，0ms 防抖，常闭NC接线，支持运行时屏蔽）────
+                // ── 安全门（Safety 组，0ms 防抖，常开接线，支持运行时屏蔽）────
                 new HardwareInputConfig(HardwareInputType.SafeDoor,
                     port: (int)E_InPutName.电磁门锁1_2信号, debounceMs: 0,
                     name: nameof(E_InPutName.电磁门锁1_2信号), InputScanGroup.Safety,
@@ -97,7 +97,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 new HardwareInputConfig(HardwareInputType.SafeDoor,
                     port: (int)E_InPutName.电磁门锁7_8信号, debounceMs: 0,
                     name: nameof(E_InPutName.电磁门锁7_8信号), InputScanGroup.Safety,
-                    normallyOpen: false,
+                    normallyOpen: false ,
                     muteParamKey: nameof(E_Params.SafeDoor_7_8_Muted)),
             };
     }
