@@ -10344,7 +10344,7 @@ Themes\Styles\Custom\Window.xaml
                     <pf:InvokeCommandAction Command="{x:Static SystemCommands.CloseWindowCommand}" />
                   </pf:EventTrigger>
                 </pf:Interaction.Triggers>
-                <Image Width="50" Height="50" VerticalAlignment="Center" IsHitTestVisible="False" Source="{TemplateBinding Icon}" />
+                <Image VerticalAlignment="Center" IsHitTestVisible="False" Source="{TemplateBinding Icon}" />
               </Button>
               <TextBlock Grid.Column="1" Padding="10,0,0,0" VerticalAlignment="Center" Text="{TemplateBinding Title}">
                 <TextBlock.Visibility>

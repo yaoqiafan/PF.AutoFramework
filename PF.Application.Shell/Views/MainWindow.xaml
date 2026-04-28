@@ -7,13 +7,14 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity"
+    Icon="/PF.UI.Resources;component/Images/PNG/聚力LOGOico.png"
     Width="1900"
     Height="1000"
     pf:WindowAttach.ExtendContentToNonClientArea="False"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Closing="Window_Closing"
     FontSize="{DynamicResource FontSize.Body.Standard}"
-    Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
+
     NonClientAreaHeight="80"
     ShowNonClientArea="True"
     Style="{StaticResource WindowWin10}"
@@ -374,6 +375,36 @@
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="当前权限：" />
+                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <Separator />
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="工位1扫码枪状态：" />
+                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <Separator />
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="工位2扫码枪状态：" />
+                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="智能相机状态：" />
+                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="SecGem服务状态：" />
                     <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
                 </StackPanel>
             </StatusBarItem>

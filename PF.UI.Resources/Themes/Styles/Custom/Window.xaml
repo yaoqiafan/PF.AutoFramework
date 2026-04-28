@@ -159,8 +159,6 @@
                                     </pfcontrol:EventTrigger>
                                 </pfcontrol:Interaction.Triggers>
                                 <Image
-                                    Width="50"
-                                    Height="50"
                                     VerticalAlignment="Center"
                                     IsHitTestVisible="False"
                                     Source="{TemplateBinding Icon}" />
