@@ -352,6 +352,7 @@ namespace PF.Infrastructure.Station
                 case HardwareInputType.Start: _ = ExecuteSmartStartAsync(); break;
                 case HardwareInputType.Pause: PauseAll(); break;
                 case HardwareInputType.Reset: _ = ExecuteHardwareResetAsync(); break;
+                case HardwareInputType.SafeDoor: PauseAll(); break;
             }
         }
 

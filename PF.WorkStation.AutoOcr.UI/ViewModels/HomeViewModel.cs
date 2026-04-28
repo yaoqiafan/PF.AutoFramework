@@ -133,6 +133,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion
 
+        #region 清除机台记忆
+
+        private bool _isClearMemoryChecked;
+        public bool IsClearMemoryChecked
+        {
+            get => _isClearMemoryChecked;
+            set => SetProperty(ref _isClearMemoryChecked, value);
+        }
+
+        public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Administrator);
+
+        #endregion
+
         #region 数据集合
 
         private ObservableCollection<MachineDetectionData> _station1MachineDetection = new();
@@ -202,9 +215,32 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _userService = userService;
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
 
+            // 订阅用户变更事件以刷新权限
+            _userService.CurrentUserChanged += (s, e) => RaisePropertyChanged(nameof(HasClearMemoryPermission));
+
             // 设备总控命令
             InitializeCommand = new DelegateCommand(
-                async () => { try { await _controller.InitializeAllAsync(); } catch { } },
+                async () =>
+                {
+                    try
+                    {
+                        if (IsClearMemoryChecked)
+                        {
+                            try
+                            {
+                                _controller.ClearAllStationMemory();
+                                IsClearMemoryChecked = false;
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageService.ShowMessage($"清除机台记忆失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                        }
+                        await _controller.InitializeAllAsync();
+                    }
+                    catch { }
+                },
                 () => _controller.CurrentState == MachineState.Uninitialized
                    || _controller.CurrentState == MachineState.Idle);
 
