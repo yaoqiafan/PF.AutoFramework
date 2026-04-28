@@ -238,8 +238,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 throw;
             }
 
-            _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
-            _resumeStep = StationDetectionStep.等待工位1或工位2允许检测;
+            var restoreStep = (StationDetectionStep)MemoryParam.PersistedStep;
+            if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
+                restoreStep = StationDetectionStep.等待工位1或工位2允许检测;
+
+            _currentStep = restoreStep;
+            _resumeStep = restoreStep;
             _sync.ResetScope(StationName);//初始化所有标志位
         }
 
@@ -532,6 +536,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case StationDetectionStep.检测完成:
                             CurrentStepDescription = "业务闭环，释放通行证...";
+                            MemoryParam.PersistedStep = (int)StationDetectionStep.检测完成;
+                            FlushMemory();
 
                             // 释放本轮执行工位的放行信号，通知目标工位的拉料机构可以将晶圆退回料盒了
                             if (_currentworkSpace == E_WorkSpace.工位1)
@@ -571,6 +577,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else
                             {
                                 // 完美收官，回到首个节点继续轮询等待
+                                MemoryParam.PersistedStep = (int)StationDetectionStep.等待工位1或工位2允许检测;
+                                FlushMemory();
                                 _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
                             }
                             break;

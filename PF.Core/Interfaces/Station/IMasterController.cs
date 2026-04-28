@@ -99,5 +99,12 @@ namespace PF.Core.Interfaces.Station
         /// </summary>
         /// <returns>表示异步系统复位操作的任务</returns>
         Task RequestSystemResetAsync();
+
+        /// <summary>
+        /// 清空机台上所有子工站的记忆参数（仅允许在未初始化状态下调用）。
+        /// 将每个工站的内存参数重置为默认值，并删除对应的磁盘持久化文件。
+        /// </summary>
+        /// <exception cref="InvalidOperationException">当设备不处于未初始化状态时抛出。</exception>
+        void ClearAllStationMemory();
     }
 }

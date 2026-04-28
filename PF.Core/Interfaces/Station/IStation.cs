@@ -26,6 +26,11 @@ public interface IStation : INotifyPropertyChanged, IAsyncDisposable, IDisposabl
     OperationMode CurrentMode { get; set; }
 
     /// <summary>
+    /// 获取当前工站流程步进的文本描述。
+    /// </summary>
+    string CurrentStepDescription { get; }
+
+    /// <summary>
     /// 当工站触发异常报警时引发的事件。
     /// </summary>
     event EventHandler<StationAlarmEventArgs> StationAlarmTriggered;
@@ -99,4 +104,9 @@ public interface IStation : INotifyPropertyChanged, IAsyncDisposable, IDisposabl
     /// <param name="token">用于取消复位操作的任务令牌。</param>
     /// <returns>表示复位过程的任务。</returns>
     Task ExecuteResetAsync(CancellationToken token);
+
+    /// <summary>
+    /// 清空工站记忆参数：将内存中的参数重置为默认值，并删除对应的磁盘 JSON 文件。
+    /// </summary>
+    void ClearMemory();
 }
