@@ -57,6 +57,7 @@ using PF.Services.Production;
 using PF.Services.Sync;
 using PF.Application.Shell.Services;
 using PF.Core.Interfaces.Alarm;
+using PF.Core.Interfaces.TowerLight;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Dialog.ViewModels;
@@ -68,6 +69,7 @@ using PF.Core.Models;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.WorkStation.AutoOcr.CostParam;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
@@ -276,6 +278,12 @@ namespace PF.Application.Shell
                   () => _ = controller.RequestSystemResetAsync(),
                   ThreadOption.BackgroundThread,
                   keepSubscriberReferenceAlive: true);
+
+            // ── 三色灯：主控状态变更 → MachineStateChangedEvent → TowerLightManager ──
+            // 将原生 MasterStateChanged 事件桥接到 Prism EA，使 Manager 无需直接引用 IMasterController。
+            controller.MasterStateChanged += (_, state) => ea.GetEvent<MachineStateChangedEvent>().Publish(state);
+            // 激活 TowerLightManager（构造函数中自动订阅 EA，Singleton 首次 Resolve 即生效）
+            Container.Resolve<TowerLightManager>();
 
             base.OnInitialized();
         }
@@ -658,6 +666,12 @@ namespace PF.Application.Shell
 
             // 主控调度器
             containerRegistry.RegisterSingleton<IMasterController, AutoOCRMachineController>();
+
+            // ── 三色灯服务注册 ──
+            containerRegistry.RegisterSingleton<ITowerLightDoWriterConfig, TowerLightDoWriterConfig>();
+            containerRegistry.RegisterSingleton<ITowerLightDoWriter, TowerLightDoWriter>();
+            containerRegistry.RegisterSingleton<ITowerLightService, TowerLightService>();
+            containerRegistry.RegisterSingleton<TowerLightManager>();
         }
 
         #endregion

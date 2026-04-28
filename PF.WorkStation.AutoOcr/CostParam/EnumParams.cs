@@ -612,6 +612,44 @@ namespace PF.Workstation.AutoOcr.CostParam
         #endregion OCR相机参数
 
 
+        #region 安全门参数
+
+        /// <summary>屏蔽安全门1-2检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门1-2检测")]
+        [DefaultValue(false)]
+        SafeDoor_1_2_Muted,
+
+        /// <summary>屏蔽安全门3-4检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门3-4检测")]
+        [DefaultValue(false)]
+        SafeDoor_3_4_Muted,
+
+        /// <summary>屏蔽安全门5-6检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门5-6检测")]
+        [DefaultValue(false)]
+        SafeDoor_5_6_Muted,
+
+        /// <summary>屏蔽安全门7-8检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门7-8检测")]
+        [DefaultValue(false)]
+        SafeDoor_7_8_Muted,
+
+        #endregion
+
+        #region 三色灯参数
+
+        /// <summary>全局蜂鸣器屏蔽（调试模式静音用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("全局蜂鸣器屏蔽")]
+        [DefaultValue(false)]
+        BuzzerMuted,
+
+        #endregion
+
     }
 
 

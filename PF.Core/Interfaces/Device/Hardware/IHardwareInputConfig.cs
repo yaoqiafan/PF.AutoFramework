@@ -34,10 +34,21 @@ namespace PF.Core.Interfaces.Device.Hardware
         InputScanGroup ScanGroup { get; }
 
         /// <summary>
-        /// 是否屏蔽此输入点的扫描。
+        /// 是否屏蔽此输入点的扫描（运行时可修改）。
         /// true = 屏蔽（跳过事件发布）；false = 正常扫描（默认值）。
         /// </summary>
-        bool IsMuted { get; }
+        bool IsMuted { get; set; }
+
+        /// <summary>
+        /// 接线方式。false = 常闭 NC（默认，断开触发）；true = 常开 NO（闭合触发）。
+        /// </summary>
+        bool NormallyOpen { get; }
+
+        /// <summary>
+        /// 运行时屏蔽参数键名，对应 IParamService 中的 SystemConfigParam 键。
+        /// 为 null 时不进行动态屏蔽状态加载。
+        /// </summary>
+        string? MuteParamKey { get; }
     }
 
     /// <summary>
