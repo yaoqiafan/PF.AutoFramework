@@ -140,22 +140,25 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             // 优先执行基类中封装的标准路由 (如标准 Start/Stop/Reset/Pause 状态机流转)
             base.OnHardwareInputReceived(inputType);
-
-            // 处理特定于本扩展机台的物理按键逻辑
-            switch (inputType)
+            if (CurrentState == Core.Enums.MachineState.Running)
             {
-                case HardwareInputTypeExtension.WorkStation1Start:
-                    _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
-                    _hardwareInputMonitor.StartSafetyMonitoring();
-                    break;
+                // 处理特定于本扩展机台的物理按键逻辑
+                switch (inputType)
+                {
+                    case HardwareInputTypeExtension.WorkStation1Start:
 
-                case HardwareInputTypeExtension.WorkStation2Start:
-                    _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下));
-                    _hardwareInputMonitor.StartSafetyMonitoring();
-                    break;
+                        _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
+                        _hardwareInputMonitor.StartSafetyMonitoring();
+                        break;
 
-                default:
-                    break;
+                    case HardwareInputTypeExtension.WorkStation2Start:
+                        _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下));
+                        _hardwareInputMonitor.StartSafetyMonitoring();
+                        break;
+
+                    default:
+                        break;
+                }
             }
         }
 
