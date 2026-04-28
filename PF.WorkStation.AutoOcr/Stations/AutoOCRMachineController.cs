@@ -98,6 +98,9 @@ namespace PF.WorkStation.AutoOcr.Stations
             _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
 
+            // 根据主控状态驱动 Safety 监控线程的启停
+            MasterStateChanged += OnMasterStateChanged;
+
             // ── 工位 1 信号注册 (明确指定 Scope 作用域以实现精准的生命周期管理) ──
 
             // 全局作用域信号 (无归属的物理按钮动作)
@@ -133,7 +136,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         /// <summary>
         /// 拦截并处理底层广播的物理硬件输入事件。
-        /// 扩展了基类的标准按键处理，追加了具体工站的启动信号释放与安全监控启动机制。
+        /// 扩展了基类的标准按键处理，追加了具体工站的启动信号释放。
+        /// Safety 监控的启停已改由 <see cref="OnMasterStateChanged"/> 根据机台状态统一管理。
         /// </summary>
         /// <param name="inputType">事件类型标识符</param>
         protected override void OnHardwareInputReceived(string inputType)
@@ -142,23 +146,42 @@ namespace PF.WorkStation.AutoOcr.Stations
             base.OnHardwareInputReceived(inputType);
             if (CurrentState == Core.Enums.MachineState.Running)
             {
-                // 处理特定于本扩展机台的物理按键逻辑
                 switch (inputType)
                 {
                     case HardwareInputTypeExtension.WorkStation1Start:
-
                         _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
-                        _hardwareInputMonitor.StartSafetyMonitoring();
                         break;
 
                     case HardwareInputTypeExtension.WorkStation2Start:
                         _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下));
-                        _hardwareInputMonitor.StartSafetyMonitoring();
-                        break;
-
-                    default:
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// 监听主控状态变迁，根据状态驱动 Safety 监控线程的启停。
+        /// Running  → 启动 Safety 监控（此时屏蔽参数会被重新从数据库加载）。
+        /// 非Running → 停止 Safety 监控（Uninitialized / Idle / Alarm 均停止）。
+        /// Standard 监控由 App.xaml.cs 在启动画面结束后统一启动，此处不干预。
+        /// </summary>
+        private void OnMasterStateChanged(object? sender, Core.Enums.MachineState newState)
+        {
+            try
+            {
+                if (newState == Core.Enums.MachineState.Running)
+                {
+                    _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
+                    _hardwareInputMonitor.StartSafetyMonitoring();
+                }
+                else
+                {
+                    _hardwareInputMonitor.StopSafetyMonitoring();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"【主控】Safety 监控状态切换异常：{ex.Message}");
             }
         }
 

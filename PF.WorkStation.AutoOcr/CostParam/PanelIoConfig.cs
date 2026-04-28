@@ -22,6 +22,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public InputScanGroup ScanGroup { get; }
         /// <summary>获取或设置是否静默</summary>
         public bool IsMuted { get; set; } = false;
+        /// <summary>接线方式：false=常闭NC（默认），true=常开NO</summary>
+        public bool NormallyOpen { get; }
+        /// <summary>运行时屏蔽参数键名（null=不支持动态屏蔽）</summary>
+        public string? MuteParamKey { get; }
 
         /// <summary>
         /// 初始化硬件输入配置
@@ -31,13 +35,17 @@ namespace PF.WorkStation.AutoOcr.CostParam
             int port,
             int debounceMs,
             string name,
-            InputScanGroup scanGroup)
+            InputScanGroup scanGroup,
+            bool normallyOpen = false,
+            string? muteParamKey = null)
         {
-            InputType  = inputType;
-            Port       = port;
-            DebounceMs = debounceMs;
-            Name       = name;
-            ScanGroup  = scanGroup;
+            InputType    = inputType;
+            Port         = port;
+            DebounceMs   = debounceMs;
+            Name         = name;
+            ScanGroup    = scanGroup;
+            NormallyOpen = normallyOpen;
+            MuteParamKey = muteParamKey;
         }
     }
 
@@ -56,27 +64,41 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public IEnumerable<IHardwareInputConfig> MonitoredInputs { get; } =
             new List<IHardwareInputConfig>
             {
-                // ── 普通按键（Standard 组，20ms 防抖）────────────────────────
-                new HardwareInputConfig(HardwareInputTypeExtension.WorkStation1Start, port: (int)E_InPutName.上晶圆左启动按钮, debounceMs: 20,
-                    name: "工位1启动按钮", InputScanGroup.Standard),
+                // ── 普通按键（Standard 组，20ms 防抖，常开NO接线）────────────────
+                new HardwareInputConfig(HardwareInputTypeExtension.WorkStation1Start,
+                    port: (int)E_InPutName.上晶圆左启动按钮, debounceMs: 20,
+                    name: "工位1启动按钮", InputScanGroup.Standard,
+                    normallyOpen: true),
 
-                new HardwareInputConfig(HardwareInputTypeExtension.WorkStation2Start, port: (int)E_InPutName.上晶圆右启动按钮, debounceMs: 20,
-                    name: "工位2启动按钮", InputScanGroup.Standard),
+                new HardwareInputConfig(HardwareInputTypeExtension.WorkStation2Start,
+                    port: (int)E_InPutName.上晶圆右启动按钮, debounceMs: 20,
+                    name: "工位2启动按钮", InputScanGroup.Standard,
+                    normallyOpen: true),
 
+                // ── 安全门（Safety 组，0ms 防抖，常闭NC接线，支持运行时屏蔽）────
+                new HardwareInputConfig(HardwareInputType.SafeDoor,
+                    port: (int)E_InPutName.电磁门锁1_2信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁1_2信号), InputScanGroup.Safety,
+                    normallyOpen: false,
+                    muteParamKey: nameof(E_Params.SafeDoor_1_2_Muted)),
 
-             
+                new HardwareInputConfig(HardwareInputType.SafeDoor,
+                    port: (int)E_InPutName.电磁门锁3_4信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁3_4信号), InputScanGroup.Safety,
+                    normallyOpen: false,
+                    muteParamKey: nameof(E_Params.SafeDoor_3_4_Muted)),
 
-                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁1_2信号, debounceMs: 0,
-                    name: nameof(E_InPutName.电磁门锁1_2信号), InputScanGroup.Safety),
+                new HardwareInputConfig(HardwareInputType.SafeDoor,
+                    port: (int)E_InPutName.电磁门锁5_6信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁5_6信号), InputScanGroup.Safety,
+                    normallyOpen: false,
+                    muteParamKey: nameof(E_Params.SafeDoor_5_6_Muted)),
 
-                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁3_4信号, debounceMs: 0,
-                    name: nameof(E_InPutName.电磁门锁3_4信号), InputScanGroup.Safety),
-
-                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁5_6信号, debounceMs: 0,
-                    name: nameof(E_InPutName.电磁门锁5_6信号), InputScanGroup.Safety),
-
-                new HardwareInputConfig(HardwareInputType.SafeDoor, port: (int)E_InPutName.电磁门锁7_8信号, debounceMs: 0,
-                    name: nameof(E_InPutName.电磁门锁7_8信号), InputScanGroup.Safety),
+                new HardwareInputConfig(HardwareInputType.SafeDoor,
+                    port: (int)E_InPutName.电磁门锁7_8信号, debounceMs: 0,
+                    name: nameof(E_InPutName.电磁门锁7_8信号), InputScanGroup.Safety,
+                    normallyOpen: false,
+                    muteParamKey: nameof(E_Params.SafeDoor_7_8_Muted)),
             };
     }
 }
