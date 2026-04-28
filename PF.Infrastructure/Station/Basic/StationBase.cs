@@ -987,21 +987,25 @@ namespace PF.Infrastructure.Station.Basic
             try
             {
                 var path = MemoryFilePath;
-                if (!File.Exists(path)) return;
-                var json = File.ReadAllText(path);
-                var deserialized = JsonSerializer.Deserialize<T>(json);
-                if (deserialized == null)
+                if (File.Exists(path))
                 {
+                    var json = File.ReadAllText(path);
+                    var deserialized = JsonSerializer.Deserialize<T>(json);
+                    if (deserialized != null)
+                    {
+                        deserialized.IsWrite = false;
+                        MemoryParam = deserialized;
+                        return;
+                    }
                     _logger?.Warn($"[{StationName}] 记忆参数反序列化为 null，已忽略文件。");
-                    return;
                 }
-                deserialized.IsWrite = false;
-                MemoryParam = deserialized;
             }
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 读取记忆参数失败: {ex.Message}");
             }
+
+            MemoryParam ??= new T();
         }
 
         /// <summary>
@@ -1031,6 +1035,30 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 写入记忆参数失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 将当前记忆参数立即持久化到磁盘。
+        /// 供子工站在关键状态变迁节点（如取料完成、退料完成）主动调用，防止崩溃导致状态丢失。
+        /// </summary>
+        protected void FlushMemory() => WriteMemoryParam();
+
+        /// <summary>
+        /// 清空工站记忆参数：将内存参数重置为默认值，并删除磁盘上的 JSON 持久化文件。
+        /// </summary>
+        public void ClearMemory()
+        {
+            MemoryParam = new T();
+            try
+            {
+                var path = MemoryFilePath;
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Error($"[{StationName}] 清空记忆参数文件失败: {ex.Message}");
             }
         }
 
@@ -1094,6 +1122,12 @@ namespace PF.Infrastructure.Station.Basic
         /// 写入前由框架置 <c>true</c>，读取后由框架置 <c>false</c>，可用于区分参数来源。
         /// </summary>
         public bool IsWrite { get; set; }
+
+        /// <summary>
+        /// 断电前最后执行的步序值，用于恢复时定位断点。
+        /// 对应各工站 Step 枚举的整数值。
+        /// </summary>
+        public int PersistedStep { get; set; }
     }
 
     /// <summary>

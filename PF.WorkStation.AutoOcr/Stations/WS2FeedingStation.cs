@@ -349,8 +349,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                     }
                 }
 
-                _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
-                _resumeStep = Station2FeedingStep.等待按下工位2启动按钮;
+                var restoreStep = (Station2FeedingStep)MemoryParam.PersistedStep;
+                if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
+                    restoreStep = Station2FeedingStep.等待按下工位2启动按钮;
+
+                _currentStep = restoreStep;
+                _resumeStep = restoreStep;
 
                 _sync.ResetScope(StationName);//初始化所有标志位
             }
@@ -661,6 +665,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
                             if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
                             {
+                                MemoryParam.PersistedStep = (int)Station2FeedingStep.判断物料可拉出条件;
+                                FlushMemory();
                                 _currentStep = Station2FeedingStep.判断物料可拉出条件;
                             }
                             else
@@ -699,6 +705,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "阻塞等待物料回退完成...";
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2退料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
 
+                            MemoryParam.PersistedStep = (int)Station2FeedingStep.计算下一层位置;
+                            FlushMemory();
                             _currentStep = Station2FeedingStep.计算下一层位置;
                             break;
 
@@ -774,6 +782,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _totalLayerCount = 0;
                             _cachedErrorCode = null;
 
+                            MemoryParam.PersistedStep = (int)Station2FeedingStep.等待按下工位2启动按钮;
+                            FlushMemory();
                             _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
                             break;
 

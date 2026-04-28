@@ -633,7 +633,7 @@ namespace PF.Application.Shell
 
             // 工站层
             container.RegisterMany(
-                new[] { typeof(WS1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                new[] { typeof(WS1FeedingStation<StationMemoryBaseParam>), typeof(IStation) },
                 typeof(WS1FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WS1FeedingStation<StationMemoryBaseParam>)
@@ -641,26 +641,26 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-                new[] { typeof(WSDetectionStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                new[] { typeof(WSDetectionStation<StationMemoryBaseParam>), typeof(IStation) },
                 typeof(WSDetectionStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WSDetectionStation<StationMemoryBaseParam>)
                 );
 
             container.RegisterMany(
-               new[] { typeof(WS1MaterialPullingStation ), typeof(StationBase<StationMemoryBaseParam>) },
-               typeof(WS1MaterialPullingStation ),
+               new[] { typeof(WS1MaterialPullingStation), typeof(IStation) },
+               typeof(WS1MaterialPullingStation),
                reuse: DryIoc.Reuse.Singleton);
 
             // ── 工位 2 工站层注册 ──
             container.RegisterMany(
-                new[] { typeof(WS2FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                new[] { typeof(WS2FeedingStation<StationMemoryBaseParam>), typeof(IStation) },
                 typeof(WS2FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
                 serviceKey: nameof(WS2FeedingStation<StationMemoryBaseParam>));
 
             container.RegisterMany(
-                new[] { typeof(WS2MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
+                new[] { typeof(WS2MaterialPullingStation<StationMemoryBaseParam>), typeof(IStation) },
                 typeof(WS2MaterialPullingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton);
 

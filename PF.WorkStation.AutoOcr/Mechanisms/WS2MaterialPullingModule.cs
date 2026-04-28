@@ -370,6 +370,24 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #endregion
 
+        #region Gripper Check (夹爪物料检测)
+
+        /// <summary>
+        /// 检测夹爪中是否存在物料（铁环）
+        /// </summary>
+        public async Task<bool?> CheckGipperIsExist(CancellationToken token = default)
+        {
+            await Task.CompletedTask;
+            bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右铁环有无检测);
+            if (!res2.HasValue)
+            {
+                return null;
+            }
+            return res2.Value;
+        }
+
+        #endregion
+
         #region Pneumatic Control (气动夹爪控制)
 
         /// <summary>

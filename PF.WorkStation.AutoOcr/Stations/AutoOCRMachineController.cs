@@ -2,9 +2,9 @@
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station;
-using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 using System.Collections.Generic;
@@ -92,7 +92,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             HardwareInputEventBus hardwareEventBus,
             IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
-            IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
+            IEnumerable<IStation> subStations)
             : base(logger, hardwareEventBus, subStations, alarmService)
         {
             _hardwareInputMonitor = hardwareInputMonitor;

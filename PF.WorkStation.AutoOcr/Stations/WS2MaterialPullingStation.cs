@@ -255,6 +255,54 @@ namespace PF.WorkStation.AutoOcr.Stations
             try
             {
                 _logger.Info($"[{StationName}] 正在初始化拉料模组...");
+                var persistedStep = MemoryParam.PersistedStep;
+
+                // ── 根据持久化步序推导夹爪物理状态，执行恢复动作 ──
+
+                // 夹爪持有物料（取料/拉料/检测阶段）：验证物料存在 + 确保夹爪闭合
+                if ((persistedStep >= 50 && persistedStep <= 140) || (persistedStep >= 200 && persistedStep <= 210))
+                {
+                    bool? res = await _pullingModule.CheckGipperIsExist(token);
+                    if (!res.HasValue)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，判断夹爪的物料状态异常");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+                    if (!res.Value)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，记忆中夹爪的状态为有料，实际检测为无料，检查轨道物料状态");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    var result = await _pullingModule.CloseWafeGipper(token);
+                    if (!result.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
+                        Fire(MachineTrigger.Error);
+                    }
+                }
+                // 退料阶段（传感器不可靠）：仅确保夹爪闭合
+                else if (persistedStep >= 200 && persistedStep <= 220)
+                {
+                    var result = await _pullingModule.CloseWafeGipper(token);
+                    if (!result.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
+                        Fire(MachineTrigger.Error);
+                    }
+                }
+                // 夹爪空闲：确保夹爪张开
+                else
+                {
+                    var result = await _pullingModule.OpenWafeGipper(token);
+                    if (!result.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，打开夹爪失败");
+                        Fire(MachineTrigger.Error);
+                    }
+                }
 
                 if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
                 {
@@ -281,8 +329,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                 throw;
             }
 
-            _currentStep = Station2PullingStep.等待允许取料;
-            _resumeStep = Station2PullingStep.等待允许取料;
+            // 直接从持久化的步序值恢复断点
+            var restoreStep = (Station2PullingStep)MemoryParam.PersistedStep;
+            if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
+                restoreStep = Station2PullingStep.等待允许取料;
+
+            _currentStep = restoreStep;
+            _resumeStep = restoreStep;
         }
 
         /// <summary>执行工站复位</summary>
@@ -435,11 +488,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2PullingStep.关闭夹爪:
                             CurrentStepDescription = "关闭夹爪...";
+                            MemoryParam.PersistedStep = (int)Station2PullingStep.关闭夹爪;
 
                             var closeResult = await _pullingModule.CloseWafeGipper(token);
                             if (closeResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 关闭夹爪成功");
+                                FlushMemory();
                                 _currentStep = Station2PullingStep.检测叠料;
                             }
                             else
@@ -471,11 +526,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2PullingStep.移动到检测位:
                             CurrentStepDescription = "移动到检测位...";
+                            MemoryParam.PersistedStep = (int)Station2PullingStep.移动到检测位;
 
                             var detectMoveResult = await _pullingModule.MoveDetection(token);
                             if (detectMoveResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 运动到检测位成功");
+                                FlushMemory();
 
                                 // 通知上下料工站：Y轴已经撤出安全区域，Z轴可以放心移动
                                 _sync.Release(nameof(WorkstationSignals.工位2拉料完成), StationName);
@@ -513,6 +570,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2检测完成), token, scope: nameof(E_WorkStation.OCR检测工站)).ConfigureAwait(false);
 
                             _logger.Info($"[{StationName}] 收到视觉检测完成信号");
+                            MemoryParam.PersistedStep = (int)Station2PullingStep.等待允许送料;
+                            FlushMemory();
                             _currentStep = Station2PullingStep.等待允许送料;
                             break;
 
@@ -536,6 +595,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station2PullingStep.送料到取料位:
                             CurrentStepDescription = "正在退料回料盒...";
                             _logger.Info($"[{StationName}] Y 轴送料回料盒...");
+                            MemoryParam.PersistedStep = (int)Station2PullingStep.送料到取料位;
 
                             var feedOpenResult = await _pullingModule.OpenWafeGipper(token);
                             if (!feedOpenResult.IsSuccess)
@@ -564,6 +624,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (openResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 松开夹爪成功");
+                                MemoryParam.PersistedStep = (int)Station2PullingStep.移动到待机位;
+                                FlushMemory();
                                 _currentStep = Station2PullingStep.移动到待机位;
                             }
                             else
@@ -611,6 +673,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _sync.Release(nameof(WorkstationSignals.工位2退料完成), StationName);
 
                             // 回归初始态，等待下一层的允许取料信号
+                            MemoryParam.PersistedStep = (int)Station2PullingStep.等待允许取料;
+                            FlushMemory();
                             _currentStep = Station2PullingStep.等待允许取料;
                             break;
 

@@ -4,7 +4,7 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
-using PF.Infrastructure.Station.Basic;
+using PF.Core.Interfaces.Station;
 using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
@@ -146,7 +146,7 @@ namespace PF.Modules.Debug.ViewModels
         /// <param name="syncService">全局信号同步服务</param>
         /// <param name="regionManager">Prism 区域导航管理器</param>
         public StationDebugViewModel(
-            IEnumerable<StationBase<StationMemoryBaseParam>> stations,
+            IEnumerable<IStation> stations,
             IMasterController controller,
             IStationSyncService syncService,
             IRegionManager regionManager)
@@ -216,7 +216,7 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>
         /// 利用反射读取每个工站的 <see cref="StationUIAttribute"/> 特性，并构建排序后的导航列表
         /// </summary>
-        private void BuildNavItems(IEnumerable<StationBase<StationMemoryBaseParam>> stations)
+        private void BuildNavItems(IEnumerable<IStation> stations)
         {
             var items = new List<(StationNavItem Item, int Order)>();
 
@@ -394,7 +394,7 @@ namespace PF.Modules.Debug.ViewModels
         public string StationName { get; init; }
 
         /// <summary>内部持有的底层子工站实例引用</summary>
-        internal StationBase<StationMemoryBaseParam> Station { get; init; }
+        internal IStation Station { get; init; }
 
         private MachineState _state;
         /// <summary>获取该导航条目对应的子工站当前状态</summary>
