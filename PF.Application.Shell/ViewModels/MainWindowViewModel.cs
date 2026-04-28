@@ -8,8 +8,10 @@ using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.Station;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
@@ -44,6 +46,8 @@ namespace PF.Application.Shell.ViewModels
         private readonly INavigationMenuService _navigationMenuService;
         private readonly IAlarmService _alarmService;
         private readonly IMasterController _masterController;
+        private IHardwareManagerService _hardwareManagerService;
+        private ISecsGemManager _secsGemManager;
         private ILogService _logService;
         private CommonSettings _commonSettings;
 
@@ -440,6 +444,38 @@ namespace PF.Application.Shell.ViewModels
             MachineState.Resetting => "复位中",
             _ => "未知"
         };
+
+        private bool _scanner1Connected;
+        /// <summary>工位1扫码枪连接状态</summary>
+        public bool Scanner1Connected
+        {
+            get => _scanner1Connected;
+            set => SetProperty(ref _scanner1Connected, value);
+        }
+
+        private bool _scanner2Connected;
+        /// <summary>工位2扫码枪连接状态</summary>
+        public bool Scanner2Connected
+        {
+            get => _scanner2Connected;
+            set => SetProperty(ref _scanner2Connected, value);
+        }
+
+        private bool _cameraConnected;
+        /// <summary>智能相机连接状态</summary>
+        public bool CameraConnected
+        {
+            get => _cameraConnected;
+            set => SetProperty(ref _cameraConnected, value);
+        }
+
+        private bool _secGemConnected;
+        /// <summary>SecGem服务连接状态</summary>
+        public bool SecGemConnected
+        {
+            get => _secGemConnected;
+            set => SetProperty(ref _secGemConnected, value);
+        }
         #endregion
 
         #region 命令属性
@@ -464,6 +500,8 @@ namespace PF.Application.Shell.ViewModels
             _dbLogger = CategoryLoggerFactory.Database(_logService);
             _systemLogger = CategoryLoggerFactory.System(_logService);
             _custom = CategoryLoggerFactory.Custom(_logService);
+            _hardwareManagerService = ServiceProvider.GetService<IHardwareManagerService>();
+            _secsGemManager = ServiceProvider.GetService<ISecsGemManager>();
 
             RefreshMenu();
 
@@ -516,11 +554,33 @@ namespace PF.Application.Shell.ViewModels
                 {
                     SysTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     MachineState = _masterController.CurrentState;
+                    PollDeviceStatuses();
                     await Task.Delay(500, ct);
                 }
             }
             catch (OperationCanceledException) { }
             catch (Exception) { }
+        }
+
+        private void PollDeviceStatuses()
+        {
+            if (_hardwareManagerService != null)
+            {
+                var scanners = _hardwareManagerService.ActiveDevices
+                    .Where(d => d.Category == HardwareCategory.Scanner)
+                    .ToList();
+                Scanner1Connected = scanners.Count > 0 && scanners[0].IsConnected;
+                Scanner2Connected = scanners.Count > 1 && scanners[1].IsConnected;
+
+                var camera = _hardwareManagerService.ActiveDevices
+                    .FirstOrDefault(d => d.Category == HardwareCategory.Camera);
+                CameraConnected = camera?.IsConnected ?? false;
+            }
+
+            if (_secsGemManager != null)
+            {
+                SecGemConnected = _secsGemManager.IsConnected;
+            }
         }
         #endregion
     }

@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation; // 新增：用于弹出动画
 using System.Windows.Shell;
 
 namespace PF.UI.Controls
@@ -49,9 +50,8 @@ namespace PF.UI.Controls
 
         public Window()
         {
-           
-           Padding = new Thickness(5);
-            
+            Padding = new Thickness(5);
+
             var chrome = new WindowChrome
             {
                 CornerRadius = new CornerRadius(),
@@ -64,7 +64,18 @@ namespace PF.UI.Controls
             WindowChrome.SetWindowChrome(this, chrome);
             _commonPadding = Padding;
 
-            Loaded += (s, e) => OnLoaded(e);
+            // 优化：将命令绑定移到构造函数，避免 Loaded 多次触发时重复绑定
+            CommandBindings.Add(new CommandBinding(SystemCommands.MinimizeWindowCommand,
+                (s, e) => WindowState = WindowState.Minimized));
+            CommandBindings.Add(new CommandBinding(SystemCommands.MaximizeWindowCommand,
+                (s, e) => WindowState = WindowState.Maximized));
+            CommandBindings.Add(new CommandBinding(SystemCommands.RestoreWindowCommand,
+                (s, e) => WindowState = WindowState.Normal));
+            CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (s, e) => Close()));
+            CommandBindings.Add(new CommandBinding(SystemCommands.ShowSystemMenuCommand, ShowSystemMenu));
+
+            // 优化：使用标准方法订阅 Loaded 事件
+            Loaded += OnWindowLoaded;
         }
 
         #endregion 
@@ -86,7 +97,7 @@ namespace PF.UI.Controls
 
         public Brush CloseButtonHoverBackground
         {
-            get => (Brush) GetValue(CloseButtonHoverBackgroundProperty);
+            get => (Brush)GetValue(CloseButtonHoverBackgroundProperty);
             set => SetValue(CloseButtonHoverBackgroundProperty, value);
         }
 
@@ -97,7 +108,7 @@ namespace PF.UI.Controls
 
         public Brush CloseButtonHoverForeground
         {
-            get => (Brush) GetValue(CloseButtonHoverForegroundProperty);
+            get => (Brush)GetValue(CloseButtonHoverForegroundProperty);
             set => SetValue(CloseButtonHoverForegroundProperty, value);
         }
 
@@ -106,7 +117,7 @@ namespace PF.UI.Controls
 
         public Brush CloseButtonBackground
         {
-            get => (Brush) GetValue(CloseButtonBackgroundProperty);
+            get => (Brush)GetValue(CloseButtonBackgroundProperty);
             set => SetValue(CloseButtonBackgroundProperty, value);
         }
 
@@ -116,7 +127,7 @@ namespace PF.UI.Controls
 
         public Brush CloseButtonForeground
         {
-            get => (Brush) GetValue(CloseButtonForegroundProperty);
+            get => (Brush)GetValue(CloseButtonForegroundProperty);
             set => SetValue(CloseButtonForegroundProperty, value);
         }
 
@@ -125,7 +136,7 @@ namespace PF.UI.Controls
 
         public Brush OtherButtonBackground
         {
-            get => (Brush) GetValue(OtherButtonBackgroundProperty);
+            get => (Brush)GetValue(OtherButtonBackgroundProperty);
             set => SetValue(OtherButtonBackgroundProperty, value);
         }
 
@@ -135,7 +146,7 @@ namespace PF.UI.Controls
 
         public Brush OtherButtonForeground
         {
-            get => (Brush) GetValue(OtherButtonForegroundProperty);
+            get => (Brush)GetValue(OtherButtonForegroundProperty);
             set => SetValue(OtherButtonForegroundProperty, value);
         }
 
@@ -145,7 +156,7 @@ namespace PF.UI.Controls
 
         public Brush OtherButtonHoverBackground
         {
-            get => (Brush) GetValue(OtherButtonHoverBackgroundProperty);
+            get => (Brush)GetValue(OtherButtonHoverBackgroundProperty);
             set => SetValue(OtherButtonHoverBackgroundProperty, value);
         }
 
@@ -156,37 +167,37 @@ namespace PF.UI.Controls
 
         public Brush OtherButtonHoverForeground
         {
-            get => (Brush) GetValue(OtherButtonHoverForegroundProperty);
+            get => (Brush)GetValue(OtherButtonHoverForegroundProperty);
             set => SetValue(OtherButtonHoverForegroundProperty, value);
         }
 
         public static readonly DependencyProperty NonClientAreaBackgroundProperty = DependencyProperty.Register(
             nameof(NonClientAreaBackground), typeof(Brush), typeof(Window),
-            new PropertyMetadata(default(Brush)));
+            new FrameworkPropertyMetadata(default(Brush), FrameworkPropertyMetadataOptions.AffectsRender));
 
         public Brush NonClientAreaBackground
         {
-            get => (Brush) GetValue(NonClientAreaBackgroundProperty);
+            get => (Brush)GetValue(NonClientAreaBackgroundProperty);
             set => SetValue(NonClientAreaBackgroundProperty, value);
         }
 
         public static readonly DependencyProperty NonClientAreaForegroundProperty = DependencyProperty.Register(
             nameof(NonClientAreaForeground), typeof(Brush), typeof(Window),
-            new PropertyMetadata(default(Brush)));
+            new FrameworkPropertyMetadata(default(Brush), FrameworkPropertyMetadataOptions.AffectsRender));
 
         public Brush NonClientAreaForeground
         {
-            get => (Brush) GetValue(NonClientAreaForegroundProperty);
+            get => (Brush)GetValue(NonClientAreaForegroundProperty);
             set => SetValue(NonClientAreaForegroundProperty, value);
         }
 
         public static readonly DependencyProperty NonClientAreaHeightProperty = DependencyProperty.Register(
             nameof(NonClientAreaHeight), typeof(double), typeof(Window),
-            new PropertyMetadata(22.0));
+            new FrameworkPropertyMetadata(22.0, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
 
         public double NonClientAreaHeight
         {
-            get => (double) GetValue(NonClientAreaHeightProperty);
+            get => (double)GetValue(NonClientAreaHeightProperty);
             set => SetValue(NonClientAreaHeightProperty, value);
         }
 
@@ -196,16 +207,17 @@ namespace PF.UI.Controls
 
         public bool ShowNonClientArea
         {
-            get => (bool) GetValue(ShowNonClientAreaProperty);
+            get => (bool)GetValue(ShowNonClientAreaProperty);
             set => SetValue(ShowNonClientAreaProperty, ValueBoxes.BooleanBox(value));
         }
 
         public static readonly DependencyProperty ShowTitleProperty = DependencyProperty.Register(
-            nameof(ShowTitle), typeof(bool), typeof(Window), new PropertyMetadata(ValueBoxes.TrueBox));
+            nameof(ShowTitle), typeof(bool), typeof(Window),
+            new FrameworkPropertyMetadata(ValueBoxes.TrueBox, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
 
         public bool ShowTitle
         {
-            get => (bool) GetValue(ShowTitleProperty);
+            get => (bool)GetValue(ShowTitleProperty);
             set => SetValue(ShowTitleProperty, ValueBoxes.BooleanBox(value));
         }
 
@@ -215,17 +227,29 @@ namespace PF.UI.Controls
 
         public bool IsFullScreen
         {
-            get => (bool) GetValue(IsFullScreenProperty);
+            get => (bool)GetValue(IsFullScreenProperty);
             set => SetValue(IsFullScreenProperty, ValueBoxes.BooleanBox(value));
         }
 
         public static readonly DependencyProperty ShowIconProperty = DependencyProperty.Register(
-            nameof(ShowIcon), typeof(bool), typeof(Window), new PropertyMetadata(ValueBoxes.TrueBox));
+            nameof(ShowIcon), typeof(bool), typeof(Window),
+            new FrameworkPropertyMetadata(ValueBoxes.TrueBox, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
 
         public bool ShowIcon
         {
-            get => (bool) GetValue(ShowIconProperty);
+            get => (bool)GetValue(ShowIconProperty);
             set => SetValue(ShowIconProperty, value);
+        }
+
+        // 独立的界面图标依赖属性，与原生Icon区分开
+        public static readonly DependencyProperty UIIconProperty = DependencyProperty.Register(
+            nameof(UIIcon), typeof(ImageSource), typeof(Window),
+            new FrameworkPropertyMetadata(default(ImageSource), FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public ImageSource UIIcon
+        {
+            get => (ImageSource)GetValue(UIIconProperty);
+            set => SetValue(UIIconProperty, value);
         }
 
         #endregion
@@ -251,6 +275,17 @@ namespace PF.UI.Controls
             this.GetHwndSource()?.AddHook(HwndSourceHook);
         }
 
+        // 优化：重写 OnClosing 并在其中移除 HwndSourceHook，避免在关闭后获取 Handle 报错
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+            {
+                System.Windows.Interop.HwndSource.FromHwnd(hwnd)?.RemoveHook(HwndSourceHook);
+            }
+            base.OnClosing(e);
+        }
+
         protected override void OnStateChanged(EventArgs e)
         {
             base.OnStateChanged(e);
@@ -266,8 +301,13 @@ namespace PF.UI.Controls
             }
         }
 
-        protected void OnLoaded(RoutedEventArgs args)
+        private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            Loaded -= OnWindowLoaded; // 解绑，确保初始化逻辑只走一次
+
+            // 触发弹出动画
+            PlayPopupAnimation();
+
             _actualBorderThickness = BorderThickness;
             _tempNonClientAreaHeight = NonClientAreaHeight;
 
@@ -275,15 +315,6 @@ namespace PF.UI.Controls
             {
                 _tempNonClientAreaHeight += 0;
             }
-
-            CommandBindings.Add(new CommandBinding(SystemCommands.MinimizeWindowCommand,
-                (s, e) => WindowState = WindowState.Minimized));
-            CommandBindings.Add(new CommandBinding(SystemCommands.MaximizeWindowCommand,
-                (s, e) => WindowState = WindowState.Maximized));
-            CommandBindings.Add(new CommandBinding(SystemCommands.RestoreWindowCommand,
-                (s, e) => WindowState = WindowState.Normal));
-            CommandBindings.Add(new CommandBinding(SystemCommands.CloseWindowCommand, (s, e) => Close()));
-            CommandBindings.Add(new CommandBinding(SystemCommands.ShowSystemMenuCommand, ShowSystemMenu));
 
             _tempWindowState = WindowState;
             _tempWindowStyle = WindowStyle;
@@ -315,9 +346,40 @@ namespace PF.UI.Controls
 
         #region private
 
+        // 新增：执行弹出动画
+        private void PlayPopupAnimation()
+        {
+            // 1. 窗口本身的透明度可以直接做动画 (Windows 系统底层支持)
+            this.Opacity = 0;
+            var duration = new Duration(TimeSpan.FromMilliseconds(300));
+            var opacityAnim = new DoubleAnimation(0, 1.0, duration);
+            this.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+
+            // 2. 窗口对象不支持 RenderTransform，我们获取它的内部根节点（模板的 Root）进行缩放
+            if (VisualTreeHelper.GetChildrenCount(this) > 0)
+            {
+                if (VisualTreeHelper.GetChild(this, 0) is UIElement rootChild)
+                {
+                    // 设置缩放中心点为中心
+                    rootChild.RenderTransformOrigin = new Point(0.5, 0.5);
+
+                    // 初始化缩放变换
+                    var scaleTransform = new ScaleTransform(0.8, 0.8);
+                    rootChild.RenderTransform = scaleTransform;
+
+                    var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+                    var scaleAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = easing };
+
+                    // 执行缩放动画
+                    scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+                    scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+                }
+            }
+        }
+
         private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
         {
-            var mmi = (InteropValues.MINMAXINFO) Marshal.PtrToStructure(lParam, typeof(InteropValues.MINMAXINFO));
+            var mmi = (InteropValues.MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(InteropValues.MINMAXINFO));
             var monitor = InteropMethods.MonitorFromWindow(hwnd, InteropValues.MONITOR_DEFAULTTONEAREST);
 
             if (monitor != IntPtr.Zero && mmi != null)
@@ -327,7 +389,7 @@ namespace PF.UI.Controls
                 if (autoHide)
                 {
                     var monitorInfo = default(InteropValues.MONITORINFO);
-                    monitorInfo.cbSize = (uint) Marshal.SizeOf(typeof(InteropValues.MONITORINFO));
+                    monitorInfo.cbSize = (uint)Marshal.SizeOf(typeof(InteropValues.MONITORINFO));
                     InteropMethods.GetMonitorInfo(monitor, ref monitorInfo);
                     var rcWorkArea = monitorInfo.rcWork;
                     var rcMonitorArea = monitorInfo.rcMonitor;
@@ -353,8 +415,6 @@ namespace PF.UI.Controls
                     Padding = WindowState == WindowState.Maximized ? WindowHelper.WindowMaximizedPadding : _commonPadding;
                     break;
                 case InteropValues.WM_NCHITTEST:
-                    // for fixing #886
-                    // https://developercommunity.visualstudio.com/t/overflow-exception-in-windowchrome/167357
                     try
                     {
                         _ = lparam.ToInt32();
@@ -371,8 +431,10 @@ namespace PF.UI.Controls
 
         private static void OnShowNonClientAreaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var ctl = (Window) d;
-            ctl.SwitchShowNonClientArea((bool) e.NewValue);
+            if (d is Window window && e.NewValue is bool showNonClientArea)
+            {
+                window.SwitchShowNonClientArea(showNonClientArea);
+            }
         }
 
         private void SwitchShowNonClientArea(bool showNonClientArea)
@@ -407,8 +469,10 @@ namespace PF.UI.Controls
 
         private static void OnIsFullScreenChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var ctl = (Window) d;
-            ctl.SwitchIsFullScreen((bool) e.NewValue);
+            if (d is Window window && e.NewValue is bool isFullScreen)
+            {
+                window.SwitchIsFullScreen(isFullScreen);
+            }
         }
 
         private void SwitchIsFullScreen(bool isFullScreen)
@@ -429,7 +493,8 @@ namespace PF.UI.Controls
                 _tempWindowStyle = WindowStyle;
                 _tempResizeMode = ResizeMode;
                 WindowStyle = WindowStyle.None;
-                //下面三行不能改变，就是故意的
+
+                // 下面三行不能改变，为了刷新 WindowChrome 的 Workaround
                 WindowState = WindowState.Maximized;
                 WindowState = WindowState.Minimized;
                 WindowState = WindowState.Maximized;

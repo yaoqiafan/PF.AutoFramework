@@ -22,7 +22,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
     /// </summary>
     public class WS1MaterialPullingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
-        private readonly WS1MaterialPullingStation <StationMemoryBaseParam> _station;
+        private readonly WS1MaterialPullingStation  _station;
         private readonly IStationSyncService _sync;
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
@@ -124,7 +124,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         public WS1MaterialPullingStationDebugViewModel(IContainerProvider containerProvider)
         {
-            _station = containerProvider.Resolve<WS1MaterialPullingStation <StationMemoryBaseParam>>();
+            _station = containerProvider.Resolve<WS1MaterialPullingStation>();
             _sync = containerProvider.Resolve<IStationSyncService>();
             _userService = containerProvider.Resolve<IUserService>();
 

@@ -150,7 +150,7 @@
                                 Background="Transparent"
                                 Command="{x:Static SystemCommands.ShowSystemMenuCommand}"
                                 Style="{StaticResource ButtonCustom}"
-                                Visibility="{TemplateBinding Icon,
+                                Visibility="{TemplateBinding UIIcon,
                                                              Converter={StaticResource Object2VisibilityConverter}}"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
                                 <pfcontrol:Interaction.Triggers>
@@ -346,7 +346,7 @@
                                     Background="Transparent"
                                     Command="{x:Static SystemCommands.ShowSystemMenuCommand}"
                                     Style="{StaticResource ButtonCustom}"
-                                    Visibility="{TemplateBinding Icon,
+                                    Visibility="{TemplateBinding UIIcon,
                                                                  Converter={StaticResource Object2VisibilityConverter}}"
                                     WindowChrome.IsHitTestVisibleInChrome="True">
                                     <pfcontrol:Interaction.Triggers>
@@ -355,8 +355,6 @@
                                         </pfcontrol:EventTrigger>
                                     </pfcontrol:Interaction.Triggers>
                                     <Image
-                                        Width="16"
-                                        Height="16"
                                         VerticalAlignment="Center"
                                         IsHitTestVisible="False"
                                         Source="{TemplateBinding Icon}" />

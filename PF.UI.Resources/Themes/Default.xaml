@@ -10338,7 +10338,7 @@ Themes\Styles\Custom\Window.xaml
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition />
               </Grid.ColumnDefinitions>
-              <Button Name="ButtonIcon" Margin="20,10,10,10" VerticalAlignment="Center" Background="Transparent" Command="{x:Static SystemCommands.ShowSystemMenuCommand}" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding Icon,                                                              Converter={StaticResource Object2VisibilityConverter}}" WindowChrome.IsHitTestVisibleInChrome="True">
+              <Button Name="ButtonIcon" Margin="20,10,10,10" VerticalAlignment="Center" Background="Transparent" Command="{x:Static SystemCommands.ShowSystemMenuCommand}" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding UIIcon,                                                              Converter={StaticResource Object2VisibilityConverter}}" WindowChrome.IsHitTestVisibleInChrome="True">
                 <pf:Interaction.Triggers>
                   <pf:EventTrigger EventName="MouseDoubleClick">
                     <pf:InvokeCommandAction Command="{x:Static SystemCommands.CloseWindowCommand}" />
@@ -10439,13 +10439,13 @@ Themes\Styles\Custom\Window.xaml
                   <ColumnDefinition Width="Auto" />
                   <ColumnDefinition />
                 </Grid.ColumnDefinitions>
-                <Button Name="ButtonIcon" Margin="10,0,0,0" VerticalAlignment="Center" Background="Transparent" Command="{x:Static SystemCommands.ShowSystemMenuCommand}" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding Icon,                                                                  Converter={StaticResource Object2VisibilityConverter}}" WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button Name="ButtonIcon" Margin="10,0,0,0" VerticalAlignment="Center" Background="Transparent" Command="{x:Static SystemCommands.ShowSystemMenuCommand}" Style="{StaticResource ButtonCustom}" Visibility="{TemplateBinding UIIcon,                                                                  Converter={StaticResource Object2VisibilityConverter}}" WindowChrome.IsHitTestVisibleInChrome="True">
                   <pf:Interaction.Triggers>
                     <pf:EventTrigger EventName="MouseDoubleClick">
                       <pf:InvokeCommandAction Command="{x:Static SystemCommands.CloseWindowCommand}" />
                     </pf:EventTrigger>
                   </pf:Interaction.Triggers>
-                  <Image Width="16" Height="16" VerticalAlignment="Center" IsHitTestVisible="False" Source="{TemplateBinding Icon}" />
+                  <Image VerticalAlignment="Center" IsHitTestVisible="False" Source="{TemplateBinding Icon}" />
                 </Button>
                 <TextBlock Grid.Column="1" Padding="10,0,0,0" VerticalAlignment="Center" Text="{TemplateBinding Title}">
                   <TextBlock.Visibility>

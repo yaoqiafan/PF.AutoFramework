@@ -41,7 +41,7 @@ namespace PF.Modules.Debug.Views
                 new UIPropertyMetadata(null));
     }
 
-    [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "设备综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 1, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
+    [ModuleNavigation(NavigationConstants.Views.HardwareDebugView, "硬件综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 1, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
     public partial class HardwareDebugView : UserControl
     {
         /// <summary>初始化硬件调试视图</summary>

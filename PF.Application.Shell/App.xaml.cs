@@ -640,8 +640,8 @@ namespace PF.Application.Shell
                 );
 
             container.RegisterMany(
-               new[] { typeof(WS1MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-               typeof(WS1MaterialPullingStation<StationMemoryBaseParam>),
+               new[] { typeof(WS1MaterialPullingStation ), typeof(StationBase<StationMemoryBaseParam>) },
+               typeof(WS1MaterialPullingStation ),
                reuse: DryIoc.Reuse.Singleton);
 
             // ── 工位 2 工站层注册 ──

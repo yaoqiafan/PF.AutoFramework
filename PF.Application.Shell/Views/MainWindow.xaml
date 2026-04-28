@@ -6,8 +6,10 @@
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
-    xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity"
-    Icon="/PF.UI.Resources;component/Images/PNG/聚力LOGOico.png"
+    xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity" 
+    xmlns:shellConverter="clr-namespace:PF.Application.Shell.Converters"
+    Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
+    UIIcon="/PF.UI.Resources;component/Images/PNG/聚力LOGOico.png"
     Width="1900"
     Height="1000"
     pf:WindowAttach.ExtendContentToNonClientArea="False"
@@ -19,11 +21,14 @@
     ShowNonClientArea="True"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"
+    
     WindowState="Maximized">
 
     <pf:Window.Resources>
         <userConverter:UserTextConnver x:Key="UserTextConnver" />
         <userConverter:UserBackGroundConnver x:Key="UserBackGroundConnver" />
+        <shellConverter:DeviceConnectedTextConverter x:Key="DeviceConnectedTextConverter" />
+        <shellConverter:DeviceConnectedBrushConverter x:Key="DeviceConnectedBrushConverter" />
 
         <Style x:Key="IconStyle" TargetType="Image" />
         <Style x:Key="TitleStyle" TargetType="TextBlock">
@@ -383,7 +388,11 @@
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="工位1扫码枪状态：" />
-                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                    <Ellipse Width="8" Height="8" Margin="0,0,4,0"
+                             Fill="{Binding Scanner1Connected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{Binding Scanner1Connected, Converter={StaticResource DeviceConnectedBrushConverter}}"
+                               Text="{Binding Scanner1Connected, Converter={StaticResource DeviceConnectedTextConverter}}" />
                 </StackPanel>
             </StatusBarItem>
 
@@ -391,21 +400,35 @@
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="工位2扫码枪状态：" />
-                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                    <Ellipse Width="8" Height="8" Margin="0,0,4,0"
+                             Fill="{Binding Scanner2Connected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{Binding Scanner2Connected, Converter={StaticResource DeviceConnectedBrushConverter}}"
+                               Text="{Binding Scanner2Connected, Converter={StaticResource DeviceConnectedTextConverter}}" />
                 </StackPanel>
             </StatusBarItem>
 
+            <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="智能相机状态：" />
-                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                    <Ellipse Width="8" Height="8" Margin="0,0,4,0"
+                             Fill="{Binding CameraConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{Binding CameraConnected, Converter={StaticResource DeviceConnectedBrushConverter}}"
+                               Text="{Binding CameraConnected, Converter={StaticResource DeviceConnectedTextConverter}}" />
                 </StackPanel>
             </StatusBarItem>
 
+            <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="SecGem服务状态：" />
-                    <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
+                    <Ellipse Width="8" Height="8" Margin="0,0,4,0"
+                             Fill="{Binding SecGemConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{Binding SecGemConnected, Converter={StaticResource DeviceConnectedBrushConverter}}"
+                               Text="{Binding SecGemConnected, Converter={StaticResource DeviceConnectedTextConverter}}" />
                 </StackPanel>
             </StatusBarItem>
 
