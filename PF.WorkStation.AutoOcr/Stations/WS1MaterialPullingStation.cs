@@ -174,7 +174,7 @@ namespace PF.WorkStation.AutoOcr.Stations
     /// 以及 <see cref="WSDetectionModule"/> (OCR视觉) 进行信号握手，实现互不干涉的并发流转。
     /// </summary>
     [StationUI("工位1拉料工站", "WorkStation1MaterialPullingStationDebugView", order: 2)]
-    public class WS1MaterialPullingStation : StationBase<PullingMemoryParam, Station1PullingStep>
+    public class WS1MaterialPullingStation<T> : StationBase<T, Station1PullingStep> where T : StationMemoryBaseParam, new()
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
@@ -204,12 +204,12 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             if (_pullingModule != null)
             {
-                _pullingModule.AlarmTriggered += _pullingModule_AlarmTriggered;
+                _pullingModule.AlarmTriggered += PullingModule_AlarmTriggered;
                 _pullingModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
             }
         }
 
-        private void _pullingModule_AlarmTriggered(object? sender, MechanismAlarmEventArgs e)
+        private void PullingModule_AlarmTriggered(object? sender, MechanismAlarmEventArgs e)
         {
             _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
             RaiseAlarm(new StationAlarmEventArgs
@@ -223,6 +223,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         private async Task ExecuteResumeFromBreakpointAsync(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             _logger.Info($"[{StationName}] 开始执行断点续跑恢复，当前恢复步序: {_currentStep}");
             try
             {
@@ -237,6 +238,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Info($"[{StationName}] 保持当前业务动作节点: {_currentStep}");
                         break;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // 捕获任务取消：记录日志并上抛，由框架统一管理停止状态
+                _logger.Warn($"[{StationName}] 拉料主循环响应取消请求。退出时步序: {_currentStep}");
+                throw;
             }
             catch (Exception ex)
             {
@@ -315,7 +322,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     }
                 }
 
-                if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize))
+                if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
                 {
                     _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
                     Fire(MachineTrigger.Error);
@@ -792,11 +799,6 @@ namespace PF.WorkStation.AutoOcr.Stations
         }
 
         #endregion
-    }
-
-
-    public class PullingMemoryParam : StationMemoryBaseParam
-    {
     }
 
 

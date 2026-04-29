@@ -97,7 +97,7 @@ namespace PF.Application.Shell
         private static bool IsNewInstance;
 
         private ILogService _logService;
-        private HostApplicationBuilder? builder;
+        private readonly HostApplicationBuilder? builder;
 
         #endregion
 
@@ -447,7 +447,7 @@ namespace PF.Application.Shell
 
         #region 用户身份服务注册
 
-        private void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
+        private static void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<IUserService, UserService>();
         }
@@ -515,10 +515,7 @@ namespace PF.Application.Shell
                     ? int.Parse(idx) : 0;
                 string axisparamstr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var axispa) ? axispa : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
                 var  axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
-                if (axisparam == null)
-                {
-                    axisparam = new AxisParam();
-                }
+                axisparam ??= new AxisParam();
                 return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, axisparam, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
 
@@ -585,55 +582,55 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-    new[] { typeof(WS1FeedingModel), typeof(IMechanism) },
+    [typeof(WS1FeedingModel), typeof(IMechanism)],
     typeof(WS1FeedingModel),
     reuse: DryIoc.Reuse.Singleton,
     serviceKey: nameof(WS1FeedingModel));
 
 
             container.RegisterMany(
-               new[] { typeof(WSDetectionModule), typeof(IMechanism) },
+               [typeof(WSDetectionModule), typeof(IMechanism)],
                typeof(WSDetectionModule),
                reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WSDetectionModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WS1MaterialPullingModule), typeof(IMechanism) },
+               [typeof(WS1MaterialPullingModule), typeof(IMechanism)],
                typeof(WS1MaterialPullingModule),
                reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WS1MaterialPullingModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WSDataModule), typeof(IMechanism) },
+               [typeof(WSDataModule), typeof(IMechanism)],
                typeof(WSDataModule),
                reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WSDataModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WSSecsGemModule), typeof(IMechanism) },
+               [typeof(WSSecsGemModule), typeof(IMechanism)],
                typeof(WSSecsGemModule),
                reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WSSecsGemModule));
 
             // ── 工位 2 机构层注册 ──
             container.RegisterMany(
-                new[] { typeof(WS2FeedingModule), typeof(IMechanism) },
+                [typeof(WS2FeedingModule), typeof(IMechanism)],
                 typeof(WS2FeedingModule),
                 reuse: DryIoc.Reuse.Singleton,
                 serviceKey: nameof(WS2FeedingModule));
 
             container.RegisterMany(
-                new[] { typeof(WS2MaterialPullingModule), typeof(IMechanism) },
+                [typeof(WS2MaterialPullingModule), typeof(IMechanism)],
                 typeof(WS2MaterialPullingModule),
                 reuse: DryIoc.Reuse.Singleton,
                 serviceKey: nameof(WS2MaterialPullingModule));
 
             // 工站层
             container.RegisterMany(
-                new[] { typeof(WS1FeedingStation<StationMemoryBaseParam>), typeof(IStation) },
+                [typeof(WS1FeedingStation<StationMemoryBaseParam>), typeof(IStation)],
                 typeof(WS1FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WS1FeedingStation<StationMemoryBaseParam>)
@@ -641,26 +638,26 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-                new[] { typeof(WSDetectionStation<StationMemoryBaseParam>), typeof(IStation) },
+                [typeof(WSDetectionStation<StationMemoryBaseParam>), typeof(IStation)],
                 typeof(WSDetectionStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
                serviceKey: nameof(WSDetectionStation<StationMemoryBaseParam>)
                 );
 
             container.RegisterMany(
-               new[] { typeof(WS1MaterialPullingStation), typeof(IStation) },
-               typeof(WS1MaterialPullingStation),
+               [typeof(WS1MaterialPullingStation<StationMemoryBaseParam>), typeof(IStation)],
+               typeof(WS1MaterialPullingStation<StationMemoryBaseParam>),
                reuse: DryIoc.Reuse.Singleton);
 
             // ── 工位 2 工站层注册 ──
             container.RegisterMany(
-                new[] { typeof(WS2FeedingStation<StationMemoryBaseParam>), typeof(IStation) },
+                [typeof(WS2FeedingStation<StationMemoryBaseParam>), typeof(IStation)],
                 typeof(WS2FeedingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
                 serviceKey: nameof(WS2FeedingStation<StationMemoryBaseParam>));
 
             container.RegisterMany(
-                new[] { typeof(WS2MaterialPullingStation<StationMemoryBaseParam>), typeof(IStation) },
+                [typeof(WS2MaterialPullingStation<StationMemoryBaseParam>), typeof(IStation)],
                 typeof(WS2MaterialPullingStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton);
 
@@ -678,17 +675,16 @@ namespace PF.Application.Shell
 
         #region 配方服务注册
 
-        private void RegisterRecipeRelated(IContainerRegistry containerRegistry)
+        private static void RegisterRecipeRelated(IContainerRegistry containerRegistry)
         {
             var container = containerRegistry.GetContainer();
 
             // 将 OCRRecipe 同时映射到 IRecipeService、IRecipeManger 接口及其自身类型，确保全局共享同一个配方字典实例
             container.RegisterMany(
-                new[]
-                {
+                [
                     typeof(IRecipeService<OCRRecipeParam>),
                     typeof(OCRRecipe<OCRRecipeParam>)
-                },
+                ],
                 typeof(OCRRecipe<OCRRecipeParam>),
                 reuse: DryIoc.Reuse.Singleton);
 
@@ -847,13 +843,13 @@ namespace PF.Application.Shell
 
 
 
-        private async Task<bool> LoadConfigurationAsync()
+        private static async Task<bool> LoadConfigurationAsync()
         {
             await Task.Delay(1000);
             return true;
         }
 
-        private void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
+        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
         {
             switch (msgType)
             {

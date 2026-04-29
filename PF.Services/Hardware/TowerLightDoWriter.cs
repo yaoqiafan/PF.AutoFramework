@@ -9,22 +9,26 @@ namespace PF.Services.Hardware
     /// ITowerLightDoWriter 实现：通过 IHardwareManagerService 获取 IO 板卡，
     /// 根据 ITowerLightDoWriterConfig 将逻辑 tag 解析为端口索引后调用 WriteOutput。
     /// </summary>
-    public class TowerLightDoWriter : ITowerLightDoWriter
+    /// <remarks>
+    /// 构造
+    /// </remarks>
+    /// <param name="hardwareManager"></param>
+    /// <param name="config"></param>
+    /// <param name="logger"></param>
+    public class TowerLightDoWriter(
+        IHardwareManagerService hardwareManager,
+        ITowerLightDoWriterConfig config,
+        ILogService logger) : ITowerLightDoWriter
     {
-        private readonly IHardwareManagerService _hardwareManager;
-        private readonly ITowerLightDoWriterConfig _config;
-        private readonly ILogService _logger;
+        private readonly IHardwareManagerService _hardwareManager = hardwareManager;
+        private readonly ITowerLightDoWriterConfig _config = config;
+        private readonly ILogService _logger = logger;
 
-        public TowerLightDoWriter(
-            IHardwareManagerService hardwareManager,
-            ITowerLightDoWriterConfig config,
-            ILogService logger)
-        {
-            _hardwareManager = hardwareManager;
-            _config = config;
-            _logger = logger;
-        }
-
+        /// <summary>
+        /// IO写入器
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <param name="value"></param>
         public void Write(string tag, bool value)
         {
             int port = _config.GetPort(tag);

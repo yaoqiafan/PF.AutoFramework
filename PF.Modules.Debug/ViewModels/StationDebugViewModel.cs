@@ -4,15 +4,10 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
-using PF.Core.Interfaces.Station;
+using PF.Infrastructure.Station.Basic;
 using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Reflection;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -113,7 +108,7 @@ namespace PF.Modules.Debug.ViewModels
         // ── 流水线信号量树（Scope → Signal）──────────────────────────────────
 
         /// <summary>获取信号量作用域树节点列表，用于在界面展示当前的互锁或防呆信号状态</summary>
-        public ObservableCollection<ScopeTreeNode> ScopeNodes { get; } = new();
+        public ObservableCollection<ScopeTreeNode> ScopeNodes { get; } = [];
 
         /// <summary>在 ContextMenu 中强制释放指定的单个信号量（允许计数 +1）的命令</summary>
         public DelegateCommand<SignalTreeNode> ReleaseSignalCommand { get; }
@@ -124,7 +119,7 @@ namespace PF.Modules.Debug.ViewModels
         // ── 工站导航列表 ─────────────────────────────────────────────────────
 
         /// <summary>获取左侧栏的工站导航项列表</summary>
-        public ObservableCollection<StationNavItem> NavItems { get; } = new();
+        public ObservableCollection<StationNavItem> NavItems { get; } = [];
 
         private StationNavItem _selectedItem;
         /// <summary>获取或设置当前在列表中被选中的工站导航项，赋值时会自动触发视图导航</summary>
@@ -294,7 +289,7 @@ namespace PF.Modules.Debug.ViewModels
                 var scope = kv.Key[..slash];
                 var signalName = kv.Key[(slash + 1)..];
                 if (!grouped.TryGetValue(scope, out var list))
-                    grouped[scope] = list = new List<(string, int, int)>();
+                    grouped[scope] = list =     [];
                 list.Add((signalName, kv.Value.InitialCount, kv.Value.CurrentCount));
             }
 

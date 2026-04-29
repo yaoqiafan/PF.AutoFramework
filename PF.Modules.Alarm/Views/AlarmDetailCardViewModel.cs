@@ -59,7 +59,9 @@ namespace PF.Modules.Alarm.Views
                     ThreadOption.UIThread,
                     keepSubscriberReferenceAlive: false);
         }
-
+        /// <summary>
+        /// 窗体关闭时触发
+        /// </summary>
         public override void OnDialogClosed()
         {
             base.OnDialogClosed();

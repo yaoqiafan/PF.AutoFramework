@@ -104,7 +104,11 @@ namespace PF.Application.Shell.Services
                 }
             }
         };
-
+        /// <summary>
+        /// 构造
+        /// </summary>
+        /// <param name="towerLight"></param>
+        /// <param name="eventAggregator"></param>
         public TowerLightManager(ITowerLightService towerLight, IEventAggregator eventAggregator)
         {
             _towerLight = towerLight;
