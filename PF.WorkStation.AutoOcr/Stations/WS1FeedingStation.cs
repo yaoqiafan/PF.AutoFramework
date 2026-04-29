@@ -329,6 +329,353 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
+        //public override async Task ExecuteInitializeAsync(CancellationToken token)
+        //{
+        //    Fire(MachineTrigger.Initialize);
+        //    try
+        //    {
+        //        token.ThrowIfCancellationRequested();
+        //        _logger.Info($"[{StationName}] 正在初始化上下料模组...");
+
+        //        try
+        //        {
+
+        //            _cachedRecipe = _dataModule.Station1ReciepParam;
+        //            if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize))
+        //            {
+        //                throw new Exception("物料状态切换失败");
+        //            }
+        //            token.ThrowIfCancellationRequested(); // 【新增】重试循环内的取消嗅探
+        //            await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料复位完成),
+        //                token: token, "复位");
+
+
+        //            if (!await _feedingModule.InitializeAsync(token))
+        //                throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
+
+        //            if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.ZAxis, token: token))
+        //                throw new Exception("Z轴回零失败");
+
+        //            if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.XAxis, token: token))
+        //                throw new Exception("X轴回零失败");
+
+        //            var initResult = await _feedingModule.InitializeFeedingStateAsync(token: token);
+        //            if (!initResult.IsSuccess)
+        //            {
+        //                _logger.Error($"[{StationName}] 初始化失败：{initResult.ErrorMessage}");
+        //                TriggerAlarm(initResult.ErrorCode, initResult.ErrorMessage);
+        //                Fire(MachineTrigger.Error);
+        //                return;
+        //            }
+
+        //            _logger.Success($"[{StationName}] 机构已退回安全位就绪。");
+        //            _feedingModule.ResumeHealthMonitoring();
+        //        }
+        //        catch (OperationCanceledException) { throw; }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.Error($"[{StationName}] 初始化异常: {ex.Message}");
+        //            Fire(MachineTrigger.Error);
+        //            throw;
+        //        }
+
+        //        _sync.ResetScope(StationName);
+
+        //        // ── 断点续跑：重启后校验物料状态 ──
+        //        if (MemoryParam.IsInProgress)
+        //        {
+        //            _logger.Info($"[{StationName}] 检测到上次退出时处于作业中状态（步序 {(Station1FeedingStep)MemoryParam.PersistedStep}），执行寻层校验...");
+
+        //            var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
+        //            if (!canMoveXResult.IsSuccess)
+        //            {
+        //                _logger.Error($"[{StationName}] X轴运动条件不满足：{canMoveXResult.ErrorMessage}");
+        //                var errStep = canMoveXResult.ErrorCode switch
+        //                {
+        //                    AlarmCodesExtensions.WS1Feeding.XAxisTabDetected => Station1FeedingStep.X轴互锁失败_存在铁环突片,
+        //                    AlarmCodesExtensions.WS1Feeding.PullOutLeverNotOpen => Station1FeedingStep.拉料互锁失败_挡杆未打开,
+        //                    _ => Station1FeedingStep.X轴运动条件不满足
+        //                };
+        //                _logger.Error($"[{StationName}] 断点续跑寻层失败：{canMoveXResult.ErrorMessage}");
+        //                TriggerAlarm(canMoveXResult.ErrorCode, "断点续跑寻层失败，无法确认物料状态");
+        //                Fire(MachineTrigger.Error);
+        //                return;
+
+        //            }
+
+
+
+
+        //            CurrentStepDescription = "X轴移动到待机位...";
+        //            if (!await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS1FeedingModel.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+        //            {
+        //                _logger.Error($"[{StationName}] X轴移动到待机位失败（超时）。");
+        //                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch, $"[{StationName}] X轴移动到待机位失败（超时）。");
+        //                Fire(MachineTrigger.Error);
+        //                return;
+        //            }
+
+
+
+
+        //            CurrentStepDescription = "检查Z轴运动条件（寻层）...";
+        //            if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+        //            {
+        //                _logger.Error($"[{StationName}] Z轴条件不满足（寻层阶段）。");
+        //                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch, $"[{StationName}] Z轴条件不满足（寻层阶段）。");
+        //                Fire(MachineTrigger.Error);
+        //                return;
+        //            }
+
+
+
+
+        //            var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
+        //            if (!scanResult.IsSuccess || scanResult.Data.Count == 0)
+        //            {
+        //                _logger.Error($"[{StationName}] 断点续跑寻层失败：{scanResult.ErrorMessage}");
+        //                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.LayerScanFailed, "断点续跑寻层失败，无法确认物料状态");
+        //                Fire(MachineTrigger.Error);
+        //                return;
+        //            }
+
+        //            var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(scanResult.Data);
+        //            if (!filterResult.IsSuccess)
+        //            {
+        //                _logger.Error($"[{StationName}] 断点续跑算法过滤失败：{filterResult.ErrorMessage}");
+        //                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmException, "断点续跑算法过滤失败，无法确认物料状态");
+        //                Fire(MachineTrigger.Error);
+        //                return;
+        //            }
+
+        //            var savedStep = (Station1FeedingStep)MemoryParam.PersistedStep;
+        //            // 若保存点为"计算下一层位置"，说明当前层已完成，跳过数加一
+        //            //int skipCount = (savedStep == Station1FeedingStep.计算下一层位置)
+        //            //    ? MemoryParam.CurrentLayerIndex + 1
+        //            //    : MemoryParam.CurrentLayerIndex;
+        //            int expectedRemaining = MemoryParam.TotalLayerCount;
+        //            int actualRemaining = filterResult.Data.Count;
+        //            if (savedStep == Station1FeedingStep.等待物料拉出完成)
+        //            {
+        //                /*******此处代表物料已被拉出********/
+        //                if (actualRemaining != expectedRemaining - 1)
+        //                {
+        //                    if (!await _feedingModule.IsTrackProExist(token))
+        //                    {
+        //                        _logger.Error($"物料扫描状态与实际不一致！");
+        //                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
+        //                           $"物料扫描状态与实际不一致！");
+        //                        Fire(MachineTrigger.Error);
+        //                        return;
+        //                    }
+        //                    else
+        //                    {
+        //                        _layersToProcess = [.. MemoryParam.LayersToProcess];
+        //                        _currentLayerIndex = MemoryParam.CurrentLayerIndex;
+        //                        _totalLayerCount = _layersToProcess.Count;
+        //                        _detectedWaferSize = MemoryParam.DetectedWaferSize;
+        //                        _rawMappingData = [];
+        //                        CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
+        //                        if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+        //                        {
+        //                            _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                            TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                            Fire(MachineTrigger.Error);
+        //                            return;
+        //                        }
+
+        //                        CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
+        //                        var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+        //                        if (!switchToLayerres.IsSuccess)
+        //                        {
+        //                            _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
+        //                            TriggerAlarm(switchToLayerres.ErrorCode, switchToLayerres.ErrorMessage);
+        //                            Fire(MachineTrigger.Error);
+        //                            return;
+        //                        }
+
+        //                        _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+
+
+
+
+        //                        _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+        //                        _resumeStep = Station1FeedingStep.阻塞等待物料回退完成;
+        //                        _logger.Success($"[{StationName}] 断点续跑校验通过，剩余 {_totalLayerCount} 层，等待启动信号。");
+        //                    }
+        //                }
+
+        //                /*************此处代表物料未拉出**********/
+        //                else
+        //                {
+        //                    if (await _feedingModule.IsTrackProExist(token))
+        //                    {
+        //                        _logger.Error($"物料扫描状态与实际不一致！");
+        //                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
+        //                           $"物料扫描状态与实际不一致！");
+        //                        Fire(MachineTrigger.Error);
+        //                        return;
+        //                    }
+        //                    else
+        //                    {
+        //                        _layersToProcess = [.. MemoryParam.LayersToProcess];
+        //                        _currentLayerIndex = MemoryParam.CurrentLayerIndex;
+        //                        _totalLayerCount = _layersToProcess.Count;
+        //                        _detectedWaferSize = MemoryParam.DetectedWaferSize;
+        //                        _rawMappingData = [];
+        //                        CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
+        //                        if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+        //                        {
+        //                            _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                            TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                            Fire(MachineTrigger.Error);
+        //                            return;
+        //                        }
+
+        //                        CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
+        //                        var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+        //                        if (!switchToLayerres.IsSuccess)
+        //                        {
+        //                            _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
+        //                            TriggerAlarm(switchToLayerres.ErrorCode, switchToLayerres.ErrorMessage);
+        //                            Fire(MachineTrigger.Error);
+        //                            return;
+        //                        }
+
+
+
+
+
+        //                        _currentStep = Station1FeedingStep.判断物料可拉出条件;
+        //                        _resumeStep = Station1FeedingStep.判断物料可拉出条件;
+        //                        _logger.Success($"[{StationName}] 断点续跑校验通过，剩余 {_totalLayerCount} 层，等待启动信号。");
+        //                    }
+        //                }
+        //            }
+
+        //            else if (savedStep == Station1FeedingStep.阻塞等待物料回退完成)
+        //            {
+
+        //                if (!await _feedingModule.IsTrackProExist(token))
+        //                {
+        //                    _logger.Error($"物料扫描状态与实际不一致！");
+        //                    TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
+        //                       $"物料扫描状态与实际不一致！");
+        //                    Fire(MachineTrigger.Error);
+        //                    return;
+        //                }
+        //                else
+        //                {
+        //                    _layersToProcess = [.. MemoryParam.LayersToProcess];
+        //                    _currentLayerIndex = MemoryParam.CurrentLayerIndex;
+        //                    _totalLayerCount = _layersToProcess.Count;
+        //                    _detectedWaferSize = MemoryParam.DetectedWaferSize;
+        //                    _rawMappingData = [];
+        //                    CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
+        //                    if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+        //                    {
+        //                        _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                        Fire(MachineTrigger.Error);
+        //                        return;
+        //                    }
+
+        //                    CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
+        //                    var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+        //                    if (!switchToLayerres.IsSuccess)
+        //                    {
+        //                        _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
+        //                        TriggerAlarm(switchToLayerres.ErrorCode, switchToLayerres.ErrorMessage);
+        //                        Fire(MachineTrigger.Error);
+        //                        return;
+        //                    }
+
+        //                    _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+
+
+
+
+        //                    _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+        //                    _resumeStep = Station1FeedingStep.阻塞等待物料回退完成;
+        //                    _logger.Success($"[{StationName}] 断点续跑校验通过，剩余 {_totalLayerCount} 层，等待启动信号。");
+        //                }
+
+        //            }
+
+        //            else
+        //            {
+        //                if (await _feedingModule.IsTrackProExist(token))
+        //                {
+        //                    _logger.Error($"物料扫描状态与实际不一致！");
+        //                    TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
+        //                       $"物料扫描状态与实际不一致！");
+        //                    Fire(MachineTrigger.Error);
+        //                    return;
+        //                }
+        //                else
+        //                {
+        //                    _layersToProcess = [.. MemoryParam.LayersToProcess];
+        //                    _currentLayerIndex = MemoryParam.CurrentLayerIndex;
+        //                    _totalLayerCount = _layersToProcess.Count;
+        //                    _detectedWaferSize = MemoryParam.DetectedWaferSize;
+        //                    _rawMappingData = [];
+        //                    CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
+        //                    if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+        //                    {
+        //                        _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+        //                        Fire(MachineTrigger.Error);
+        //                        return;
+        //                    }
+
+        //                    CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
+        //                    var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+        //                    if (!switchToLayerres.IsSuccess)
+        //                    {
+        //                        _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
+        //                        TriggerAlarm(switchToLayerres.ErrorCode, switchToLayerres.ErrorMessage);
+        //                        Fire(MachineTrigger.Error);
+        //                        return;
+        //                    }
+        //                    _currentStep = Station1FeedingStep.判断物料可拉出条件;
+        //                    _resumeStep = Station1FeedingStep.判断物料可拉出条件;
+        //                    _logger.Success($"[{StationName}] 断点续跑校验通过，剩余 {_totalLayerCount} 层，等待启动信号。");
+        //                }
+        //            }
+
+
+
+
+
+
+
+
+
+
+        //        }
+        //        else
+        //        {
+        //            var restoreStep = (Station1FeedingStep)MemoryParam.PersistedStep;
+        //            if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
+        //                restoreStep = Station1FeedingStep.等待按下工位1启动按钮;
+        //            _currentStep = restoreStep;
+        //            _resumeStep = restoreStep;
+        //        }
+
+        //        Fire(MachineTrigger.InitializeDone);
+        //    }
+        //    catch (OperationCanceledException)
+        //    {
+        //        _logger.Warn($"[{StationName}] 初始化已被外部强行取消。");
+        //        throw;
+        //    }
+        //    catch
+        //    {
+        //        Fire(MachineTrigger.Error);
+        //        throw;
+        //    }
+        //}
+
         public override async Task ExecuteInitializeAsync(CancellationToken token)
         {
             Fire(MachineTrigger.Initialize);
@@ -339,16 +686,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                 try
                 {
-
                     _cachedRecipe = _dataModule.Station1ReciepParam;
                     if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize))
                     {
                         throw new Exception("物料状态切换失败");
                     }
-                    token.ThrowIfCancellationRequested(); // 【新增】重试循环内的取消嗅探
-                    await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料复位完成),
-                        token: token, "复位");
-
+                    token.ThrowIfCancellationRequested();
+                    await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料复位完成), token: token, "复位");
 
                     if (!await _feedingModule.InitializeAsync(token))
                         throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
@@ -381,128 +725,14 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                 _sync.ResetScope(StationName);
 
-                // ── 断点续跑：重启后校验物料状态 ──
                 if (MemoryParam.IsInProgress)
                 {
-                    _logger.Info($"[{StationName}] 检测到上次退出时处于作业中状态（步序 {(Station1FeedingStep)MemoryParam.PersistedStep}），执行寻层校验...");
-
-                    var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
-                    if (!canMoveXResult.IsSuccess)
+                    if (!await HandleResumeInProgressAsync(token))
                     {
-                        _logger.Error($"[{StationName}] X轴运动条件不满足：{canMoveXResult.ErrorMessage}");
-                        var errStep = canMoveXResult.ErrorCode switch
-                        {
-                            AlarmCodesExtensions.WS1Feeding.XAxisTabDetected => Station1FeedingStep.X轴互锁失败_存在铁环突片,
-                            AlarmCodesExtensions.WS1Feeding.PullOutLeverNotOpen => Station1FeedingStep.拉料互锁失败_挡杆未打开,
-                            _ => Station1FeedingStep.X轴运动条件不满足
-                        };
-                        _logger.Error($"[{StationName}] 断点续跑寻层失败：{canMoveXResult.ErrorMessage}");
-                        TriggerAlarm(canMoveXResult.ErrorCode, "断点续跑寻层失败，无法确认物料状态");
-                        Fire(MachineTrigger.Error);
-                        return;
-
-                    }
-
-
-
-
-                    CurrentStepDescription = "X轴移动到待机位...";
-                    if (!await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS1FeedingModel.XAxisPoint.待机位), token: token).ConfigureAwait(false))
-                    {
-                        _logger.Error($"[{StationName}] X轴移动到待机位失败（超时）。");
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch, $"[{StationName}] X轴移动到待机位失败（超时）。");
+                        // HandleResumeInProgressAsync 内部已经处理了错误触发和日志记录
                         Fire(MachineTrigger.Error);
                         return;
                     }
-
-
-
-
-                    CurrentStepDescription = "检查Z轴运动条件（寻层）...";
-                    if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
-                    {
-                        _logger.Error($"[{StationName}] Z轴条件不满足（寻层阶段）。");
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch, $"[{StationName}] Z轴条件不满足（寻层阶段）。");
-                        Fire(MachineTrigger.Error);
-                        return;
-                    }
-
-
-
-
-                    var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
-                    if (!scanResult.IsSuccess || scanResult.Data.Count == 0)
-                    {
-                        _logger.Error($"[{StationName}] 断点续跑寻层失败：{scanResult.ErrorMessage}");
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.LayerScanFailed, "断点续跑寻层失败，无法确认物料状态");
-                        Fire(MachineTrigger.Error);
-                        return;
-                    }
-
-                    var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(scanResult.Data);
-                    if (!filterResult.IsSuccess)
-                    {
-                        _logger.Error($"[{StationName}] 断点续跑算法过滤失败：{filterResult.ErrorMessage}");
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmException, "断点续跑算法过滤失败，无法确认物料状态");
-                        Fire(MachineTrigger.Error);
-                        return;
-                    }
-
-                    var savedStep = (Station1FeedingStep)MemoryParam.PersistedStep;
-                    // 若保存点为"计算下一层位置"，说明当前层已完成，跳过数加一
-                    //int skipCount = (savedStep == Station1FeedingStep.计算下一层位置)
-                    //    ? MemoryParam.CurrentLayerIndex + 1
-                    //    : MemoryParam.CurrentLayerIndex;
-                    int expectedRemaining = MemoryParam.TotalLayerCount;
-                    int actualRemaining = filterResult.Data.Count;
-
-                    if (actualRemaining != expectedRemaining-1)
-                    {
-                        _logger.Error($"[{StationName}] 物料状态与记忆不一致！期望剩余 {expectedRemaining} 层，实际扫描 {actualRemaining} 层，请人工确认后复位。");
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
-                            $"期望剩余 {expectedRemaining} 层，实际扫描 {actualRemaining} 层");
-                        Fire(MachineTrigger.Error);
-                        return;
-                    }
-
-                    // 校验通过：恢复运行上下文，从当前未处理层继续
-                    //_layersToProcess = [.. MemoryParam.LayersToProcess.Skip(skipCount)];
-                    _layersToProcess = [.. MemoryParam.LayersToProcess];
-                    _currentLayerIndex = MemoryParam.CurrentLayerIndex;
-                    _totalLayerCount = _layersToProcess.Count;
-                    _detectedWaferSize = MemoryParam.DetectedWaferSize;
-                    _rawMappingData = [];
-                    CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
-                    if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
-                    {
-                        _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
-                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
-                        Fire(MachineTrigger.Error);
-                        return;
-                    }
-
-                    CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
-                    var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
-                    if (!switchToLayerres.IsSuccess)
-                    {
-                        _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
-                        TriggerAlarm(switchToLayerres.ErrorCode , switchToLayerres.ErrorMessage);
-                        Fire(MachineTrigger.Error);
-                        return;
-                    }
-
-                    _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
-
-
-
-
-                    _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
-                    _resumeStep = Station1FeedingStep.阻塞等待物料回退完成;
-                    _logger.Success($"[{StationName}] 断点续跑校验通过，剩余 {_totalLayerCount} 层，等待启动信号。");
-
-
-
-
                 }
                 else
                 {
@@ -526,6 +756,142 @@ namespace PF.WorkStation.AutoOcr.Stations
                 throw;
             }
         }
+
+        /// <summary>
+        /// 处理设备重启后，上次作业未完成的断点续跑逻辑。
+        /// </summary>
+        /// <returns>如果恢复成功并准备好继续，则为 true；否则为 false。</returns>
+        private async Task<bool> HandleResumeInProgressAsync(CancellationToken token)
+        {
+            _logger.Info($"[{StationName}] 检测到上次退出时处于作业中状态（步序 {(Station1FeedingStep)MemoryParam.PersistedStep}），执行寻层校验...");
+
+            // 1. 硬件状态检查与准备
+            var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
+            if (!canMoveXResult.IsSuccess)
+            {
+                _logger.Error($"[{StationName}] 断点续跑前X轴运动条件检查失败：{canMoveXResult.ErrorMessage}");
+                TriggerAlarm(canMoveXResult.ErrorCode, "断点续跑前X轴运动条件检查失败");
+                return false;
+            }
+
+            CurrentStepDescription = "X轴移动到待机位...";
+            if (!await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS1FeedingModel.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+            {
+                _logger.Error($"[{StationName}] X轴移动到待机位失败（超时）。");
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.XAxisMoveTimeout, "X轴移动到待机位失败（超时）");
+                return false;
+            }
+
+            CurrentStepDescription = "检查Z轴运动条件（寻层）...";
+            if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+            {
+                _logger.Error($"[{StationName}] Z轴条件不满足（寻层阶段）。");
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, "Z轴条件不满足（寻层阶段）");
+                return false;
+            }
+
+            // 2. 重新扫描并验证物料状态
+            var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
+            if (!scanResult.IsSuccess || scanResult.Data.Count == 0)
+            {
+                _logger.Error($"[{StationName}] 断点续跑寻层失败：{scanResult.ErrorMessage}");
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.LayerScanFailed, "断点续跑寻层失败，无法确认物料状态");
+                return false;
+            }
+
+            var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(scanResult.Data);
+            if (!filterResult.IsSuccess)
+            {
+                _logger.Error($"[{StationName}] 断点续跑算法过滤失败：{filterResult.ErrorMessage}");
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmException, "断点续跑算法过滤失败");
+                return false;
+            }
+
+            // 3. 状态一致性校验与恢复
+            var savedStep = (Station1FeedingStep)MemoryParam.PersistedStep;
+            bool isMaterialOnTrack = await _feedingModule.IsTrackProExist(token);
+
+            bool isStateConsistent = savedStep switch
+            {
+                // 物料应在轨道上，但扫描显示不在
+                Station1FeedingStep.阻塞等待物料回退完成 => isMaterialOnTrack,
+                // 物料可能已拉出或未拉出
+                Station1FeedingStep.等待物料拉出完成 => (isMaterialOnTrack && filterResult.Data.Count == MemoryParam.TotalLayerCount) ||
+                                               (!isMaterialOnTrack && filterResult.Data.Count == MemoryParam.TotalLayerCount - 1),
+                // 其他情况，物料不应在轨道上
+                _ => !isMaterialOnTrack
+            };
+
+            if (!isStateConsistent)
+            {
+                _logger.Error("物料扫描状态与上次记录的步序不一致！");
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed, "物料扫描状态与实际不一致！");
+                return false;
+            }
+
+            // 4. 恢复状态并设置下一步
+            RestoreStateFromMemory();
+
+            if (!await PrepareZAxisForResume(token))
+            {
+                return false;
+            }
+
+            // 根据上次中断的步骤，决定从哪里继续
+            if (savedStep == Station1FeedingStep.阻塞等待物料回退完成 || (savedStep == Station1FeedingStep.等待物料拉出完成 && isMaterialOnTrack))
+            {
+                _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+                _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+                _resumeStep = Station1FeedingStep.阻塞等待物料回退完成;
+            }
+            else
+            {
+                _currentStep = Station1FeedingStep.判断物料可拉出条件;
+                _resumeStep = Station1FeedingStep.判断物料可拉出条件;
+            }
+
+            _logger.Success($"[{StationName}] 断点续跑校验通过，将从 [{_currentStep}] 继续执行，剩余 {_totalLayerCount} 层。");
+            return true;
+        }
+
+        /// <summary>
+        /// 从持久化内存中恢复工站的核心状态变量。
+        /// </summary>
+        private void RestoreStateFromMemory()
+        {
+            _layersToProcess = new List<int>(MemoryParam.LayersToProcess);
+            _currentLayerIndex = MemoryParam.CurrentLayerIndex;
+            _totalLayerCount = MemoryParam.TotalLayerCount;
+            _detectedWaferSize = MemoryParam.DetectedWaferSize;
+            _rawMappingData = new(); // 扫描数据已用于验证，此处清空
+        }
+
+        /// <summary>
+        /// 为断点续跑准备Z轴，移动到当前目标层。
+        /// </summary>
+        /// <returns>成功返回 true，失败返回 false。</returns>
+        private async Task<bool> PrepareZAxisForResume(CancellationToken token)
+        {
+            CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
+            if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+            {
+                _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+                return false;
+            }
+
+            CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
+            var switchToLayerRes = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+            if (!switchToLayerRes.IsSuccess)
+            {
+                _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
+                TriggerAlarm(switchToLayerRes.ErrorCode, switchToLayerRes.ErrorMessage);
+                return false;
+            }
+            return true;
+        }
+
+
         /// <summary>
         /// 异常清除断点继续
         /// </summary>
@@ -836,6 +1202,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
                             {
                                 _currentStep = Station1FeedingStep.切换到指定层;
+                                MemoryParam.PersistedStep = (int)Station1FeedingStep.切换到指定层;
+                                FlushMemory();
                             }
                             else
                             {
@@ -868,6 +1236,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 // 关键握手：通知拉料工站可以拉料
                                 _sync.Release(nameof(WorkstationSignals.工位1允许拉料), StationName);
                                 _currentStep = Station1FeedingStep.等待物料拉出完成;
+                                MemoryParam.PersistedStep = (int)Station1FeedingStep.等待物料拉出完成;
+                                FlushMemory();
                             }
                             else
                             {
@@ -884,6 +1254,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
                             // 发放退料通行证
                             _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+                            MemoryParam.PersistedStep = (int)Station1FeedingStep.阻塞等待物料回退完成;
+                            FlushMemory();
                             break;
 
                         case Station1FeedingStep.阻塞等待物料回退完成:
@@ -892,7 +1264,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
                             MemoryParam.CurrentLayerIndex = _currentLayerIndex;
-                            MemoryParam.PersistedStep = (int)Station1FeedingStep.阻塞等待物料回退完成;
+                            MemoryParam.PersistedStep = (int)Station1FeedingStep.计算下一层位置;
                             FlushMemory();
                             _currentStep = Station1FeedingStep.计算下一层位置;
                             break;
@@ -923,6 +1295,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "物料全部生产完毕，更新状态...";
                             _logger.Success($"[{StationName}] 晶圆上料闭环完毕。");
                             _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_结束;
+                            MemoryParam.IsInProgress = false;
+                            MemoryParam.CurrentLayerIndex = 0;
+                            MemoryParam.LayersToProcess = [];
+                            MemoryParam.TotalLayerCount = 0;
+                            MemoryParam.PersistedStep = (int)Station1FeedingStep.等待按下工位1启动按钮;
+                            FlushMemory();
+
                             break;
 
                         case Station1FeedingStep.判断X轴是否具备运动条件_结束:
@@ -971,12 +1350,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
 
-                            MemoryParam.IsInProgress = false;
-                            MemoryParam.CurrentLayerIndex = 0;
-                            MemoryParam.LayersToProcess = [];
-                            MemoryParam.TotalLayerCount = 0;
-                            MemoryParam.PersistedStep = (int)Station1FeedingStep.等待按下工位1启动按钮;
-                            FlushMemory();
+                          
                             _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
                             break;
 
