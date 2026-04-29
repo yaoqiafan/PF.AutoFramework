@@ -264,6 +264,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒无损坏;\n" +
                 "3. 复位后重新执行寻层;")]
             public const string AlgorithmSlotMismatch = "PROC_WS1F_ALG_010";
+
+            /// <summary>断点续跑：重启后实际物料层数与记忆不一致</summary>
+            [AlarmInfo("断点续跑", "工位1上下料-重启后物料状态与记忆不一致", AlarmSeverity.Fatal,
+                "1. 人工核查料盒内物料数量是否与系统记忆一致;\n" +
+                "2. 若物料已被取走，请清空批次后重新下发;\n" +
+                "3. 若物料仍在，检查传感器或算法是否异常;\n" +
+                "4. 确认状态后手动复位重启;")]
+            public const string ResumeConsistencyFailed = "PROC_WS1F_RSM_001";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -510,6 +518,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒无损坏;\n" +
                 "3. 复位后重新执行寻层;")]
             public const string AlgorithmSlotMismatch = "PROC_WS2F_ALG_010";
+
+            /// <summary>断点续跑：重启后实际物料层数与记忆不一致</summary>
+            [AlarmInfo("断点续跑", "工位2上下料-重启后物料状态与记忆不一致", AlarmSeverity.Fatal,
+                "1. 人工核查料盒内物料数量是否与系统记忆一致;\n" +
+                "2. 若物料已被取走，请清空批次后重新下发;\n" +
+                "3. 若物料仍在，检查传感器或算法是否异常;\n" +
+                "4. 确认状态后手动复位重启;")]
+            public const string ResumeConsistencyFailed = "PROC_WS2F_RSM_001";
         }
 
         // ─────────────────────────────────────────────────────────────────────

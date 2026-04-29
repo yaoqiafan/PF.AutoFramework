@@ -20,7 +20,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
     /// </summary>
     public class WS1FeedingStationDebugViewModel : RegionViewModelBase, IDisposable
     {
-        private readonly WS1FeedingStation<StationMemoryBaseParam> _station;
+        private readonly WS1FeedingStation _station;
         private readonly IStationSyncService _sync;
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
@@ -125,7 +125,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         /// </summary>
         public WS1FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
-            _station = containerProvider.Resolve<WS1FeedingStation<StationMemoryBaseParam>>(nameof(WS1FeedingStation<StationMemoryBaseParam>));
+            _station = containerProvider.Resolve<WS1FeedingStation>(nameof(WS1FeedingStation));
             _sync= containerProvider.Resolve<IStationSyncService>();
             _userService = containerProvider.Resolve<IUserService>();
 
