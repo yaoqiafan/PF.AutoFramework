@@ -117,6 +117,12 @@ namespace PF.Infrastructure.Station
         private volatile bool _masterCameFromInitAlarm;
 
         /// <summary>
+        /// 初始化中止标志：由 <see cref="StopAllAsync"/> 在取消 <see cref="_initCts"/> 前置 <c>true</c>，
+        /// <see cref="InitializeAllAsync"/> 检测到此标志后跳过后续状态触发，由 Stop 路径接管状态机。
+        /// </summary>
+        private volatile bool _abortInitRequested;
+
+        /// <summary>
         /// 获取当前全局报警是否源自初始化阶段。
         /// 子类可在 <see cref="OnAfterResetSuccess"/> 中读取，决定是否需要重新初始化。
         /// </summary>
@@ -223,7 +229,8 @@ namespace PF.Infrastructure.Station
 
             _globalMachine.Configure(MachineState.Initializing)
                 .Permit(MachineTrigger.InitializeDone, MachineState.Idle)
-                .Permit(MachineTrigger.Error, MachineState.InitAlarm);
+                .Permit(MachineTrigger.Error, MachineState.InitAlarm)
+                .Permit(MachineTrigger.Stop, MachineState.Uninitialized);
 
             _globalMachine.Configure(MachineState.Idle)
                 .Permit(MachineTrigger.Start, MachineState.Running)
@@ -352,7 +359,10 @@ namespace PF.Infrastructure.Station
                 case HardwareInputType.Start: _ = ExecuteSmartStartAsync(); break;
                 case HardwareInputType.Pause: PauseAll(); break;
                 case HardwareInputType.Reset: _ = ExecuteHardwareResetAsync(); break;
-                case HardwareInputType.SafeDoor: PauseAll(); break;
+                case HardwareInputType.SafeDoor:
+                    PauseAll();
+                    _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.SafeDoorOpen, null);
+                    break;
             }
         }
 
@@ -524,6 +534,17 @@ namespace PF.Infrastructure.Station
             _subStationStopsAreIntentional = true;
             try
             {
+                // 初始化中止：先设标志、取消 _initCts，再立即 Fire(Stop) 抢占状态机，
+                // 防止 InitializeAllAsync 的 Error/InitializeDone 路径先于 Stop 触发。
+                if (CurrentState == MachineState.Initializing)
+                {
+                    _abortInitRequested = true;
+                    var initCts = Interlocked.Exchange(ref _initCts, null);
+                    try { initCts?.Cancel(); } catch { }
+                    try { initCts?.Dispose(); } catch { }
+                    Fire(MachineTrigger.Stop);  // Initializing → Uninitialized
+                }
+
                 try
                 {
                     await Parallel.ForEachAsync(_subStations,
@@ -539,7 +560,9 @@ namespace PF.Infrastructure.Station
                     _logger.Warn($"【主控】并行停止产生异常: {ex.Message}");
                 }
                 // 必须在 flag 归零之前完成状态机跳转，避免仍在过渡的子站状态变更触发误报警
-                await FireAsync(MachineTrigger.Stop).ConfigureAwait(false);
+                // 若已由 Initializing 中止路径转移到 Uninitialized，则无需再次 Fire
+                if (CurrentState != MachineState.Uninitialized)
+                    await FireAsync(MachineTrigger.Stop).ConfigureAwait(false);
             }
             finally
             {
@@ -611,6 +634,13 @@ namespace PF.Infrastructure.Station
                 // 仅在 _initCts 仍为本次 cts 时才清空，防止并发调用时误清另一次的 cts
                 Interlocked.CompareExchange(ref _initCts, null, cts);
                 try { cts.Dispose(); } catch { }
+            }
+
+            // 外部 StopAllAsync 请求中止初始化：跳过后续状态触发，由 Stop 路径负责状态机
+            if (_abortInitRequested)
+            {
+                _abortInitRequested = false;
+                return;
             }
 
             // 检查是否有子站仍处于报警状态（初始化失败但未抛出异常的情况）
