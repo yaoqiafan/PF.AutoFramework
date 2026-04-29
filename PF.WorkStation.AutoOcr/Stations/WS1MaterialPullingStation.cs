@@ -463,7 +463,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 //    _logger.Info($"[{StationName}] 断点续跑：检测完成阶段（步序 {persistedStep}），从等待退料信号恢复");
                 //}
                 // 退料阶段或已完成（200-250）：等待下一层
-                else if (persistedStep >= 200 && persistedStep <= 250)
+                else if (persistedStep >= 200 && persistedStep <= 210)
                 {
                     restoreStep = Station1PullingStep.等待允许送料;
                     _logger.Info($"[{StationName}] 断点续跑：退料阶段或已完成（步序 {persistedStep}），从取料阶段恢复");
