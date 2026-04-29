@@ -445,6 +445,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         工位2上下料工站,
         /// <summary>工位2拉料工站</summary>
         工位2拉料工站,
+
     }
 
 
