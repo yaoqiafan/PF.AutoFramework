@@ -190,10 +190,14 @@ namespace PF.Application.Shell.ViewModels
             //        break;
             //}
 
-            // 2. Error 及以上级别弹出报警详情对话框
-            if (record.Severity >= AlarmSeverity.Error)
+            // 2. Warning 及以上级别弹出报警详情对话框；Warning 级别不显示异常复位按钮（纯通知）
+            if (record.Severity >= AlarmSeverity.Warning)
             {
-                var param = new DialogParameters { { "Data", record } };
+                var param = new DialogParameters
+                {
+                    { "Data", record },
+                    { "ShowResetButton", record.Severity >= AlarmSeverity.Error }
+                };
                 DialogService.Show(nameof(AlarmDetailCardView), param, null, nameof(PFAlarmBaseWindow));
             }
         }

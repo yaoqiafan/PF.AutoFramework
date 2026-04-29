@@ -257,7 +257,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 async () => { try { await _controller.StopAllAsync(); } catch { } },
                 () => _controller.CurrentState == MachineState.Idle
                    || _controller.CurrentState == MachineState.Running
-                   || _controller.CurrentState == MachineState.Paused);
+                   || _controller.CurrentState == MachineState.Paused
+                   || _controller.CurrentState == MachineState.Initializing);
 
             ResetCommand = new DelegateCommand(
                 async () => { try { await _controller.ResetAllAsync(); } catch { } },
