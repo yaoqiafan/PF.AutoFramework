@@ -235,6 +235,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     _logger.Success($"[{StationName}] 初始化完成，就绪。");
                     _detectionModule.ResumeHealthMonitoring();
+                    _sync.Release(nameof(WorkstationSignals.检测模组复位完成));
                     Fire(MachineTrigger.InitializeDone); // Initializing → Idle
                 }
             }

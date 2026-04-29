@@ -55,7 +55,14 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>工位2检测完成</summary>
         工位2检测完成,
         /// <summary>工位2人工下料完成</summary>
-        工位2人工下料完成
+        工位2人工下料完成,
+        /***********复位完成标志*********/
+        检测模组复位完成,
+
+        工位1拉料复位完成,
+
+        工位2拉料复位完成,
+
     }
 
     #endregion
@@ -128,6 +135,13 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(nameof(WorkstationSignals.工位2退料完成), scope: E_WorkStation.工位2拉料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位2允许检测), scope: E_WorkStation.工位2拉料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位2检测完成), scope: E_WorkStation.OCR检测工站.ToString());
+
+
+            _sync.Register(nameof(WorkstationSignals.检测模组复位完成), scope: E_WorkStation.OCR检测工站.ToString());
+
+            _sync.Register(nameof(WorkstationSignals.工位1拉料复为完成), scope: E_WorkStation.工位1拉料工站.ToString());
+
+            _sync.Register(nameof(WorkstationSignals.工位2拉料复位完成), scope: E_WorkStation.工位2拉料工站.ToString());
         }
 
         #endregion
@@ -150,7 +164,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     case HardwareInputTypeExtension.WorkStation1Start:
                         _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
-                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号),true);
+                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), true);
                         break;
 
                     case HardwareInputTypeExtension.WorkStation2Start:
@@ -163,11 +177,11 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
 
 
-           
+
         }
 
 
-        
+
 
         /// <summary>
         /// 监听主控状态变迁，根据状态驱动 Safety 监控线程的启停。
