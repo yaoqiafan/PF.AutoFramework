@@ -247,8 +247,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
 
             var restoreStep = (StationDetectionStep)MemoryParam.PersistedStep;
-            if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
-                restoreStep = StationDetectionStep.等待工位1或工位2允许检测;
+            //if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
+            restoreStep = StationDetectionStep.等待工位1或工位2允许检测;
 
             _currentStep = restoreStep;
             _resumeStep = restoreStep;
