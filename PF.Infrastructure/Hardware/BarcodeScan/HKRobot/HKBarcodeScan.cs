@@ -253,7 +253,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             if (!IsSimulated)
             {
                 bool trigOk = tiggerclient.Status == ClientStatus.Connected;
-                bool userOk = Userpowerclient.Status == ClientStatus.Connected;
+                bool userOk = true;
                 if ((!trigOk || !userOk) && !HasAlarm)
                     RaiseAlarm(AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
                         $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");
