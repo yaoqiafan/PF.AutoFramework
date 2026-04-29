@@ -21,6 +21,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PF.Core.Constants;
+using SixLabors.ImageSharp.Formats;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
@@ -279,10 +280,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // 3. 校验读取结果并返回
             if (trackRes.HasValue && gripperRes.HasValue)
             {
-                bool isCorrectState = trackRes.Value && gripperRes.Value;
-                _logger.Info($"[{MechanismName}] 气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
 
-                return MechResult<bool>.Success(isCorrectState);
+               
+                    bool isCorrectState = trackRes.Value && gripperRes.Value;
+                    _logger.Info($"[{MechanismName}] 气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
+
+                    return MechResult<bool>.Success(isCorrectState);
+              
+
+             
             }
             else
             {
@@ -307,7 +313,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             try
             {
-                if (await CheckTrackIsMaterial(linktoken) == true)
+                if ((await CheckTrackIsMaterial(linktoken)).Data  == true)
                 {
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.ChangeSizeTrackHasMaterial, "工位1轨道有晶圆，请先清除轨道物料再执行尺寸切换");
                 }
@@ -454,6 +460,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     bool? res = _io.ReadInput((int)E_InPutName.晶圆夹爪左气缸闭合);
                     if (res == true) break;
                 }
+                //await Task.Delay(500);
 
                 bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
                 if (!res1.HasValue)
@@ -461,6 +468,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 if (res1.Value)
                 {
+                    
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperCloseNoRing, "夹爪闭合后未检测到铁环物料（空夹）");
                 }
                 return MechResult.Success();

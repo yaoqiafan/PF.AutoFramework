@@ -240,6 +240,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             else
             {
                 _logger.Info("【主控】运行期报警复位，保留信号量以支持断点续跑。");
+                _sync.ResetScope("复位");
             }
         }
 
