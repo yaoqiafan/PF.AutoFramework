@@ -162,19 +162,29 @@ namespace PF.WorkStation.AutoOcr.Stations
 
     #endregion
 
+    /// <summary>工位1拉料工站记忆参数，持久化夹爪状态与作业进度。</summary>
+    public class WS1MaterialPullingMemoryParam : StationMemoryBaseParam
+    {
+        /// <summary>拉料流程进行中（作业中）标志；false 表示待机状态。</summary>
+        public bool IsInProgress { get; set; }
+
+        /// <summary>当前配方尺寸（用于校验配方一致性）。</summary>
+        public E_WafeSize CurrentWaferSize { get; set; }
+    }
+
     /// <summary>
     /// 【工位1】拉料工站业务流转控制器 (Material Pulling Station Controller)
-    /// 
+    ///
     /// <para>架构定位：</para>
-    /// 继承自 <see cref="StationBase{T, TStep}"/>，作为拉料业务的独立状态机。
+    /// 继承自 <see cref="StationBase{TMemory, TStep}"/>，作为拉料业务的独立状态机。
     /// 负责调度 <see cref="WS1MaterialPullingModule"/> 执行具体的水平 Y 轴推拉动作与气爪控制。
-    /// 
+    ///
     /// <para>跨工站协同：</para>
-    /// 通过 <see cref="IStationSyncService"/> 与 <see cref="WS1FeedingStation{T}"/> (上下料 Z 轴)
+    /// 通过 <see cref="IStationSyncService"/> 与 <see cref="WS1FeedingStation"/> (上下料 Z 轴)
     /// 以及 <see cref="WSDetectionModule"/> (OCR视觉) 进行信号握手，实现互不干涉的并发流转。
     /// </summary>
     [StationUI("工位1拉料工站", "WorkStation1MaterialPullingStationDebugView", order: 2)]
-    public class WS1MaterialPullingStation<T> : StationBase<T, Station1PullingStep> where T : StationMemoryBaseParam, new()
+    public class WS1MaterialPullingStation : StationBase<WS1MaterialPullingMemoryParam, Station1PullingStep>
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
@@ -354,11 +364,76 @@ namespace PF.WorkStation.AutoOcr.Stations
                 throw;
             }
 
-            // 直接从持久化的步序值恢复断点
-            var restoreStep = (Station1PullingStep)MemoryParam.PersistedStep;
-            // 异步步序值不合法时回退到起点
-            if (!Enum.IsDefined(restoreStep) || (int)restoreStep >= 100000)
+            // ── 方案B：根据持久化步序 + 夹爪物料状态，精确决定恢复点 ──
+            Station1PullingStep restoreStep;
+
+            if (!MemoryParam.IsInProgress)
+            {
+                // 待机状态，回到起点
                 restoreStep = Station1PullingStep.等待允许取料;
+                _logger.Info($"[{StationName}] 检测到待机状态，回到起点等待");
+            }
+            else
+            {
+                var persistedStep = MemoryParam.PersistedStep;
+
+                // 异步步序值不合法时回退到起点
+                if (!Enum.IsDefined((Station1PullingStep)persistedStep) || persistedStep >= 100000)
+                {
+                    restoreStep = Station1PullingStep.等待允许取料;
+                    _logger.Warn($"[{StationName}] 持久化步序不合法（{persistedStep}），回到起点");
+                }
+                // 取料前阶段（0-40）：回到起点
+                else if (persistedStep < 50)
+                {
+                    restoreStep = Station1PullingStep.等待允许取料;
+                    _logger.Info($"[{StationName}] 断点续跑：取料前阶段（步序 {persistedStep}），回到起点");
+                }
+                // 有料阶段（50-140）：取料→检测
+                else if (persistedStep >= 50 && persistedStep <= 140)
+                {
+                    // 检查夹爪物料状态
+                    bool? hasMaterial = await _pullingModule.CheckGipperIsExist(token);
+                    if (hasMaterial == true)
+                    {
+                        // 夹爪有料，从退料阶段恢复
+                        restoreStep = Station1PullingStep.等待允许送料;
+                        _logger.Warn($"[{StationName}] 断点续跑：有料阶段（步序 {persistedStep}），夹爪有料，从退料阶段恢复");
+                    }
+                    else if (hasMaterial == false)
+                    {
+                        // 物料丢失，报警
+                        _logger.Error($"[{StationName}] 断点续跑：记忆显示有料（步序 {persistedStep}）但实际无料，物料可能丢失！");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+                    else
+                    {
+                        // 传感器异常，报警
+                        _logger.Error($"[{StationName}] 断点续跑：无法判断夹爪物料状态（步序 {persistedStep}），传感器异常");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+                }
+                // 检测完成阶段（150-190）：等待退料信号
+                else if (persistedStep >= 150 && persistedStep <= 190)
+                {
+                    restoreStep = Station1PullingStep.等待允许送料;
+                    _logger.Info($"[{StationName}] 断点续跑：检测完成阶段（步序 {persistedStep}），从等待退料信号恢复");
+                }
+                // 退料阶段或已完成（200-250）：等待下一层
+                else if (persistedStep >= 200 && persistedStep <= 250)
+                {
+                    restoreStep = Station1PullingStep.等待允许取料;
+                    _logger.Info($"[{StationName}] 断点续跑：退料阶段或已完成（步序 {persistedStep}），从取料阶段恢复");
+                }
+                else
+                {
+                    // 兜底：回到起点
+                    restoreStep = Station1PullingStep.等待允许取料;
+                    _logger.Warn($"[{StationName}] 断点续跑：未知阶段（步序 {persistedStep}），回到起点");
+                }
+            }
 
             _currentStep = restoreStep;
             _resumeStep = restoreStep;
@@ -446,6 +521,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1允许拉料), token, scope: nameof(E_WorkStation.工位1上下料工站)).ConfigureAwait(false);
 
                             _logger.Info($"[{StationName}] 检测到允许拉料信号，开始执行拉料流程...");
+                            MemoryParam.IsInProgress = true;
+                            MemoryParam.PersistedStep = (int)Station1PullingStep.等待允许取料;
+                            FlushMemory();
                             _currentStep = Station1PullingStep.获取当前配方;
                             break;
 
@@ -462,6 +540,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
 
                             _logger.Info($"[{StationName}] 获取当前配方成功：{_cachedRecipe.RecipeName}");
+                            MemoryParam.CurrentWaferSize = _cachedRecipe.WafeSize;
                             _currentStep = Station1PullingStep.判断流道尺寸;
                             break;
 
@@ -512,14 +591,11 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1PullingStep.关闭夹爪:
                             CurrentStepDescription = "关闭夹爪...";
-                            MemoryParam.PersistedStep = (int)Station1PullingStep.关闭夹爪;
-
                             // 气缸闭合动作
                             var closeResult = await _pullingModule.CloseWafeGipper(token);
                             if (closeResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 关闭夹爪成功");
-                                FlushMemory();
                                 _currentStep = Station1PullingStep.检测叠料;
                             }
                             else
@@ -534,6 +610,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (await _pullingModule.CheckStackedPieces(token))
                             {
                                 _logger.Info($"[{StationName}] 判断叠料无异常");
+                                MemoryParam.PersistedStep = (int)Station1PullingStep.检测叠料;
+                                FlushMemory();
                                 _currentStep = Station1PullingStep.移动到检测位;
                             }
                             else
@@ -648,8 +726,6 @@ namespace PF.WorkStation.AutoOcr.Stations
                             {
                                 _logger.Info($"[{StationName}] 松开夹爪成功");
                                 _currentStep = Station1PullingStep.移动到待机位;
-                                MemoryParam.PersistedStep = (int)Station1PullingStep.移动到待机位;
-                                FlushMemory();
                             }
                             else
                             {
@@ -681,6 +757,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (await _pullingModule.CheckGipperInsidePro(token))
                             {
                                 _logger.Info($"[{StationName}] 防呆通过，夹爪安全空置");
+                                MemoryParam.PersistedStep = (int)Station1PullingStep.判断带片;
+                                FlushMemory();
                                 _currentStep = Station1PullingStep.发送退料完成;
                             }
                             else
@@ -694,6 +772,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "发送退料完成信号...";
                             _logger.Info($"[{StationName}] 释放本层退料完成信号，流程闭环");
                             _sync.Release(nameof(WorkstationSignals.工位1退料完成), StationName);
+                            MemoryParam.IsInProgress = false;
                             MemoryParam.PersistedStep = (int)Station1PullingStep.等待允许取料;
                             FlushMemory();
                             // 回归初始态，循环等待下一层的处理指令
