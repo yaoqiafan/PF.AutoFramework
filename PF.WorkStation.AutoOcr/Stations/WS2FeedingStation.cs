@@ -340,6 +340,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 var initAttempts = 0;
                 const int maxInitAttempts = 3;
 
+                await _sync.WaitAsync(nameof(WorkstationSignals.工位2拉料复位完成), token: token, "复位");
+
                 while (initAttempts < maxInitAttempts)
                 {
                     try

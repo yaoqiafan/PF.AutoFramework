@@ -263,7 +263,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 _logger.Info($"[{StationName}] 正在初始化拉料模组...");
                 var persistedStep = MemoryParam.PersistedStep;
-
+                await _sync.WaitAsync(nameof(WorkstationSignals.检测模组复位完成), token: token, "复位");
                 // ── 根据持久化步序推导夹爪物理状态，执行恢复动作 ──
 
                 // 夹爪持有物料（取料/拉料/检测阶段）：验证物料存在 + 确保夹爪闭合
@@ -328,6 +328,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 _sync.ResetScope(StationName);//初始化所有标志位
                 _logger.Success($"[{StationName}] 初始化完成，就绪。");
                 _pullingModule.ResumeHealthMonitoring();
+                _sync .Release (nameof (WorkstationSignals .工位2拉料复位完成), "复位");
                 Fire(MachineTrigger.InitializeDone); // Initializing → Idle
             }
             catch

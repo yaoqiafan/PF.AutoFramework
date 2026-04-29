@@ -4,6 +4,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
+using PF.Core.Interfaces.Sync;
 using PF.Core.Models;
 using Stateless;
 using System.Collections.Concurrent;
@@ -161,6 +162,9 @@ namespace PF.Infrastructure.Station
         /// </summary>
         private readonly SemaphoreSlim _hardwareOpGate = new(1, 1);
 
+
+        private readonly IStationSyncService _sync;
+
         #endregion
 
         #region Constructor
@@ -183,6 +187,7 @@ namespace PF.Infrastructure.Station
             _alarmService = alarmService;
             _hardwareEventBus = hardwareEventBus;
             _subStations = subStations?.ToList() ?? throw new ArgumentNullException(nameof(subStations));
+
 
             // 订阅所有子工站的报警、自恢复和状态变迁事件，汇聚到主控层统一处理
             foreach (var station in _subStations)
@@ -261,6 +266,7 @@ namespace PF.Infrastructure.Station
             _globalMachine.Configure(MachineState.InitAlarm)
                 .OnEntry(() =>
                 {
+
                     _masterCameFromInitAlarm = true;
                     // 级联触发所有子工站进入报警状态，使子站业务循环同步终止
                     TriggerAllSubStationAlarmsSafely();
@@ -613,7 +619,7 @@ namespace PF.Infrastructure.Station
             try
             {
                 await Parallel.ForEachAsync(_subStations,
-                    new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = cts.Token },
+                    new ParallelOptions { MaxDegreeOfParallelism = 10, CancellationToken = cts.Token },
                     async (station, token) =>
                     {
                         try { await station.ExecuteInitializeAsync(token).ConfigureAwait(false); }
