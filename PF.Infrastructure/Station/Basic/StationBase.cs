@@ -440,7 +440,7 @@ namespace PF.Infrastructure.Station.Basic
                     {
                         _logger?.Fatal($"[{StationName}] 业务异常后触发报警状态失败: {fireEx.Message}");
                     }
-                });
+                }, token);
             }
         }
 
@@ -644,7 +644,7 @@ namespace PF.Infrastructure.Station.Basic
         /// 返回本工站所管理的全部机构实例，框架在 Running 状态进入时向其批量注入
         /// <see cref="BaseMechanism.PauseCheckAsync"/> 委托。默认返回空集合。
         /// </summary>
-        protected virtual IEnumerable<BaseMechanism> GetMechanisms() => Enumerable.Empty<BaseMechanism>();
+        protected virtual IEnumerable<BaseMechanism> GetMechanisms() => [];
 
         /// <summary>
         /// 创建暂停感知委托，注入到所有机构的 <see cref="BaseMechanism.PauseCheckAsync"/>。
@@ -861,8 +861,8 @@ namespace PF.Infrastructure.Station.Basic
         protected async Task<bool> WaitConditionAsync(
             Func<bool> condition,
             int timeoutMs = 5_000,
-            CancellationToken token = default,
-            int pollIntervalMs = 20)
+            int pollIntervalMs = 20 ,
+            CancellationToken token = default)
         {
             using var timeoutCts = new CancellationTokenSource(timeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
@@ -974,7 +974,7 @@ namespace PF.Infrastructure.Station.Basic
         public virtual T? MemoryParam { get; set; }
 
         /// <summary>记忆参数文件所在目录路径。</summary>
-        private string MemoryFileDir => Path.Combine(ConstGlobalParam.ConfigPath, "StationMemoryParam");
+        private static string MemoryFileDir => Path.Combine(ConstGlobalParam.ConfigPath, "StationMemoryParam");
 
         /// <summary>记忆参数文件完整路径，以 <see cref="StationName"/> 为文件名，JSON 格式。</summary>
         private string MemoryFilePath => Path.Combine(MemoryFileDir, $"{StationName}.json");
@@ -1014,17 +1014,20 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         private void WriteMemoryParam()
         {
-            if (MemoryParam == null) return;
+            // 快照引用：防止 ClearMemory() 在序列化过程中将 MemoryParam 替换为新实例
+            var snapshot = MemoryParam;
+            if (snapshot == null) return;
             try
             {
                 Directory.CreateDirectory(MemoryFileDir);
-                MemoryParam.IsWrite = true;
+                snapshot.IsWrite = true;
+                snapshot.LastWriteTime = DateTime.Now;
 
                 // 原子写入：先写 .tmp 临时文件，成功后 Replace 正式文件，
                 // 避免进程在写入中途崩溃时损坏已有的 JSON 文件
                 var finalPath = MemoryFilePath;
                 var tempPath = finalPath + ".tmp";
-                var json = JsonSerializer.Serialize(MemoryParam);
+                var json = JsonSerializer.Serialize(snapshot);
                 File.WriteAllText(tempPath, json);
 
                 if (File.Exists(finalPath))
@@ -1118,8 +1121,9 @@ namespace PF.Infrastructure.Station.Basic
     public class StationMemoryBaseParam
     {
         /// <summary>
-        /// 标记本次是否为写入操作（由框架内部管理，子类不应手动修改）。
-        /// 写入前由框架置 <c>true</c>，读取后由框架置 <c>false</c>，可用于区分参数来源。
+        /// 标记本次是否为主动写入（由框架内部管理，子类不应手动修改）。
+        /// 正常写入时由框架置 <c>true</c>；读取后置 <c>false</c>。
+        /// 若文件中此值为 <c>false</c>，说明上次是崩溃或断电写入，数据可能不完整。
         /// </summary>
         public bool IsWrite { get; set; }
 
@@ -1128,6 +1132,12 @@ namespace PF.Infrastructure.Station.Basic
         /// 对应各工站 Step 枚举的整数值。
         /// </summary>
         public int PersistedStep { get; set; }
+
+        /// <summary>
+        /// 记忆参数最后一次写入磁盘的时间戳，由框架在写入前自动设置。
+        /// 可用于判断数据新鲜度或排查断电时刻。
+        /// </summary>
+        public DateTime LastWriteTime { get; set; }
     }
 
     /// <summary>
@@ -1136,33 +1146,27 @@ namespace PF.Infrastructure.Station.Basic
     /// </summary>
     /// <typeparam name="TMemory">记忆参数类型，须继承 <see cref="StationMemoryBaseParam"/>。</typeparam>
     /// <typeparam name="TStep">步骤枚举类型（struct + Enum 约束），用于描述业务流程中的各个阶段。</typeparam>
-    public abstract class StationBase<TMemory, TStep> : StationBase<TMemory>
+    /// <remarks>
+    /// 初始化带步骤枚举的工站基类。
+    /// </remarks>
+    /// <param name="name">工站名称。</param>
+    /// <param name="logger">日志服务。</param>
+    /// <param name="initialStep">初始步骤（通常为枚举的第一个值，如 <c>Step.Idle</c>）。</param>
+    public abstract class StationBase<TMemory, TStep>(string name, ILogService? logger, TStep initialStep) : StationBase<TMemory>(name, logger)
         where TMemory : StationMemoryBaseParam, new()
         where TStep : struct, Enum
     {
         /// <summary>当前正在执行的步骤，在 ProcessNormalLoopAsync 中驱动 switch/if 分支跳转。</summary>
-        protected TStep _currentStep;
+        protected TStep _currentStep = initialStep;
 
         /// <summary>
         /// 报警复位后续跑的恢复步骤。
         /// 在 <see cref="RouteToError"/> 中与 <c>errorStep</c> 一同记录，复位完成后从此步骤重新执行。
         /// </summary>
-        protected TStep _resumeStep;
+        protected TStep _resumeStep = initialStep;
 
         /// <summary>当前关联的报警码缓存，供错误步骤逻辑读取以上报正确的报警码。</summary>
         protected string? _cachedErrorCode;
-
-        /// <summary>
-        /// 初始化带步骤枚举的工站基类。
-        /// </summary>
-        /// <param name="name">工站名称。</param>
-        /// <param name="logger">日志服务。</param>
-        /// <param name="initialStep">初始步骤（通常为枚举的第一个值，如 <c>Step.Idle</c>）。</param>
-        protected StationBase(string name, ILogService? logger, TStep initialStep) : base(name, logger)
-        {
-            _currentStep = initialStep;
-            _resumeStep = initialStep;
-        }
 
         /// <summary>
         /// 将业务流程路由到错误处理步骤，并记录报警复位后的恢复步骤。

@@ -3,9 +3,13 @@ namespace PF.Core.Enums
     /// <summary>三色灯/蜂鸣器通道标识</summary>
     public enum LightColor
     {
+        /// <summary>红灯</summary>
         Red,
+        /// <summary>黄灯</summary>
         Yellow,
+        /// <summary>绿灯</summary>
         Green,
+        /// <summary>蜂鸣器</summary>
         Buzzer
     }
 

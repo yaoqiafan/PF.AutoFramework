@@ -12,32 +12,28 @@ namespace PF.Services.Hardware
 {
     /// <summary>
     /// 三色灯逻辑控制服务实现。
-    ///
-    /// 并发模型：
-    ///   · 所有槽位（_slots）的读写均在 _lock 内完成，消除状态竞态。
-    ///   · 每个通道持有独立的 CancellationTokenSource；切换状态前先 Cancel + Dispose 旧的。
-    ///   · BlinkLoopAsync 退出时不向硬件写值，DO 状态由外层 ApplyEffectiveStateCore 负责，
-    ///     避免"闪烁 → 常亮"切换时 finally 覆盖新状态的 Race Condition。
-    ///
-    /// 蜂鸣器屏蔽：
-    ///   · 通过 <see cref="IParamService"/> 读写参数（参照安全门屏蔽模式）。
-    ///   · 构造函数同步加载初始屏蔽状态，属性 setter 持久化到数据库。
-    ///   · RequestedState 始终记录业务方的真实意图，屏蔽解除后可还原。
     /// </summary>
     public class TowerLightService : ITowerLightService
     {
-        private readonly ITowerLightDoWriter _writer;
-        private readonly ILogService _logger;
-        private readonly IParamService _paramService;
-        private readonly object _lock = new();
+        private readonly ITowerLightDoWriter _writer; // 硬件数字输出（DO）写入器
+        private readonly ILogService _logger;         // 日志服务
+        private readonly IParamService _paramService; // 参数/配置服务
+        private readonly object _lock = new();        // 用于保护 _slots 字典和硬件写入顺序的同步锁
 
+        /// <summary>
+        /// 内部类：定义每个硬件通道（红/黄/绿/蜂鸣器）的状态槽位
+        /// </summary>
         private sealed class ChannelSlot
         {
+            // 业务方请求的状态（可能由于屏蔽等原因与实际硬件状态不一致）
             public LightState RequestedState { get; set; } = LightState.Off;
+            // 闪烁间隔（毫秒）
             public int BlinkIntervalMs { get; set; } = 500;
+            // 控制异步闪烁循环任务取消的令牌源
             public CancellationTokenSource? Cts { get; set; }
         }
 
+        // 维护四个物理通道的状态字典
         private readonly Dictionary<LightColor, ChannelSlot> _slots = new()
         {
             { LightColor.Red,    new ChannelSlot() },
@@ -46,19 +42,13 @@ namespace PF.Services.Hardware
             { LightColor.Buzzer, new ChannelSlot() },
         };
 
-        // 参数键名与类型名（与 E_Params.BuzzerMuted 对应）
-        private const string BuzzerMutedParamKey = "BuzzerMuted";
-        private const string EParamsTypeName = "E_Params";
-
-        // 内部字段（由参数服务驱动）
-        private bool _isBuzzerMuted;
+        private const string BuzzerMutedParamKey = "BuzzerMuted"; // 数据库中的参数名
+        private const string EParamsTypeName = "E_Params";       // 参数所属的类型名
+        private bool _isBuzzerMuted;                             // 缓存当前的蜂鸣器屏蔽状态
 
         /// <summary>
         /// 全局蜂鸣器屏蔽开关。
-        /// true = 静音：蜂鸣器请求的任何状态均以 Off 生效，已在运行的任务立即取消；
-        /// false = 解除：按 RequestedState 重新评估并即时生效。
-        ///
-        /// 本属性读写参照安全门屏蔽模式：值持久化到 <see cref="E_Params.BuzzerMuted"/> 参数。
+        /// 逻辑：屏蔽时强行将蜂鸣器硬件置为 Off，但不改变 RequestedState，以便解除屏蔽时恢复。
         /// </summary>
         public bool IsBuzzerMuted
         {
@@ -69,7 +59,7 @@ namespace PF.Services.Hardware
 
                 _isBuzzerMuted = value;
 
-                // 持久化到参数数据库（参照安全门屏蔽模式）
+                // 1. 异步将设置持久化到数据库
                 try
                 {
                     _ = _paramService.SetParamAsync(EParamsTypeName, BuzzerMutedParamKey, value)
@@ -80,16 +70,23 @@ namespace PF.Services.Hardware
                     _logger.Warn($"【三色灯】保存蜂鸣器屏蔽参数失败：{ex.Message}");
                 }
 
+                // 2. 立即在硬件上生效（需持锁以防此时有其他线程修改蜂鸣器状态）
                 lock (_lock)
                 {
                     var slot = _slots[LightColor.Buzzer];
+                    // 重新计算“屏蔽逻辑”后的有效状态
                     var effective = ComputeEffective(LightColor.Buzzer, slot.RequestedState);
                     ApplyEffectiveStateCore(slot, LightColor.Buzzer.ToString(), effective, slot.BlinkIntervalMs);
                     _logger.Info($"【三色灯】蜂鸣器屏蔽已{(value ? "开启" : "关闭")}，当前有效状态：{effective}");
                 }
             }
         }
-
+        /// <summary>
+        /// 构造
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="logger"></param>
+        /// <param name="paramService"></param>
         public TowerLightService(
             ITowerLightDoWriter writer,
             ILogService logger,
@@ -99,7 +96,7 @@ namespace PF.Services.Hardware
             _logger = logger;
             _paramService = paramService;
 
-            // 构造函数同步加载初始屏蔽状态（参照安全门屏蔽的 StartSafetyMonitoring 行为）
+            // 初始化：从数据库同步加载初始屏蔽状态
             try
             {
                 _isBuzzerMuted = _paramService.GetParamAsync<bool>(
@@ -115,23 +112,32 @@ namespace PF.Services.Hardware
                 _isBuzzerMuted = false;
             }
 
+            // 订阅参数变更事件，实现 UI 修改参数后自动同步到本服务
             _paramService.ParamChanged += OnParamChanged;
         }
 
         // ── 公开控制 API ─────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 设置指定通道的状态
+        /// </summary>
         public void SetLight(LightColor color, LightState state, int blinkIntervalMs = 500)
         {
             lock (_lock)
             {
                 var slot = _slots[color];
-                slot.RequestedState = state;
+                slot.RequestedState = state; // 记录原始请求
                 slot.BlinkIntervalMs = blinkIntervalMs;
+
+                // 计算受屏蔽逻辑影响后的最终状态
                 var effective = ComputeEffective(color, state);
                 ApplyEffectiveStateCore(slot, color.ToString(), effective, blinkIntervalMs);
             }
         }
 
+        /// <summary>
+        /// 批量设置灯光状态
+        /// </summary>
         public void SetLights(IReadOnlyDictionary<LightColor, LightState> states, int blinkIntervalMs = 500)
         {
             lock (_lock)
@@ -147,16 +153,20 @@ namespace PF.Services.Hardware
             }
         }
 
+        /// <summary>
+        /// 关闭所有通道并重置内部记录
+        /// </summary>
         public void TurnOffAll()
         {
             lock (_lock)
             {
                 foreach (var (color, slot) in _slots)
                 {
-                    slot.Cts?.Cancel();
+                    slot.Cts?.Cancel(); // 停止可能的闪烁循环
                     slot.Cts?.Dispose();
                     slot.Cts = null;
-                    _writer.Write(color.ToString(), false);
+
+                    _writer.Write(color.ToString(), false); // 硬件拉低
                     slot.RequestedState = LightState.Off;
                     slot.BlinkIntervalMs = 500;
                 }
@@ -172,14 +182,18 @@ namespace PF.Services.Hardware
                 IsBuzzerMuted = b;
         }
 
+        /// <summary>
+        /// 计算有效状态：如果是蜂鸣器且处于屏蔽状态，则强行返回 Off，否则返回请求状态
+        /// </summary>
         private LightState ComputeEffective(LightColor color, LightState requested)
             => (color == LightColor.Buzzer && _isBuzzerMuted) ? LightState.Off : requested;
 
         /// <summary>
-        /// 在持锁上下文中应用有效状态：先清理旧 CTS，再按 effective 驱动硬件与频闪任务。
+        /// 核心转换逻辑：将抽象的 LightState 转换为具体的物理 DO 操作或异步闪烁任务
         /// </summary>
         private void ApplyEffectiveStateCore(ChannelSlot slot, string tag, LightState effective, int intervalMs)
         {
+            // 无论新状态是什么，都必须先停止并清理旧的异步闪烁任务（如果有）
             slot.Cts?.Cancel();
             slot.Cts?.Dispose();
             slot.Cts = null;
@@ -187,41 +201,46 @@ namespace PF.Services.Hardware
             switch (effective)
             {
                 case LightState.Off:
-                    _writer.Write(tag, false);
+                    _writer.Write(tag, false); // 物理关闭
                     break;
 
                 case LightState.On:
-                    _writer.Write(tag, true);
+                    _writer.Write(tag, true);  // 物理开启
                     break;
 
                 case LightState.Blinking:
-                    _writer.Write(tag, false);                // 初始已知态：灭
+                    _writer.Write(tag, false); // 确保从“灭”的状态开始闪烁
                     slot.Cts = new CancellationTokenSource();
+                    // 启动火警式异步循环，不阻塞当前线程
                     _ = BlinkLoopAsync(tag, intervalMs, slot.Cts.Token);
                     break;
             }
         }
 
         /// <summary>
-        /// 软件频闪主循环（PeriodicTimer，无 Thread.Sleep）。
-        ///
-        /// 注意：catch 块仅静默退出，<b>不在 finally 写硬件</b>。
-        /// 原因：Cancel() 由外层 ApplyEffectiveStateCore 在 lock 内同步调用，
-        /// 外层已将 DO 点写入新目标状态（On/Off），若此处写 false 会覆盖该状态。
+        /// 软件驱动的频闪循环
         /// </summary>
         private async Task BlinkLoopAsync(string tag, int intervalMs, CancellationToken token)
         {
+            // 使用 PeriodicTimer 代替 Thread.Sleep，更精确且不占用线程
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(intervalMs));
-            bool phase = true;  // 第一次 tick 写 true（亮），后续交替
+            bool phase = true;  // 亮/灭相位翻转标志
             try
             {
+                // 等待下一个周期，如果 token 被取消则退出循环
                 while (await timer.WaitForNextTickAsync(token))
                 {
                     _writer.Write(tag, phase);
-                    phase = !phase;
+                    phase = !phase; // 切换状态
                 }
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+                // 正常的任务取消，无需处理
+            }
+            // 注意：此处不执行 _writer.Write(tag, false)。
+            // 因为当任务被取消时，ApplyEffectiveStateCore 正在 lock 内写入新状态，
+            // 若此处再次写入 false，可能会覆盖掉刚刚设置的“常亮”或“屏蔽”状态。
         }
     }
 }

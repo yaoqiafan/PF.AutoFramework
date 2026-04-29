@@ -47,8 +47,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 5. 数据过滤：调用 <see cref="AnalyzeAndFilterMappingData(Dictionary{int, List{double}})"/>，将扫描原始数据剔除斜片、假触发，生成有效层级映射。
     /// 6. 定位取料：调用 <see cref="SwitchToLayerAsync(int, CancellationToken)"/> 到达目标层级后，交由外部机械手拉料。
     /// </remarks>
+    /// <remarks>
+    /// 实例化晶圆上料模组
+    /// </remarks>
     [MechanismUI("工位2上晶圆模组", "Workstation2FeedingModelDebugView", 3)]
-    public class WS2FeedingModule : BaseMechanism
+    public class WS2FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger) : BaseMechanism(E_Mechanisms.工位2上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
     {
         #region Enums (轴关键点位枚举)
 
@@ -121,13 +124,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         // ── 轴阵列点位缓存集合 ──
 
         /// <summary>8寸料盒：推演出的每一层实际水平拉料的 Z 轴绝对坐标字典 (Key=层索引, Value=坐标属性)</summary>
-        public readonly ConcurrentDictionary<int, AxisPoint> PickingPosition_8;
+        public readonly ConcurrentDictionary<int, AxisPoint> PickingPosition_8 = new();
         /// <summary>12寸料盒：推演出的每一层实际水平拉料的 Z 轴绝对坐标字典</summary>
-        public readonly ConcurrentDictionary<int, AxisPoint> PickingPosition_12;
+        public readonly ConcurrentDictionary<int, AxisPoint> PickingPosition_12 = new();
         /// <summary>8寸料盒：推演出的用于和寻层锁存数据比对的标准槽位理论坐标</summary>
-        public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_8;
+        public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_8 = new();
         /// <summary>12寸料盒：推演出的用于和寻层锁存数据比对的标准槽位理论坐标</summary>
-        public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_12;
+        public readonly ConcurrentDictionary<int, AxisPoint> ScanPosition_12 = new();
 
         // ── 公开硬件绑定属性 (供 ViewModel/UI 调试面板使用) ──
         /// <summary>获取Z轴实例</summary>
@@ -138,20 +141,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public IIOController IO => _io;
 
         #endregion
-
         #region Constructor & Framework Hooks (构造与生命周期)
-
-        /// <summary>
-        /// 实例化晶圆上料模组
-        /// </summary>
-        public WS2FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
-            : base(E_Mechanisms.工位2上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
-        {
-            PickingPosition_8 = new ConcurrentDictionary<int, AxisPoint>();
-            PickingPosition_12 = new ConcurrentDictionary<int, AxisPoint>();
-            ScanPosition_8 = new ConcurrentDictionary<int, AxisPoint>();
-            ScanPosition_12 = new ConcurrentDictionary<int, AxisPoint>();
-        }
 
         /// <summary>
         /// 模组初始化核心逻辑：延迟解析硬件、注册报警聚合防线、连接/使能/回零
@@ -645,27 +635,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private static void SavePoint(string FilePath, Dictionary<int, List<double>> point)
         {
-            FileInfo file = new FileInfo(FilePath);
+            FileInfo file = new(FilePath);
             if (!Directory.Exists(file.DirectoryName)) Directory.CreateDirectory(file.DirectoryName);
 
-            using (XSSFWorkbook wk = new XSSFWorkbook())
+            using XSSFWorkbook wk = new();
+            int count = 0;
+            ISheet sheet = wk.CreateSheet("point");
+            foreach (var item in point)
             {
-                int count = 0;
-                ISheet sheet = wk.CreateSheet("point");
-                foreach (var item in point)
+                for (int i = 0; i < item.Value?.Count; i++)
                 {
-                    for (int i = 0; i < item.Value?.Count; i++)
-                    {
-                        if (i == 0) sheet.CreateRow(count).CreateCell(i).SetCellValue(item.Value[i]);
-                        else sheet.GetRow(count).CreateCell(i).SetCellValue(item.Value[i]);
-                    }
-                    count++;
+                    if (i == 0) sheet.CreateRow(count).CreateCell(i).SetCellValue(item.Value[i]);
+                    else sheet.GetRow(count).CreateCell(i).SetCellValue(item.Value[i]);
                 }
-                using (FileStream fs = new FileStream(FilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-                {
-                    wk.Write(fs);
-                }
+                count++;
             }
+            using FileStream fs = new(FilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            wk.Write(fs);
         }
 
         #endregion

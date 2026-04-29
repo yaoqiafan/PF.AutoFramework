@@ -136,19 +136,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 清除机台记忆
 
         private bool _isClearMemoryChecked;
+        /// <summary>
+        /// 是否清除机台记忆
+        /// </summary>
         public bool IsClearMemoryChecked
         {
             get => _isClearMemoryChecked;
             set => SetProperty(ref _isClearMemoryChecked, value);
         }
-
+        /// <summary>
+        /// 有清除记忆权限
+        /// </summary>
         public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Administrator);
 
         #endregion
 
         #region 数据集合
 
-        private ObservableCollection<MachineDetectionData> _station1MachineDetection = new();
+        private ObservableCollection<MachineDetectionData> _station1MachineDetection = [];
         /// <summary>获取或设置工位1检测数据集合</summary>
         public ObservableCollection<MachineDetectionData> Station1MachineDetection
         {
@@ -156,7 +161,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             set => SetProperty(ref _station1MachineDetection, value);
         }
 
-        private ObservableCollection<MachineDetectionData> _station2MachineDetection = new();
+        private ObservableCollection<MachineDetectionData> _station2MachineDetection = [];
         /// <summary>获取或设置工位2检测数据集合</summary>
         public ObservableCollection<MachineDetectionData> Station2MachineDetection
         {
@@ -357,8 +362,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (result.Result == ButtonResult.OK)
             {
-                var param = result.Parameters as DialogParameters;
-                if (param != null && param.ContainsKey("Lotid") && param.ContainsKey("Userid"))
+                if (result.Parameters is DialogParameters param && param.ContainsKey("Lotid") && param.ContainsKey("Userid"))
                 {
                     string Userid = param.GetValue<string>("Userid");
                     string lotid = param.GetValue<string>("Lotid");
@@ -406,8 +410,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (result.Result == ButtonResult.OK)
             {
-                var param = result.Parameters as DialogParameters;
-                if (param != null && param.ContainsKey("Lotid") && param.ContainsKey("Userid"))
+                if (result.Parameters is DialogParameters param && param.ContainsKey("Lotid") && param.ContainsKey("Userid"))
                 {
                     string Userid = param.GetValue<string>("Userid");
                     string lotid = param.GetValue<string>("Lotid");
@@ -440,9 +443,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                   
-                        MessageService.ShowMessage($"工位2切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                   
+
+                    MessageService.ShowMessage($"工位2切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+
                 }
                 else
                 {

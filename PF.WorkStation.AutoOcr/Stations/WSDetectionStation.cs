@@ -171,6 +171,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _logger.Info($"[{StationName}] 开始执行断点续跑恢复，当前恢复步序: {_currentStep}");
             try
             {
+                token.ThrowIfCancellationRequested();
                 switch (_currentStep)
                 {
                     case StationDetectionStep.等待工位1或工位2允许检测:
@@ -180,6 +181,11 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Info($"[{StationName}] 保持当前龙门动作节点: {_currentStep}");
                         break;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.Warn($"[{StationName}] 视觉检测流程接收到取消请求。当前状态: {_currentStep}");
+                throw;
             }
             catch (Exception ex)
             {

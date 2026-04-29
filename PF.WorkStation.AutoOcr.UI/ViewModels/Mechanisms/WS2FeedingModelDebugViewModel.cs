@@ -146,28 +146,28 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// <summary>
         /// 获取或设置 ZAxisOriginalPoints
         /// </summary>
-        public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = [];
         /// <summary>
         /// 获取或设置 XAxisOriginalPoints
         /// </summary>
-        public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = [];
         /// <summary>
         /// 获取或设置 ArrayedPoints
         /// </summary>
-        public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = new ObservableCollection<AxisPoint>();
+        public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = [];
         /// <summary>
         /// 获取或设置 RawMappingPoints1
         /// </summary>
 
-        public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = new ObservableCollection<RawMappingItem>();
+        public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = [];
         /// <summary>
         /// 获取或设置 RawMappingPoints2
         /// </summary>
-        public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = new ObservableCollection<RawMappingItem>();
+        public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = [];
         /// <summary>
         /// 获取或设置 FilteredMappingPoints
         /// </summary>
-        public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = new ObservableCollection<FilteredMappingItem>();
+        public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = [];
         #endregion
 
         #region Commands

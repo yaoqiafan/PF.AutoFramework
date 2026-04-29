@@ -45,7 +45,7 @@ namespace PF.Core.Models
         public T Data { get; set; }
 
         /// <summary>创建携带数据的成功结果</summary>
-        public new static MechResult<T> Success(T data) => new() { IsSuccess = true, Data = data };
+        public static MechResult<T> Success(T data) => new() { IsSuccess = true, Data = data };
 
         /// <summary>创建失败结果</summary>
         public new static MechResult<T> Fail(string errorCode, string message) => new()

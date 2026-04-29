@@ -229,6 +229,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _logger.Info($"[{StationName}] 开始执行断点续跑恢复，当前恢复步序: {_currentStep}");
             try
             {
+                token.ThrowIfCancellationRequested();
                 switch (_currentStep)
                 {
                     case Station2PullingStep.等待允许取料:
@@ -240,6 +241,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Info($"[{StationName}] 保持当前业务动作节点: {_currentStep}");
                         break;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // 捕获任务取消：记录日志并上抛，由框架底层管理任务状态
+                _logger.Warn($"[{StationName}] 流程接收到取消请求。当前状态: {_currentStep} - {CurrentStepDescription}");
+                throw;
             }
             catch (Exception ex)
             {

@@ -195,9 +195,9 @@ namespace PF.WorkStation.AutoOcr.Stations
         // ── 跨步序流转的缓存字段 ──
         private OCRRecipeParam? _cachedRecipe;
         private E_WafeSize _detectedWaferSize;
-        private Dictionary<int, List<double>> _rawMappingData = new Dictionary<int, List<double>>();
+        private Dictionary<int, List<double>> _rawMappingData = [];
         private int _totalLayerCount;
-        private List<int> _layersToProcess = new();
+        private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
         
 
