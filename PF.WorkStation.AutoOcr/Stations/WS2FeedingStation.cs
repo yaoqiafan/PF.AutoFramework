@@ -338,15 +338,14 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 _logger.Info($"[{StationName}] 正在初始化上下料模组...");
                 var initAttempts = 0;
-                const int maxInitAttempts = 3;
+              
 
                 await _sync.WaitAsync(nameof(WorkstationSignals.工位2拉料复位完成), token: token, "复位");
 
-                while (initAttempts < maxInitAttempts)
-                {
+               
                     try
                     {
-                        initAttempts++;
+                        
                         if (!await _feedingModule.InitializeAsync(token))
                             throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
 
@@ -360,34 +359,24 @@ namespace PF.WorkStation.AutoOcr.Stations
                         if (!initResult.IsSuccess)
                         {
                             _logger.Error($"[{StationName}] 初始化失败：{initResult.ErrorMessage}");
-                            if (initAttempts == maxInitAttempts)
-                            {
+                           
                                 TriggerAlarm(initResult.ErrorCode, initResult.ErrorMessage);
                                 Fire(MachineTrigger.Error);
                                 return;
-                            }
-                            else
-                            {
-                                await Task.Delay(1000, token);
-                                continue;
-                            }
+                           
                         }
 
                         _logger.Success($"[{StationName}] 机构已退回安全位就绪。");
                         _feedingModule.ResumeHealthMonitoring();
-                        break;
                     }
-                    catch (Exception ex)
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
                     {
                         _logger.Error($"[{StationName}] 初始化异常: {ex.Message}");
-                        if (initAttempts == maxInitAttempts)
-                        {
                             Fire(MachineTrigger.Error);
                             throw;
-                        }
-                        else await Task.Delay(1000, token);
                     }
-                }
+               
 
                 _sync.ResetScope(StationName);
 
