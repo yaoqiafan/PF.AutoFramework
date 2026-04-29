@@ -630,10 +630,10 @@ namespace PF.Application.Shell
 
             // 工站层
             container.RegisterMany(
-                [typeof(WS1FeedingStation<StationMemoryBaseParam>), typeof(IStation)],
-                typeof(WS1FeedingStation<StationMemoryBaseParam>),
+                [typeof(WS1FeedingStation), typeof(IStation)],
+                typeof(WS1FeedingStation),
                 reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WS1FeedingStation<StationMemoryBaseParam>)
+               serviceKey: nameof(WS1FeedingStation)
                 );
 
 
@@ -651,10 +651,10 @@ namespace PF.Application.Shell
 
             // ── 工位 2 工站层注册 ──
             container.RegisterMany(
-                [typeof(WS2FeedingStation<StationMemoryBaseParam>), typeof(IStation)],
-                typeof(WS2FeedingStation<StationMemoryBaseParam>),
+                [typeof(WS2FeedingStation), typeof(IStation)],
+                typeof(WS2FeedingStation),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WS2FeedingStation<StationMemoryBaseParam>));
+                serviceKey: nameof(WS2FeedingStation));
 
             container.RegisterMany(
                 [typeof(WS2MaterialPullingStation<StationMemoryBaseParam>), typeof(IStation)],
