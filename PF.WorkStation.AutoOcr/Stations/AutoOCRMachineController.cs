@@ -137,11 +137,21 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(nameof(WorkstationSignals.工位2检测完成), scope: E_WorkStation.OCR检测工站.ToString());
 
 
-            _sync.Register(nameof(WorkstationSignals.检测模组复位完成), scope: E_WorkStation.OCR检测工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.检测模组复位完成), maxCount: 2, scope: "复位");
 
-            _sync.Register(nameof(WorkstationSignals.工位1拉料复为完成), scope: E_WorkStation.工位1拉料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位1拉料复位完成), scope: "复位");
 
-            _sync.Register(nameof(WorkstationSignals.工位2拉料复位完成), scope: E_WorkStation.工位2拉料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位2拉料复位完成), scope: "复位");
+            MasterAlarmTriggered += AutoOCRMachineController_MasterAlarmTriggered;
+        }
+
+        private void AutoOCRMachineController_MasterAlarmTriggered(object? sender, StationAlarmEventArgs e)
+        {
+            if (MasterCameFromInitAlarm)
+            {
+                _sync?.ResetScope("复位");
+               
+            }
         }
 
         #endregion
