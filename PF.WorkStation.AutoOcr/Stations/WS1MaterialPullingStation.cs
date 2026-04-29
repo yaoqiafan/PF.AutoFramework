@@ -276,7 +276,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 var persistedStep = MemoryParam.PersistedStep;
                 _cachedRecipe = _dataModule.Station1ReciepParam;
                 // ── 根据持久化步序推导夹爪物理状态，执行恢复动作 ──
-                await _sync.WaitAsync(nameof(WorkstationSignals.检测模组复位完成), token: token);
+                await _sync.WaitAsync(nameof(WorkstationSignals.检测模组复位完成), token: token, "复位");
                 // 夹爪持有物料（取料/拉料/检测阶段）：验证物料存在 + 确保夹爪闭合
                 if (IsGripperHoldingMaterial(persistedStep))
                 {
@@ -345,7 +345,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 _sync.ResetScope(StationName);//初始化所有标志位
                 _logger.Success($"[{StationName}] 初始化完成，就绪。");
                 _pullingModule.ResumeHealthMonitoring();
-                _sync.Release(nameof(WorkstationSignals.工位1拉料复位完成));
+                _sync.Release(nameof(WorkstationSignals.工位1拉料复位完成), "复位");
                 Fire(MachineTrigger.InitializeDone); // Initializing → Idle
             }
             catch
