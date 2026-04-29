@@ -385,7 +385,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                    var kk = await _recipeService.RecipeParam("New_Recipe_141457");
+                    var kk = await _recipeService.RecipeParam("New_Recipe_100349");
                     if (kk == null)
                     {
                         MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);

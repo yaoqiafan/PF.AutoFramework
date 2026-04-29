@@ -115,7 +115,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         // ── 基础定位与运动异常 (10003X) ──
         /// <summary>调整流道尺寸失败（电机异常）</summary>
-        调整流道尺寸电机异常 = 100030,
+        调整流道尺寸异常 = 100030,
         /// <summary>初始化拉料流程失败</summary>
         初始化拉料流程失败 = 100031,
         /// <summary>Y轴移动到取料位置失败</summary>
@@ -267,14 +267,14 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// 步序值域: 关闭夹爪(50) ~ 等待检测位检测完成(140), 等待允许送料(200) ~ 送料到取料位(210)
         /// </summary>
         private static bool IsGripperHoldingMaterial(int stepValue) =>
-            (stepValue >= 50 && stepValue <= 140) || (stepValue >= 200 && stepValue <= 210);
+            (stepValue >= 50 && stepValue <= 140) ;
 
         /// <summary>
         /// 根据持久化的步序值判断是否处于退料阶段（夹爪有料但传感器可能不可靠）。
         /// 步序值域: 送料到取料位(210)
         /// </summary>
         private static bool IsGripperFeeding(int stepValue) =>
-            stepValue >= 200 && stepValue <= 220;
+            stepValue >= 200 && stepValue <= 210;
 
         /// <summary>执行工站初始化</summary>
         public override async Task ExecuteInitializeAsync(CancellationToken token)
@@ -297,7 +297,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         Fire(MachineTrigger.Error);
                         return;
                     }
-                    if (!res.Value)
+                    if (res.Value)
                     {
                         _logger.Error($"[{StationName}] 初始化失败，记忆中夹爪的状态为有料，实际检测为无料，检查轨道物料状态");
                         Fire(MachineTrigger.Error);
@@ -310,6 +310,26 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
                         Fire(MachineTrigger.Error);
                     }
+                    if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    if (!await _pullingModule.MoveDetection(token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
                 }
                 // 退料阶段（传感器不可靠）：仅确保夹爪闭合
                 else if (IsGripperFeeding(persistedStep))
@@ -319,6 +339,26 @@ namespace PF.WorkStation.AutoOcr.Stations
                     {
                         _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
                         Fire(MachineTrigger.Error);
+                    }
+                    if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    if (!await _pullingModule.MoveDetection(token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
+                        Fire(MachineTrigger.Error);
+                        return;
                     }
                 }
                 // 夹爪空闲：确保夹爪张开
@@ -330,51 +370,52 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _logger.Error($"[{StationName}] 初始化失败，打开夹爪失败");
                         Fire(MachineTrigger.Error);
                     }
+                    if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    if (!await _pullingModule.MoveInitialNoScan(token))
+                    {
+                        _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
                 }
 
-                if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
-                {
-                    _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
-                    Fire(MachineTrigger.Error);
-                    return;
-                }
+             
 
-                if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
-                {
-                    _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
-                    Fire(MachineTrigger.Error);
-                    return;
-                }
-
-                if (!await _pullingModule.MoveInitialNoScan(token))
-                {
-                    _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
-                    Fire(MachineTrigger.Error);
-                    return;
-                }
-                _sync.ResetScope(StationName);//初始化所有标志位
-                _logger.Success($"[{StationName}] 初始化完成，就绪。");
-                _pullingModule.ResumeHealthMonitoring();
-                _sync.Release(nameof(WorkstationSignals.工位1拉料复位完成), "复位");
-                Fire(MachineTrigger.InitializeDone); // Initializing → Idle
+               
+              
             }
             catch
             {
                 Fire(MachineTrigger.Error);
                 throw;
             }
-
-            // ── 方案B：根据持久化步序 + 夹爪物料状态，精确决定恢复点 ──
+         
             Station1PullingStep restoreStep;
 
             if (!MemoryParam.IsInProgress)
             {
+               
                 // 待机状态，回到起点
                 restoreStep = Station1PullingStep.等待允许取料;
                 _logger.Info($"[{StationName}] 检测到待机状态，回到起点等待");
             }
             else
             {
+               
+
                 var persistedStep = MemoryParam.PersistedStep;
 
                 // 异步步序值不合法时回退到起点
@@ -394,13 +435,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 检查夹爪物料状态
                     bool? hasMaterial = await _pullingModule.CheckGipperIsExist(token);
-                    if (hasMaterial == true)
+                    if (hasMaterial == false )
                     {
                         // 夹爪有料，从退料阶段恢复
-                        restoreStep = Station1PullingStep.等待允许送料;
+                        restoreStep = Station1PullingStep.扫码识别;
                         _logger.Warn($"[{StationName}] 断点续跑：有料阶段（步序 {persistedStep}），夹爪有料，从退料阶段恢复");
                     }
-                    else if (hasMaterial == false)
+                    else if (hasMaterial == true )
                     {
                         // 物料丢失，报警
                         _logger.Error($"[{StationName}] 断点续跑：记忆显示有料（步序 {persistedStep}）但实际无料，物料可能丢失！");
@@ -415,16 +456,16 @@ namespace PF.WorkStation.AutoOcr.Stations
                         return;
                     }
                 }
-                // 检测完成阶段（150-190）：等待退料信号
-                else if (persistedStep >= 150 && persistedStep <= 190)
-                {
-                    restoreStep = Station1PullingStep.等待允许送料;
-                    _logger.Info($"[{StationName}] 断点续跑：检测完成阶段（步序 {persistedStep}），从等待退料信号恢复");
-                }
+                //// 检测完成阶段（150-190）：等待退料信号
+                //else if (persistedStep >= 150 && persistedStep <= 190)
+                //{
+                //    restoreStep = Station1PullingStep.等待允许送料;
+                //    _logger.Info($"[{StationName}] 断点续跑：检测完成阶段（步序 {persistedStep}），从等待退料信号恢复");
+                //}
                 // 退料阶段或已完成（200-250）：等待下一层
                 else if (persistedStep >= 200 && persistedStep <= 250)
                 {
-                    restoreStep = Station1PullingStep.等待允许取料;
+                    restoreStep = Station1PullingStep.等待允许送料;
                     _logger.Info($"[{StationName}] 断点续跑：退料阶段或已完成（步序 {persistedStep}），从取料阶段恢复");
                 }
                 else
@@ -434,7 +475,11 @@ namespace PF.WorkStation.AutoOcr.Stations
                     _logger.Warn($"[{StationName}] 断点续跑：未知阶段（步序 {persistedStep}），回到起点");
                 }
             }
-
+            _sync.ResetScope(StationName);//初始化所有标志位
+            _logger.Success($"[{StationName}] 初始化完成，就绪。");
+            _pullingModule.ResumeHealthMonitoring();
+            _sync.Release(nameof(WorkstationSignals.工位1拉料复位完成), "复位");
+            Fire(MachineTrigger.InitializeDone); // Initializing → Idle
             _currentStep = restoreStep;
             _resumeStep = restoreStep;
         }
@@ -546,15 +591,24 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1PullingStep.判断流道尺寸:
                             CurrentStepDescription = "判断流道尺寸...";
+
+                            var res = await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token);
                             // 校验当前调宽机构位置是否与配方一致
-                            if (await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
+                            if (res)
                             {
-                                _logger.Info($"[{StationName}] 当前流道尺寸符合配方要求：{_cachedRecipe.WafeSize}");
-                                _currentStep = Station1PullingStep.移动到取料位;
+                                if (res.Data)
+                                {
+                                    _logger.Info($"[{StationName}] 当前流道尺寸符合配方要求：{_cachedRecipe.WafeSize}");
+                                    _currentStep = Station1PullingStep.移动到取料位;
+                                }
+                                else
+                                {
+                                    _currentStep = Station1PullingStep.调整流道尺寸;
+                                }
                             }
                             else
                             {
-                                _currentStep = Station1PullingStep.调整流道尺寸;
+                                _currentStep = Station1PullingStep.调整流道尺寸异常;
                             }
                             break;
 
@@ -570,7 +624,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             else
                             {
                                 _logger.Error($"[{StationName}] 调整流道尺寸失败: {changeResult.ErrorMessage}");
-                                RouteToError(Station1PullingStep.调整流道尺寸电机异常, Station1PullingStep.判断流道尺寸, changeResult.ErrorCode);
+                                RouteToError(Station1PullingStep.调整流道尺寸异常, Station1PullingStep.判断流道尺寸, changeResult.ErrorCode);
                             }
                             break;
 
@@ -696,6 +750,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "正在退料回料盒...";
                             _logger.Info($"[{StationName}] Y 轴送料回料盒...");
                             MemoryParam.PersistedStep = (int)Station1PullingStep.送料到取料位;
+                            FlushMemory();
                             // 确保推料前夹爪状态正常
                             var feedOpenResult = await _pullingModule.OpenWafeGipper(token);
                             if (!feedOpenResult.IsSuccess)
@@ -709,7 +764,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (feedResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 退料回料盒动作执行成功");
-                                _currentStep = Station1PullingStep.打开夹爪;
+                                _currentStep = Station1PullingStep.移动到待机位;
                             }
                             else
                             {
@@ -717,26 +772,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             break;
 
-                        case Station1PullingStep.打开夹爪:
-                            CurrentStepDescription = "打开夹爪...";
-                            _logger.Info($"[{StationName}] 正在松开夹爪，释放物料...");
-
-                            var openResult = await _pullingModule.OpenWafeGipper(token);
-                            if (openResult.IsSuccess)
-                            {
-                                _logger.Info($"[{StationName}] 松开夹爪成功");
-                                _currentStep = Station1PullingStep.移动到待机位;
-                            }
-                            else
-                            {
-                                RouteToError(Station1PullingStep.打开夹爪失败, Station1PullingStep.打开夹爪, openResult.ErrorCode);
-                            }
-                            break;
+                   
 
                         case Station1PullingStep.移动到待机位:
                             CurrentStepDescription = "移动到待机位...";
                             _logger.Info($"[{StationName}] Y 轴撤回待机避让位...");
-
+                            MemoryParam.PersistedStep = (int)Station1PullingStep.移动到待机位;
+                            FlushMemory();
                             var putOverResult = await _pullingModule.PutOverMove(token);
                             if (putOverResult.IsSuccess)
                             {
@@ -817,7 +859,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentStep = _resumeStep;
                             break;
 
-                        case Station1PullingStep.调整流道尺寸电机异常:
+                        case Station1PullingStep.调整流道尺寸异常:
                         case Station1PullingStep.初始化拉料流程失败:
                         case Station1PullingStep.Y轴移动到取料位置失败:
                         case Station1PullingStep.Y轴退回待机位失败:

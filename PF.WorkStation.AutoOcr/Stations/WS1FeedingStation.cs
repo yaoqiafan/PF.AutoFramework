@@ -339,10 +339,16 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                 try
                 {
+
+                    _cachedRecipe = _dataModule.Station1ReciepParam;
+                    if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize))
+                    {
+                        throw new Exception("物料状态切换失败");
+                    }
                     token.ThrowIfCancellationRequested(); // 【新增】重试循环内的取消嗅探
-                    await _sync .WaitAsync (nameof (WorkstationSignals.工位1拉料复位完成 ),
+                    await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料复位完成),
                         token: token, "复位");
-                    
+
 
                     if (!await _feedingModule.InitializeAsync(token))
                         throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
@@ -380,6 +386,50 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     _logger.Info($"[{StationName}] 检测到上次退出时处于作业中状态（步序 {(Station1FeedingStep)MemoryParam.PersistedStep}），执行寻层校验...");
 
+                    var canMoveXResult = await _feedingModule.CanMoveXAxesAsync(token).ConfigureAwait(false);
+                    if (!canMoveXResult.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] X轴运动条件不满足：{canMoveXResult.ErrorMessage}");
+                        var errStep = canMoveXResult.ErrorCode switch
+                        {
+                            AlarmCodesExtensions.WS1Feeding.XAxisTabDetected => Station1FeedingStep.X轴互锁失败_存在铁环突片,
+                            AlarmCodesExtensions.WS1Feeding.PullOutLeverNotOpen => Station1FeedingStep.拉料互锁失败_挡杆未打开,
+                            _ => Station1FeedingStep.X轴运动条件不满足
+                        };
+                        _logger.Error($"[{StationName}] 断点续跑寻层失败：{canMoveXResult.ErrorMessage}");
+                        TriggerAlarm(canMoveXResult.ErrorCode, "断点续跑寻层失败，无法确认物料状态");
+                        Fire(MachineTrigger.Error);
+                        return;
+
+                    }
+
+
+
+
+                    CurrentStepDescription = "X轴移动到待机位...";
+                    if (!await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS1FeedingModel.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+                    {
+                        _logger.Error($"[{StationName}] X轴移动到待机位失败（超时）。");
+                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch, $"[{StationName}] X轴移动到待机位失败（超时）。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+
+
+
+                    CurrentStepDescription = "检查Z轴运动条件（寻层）...";
+                    if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                    {
+                        _logger.Error($"[{StationName}] Z轴条件不满足（寻层阶段）。");
+                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch, $"[{StationName}] Z轴条件不满足（寻层阶段）。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+
+
+
                     var scanResult = await _feedingModule.SearchLayerAsync(token: token).ConfigureAwait(false);
                     if (!scanResult.IsSuccess || scanResult.Data.Count == 0)
                     {
@@ -400,13 +450,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                     var savedStep = (Station1FeedingStep)MemoryParam.PersistedStep;
                     // 若保存点为"计算下一层位置"，说明当前层已完成，跳过数加一
-                    int skipCount = (savedStep == Station1FeedingStep.计算下一层位置)
-                        ? MemoryParam.CurrentLayerIndex + 1
-                        : MemoryParam.CurrentLayerIndex;
-                    int expectedRemaining = MemoryParam.TotalLayerCount - skipCount;
+                    //int skipCount = (savedStep == Station1FeedingStep.计算下一层位置)
+                    //    ? MemoryParam.CurrentLayerIndex + 1
+                    //    : MemoryParam.CurrentLayerIndex;
+                    int expectedRemaining = MemoryParam.TotalLayerCount;
                     int actualRemaining = filterResult.Data.Count;
 
-                    if (actualRemaining != expectedRemaining)
+                    if (actualRemaining != expectedRemaining-1)
                     {
                         _logger.Error($"[{StationName}] 物料状态与记忆不一致！期望剩余 {expectedRemaining} 层，实际扫描 {actualRemaining} 层，请人工确认后复位。");
                         TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
@@ -416,14 +466,43 @@ namespace PF.WorkStation.AutoOcr.Stations
                     }
 
                     // 校验通过：恢复运行上下文，从当前未处理层继续
-                    _layersToProcess = [.. MemoryParam.LayersToProcess.Skip(skipCount)];
-                    _currentLayerIndex = 0;
+                    //_layersToProcess = [.. MemoryParam.LayersToProcess.Skip(skipCount)];
+                    _layersToProcess = [.. MemoryParam.LayersToProcess];
+                    _currentLayerIndex = MemoryParam.CurrentLayerIndex;
                     _totalLayerCount = _layersToProcess.Count;
                     _detectedWaferSize = MemoryParam.DetectedWaferSize;
                     _rawMappingData = [];
-                    _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
-                    _resumeStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
+                    CurrentStepDescription = $"检查Z轴运动条件（第{_currentLayerIndex + 1}层）...";
+                    if (!await _feedingModule.CanMoveZAxesAsync(token).ConfigureAwait(false))
+                    {
+                        _logger.Error($"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+                        TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ZAxisPreconditionFailed, $"[{StationName}] Z轴条件不满足（取料定位阶段）。");
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
+                    var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+                    if (!switchToLayerres.IsSuccess)
+                    {
+                        _logger.Error($"[{StationName}] Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层异常");
+                        TriggerAlarm(switchToLayerres.ErrorCode , switchToLayerres.ErrorMessage);
+                        Fire(MachineTrigger.Error);
+                        return;
+                    }
+
+                    _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+
+
+
+
+                    _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+                    _resumeStep = Station1FeedingStep.阻塞等待物料回退完成;
                     _logger.Success($"[{StationName}] 断点续跑校验通过，剩余 {_totalLayerCount} 层，等待启动信号。");
+
+
+
+
                 }
                 else
                 {
@@ -460,21 +539,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                 token.ThrowIfCancellationRequested(); // 【新增】
                 _logger.Info($"[{StationName}] 正在执行工站复位清警（断点续跑机制，将恢复至步序：[{_currentStep}]）...");
                 _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), true);
-               
-                    try
-                    {
-                        token.ThrowIfCancellationRequested(); // 【新增】
-                        if (_feedingModule != null && !await _feedingModule.ResetAsync(token))
-                            throw new Exception("硬件模组复位失败");
-                    }
-                    catch (OperationCanceledException) // 【新增】
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error($"[{StationName}] 模组复位失败 : {ex.Message}");
-                    }
+
+                try
+                {
+                    token.ThrowIfCancellationRequested(); // 【新增】
+                    if (_feedingModule != null && !await _feedingModule.ResetAsync(token))
+                        throw new Exception("硬件模组复位失败");
+                }
+                catch (OperationCanceledException) // 【新增】
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"[{StationName}] 模组复位失败 : {ex.Message}");
+                }
 
                 if (CameFromInitAlarm)
                 {
@@ -813,7 +892,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
                             MemoryParam.CurrentLayerIndex = _currentLayerIndex;
-                            MemoryParam.PersistedStep = (int)Station1FeedingStep.计算下一层位置;
+                            MemoryParam.PersistedStep = (int)Station1FeedingStep.阻塞等待物料回退完成;
                             FlushMemory();
                             _currentStep = Station1FeedingStep.计算下一层位置;
                             break;
