@@ -339,7 +339,11 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                 try
                 {
-                    token.ThrowIfCancellationRequested();
+                    token.ThrowIfCancellationRequested(); // 【新增】重试循环内的取消嗅探
+                    await _sync .WaitAsync (nameof (WorkstationSignals.工位1拉料复位完成 ),
+                        token: token, "复位");
+                    
+
                     if (!await _feedingModule.InitializeAsync(token))
                         throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
 
