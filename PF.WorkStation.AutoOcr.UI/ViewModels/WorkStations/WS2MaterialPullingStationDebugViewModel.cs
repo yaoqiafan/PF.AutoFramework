@@ -9,6 +9,9 @@ using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Stations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -24,6 +27,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
 
+
         private MachineState _currentState;
         /// <summary>
         /// 成员
@@ -36,7 +40,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private string _currentStepDescription = "就绪";
         /// <summary>
-        /// 获取或设置 CurrentStepDescription
+        /// 成员
         /// </summary>
         public string CurrentStepDescription
         {
@@ -46,7 +50,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private OperationMode _currentMode;
         /// <summary>
-        /// 成员
+        /// 获取或设置 CurrentMode
         /// </summary>
         public OperationMode CurrentMode
         {
@@ -56,18 +60,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private Brush _statusBrush;
         /// <summary>
-        /// 获取或设置 StatusBrush
+        /// 成员
         /// </summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
             private set => SetProperty(ref _statusBrush, value);
         }
+
+        // ── 权限控制 ─────────────────────────────────────────────────────────
         /// <summary>
         /// 获取或设置 CanManualControl
         /// </summary>
 
         public bool CanManualControl => _userService.IsAuthorized(UserLevel.SuperUser);
+
+        // ── 命令 ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Initialize 命令
         /// </summary>
@@ -144,12 +152,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
                 () => CanManualControl && _station.CurrentState != MachineState.InitAlarm
                                        && _station.CurrentState != MachineState.RunAlarm);
 
-            TriggerAllowDecCommand = new DelegateCommand(TriggerAllowDec,
+
+            TriggerAllowDecCommand= new DelegateCommand(TriggerAllowDec,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
             TriggerPullingOverCommand = new DelegateCommand(TriggerPullingOver,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
             TriggerPushOverCommand = new DelegateCommand(TriggerPushOver,
              () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
 
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
             {
@@ -158,6 +169,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _pollTimer.Tick += OnPollTick;
             _pollTimer.Start();
         }
+
+
+
+        // ── 轮询刷新 ─────────────────────────────────────────────────────────
 
         private void OnPollTick(object sender, EventArgs e)
         {
@@ -194,6 +209,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private static Brush StateToBrush(MachineState state) =>
             _stateBrushMap.TryGetValue(state, out var brush) ? brush : _defaultBrush;
 
+        // ── 权限事件处理 ──────────────────────────────────────────────────────
+
         private void OnCurrentUserChanged(object sender, UserInfo? user)
         {
             RaisePropertyChanged(nameof(CanManualControl));
@@ -205,6 +222,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
         }
+
+        // ── 命令实现 ─────────────────────────────────────────────────────────
 
         private async void ExecuteInitialize()
         {
@@ -239,9 +258,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private void ExecuteTriggerAlarm() => _station.TriggerAlarm(AlarmCodes.System.ManualTestAlarm, "调试页面手动触发报警");
 
+
         private void TriggerPushOver()
         {
-            _sync.Release(WorkstationSignals.工位2退料完成.ToString(), E_WorkStation.工位2拉料工站.ToString());
+            _sync.Release(WorkstationSignals.工位2退料完成.ToString(),E_WorkStation.工位2拉料工站.ToString());
         }
 
         private void TriggerPullingOver()
@@ -253,6 +273,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         {
             _sync.Release(WorkstationSignals.工位2允许检测.ToString(), E_WorkStation.工位2拉料工站.ToString());
         }
+
+        // ── 销毁 ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Dispose
         /// </summary>
@@ -270,5 +292,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         {
             Dispose();
         }
+
     }
 }

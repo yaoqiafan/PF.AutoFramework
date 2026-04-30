@@ -1,7 +1,7 @@
 using NPOI.HSSF.Record;
 using NPOI.SS.Formula.Functions;
+using Prism.Ioc;
 using PF.Core.Attributes;
-using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -15,21 +15,22 @@ using PF.Core.Models;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
-using Prism.Ioc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PF.Core.Constants;
+using SixLabors.ImageSharp.Formats;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
     /// <summary>
-    /// 【工位2】推拉晶圆模组 (Wafer Pulling Mechanism - Station 2)
+    /// 【工位2】推拉晶圆模组 (Wafer Pulling Mechanism)
     ///
     /// <para>物理架构：</para>
     /// 包含一个控制水平推拉的 Y 轴、一套多尺寸自适应的气动夹爪与变轨气缸，
-    /// 以及光源控制器与工业扫码枪。对应右侧物理硬件。
+    /// 以及光源控制器与工业扫码枪。
     ///
     /// <para>软件职责：</para>
     /// 负责将指定槽位的晶圆从料盒中水平平稳拉出、执行光源频闪与读码校验，并在完成后推回原位。
@@ -220,9 +221,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady(); // 保持与方法1一致的就绪检查
-            _logger.Info($"[{MechanismName}] 开始检查右侧轨道是否残留晶圆物料...");
+            _logger.Info($"[{MechanismName}] 开始检查轨道是否残留晶圆物料...");
 
-            // 读取IO信号 (替换为右侧检测)
+            // 读取IO信号
             bool? res1 = _io.ReadInput((int)E_InPutName.晶圆轨道右晶圆在位检测1);
             bool? res2 = _io.ReadInput((int)E_InPutName.晶圆轨道右晶圆在位检测2);
 
@@ -231,7 +232,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 // 任一传感器感应到即判定为有物料
                 bool hasMaterial = res1.Value || res2.Value;
-                _logger.Info($"[{MechanismName}] 右侧轨道物料检查完成，当前状态：{(hasMaterial ? "有物料残留" : "无物料")}。");
+                _logger.Info($"[{MechanismName}] 轨道物料检查完成，当前状态：{(hasMaterial ? "有物料残留" : "无物料")}。");
 
                 return MechResult<bool>.Success(hasMaterial);
             }
@@ -240,10 +241,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 // 找出具体是哪个传感器读取失败，方便排查
                 string failedSensor = !res1.HasValue ? nameof(E_InPutName.晶圆轨道右晶圆在位检测1) : nameof(E_InPutName.晶圆轨道右晶圆在位检测2);
 
-                _logger.Error($"[{MechanismName}] 右侧轨道物料检查失败，未能成功读取 {failedSensor} 信号。");
+                _logger.Error($"[{MechanismName}] 轨道物料检查失败，未能成功读取 {failedSensor} 信号。");
 
-                // 返回硬件报警码
-                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取右侧轨道物料检测信号({failedSensor})失败");
+                // 这里的 AlarmCodes 根据你的实际项目枚举替换，这里用 ReadSignalFailed 示意
+                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取轨道物料检测信号({failedSensor})失败");
             }
         }
 
@@ -254,7 +255,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
-            _logger.Info($"[{MechanismName}] 开始检查右侧轨道与夹爪气缸是否处于 [{wafesize}] 的正确状态...");
+            _logger.Info($"[{MechanismName}] 开始检查轨道与夹爪气缸是否处于 [{wafesize}] 的正确状态...");
 
             // 1. 根据晶圆尺寸，确定需要检测的 IO 点位
             E_InPutName trackSensor;
@@ -271,6 +272,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 gripperSensor = E_InPutName.晶圆夹爪右12寸气缸打开;
             }
 
+
             // 2. 统一读取 IO 信号
             bool? trackRes = _io.ReadInput((int)trackSensor);
             bool? gripperRes = _io.ReadInput((int)gripperSensor);
@@ -278,18 +280,23 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // 3. 校验读取结果并返回
             if (trackRes.HasValue && gripperRes.HasValue)
             {
-                bool isCorrectState = trackRes.Value && gripperRes.Value;
-                _logger.Info($"[{MechanismName}] 右侧气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
 
-                return MechResult<bool>.Success(isCorrectState);
+
+                    bool isCorrectState = trackRes.Value && gripperRes.Value;
+                    _logger.Info($"[{MechanismName}] 气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
+
+                    return MechResult<bool>.Success(isCorrectState);
+
+
+
             }
             else
             {
                 // 找出具体失败的传感器名称
                 string failedSensor = !trackRes.HasValue ? trackSensor.ToString() : gripperSensor.ToString();
 
-                _logger.Error($"[{MechanismName}] 右侧气缸状态检查失败，未能成功读取 {failedSensor} 信号。");
-                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取右侧气缸检测信号({failedSensor})失败");
+                _logger.Error($"[{MechanismName}] 气缸状态检查失败，未能成功读取 {failedSensor} 信号。");
+                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取气缸检测信号({failedSensor})失败");
             }
         }
 
@@ -306,7 +313,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             try
             {
-                if (await CheckTrackIsMaterial(linktoken) == true)
+                if ((await CheckTrackIsMaterial(linktoken)).Data  == true)
                 {
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.ChangeSizeTrackHasMaterial, "工位2轨道有晶圆，请先清除轨道物料再执行尺寸切换");
                 }
@@ -352,14 +359,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.ChangeSizeCylinderFailed, $"晶圆尺寸输入错误: {wafesize}");
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested) // 【修改】精准拦截外部 Token 取消并抛出
             {
-                if (timeoutcts.IsCancellationRequested) // 【精简点】合并异常路由
-                {
-                    return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.ChangeSizeCylinderTimeout, "切换晶圆尺寸操作气缸超时，请检查气压或传感器状态");
-                }
-                _logger.Warn($"[{MechanismName}] 切换晶圆尺寸操作被外部取消");
+                _logger.Warn($"[{MechanismName}] 切换晶圆尺寸操作被取消");
                 throw;
+            }
+            catch (OperationCanceledException) when (timeoutcts.IsCancellationRequested) // 【修改】拦截超时的 Cancel
+            {
+                return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.ChangeSizeCylinderTimeout, "切换晶圆尺寸操作气缸超时，请检查气压或传感器状态");
             }
             catch (Exception ex)
             {
@@ -368,18 +375,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
         }
 
-        #endregion
-
-        #region Gripper Check (夹爪物料检测)
 
         /// <summary>
-        /// 检测夹爪中是否存在物料（铁环）
+        /// 判断晶圆夹爪是否有料
         /// </summary>
-        public async Task<bool?> CheckGipperIsExist(CancellationToken token = default)
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task <bool ? > CheckGipperIsExist(CancellationToken token = default)
         {
-            await Task.CompletedTask;
-            bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右铁环有无检测);
-            if (!res2.HasValue)
+
+            bool ? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右铁环有无检测);
+            if ( !res2 .HasValue )
             {
                 return null;
             }
@@ -404,7 +410,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸右闭合, false)) return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperOpenCylinderFailed, $"操作输出信号 {E_OutPutName.夹爪气缸右闭合} 失败");
                 if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸右张开, true)) return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperOpenCylinderFailed, $"操作输出信号 {E_OutPutName.夹爪气缸右张开} 失败");
-
+                await Task.Delay(1000);
                 while (true)
                 {
                     linktoken.ThrowIfCancellationRequested(); // 【新增】循环内取消嗅探
@@ -414,14 +420,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Success();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested) // 【修改】外抛真实取消事件
             {
-                if (timeoutcts.IsCancellationRequested) // 【精简点】合并异常路由
-                {
-                    return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperOpenTimeout, $"等待输入信号 {E_InPutName.晶圆夹爪右气缸张开} 超时，请检查气路");
-                }
-                _logger.Warn($"[{MechanismName}] 夹爪张开操作被外部取消");
+                _logger.Warn($"[{MechanismName}] 夹爪张开操作被取消");
                 throw;
+            }
+            catch (OperationCanceledException) when (timeoutcts.IsCancellationRequested)
+            {
+                return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperOpenTimeout, $"等待输入信号 {E_InPutName.晶圆夹爪右气缸张开} 超时，请检查气路");
             }
             catch (Exception ex)
             {
@@ -455,24 +461,26 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     if (res == true) break;
                 }
 
+
                 bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪右铁环有无检测);
                 if (!res1.HasValue)
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperCloseNoRing, "铁环检测传感器读取失败");
 
                 if (res1.Value)
                 {
+
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperCloseNoRing, "夹爪闭合后未检测到铁环物料（空夹）");
                 }
                 return MechResult.Success();
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested) // 【修改】外抛真实取消事件
             {
-                if (timeoutcts.IsCancellationRequested) // 【精简点】合并异常路由
-                {
-                    return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperCloseTimeout, $"等待输入信号 {E_InPutName.晶圆夹爪右气缸闭合} 超时");
-                }
-                _logger.Warn($"[{MechanismName}] 夹爪闭合操作被外部取消");
+                _logger.Warn($"[{MechanismName}] 夹爪闭合操作被取消");
                 throw;
+            }
+            catch (OperationCanceledException) when (timeoutcts.IsCancellationRequested)
+            {
+                return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.GripperCloseTimeout, $"等待输入信号 {E_InPutName.晶圆夹爪右气缸闭合} 超时");
             }
             catch (Exception ex)
             {
@@ -496,7 +504,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 // 预留硬件检测叠片逻辑
                 return true;
             }
-            catch (OperationCanceledException) // 【新增】外抛防吞噬
+            catch (OperationCanceledException) // 【新增】拦截抛出
             {
                 throw;
             }
@@ -524,7 +532,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.MoveInitialNoScanFailed, "Y轴移动到待机位失败");
             }
-            catch (OperationCanceledException) // 【新增】外抛防吞噬
+            catch (OperationCanceledException) // 【新增】确保外抛不被通用Exception吞噬
             {
                 throw;
             }
@@ -559,7 +567,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.MoveInitialFailed, "移动到待机位失败");
             }
-            catch (OperationCanceledException) // 【新增】外抛防吞噬
+            catch (OperationCanceledException) // 【新增】确保外抛不被通用Exception吞噬
             {
                 throw;
             }
@@ -594,7 +602,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.PutOverMoveFailed, "移动到取出安全位置失败");
             }
-            catch (OperationCanceledException) // 【新增】外抛防吞噬
+            catch (OperationCanceledException) // 【新增】确保外抛不被通用Exception吞噬
             {
                 throw;
             }
@@ -623,7 +631,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
                 return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.InitialMoveFeedingFailed, "移动到晶圆取料位置失败");
             }
-            catch (OperationCanceledException) // 【新增】外抛防吞噬
+            catch (OperationCanceledException) // 【新增】确保外抛不被通用Exception吞噬
             {
                 throw;
             }
@@ -645,7 +653,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> MoveDetection(CancellationToken token = default)
         {
-            token.ThrowIfCancellationRequested(); // 【新增】入口检查
+            token.ThrowIfCancellationRequested(); // 入口检查
             using var timeoutcts = new CancellationTokenSource(await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()));
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutcts.Token);
             var linkedToken = cts.Token;
@@ -686,10 +694,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     }
                 }, linkedToken);
 
+                // 等待任意任务完成（不管是正常完成、异常退出还是被取消）
                 Task finishedTask = await Task.WhenAny(taskA, taskB, taskC);
-                cts.Cancel(); // 取消其他未完成的轮询任务
+                cts.Cancel(); // 停止其他未完成的轮询任务
 
-                // 【精简点 1】只要发生了取消（无论超时还是外部干预），直接抛出异常，交由 Catch 块统一路由
                 token.ThrowIfCancellationRequested();
 
                 if (finishedTask.IsFaulted)
@@ -699,6 +707,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.PullOutTriggerFailed, "状态检测任务发生异常");
                 }
 
+                // 正常完成的防呆判定
                 if (finishedTask == taskA)
                 {
                     await _yAxis.StopAsync();
@@ -723,6 +732,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.PullOutTimeout, "Y轴拉出运动超时");
                 }
 
+                // 不是超时引起的取消，必然是外部 Token 触发，向上抛出
                 _logger.Warn($"[{MechanismName}] 外部下达取消指令，终止拉料动作。");
                 throw;
             }
@@ -740,7 +750,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult> FeedingMaterialToBox(CancellationToken token)
         {
-            token.ThrowIfCancellationRequested(); // 【新增】入口检查
+            token.ThrowIfCancellationRequested(); // 入口检查
             using var timeoutcts = new CancellationTokenSource(await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()));
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutcts.Token);
 
@@ -783,8 +793,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 Task finishedTask = await Task.WhenAny(taskA, taskB, taskC);
                 linked.Cancel();
 
-                // 【精简点 1】只要发生了取消（无论超时还是外部干预），直接抛出异常，交由 Catch 块统一路由
-               token.ThrowIfCancellationRequested();
+
+                token.ThrowIfCancellationRequested();
 
                 if (finishedTask.IsFaulted)
                 {
@@ -810,7 +820,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 await _yAxis.StopAsync();
 
-                // 【精简点 2】统一异常路由
+                // 【精简点 2】统一路由
                 if (timeoutcts.IsCancellationRequested)
                 {
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.PushBackTimeout, "送入运动超时");
@@ -826,7 +836,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.PushBackTriggerFailed, ex.Message);
             }
         }
-
         #endregion
 
         #region Barcode Scanning (视觉扫码业务)
@@ -839,11 +848,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             try
             {
                 token.ThrowIfCancellationRequested(); // 【新增】入口检查
-                await _lightController.SetLightValue(4, await ParamService.GetParamAsync<int>(E_Params.WorkStation2LightBrightness.ToString()));
+                await _lightController.SetLightValue(3, await ParamService.GetParamAsync<int>(E_Params.WorkStation2LightBrightness.ToString()));
 
                 for (int i = 0; i < 3; i++)
                 {
-                    token.ThrowIfCancellationRequested(); // 【新增】循环内取消探测
+                    token.ThrowIfCancellationRequested(); // 【新增】重试循环内的取消探测
 
                     string str = await _codeScan.Tigger(token);
                     if (string.IsNullOrEmpty(str))
@@ -873,11 +882,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
+                await _lightController.SetLightValue(3, 0);
                 return MechResult<List<string>>.Fail(AlarmCodesExtensions.WS2Pulling.CodeScanFailed, $"扫码异常: {ex.Message}");
             }
             finally
             {
-                await _lightController.SetLightValue(4, 0);
+                await _lightController.SetLightValue(3, 0);
             }
         }
 
