@@ -48,7 +48,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 6. 定位取料：调用 <see cref="SwitchToLayerAsync(int, CancellationToken)"/> 到达目标层级后，交由外部机械手拉料。
     /// </remarks>
     [MechanismUI("工位2上晶圆模组", "Workstation2FeedingModelDebugView", 3)]
-    public class WS2FeedingModule : BaseMechanism
+    public class WS2FeedingModel : BaseMechanism
     {
         #region Enums (轴关键点位枚举)
 
@@ -144,7 +144,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 实例化晶圆上料模组
         /// </summary>
-        public WS2FeedingModule(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
+        public WS2FeedingModel(IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
             : base(E_Mechanisms.工位2上晶圆模组.ToString(), hardwareManagerService, paramService, logger)
         {
             PickingPosition_8 = new ConcurrentDictionary<int, AxisPoint>();
@@ -428,7 +428,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.XAxisPreconditionFailed, "X轴运动条件不满足：模组未初始化或处于报警状态");
             }
 
-            if (_io.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) == true)
+            if (_io.ReadInput(E_InPutName.上晶圆右铁环突片检测) == true)
             {
                 _logger.Warn($"[{MechanismName}] X轴运动检查失败：存在突片。");
                 return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.XAxisTabDetected, "X轴运动条件不满足：存在铁环突片");

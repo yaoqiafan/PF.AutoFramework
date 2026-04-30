@@ -213,7 +213,7 @@ namespace PF.WorkStation.AutoOcr.Stations
     /// 【工位2】上下料工站业务流转控制器 (Feeding Station Controller)
     ///
     /// <para>架构定位：</para>
-    /// 作为工位2的主业务状态机，继承自 <see cref="StationBase{TMemory, TStep}"/>。负责统筹调度底层 <see cref="WS2FeedingModule"/>（硬件机构）
+    /// 作为工位2的主业务状态机，继承自 <see cref="StationBase{TMemory, TStep}"/>。负责统筹调度底层 <see cref="WS2FeedingModel"/>（硬件机构）
     /// 与 <see cref="WSDataModule"/>（数据中枢），并通过 <see cref="IStationSyncService"/> 与拉料工站、检测工站进行跨工站握手协作。
     /// </summary>
     [StationUI("工位2上下料工站", "WorkStation2FeedingStationDebugView", order: 3)]
@@ -221,7 +221,7 @@ namespace PF.WorkStation.AutoOcr.Stations
     {
         #region Fields & Dependencies (依赖服务与缓存字段)
 
-        private readonly WS2FeedingModule _feedingModule;
+        private readonly WS2FeedingModel _feedingModule;
         private readonly WSDataModule _dataModule;
         private readonly IStationSyncService _sync;
         private readonly IHardwareInputMonitor? _hardwareInputMonitor;
@@ -249,7 +249,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             // 调用带 TStep 泛型的基类构造函数，并传入初始步序
             : base(E_WorkStation.工位2上下料工站.ToString(), logger, Station2FeedingStep.等待按下工位2启动按钮)
         {
-            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModule)) as WS2FeedingModule;
+            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModel)) as WS2FeedingModel;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _sync = sync;
             _hardwareInputMonitor = containerProvider.Resolve<IHardwareInputMonitor>();
@@ -416,7 +416,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             }
 
             CurrentStepDescription = "X轴移动到待机位...";
-            if (!await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS2FeedingModule.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+            if (!await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS2FeedingModel.XAxisPoint.待机位), token: token).ConfigureAwait(false))
             {
                 _logger.Error($"[{StationName}] X轴移动到待机位失败（超时）。");
                 TriggerAlarm(AlarmCodesExtensions.WS2Feeding.XAxisMoveTimeout, "X轴移动到待机位失败（超时）");
@@ -782,7 +782,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.X轴到待机位:
                             CurrentStepDescription = "X轴移动到待机位...";
-                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS2FeedingModule.XAxisPoint.待机位), token: token).ConfigureAwait(false))
+                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS2FeedingModel.XAxisPoint.待机位), token: token).ConfigureAwait(false))
                             {
                                 _logger.Info($"[{StationName}] X轴已到达待机位。");
                                 _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_寻层;
@@ -980,7 +980,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.X轴到挡料位:
                             CurrentStepDescription = "X轴移动到挡料位...";
-                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS2FeedingModule.XAxisPoint.挡料位), token: token).ConfigureAwait(false))
+                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.XAxis, nameof(WS2FeedingModel.XAxisPoint.挡料位), token: token).ConfigureAwait(false))
                                 _currentStep = Station2FeedingStep.判断Z轴是否具备运动条件_流程结束;
                             else
                                 RouteToError(Station2FeedingStep.X轴运动超时, Station2FeedingStep.X轴到挡料位);
@@ -996,7 +996,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.Z轴到待机位:
                             CurrentStepDescription = "Z轴退回待机位...";
-                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.ZAxis, nameof(WS2FeedingModule.ZAxisPoint.待机位), token: token).ConfigureAwait(false))
+                            if (await _feedingModule.MoveToPointAndWaitAsync(_feedingModule.ZAxis, nameof(WS2FeedingModel.ZAxisPoint.待机位), token: token).ConfigureAwait(false))
                                 _currentStep = Station2FeedingStep.通知操作员下料;
                             else
                                 RouteToError(Station2FeedingStep.Z轴运动超时, Station2FeedingStep.Z轴到待机位);

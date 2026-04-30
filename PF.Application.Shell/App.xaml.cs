@@ -612,10 +612,10 @@ namespace PF.Application.Shell
 
             // ── 工位 2 机构层注册 ──
             container.RegisterMany(
-                [typeof(WS2FeedingModule), typeof(IMechanism)],
-                typeof(WS2FeedingModule),
+                [typeof(WS2FeedingModel), typeof(IMechanism)],
+                typeof(WS2FeedingModel),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WS2FeedingModule));
+                serviceKey: nameof(WS2FeedingModel));
 
             container.RegisterMany(
                 [typeof(WS2MaterialPullingModule), typeof(IMechanism)],
@@ -799,7 +799,7 @@ namespace PF.Application.Shell
             }
 
             // ── 工位 2 机构初始化 ──
-            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WS2FeedingModule));
+            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WS2FeedingModel));
             if (!await workStation2FeedingModule.InitializeAsync())
             {
                 return false;

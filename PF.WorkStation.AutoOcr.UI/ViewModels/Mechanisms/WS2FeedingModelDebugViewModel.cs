@@ -21,14 +21,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
     /// </summary>
     public class WS2FeedingModelDebugViewModel : RegionViewModelBase
     {
-        private readonly WS2FeedingModule? _feedingModule;
+        private readonly WS2FeedingModel? _feedingModule;
         private DispatcherTimer _monitorTimer;
 
         // 供 UI 绑定底层硬件状态
         /// <summary>
         /// 获取或设置 FeedingModule
         /// </summary>
-        public WS2FeedingModule? FeedingModule => _feedingModule;
+        public WS2FeedingModel? FeedingModule => _feedingModule;
 
         private string _debugMessage = "就绪";
         /// <summary>
@@ -51,7 +51,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         #region 状态监控属性 (UI 实时刷新)
-
         private double _zAxisPosition;
         /// <summary>
         /// 获取或设置 ZAxisPosition
@@ -76,6 +75,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// </summary>
         public bool XAxisHasAlarm { get => _xAxisHasAlarm; set => SetProperty(ref _xAxisHasAlarm, value); }
 
+        // IO 状态
         private bool _isBoxCommonInPlace;
         /// <summary>
         /// 获取或设置 IsBoxCommonInPlace
@@ -147,30 +147,30 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// <summary>
         /// 获取或设置 ZAxisOriginalPoints
         /// </summary>
-        public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = [];
+        public ObservableCollection<AxisPoint> ZAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
         /// <summary>
         /// 获取或设置 XAxisOriginalPoints
         /// </summary>
-        public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = [];
+        public ObservableCollection<AxisPoint> XAxisOriginalPoints { get; set; } = new ObservableCollection<AxisPoint>();
         /// <summary>
         /// 获取或设置 ArrayedPoints
         /// </summary>
-        public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = [];
+        public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = new ObservableCollection<AxisPoint>();
+
 
         // 分开定义两个传感器的 UI 绑定集合
         /// <summary>
         /// 获取或设置 RawMappingPoints1
         /// </summary>
-
-        public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = [];
+        public ObservableCollection<RawMappingItem> RawMappingPoints1 { get; set; } = new ObservableCollection<RawMappingItem>();
         /// <summary>
         /// 获取或设置 RawMappingPoints2
         /// </summary>
-        public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = [];
+        public ObservableCollection<RawMappingItem> RawMappingPoints2 { get; set; } = new ObservableCollection<RawMappingItem>();
         /// <summary>
         /// 获取或设置 FilteredMappingPoints
         /// </summary>
-        public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = [];
+        public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = new ObservableCollection<FilteredMappingItem>();
         #endregion
 
         #region Commands 定义
@@ -192,7 +192,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// <summary>
         /// InitState 命令
         /// </summary>
-
         public DelegateCommand InitStateCommand { get; }
         /// <summary>
         /// DetectSize 命令
@@ -229,7 +228,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// <summary>
         /// SaveZAxisPoints 命令
         /// </summary>
-
         public DelegateCommand SaveZAxisPointsCommand { get; }
         /// <summary>
         /// SaveXAxisPoints 命令
@@ -243,7 +241,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public WS2FeedingModelDebugViewModel(IContainerProvider containerProvider)
         {
             // 依赖注入获取模组实例
-            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModule)) as WS2FeedingModule;
+            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModel)) as WS2FeedingModel;
 
             // --- 绑定全局生命周期指令 ---
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));
@@ -314,6 +312,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 DebugMessage = "尺寸识别中...";
                 var size = await _feedingModule.GetWaferBoxSizeAsync();
                 DebugMessage = $"检测成功: 当前为 {size}";
+
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -493,7 +492,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     Is12InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右12寸到料盒位检测) == true;
                     IsErrorLayer1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右错层公共检测) == true;
                     IsErrorLayer2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右错层12寸检测) == true;
-                    IsIronTabDetected = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右铁环铁环突片检测) == true;
+                    IsIronTabDetected = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右铁环突片检测) == true;
                     Is8InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右8寸铁环防反检测) == true;
                     Is12InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右12寸铁环防反检测) == true;
                     Is8InchStopRod = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右8寸料盒挡杆检测) == true;

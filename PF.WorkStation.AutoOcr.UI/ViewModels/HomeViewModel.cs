@@ -453,6 +453,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     string Userid = param.GetValue<string>("Userid");
                     string lotid = param.GetValue<string>("Lotid");
+                    if ((await _userService.GetUserListAsync()).ToList().FindIndex(x => x.UserName == Userid) == -1)
+                    {
+                        MessageService.ShowMessage($"{Userid}用户不存在 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
 
                     var mesResult = await _dataModule?.QueryMesAsync(lotid, Userid);
                     if (mesResult == null || !mesResult.IsSuccess)
