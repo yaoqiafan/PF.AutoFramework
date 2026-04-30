@@ -601,7 +601,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             var sensor2Data = rawMappingData[rawMappingData.Keys.ElementAt(1)];
 
             // [防呆1：总体数量宏观比对]
-            if (Math.Abs(sensor1Data.Count - sensor2Data.Count) > 1)
+            if (Math.Abs(sensor1Data.Count - sensor2Data.Count) >0)
             {
                 return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS1Feeding.AlgorithmCountMismatch,
                     $"识别数量差异过大(S1:{sensor1Data.Count}, S2:{sensor2Data.Count})，疑似斜片或传感器失效");
