@@ -484,7 +484,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         public async Task<MechResult<Dictionary<int, List<double>>>> SearchLayerAsync(
             int latchNo1 = 0, int inputPort1 = 0,
-            int latchNo2 = 1, int inputPort2 = 1,
+            int inputPort2 = 1, int latchNo2 = 1,
             CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
