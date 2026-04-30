@@ -127,7 +127,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         public WS2FeedingStationDebugViewModel(IContainerProvider containerProvider)
         {
             _station = containerProvider.Resolve<WS2FeedingStation>(nameof(WS2FeedingStation));
-            _sync = containerProvider.Resolve<IStationSyncService>();
+            _sync= containerProvider.Resolve<IStationSyncService>();
             _userService = containerProvider.Resolve<IUserService>();
 
             _statusBrush = StateToBrush(MachineState.Uninitialized);
@@ -154,12 +154,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
                 () => CanManualControl && _station.CurrentState != MachineState.InitAlarm
                                        && _station.CurrentState != MachineState.RunAlarm);
 
-            TriggerStartCommand = new DelegateCommand(ExecuteTriggerStart,
+            TriggerStartCommand=new DelegateCommand(ExecuteTriggerStart,
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
             TriggerAllowFeedCommand = new DelegateCommand(ExecuteTriggerAllowFeed,
               () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
             TriggerAllowBackCommand = new DelegateCommand(ExecuteTriggerAllowBack,
               () => CanManualControl && (_station.CurrentState == MachineState.Running));
+
             TriggerFinishCommand = new DelegateCommand(ExecuteTriggerFinish,
                 () => CanManualControl && (_station.CurrentState == MachineState.Running));
 
