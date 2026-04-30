@@ -364,6 +364,13 @@ namespace PF.Services.Hardware
                 _logger.Info($"【硬件输入】{state.Config.Name} 触发 → 类型：{state.Config.InputType}");
                 _eventBus.PublishInputEvent(state.Config.InputType);
             }
+            else if (state.Config.ScanGroup == InputScanGroup.Safety
+                     && state.IsEnabled && !state.Config.IsMuted
+                     && wasActive && !isActive)
+            {
+                _logger.Info($"【硬件输入】{state.Config.Name} 恢复 → 类型：{state.Config.InputType}");
+                _eventBus.PublishRestoreEvent(state.Config.InputType);
+            }
 
             state.LastValue = current;
         }

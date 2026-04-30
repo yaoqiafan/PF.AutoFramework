@@ -198,7 +198,10 @@ namespace PF.Infrastructure.Station
             }
 
             if (_hardwareEventBus != null)
+            {
                 _hardwareEventBus.HardwareInputTriggered += OnHardwareInputReceived;
+                _hardwareEventBus.HardwareInputRestored  += OnHardwareInputRestored;
+            }
 
             _globalMachine = new StateMachine<MachineState, MachineTrigger>(MachineState.Uninitialized);
             ConfigureGlobalMachine();
@@ -368,6 +371,23 @@ namespace PF.Infrastructure.Station
                 case HardwareInputType.SafeDoor:
                     PauseAll();
                     _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.SafeDoorOpen, null);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 处理来自 <see cref="HardwareInputEventBus"/> 的 Safety 组输入恢复事件（从激活态返回静止态）。
+        /// 默认路由：SafeDoor 关闭 → 清除对应报警，使下次开门能重新触发弹窗。
+        /// 如需扩展其他安全装置的恢复逻辑，重写此方法。
+        /// </summary>
+        /// <param name="inputType">硬件输入类型（见 <see cref="HardwareInputType"/>）。</param>
+        protected virtual void OnHardwareInputRestored(string inputType)
+        {
+            switch (inputType)
+            {
+                case HardwareInputType.SafeDoor:
+                    _alarmService?.ClearAlarm("主控", AlarmCodes.Safety.SafeDoorOpen);
+                    _logger.Info("【全局主控】安全门已关闭，清除安全门报警记录。");
                     break;
             }
         }
