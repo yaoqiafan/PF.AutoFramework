@@ -416,7 +416,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
                 MachineDetectionData info = new MachineDetectionData()
                 {
-                    InternalBatchId = Station1InternalBatches,
+                    InternalBatchId = Station2InternalBatches,
                     CustomerBatch = kkk.CustomerBatch,
                     WaferId = kkk.WaferId,
                     OcrText = $"{kkk.CustomerBatch}-{kkk.WaferId}-A0",

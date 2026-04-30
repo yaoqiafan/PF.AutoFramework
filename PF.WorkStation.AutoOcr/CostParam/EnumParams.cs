@@ -91,8 +91,8 @@ namespace PF.Workstation.AutoOcr.CostParam
 
 
 
-        /// <summary>上晶圆右铁环铁环突片检测</summary>
-        上晶圆右铁环铁环突片检测 = 20,
+        /// <summary>上晶圆右铁环突片检测</summary>
+        上晶圆右铁环突片检测 = 20,
         /// <summary>上晶圆右8寸铁环防反检测</summary>
         上晶圆右8寸铁环防反检测 = 21,
         /// <summary>上晶圆右12寸铁环防反检测</summary>

@@ -245,7 +245,7 @@ PF.AutoFramework.slnx
 
 **机构（Mechanisms）**：
 - `WS1FeedingModel` — 工位一送料模组（Z/X 轴取放料、晶圆盒尺寸识别、层位扫描）
-- `WS2FeedingModule` — 工位二送料模组（与工位一对称，右侧传感器/IO）
+- `WS2FeedingModel` — 工位二送料模组（与工位一对称，右侧传感器/IO）
 - `WSDetectionModule` — 视觉检测模组（X/Y/Z 龙门定位、OCR 相机触发、图像存档）
 - `WS1MaterialPullingModule` — 工位一拉料模组（Y 轴搬运、夹爪控制、条码扫描、叠片检测）
 - `WS2MaterialPullingModule` — 工位二拉料模组（与工位一对称，右侧传感器/IO）
@@ -1584,7 +1584,7 @@ PF.Core（零依赖）
    - SECS/GEM 服务（`SecsGemDbContext` + 双 TCP 服务器）
    - 硬件工厂（6 种设备：LTDMC / EtherCat / HKBarcode / Keyence / CTS_LightController）
    - 硬件输入事件总线（`HardwareInputEventBus`，取代原 `PhysicalButtonEventBus`）
-   - 机制（7 个模组 Singleton：`WS1FeedingModel` / `WS2FeedingModule` / `WSDetectionModule` / `WS1MaterialPullingModule` / `WS2MaterialPullingModule` / `WSDataModule` / `WSSecsGemModule`）
+   - 机制（7 个模组 Singleton：`WS1FeedingModel` / `WS2FeedingModel` / `WSDetectionModule` / `WS1MaterialPullingModule` / `WS2MaterialPullingModule` / `WSDataModule` / `WSSecsGemModule`）
    - 工站（5 个站 Singleton：`WS1FeedingStation` / `WS2FeedingStation` / `WSDetectionStation` / `WS1MaterialPullingStation` / `WS2MaterialPullingStation`）
    - 主控（`AutoOCRMachineController` Singleton）
    - 配方（`OCRRecipe<OCRRecipeParam>`）
@@ -1596,7 +1596,7 @@ PF.Core（零依赖）
    - 注册 Shell 程序集菜单 → `PermissionHelper` 初始化
    - 静默登录（SuperUser，密码 = `DateTime.Now.ToString("yyyyMMddHH00")`）
    - 事件桥接：Prism `EventAggregator` → Infrastructure 层事件
-6. **Splash 启动画面**：进度报告 → 配置加载 → 硬件拓扑初始化 → 机制初始化（按顺序：`WS1FeedingModel` → `WS1MaterialPullingModule` → `WS2FeedingModule` → `WS2MaterialPullingModule` → `WSDetectionModule` → `WSDataModule` → `WSSecsGemModule`）
+6. **Splash 启动画面**：进度报告 → 配置加载 → 硬件拓扑初始化 → 机制初始化（按顺序：`WS1FeedingModel` → `WS1MaterialPullingModule` → `WS2FeedingModel` → `WS2MaterialPullingModule` → `WSDetectionModule` → `WSDataModule` → `WSSecsGemModule`）
 7. **硬件监控启动**：`IHardwareInputMonitor.StartStandardMonitoring()` 启动双线程扫描
 
 ---
