@@ -16,7 +16,7 @@ namespace PF.Core.Entities.Configuration
         /// <summary>
         /// 全局最低日志记录级别
         /// </summary>
-        public LogLevel MinimumLevel { get; set; } = LogLevel.Info;
+        public LogLevel MinimumLevel { get; set; } = LogLevel.Debug;
 
         /// <summary>
         /// 是否启用UI界面日志显示

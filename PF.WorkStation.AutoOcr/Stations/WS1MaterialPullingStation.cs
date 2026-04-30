@@ -696,7 +696,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             else
                             {
-                                RouteToError(Station1PullingStep.拉出至检测位失败_被中断, Station1PullingStep.移动到检测位, detectMoveResult.ErrorCode);
+                                RouteToError(Station1PullingStep.拉出至检测位失败_被中断, Station1PullingStep.移动到取料位, detectMoveResult.ErrorCode);
                             }
                             break;
 
@@ -870,6 +870,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _cachedErrorCode = null;
                             _currentStep = _resumeStep;
                             break;
+
+
+
+
 
                         case Station1PullingStep.拉出至检测位失败_被中断:
                         case Station1PullingStep.推回至料盒失败_被中断:
