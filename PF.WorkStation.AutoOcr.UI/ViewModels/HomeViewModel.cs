@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
+using PF.Core.Interfaces.Configuration;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
@@ -29,6 +30,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IMasterController _controller;
         private readonly DispatcherTimer _pollTimer;
+
+
+        private readonly IParamService _paramService;
 
         #region 设备总控状态
 
@@ -232,8 +236,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion
 
         /// <summary>初始化 HomeViewModel</summary>
-        public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller)
+        public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller,IParamService paramService )
         {
+            _paramService = paramService;
             _controller = controller;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _userService = userService;
@@ -419,7 +424,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                    var kk = await _recipeService.RecipeParam("New_Recipe_100349");
+                    var kk = await _recipeService.RecipeParam(await _paramService .GetParamAsync <string >(nameof (E_Params.Station1Recipe )));
                     if (kk == null)
                     {
                         MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -465,7 +470,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                    var kk = await _recipeService.RecipeParam("New_Recipe_141457");
+                    var kk = await _recipeService.RecipeParam(await _paramService.GetParamAsync<string>(nameof(E_Params.Station2Recipe)));
                     if (kk == null)
                     {
                         MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);

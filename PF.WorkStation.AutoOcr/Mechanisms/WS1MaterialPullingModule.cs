@@ -460,7 +460,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     bool? res = _io.ReadInput((int)E_InPutName.晶圆夹爪左气缸闭合);
                     if (res == true) break;
                 }
-                //await Task.Delay(500);
+              
 
                 bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
                 if (!res1.HasValue)
