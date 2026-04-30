@@ -51,7 +51,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>
         /// 本地数据快照的存储路径
         /// </summary>
-        private readonly string _filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\StationMemoryParam\\MemoryData.json";
+        private readonly string _filepath = $"{PF.Core.Constants.ConstGlobalParam.ConfigPath}\\DataMemory\\MemoryData.json";
 
         /// <summary>
         /// 数据变化事件（供上层 ViewModel / UI 订阅，以便在数据刷新时同步更新界面界面）
@@ -184,6 +184,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 _station1ReciepParam = Param;
                 RaiseDataChanged();
+                Save(_filepath);
                 return MechResult.Success();
             }
 
@@ -191,6 +192,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 _station2ReciepParam = Param;
                 RaiseDataChanged();
+                Save(_filepath);
                 return MechResult.Success();
             }
 
@@ -264,11 +266,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (Station == E_WorkSpace.工位1)
             {
                 _station1MesDetectionData = Data;
+                Save(_filepath);
                 lock (_detectionDataLock) { _sation1MachineDetectionData.Clear(); }
             }
             else if (Station == E_WorkSpace.工位2)
             {
                 _station2MesDetectionData = Data;
+                Save(_filepath);
                 lock (_detectionDataLock) { _sation2MachineDetectionData.Clear(); }
             }
             else
@@ -327,6 +331,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             // 将数据异步追加到全局批次字典中
             await AddAllDic(Station, Data);
+            Save(_filepath);
             RaiseDataChanged();
             return MechResult.Success();
         }
@@ -627,43 +632,50 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new ConcurrentDictionary<string, int>();
         }
 
+
+        private static readonly object savelocker = new object();
+
         /// <summary>
         /// 序列化并保存当前内存数据到本地 Json 文件
         /// </summary>
         public void Save(string filePath)
         {
-            try
+            lock (savelocker)
             {
-                // 将活跃内存组装成纯净快照
-                var snapshot = new WorkStationDataModuleSnapshot
+                try
                 {
-                    Station1ReciepParam = _station1ReciepParam,
-                    Station2ReciepParam = _station2ReciepParam,
-                    Station1MesDetectionData = _station1MesDetectionData,
-                    Station2MesDetectionData = _station2MesDetectionData,
-                    Sation1MachineDetectionData = _sation1MachineDetectionData,
-                    Sation2MachineDetectionData = _sation2MachineDetectionData,
-                    MachineDataByBatch = _machineDataByBatch,
-                    BatchQuantityMap = _batchQuantityMap,
-                };
+                    // 将活跃内存组装成纯净快照
+                    var snapshot = new WorkStationDataModuleSnapshot
+                    {
+                        Station1ReciepParam = _station1ReciepParam,
+                        Station2ReciepParam = _station2ReciepParam,
+                        Station1MesDetectionData = _station1MesDetectionData,
+                        Station2MesDetectionData = _station2MesDetectionData,
+                        Sation1MachineDetectionData = _sation1MachineDetectionData,
+                        Sation2MachineDetectionData = _sation2MachineDetectionData,
+                        MachineDataByBatch = _machineDataByBatch,
+                        BatchQuantityMap = _batchQuantityMap,
+                    };
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
+                    var options = new JsonSerializerOptions { WriteIndented = true };
 
-                var fileInfo = new FileInfo(filePath);
-                var folderPath = fileInfo.DirectoryName;
-                if (!string.IsNullOrEmpty(folderPath) && !Directory.Exists(folderPath))
-                {
-                    Directory.CreateDirectory(folderPath);
+                    var fileInfo = new FileInfo(filePath);
+                    var folderPath = fileInfo.DirectoryName;
+                    if (!string.IsNullOrEmpty(folderPath) && !Directory.Exists(folderPath))
+                    {
+                        Directory.CreateDirectory(folderPath);
+                    }
+
+                    string json = JsonSerializer.Serialize(snapshot, options);
+                    System.IO.File.WriteAllText(filePath, json);
+                    _logger?.Info($"{this.MechanismName} 数据已成功保存至: {filePath}");
                 }
-
-                string json = JsonSerializer.Serialize(snapshot, options);
-                System.IO.File.WriteAllText(filePath, json);
-                _logger?.Info($"{this.MechanismName} 数据已成功保存至: {filePath}");
+                catch (Exception ex)
+                {
+                    _logger?.Error($"{MechanismName} 序列化保存失败: {ex.Message}");
+                }
             }
-            catch (Exception ex)
-            {
-                _logger?.Error($"{MechanismName} 序列化保存失败: {ex.Message}");
-            }
+           
         }
 
         /// <summary>

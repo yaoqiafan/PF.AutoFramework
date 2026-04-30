@@ -772,6 +772,30 @@ namespace PF.Infrastructure.Station
             _logger.Success("【主控】所有子工站记忆参数已清空。");
         }
 
+        /// <inheritdoc/>
+        public void ClearStationMemory(string stationName)
+        {
+            if (_globalMachine.State != MachineState.Uninitialized)
+                throw new InvalidOperationException($"清空记忆仅允许在未初始化状态下执行，当前状态：{_globalMachine.State}");
+
+            var station = _subStations.FirstOrDefault(s => s.StationName == stationName);
+            if (station == null)
+            {
+                _logger.Warn($"【主控】未找到工站 [{stationName}]，跳过记忆清除。");
+                return;
+            }
+            try
+            {
+                station.ClearMemory();
+                _logger.Info($"【主控】已清空工站 [{stationName}] 的记忆参数。");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"【主控】清空工站 [{stationName}] 记忆参数失败: {ex.Message}");
+                throw;
+            }
+        }
+
         /// <summary>
         /// 全线复位成功后的扩展钩子，在 AlarmService.ClearAllActiveAlarms 之前调用。
         /// 子类可在此清理业务状态、发送通知或更新 UI。默认为空操作。
