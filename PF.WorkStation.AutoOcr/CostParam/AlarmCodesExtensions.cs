@@ -391,6 +391,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 复位后重新运行;")]
             public const string InitFeedingStateFailed = "PROC_WS2F_MOT_005";
 
+            /// <summary>切换阵列配方尺寸失败（SwitchProductionStateAsync 执行失败）</summary>
+            [AlarmInfo("流程异常/运动", "工位2上下料-切换阵列配方尺寸失败", AlarmSeverity.Error,
+                "1. 检查机构是否卡阻或存在异物;\n" +
+                "2. 手动点动确认尺寸切换机构运动正常;\n" +
+                "3. 确认当前配方尺寸与料盒规格一致;\n" +
+                "4. 复位后重新运行;")]
+            public const string SwitchArrayRecipeSizeFailed = "PROC_WS2F_MOT_007";
+
             /// <summary>料盒公用底座未检测到物体</summary>
             [AlarmInfo("流程异常/传感器", "工位2上下料-料盒公用底座未检测到物体", AlarmSeverity.Error,
                 "1. 确认料盒是否正确放入;\n" +

@@ -357,6 +357,20 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region Safety Interlocks (安全互锁守卫)
 
+        /**********判断轨道上是否有晶圆************/
+        public async Task<bool> IsTrackProExist(CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
+            CheckReady();
+            token.ThrowIfCancellationRequested();
+            _logger.Info($"[{MechanismName}] 检查轨道是否有物料...");
+
+            // 变量解析：读取两个特征物理传感器的布尔值
+            bool iscom1 = _io.ReadInput(E_InPutName.晶圆轨道右晶圆在位检测1) == true;   // 晶圆轨道右晶圆在位检测1
+            bool iscom2 = _io.ReadInput(E_InPutName.晶圆轨道右晶圆在位检测2) == true;
+            return iscom1 & iscom2;
+        }
+
         /// <summary>
         /// Z轴安全互锁：判断升降条件，防止顶翻料盒或切割机械手
         /// </summary>
