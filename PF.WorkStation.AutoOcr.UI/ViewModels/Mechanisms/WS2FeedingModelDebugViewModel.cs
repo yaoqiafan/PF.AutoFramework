@@ -23,10 +23,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
     {
         private readonly WS2FeedingModule? _feedingModule;
         private DispatcherTimer _monitorTimer;
+
+        // 供 UI 绑定底层硬件状态
         /// <summary>
         /// 获取或设置 FeedingModule
         /// </summary>
-
         public WS2FeedingModule? FeedingModule => _feedingModule;
 
         private string _debugMessage = "就绪";
@@ -49,7 +50,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             set => SetProperty(ref _targetLayer, value);
         }
 
-        #region Status Monitor Properties
+        #region 状态监控属性 (UI 实时刷新)
 
         private double _zAxisPosition;
         /// <summary>
@@ -142,7 +143,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public bool Is12InchStopRod2 { get => _is12InchStopRod2; set => SetProperty(ref _is12InchStopRod2, value); }
         #endregion
 
-        #region Point Collections
+        #region 点位数据集合
         /// <summary>
         /// 获取或设置 ZAxisOriginalPoints
         /// </summary>
@@ -155,6 +156,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// 获取或设置 ArrayedPoints
         /// </summary>
         public ObservableCollection<AxisPoint> ArrayedPoints { get; set; } = [];
+
+        // 分开定义两个传感器的 UI 绑定集合
         /// <summary>
         /// 获取或设置 RawMappingPoints1
         /// </summary>
@@ -170,7 +173,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public ObservableCollection<FilteredMappingItem> FilteredMappingPoints { get; set; } = [];
         #endregion
 
-        #region Commands
+        #region Commands 定义
+        // 1. 顶部全局生命周期控制
         /// <summary>
         /// InitializeModule 命令
         /// </summary>
@@ -183,6 +187,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// Stop 命令
         /// </summary>
         public DelegateCommand StopCommand { get; }
+
+        // 2. 左侧原子指令
         /// <summary>
         /// InitState 命令
         /// </summary>
@@ -213,11 +219,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// SearchLayer 命令
         /// </summary>
 
-        public DelegateCommand SearchLayerCommand { get; }
+        public DelegateCommand<double?> SearchLayerCommand { get; }
         /// <summary>
         /// GoToLayer 命令
         /// </summary>
         public DelegateCommand GoToLayerCommand { get; }
+
+        // 3. 点位保存
         /// <summary>
         /// SaveZAxisPoints 命令
         /// </summary>
@@ -234,12 +242,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         public WS2FeedingModelDebugViewModel(IContainerProvider containerProvider)
         {
+            // 依赖注入获取模组实例
             _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModule)) as WS2FeedingModule;
 
+            // --- 绑定全局生命周期指令 ---
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.StopAsync()));
 
+            // --- 绑定模组内部原子指令 ---
             InitStateCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeFeedingStateAsync()));
             DetectSizeCommand = new DelegateCommand(async () => await ExecuteDetectSizeAsync());
             SwitchProductionCommand = new DelegateCommand<string>(async (size) => await ExecuteSwitchProductionAsync(size));
@@ -248,7 +259,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             CanMoveXCommand = new DelegateCommand(async () => await ExecuteCheckAsync("X轴可动条件", () => _feedingModule?.CanMoveXAxesAsync()));
             CanPullOutCommand = new DelegateCommand(async () => await ExecuteCheckAsync("允许拉料条件", () => _feedingModule?.CanPullOutMaterialAsync()));
 
-            SearchLayerCommand = new DelegateCommand(async () => await ExecuteSearchLayerAsync());
+            SearchLayerCommand = new DelegateCommand<double?>(async (t) => await ExecuteSearchLayerAsync(t));
             GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
 
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
@@ -258,7 +269,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             StartMonitor();
         }
 
-        #region Internal Logic
+        #region 内部执行逻辑与状态更新
 
         private async Task ExecuteAsync(Func<Task>? action)
         {
@@ -312,57 +323,68 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteSearchLayerAsync()
+        private async Task ExecuteSearchLayerAsync(double? runTimes)
         {
             if (_feedingModule == null) return;
+
+            // 将 double 转换为 int，并确保至少运行 1 次
+            int totalRuns = (int)Math.Max((double)1, (double)runTimes);
+
             try
             {
-                DebugMessage = "开始寻层扫描...";
-                var scanResult = await _feedingModule.SearchLayerAsync(latchNo1:2,latchNo2:3);
-                if (!scanResult.IsSuccess)
+                for (int i = 0; i < totalRuns; i++)
                 {
-                    DebugMessage = $"寻层扫描失败: {scanResult.ErrorMessage}";
-                    MessageService.ShowMessage(DebugMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    int currentRun = i + 1;
+                    DebugMessage = $"开始第 {currentRun}/{totalRuns} 次寻层扫描...";
 
-                var rawMap = scanResult.Data;
-                RawMappingPoints1.Clear();
-                RawMappingPoints2.Clear();
+                    var scanResult = await _feedingModule.SearchLayerAsync(latchNo1: 2, latchNo2: 3);
+                    if (!scanResult.IsSuccess)
+                    {
+                        DebugMessage = $"第 {currentRun} 次寻层扫描失败: {scanResult.ErrorMessage}";
+                        MessageService.ShowMessage(DebugMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return; // 失败则退出整个方法；如果想忽略错误继续下一次循环，请改为 continue;
+                    }
 
-                var keys = rawMap.Keys.ToList();
-                if (keys.Count > 0)
-                {
-                    int index1 = 1;
-                    foreach (var z in rawMap[keys[0]])
-                        RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
-                }
+                    var rawMap = scanResult.Data;
+                    RawMappingPoints1.Clear();
+                    RawMappingPoints2.Clear();
 
-                if (keys.Count > 1)
-                {
-                    int index2 = 1;
-                    foreach (var z in rawMap[keys[1]])
-                        RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
-                }
+                    var keys = rawMap.Keys.ToList();
+                    if (keys.Count > 0)
+                    {
+                        int index1 = 1;
+                        foreach (var z in rawMap[keys[0]])
+                            RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
+                    }
 
-                DebugMessage = "数据获取完成，正在进行算法过滤...";
-                var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
-                if (!filterResult.IsSuccess)
-                {
-                    DebugMessage = $"算法过滤失败: {filterResult.ErrorMessage}";
-                    MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    if (keys.Count > 1)
+                    {
+                        int index2 = 1;
+                        foreach (var z in rawMap[keys[1]])
+                            RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
+                    }
 
-                var filteredMap = filterResult.Data;
-                FilteredMappingPoints.Clear();
-                foreach (var kvp in filteredMap.OrderBy(k => k.Key))
-                {
-                    FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
-                }
+                    DebugMessage = "数据获取完成，正在进行算法过滤...";
+                    var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                    if (!filterResult.IsSuccess)
+                    {
+                        DebugMessage = $"算法过滤失败: {filterResult.ErrorMessage}";
+                        MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
 
-                DebugMessage = $"寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
-                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var filteredMap = filterResult.Data;
+                    FilteredMappingPoints.Clear();
+                    foreach (var kvp in filteredMap.OrderBy(k => k.Key))
+                    {
+                        FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
+                    }
+
+                    DebugMessage = $"第 {currentRun} 次寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
+                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // 如果这是最后一次循环，正常退出；否则继续下一次
+                } // end for
             }
             catch (Exception ex)
             {

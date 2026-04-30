@@ -25,6 +25,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private readonly IUserService _userService;
         private readonly DispatcherTimer _pollTimer;
 
+        // ── 看板只读属性 ────────────────────────────────────────────────────
+
         private MachineState _currentState;
         /// <summary>
         /// 成员
@@ -37,7 +39,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private string _currentStepDescription = "就绪";
         /// <summary>
-        /// 获取或设置 CurrentStepDescription
+        /// 成员
         /// </summary>
         public string CurrentStepDescription
         {
@@ -47,7 +49,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private OperationMode _currentMode;
         /// <summary>
-        /// 成员
+        /// 获取或设置 CurrentMode
         /// </summary>
         public OperationMode CurrentMode
         {
@@ -57,18 +59,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
 
         private Brush _statusBrush;
         /// <summary>
-        /// 获取或设置 StatusBrush
+        /// 成员
         /// </summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
             private set => SetProperty(ref _statusBrush, value);
         }
+
+        // ── 权限控制 ─────────────────────────────────────────────────────────
         /// <summary>
         /// 获取或设置 CanManualControl
         /// </summary>
 
         public bool CanManualControl => _userService.IsAuthorized(UserLevel.SuperUser);
+
+        // ── 命令 ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Initialize 命令
         /// </summary>
@@ -165,6 +171,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             _pollTimer.Start();
         }
 
+
+
+        // ── 轮询刷新 ─────────────────────────────────────────────────────────
+
         private void OnPollTick(object sender, EventArgs e)
         {
             CurrentState = _station.CurrentState;
@@ -200,6 +210,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         private static Brush StateToBrush(MachineState state) =>
             _stateBrushMap.TryGetValue(state, out var brush) ? brush : _defaultBrush;
 
+        // ── 权限事件处理 ──────────────────────────────────────────────────────
+
         private void OnCurrentUserChanged(object sender, UserInfo? user)
         {
             RaisePropertyChanged(nameof(CanManualControl));
@@ -211,6 +223,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
             ResetCommand.RaiseCanExecuteChanged();
             TriggerAlarmCommand.RaiseCanExecuteChanged();
         }
+
+        // ── 命令实现 ─────────────────────────────────────────────────────────
 
         private async void ExecuteInitialize()
         {
@@ -264,6 +278,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.WorkStations
         {
             _sync.Release(WorkstationSignals.工位2允许退料.ToString(), E_WorkStation.工位2上下料工站.ToString());
         }
+        // ── 销毁 ─────────────────────────────────────────────────────────────
         /// <summary>
         /// Dispose
         /// </summary>
