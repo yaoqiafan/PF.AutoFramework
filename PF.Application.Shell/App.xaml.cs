@@ -395,15 +395,10 @@ namespace PF.Application.Shell
                 var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
                 container.RegisterInstance(dbContextOptions);
 
-                container.Register<Microsoft.EntityFrameworkCore.DbContext, AppParamDbContext>(
-                    made: Made.Of(() => new AppParamDbContext(
-                        Arg.Of<Microsoft.EntityFrameworkCore.DbContextOptions<AppParamDbContext>>())),
-                    reuse: Reuse.Scoped);
-
-                // 开放泛型仓储（DryIoc 专属 Setup/Reuse API，须在此处注册）
-                container.Register(typeof(IParamRepository<>), typeof(ParamRepository<>),
-                    setup: Setup.With(condition: r => r.ServiceType.IsGenericType),
-                    reuse: Reuse.ScopedOrSingleton);
+                // 每次调用工厂方法都创建独立的 DbContext 实例，彻底解决并发场景下的线程安全问题
+                Func<Microsoft.EntityFrameworkCore.DbContext> dbContextFactory =
+                    () => new AppParamDbContext(dbContextOptions);
+                container.RegisterInstance<Func<Microsoft.EntityFrameworkCore.DbContext>>(dbContextFactory);
 
                 _logService.Info("参数数据库上下文注册完成", "DependencyInjection");
             }
