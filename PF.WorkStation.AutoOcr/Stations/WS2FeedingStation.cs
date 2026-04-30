@@ -39,8 +39,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         识别料盒尺寸 = 30,
         /// <summary>验证尺寸与配方是否匹配</summary>
         验证尺寸与配方是否匹配 = 40,
-        /// <summary>切换物料尺寸</summary>
-        切换物料尺寸 = 50,
+        /// <summary>切换阵列配方尺寸</summary>
+        切换阵列配方尺寸 = 50,
         /// <summary>判断X轴是否具备运动条件_开始</summary>
         判断X轴是否具备运动条件_开始 = 60,
         /// <summary>X轴到待机位</summary>
@@ -133,6 +133,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         X轴运动超时 = 100031,
         /// <summary>初始化上料状态失败（Z/X轴运动到待机位失败）</summary>
         初始化上料状态失败 = 100032,
+        /// <summary>切换阵列配方尺寸失败（SwitchProductionStateAsync 执行失败）</summary>
+        切换阵列配方尺寸失败 = 100036,
         /// <summary>Z轴切换层运动失败</summary>
         Z轴切换层运动失败 = 100033,
         /// <summary>寻层扫描移动到起点失败</summary>
@@ -608,7 +610,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (_detectedWaferSize == _cachedRecipe.WafeSize)
                             {
                                 _logger.Info($"[{StationName}] 料盒尺寸与配方匹配（{_detectedWaferSize}）。");
-                                _currentStep = Station2FeedingStep.切换物料尺寸;
+                                _currentStep = Station2FeedingStep.切换阵列配方尺寸;
                             }
                             else
                             {
@@ -617,9 +619,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             break;
 
-                        case Station2FeedingStep.切换物料尺寸:
-                            CurrentStepDescription = "切换物料尺寸...";
-                            // 执行气缸或调宽电机动作，调整生产线尺寸
+                        case Station2FeedingStep.切换阵列配方尺寸:
+                            CurrentStepDescription = "切换阵列配方尺寸...";
+                            // 调整硬件状态（如调宽机构）
                             var switchResult = await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token).ConfigureAwait(false);
                             if (switchResult.IsSuccess)
                             {
@@ -627,8 +629,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             else
                             {
-                                _logger.Error($"[{StationName}] 切换物料尺寸失败：{switchResult.ErrorMessage}");
-                                RouteToError(Station2FeedingStep.料盒尺寸与配方不匹配, Station2FeedingStep.等待按下工位2启动按钮, switchResult.ErrorCode);
+                                _logger.Error($"[{StationName}] 切换阵列配方尺寸失败：{switchResult.ErrorMessage}");
+                                RouteToError(Station2FeedingStep.切换阵列配方尺寸失败, Station2FeedingStep.等待按下工位2启动按钮, switchResult.ErrorCode);
                             }
                             break;
 
@@ -751,7 +753,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.切换到指定层:
                             CurrentStepDescription = $"Z轴切换到第{_layersToProcess[_currentLayerIndex] + 1}层...";
-                            if (await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token).ConfigureAwait(false))
+                            var switchToLayerres = await _feedingModule.SwitchToLayerAsync(_layersToProcess[_currentLayerIndex], token);
+                            if (switchToLayerres.IsSuccess)
                             {
                                 MemoryParam.CurrentLayerIndex = _currentLayerIndex;
                                 MemoryParam.PersistedStep = (int)Station2FeedingStep.判断物料可拉出条件;
@@ -760,23 +763,24 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             else
                             {
-                                RouteToError(Station2FeedingStep.Z轴运动超时, Station2FeedingStep.切换到指定层);
+                                RouteToError(Station2FeedingStep.Z轴运动超时, Station2FeedingStep.切换到指定层, switchToLayerres.ErrorCode);
                             }
                             break;
 
                         case Station2FeedingStep.判断物料可拉出条件:
                             CurrentStepDescription = "判断物料可拉出条件...";
-                            // 检查物料是否倾斜或错层
                             if (await _feedingModule.CanPullOutMaterialAsync(token).ConfigureAwait(false))
                             {
-                                // 释放同步信号：通知拉料工站可以拉料
+                                // 关键握手：通知拉料工站可以拉料
                                 _sync.Release(nameof(WorkstationSignals.工位2允许拉料), StationName);
                                 _currentStep = Station2FeedingStep.等待物料拉出完成;
+                                MemoryParam.PersistedStep = (int)Station2FeedingStep.等待物料拉出完成;
+                                FlushMemory();
                             }
                             else
                             {
-                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层物料错层翘起，禁止拉料。");
-                                RouteToError(Station2FeedingStep.检测到物料错层, Station2FeedingStep.判断Z轴是否具备运动条件_取料定位);
+                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层拉料互锁条件不满足，禁止拉料。");
+                                RouteToError(Station2FeedingStep.拉料互锁失败_挡杆未打开, Station2FeedingStep.等待按下工位2启动按钮);
                             }
                             break;
 
@@ -822,6 +826,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "物料全部生产完毕，更新状态...";
                             _logger.Success($"[{StationName}] 晶圆上料闭环完毕。");
                             _currentStep = Station2FeedingStep.判断X轴是否具备运动条件_结束;
+                            MemoryParam.IsInProgress = false;
+                            MemoryParam.CurrentLayerIndex = 0;
+                            MemoryParam.LayersToProcess = new();
+                            MemoryParam.TotalLayerCount = 0;
+                            MemoryParam.PersistedStep = (int)Station2FeedingStep.等待按下工位2启动按钮;
+                            FlushMemory();
                             break;
 
                         case Station2FeedingStep.判断X轴是否具备运动条件_结束:
@@ -864,19 +874,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
 
                         case Station2FeedingStep.生产完毕:
-                            CurrentStepDescription = "本批次生产完毕，复位准备下一批...";
-                            // 清理缓存数据
+                            CurrentStepDescription = "本批次生产完毕，清理缓存数据...";
                             _cachedRecipe = null;
-                            _layersToProcess = [];
+                            _layersToProcess = new();
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
 
-                            MemoryParam.IsInProgress = false;
-                            MemoryParam.CurrentLayerIndex = 0;
-                            MemoryParam.LayersToProcess = [];
-                            MemoryParam.TotalLayerCount = 0;
-                            MemoryParam.PersistedStep = (int)Station2FeedingStep.等待按下工位2启动按钮;
-                            FlushMemory();
                             _currentStep = Station2FeedingStep.等待按下工位2启动按钮;
                             break;
 
@@ -901,12 +904,26 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
 
                         case Station2FeedingStep.寻层算法空值判定:
-                            TriggerAlarm(AlarmCodesExtensions.WS2Feeding.AlgorithmZeroLayers, "寻层算法判定为0层");
+                            TriggerAlarm(AlarmCodesExtensions.WS2Feeding.AlgorithmZeroLayers, "算法判定为0层");
                             _currentStep = _resumeStep;
                             break;
 
                         case Station2FeedingStep.寻层算法过滤异常:
-                            TriggerAlarm(AlarmCodesExtensions.WS2Feeding.AlgorithmException, "寻层算法出现严重异常");
+                            TriggerAlarm(AlarmCodesExtensions.WS2Feeding.AlgorithmException, "寻层算法过滤异常");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case Station2FeedingStep.初始化上料状态失败:
+                            var initErrCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Feeding.InitFeedingStateFailed;
+                            TriggerAlarm(initErrCode, "上料状态初始化失败（Z/X轴运动到待机位失败）");
+                            _cachedErrorCode = null;
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case Station2FeedingStep.切换阵列配方尺寸失败:
+                            var switchSizeErrCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Feeding.SwitchArrayRecipeSizeFailed;
+                            TriggerAlarm(switchSizeErrCode, "切换阵列配方尺寸失败，请检查硬件机构状态");
+                            _cachedErrorCode = null;
                             _currentStep = _resumeStep;
                             break;
 
