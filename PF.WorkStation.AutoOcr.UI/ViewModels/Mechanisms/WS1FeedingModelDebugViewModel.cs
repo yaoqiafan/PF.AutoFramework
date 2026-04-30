@@ -5,7 +5,12 @@ using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.Models;
+using Prism.Commands;
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -218,15 +223,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// GoToLayer 命令
         /// </summary>
         public DelegateCommand GoToLayerCommand { get; }
-        /// <summary>
-        /// WaitPullOut 命令
-        /// </summary>
-
-        public DelegateCommand WaitPullOutCommand { get; }
-        /// <summary>
-        /// WaitReturn 命令
-        /// </summary>
-        public DelegateCommand WaitReturnCommand { get; }
 
         // 3. 点位保存
         /// <summary>
