@@ -106,5 +106,12 @@ namespace PF.Core.Interfaces.Station
         /// </summary>
         /// <exception cref="InvalidOperationException">当设备不处于未初始化状态时抛出。</exception>
         void ClearAllStationMemory();
+
+        /// <summary>
+        /// 清空指定名称工站的记忆参数（仅允许在未初始化状态下调用）。
+        /// </summary>
+        /// <param name="stationName">工站名称，对应 <c>StationBase.StationName</c></param>
+        /// <exception cref="InvalidOperationException">当设备不处于未初始化状态时抛出。</exception>
+        void ClearStationMemory(string stationName);
     }
 }

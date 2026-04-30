@@ -288,15 +288,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _currentLayerIndex = 0;
                         break;
 
-                    case Station1FeedingStep.判断Z轴是否具备运动条件_取料定位:
-                    case Station1FeedingStep.切换到指定层:
-                    case Station1FeedingStep.判断物料可拉出条件:
-                    case Station1FeedingStep.等待物料拉出完成:
-                    case Station1FeedingStep.阻塞等待物料回退完成:
-                    case Station1FeedingStep.计算下一层位置:
-                        _logger.Info($"[{StationName}] 复位至取料定位阶段起点（Z轴重新定位）");
-                        _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
-                        break;
+                   
 
                     default:
                         _logger.Info($"[{StationName}] 保持当前步序: {_currentStep}");

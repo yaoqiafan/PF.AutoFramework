@@ -10,6 +10,7 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.UI.UserControls;
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -135,19 +136,37 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 清除机台记忆
 
-        private bool _isClearMemoryChecked;
-        /// <summary>
-        /// 是否清除机台记忆
-        /// </summary>
-        public bool IsClearMemoryChecked
+        /// <summary>各工站清除记忆选择项</summary>
+        public ObservableCollection<StationMemoryItem> StationMemoryItems { get; }
+
+        private bool _suppressSelectAllUpdate;
+        private bool? _isSelectAllMemoryChecked = false;
+        /// <summary>全选/全不选控制（null 表示部分选中）</summary>
+        public bool? IsSelectAllMemoryChecked
         {
-            get => _isClearMemoryChecked;
-            set => SetProperty(ref _isClearMemoryChecked, value);
+            get => _isSelectAllMemoryChecked;
+            set
+            {
+                if (value == null) { SetProperty(ref _isSelectAllMemoryChecked, null); return; }
+                _suppressSelectAllUpdate = true;
+                SetProperty(ref _isSelectAllMemoryChecked, value);
+                foreach (var item in StationMemoryItems)
+                    item.IsChecked = value == true;
+                _suppressSelectAllUpdate = false;
+            }
         }
-        /// <summary>
-        /// 有清除记忆权限
-        /// </summary>
+
+        /// <summary>有清除记忆权限</summary>
         public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Administrator);
+
+        private void OnStationMemoryItemChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (_suppressSelectAllUpdate || e.PropertyName != nameof(StationMemoryItem.IsChecked)) return;
+            bool allChecked  = StationMemoryItems.All(x => x.IsChecked);
+            bool noneChecked = StationMemoryItems.All(x => !x.IsChecked);
+            _isSelectAllMemoryChecked = allChecked ? true : noneChecked ? false : (bool?)null;
+            RaisePropertyChanged(nameof(IsSelectAllMemoryChecked));
+        }
 
         #endregion
 
@@ -220,6 +239,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _userService = userService;
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
 
+            StationMemoryItems = new ObservableCollection<StationMemoryItem>
+            {
+                new StationMemoryItem("工位1上下料工站", E_WorkStation.工位1上下料工站.ToString()),
+                new StationMemoryItem("OCR检测工站",     E_WorkStation.OCR检测工站.ToString()),
+                new StationMemoryItem("工位1拉料工站",   E_WorkStation.工位1拉料工站.ToString()),
+                new StationMemoryItem("工位2上下料工站", E_WorkStation.工位2上下料工站.ToString()),
+                new StationMemoryItem("工位2拉料工站",   E_WorkStation.工位2拉料工站.ToString()),
+            };
+            foreach (var item in StationMemoryItems)
+                item.PropertyChanged += OnStationMemoryItemChanged;
+
             // 订阅用户变更事件以刷新权限
             _userService.CurrentUserChanged += (s, e) => RaisePropertyChanged(nameof(HasClearMemoryPermission));
 
@@ -229,12 +259,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     try
                     {
-                        if (IsClearMemoryChecked)
+                        var selectedItems = StationMemoryItems.Where(x => x.IsChecked).ToList();
+                        if (selectedItems.Count > 0)
                         {
                             try
                             {
-                                _controller.ClearAllStationMemory();
-                                IsClearMemoryChecked = false;
+                                foreach (var si in selectedItems)
+                                {
+                                    _controller.ClearStationMemory(si.StationName);
+                                    si.IsChecked = false;
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -462,6 +496,38 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public override void Destroy()
         {
             _pollTimer.Stop();
+        }
+    }
+
+    /// <summary>单个工站的清除记忆选择项，供 UI 列表绑定使用</summary>
+    public class StationMemoryItem : INotifyPropertyChanged
+    {
+        private bool _isChecked;
+
+        /// <summary>界面显示名称</summary>
+        public string DisplayName { get; }
+
+        /// <summary>工站名称（对应 StationBase.StationName）</summary>
+        public string StationName { get; }
+
+        /// <summary>是否勾选清除</summary>
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set
+            {
+                if (_isChecked == value) return;
+                _isChecked = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsChecked)));
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public StationMemoryItem(string displayName, string stationName)
+        {
+            DisplayName = displayName;
+            StationName = stationName;
         }
     }
 }

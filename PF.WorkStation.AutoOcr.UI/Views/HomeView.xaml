@@ -353,16 +353,32 @@
 
                         <Separator Grid.Row="1" Margin="0,5,0,15" Background="{DynamicResource BorderBrush}" Opacity="0.5"/>
 
-                        <UniformGrid Grid.Row="2" Margin="0,0,0,15" HorizontalAlignment="Center">
-                            <CheckBox 
-                Content="清除机台记忆" 
-                IsChecked="{Binding IsClearMemoryChecked}"
-                IsEnabled="{Binding HasClearMemoryPermission}" 
-                FontSize="14"
-                FontWeight="Medium"
-                Foreground="{DynamicResource PrimaryTextBrush}"
-                ToolTip="需要管理员权限才能操作此选项" />
-                        </UniformGrid>
+                        <StackPanel Grid.Row="2" Margin="0,0,0,15">
+                            <CheckBox
+                                Content="清除机台记忆"
+                                IsChecked="{Binding IsSelectAllMemoryChecked, Mode=TwoWay}"
+                                IsThreeState="True"
+                                IsEnabled="{Binding HasClearMemoryPermission}"
+                                FontSize="14"
+                                FontWeight="Medium"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                ToolTip="需要管理员权限才能操作此选项" />
+                            <ItemsControl
+                                Margin="16,4,0,0"
+                                IsEnabled="{Binding HasClearMemoryPermission}"
+                                ItemsSource="{Binding StationMemoryItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox
+                                            Margin="0,3"
+                                            Content="{Binding DisplayName}"
+                                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                            FontSize="12"
+                                            Foreground="{DynamicResource PrimaryTextBrush}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
 
                         <Separator Grid.Row="3" Margin="0,0,0,15" Background="{DynamicResource BorderBrush}" Opacity="0.5"/>
 
