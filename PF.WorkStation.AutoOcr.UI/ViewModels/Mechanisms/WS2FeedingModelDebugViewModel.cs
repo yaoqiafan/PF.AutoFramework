@@ -337,7 +337,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     int currentRun = i + 1;
                     DebugMessage = $"开始第 {currentRun}/{totalRuns} 次寻层扫描...";
 
-                    var scanResult = await _feedingModule.SearchLayerAsync(latchNo1: 2, latchNo2: 3);
+                    var scanResult = await _feedingModule.SearchLayerAsync();
                     if (!scanResult.IsSuccess)
                     {
                         DebugMessage = $"第 {currentRun} 次寻层扫描失败: {scanResult.ErrorMessage}";
@@ -364,11 +364,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                             RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
                     }
 
-                    DebugMessage = "数据获取完成，正在进行算法过滤...";
+                    DebugMessage = $"第 {currentRun}/{totalRuns} 次数据获取完成，正在进行算法过滤...";
                     var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
                     if (!filterResult.IsSuccess)
                     {
-                        DebugMessage = $"算法过滤失败: {filterResult.ErrorMessage}";
+                        DebugMessage = $"第 {currentRun} 次算法过滤失败: {filterResult.ErrorMessage}";
                         MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
@@ -381,10 +381,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     }
 
                     DebugMessage = $"第 {currentRun} 次寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
-                    MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    // 如果这是最后一次循环，正常退出；否则继续下一次
-                } // end for
+                    // 如果有多次循环，建议加一个短暂的延迟，避免硬件指令发送过快导致冲突
+                    if (currentRun < totalRuns)
+                    {
+                        await Task.Delay(500); // 延时 500ms，可根据实际硬件要求调整或删除
+                    }
+                }
+
+                // 所有循环顺利结束后，统一弹窗提示
+                DebugMessage = $"任务完成: 共计执行 {totalRuns} 次寻层均已成功。";
+                MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -402,6 +409,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 E_WafeSize size = sizeStr == "8" ? E_WafeSize._8寸 : E_WafeSize._12寸;
                 await _feedingModule.SwitchProductionStateAsync(size);
 
+                // 更新界面的阵列推算表格
                 ArrayedPoints.Clear();
                 var dict = size == E_WafeSize._8寸 ? _feedingModule.PickingPosition_8 : _feedingModule.PickingPosition_12;
                 foreach (var kvp in dict.OrderBy(k => k.Key))
@@ -411,9 +419,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 DebugMessage = $"切换成功: {sizeStr}寸 状态已就绪";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex)
-            {
-                DebugMessage = $"配方切换异常: {ex.Message}";
+            catch (Exception ex) { DebugMessage = $"配方切换异常: {ex.Message}";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -457,6 +463,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             catch (Exception ex) { MessageService.ShowMessage($"X轴点位保存失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
+        /// <summary>
+        /// 后台轮询线程，用于更新坐标和IO状态指示灯
+        /// </summary>
         private void StartMonitor()
         {
             _monitorTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
@@ -464,6 +473,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             {
                 if (_feedingModule == null || !_feedingModule.IsInitialized) return;
 
+                // 刷新轴状态
                 if (_feedingModule.ZAxis != null)
                 {
                     ZAxisPosition = _feedingModule.ZAxis.CurrentPosition ?? 0;
@@ -475,6 +485,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                     XAxisHasAlarm = _feedingModule.XAxis.HasAlarm;
                 }
 
+                // 刷新 IO 状态
                 if (_feedingModule.IO != null)
                 {
                     IsBoxCommonInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆右料盒公用到位) == true;
