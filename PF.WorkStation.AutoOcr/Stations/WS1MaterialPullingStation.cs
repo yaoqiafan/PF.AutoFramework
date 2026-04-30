@@ -81,6 +81,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>配方参数为空</summary>
         配方参数为空 = 100001,
 
+        /// <summary>
+        /// 判断流道尺寸异常
+        /// </summary>
+        判断流道尺寸异常 = 100005,
+
         // ── 传感器与物料防呆异常 (10001X) ──
         /// <summary>检测到叠料异常</summary>
         检测到叠料异常 = 100010,
@@ -267,7 +272,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// 步序值域: 关闭夹爪(50) ~ 等待检测位检测完成(140), 等待允许送料(200) ~ 送料到取料位(210)
         /// </summary>
         private static bool IsGripperHoldingMaterial(int stepValue) =>
-            (stepValue >= 50 && stepValue <= 140) ;
+            (stepValue >= 50 && stepValue <= 140);
 
         /// <summary>
         /// 根据持久化的步序值判断是否处于退料阶段（夹爪有料但传感器可能不可靠）。
@@ -392,29 +397,29 @@ namespace PF.WorkStation.AutoOcr.Stations
                     }
                 }
 
-             
 
-               
-              
+
+
+
             }
             catch
             {
                 Fire(MachineTrigger.Error);
                 throw;
             }
-         
+
             Station1PullingStep restoreStep;
 
             if (!MemoryParam.IsInProgress)
             {
-               
+
                 // 待机状态，回到起点
                 restoreStep = Station1PullingStep.等待允许取料;
                 _logger.Info($"[{StationName}] 检测到待机状态，回到起点等待");
             }
             else
             {
-               
+
 
                 var persistedStep = MemoryParam.PersistedStep;
 
@@ -435,13 +440,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 检查夹爪物料状态
                     bool? hasMaterial = await _pullingModule.CheckGipperIsExist(token);
-                    if (hasMaterial == false )
+                    if (hasMaterial == false)
                     {
                         // 夹爪有料，从退料阶段恢复
                         restoreStep = Station1PullingStep.扫码识别;
                         _logger.Warn($"[{StationName}] 断点续跑：有料阶段（步序 {persistedStep}），夹爪有料，从退料阶段恢复");
                     }
-                    else if (hasMaterial == true )
+                    else if (hasMaterial == true)
                     {
                         // 物料丢失，报警
                         _logger.Error($"[{StationName}] 断点续跑：记忆显示有料（步序 {persistedStep}）但实际无料，物料可能丢失！");
@@ -608,7 +613,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             else
                             {
-                                _currentStep = Station1PullingStep.调整流道尺寸异常;
+                                _logger.Error($"[{StationName}] 获取当前配方失败！数据中枢未下发配方。");
+                                RouteToError(Station1PullingStep.判断流道尺寸异常, Station1PullingStep.判断流道尺寸);
+                                break;
                             }
                             break;
 
@@ -772,7 +779,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             break;
 
-                   
+
 
                         case Station1PullingStep.移动到待机位:
                             CurrentStepDescription = "移动到待机位...";
@@ -853,6 +860,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station1PullingStep.夹爪张开超时:
                         case Station1PullingStep.夹爪闭合气缸操作失败:
                         case Station1PullingStep.夹爪闭合超时:
+                        case Station1PullingStep.判断流道尺寸异常:
                             var actCode = _cachedErrorCode ?? AlarmCodesExtensions.WS1Pulling.GripperCloseFailed;
                             TriggerAlarm(actCode, $"执行器控制异常: {_currentStep}");
                             _cachedErrorCode = null;

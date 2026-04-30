@@ -651,6 +651,26 @@ namespace PF.Workstation.AutoOcr.CostParam
 
         #endregion
 
+
+
+        #region 加载离线配方参数
+        /// <summary>
+        /// 工位1默认加载参数
+        /// </summary>
+        [Category("离线配方参数")]
+        [Description("工位1默认加载参数")]
+        [DefaultValue("New_Recipe_100349")]
+        Station1Recipe,
+        /// <summary>
+        /// 工位2默认加载参数
+        /// </summary>
+        [Category("离线配方参数")]
+        [Description("工位2默认加载参数")]
+        [DefaultValue("New_Recipe_100349")]
+        Station2Recipe,
+
+        #endregion 加载配方参数
+
     }
 
 
