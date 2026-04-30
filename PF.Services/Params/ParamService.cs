@@ -19,8 +19,8 @@ namespace PF.Services.Params
     /// </summary>
     public class ParamService : IParamService
     {
-        /// <summary>IoC 容器提供者，用于在方法内部创建生命周期作用域（Scope）</summary>
-        private readonly IContainerProvider _containerProvider;
+        /// <summary>DbContext 工厂方法，每次调用创建独立实例，保证并发线程安全</summary>
+        private readonly Func<Microsoft.EntityFrameworkCore.DbContext> _dbContextFactory;
 
         /// <summary>日志服务</summary>
         private readonly ILogService _logService;
@@ -37,13 +37,13 @@ namespace PF.Services.Params
         /// <summary>
         /// 实例化 <see cref="ParamService"/>
         /// </summary>
-        /// <param name="containerProvider">容器提供者</param>
+        /// <param name="dbContextFactory">DbContext 工厂方法，由 DI 注入，每次调用产生独立实例</param>
         /// <param name="logService">日志服务</param>
         public ParamService(
-            IContainerProvider containerProvider,
+            Func<Microsoft.EntityFrameworkCore.DbContext> dbContextFactory,
             ILogService logService)
         {
-            _containerProvider = containerProvider;
+            _dbContextFactory = dbContextFactory;
             _logService = logService;
 
             // 初始化默认的类型映射关系
@@ -111,11 +111,11 @@ namespace PF.Services.Params
         /// <returns>操作成功返回 true，否则返回 false</returns>
         public async Task<bool> SetParamAsync(string typeName, string name, object value, UserInfo? userInfo = null, string? description = null)
         {
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             try
             {
                 var entityType = DetermineEntityType(typeName);
-                dynamic? repository = CreateRepository(scope, entityType);
+                dynamic? repository = CreateRepository(dbContext, entityType);
                 if (repository == null) return false;
 
                 ParamEntity? existing = await repository.GetByNameAsync(name);
@@ -197,11 +197,11 @@ namespace PF.Services.Params
         /// <returns>操作成功返回 true，否则返回 false</returns>
         public async Task<bool> SetParamAsync<T>(string name, T value, UserInfo? userInfo = null, string? description = null) where T : class
         {
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             try
             {
                 var entityType = DetermineEntityType<T>();
-                dynamic? repository = CreateRepository(scope, entityType);
+                dynamic? repository = CreateRepository(dbContext, entityType);
                 if (repository == null)
                     throw new InvalidOperationException($"Repository for type {entityType.Name} not found");
 
@@ -312,11 +312,11 @@ namespace PF.Services.Params
         /// <returns>删除成功返回 true，未找到或失败返回 false</returns>
         public async Task<bool> DeleteParamAsync<T>(string name, UserInfo? userInfo = null) where T : class
         {
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             try
             {
                 var entityType = DetermineEntityType<T>();
-                dynamic? repository = CreateRepository(scope, entityType);
+                dynamic? repository = CreateRepository(dbContext, entityType);
                 if (repository == null) return false;
 
                 ParamEntity? param = await repository.GetByNameAsync(name);
@@ -371,14 +371,14 @@ namespace PF.Services.Params
         /// <returns>删除成功返回 true，未找到或失败返回 false</returns>
         public async Task<bool> DeleteParamAsync(string typeName, string name, UserInfo? userInfo = null)
         {
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             try
             {
                 // 1. 通过字符串解析出真实的 Type
                 var entityType = DetermineEntityType(typeName);
 
                 // 2. 创建对应的仓储
-                dynamic? repository = CreateRepository(scope, entityType);
+                dynamic? repository = CreateRepository(dbContext, entityType);
                 if (repository == null) return false;
 
                 // 3. 执行精准查询并删除
@@ -434,11 +434,11 @@ namespace PF.Services.Params
         /// <returns>找到并成功反序列化则返回实例，否则返回默认值(null)</returns>
         public async Task<T?> GetParamAsync<T>(string name)
         {
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             try
             {
                 var entityType = DetermineEntityType<T>();
-                dynamic? repository = CreateRepository(scope, entityType);
+                dynamic? repository = CreateRepository(dbContext, entityType);
 
                 if (repository == null)
                     throw new InvalidOperationException($"Repository for type {entityType.Name} not found");
@@ -475,11 +475,11 @@ namespace PF.Services.Params
         public async Task<List<ParamInfo>> GetAllParamsAsync()
         {
             var result = new List<ParamInfo>();
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
 
             foreach (var mapping in _paramTypeMapping)
             {
-                dynamic? repository = CreateRepository(scope, mapping.Value);
+                dynamic? repository = CreateRepository(dbContext, mapping.Value);
                 if (repository != null)
                 {
                     IEnumerable<object> paramsList = await repository.GetAllAsync();
@@ -500,9 +500,9 @@ namespace PF.Services.Params
         public async Task<List<ParamInfo>> GetParamsByCategoryAsync<T>() where T : class, IEntity
         {
             var result = new List<ParamInfo>();
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             var entityType = DetermineEntityType<T>();
-            dynamic? repository = CreateRepository(scope, entityType);
+            dynamic? repository = CreateRepository(dbContext, entityType);
 
             if (repository != null)
             {
@@ -524,9 +524,9 @@ namespace PF.Services.Params
         public async Task<List<ParamInfo>> GetParamsByCategoryAsync(string typename, string category = "")
         {
             var result = new List<ParamInfo>();
-            using var scope = _containerProvider.CreateScope();
+            await using var dbContext = _dbContextFactory();
             var entityType = DetermineEntityType(typename);
-            dynamic? repository = CreateRepository(scope, entityType);
+            dynamic? repository = CreateRepository(dbContext, entityType);
 
             if (repository != null)
             {
@@ -574,16 +574,13 @@ namespace PF.Services.Params
         /// 返回 dynamic 的目的是为了让调用方能直接使用 await repository.GetByNameAsync() 等方法，
         /// 而无需在此处书写冗长复杂的 MakeGenericMethod 反射调用。
         /// </summary>
-        /// <param name="scope">当前的作用域上下文</param>
+        /// <param name="dbContext">当前操作专用的 DbContext 实例</param>
         /// <param name="entityType">要构建的实体类型 Type</param>
         /// <returns>实例化的泛型仓储对象，如果出错返回 null</returns>
-        private dynamic? CreateRepository(IScopedProvider scope, Type entityType)
+        private dynamic? CreateRepository(Microsoft.EntityFrameworkCore.DbContext dbContext, Type entityType)
         {
             try
             {
-                var dbContext = scope.Resolve<Microsoft.EntityFrameworkCore.DbContext>();
-                if (dbContext == null) return null;
-
                 var repositoryType = typeof(ParamRepository<>).MakeGenericType(entityType);
                 return Activator.CreateInstance(repositoryType, dbContext);
             }
