@@ -410,7 +410,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左闭合, false)) return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperOpenCylinderFailed, $"操作输出信号 {E_OutPutName.夹爪气缸左闭合} 失败");
                 if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左张开, true)) return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperOpenCylinderFailed, $"操作输出信号 {E_OutPutName.夹爪气缸左张开} 失败");
-
+                await Task.Delay(1000);
                 while (true)
                 {
                     linktoken.ThrowIfCancellationRequested(); // 【新增】循环内取消嗅探
