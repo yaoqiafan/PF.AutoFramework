@@ -89,6 +89,7 @@ namespace PF.Core.Entities.Configuration
 
             // 默认分类 - 未明确分类的日志
             AddCategory("Default", LogLevel.Info, "General");
+
             //硬件日志 - 记录硬件调试
             AddCategory(LogCategories.HaraWare, LogLevel.Debug, LogCategories.HaraWare);
 
