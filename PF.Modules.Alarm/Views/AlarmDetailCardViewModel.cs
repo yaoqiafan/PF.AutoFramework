@@ -8,6 +8,7 @@ namespace PF.Modules.Alarm.Views
     public class AlarmDetailCardViewModel : PFDialogViewModelBase
     {
         private SubscriptionToken _resetToken;
+        private SubscriptionToken _alarmClearedToken;
 
         /// <summary>控制"异常复位"按钮的可见性</summary>
         public Visibility ResetButtonVisibility { get; private set; } = Visibility.Visible;
@@ -58,6 +59,18 @@ namespace PF.Modules.Alarm.Views
                     () => RequestClose.Invoke(new DialogResult { Result = ButtonResult.None }),
                     ThreadOption.UIThread,
                     keepSubscriberReferenceAlive: false);
+
+            // 订阅报警清除事件（如安全门关闭），匹配到当前报警时自动关闭弹窗
+            _alarmClearedToken = EventAggregator.GetEvent<AlarmClearedEvent>()
+                .Subscribe(record =>
+                {
+                    if (Alarm != null
+                        && record.Source == Alarm.Source
+                        && record.ErrorCode == Alarm.ErrorCode)
+                    {
+                        RequestClose.Invoke(new DialogResult { Result = ButtonResult.None });
+                    }
+                }, ThreadOption.UIThread, keepSubscriberReferenceAlive: false);
         }
         /// <summary>
         /// 窗体关闭时触发
@@ -67,6 +80,8 @@ namespace PF.Modules.Alarm.Views
             base.OnDialogClosed();
             _resetToken?.Dispose();
             _resetToken = null;
+            _alarmClearedToken?.Dispose();
+            _alarmClearedToken = null;
         }
         #endregion
     }
