@@ -49,12 +49,16 @@ namespace PF.WorkStation.AutoOcr.Stations
         移动到检测位 = 100,
         /// <summary>发送拉料完成</summary>
         发送拉料完成 = 110,
+        /// <summary>
+        ///  检测物料正反
+        /// </summary>
+        检测物料正反 = 120,
         /// <summary>扫码识别</summary>
-        扫码识别 = 120,
+        扫码识别 = 130,
         /// <summary>允许检测位检测</summary>
-        允许检测位检测 = 130,
+        允许检测位检测 = 140,
         /// <summary>等待检测位检测完成</summary>
-        等待检测位检测完成 = 140,
+        等待检测位检测完成 = 150,
 
         #endregion
 
@@ -153,7 +157,10 @@ namespace PF.WorkStation.AutoOcr.Stations
         送入过程丢料报警 = 100048,
         /// <summary>送入运动超时</summary>
         送入运动超时 = 100049,
-
+        /// <summary>
+        /// 物料正反检测报警
+        /// </summary>
+        物料正反检测报警 = 100051,
         // ── 相机与视觉异常 (10005X) ──
         /// <summary>扫码失败或校验不合法</summary>
         扫码失败 = 100050,
@@ -272,7 +279,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// 步序值域: 关闭夹爪(50) ~ 等待检测位检测完成(140), 等待允许送料(200) ~ 送料到取料位(210)
         /// </summary>
         private static bool IsGripperHoldingMaterial(int stepValue) =>
-            (stepValue >= 50 && stepValue <= 140);
+            (stepValue >= 50 && stepValue <= 150);
 
         /// <summary>
         /// 根据持久化的步序值判断是否处于退料阶段（夹爪有料但传感器可能不可靠）。
@@ -699,11 +706,27 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 FlushMemory();
                                 // 关键握手信号：通知上下料工站 Y 轴已退出料盒干涉区，Z 轴可以移动了
                                 _sync.Release(nameof(WorkstationSignals.工位2拉料完成), StationName);
-                                _currentStep = Station2PullingStep.扫码识别;
+                                _currentStep = Station2PullingStep.检测物料正反;
                             }
                             else
                             {
                                 RouteToError(Station2PullingStep.拉出至检测位失败_被中断, Station2PullingStep.移动到取料位, detectMoveResult.ErrorCode);
+                            }
+                            break;
+                        case Station2PullingStep.检测物料正反:
+                            CurrentStepDescription = "检测物料正反...";
+                            MemoryParam.PersistedStep = (int)Station1PullingStep.检测物料正反;
+                            var dirResult = await _pullingModule.CheckProductDirection(_cachedRecipe.WafeSize, token);
+                            if (dirResult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 检测物料正反成功");
+                                FlushMemory();
+                                _currentStep = Station2PullingStep.扫码识别;
+
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.物料正反检测报警, Station2PullingStep.等待允许送料, dirResult.ErrorCode);
                             }
                             break;
 

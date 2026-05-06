@@ -76,11 +76,23 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     normallyOpen: true),
 
                 // ── 安全门（Safety 组，0ms 防抖，常开接线，支持运行时屏蔽）────
-                new HardwareInputConfig(HardwareInputType.SafeDoor,
-                    port: (int)E_InPutName.电磁门锁1_2信号, debounceMs: 0,
-                    name: nameof(E_InPutName.电磁门锁1_2信号), InputScanGroup.Safety,
+                //new HardwareInputConfig(HardwareInputType.SafeDoor,
+                //    port: (int)E_InPutName.电磁门锁1_2信号, debounceMs: 0,
+                //    name: nameof(E_InPutName.电磁门锁1_2信号), InputScanGroup.Safety,
+                //    normallyOpen: false,
+                //    muteParamKey: nameof(E_Params.SafeDoor_1_2_Muted)),
+
+                 new HardwareInputConfig(HardwareInputType.SafeDoor,
+                    port: (int)E_InPutName.工位1门锁, debounceMs: 0,
+                    name: nameof(E_InPutName.工位1门锁), InputScanGroup.Safety,
                     normallyOpen: false,
-                    muteParamKey: nameof(E_Params.SafeDoor_1_2_Muted)),
+                    muteParamKey: nameof(E_Params.SafeDoor_1_Muted)),
+                  new HardwareInputConfig(HardwareInputType.SafeDoor,
+                    port: (int)E_InPutName.工位2门锁, debounceMs: 0,
+                    name: nameof(E_InPutName.工位2门锁), InputScanGroup.Safety,
+                    normallyOpen: false,
+                    muteParamKey: nameof(E_Params.SafeDoor_2_Muted)),
+
 
                 new HardwareInputConfig(HardwareInputType.SafeDoor,
                     port: (int)E_InPutName.电磁门锁3_4信号, debounceMs: 0,
