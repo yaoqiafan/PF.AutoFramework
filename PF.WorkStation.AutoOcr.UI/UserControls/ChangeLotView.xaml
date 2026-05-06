@@ -7,17 +7,22 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    d:DesignHeight="220"
+    d:DesignHeight="280"
     Width="380"
     mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
     <Border
         Padding="20"
-        Background="{DynamicResource RegionColorBrush}"
-       >
+        Background="{DynamicResource RegionColorBrush}">
 
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="15" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="15" />
                 <RowDefinition Height="Auto" />
@@ -68,9 +73,30 @@
                 </TextBox>
             </Grid>
 
+            <!-- 选择程式（仅超级用户可见，调试用） -->
+            <Grid Grid.Row="4" Visibility="{Binding IsSuperUser, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="选择程式:" />
+                <ComboBox
+                    Grid.Column="1"
+                    Height="36"
+                    VerticalContentAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    IsEditable="True"
+                    ItemsSource="{Binding RecipeNames}"
+                    Text="{Binding Recipe, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+            </Grid>
+
             <!-- 按钮 -->
             <StackPanel
-                Grid.Row="4"
+                Grid.Row="6"
                 HorizontalAlignment="Right"
                 Orientation="Horizontal">
                 <Button
