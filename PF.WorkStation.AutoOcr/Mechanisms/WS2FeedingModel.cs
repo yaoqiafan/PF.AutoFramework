@@ -273,11 +273,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 _logger.Success($"[{MechanismName}] 识别到 8寸 晶圆料盒。");
                 _currentWaferSize = E_WafeSize._8寸;
-                bool is8inchReverse = _io.ReadInput(E_InPutName.上晶圆右8寸铁环防反检测) == true;
-                if (is8inchReverse)
-                {
-                    return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS2Feeding.Wafer8InchReversed, "8寸晶圆放反，请检查。");
-                }
+               
                 return MechResult<E_WafeSize>.Success(E_WafeSize._8寸);
             }
             else if (is12inch && !is8inch)
@@ -285,11 +281,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Success($"[{MechanismName}] 识别到 12寸 晶圆料盒。");
                 _currentWaferSize = E_WafeSize._12寸;
 
-                bool is12inchReverse = _io.ReadInput(E_InPutName.上晶圆右12寸铁环防反检测) == true;
-                if (is12inchReverse)
-                {
-                    return MechResult<E_WafeSize>.Fail(AlarmCodesExtensions.WS2Feeding.Wafer12InchReversed, "12寸晶圆放反，请检查。");
-                }
+               
                 return MechResult<E_WafeSize>.Success(E_WafeSize._12寸);
             }
             else
