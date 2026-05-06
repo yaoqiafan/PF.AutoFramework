@@ -913,14 +913,25 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.等待物料拉出完成:
                             CurrentStepDescription = "等待物料拉出完成...";
-                            // 等待拉料工站反馈 Y 轴已拉出至安全位
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2拉料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
 
-                            _currentStep = Station2FeedingStep.阻塞等待物料回退完成;
-                            // 发放退料通行证
-                            _sync.Release(nameof(WorkstationSignals.工位2允许退料), StationName);
-                            MemoryParam.PersistedStep = (int)Station2FeedingStep.阻塞等待物料回退完成;
-                            FlushMemory();
+                            if (await _feedingModule.SetThrustWasherAsync(false, token))
+                            {
+                                await Task.Delay(500);
+                                // 等待拉料工站反馈 Y 轴已拉出至安全位
+                                await _sync.WaitAsync(nameof(WorkstationSignals.工位2拉料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
+
+                                _currentStep = Station2FeedingStep.阻塞等待物料回退完成;
+                                // 发放退料通行证
+                                _sync.Release(nameof(WorkstationSignals.工位2允许退料), StationName);
+                                MemoryParam.PersistedStep = (int)Station2FeedingStep.阻塞等待物料回退完成;
+                                FlushMemory();
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层凸片传感器关闭失败。");
+                                RouteToError(Station2FeedingStep.等待物料拉出完成, Station2FeedingStep.等待物料拉出完成);
+                            }
+
                             break;
 
                         case Station2FeedingStep.阻塞等待物料回退完成:

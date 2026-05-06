@@ -2,6 +2,7 @@ using log4net.Appender;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -349,7 +350,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Error($"[{MechanismName}] 未找到第 {targetLayer + 1} 层的阵列点位，可能未执行生产状态切换。");
                 return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.LayerPointNotFound, $"未找到第 {targetLayer + 1} 层的阵列点位");
             }
-
+            //打开凸片传感器
+            var res = await SetThrustWasherAsync(true, token);
+            if (!res.IsSuccess)
+            {
+                return res;
+            }
             // 驱动 Z 轴进行绝对位置运动，并复用示教点内的运动曲线参数 (Speed/Acc/Dec)
             bool moveResult = await MoveAbsAndWaitAsync(_zAxis, targetPoint.TargetPosition, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.08, token: token);
             token.ThrowIfCancellationRequested(); // 【新增】耗时运动结束后的取消检查
@@ -361,6 +367,28 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             return MechResult.Fail(AlarmCodesExtensions.WS2Feeding.LayerMoveFailed, $"Z轴切换到第 {targetLayer + 1} 层运动失败");
         }
+
+
+
+        /// <summary>
+        /// 6. 设置凸片传感器的开关
+        /// </summary>
+        /// <param name="status"></param>
+        /// <param name="token">取消令牌</param>
+        public async Task<MechResult> SetThrustWasherAsync(bool status, CancellationToken token = default)
+        {
+            var iores = _io.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, status);
+            if (!iores)
+            {
+                return MechResult.Fail(AlarmCodes.Hardware.IoSetError, $"上晶圆右铁环突片检测切换失败");
+            }
+            else
+            {
+                return MechResult.Success();
+            }
+        }
+
+
 
         #endregion
 
@@ -493,6 +521,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             try
             {
                 token.ThrowIfCancellationRequested(); // 【新增】进入核心逻辑前检查
+                                                      // Step 0: 打开凸片传感器
+                var iores = _io.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, true);
+                if (!iores)
+                {
+                    return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodes.Hardware.IoSetError, $"上晶圆右铁环突片检测打开失败");
+                }
 
                 // Step 1: 移动至扫描物理起点
                 var start = _currentWaferSize == E_WafeSize._12寸 ? nameof(ZAxisPoint.扫描起始位置_12寸) : nameof(ZAxisPoint.扫描起始位置_8寸);
