@@ -922,7 +922,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station2FeedingStep.等待物料拉出完成:
                             CurrentStepDescription = "等待物料拉出完成...";
 
-                            if (await _feedingModule.SetThrustWasherAsync(false, token))
+                            if (await _feedingModule.SetThrustWasherAsync(true, token))
                             {
                                 await Task.Delay(500);
                                 // 等待拉料工站反馈 Y 轴已拉出至安全位
