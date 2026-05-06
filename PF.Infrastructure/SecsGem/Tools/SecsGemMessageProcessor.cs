@@ -1,6 +1,7 @@
 ﻿using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -736,7 +737,7 @@ namespace PF.Infrastructure.SecsGem.Tools
     /// </summary>
     public class SecsGemMessageProcessor
     {
-        private readonly ILogService _logService;
+        private readonly CategoryLogger _secsLogger;
         private const int HeaderLength = 10;
         private readonly Encoding _jis8Encoding;
 
@@ -754,7 +755,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             {
                 _jis8Encoding = Encoding.ASCII;
             }
-            _logService = logService;
+            _secsLogger = CategoryLoggerFactory.SecsGem(logService);
         }
 
         #region 消息生成
@@ -808,7 +809,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             }
             catch (Exception ex)
             {
-                _logService.Error($"生成SECS消息失败: S{secsMessage.Stream}F{secsMessage.Function}  {ex .Message }");
+                _secsLogger.Error($"生成SECS消息失败: S{secsMessage.Stream}F{secsMessage.Function}", ex);
                 return null;
             }
         }
@@ -887,7 +888,7 @@ namespace PF.Infrastructure.SecsGem.Tools
             }
             catch (Exception ex)
             {
-                _logService.Error($"解析SECS报文失败{ex.Message}");
+                _secsLogger.Error("解析SECS报文失败", ex);
                 return null;
             }
         }
@@ -1079,7 +1080,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                     break;
 
                 default:
-                    _logService.Error($"发现不支持的数据类型: {node.DataType}");
+                    _secsLogger.Error($"发现不支持的数据类型: {node.DataType}");
                     node.Data = ReadRawData(bytes, ref offset, dataLength);
                     break;
             }

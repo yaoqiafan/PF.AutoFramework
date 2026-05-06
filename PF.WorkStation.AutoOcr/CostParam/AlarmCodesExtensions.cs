@@ -32,7 +32,8 @@ namespace PF.WorkStation.AutoOcr.CostParam
             [AlarmInfo("流程异常/数据", "工位1上下料-批次产品个数为0", AlarmSeverity.Error,
                 "1. 检查 MES 批次数据是否已正确下发;\n" +
                 "2. 确认批次产品数量字段不为空;\n" +
-                "3. 重新下发批次数据后复位重启;")]
+                "3. 重新下发批次数据后复位重启;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string BatchCountZero = "PROC_WS1F_DATA_001";
 
             /// <summary>料盒尺寸与配方不匹配</summary>

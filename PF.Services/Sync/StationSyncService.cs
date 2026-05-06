@@ -1,5 +1,6 @@
 ﻿using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Infrastructure.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
@@ -50,6 +51,7 @@ namespace PF.Services.Sync
 
         private readonly ConcurrentDictionary<string, ScopeContext> _scopes = new();
         private readonly ILogService _logger;
+        private readonly CategoryLogger _systemLogger;
 
         private const string DefaultScope = "global";
 
@@ -58,7 +60,11 @@ namespace PF.Services.Sync
         /// <summary>
         /// StationSyncService 服务
         /// </summary>
-        public StationSyncService(ILogService logger) => _logger = logger;
+        public StationSyncService(ILogService logger)
+        {
+            _logger = logger;
+            _systemLogger = CategoryLoggerFactory.System(logger);
+        }
 
         // ── 注册 ─────────────────────────────────────────────────────────────
 
@@ -94,7 +100,7 @@ namespace PF.Services.Sync
             var ctx = GetScope(scope);
             var entry = GetEntry(ctx, name, scope);
 
-            _logger.Debug($"[SyncService] [{scope}/{name}] 等待中" +
+            _systemLogger.Debug($"[SyncService] [{scope}/{name}] 等待中" +
                            $" (当前计数={entry.Sem.CurrentCount})");
 
             // 进入飞行区：原子递增，确保 ResetScope 能感知到此线程尚在执行
@@ -106,7 +112,7 @@ namespace PF.Services.Sync
                     token, ctx.ResetCts.Token);
 
                 await entry.Sem.WaitAsync(linked.Token).ConfigureAwait(false);
-                _logger.Debug($"[SyncService] [{scope}/{name}] 已获取");
+                _systemLogger.Debug($"[SyncService] [{scope}/{name}] 已获取");
             }
             finally
             {
@@ -124,7 +130,7 @@ namespace PF.Services.Sync
             // 预检：计数已满则跳过，避免 SemaphoreFullException
             if (entry.Sem.CurrentCount >= entry.MaxCount)
             {
-                _logger.Debug($"[SyncService] [{scope}/{name}] 信号量已达最大值" +
+                _systemLogger.Debug($"[SyncService] [{scope}/{name}] 信号量已达最大值" +
                                $" ({entry.MaxCount})，跳过多余释放。");
                 return;
             }
@@ -132,13 +138,13 @@ namespace PF.Services.Sync
             try
             {
                 entry.Sem.Release();
-                _logger.Debug($"[SyncService] [{scope}/{name}] 已释放" +
+                _systemLogger.Debug($"[SyncService] [{scope}/{name}] 已释放" +
                                $" (释放后计数={entry.Sem.CurrentCount})");
             }
             catch (SemaphoreFullException)
             {
                 // 极端竞态：预检通过后另一线程抢先释放触达上限，安全忽略
-                _logger.Debug($"[SyncService] [{scope}/{name}] 释放冲突：" +
+                _systemLogger.Debug($"[SyncService] [{scope}/{name}] 释放冲突：" +
                                "信号量已被其他线程充满，忽略此次释放。");
             }
         }

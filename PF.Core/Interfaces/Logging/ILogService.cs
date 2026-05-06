@@ -26,11 +26,6 @@ namespace PF.Core.Interfaces.Logging
         /// <summary>记录致命错误日志</summary>
         void Fatal(string message, string category = null, Exception exception = null);
 
-        /// <summary>显示UI消息</summary>
-        void ShowUiMessage(string message, LogLevel level = LogLevel.Info);
-        /// <summary>显示聊天消息</summary>
-        void ShowChatMessage(ChatInfoModel chatInfoModel);
-
         /// <summary>配置日志服务</summary>
         void Configure(LogConfiguration configuration);
         /// <summary>获取日志配置</summary>
@@ -38,8 +33,6 @@ namespace PF.Core.Interfaces.Logging
 
         /// <summary>内存日志条目</summary>
         IEnumerable<LogEntry> LogEntries { get; }
-        /// <summary>聊天消息条目</summary>
-        IEnumerable<ChatInfoModel> ChatEntries { get; }
 
         /// <summary>按时间范围查询内存日志</summary>
         List<LogEntry> QueryLogs(DateTime start, DateTime end, LogLevel? level = null, string category = null);

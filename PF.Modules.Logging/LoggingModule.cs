@@ -1,6 +1,7 @@
 ﻿using log4net;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using PF.Modules.Logging.ViewModels;
 using PF.Modules.Logging.Views;
 using PF.UI.Infrastructure.Navigation;
@@ -14,13 +15,13 @@ namespace PF.Modules.Logging
     public class LoggingModule : IModule
     {
         private readonly IRegionManager _regionManager;
-        private readonly ILogService _logService;
+        private readonly CategoryLogger _uiLogger;
 
         /// <summary>初始化日志模块</summary>
         public LoggingModule(IRegionManager regionManager, ILogService logService)
         {
             _regionManager = regionManager ?? throw new ArgumentNullException(nameof(regionManager));
-            _logService = logService?? throw new ArgumentNullException(nameof(logService));
+            _uiLogger = CategoryLoggerFactory.UI(logService ?? throw new ArgumentNullException(nameof(logService)));
         }
 
         /// <summary>模块初始化时注册视图和菜单</summary>
@@ -32,7 +33,7 @@ namespace PF.Modules.Logging
                 _regionManager.RegisterViewWithRegion(NavigationConstants.Regions.LoggingListRegion, NavigationConstants.Views.LoggingListView);
 
                 // 记录模块初始化日志
-                _logService.Info("日志模块初始化完成", "LoggingModule");
+                _uiLogger.Info("日志模块初始化完成");
             }
             catch (Exception ex)
             {

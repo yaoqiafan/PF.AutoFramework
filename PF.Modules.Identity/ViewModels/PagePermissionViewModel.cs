@@ -1,4 +1,6 @@
+using PF.Core.Constants;
 using PF.Core.Entities.Identity;
+using PF.Infrastructure.Logging;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
@@ -13,7 +15,7 @@ namespace PF.Modules.Identity.ViewModels
     public class PagePermissionViewModel : RegionViewModelBase
     {
         private readonly IUserService _userService;
-        private readonly ILogService _logService;
+        private readonly CategoryLogger _uiLogger;
         private readonly INavigationMenuService _navMenuService;
 
         private ObservableCollection<PermissionCheckItem> _permissionList;
@@ -31,7 +33,7 @@ namespace PF.Modules.Identity.ViewModels
             INavigationMenuService navMenuService)
         {
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
-            _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _uiLogger = CategoryLoggerFactory.UI(logService ?? throw new ArgumentNullException(nameof(logService)));
             _navMenuService = navMenuService ?? throw new ArgumentNullException(nameof(navMenuService));
 
             _allSystemViews = new List<PermissionCheckItem>();
@@ -111,7 +113,7 @@ namespace PF.Modules.Identity.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.Error($"动态解析菜单树异常: {ex.Message}", "PagePermission", ex);
+                _uiLogger.Error($"动态解析菜单树异常: {ex.Message}", ex);
             }
         }
 
@@ -154,7 +156,7 @@ namespace PF.Modules.Identity.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.Error($"加载用户列表失败: {ex.Message}", "PagePermission");
+                _uiLogger.Error($"加载用户列表失败: {ex.Message}");
             }
             finally
             {
@@ -207,7 +209,7 @@ namespace PF.Modules.Identity.ViewModels
             }
 
             HasUnsavedDefaults = true;
-            _logService.Info($"已将用户 [{SelectedUser.UserName}] 的权限勾选状态重置为 {SelectedUser.Root} 等级的默认状态（尚未保存）", "PagePermission");
+            _uiLogger.Info($"已将用户 [{SelectedUser.UserName}] 的权限勾选状态重置为 {SelectedUser.Root} 等级的默认状态（尚未保存）");
         }
 
         private async Task SaveConfigAsync()
@@ -224,7 +226,7 @@ namespace PF.Modules.Identity.ViewModels
                 if (isSuccess)
                 {
                     HasUnsavedDefaults = false;
-                    _logService.Info($"用户 [{SelectedUser.UserName}] 权限配置（{currentAllowed.Count} 个页面）已持久化到数据库", "PagePermission");
+                    _uiLogger.Info($"用户 [{SelectedUser.UserName}] 权限配置（{currentAllowed.Count} 个页面）已持久化到数据库");
                     MessageService.ShowMessage($"用户 [{SelectedUser.UserName}] 权限配置已保存！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
@@ -234,7 +236,7 @@ namespace PF.Modules.Identity.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.Error($"保存用户权限时异常: {ex.Message}", "PagePermission", ex);
+                _uiLogger.Error($"保存用户权限时异常: {ex.Message}", ex);
                 MessageService.ShowMessage($"保存出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally

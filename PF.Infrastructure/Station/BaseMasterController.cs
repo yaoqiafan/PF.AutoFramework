@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Core.Models;
+using PF.Infrastructure.Logging;
 using Stateless;
 using System.Collections.Concurrent;
 
@@ -86,6 +87,14 @@ namespace PF.Infrastructure.Station
 
         /// <summary>日志服务，构造时注入，不允许为 null。</summary>
         protected readonly ILogService _logger;
+
+        /// <summary>
+        /// 系统分类日志记录器（自动包装 <see cref="_logger"/> 为 System 分类）。
+        /// 主控层应优先使用此 Logger 记录全局状态机/生命周期相关日志。
+        /// </summary>
+        protected CategoryLogger SystemLogger =>
+            _systemLogger ??= CategoryLoggerFactory.System(_logger);
+        private CategoryLogger _systemLogger;
 
         /// <summary>
         /// 硬件输入事件总线（可选）。订阅 <see cref="HardwareInputEventBus.HardwareInputTriggered"/>，
