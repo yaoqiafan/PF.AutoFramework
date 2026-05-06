@@ -927,7 +927,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             else
                             {
-                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层拉料互锁条件不满足，禁止拉料。");
+                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层凸片传感器关闭失败。");
                                 RouteToError(Station1FeedingStep.等待物料拉出完成, Station1FeedingStep.等待物料拉出完成);
                             }
 
