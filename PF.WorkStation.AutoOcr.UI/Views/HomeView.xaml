@@ -10,6 +10,7 @@
     d:DesignWidth="800"
     mc:Ignorable="d">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <Style BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
         </Style>
@@ -53,17 +54,15 @@
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
 
-                <pf:Card
-                    Grid.Column="0"
-                    Margin="10"
-                    FontSize="{DynamicResource FontSize.Body.Standard}">
-                    <pf:Card.Header>
-                        <TextBlock
-                            Margin="10"
-                            FontSize="{DynamicResource FontSize.H1.Large}"
-                            FontWeight="Bold"
-                            Text=" 工位1操作" />
-                    </pf:Card.Header>
+                <Grid Grid.Column="0" Margin="10">
+                    <pf:Card FontSize="{DynamicResource FontSize.Body.Standard}">
+                        <pf:Card.Header>
+                            <TextBlock
+                                Margin="10"
+                                FontSize="{DynamicResource FontSize.H1.Large}"
+                                FontWeight="Bold"
+                                Text=" 工位1操作" />
+                        </pf:Card.Header>
 
                     <Grid>
                         <Grid.RowDefinitions>
@@ -183,19 +182,52 @@
                             </DataGrid>
                         </Grid>
                     </pf:Card.Footer>
-                </pf:Card>
+                    </pf:Card>
 
-                <pf:Card
-                    Grid.Column="1"
-                    Margin="10"
-                    FontSize="{DynamicResource FontSize.Body.Standard}">
-                    <pf:Card.Header>
-                        <TextBlock
-                            Margin="10"
-                            FontSize="{DynamicResource FontSize.H1.Large}"
-                            FontWeight="Bold"
-                            Text=" 工位2操作" />
-                    </pf:Card.Header>
+                    <!-- 工位1下料确认遮罩层 -->
+                    <Border
+                        Background="#CC1A1A2E"
+                        Visibility="{Binding Station1UnloadMaskVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="22"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="物料已生产完毕，请下料后确认"
+                                TextAlignment="Center" />
+                            <TextBlock
+                                Margin="0,8,0,0"
+                                HorizontalAlignment="Center"
+                                FontSize="14"
+                                Foreground="#B0B0C0"
+                                Text="确认前请勿操作设备"
+                                TextAlignment="Center" />
+                            <Button
+                                Width="160"
+                                Height="44"
+                                Margin="0,28,0,0"
+                                HorizontalAlignment="Center"
+                                Command="{Binding Station1UnloadConfirmCommand}"
+                                Content="确 认 下 料"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Column="1" Margin="10">
+                    <pf:Card FontSize="{DynamicResource FontSize.Body.Standard}">
+                        <pf:Card.Header>
+                            <TextBlock
+                                Margin="10"
+                                FontSize="{DynamicResource FontSize.H1.Large}"
+                                FontWeight="Bold"
+                                Text=" 工位2操作" />
+                        </pf:Card.Header>
 
                     <Grid>
                         <Grid.RowDefinitions>
@@ -316,7 +348,42 @@
                             </DataGrid>
                         </Grid>
                     </pf:Card.Footer>
-                </pf:Card>
+                    </pf:Card>
+
+                    <!-- 工位2下料确认遮罩层 -->
+                    <Border
+                        Background="#CC1A1A2E"
+                        Visibility="{Binding Station2UnloadMaskVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="22"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="物料已生产完毕，请下料后确认"
+                                TextAlignment="Center" />
+                            <TextBlock
+                                Margin="0,8,0,0"
+                                HorizontalAlignment="Center"
+                                FontSize="14"
+                                Foreground="#B0B0C0"
+                                Text="确认前请勿操作设备"
+                                TextAlignment="Center" />
+                            <Button
+                                Width="160"
+                                Height="44"
+                                Margin="0,28,0,0"
+                                HorizontalAlignment="Center"
+                                Command="{Binding Station2UnloadConfirmCommand}"
+                                Content="确 认 下 料"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
 
                 <Border
     Grid.Column="2"
