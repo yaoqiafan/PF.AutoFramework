@@ -4,6 +4,7 @@ using PF.Core.Events;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Infrastructure.Logging;
 using PF.Infrastructure.Mechanisms;
 using Stateless;
 using System.ComponentModel;
@@ -171,6 +172,16 @@ namespace PF.Infrastructure.Station.Basic
 
         /// <summary>日志记录器，允许为 null（无日志场景或单元测试）。</summary>
         protected readonly ILogService? _logger;
+
+        /// <summary>
+        /// 硬件分类日志记录器（自动包装 <see cref="_logger"/> 为 Hardware 分类）。
+        /// 派生类应优先使用此 Logger 记录所有机构/硬件相关日志。
+        /// </summary>
+        protected CategoryLogger? HardwareLogger =>
+            _hardwareLogger ??= _logger != null
+                ? CategoryLoggerFactory.Hardware(_logger)
+                : null;
+        private CategoryLogger? _hardwareLogger;
 
         /// <summary>
         /// Stateless 状态机实例。所有状态读取与变迁均应通过

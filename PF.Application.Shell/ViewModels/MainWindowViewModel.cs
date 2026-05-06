@@ -51,9 +51,6 @@ namespace PF.Application.Shell.ViewModels
         private ILogService _logService;
         private CommonSettings _commonSettings;
 
-        private CategoryLogger _dbLogger;
-        private CategoryLogger _systemLogger;
-        private CategoryLogger _custom;
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
@@ -501,9 +498,6 @@ namespace PF.Application.Shell.ViewModels
         private async void OnLoading()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
-            _dbLogger = CategoryLoggerFactory.Database(_logService);
-            _systemLogger = CategoryLoggerFactory.System(_logService);
-            _custom = CategoryLoggerFactory.Custom(_logService);
             _hardwareManagerService = ServiceProvider.GetService<IHardwareManagerService>();
             _secsGemManager = ServiceProvider.GetService<ISecsGemManager>();
 

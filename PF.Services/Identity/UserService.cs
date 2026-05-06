@@ -1,5 +1,6 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Entities.Identity;
+using PF.Infrastructure.Logging;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Identity;
@@ -20,7 +21,7 @@ namespace PF.Services.Identity
     public class UserService : IUserService
     {
         private readonly IParamService _paramService;
-        private readonly ILogService _logService;
+        private readonly CategoryLogger _systemLogger;
 
         // ── 系统内置账号（硬编码，优先于数据库，不可增删改，UI 列表不可见）───
         private static readonly IReadOnlyList<(string UserName, string Password, UserLevel Level)> _builtInUsers =
@@ -52,7 +53,7 @@ namespace PF.Services.Identity
         public UserService(IParamService paramService, ILogService logService)
         {
             _paramService = paramService;
-            _logService = logService;
+            _systemLogger = CategoryLoggerFactory.System(logService);
             _paramService.RegisterParamType<UserLoginParam, UserInfo>();
         }
 
@@ -77,7 +78,7 @@ namespace PF.Services.Identity
                         Password = psw,
                         AccessibleViews = DefaultPermissions.GetAccessibleViews(UserLevel.SuperUser),
                     };
-                    _logService.Info($"超级用户登录成功！", "Identity");
+                    _systemLogger.Info($"超级用户登录成功！");
                     OnCurrentUserChanged();
                     return true;
                 }
@@ -98,7 +99,7 @@ namespace PF.Services.Identity
                         Password        = builtIn.Password,
                         AccessibleViews = DefaultPermissions.GetAccessibleViews(builtIn.Level),
                     };
-                    _logService.Info($"内置账号 {userName} 登录成功", "Identity");
+                    _systemLogger.Info($"内置账号 {userName} 登录成功");
                     OnCurrentUserChanged();
                     return true;
                 }
@@ -107,7 +108,7 @@ namespace PF.Services.Identity
                 //if (string.Equals(userName, "System", StringComparison.OrdinalIgnoreCase) && password == "admin")
                 //{
                 //    CurrentUser = UserInfo.SystemUser;
-                //    _logService.Info($"系统管理员 {userName} 登录成功 (后备通道)", "Identity");
+                //    _systemLogger.Info($"系统管理员 {userName} 登录成功 (后备通道)");
                 //    OnCurrentUserChanged();
                 //    return true;
                 //}
@@ -117,17 +118,17 @@ namespace PF.Services.Identity
                 if (user != null && user.Password == password)
                 {
                     CurrentUser = user;
-                    _logService.Info($"用户 {userName} 登录成功", "Identity");
+                    _systemLogger.Info($"用户 {userName} 登录成功");
                     OnCurrentUserChanged();
                     return true;
                 }
 
-                _logService.Warn($"用户 {userName} 登录失败：密码错误或用户不存在", "Identity");
+                _systemLogger.Warn($"用户 {userName} 登录失败：密码错误或用户不存在");
                 return false;
             }
             catch (Exception ex)
             {
-                _logService.Error($"登录过程异常: {userName}", exception: ex);
+                _systemLogger.Error($"登录过程异常: {userName}", ex);
                 return false;
             }
         }
@@ -139,7 +140,7 @@ namespace PF.Services.Identity
         {
             if (CurrentUser != null)
             {
-                _logService.Info($"用户 {CurrentUser.UserName} 已注销,使用默认操作员账号！", "Identity");
+                _systemLogger.Info($"用户 {CurrentUser.UserName} 已注销,使用默认操作员账号！");
                 var op = _builtInUsers.First(u =>
                 string.Equals(u.UserName, "Operator", StringComparison.Ordinal));
 
@@ -171,7 +172,7 @@ namespace PF.Services.Identity
                 Password        = op.Password,
                 AccessibleViews = DefaultPermissions.GetAccessibleViews(op.Level),
             };
-            _logService.Info("用户长时间无操作，权限已自动重置为 Operator", "Identity");
+            _systemLogger.Info("用户长时间无操作，权限已自动重置为 Operator");
             OnCurrentUserChanged();
         }
 
@@ -225,7 +226,7 @@ namespace PF.Services.Identity
             }
             catch (Exception ex)
             {
-                _logService.Error("获取用户列表失败", exception: ex);
+                _systemLogger.Error("获取用户列表失败", ex);
             }
             return users;
         }
@@ -240,7 +241,7 @@ namespace PF.Services.Identity
             // 内置账号不允许写入数据库
             if (_builtInNames.Contains(user.UserName))
             {
-                _logService.Warn($"禁止修改系统内置账号: {user.UserName}", "Identity");
+                _systemLogger.Warn($"禁止修改系统内置账号: {user.UserName}");
                 return false;
             }
 
@@ -254,7 +255,7 @@ namespace PF.Services.Identity
             }
             catch (Exception ex)
             {
-                _logService.Error($"保存用户失败: {user.UserName}", exception: ex);
+                _systemLogger.Error($"保存用户失败: {user.UserName}", ex);
                 return false;
             }
         }
@@ -269,7 +270,7 @@ namespace PF.Services.Identity
             // 内置账号不允许删除
             if (_builtInNames.Contains(user.UserName))
             {
-                _logService.Warn($"禁止删除系统内置账号: {user.UserName}", "Identity");
+                _systemLogger.Warn($"禁止删除系统内置账号: {user.UserName}");
                 return false;
             }
 
@@ -279,7 +280,7 @@ namespace PF.Services.Identity
             }
             catch (Exception ex)
             {
-                _logService.Error($"删除用户失败: {user.UserName}", exception: ex);
+                _systemLogger.Error($"删除用户失败: {user.UserName}", ex);
                 return false;
             }
         }

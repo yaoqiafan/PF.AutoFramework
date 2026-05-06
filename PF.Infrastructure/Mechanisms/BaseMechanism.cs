@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 
 namespace PF.Infrastructure.Mechanisms
 {
@@ -16,6 +17,14 @@ namespace PF.Infrastructure.Mechanisms
     {
         /// <summary>日志记录器</summary>
         protected readonly ILogService _logger;
+
+        /// <summary>
+        /// 硬件分类日志记录器（自动包装 <see cref="_logger"/> 为 Hardware 分类）。
+        /// 派生类应优先使用此 Logger 记录所有机构/硬件相关日志。
+        /// </summary>
+        protected CategoryLogger HardwareLogger =>
+            _hardwareLogger ??= CategoryLoggerFactory.Hardware(_logger);
+        private CategoryLogger _hardwareLogger;
         private readonly List<IHardwareDevice> _internalHardwares = new List<IHardwareDevice>();
         /// <summary>获取硬件管理服务</summary>
         protected IHardwareManagerService HardwareManagerService { get; }

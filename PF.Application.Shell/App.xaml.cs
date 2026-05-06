@@ -7,6 +7,7 @@ using PF.Application.Shell.ViewModels;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
+using PF.Infrastructure.Logging;
 using PF.Core.Entities.Identity;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
@@ -97,6 +98,8 @@ namespace PF.Application.Shell
         private static bool IsNewInstance;
 
         private ILogService _logService;
+        private CategoryLogger _uiLogger;
+        private CategoryLogger _dbLogger;
         private readonly HostApplicationBuilder? builder;
 
         #endregion
@@ -306,6 +309,8 @@ namespace PF.Application.Shell
             // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
             containerRegistry.AddLogging();
             _logService = containerRegistry.GetContainer().Resolve<ILogService>();
+            _uiLogger = CategoryLoggerFactory.UI(_logService);
+            _dbLogger = CategoryLoggerFactory.Database(_logService);
 
             // 参数数据库（AppParamDbContext 是应用层专属，保留在此）
             RegisterParamDbContext(containerRegistry);
@@ -400,11 +405,11 @@ namespace PF.Application.Shell
                     () => new AppParamDbContext(dbContextOptions);
                 container.RegisterInstance<Func<Microsoft.EntityFrameworkCore.DbContext>>(dbContextFactory);
 
-                _logService.Info("参数数据库上下文注册完成", "DependencyInjection");
+                _dbLogger.Info("参数数据库上下文注册完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("参数数据库上下文注册失败", exception: ex);
+                _dbLogger.Error("参数数据库上下文注册失败", ex);
                 throw;
             }
         }
@@ -429,11 +434,11 @@ namespace PF.Application.Shell
                 containerRegistry.RegisterInstance<DbContextOptions<ProductionDbContext>>(options);
                 containerRegistry.RegisterSingleton<IProductionDataService, ProductionDataService>();
 
-                _logService.Info("生产数据服务注册完成", "DependencyInjection");
+                _dbLogger.Info("生产数据服务注册完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("生产数据服务注册失败", exception: ex);
+                _dbLogger.Error("生产数据服务注册失败", ex);
                 throw;
             }
         }
@@ -477,7 +482,7 @@ namespace PF.Application.Shell
             }
             catch (Exception ex)
             {
-                _logService.Error("SecsGem据库上下文注册失败", exception: ex);
+                _dbLogger.Error("SecsGem据库上下文注册失败", ex);
                 throw;
             }
         }
@@ -703,11 +708,11 @@ namespace PF.Application.Shell
 
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "AlarmHistory.db");
                 containerRegistry.AddAlarmServices(filePath);
-                _logService.Info("报警服务注册完成", "DependencyInjection");
+                _dbLogger.Info("报警服务注册完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("报警服务注册失败", exception: ex);
+                _dbLogger.Error("报警服务注册失败", ex);
                 throw;
             }
         }

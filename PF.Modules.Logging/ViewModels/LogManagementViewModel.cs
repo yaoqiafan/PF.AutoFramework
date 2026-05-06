@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using PF.Infrastructure.Logging;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Entities.Logging;
 using PF.Core.Interfaces.Logging;
@@ -21,12 +22,14 @@ namespace PF.Modules.Logging.ViewModels
     public class LogManagementViewModel : RegionViewModelBase
     {
         private readonly ILogService _logService;
+        private readonly CategoryLogger _uiLogger;
         private readonly ObservableCollection<LogEntry> _rawLogsSource; // 原始数据源
 
         /// <summary>初始化日志管理 ViewModel</summary>
         public LogManagementViewModel(ILogService logService, IMessageService messageService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _uiLogger = CategoryLoggerFactory.UI(_logService);
             ExportLogsCommand = new DelegateCommand(ExportLogs);
             QueryHistoryCommand = new DelegateCommand(async () => await QueryHistory());
 
@@ -231,7 +234,7 @@ namespace PF.Modules.Logging.ViewModels
             catch (Exception ex)
             {
                 QueryStatusMessage = $"查询出错: {ex.Message}";
-                _logService.Error("历史日志查询失败", "LogManagement", ex);
+                _uiLogger.Error("历史日志查询失败", ex);
             }
             finally
             {
@@ -275,7 +278,7 @@ namespace PF.Modules.Logging.ViewModels
 
                     File.WriteAllText(saveDialog.FileName, sb.ToString(), Encoding.UTF8);
 
-                    _logService.Info($"用户导出了 {visibleLogs.Count} 条日志到 {saveDialog.FileName}", "LogManagement");
+                    _uiLogger.Info($"用户导出了 {visibleLogs.Count} 条日志到 {saveDialog.FileName}");
                     MessageService.ShowMessage($"导出成功！\n路径: {saveDialog.FileName}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
