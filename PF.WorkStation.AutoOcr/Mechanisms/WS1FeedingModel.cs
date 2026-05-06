@@ -348,7 +348,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.LayerPointNotFound, $"未找到第 {targetLayer + 1} 层的阵列点位");
             }
             //打开凸片传感器
-            var res = await SetThrustWasherAsync(true, token);
+            var res = await SetThrustWasherAsync(false, token);
             if (!res.IsSuccess)
             {
                 return res;
@@ -523,7 +523,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 token.ThrowIfCancellationRequested(); // 【新增】进入核心逻辑前检查
                                                       // Step 0: 打开凸片传感器
-                var iores = _io.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
+                var iores = _io.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
                 if (!iores)
                 {
                     return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodes.Hardware.IoSetError, $"上晶圆左铁环突片检测打开失败");
