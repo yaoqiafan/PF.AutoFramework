@@ -424,16 +424,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                    var kk = await _recipeService.RecipeParam(await _paramService .GetParamAsync <string >(nameof (E_Params.Station1Recipe )));
-                    if (kk == null)
+                    if (_userService.IsAuthorized(UserLevel.SuperUser)
+                        && param.ContainsKey("Recipe"))
                     {
-                        MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-                    if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位1, kk).IsSuccess)
-                    {
-                        MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
+                        string recipeName = param.GetValue<string>("Recipe");
+                        if (!string.IsNullOrEmpty(recipeName))
+                        {
+                            var kk = await _recipeService.RecipeParam(recipeName);
+                            if (kk == null)
+                            {
+                                MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位1, kk).IsSuccess)
+                            {
+                                MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            Station1RecipeName = recipeName;
+                        }
                     }
 
                     MessageService.ShowMessage($"工位1切换批次成功 ", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -475,16 +484,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         return;
                     }
 
-                    var kk = await _recipeService.RecipeParam(await _paramService.GetParamAsync<string>(nameof(E_Params.Station2Recipe)));
-                    if (kk == null)
+                    if (_userService.IsAuthorized(UserLevel.SuperUser)
+                        && param.ContainsKey("Recipe"))
                     {
-                        MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-                    if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位2, kk).IsSuccess)
-                    {
-                        MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
+                        string recipeName = param.GetValue<string>("Recipe");
+                        if (!string.IsNullOrEmpty(recipeName))
+                        {
+                            var kk = await _recipeService.RecipeParam(recipeName);
+                            if (kk == null)
+                            {
+                                MessageService.ShowMessage($"获取配方参数失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            if (!_dataModule.UpdateStationRecipeParam(E_WorkSpace.工位2, kk).IsSuccess)
+                            {
+                                MessageService.ShowMessage($"配方切换失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            Station2RecipeName = recipeName;
+                        }
                     }
 
 
