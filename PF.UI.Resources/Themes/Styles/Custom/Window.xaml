@@ -161,7 +161,7 @@
                                 <Image
                                     VerticalAlignment="Center"
                                     IsHitTestVisible="False"
-                                    Source="{TemplateBinding Icon}" />
+                                    Source="{TemplateBinding UIIcon}" />
                             </Button>
                             <TextBlock
                                 Grid.Column="1"
@@ -357,7 +357,7 @@
                                     <Image
                                         VerticalAlignment="Center"
                                         IsHitTestVisible="False"
-                                        Source="{TemplateBinding Icon}" />
+                                        Source="{TemplateBinding UIIcon}" />
                                 </Button>
                                 <TextBlock
                                     Grid.Column="1"
