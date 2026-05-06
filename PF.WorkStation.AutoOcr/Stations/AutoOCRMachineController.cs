@@ -196,7 +196,9 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 监听主控状态变迁，根据状态驱动 Safety 监控线程的启停。
         /// Running  → 启动 Safety 监控（此时屏蔽参数会被重新从数据库加载）。
-        /// 非Running → 停止 Safety 监控（Uninitialized / Idle / Alarm 均停止）。
+        /// 安全门监控需在 Running / Paused / Idle / Alarm 等所有运行态下保持运行，
+        /// 否则安全门关闭的恢复事件无法被检测到，导致 ClearAlarm 不被调用，
+        /// 下一次安全门触发时报警服务因去重而无法弹窗。
         /// Standard 监控由 App.xaml.cs 在启动画面结束后统一启动，此处不干预。
         /// </summary>
         private void OnMasterStateChanged(object? sender, Core.Enums.MachineState newState)
@@ -208,7 +210,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
                     _hardwareInputMonitor.StartSafetyMonitoring();
                 }
-                else
+                else if (newState == Core.Enums.MachineState.Uninitialized)
                 {
                     _hardwareInputMonitor.StopSafetyMonitoring();
                 }

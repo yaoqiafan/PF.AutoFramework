@@ -4,12 +4,15 @@ using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Recipe;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.Mechanisms;
 using Prism.Commands;
+using Prism.Ioc;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -44,6 +47,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private OCRRecipeParam _currentRecipe;
 
         private IParamService _paramservice;
+
+        private readonly WS1MaterialPullingModule? _ws1Module;
+        private readonly WS2MaterialPullingModule? _ws2Module;
+
+        private bool _isBusy;
+        /// <summary>
+        /// 获取或设置 IsBusy
+        /// </summary>
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                if (SetProperty(ref _isBusy, value))
+                {
+                    TestPullOutCommand?.RaiseCanExecuteChanged();
+                    TestPushBackCommand?.RaiseCanExecuteChanged();
+                    TestFullFlowCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
         /// <summary>
         /// RecipeDebugViewModel 构造函数
         /// </summary>
@@ -51,12 +75,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         public RecipeDebugViewModel(
             IHardwareManagerService hardwareManager,
-            IRecipeService<OCRRecipeParam> recipeService, IParamService paramService)
+            IRecipeService<OCRRecipeParam> recipeService, IParamService paramService,
+            IContainerProvider containerProvider)
         {
             Title = "程式调试";
             _hardwareManager = hardwareManager;
             _recipeService = recipeService;
             _paramservice = paramService;
+
+            _ws1Module = containerProvider.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)) as WS1MaterialPullingModule;
+            _ws2Module = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
 
             // 获取三个固定 OCR 轴
             _axisX = hardwareManager.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
@@ -371,6 +399,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         public DelegateCommand AxisStopCommand { get; private set; }
         /// <summary>
+        /// TestPullOut 命令
+        /// </summary>
+        public DelegateCommand TestPullOutCommand { get; private set; }
+        /// <summary>
+        /// TestPushBack 命令
+        /// </summary>
+        public DelegateCommand TestPushBackCommand { get; private set; }
+        /// <summary>
+        /// TestFullFlow 命令
+        /// </summary>
+        public DelegateCommand TestFullFlowCommand { get; private set; }
+
+        /// <summary>
         /// SyncAdjust 命令
         /// </summary>
 
@@ -457,6 +498,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 if (_axis != null) await _axis.StopAsync();
             });
+
+            // 模组调试命令
+            TestPullOutCommand = new DelegateCommand(async () => await ExecuteTestPullOutAsync(), () => !IsBusy);
+            TestPushBackCommand = new DelegateCommand(async () => await ExecuteTestPushBackAsync(), () => !IsBusy);
+            TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), () => !IsBusy);
 
             // 程式点位命令
             SyncAdjustCommand = new DelegateCommand(ExecuteSyncAdjust);
@@ -608,6 +654,128 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             // TODO: 实现工位1→工位2同步调整算法
             MessageService.ShowMessage("同步调整算法待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        #endregion
+
+        #region 模组调试命令实现
+
+        private async Task ExecuteTestPullOutAsync()
+        {
+            var module = GetCurrentModule();
+            if (module == null) return;
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                await InternalTestPullOutAsync(module, cts.Token);
+                MessageService.ShowMessage("拉料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"拉料流程测试中断: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task ExecuteTestPushBackAsync()
+        {
+            var module = GetCurrentModule();
+            if (module == null) return;
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                await InternalTestPushBackAsync(module, cts.Token);
+                MessageService.ShowMessage("推料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"推料流程测试中断: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task ExecuteTestFullFlowAsync()
+        {
+            var module = GetCurrentModule();
+            if (module == null) return;
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                await InternalTestPullOutAsync(module, cts.Token);
+                await Task.Delay(1500, cts.Token);
+                await InternalTestPushBackAsync(module, cts.Token);
+                MessageService.ShowMessage("完整拉送料闭环测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"完整闭环测试中断: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private static async Task InternalTestPullOutAsync(IMechanism module, CancellationToken token)
+        {
+            if (module is WS1MaterialPullingModule ws1)
+            {
+                var resMove = await ws1.InitialMoveFeeding(token);
+                if (!resMove.IsSuccess) throw new Exception($"移动到取料位失败: {resMove.ErrorMessage}");
+                var resClose = await ws1.CloseWafeGipper(token);
+                if (!resClose.IsSuccess) throw new Exception($"关闭夹爪失败: {resClose.ErrorMessage}");
+                if (!await ws1.CheckStackedPieces(token)) throw new Exception("检测到叠料异常");
+                var resDetect = await ws1.MoveDetection(token);
+                if (!resDetect.IsSuccess) throw new Exception($"拉出至检测位失败: {resDetect.ErrorMessage}");
+            }
+            else if (module is WS2MaterialPullingModule ws2)
+            {
+                var resMove = await ws2.InitialMoveFeeding(token);
+                if (!resMove.IsSuccess) throw new Exception($"移动到取料位失败: {resMove.ErrorMessage}");
+                var resClose = await ws2.CloseWafeGipper(token);
+                if (!resClose.IsSuccess) throw new Exception($"关闭夹爪失败: {resClose.ErrorMessage}");
+                if (!await ws2.CheckStackedPieces(token)) throw new Exception("检测到叠料异常");
+                var resDetect = await ws2.MoveDetection(token);
+                if (!resDetect.IsSuccess) throw new Exception($"拉出至检测位失败: {resDetect.ErrorMessage}");
+            }
+        }
+
+        private static async Task InternalTestPushBackAsync(IMechanism module, CancellationToken token)
+        {
+            if (module is WS1MaterialPullingModule ws1)
+            {
+                var resFeed = await ws1.FeedingMaterialToBox(token);
+                if (!resFeed.IsSuccess) throw new Exception($"送料入料盒失败: {resFeed.ErrorMessage}");
+                var resOpen = await ws1.OpenWafeGipper(token);
+                if (!resOpen.IsSuccess) throw new Exception($"打开夹爪失败: {resOpen.ErrorMessage}");
+                var resRetract = await ws1.PutOverMove(token);
+                if (!resRetract.IsSuccess) throw new Exception($"退回待机避让位失败: {resRetract.ErrorMessage}");
+                if (!await ws1.CheckGipperInsidePro(token)) throw new Exception("退回后夹爪内仍检测到残留带片");
+            }
+            else if (module is WS2MaterialPullingModule ws2)
+            {
+                var resFeed = await ws2.FeedingMaterialToBox(token);
+                if (!resFeed.IsSuccess) throw new Exception($"送料入料盒失败: {resFeed.ErrorMessage}");
+                var resOpen = await ws2.OpenWafeGipper(token);
+                if (!resOpen.IsSuccess) throw new Exception($"打开夹爪失败: {resOpen.ErrorMessage}");
+                var resRetract = await ws2.PutOverMove(token);
+                if (!resRetract.IsSuccess) throw new Exception($"退回待机避让位失败: {resRetract.ErrorMessage}");
+                if (!await ws2.CheckGipperInsidePro(token)) throw new Exception("退回后夹爪内仍检测到残留带片");
+            }
+        }
+
+        private IMechanism? GetCurrentModule()
+        {
+            return CurrentStation == E_WorkSpace.工位1 ? _ws1Module : _ws2Module;
         }
 
         #endregion
