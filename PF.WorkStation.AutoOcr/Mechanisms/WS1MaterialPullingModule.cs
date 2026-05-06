@@ -281,14 +281,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (trackRes.HasValue && gripperRes.HasValue)
             {
 
-               
-                    bool isCorrectState = trackRes.Value && gripperRes.Value;
-                    _logger.Info($"[{MechanismName}] 气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
 
-                    return MechResult<bool>.Success(isCorrectState);
-              
+                bool isCorrectState = trackRes.Value && gripperRes.Value;
+                _logger.Info($"[{MechanismName}] 气缸 [{wafesize}] 状态检查完成，当前状态：{(isCorrectState ? "到位" : "未到位/异常")}。");
 
-             
+                return MechResult<bool>.Success(isCorrectState);
+
+
+
             }
             else
             {
@@ -313,7 +313,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             try
             {
-                if ((await CheckTrackIsMaterial(linktoken)).Data  == true)
+                if ((await CheckTrackIsMaterial(linktoken)).Data == true)
                 {
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.ChangeSizeTrackHasMaterial, "工位1轨道有晶圆，请先清除轨道物料再执行尺寸切换");
                 }
@@ -381,11 +381,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task <bool ? > CheckGipperIsExist(CancellationToken token = default)
+        public async Task<bool?> CheckGipperIsExist(CancellationToken token = default)
         {
-           
-            bool ? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
-            if ( !res2 .HasValue )
+
+            bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
+            if (!res2.HasValue)
             {
                 return null;
             }
@@ -460,7 +460,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     bool? res = _io.ReadInput((int)E_InPutName.晶圆夹爪左气缸闭合);
                     if (res == true) break;
                 }
-              
+
 
                 bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
                 if (!res1.HasValue)
@@ -468,7 +468,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 if (res1.Value)
                 {
-                    
+
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperCloseNoRing, "夹爪闭合后未检测到铁环物料（空夹）");
                 }
                 return MechResult.Success();
@@ -542,6 +542,48 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.MoveInitialNoScanFailed, ex.Message);
             }
         }
+
+
+        /// <summary>
+        /// 判断物料的方向
+        /// </summary>
+        /// <param name="wafesize">物料尺寸</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        public async Task<MechResult> CheckProductDirection(E_WafeSize wafesize, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested(); // 【新增】入口检查
+            CheckReady();
+            _logger.Info($"[{MechanismName}] 检测物料方向");
+            // 读取IO信号
+            bool? res1 = wafesize == E_WafeSize._8寸 ? _io.ReadInput((int)E_InPutName.上晶圆左8寸铁环防反检测) : _io.ReadInput((int)E_InPutName.上晶圆左12寸铁环防反检测);
+            if (res1.HasValue)
+            {
+
+                bool hasMaterial = res1.Value;
+                _logger.Info($"[{MechanismName}]检测晶圆铁环防反检测，状态为{hasMaterial}");
+
+              if (hasMaterial )
+                {
+                    return MechResult<bool>.Success(true);
+                }
+              else
+                {
+                    return wafesize == E_WafeSize._8寸 ? MechResult<bool>.Fail(AlarmCodesExtensions.WS1Pulling.Wafer8InchReversed, "8寸晶圆放反") : MechResult<bool>.Fail(AlarmCodesExtensions.WS1Pulling.Wafer12InchReversed, "12寸晶圆放反");
+                }
+            }
+            else
+            {
+                // 找出具体失败的传感器名称
+                string failedSensor =wafesize == E_WafeSize._8寸 ? E_InPutName.上晶圆左8寸铁环防反检测.ToString() : E_InPutName.上晶圆左12寸铁环防反检测.ToString();
+
+                _logger.Error($"[{MechanismName}] 检测晶圆铁环防反检测失败，未能成功读取 {failedSensor} 信号。");
+                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取检测信号({failedSensor})失败");
+            }
+        }
+
+
+
 
         /// <summary>
         /// 移动到待机位，并严格防呆检查夹爪内是否残留有料

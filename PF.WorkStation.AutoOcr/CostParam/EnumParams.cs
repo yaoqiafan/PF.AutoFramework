@@ -170,6 +170,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         /// <summary>晶圆轨道右晶圆在位检测2</summary>
         晶圆轨道右晶圆在位检测2 = 55,
         /// <summary>电磁门锁1_2信号</summary>
+          [Browsable(false)]
         电磁门锁1_2信号 = 56,
         /// <summary>电磁门锁3_4信号</summary>
         电磁门锁3_4信号 = 57,
@@ -182,11 +183,11 @@ namespace PF.Workstation.AutoOcr.CostParam
         /// <summary>上晶圆右启动按钮</summary>
         上晶圆右启动按钮 = 61,
         /// <summary>预留13</summary>
-        [Browsable(false)]
-        预留13 = 62,
+       
+        工位1门锁 = 62,
         /// <summary>预留14</summary>
-        [Browsable(false)]
-        预留14 = 63,
+       
+        工位2门锁 = 63,
         /// <summary>预留15</summary>
         [Browsable(false)]
         预留15 = 64,
@@ -616,10 +617,20 @@ namespace PF.Workstation.AutoOcr.CostParam
         #region 安全门参数
 
         /// <summary>屏蔽安全门1-2检测（调试用，正式生产必须关闭）</summary>
+        //[Category("屏蔽参数")]
+        //[Description("屏蔽安全门1-2检测")]
+        //[DefaultValue(false)]
+        //SafeDoor_1_2_Muted,
+        /// <summary>屏蔽安全门1检测（调试用，正式生产必须关闭）</summary>
         [Category("屏蔽参数")]
-        [Description("屏蔽安全门1-2检测")]
+        [Description("屏蔽安全门1检测")]
         [DefaultValue(false)]
-        SafeDoor_1_2_Muted,
+        SafeDoor_1_Muted,
+        /// <summary>屏蔽安全门2检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门2检测")]
+        [DefaultValue(false)]
+        SafeDoor_2_Muted,
 
         /// <summary>屏蔽安全门3-4检测（调试用，正式生产必须关闭）</summary>
         [Category("屏蔽参数")]

@@ -570,7 +570,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 token.ThrowIfCancellationRequested(); // 【新增】
                 _logger.Info($"[{StationName}] 正在执行工站复位清警（断点续跑机制，将恢复至步序：[{_currentStep}]）...");
-                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), true);
+                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
 
                 try
                 {
@@ -620,7 +620,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <returns></returns>
         protected override async Task OnPhysicalStopAsync()
         {
-            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁1_2信号), false);
+            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }
@@ -723,8 +723,6 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 {
                                     AlarmCodesExtensions.WS1Feeding.BoxSizeConflict => Station1FeedingStep.料盒尺寸传感器信号冲突,
                                     AlarmCodesExtensions.WS1Feeding.BoxBaseNotDetected => Station1FeedingStep.料盒公用底座未检测到物体,
-                                    AlarmCodesExtensions.WS1Feeding.Wafer8InchReversed => Station1FeedingStep.八寸晶圆放反,
-                                    AlarmCodesExtensions.WS1Feeding.Wafer12InchReversed => Station1FeedingStep.十二寸晶圆放反,
                                     _ => Station1FeedingStep.料盒尺寸识别失败
                                 };
                                 RouteToError(errStep, Station1FeedingStep.识别料盒尺寸, sizeResult.ErrorCode);
