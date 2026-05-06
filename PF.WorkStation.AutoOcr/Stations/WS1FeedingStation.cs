@@ -912,14 +912,26 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1FeedingStep.等待物料拉出完成:
                             CurrentStepDescription = "等待物料拉出完成...";
-                            // 等待拉料工站反馈 Y 轴已拉出至安全位
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
-                            _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
-                            // 发放退料通行证
-                            _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
-                            MemoryParam.PersistedStep = (int)Station1FeedingStep.阻塞等待物料回退完成;
-                            FlushMemory();
+                            if (await _feedingModule.SetThrustWasherAsync(false, token))
+                            {
+                                await Task.Delay(500);
+                                // 等待拉料工站反馈 Y 轴已拉出至安全位
+                                await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
+
+                                _currentStep = Station1FeedingStep.阻塞等待物料回退完成;
+                                // 发放退料通行证
+                                _sync.Release(nameof(WorkstationSignals.工位1允许退料), StationName);
+                                MemoryParam.PersistedStep = (int)Station1FeedingStep.阻塞等待物料回退完成;
+                                FlushMemory();
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层拉料互锁条件不满足，禁止拉料。");
+                                RouteToError(Station1FeedingStep.等待物料拉出完成, Station1FeedingStep.等待物料拉出完成);
+                            }
+
+                           
                             break;
 
                         case Station1FeedingStep.阻塞等待物料回退完成:

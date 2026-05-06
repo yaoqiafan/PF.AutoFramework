@@ -552,34 +552,34 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         public async Task<MechResult> CheckProductDirection(E_WafeSize wafesize, CancellationToken token = default)
         {
-            token.ThrowIfCancellationRequested(); // 【新增】入口检查
-            CheckReady();
-            _logger.Info($"[{MechanismName}] 检测物料方向");
-            // 读取IO信号
-            bool? res1 = wafesize == E_WafeSize._8寸 ? _io.ReadInput((int)E_InPutName.上晶圆左8寸铁环防反检测) : _io.ReadInput((int)E_InPutName.上晶圆左12寸铁环防反检测);
-            if (res1.HasValue)
-            {
+            //token.ThrowIfCancellationRequested(); // 【新增】入口检查
+            //CheckReady();
+            //_logger.Info($"[{MechanismName}] 检测物料方向");
+            //// 读取IO信号
+            //bool? res1 = wafesize == E_WafeSize._8寸 ? _io.ReadInput((int)E_InPutName.上晶圆左8寸铁环防反检测) : _io.ReadInput((int)E_InPutName.上晶圆左12寸铁环防反检测);
+            //if (res1.HasValue)
+            //{
 
-                bool hasMaterial = res1.Value;
-                _logger.Info($"[{MechanismName}]检测晶圆铁环防反检测，状态为{hasMaterial}");
+            //    bool hasMaterial = res1.Value;
+            //    _logger.Info($"[{MechanismName}]检测晶圆铁环防反检测，状态为{hasMaterial}");
 
-              if (hasMaterial )
-                {
+            //  if (hasMaterial )
+            //    {
                     return MechResult<bool>.Success(true);
-                }
-              else
-                {
-                    return wafesize == E_WafeSize._8寸 ? MechResult<bool>.Fail(AlarmCodesExtensions.WS1Pulling.Wafer8InchReversed, "8寸晶圆放反") : MechResult<bool>.Fail(AlarmCodesExtensions.WS1Pulling.Wafer12InchReversed, "12寸晶圆放反");
-                }
-            }
-            else
-            {
-                // 找出具体失败的传感器名称
-                string failedSensor =wafesize == E_WafeSize._8寸 ? E_InPutName.上晶圆左8寸铁环防反检测.ToString() : E_InPutName.上晶圆左12寸铁环防反检测.ToString();
+            //    }
+            //  else
+            //    {
+            //        return wafesize == E_WafeSize._8寸 ? MechResult<bool>.Fail(AlarmCodesExtensions.WS1Pulling.Wafer8InchReversed, "8寸晶圆放反") : MechResult<bool>.Fail(AlarmCodesExtensions.WS1Pulling.Wafer12InchReversed, "12寸晶圆放反");
+            //    }
+            //}
+            //else
+            //{
+            //    // 找出具体失败的传感器名称
+            //    string failedSensor =wafesize == E_WafeSize._8寸 ? E_InPutName.上晶圆左8寸铁环防反检测.ToString() : E_InPutName.上晶圆左12寸铁环防反检测.ToString();
 
-                _logger.Error($"[{MechanismName}] 检测晶圆铁环防反检测失败，未能成功读取 {failedSensor} 信号。");
-                return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取检测信号({failedSensor})失败");
-            }
+            //    _logger.Error($"[{MechanismName}] 检测晶圆铁环防反检测失败，未能成功读取 {failedSensor} 信号。");
+            //    return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取检测信号({failedSensor})失败");
+            //}
         }
 
 
