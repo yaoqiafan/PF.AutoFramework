@@ -150,8 +150,11 @@ namespace PF.WorkStation.AutoOcr.Stations
             if (MasterCameFromInitAlarm)
             {
                 _sync?.ResetScope("复位");
-               
             }
+
+            _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
+            _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
+
         }
 
         #endregion
@@ -209,6 +212,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
                     _hardwareInputMonitor.StartSafetyMonitoring();
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
                 }
                 else if (newState == Core.Enums.MachineState.Uninitialized)
                 {

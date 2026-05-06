@@ -620,7 +620,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <returns></returns>
         protected override async Task OnPhysicalStopAsync()
         {
-            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
+            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }

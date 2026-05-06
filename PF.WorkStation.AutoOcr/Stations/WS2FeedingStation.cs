@@ -570,7 +570,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 token.ThrowIfCancellationRequested(); // 【新增】
                 _logger.Info($"[{StationName}] 正在执行工站复位清警（断点续跑机制，将恢复至步序：[{_currentStep}]）...");
-                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁3_4信号), true);
+                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
 
                 try
                 {
@@ -620,7 +620,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <returns></returns>
         protected override async Task OnPhysicalStopAsync()
         {
-            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.电磁门锁3_4信号), false);
+            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }
