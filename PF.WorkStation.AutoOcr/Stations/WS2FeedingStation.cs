@@ -723,8 +723,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 {
                                     AlarmCodesExtensions.WS2Feeding.BoxSizeConflict => Station2FeedingStep.料盒尺寸传感器信号冲突,
                                     AlarmCodesExtensions.WS2Feeding.BoxBaseNotDetected => Station2FeedingStep.料盒公用底座未检测到物体,
-                                    AlarmCodesExtensions.WS2Feeding.Wafer8InchReversed => Station2FeedingStep.八寸晶圆放反,
-                                    AlarmCodesExtensions.WS2Feeding.Wafer12InchReversed => Station2FeedingStep.十二寸晶圆放反,
+                                   
                                     _ => Station2FeedingStep.料盒尺寸识别失败
                                 };
                                 RouteToError(errStep, Station2FeedingStep.识别料盒尺寸, sizeResult.ErrorCode);

@@ -145,19 +145,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 复位后重新检测;")]
             public const string BoxBaseNotDetected = "PROC_WS1F_SEN_003";
 
-            /// <summary>8寸晶圆放反</summary>
-            [AlarmInfo("流程异常/传感器", "工位1上下料-8寸晶圆放反", AlarmSeverity.Error,
-                "1. 取出料盒检查晶圆放置方向;\n" +
-                "2. 确认防反传感器信号正常;\n" +
-                "3. 正确放置后复位;")]
-            public const string Wafer8InchReversed = "PROC_WS1F_SEN_004";
-
-            /// <summary>12寸晶圆放反</summary>
-            [AlarmInfo("流程异常/传感器", "工位1上下料-12寸晶圆放反", AlarmSeverity.Error,
-                "1. 取出料盒检查晶圆放置方向;\n" +
-                "2. 确认防反传感器信号正常;\n" +
-                "3. 正确放置后复位;")]
-            public const string Wafer12InchReversed = "PROC_WS1F_SEN_005";
+           
 
             /// <summary>料盒尺寸传感器信号冲突</summary>
             [AlarmInfo("流程异常/传感器", "工位1上下料-料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）", AlarmSeverity.Error,
@@ -407,19 +395,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 复位后重新检测;")]
             public const string BoxBaseNotDetected = "PROC_WS2F_SEN_003";
 
-            /// <summary>8寸晶圆放反</summary>
-            [AlarmInfo("流程异常/传感器", "工位2上下料-8寸晶圆放反", AlarmSeverity.Error,
-                "1. 取出料盒检查晶圆放置方向;\n" +
-                "2. 确认防反传感器信号正常;\n" +
-                "3. 正确放置后复位;")]
-            public const string Wafer8InchReversed = "PROC_WS2F_SEN_004";
-
-            /// <summary>12寸晶圆放反</summary>
-            [AlarmInfo("流程异常/传感器", "工位2上下料-12寸晶圆放反", AlarmSeverity.Error,
-                "1. 取出料盒检查晶圆放置方向;\n" +
-                "2. 确认防反传感器信号正常;\n" +
-                "3. 正确放置后复位;")]
-            public const string Wafer12InchReversed = "PROC_WS2F_SEN_005";
+          
 
             /// <summary>料盒尺寸传感器信号冲突</summary>
             [AlarmInfo("流程异常/传感器", "工位2上下料-料盒尺寸传感器信号冲突（8寸/12寸同时触发或均未触发）", AlarmSeverity.Error,
@@ -589,6 +565,25 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 小心分离叠料;\n" +
                 "3. 确认物料正常后复位;")]
             public const string StackedPiecesDetected = "PROC_WS1P_MAT_001";
+
+
+
+            /// <summary>8寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位1拉料-8寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer8InchReversed = "PROC_WS1P_SEN_004";
+
+            /// <summary>12寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位1拉料-12寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer12InchReversed = "PROC_WS1P_SEN_005";
+
+
+
 
             /// <summary>拉出至检测位失败（运动被中断）</summary>
             [AlarmInfo("流程异常/运动", "工位1拉料-拉出至检测位失败（运动被中断）", AlarmSeverity.Error,
@@ -979,6 +974,24 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 小心取下残留物料;\n" +
                 "3. 复位后重新运行;")]
             public const string PutOverMaterialStuck = "PROC_WS2P_SEN_003";
+
+
+
+
+            /// <summary>8寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位2拉料-8寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer8InchReversed = "PROC_WS2P_SEN_004";
+            /// <summary>12寸晶圆放反</summary>
+            [AlarmInfo("流程异常/传感器", "工位2拉料-12寸晶圆放反", AlarmSeverity.Error,
+                "1. 取出料盒检查晶圆放置方向;\n" +
+                "2. 确认防反传感器信号正常;\n" +
+                "3. 正确放置后复位;")]
+            public const string Wafer12InchReversed = "PROC_WS2P_SEN_005";
+
+
 
             /// <summary>移动到取料位置失败</summary>
             [AlarmInfo("流程异常/运动", "工位2拉料-移动到取料位置失败", AlarmSeverity.Error,
