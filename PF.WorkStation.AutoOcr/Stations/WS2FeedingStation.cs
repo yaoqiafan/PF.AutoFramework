@@ -6,8 +6,10 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
+using PF.Core.Interfaces.TowerLight;
 using PF.Core.Models;
 using PF.Infrastructure.Station.Basic;
+using Prism.Events;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -225,6 +227,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly WSDataModule _dataModule;
         private readonly IStationSyncService _sync;
         private readonly IHardwareInputMonitor? _hardwareInputMonitor;
+        private readonly ITowerLightService _towerLight;
+        private readonly IEventAggregator _eventAggregator;
 
         // 注意：_currentStep, _resumeStep, _cachedErrorCode 和 RouteToError() 均已下沉至基类。
 
@@ -245,7 +249,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <param name="containerProvider"></param>
         /// <param name="sync"></param>
         /// <param name="logger"></param>
-        public WS2FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
+        public WS2FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger,
+            ITowerLightService towerLight, IEventAggregator eventAggregator)
             // 调用带 TStep 泛型的基类构造函数，并传入初始步序
             : base(E_WorkStation.工位2上下料工站.ToString(), logger, Station2FeedingStep.等待按下工位2启动按钮)
         {
@@ -253,6 +258,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _sync = sync;
             _hardwareInputMonitor = containerProvider.Resolve<IHardwareInputMonitor>();
+            _towerLight = towerLight;
+            _eventAggregator = eventAggregator;
 
             _feedingModule.AlarmTriggered += OnMechanismAlarm;
             _feedingModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
@@ -670,6 +677,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _logger.Info($"[{StationName}] 等待操作员按下工位2启动按钮...");
 
                             // 阻塞等待外部信号触发
+                            _sync.ResetSingleSignal(nameof(WorkstationSignals.工位2启动按钮按下));
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2启动按钮按下), token).ConfigureAwait(false);
 
                             _logger.Info($"[{StationName}] 检测到启动信号，开始执行上料流程。");
@@ -1014,8 +1022,23 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.通知操作员下料:
                             CurrentStepDescription = "通知操作员下料，等待确认...";
+
+                            // 屏蔽工位2安全门，防止操作员下料时触发安全门报警
+                            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
+
+                            // 启动蜂鸣器闪烁提醒操作员
+                            _towerLight.SetLight(LightColor.Buzzer, LightState.Blinking);
+
+                            // 发布事件通知 UI 弹出确认弹窗
+                            _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>().Publish("工位2");
+
                             // 等待人工确认完成下料
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2人工下料完成), token).ConfigureAwait(false);
+
+                            // 操作员确认后：停止蜂鸣器，恢复安全门监控
+                            _towerLight.SetLight(LightColor.Buzzer, LightState.Off);
+                            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+
                             _currentStep = Station2FeedingStep.生产完毕;
                             break;
 

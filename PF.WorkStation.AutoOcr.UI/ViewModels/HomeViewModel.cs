@@ -1,13 +1,18 @@
 using PF.Core.Enums;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
+using PF.Core.Interfaces.Sync;
 using PF.UI.Infrastructure.PrismBase;
+using PF.WorkStation.AutoOcr;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
+using PF.WorkStation.AutoOcr.Stations;
 using PF.WorkStation.AutoOcr.UI.UserControls;
+using Prism.Events;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -16,7 +21,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
-using PF.Core.Interfaces.Configuration;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
@@ -30,7 +34,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IMasterController _controller;
         private readonly DispatcherTimer _pollTimer;
-
+        private readonly IEventAggregator _eventAggregator;
+        private readonly IStationSyncService _sync;
 
         private readonly IParamService _paramService;
 
@@ -118,6 +123,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             get => _station2InternalBatches;
             set => SetProperty(ref _station2InternalBatches, value);
+        }
+
+        private bool _station1UnloadMaskVisible;
+        /// <summary>工位1下料确认遮罩层是否可见（操作员下料通知）</summary>
+        public bool Station1UnloadMaskVisible
+        {
+            get => _station1UnloadMaskVisible;
+            set => SetProperty(ref _station1UnloadMaskVisible, value);
+        }
+
+        private bool _station2UnloadMaskVisible;
+        /// <summary>工位2下料确认遮罩层是否可见（操作员下料通知）</summary>
+        public bool Station2UnloadMaskVisible
+        {
+            get => _station2UnloadMaskVisible;
+            set => SetProperty(ref _station2UnloadMaskVisible, value);
         }
 
         private string _station1RecipeName = "NONE";
@@ -233,6 +254,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>工位2切换批次命令</summary>
         public DelegateCommand Station2ChangeLotCommand { get; }
 
+        /// <summary>工位1下料确认命令（遮罩层确认按钮）</summary>
+        public DelegateCommand Station1UnloadConfirmCommand { get; }
+        /// <summary>工位2下料确认命令（遮罩层确认按钮）</summary>
+        public DelegateCommand Station2UnloadConfirmCommand { get; }
+
         #endregion
 
         /// <summary>初始化 HomeViewModel</summary>
@@ -243,6 +269,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _userService = userService;
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
+            _eventAggregator = containerProvider.Resolve<IEventAggregator>();
+            _sync = containerProvider.Resolve<IStationSyncService>();
+
+            // 订阅操作员下料请求事件：弹出确认弹窗，操作员确认后释放同步信号
+            _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>()
+                .Subscribe(OnOperatorUnloadRequested, ThreadOption.UIThread);
 
             StationMemoryItems = new ObservableCollection<StationMemoryItem>
             {
@@ -312,6 +344,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             // 工位操作命令
             Station1ChangeLotCommand = new DelegateCommand(Station1ShowChangeLotView);
             Station2ChangeLotCommand = new DelegateCommand(Station2ShowChangeLotView);
+            Station1UnloadConfirmCommand = new DelegateCommand(OnStation1UnloadConfirm);
+            Station2UnloadConfirmCommand = new DelegateCommand(OnStation2UnloadConfirm);
 
             // 订阅数据模块事件
             if (_dataModule != null)
@@ -517,6 +551,35 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         #endregion
+
+        /// <summary>
+        /// 操作员下料请求处理：显示工位1遮罩层，操作员点击确认后释放同步信号
+        /// </summary>
+        private void OnOperatorUnloadRequested(string workspace)
+        {
+            if (workspace == "工位1")
+                Station1UnloadMaskVisible = true;
+            else if (workspace == "工位2")
+                Station2UnloadMaskVisible = true;
+        }
+
+        /// <summary>
+        /// 工位1下料确认：隐藏遮罩层，释放工位1人工下料完成信号
+        /// </summary>
+        private void OnStation1UnloadConfirm()
+        {
+            Station1UnloadMaskVisible = false;
+            _sync.Release(nameof(WorkstationSignals.工位1人工下料完成));
+        }
+
+        /// <summary>
+        /// 工位2下料确认：隐藏遮罩层，释放工位2人工下料完成信号
+        /// </summary>
+        private void OnStation2UnloadConfirm()
+        {
+            Station2UnloadMaskVisible = false;
+            _sync.Release(nameof(WorkstationSignals.工位2人工下料完成));
+        }
 
         /// <summary>
         /// 重写基类方法，在 ViewModel 销毁时停止定时器
