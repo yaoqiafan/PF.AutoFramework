@@ -84,6 +84,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 {
                     throw new Exception($"基恩士智能相机接收切换程式指令返回内容不匹配");
                 }
+                _curProgrammer = programid;
                 return true;
 
             }
@@ -117,7 +118,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 {
                     throw new Exception($"基恩士智能相机接收切换程式指令返回内容不匹配");
                 }
-                return TiggerRec.Split(',')[2];
+                return TiggerRec.Split(',')[2].Trim ();
 
             }
             catch (Exception ex)
