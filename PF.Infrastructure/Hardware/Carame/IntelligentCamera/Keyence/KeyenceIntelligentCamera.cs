@@ -143,10 +143,15 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                     throw new Exception("输入的程式名称错误");
                 }
                 string id = ProgramNumber.ToString().Split('_')[0];
-                if (_curProgrammer == id)
+                if (int.TryParse(id, out int flag1) && int.TryParse(_curProgrammer, out int flag2))
                 {
-                    return true;
+                    if (flag1 == flag2)
+                    {
+                        return true;
+                    }
                 }
+
+
 
                 return await ChangeProgramID(id, token);
 
