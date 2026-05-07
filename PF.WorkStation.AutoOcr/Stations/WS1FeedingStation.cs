@@ -481,6 +481,19 @@ namespace PF.WorkStation.AutoOcr.Stations
             // 4. 恢复状态并设置下一步
             RestoreStateFromMemory();
 
+            // 防呆：物料已拉出在轨道时，目标层槽位必须为空；若扫描显示该槽有料则状态矛盾，禁止继续
+            if (isMaterialOnTrack && _currentLayerIndex < _layersToProcess.Count)
+            {
+                int targetLayer = _layersToProcess[_currentLayerIndex];
+                if (filterResult.Data.ContainsKey(targetLayer))
+                {
+                    _logger.Error($"[{StationName}] 断点续跑防呆：物料已在轨道，但目标层槽位 [{targetLayer + 1}] 仍检测到有料，状态矛盾！");
+                    TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeConsistencyFailed,
+                        $"物料在轨道，目标层 [{targetLayer + 1}] 槽位仍有料，请人工确认后复位重试");
+                    return false;
+                }
+            }
+
             if (!await PrepareZAxisForResume(token))
             {
                 return false;
