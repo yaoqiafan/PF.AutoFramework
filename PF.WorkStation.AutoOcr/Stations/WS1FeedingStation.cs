@@ -690,7 +690,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _logger.Info($"[{StationName}] 等待操作员按下工位1启动按钮...");
 
                             // 复位启动信号，清除流程中误触发的冗余计数，确保每次都需要新的按钮按下
-                            _sync.ResetSingleSignal(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
+                            _sync.DrainSignal(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
 
                             await Task.Delay(500);
                             // 阻塞等待外部信号触发
