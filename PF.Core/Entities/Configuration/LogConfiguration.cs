@@ -112,13 +112,49 @@ namespace PF.Core.Entities.Configuration
                     if (config != null && config.Categories.Count > 0)
                         return config;
                 }
+                else
+                {
+                    var configdefault = CreateDefaultLogConfiguration().ConfigureDefaultCategories();
+
+                    string strjson = JsonSerializer.Serialize<LogConfiguration>(configdefault, _jsonOptions);
+
+                    File.WriteAllText(filePath, strjson);
+
+                    if (configdefault != null && configdefault.Categories.Count > 0)
+                        return configdefault;
+                }
+
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LogConfiguration] 加载配置文件失败，使用默认配置: {ex.Message}");
             }
+                return CreateDefaultLogConfiguration().ConfigureDefaultCategories();
+        }
 
-            return new LogConfiguration().ConfigureDefaultCategories();
+
+
+        private static LogConfiguration CreateDefaultLogConfiguration()
+        {
+            //var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
+            var logBasePath = "D://PF_Logs";
+
+            var config = new LogConfiguration
+            {
+                BasePath = logBasePath,
+                HistoricalLogPath = logBasePath,
+                EnableConsoleLogging = true,
+                EnableFileLogging = true,
+                EnableUiLogging = true,
+                MinimumLevel = LogLevel.Debug,
+                AutoDeleteLogs = true,
+                AutoDeleteIntervalDays = 30,
+                MaxUiEntries = 1000,
+                SplitByHour = false
+            };
+            config.ConfigureDefaultCategories();
+            config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
+            return config;
         }
 
         /// <summary>
