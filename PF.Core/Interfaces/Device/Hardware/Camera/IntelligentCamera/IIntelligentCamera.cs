@@ -58,6 +58,11 @@ namespace PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera
         /// <returns></returns>
         Task<bool> DetermineProgramExits(object programName,CancellationToken token =default );
 
+        /// <summary>
+        /// 当前程序
+        /// </summary>
+        string CurProgrammer { get;  }
+
 
     }
 }
