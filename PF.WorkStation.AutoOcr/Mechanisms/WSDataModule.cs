@@ -256,6 +256,25 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>获取按批次归档的检测数据字典</summary>
         public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch => _machineDataByBatch;
 
+        // 每片晶圆由拉料工站扫码后暂存，供检测工站组装 MachineDetectionData 时填充 Barcode 字段
+        private volatile List<string> _station1ScanCodes = new List<string>();
+        private volatile List<string> _station2ScanCodes = new List<string>();
+
+        /// <summary>工位1最近一次扫码枪读取到的原始条码列表</summary>
+        public List<string> Station1ScanCodes => _station1ScanCodes;
+
+        /// <summary>工位2最近一次扫码枪读取到的原始条码列表</summary>
+        public List<string> Station2ScanCodes => _station2ScanCodes;
+
+        /// <summary>由拉料工站在扫码成功后调用，暂存本片晶圆的条码，供检测工站读取</summary>
+        public void SetStationScanCodes(E_WorkSpace station, List<string> codes)
+        {
+            if (station == E_WorkSpace.工位1)
+                _station1ScanCodes = codes ?? new List<string>();
+            else if (station == E_WorkSpace.工位2)
+                _station2ScanCodes = codes ?? new List<string>();
+        }
+
         /// <summary>
         /// 扫码换批逻辑：更新指定工位的 MES 校验基准信息，并清空对应工位的旧版机台检测列表（开始全新批次）
         /// </summary>
@@ -422,77 +441,77 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             WaferInfo info = null;
             try
             {
-                token.ThrowIfCancellationRequested(); // 【新增】入口检查防空跑
+                //token.ThrowIfCancellationRequested(); // 【新增】入口检查防空跑
 
-                if (station == E_WorkSpace.工位1)
-                {
-                    List<string> OKcodes = new List<string>();
+                //if (station == E_WorkSpace.工位1)
+                //{
+                //    List<string> OKcodes = new List<string>();
 
-                    var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
-                    {
-                        CustomerBatch = x.CustomerBatch.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength),
-                        WaferId = x.WaferId
-                    }).ToList();
+                //    var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
+                //    {
+                //        CustomerBatch = x.CustomerBatch.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength),
+                //        WaferId = x.WaferId
+                //    }).ToList();
 
-                    for (int i = 0; i < codes?.Count; i++)
-                    {
-                        if (codes[i].Split('-') is { Length: 2 } parts)
-                        {
-                            string code = parts[0].Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
+                //    for (int i = 0; i < codes?.Count; i++)
+                //    {
+                //        if (codes[i].Split('-') is { Length: 2 } parts)
+                //        {
+                //            string code = parts[0].Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
 
-                            if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
-                            {
-                                OKcodes.Add(codes[i]);
-                                info = kk.Where(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
-                            }
-                        }
-                    }
+                //            if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
+                //            {
+                //                OKcodes.Add(codes[i]);
+                //                info = kk.Where(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
+                //            }
+                //        }
+                //    }
 
-                    if (OKcodes.Count == _station1ReciepParam.CodeCount)
-                    {
-                        return Task.FromResult(MechResult<WaferInfo>.Success(info));
-                    }
-                    else
-                    {
-                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, "工位1条码校验不通过"));
-                    }
-                }
-                else if (station == E_WorkSpace.工位2)
-                {
-                    List<string> OKcodes = new List<string>();
-                    var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
-                    {
-                        CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength),
-                        WaferId = x.WaferId
-                    }).ToList();
+                //    if (OKcodes.Count == _station1ReciepParam.CodeCount)
+                //    {
+                        return Task.FromResult(MechResult<WaferInfo>.Success(new WaferInfo() { CustomerBatch  = "",WaferId=""}));
+                //    }
+                //    else
+                //    {
+                //        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, "工位1条码校验不通过"));
+                //    }
+                //}
+                //else if (station == E_WorkSpace.工位2)
+                //{
+                //    List<string> OKcodes = new List<string>();
+                //    var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
+                //    {
+                //        CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength),
+                //        WaferId = x.WaferId
+                //    }).ToList();
 
-                    for (int i = 0; i < codes?.Count; i++)
-                    {
-                        if (codes[i].Split('-') is { Length: 2 } parts)
-                        {
-                            string code = parts[0].Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
+                //    for (int i = 0; i < codes?.Count; i++)
+                //    {
+                //        if (codes[i].Split('-') is { Length: 2 } parts)
+                //        {
+                //            string code = parts[0].Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
 
-                            if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
-                            {
-                                OKcodes.Add(codes[i]);
-                                info = kk.Where(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
-                            }
-                        }
-                    }
+                //            if (kk.Any(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)))
+                //            {
+                //                OKcodes.Add(codes[i]);
+                //                info = kk.Where(x => x.CustomerBatch == code && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
+                //            }
+                //        }
+                //    }
 
-                    if (OKcodes.Count == _station2ReciepParam.CodeCount)
-                    {
-                        return Task.FromResult(MechResult<WaferInfo>.Success(info));
-                    }
-                    else
-                    {
-                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, "工位2条码校验不通过"));
-                    }
-                }
-                else
-                {
-                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, $"不支持的工位: {station}"));
-                }
+                //    if (OKcodes.Count == _station2ReciepParam.CodeCount)
+                //    {
+                //        return Task.FromResult(MechResult<WaferInfo>.Success(info));
+                //    }
+                //    else
+                //    {
+                //        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, "工位2条码校验不通过"));
+                //    }
+                //}
+                //else
+                //{
+                //    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.CodeValidationFailed, $"不支持的工位: {station}"));
+                //}
             }
             catch (OperationCanceledException) // 【新增】拦截抛出
             {
