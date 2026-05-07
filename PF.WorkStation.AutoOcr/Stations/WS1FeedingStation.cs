@@ -1047,7 +1047,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>().Publish("工位1");
 
                             // 等待人工确认完成下料
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1人工下料完成), token).ConfigureAwait(false);
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1人工下料完成), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
 
                             // 操作员确认后：停止蜂鸣器，恢复安全门监控
                             _towerLight.SetLight(LightColor.Buzzer, LightState.Off);
