@@ -285,15 +285,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
 
                 // 在轴运动的同时，后台并行下发指令切换相机的视觉配方，节省 Cycle Time
-                if (IsChangedOcrCamera(E_WorkSpace.工位1))
+
+                if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
                 {
-                    if (!await _camera.ChangeProgram(_1StationRecipe.OCRRecipeName))
-                    {
-                        _curOCRRecipeName = string.Empty;
-                        return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1RecipeSwitchFailed, "切换到工位1的OCR配方失败");
-                    }
-                    _curOCRRecipeName = _1StationRecipe.OCRRecipeName;
+                    _curOCRRecipeName = string.Empty;
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1RecipeSwitchFailed, "切换到工位1的OCR配方失败");
                 }
+                _curOCRRecipeName = _1StationRecipe.OCRRecipeName;
+
 
                 token.ThrowIfCancellationRequested(); // 【新增】耗时指令下发后检查
 
@@ -342,15 +341,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
 
                 // 并行切换配方
-                if (IsChangedOcrCamera(E_WorkSpace.工位2))
+
+                if (!await _camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
                 {
-                    if (!await _camera.ChangeProgram(_2StationRecipe.OCRRecipeName))
-                    {
-                        _curOCRRecipeName = string.Empty;
-                        return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2RecipeSwitchFailed, "切换到工位2的OCR配方失败");
-                    }
-                    _curOCRRecipeName = _2StationRecipe.OCRRecipeName;
+                    _curOCRRecipeName = string.Empty;
+                    return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2RecipeSwitchFailed, "切换到工位2的OCR配方失败");
                 }
+                _curOCRRecipeName = _2StationRecipe.OCRRecipeName;
+
 
                 token.ThrowIfCancellationRequested(); // 【新增】耗时指令下发后检查
 

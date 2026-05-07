@@ -25,12 +25,16 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             this.TimeOutMs = timeoutms;
         }
 
+
+
         /// <summary>
         /// 触发客户端
         /// </summary>
         private PF.Infrastructure.Communication.TCP.TCPClient tiggerclient = new Communication.TCP.TCPClient();
 
-       
+
+
+
 
         private string TiggerRec = string.Empty;
         /// <summary>
@@ -76,7 +80,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
 
                 TiggerRec = Encoding.ASCII.GetString(rec);
-                if (!TiggerRec.Trim().Contains ("PL"))
+                if (!TiggerRec.Trim().Contains("PL"))
                 {
                     throw new Exception($"基恩士智能相机接收切换程式指令返回内容不匹配");
                 }
@@ -87,6 +91,39 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             {
                 HardwareLogger.Debug(ex.Message, ex);
                 return false;
+            }
+        }
+
+
+
+
+
+        private async Task<string> GetProgramID(CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return ""; }
+
+
+
+
+                string TiggerStr = $"PR\r\n";
+                TiggerRec = string.Empty;
+                TiggerRec = string.Empty;
+                var rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
+
+                TiggerRec = Encoding.ASCII.GetString(rec);
+                if (!TiggerRec.Trim().Contains("PR,") && TiggerRec.Split(',').Length >= 3)
+                {
+                    throw new Exception($"基恩士智能相机接收切换程式指令返回内容不匹配");
+                }
+                return TiggerRec.Split(',')[2];
+
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return "";
             }
         }
 
@@ -106,6 +143,10 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                     throw new Exception("输入的程式名称错误");
                 }
                 string id = ProgramNumber.ToString().Split('_')[0];
+                if (_curProgrammer == id)
+                {
+                    return true;
+                }
 
                 return await ChangeProgramID(id, token);
 
@@ -151,11 +192,12 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             {
                 return false;
             }
-           
+            _curProgrammer = await GetProgramID(token);
+
             return true;
         }
 
-      
+
 
         /// <summary>
         /// 内部断开连接实现
@@ -204,6 +246,10 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
         private string CamProgramBackUpFilePath => $"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments))}\\KEYENCE\\VS";
 
+        public override string CurProgrammer => _curProgrammer;
+
+
+        private string _curProgrammer = string.Empty;
 
         /// <summary>
         /// 从文件内获取所有程式列表名称
