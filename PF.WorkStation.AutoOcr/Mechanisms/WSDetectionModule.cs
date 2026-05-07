@@ -277,9 +277,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 }
 
                 // 发起三轴联动 (使用轴默认参数)
-                if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.08, token) ||
+                if (!await _xAxis.MoveAbsoluteAsync(_1StationRecipe._1PosX, _xAxis.Param.Vel, _xAxis.Param.Acc, _xAxis.Param.Dec, 0.3, token) ||
                     !await _yAxis.MoveAbsoluteAsync(_1StationRecipe._1PosY, _yAxis.Param.Vel, _yAxis.Param.Acc, _yAxis.Param.Dec, 0.1, token) ||
-                    !await _zAxis.MoveAbsoluteAsync(_1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.1, token))
+                    !await _zAxis.MoveAbsoluteAsync(_1StationRecipe._1PosZ, _zAxis.Param.Vel, _zAxis.Param.Acc, _zAxis.Param.Dec, 0.3, token))
                 {
                     return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1MoveFailed, "移动到工位1触发失败");
                 }
@@ -393,6 +393,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 int imageWaitTimeout = await ParamService.GetParamAsync<int>(E_Params.OCRCameraImageWaitTimeout.ToString());
                 if (imageWaitTimeout <= 0) imageWaitTimeout = 5000;
 
+                await Task.Delay(1000, token);
                 if (!IsCheckResult)
                 {
                     // 调试/强制抓图模式：清空旧图片以确保提取到的是最新一帧
