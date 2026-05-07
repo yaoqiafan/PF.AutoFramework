@@ -287,6 +287,17 @@ namespace PF.Services.Sync
             _scopes.Clear();
         }
 
+        /// <inheritdoc/>
+        public void DrainSignal(string name, string scope = DefaultScope)
+        {
+            var ctx = GetScope(scope);
+            var entry = GetEntry(ctx, name, scope);
+            int drained = 0;
+            while (entry.Sem.Wait(0)) drained++;
+            if (drained > 0)
+                _logger.Info($"[SyncService] [{scope}/{name}] 排空 {drained} 个残留计数。");
+        }
+
         // ── 状态快照（供监控 UI 轮询）────────────────────────────────────────
 
         /// <inheritdoc/>

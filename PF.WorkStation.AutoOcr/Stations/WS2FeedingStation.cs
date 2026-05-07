@@ -690,7 +690,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _logger.Info($"[{StationName}] 等待操作员按下工位2启动按钮...");
 
                             // 阻塞等待外部信号触发
-                            _sync.ResetSingleSignal(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
+                            _sync.DrainSignal(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2启动按钮按下), token, scope: E_WorkStation.工位2上下料工站.ToString()).ConfigureAwait(false);
 
                             _logger.Info($"[{StationName}] 检测到启动信号，开始执行上料流程。");
