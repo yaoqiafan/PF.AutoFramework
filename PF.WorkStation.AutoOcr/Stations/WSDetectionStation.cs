@@ -503,15 +503,20 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
                             }
 
+                            // 读取拉料工站在扫码步序中暂存的原始条码列表
+                            var scanCodes = _currentworkSpace == E_WorkSpace.工位1
+                                ? _dataModule.Station1ScanCodes
+                                : _dataModule.Station2ScanCodes;
+
                             // 装配用于写入数据库与推给 MES 的单片检测快照实体
                             _cachedDetectionData = new MachineDetectionData()
                             {
                                 CustomerBatch = kk.Data?.CustomerBatch ?? "ERROR",
                                 WaferId = kk.Data?.WaferId ?? "ERROR",
                                 InternalBatchId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.InternalBatchId : _dataModule.Station2MesDetectionData.InternalBatchId,
-                                Barcode1 = "CODE1",
-                                Barcode2 = "CODE2",
-                                Barcode3 = "CODE3",
+                                Barcode1 = scanCodes.Count > 0 ? scanCodes[0] : "",
+                                Barcode2 = scanCodes.Count > 1 ? scanCodes[1] : "",
+                                Barcode3 = scanCodes.Count > 2 ? scanCodes[2] : "",
                                 IsMatch = kk.IsSuccess,
                                 ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
                                 ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
