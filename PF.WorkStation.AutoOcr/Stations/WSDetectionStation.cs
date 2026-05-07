@@ -495,7 +495,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (!kk.IsSuccess)
                             {
                                 // 验证 NG：生成缺陷存档图
-                                path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, new WaferInfo() { CustomerBatch = "Error", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
+                                path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, new WaferInfo() { CustomerBatch = $"Error_{DateTime.Now:HHmmss}", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
                             }
                             else
                             {
@@ -511,12 +511,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 装配用于写入数据库与推给 MES 的单片检测快照实体
                             _cachedDetectionData = new MachineDetectionData()
                             {
-                                CustomerBatch = kk.Data?.CustomerBatch ?? "ERROR",
-                                WaferId = kk.Data?.WaferId ?? "ERROR",
+                                CustomerBatch = kk.Data?.CustomerBatch ?? $"Error_{DateTime.Now:HHmmss}",
+                                WaferId = kk.Data?.WaferId ?? $"Error_{DateTime.Now:HHmmss}",
                                 InternalBatchId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.InternalBatchId : _dataModule.Station2MesDetectionData.InternalBatchId,
                                 Barcode1 = scanCodes.Count > 0 ? scanCodes[0] : "",
                                 Barcode2 = scanCodes.Count > 1 ? scanCodes[1] : "",
                                 Barcode3 = scanCodes.Count > 2 ? scanCodes[2] : "",
+                                OcrText = _cachedOcrResult.OcrText,
                                 IsMatch = kk.IsSuccess,
                                 ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
                                 ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
