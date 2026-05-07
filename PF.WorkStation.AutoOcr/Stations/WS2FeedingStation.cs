@@ -731,7 +731,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 {
                                     AlarmCodesExtensions.WS2Feeding.BoxSizeConflict => Station2FeedingStep.料盒尺寸传感器信号冲突,
                                     AlarmCodesExtensions.WS2Feeding.BoxBaseNotDetected => Station2FeedingStep.料盒公用底座未检测到物体,
-                                   
+
                                     _ => Station2FeedingStep.料盒尺寸识别失败
                                 };
                                 RouteToError(errStep, Station2FeedingStep.等待按下工位2启动按钮, sizeResult.ErrorCode);
@@ -944,13 +944,22 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.阻塞等待物料回退完成:
                             CurrentStepDescription = "阻塞等待物料回退完成...";
-                            // 等待拉料工站反馈 Y 轴已完全退回
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2退料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
+                            if (await _feedingModule.SetThrustWasherAsync(true, token))
+                            {
+                                await Task.Delay(500);
+                                // 等待拉料工站反馈 Y 轴已完全退回
+                                await _sync.WaitAsync(nameof(WorkstationSignals.工位2退料完成), token, scope: E_WorkStation.工位2拉料工站.ToString()).ConfigureAwait(false);
 
-                            MemoryParam.CurrentLayerIndex = _currentLayerIndex;
-                            MemoryParam.PersistedStep = (int)Station2FeedingStep.计算下一层位置;
-                            FlushMemory();
-                            _currentStep = Station2FeedingStep.计算下一层位置;
+                                MemoryParam.CurrentLayerIndex = _currentLayerIndex;
+                                MemoryParam.PersistedStep = (int)Station2FeedingStep.计算下一层位置;
+                                FlushMemory();
+                                _currentStep = Station2FeedingStep.计算下一层位置;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层凸片传感器关闭失败。");
+                                RouteToError(Station2FeedingStep.阻塞等待物料回退完成, Station2FeedingStep.阻塞等待物料回退完成);
+                            }
                             break;
 
                         case Station2FeedingStep.计算下一层位置:
