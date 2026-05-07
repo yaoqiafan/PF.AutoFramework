@@ -64,133 +64,129 @@
                                 Text=" 工位1操作" />
                         </pf:Card.Header>
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
-                        <Grid Margin="5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                Margin="20,0,5,0"
-                                Text="内批：" />
-                            <TextBlock Grid.Column="1" Text="{Binding Station1InternalBatches}" />
-                            <TextBlock
-                                Grid.Column="2"
-                                Margin="40,0,5,0"
-                                Text="状态：" />
-                            <TextBlock Grid.Column="3" Text="{Binding Station1DetStatus}" />
-                            <TextBlock
-                                Grid.Column="4"
-                                Margin="40,0,5,0"
-                                Text=" 程式名称:" />
-                            <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
+                            <Grid Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Margin="20,0,5,0"
+                                    Text="内批：" />
+                                <TextBlock Grid.Column="1" Text="{Binding Station1InternalBatches}" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="40,0,5,0"
+                                    Text="状态：" />
+                                <TextBlock Grid.Column="3" Text="{Binding Station1DetStatus}" />
+                                <TextBlock
+                                    Grid.Column="4"
+                                    Margin="40,0,5,0"
+                                    Text=" 程式名称:" />
+                                <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
-                            <Button
-                                Grid.Column="6"
-                                Margin="0,0,50,0"
-                                HorizontalAlignment="Right"
-                                Command="{Binding Station1ChangeLotCommand}"
-                                Content="切换批次"
-                                FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                Style="{DynamicResource ButtonPrimary}" />
+                                <Button
+                                    Grid.Column="6"
+                                    Margin="0,0,50,0"
+                                    HorizontalAlignment="Right"
+                                    Command="{Binding Station1ChangeLotCommand}"
+                                    Content="切换批次"
+                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                    Style="{DynamicResource ButtonPrimary}" />
+                            </Grid>
+
+                            <usercontrol:ZoomableImageViewer
+                                Grid.Row="1"
+                                Margin="5"
+                                AnnotationContent="{Binding Station1CurrentMachineDetection}"
+                                ErrorSource="{StaticResource DelateIcon_FFFFFF}"
+                                Source="{Binding Station1CurrentMachineDetection.ImagePath}" />
                         </Grid>
 
-                        <usercontrol:ZoomableImageViewer
-                            Grid.Row="1"
-                            Margin="5"
-                            AnnotationContent="{Binding Station1CurrentMachineDetection}"
-                            ErrorSource="{StaticResource DelateIcon_FFFFFF}"
-                            Source="{Binding Station1CurrentMachineDetection.ImagePath}" />
-                    </Grid>
-
-                    <pf:Card.Footer>
-                        <Grid Height="300">
-                            <DataGrid
-                                Margin="5"
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                FontSize="{DynamicResource FontSize.Body.Standard}"
-                                ItemsSource="{Binding Station1MachineDetection}"
-                                SelectedItem="{Binding Station1CurrentMachineDetection}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn
-                                        Width="2*"
-                                        Binding="{Binding CustomerBatch}"
-                                        Header="客户批次"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width="2*"
-                                        Binding="{Binding OcrText}"
-                                        Header="OCR值"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width="2*"
-                                        Binding="{Binding Barcode1}"
-                                        Header="条码"
-                                        IsReadOnly="True" />
-                                    <DataGridTemplateColumn Width="90" Header="匹配结果">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Border
-                                                    Margin="10,4"
-                                                    HorizontalAlignment="Stretch"
-                                                    CornerRadius="4">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#E8F5E9" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsMatch}" Value="False">
-                                                                    <Setter Property="Background" Value="#FFEBEE" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <TextBlock
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        FontWeight="Bold">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Text" Value="OK" />
-                                                                <Setter Property="Foreground" Value="#2E7D32" />
+                        <pf:Card.Footer>
+                            <Grid Height="300">
+                                <DataGrid
+                                    Margin="5"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                                    ItemsSource="{Binding Station1MachineDetection}"
+                                    SelectedItem="{Binding Station1CurrentMachineDetection}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                            Width="2*"
+                                            Binding="{Binding CustomerBatch}"
+                                            Header="客户批次"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="2*"
+                                            Binding="{Binding OcrText}"
+                                            Header="OCR值"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="2*"
+                                            Binding="{Binding Barcode1}"
+                                            Header="条码"
+                                            IsReadOnly="True" />
+                                        <DataGridTemplateColumn Width="90" Header="匹配结果">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border
+                                                        Margin="10,4"
+                                                        HorizontalAlignment="Stretch"
+                                                        CornerRadius="4">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#E8F5E9" />
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsMatch}" Value="False">
-                                                                        <Setter Property="Text" Value="NG" />
-                                                                        <Setter Property="Foreground" Value="#C62828" />
+                                                                        <Setter Property="Background" Value="#FFEBEE" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </Border>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </Grid>
-                    </pf:Card.Footer>
+                                                        </Border.Style>
+                                                        <TextBlock
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            FontWeight="Bold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="OK" />
+                                                                    <Setter Property="Foreground" Value="#2E7D32" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                                                            <Setter Property="Text" Value="NG" />
+                                                                            <Setter Property="Foreground" Value="#C62828" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </pf:Card.Footer>
                     </pf:Card>
 
-                    <!-- 工位1下料确认遮罩层 -->
-                    <Border
-                        Background="#CC1A1A2E"
-                        Visibility="{Binding Station1UnloadMaskVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
+                    <!--  工位1下料确认遮罩层  -->
+                    <Border Background="#CC1A1A2E" Visibility="{Binding Station1UnloadMaskVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -229,134 +225,130 @@
                                 Text=" 工位2操作" />
                         </pf:Card.Header>
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
-                        <Grid Margin="5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                Margin="20,0,5,0"
-                                Text="内批：" />
-                            <TextBlock Grid.Column="1" Text="{Binding Station2InternalBatches}" />
-                            <TextBlock
-                                Grid.Column="2"
-                                Margin="40,0,5,0"
-                                Text="状态：" />
-                            <TextBlock Grid.Column="3" Text="{Binding Station2DetStatus}" />
-                            <TextBlock
-                                Grid.Column="4"
-                                Margin="40,0,5,0"
-                                Text=" 程式名称:" />
-                            <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
+                            <Grid Margin="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Margin="20,0,5,0"
+                                    Text="内批：" />
+                                <TextBlock Grid.Column="1" Text="{Binding Station2InternalBatches}" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Margin="40,0,5,0"
+                                    Text="状态：" />
+                                <TextBlock Grid.Column="3" Text="{Binding Station2DetStatus}" />
+                                <TextBlock
+                                    Grid.Column="4"
+                                    Margin="40,0,5,0"
+                                    Text=" 程式名称:" />
+                                <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
-                            <Button
-                                Grid.Column="6"
-                                Margin="0,0,50,0"
-                                HorizontalAlignment="Right"
-                                Command="{Binding Station2ChangeLotCommand}"
-                                Content="切换批次"
-                                FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                Style="{DynamicResource ButtonPrimary}" />
+                                <Button
+                                    Grid.Column="6"
+                                    Margin="0,0,50,0"
+                                    HorizontalAlignment="Right"
+                                    Command="{Binding Station2ChangeLotCommand}"
+                                    Content="切换批次"
+                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                    Style="{DynamicResource ButtonPrimary}" />
+                            </Grid>
+
+                            <usercontrol:ZoomableImageViewer
+                                Grid.Row="1"
+                                Margin="5"
+                                AnnotationContent="{Binding Station2CurrentMachineDetection}"
+                                ErrorSource="{StaticResource DelateIcon_FFFFFF}"
+                                Source="{Binding Station2CurrentMachineDetection.ImagePath}" />
                         </Grid>
 
-                        <usercontrol:ZoomableImageViewer
-                            Grid.Row="1"
-                            Margin="5"
-                            AnnotationContent="{Binding Station2CurrentMachineDetection}"
-                            ErrorSource="{StaticResource DelateIcon_FFFFFF}"
-                            Source="{Binding Station2CurrentMachineDetection.ImagePath}" />
-                    </Grid>
+                        <pf:Card.Footer>
+                            <Grid Height="300">
+                                <DataGrid
+                                    Margin="5"
+                                    AutoGenerateColumns="False"
+                                    CanUserAddRows="False"
+                                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                                    ItemsSource="{Binding Station2MachineDetection}"
+                                    SelectedItem="{Binding Station2CurrentMachineDetection}"
+                                    SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn
+                                            Width="2*"
+                                            Binding="{Binding CustomerBatch}"
+                                            Header="客户批次"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="2*"
+                                            Binding="{Binding OcrText}"
+                                            Header="OCR值"
+                                            IsReadOnly="True" />
+                                        <DataGridTextColumn
+                                            Width="2*"
+                                            Binding="{Binding Barcode1}"
+                                            Header="条码"
+                                            IsReadOnly="True" />
 
-                    <pf:Card.Footer>
-                        <Grid Height="300">
-                            <DataGrid
-                                Margin="5"
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                FontSize="{DynamicResource FontSize.Body.Standard}"
-                                ItemsSource="{Binding Station2MachineDetection}"
-                                SelectedItem="{Binding Station2CurrentMachineDetection}"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn
-                                        Width="2*"
-                                        Binding="{Binding CustomerBatch}"
-                                        Header="客户批次"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width="2*"
-                                        Binding="{Binding OcrText}"
-                                        Header="OCR值"
-                                        IsReadOnly="True" />
-                                    <DataGridTextColumn
-                                        Width="2*"
-                                        Binding="{Binding Barcode1}"
-                                        Header="条码"
-                                        IsReadOnly="True" />
-
-                                    <DataGridTemplateColumn Width="90" Header="匹配结果">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Border
-                                                    Margin="10,4"
-                                                    HorizontalAlignment="Stretch"
-                                                    CornerRadius="4">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="#E8F5E9" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsMatch}" Value="False">
-                                                                    <Setter Property="Background" Value="#FFEBEE" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <TextBlock
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        FontWeight="Bold">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Text" Value="OK" />
-                                                                <Setter Property="Foreground" Value="#2E7D32" />
+                                        <DataGridTemplateColumn Width="90" Header="匹配结果">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border
+                                                        Margin="10,4"
+                                                        HorizontalAlignment="Stretch"
+                                                        CornerRadius="4">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#E8F5E9" />
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsMatch}" Value="False">
-                                                                        <Setter Property="Text" Value="NG" />
-                                                                        <Setter Property="Foreground" Value="#C62828" />
+                                                                        <Setter Property="Background" Value="#FFEBEE" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </Border>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </Grid>
-                    </pf:Card.Footer>
+                                                        </Border.Style>
+                                                        <TextBlock
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            FontWeight="Bold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="OK" />
+                                                                    <Setter Property="Foreground" Value="#2E7D32" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                                                            <Setter Property="Text" Value="NG" />
+                                                                            <Setter Property="Foreground" Value="#C62828" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </pf:Card.Footer>
                     </pf:Card>
 
-                    <!-- 工位2下料确认遮罩层 -->
-                    <Border
-                        Background="#CC1A1A2E"
-                        Visibility="{Binding Station2UnloadMaskVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
+                    <!--  工位2下料确认遮罩层  -->
+                    <Border Background="#CC1A1A2E" Visibility="{Binding Station2UnloadMaskVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -386,13 +378,13 @@
                 </Grid>
 
                 <Border
-    Grid.Column="2"
-     Margin="10"
-    Padding="15"
-    Background="{DynamicResource  DarkPrimaryBrush}"
-    CornerRadius="5">
+                    Grid.Column="2"
+                    Margin="10"
+                    Padding="15"
+                    Background="{DynamicResource DarkPrimaryBrush}"
+                    CornerRadius="5">
 
-                    <Grid >
+                    <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -402,109 +394,117 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel
-            Grid.Row="0"
-            Margin="0,0,0,10"
-            HorizontalAlignment="Center"
-            Orientation="Horizontal">
+                            Grid.Row="0"
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal">
                             <Ellipse
-                Width="12"
-                Height="12"
-                Margin="0,0,8,0"
-                Fill="{Binding StatusBrush}" />
+                                Width="12"
+                                Height="12"
+                                Margin="0,0,8,0"
+                                Fill="{Binding StatusBrush}" />
                             <TextBlock
-                FontSize="15"
-                FontWeight="SemiBold"
-                Foreground="{Binding StatusBrush}"
-                Text="{Binding StatusText}" />
+                               FontSize="{DynamicResource FontSize.H2.Title}"
+                                FontWeight="SemiBold"
+                                Foreground="{Binding StatusBrush}"
+                                Text="{Binding StatusText}" />
                         </StackPanel>
 
-                        <Separator Grid.Row="1" Margin="0,5,0,15" Background="{DynamicResource BorderBrush}" Opacity="0.5"/>
+                        <Separator
+                            Grid.Row="1"
+                            Margin="0,5,0,15"
+                            Background="{DynamicResource BorderBrush}"
+                            Opacity="0.5" />
+                        <Border Grid.Row="2"  BorderBrush="{DynamicResource SecondaryBorderBrush}" BorderThickness="1" CornerRadius="5" >
+                            <StackPanel Margin="15,0,15,15">
 
-                        <StackPanel Grid.Row="2" Margin="0,0,0,15">
-                            <CheckBox
-                                Content="清除机台记忆"
-                                IsChecked="{Binding IsSelectAllMemoryChecked, Mode=TwoWay}"
-                                IsThreeState="True"
-                                IsEnabled="{Binding HasClearMemoryPermission}"
-                                FontSize="14"
-                                FontWeight="Medium"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                ToolTip="需要管理员权限才能操作此选项" />
-                            <ItemsControl
-                                Margin="16,4,0,0"
-                                IsEnabled="{Binding HasClearMemoryPermission}"
-                                ItemsSource="{Binding StationMemoryItems}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox
-                                            Margin="0,3"
-                                            Content="{Binding DisplayName}"
-                                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
-                                            FontSize="12"
-                                            Foreground="{DynamicResource PrimaryTextBrush}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
+                                <TextBlock Text="设备记忆管理" FontSize="{DynamicResource FontSize.H2.Title}"  Margin="10"></TextBlock>
+                                
+                                <CheckBox
+                                    Content="清除机台记忆"
+                                    FontSize="14"
+                                    FontWeight="Medium"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    IsChecked="{Binding IsSelectAllMemoryChecked, Mode=TwoWay}"
+                                    IsEnabled="{Binding HasClearMemoryPermission}"
+                                    IsThreeState="True"
+                                    ToolTip="需要管理员权限才能操作此选项" />
+                                <ItemsControl
+                                    Margin="16,4,0,0"
+                                    IsEnabled="{Binding HasClearMemoryPermission}"
+                                    ItemsSource="{Binding StationMemoryItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox
+                                                Margin="0,3"
+                                                Content="{Binding DisplayName}"
+                                                FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                                IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
 
-                        <Separator Grid.Row="3" Margin="0,0,0,15" Background="{DynamicResource BorderBrush}" Opacity="0.5"/>
 
-                        <Grid Grid.Row="4">
+                       
 
-                            <pf:ButtonGroup Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Top"  >
-                            <RadioButton
-                MinHeight="80"
-               
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Command="{Binding InitializeCommand}"
-                Content="💠 初始化"
-                FontSize="{DynamicResource FontSize.H2.Title}"
-                Tag="{StaticResource InfoBrush}"
-                Template="{StaticResource HoverButtonTemplate}" />
+                        <Grid Grid.Row="4"  Margin="0,15,0,15">
 
-                            <RadioButton
-                MinHeight="80"
-              
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Command="{Binding SmartStartCommand}"
-                Content="{Binding SmartStartText}"
-                FontSize="{DynamicResource FontSize.H2.Title}"
-                Tag="{StaticResource PrimaryBrush}"
-                Template="{StaticResource HoverButtonTemplate}" />
+                            <pf:ButtonGroup
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Top"
+                                Orientation="Vertical">
+                                <RadioButton
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    Command="{Binding InitializeCommand}"
+                                    Content="💠 初始化"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Tag="{StaticResource InfoBrush}"
+                                    Template="{StaticResource HoverButtonTemplate}" />
 
-                            <RadioButton
-                MinHeight="80"
-                
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Command="{Binding PauseCommand}"
-                Content="⏸ 暂停"
-                FontSize="{DynamicResource FontSize.H2.Title}"
-                Tag="{StaticResource WarningBrush}"
-                Template="{StaticResource HoverButtonTemplate}" />
+                                <RadioButton
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    Command="{Binding SmartStartCommand}"
+                                    Content="{Binding SmartStartText}"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Tag="{StaticResource PrimaryBrush}"
+                                    Template="{StaticResource HoverButtonTemplate}" />
 
-                            <RadioButton
-                MinHeight="80"
-              
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Command="{Binding ResetCommand}"
-                Content="🔄️ 复位"
-                FontSize="{DynamicResource FontSize.H2.Title}"
-                Tag="{DynamicResource SuccessBrush}"
-                Template="{StaticResource HoverButtonTemplate}" />
+                                <RadioButton
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    Command="{Binding PauseCommand}"
+                                    Content="⏸ 暂停"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Tag="{StaticResource WarningBrush}"
+                                    Template="{StaticResource HoverButtonTemplate}" />
 
-                            <RadioButton
-                MinHeight="80"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Command="{Binding StopCommand}"
-                Content="⏹ 停止"
-                FontSize="{DynamicResource FontSize.H2.Title}"
-                Tag="{StaticResource DangerBrush}"
-                Template="{StaticResource HoverButtonTemplate}" />
+                                <RadioButton
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    Command="{Binding ResetCommand}"
+                                    Content="🔄️ 复位"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Tag="{DynamicResource SuccessBrush}"
+                                    Template="{StaticResource HoverButtonTemplate}" />
+
+                                <RadioButton
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    Command="{Binding StopCommand}"
+                                    Content="⏹ 停止"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Tag="{StaticResource DangerBrush}"
+                                    Template="{StaticResource HoverButtonTemplate}" />
                             </pf:ButtonGroup>
                         </Grid>
 
