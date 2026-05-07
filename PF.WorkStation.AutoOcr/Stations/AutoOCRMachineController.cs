@@ -112,7 +112,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             // 全局作用域信号 (无归属的物理按钮动作)
             _sync.Register(nameof(WorkstationSignals.工位1启动按钮按下));
-            _sync.Register(nameof(WorkstationSignals.工位1人工下料完成));
+            // 人工下料完成信号归属各自上下料工站 scope，避免 ResetSingleSignal 广播取消时跨工站误伤
+            _sync.Register(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
 
             // 局部作用域信号 (绑定至具体执行工站，工站复位时会自动清理其 Scope 下的信号残存)
             _sync.Register(nameof(WorkstationSignals.工位1允许拉料), scope: E_WorkStation.工位1上下料工站.ToString());
@@ -126,7 +127,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             // 全局作用域信号
             _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下));
-            _sync.Register(nameof(WorkstationSignals.工位2人工下料完成));
+            _sync.Register(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
 
             // 局部作用域信号
             _sync.Register(nameof(WorkstationSignals.工位2允许拉料), scope: E_WorkStation.工位2上下料工站.ToString());
