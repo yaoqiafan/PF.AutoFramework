@@ -225,7 +225,8 @@
 
                         <StackPanel Grid.Row="0">
 
-                            <Border Margin="0,0,0,10"
+                            <Border
+                                Margin="0,0,0,10"
                                 Padding="15"
                                 BorderBrush="#E2E8F0"
                                 BorderThickness="1"
@@ -286,169 +287,360 @@
                                 </Grid>
                             </Border>
 
-                            <Border
-                                Margin="0,0,0,10"
-                                Padding="15"
-                                BorderBrush="#E2E8F0"
-                                BorderThickness="1"
-                                CornerRadius="6">
-                                <StackPanel>
-                                    <TextBlock
-                                        Margin="0,0,0,10"
-                                        FontSize="{DynamicResource FontSize.Body.Standard}"
-                                        FontWeight="SemiBold"
-                                        Text="模组调试" />
-                                    <Button
-                                        Height="35"
-                                        Margin="5"
-                                        HorizontalAlignment="Stretch"
-                                        Command="{Binding TestPullOutCommand}"
-                                        Content="拉料流程测试" />
-                                    <Button
-                                        Height="35"
-                                        Margin="5"
-                                        HorizontalAlignment="Stretch"
-                                        Command="{Binding TestPushBackCommand}"
-                                        Content="推料流程测试" />
-                                    <Button
-                                        Height="35"
-                                        Margin="5"
-                                        HorizontalAlignment="Stretch"
-                                        Command="{Binding TestFullFlowCommand}"
-                                        Content="完整流程测试" />
-                                </StackPanel>
-                            </Border>
 
 
                         </StackPanel>
 
-                        <Border
-                            Grid.Row="1"
-                            Margin="0,10,0,0"
-                            Padding="15"
-                            BorderBrush="#E2E8F0"
-                            BorderThickness="1"
-                            CornerRadius="6">
+                        <TabControl Grid.Row="1">
 
-                            <ScrollViewer>
-                                <StackPanel>
-                                    <pf:Card Height="180" BorderBrush="{DynamicResource ControlDefultBrush}">
-                                        <pf:Card.Header>
-                                            <Grid>
-                                                <StackPanel Margin="10" Orientation="Horizontal">
-                                                    <TextBlock
-                                                        HorizontalAlignment="Left"
-                                                        Style="{DynamicResource TextBlockLargeBold}"
-                                                        Text="当前程式当前轴点位："
-                                                        TextTrimming="CharacterEllipsis"
-                                                        TextWrapping="NoWrap" />
+                            <TabItem Header="取料流程测试">
+                                <Border
+                                    Margin="0,0,0,10"
+                                    Padding="12"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                    <StackPanel>
+                                        <!--  Header  -->
+                                        <Grid Margin="0,0,0,8">
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="{DynamicResource FontSize.Body.Standard}"
+                                                FontWeight="SemiBold"
+                                                Text="模组调试（顺序流程）" />
+                                            <Button
+                                               
+                                                HorizontalAlignment="Right"
+                                                Command="{Binding ResetDebugStepsCommand}"
+                                                Content="重 置"
+                                                Style="{DynamicResource ButtonDefault}" />
+                                        </Grid>
 
-                                                </StackPanel>
-                                            </Grid>
-                                        </pf:Card.Header>
-
-                                        <Border>
-
-                                            <TextBox
-                                                Margin="5"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                FontSize="40"
-                                                Text="{Binding RecipeAxisPosition}"
-                                                TextAlignment="Center" />
+                                        <!--  状态提示  -->
+                                        <Border
+                                            Margin="0,0,0,8"
+                                            Padding="8,5"
+                                            Background="#F0F9FF"
+                                            CornerRadius="4">
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="#0369A1"
+                                                Text="{Binding DebugStepMessage}"
+                                                TextWrapping="Wrap" />
                                         </Border>
 
-                                        <pf:Card.Footer>
-                                            <pf:ButtonGroup Margin="10">
-                                                <Button Command="{Binding MoveToRecipePositionCommand}" Content="移动到" />
-                                                <Button Command="{Binding GetCurrentPositionCommand}" Content="获取当前轴位置" />
-                                                <Button Command="{Binding UpdateRecipePositionCommand}" Content="更新" />
-                                            </pf:ButtonGroup>
-                                        </pf:Card.Footer>
-                                    </pf:Card>
+                                        <!--  Step 1：切换生产状态  -->
+                                        <Grid Margin="14,10" >
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Width="24"
+                                                Height="24"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding Step1Brush}"
+                                                CornerRadius="12">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="White"
+                                                    Text="1" />
+                                            </Border>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="6,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock FontSize="12" Text="切换生产状态" />
+                                                <TextBlock
+                                                    Margin="0,3,0,0"
+                                                    FontSize="11"
+                                                    Foreground="#475569"
+                                                    Text="{Binding RecipeWaferSizeText}" />
+                                            </StackPanel>
+                                            <Button
+                                                Grid.Column="2"
+                                                Height="30"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding Step1SwitchProductionCommand}"
+                                                Content="执行"
+                                                Style="{DynamicResource ButtonPrimary}" />
+                                        </Grid>
 
-                                    <pf:Card
-                                        Height="180"
-                                        Margin="0,10,0,0"
-                                        BorderBrush="{DynamicResource ControlDefultBrush}">
-                                        <pf:Card.Header>
-                                            <Grid>
-                                                <StackPanel Margin="10" Orientation="Horizontal">
+                                       
+
+                                        <!--  Step 2：切换指定层  -->
+                                        <Grid Margin="14,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Width="24"
+                                                Height="24"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding Step2Brush}"
+                                                CornerRadius="12">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="White"
+                                                    Text="2" />
+                                            </Border>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="6,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock FontSize="12" Text="切换至指定层" />
+                                                <StackPanel Margin="0,3,0,0" Orientation="Horizontal">
                                                     <TextBlock
-                                                        HorizontalAlignment="Left"
-                                                        Style="{DynamicResource TextBlockLargeBold}"
-                                                        Text="扫码调试："
-                                                        TextTrimming="CharacterEllipsis"
-                                                        TextWrapping="NoWrap" />
-
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Text="层数：" />
+                                                    <TextBox
+                                                        Width="48"
+                                                        Height="24"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        FontSize="11"
+                                                        Text="{Binding TargetLayerNumber, UpdateSourceTrigger=PropertyChanged}" />
                                                 </StackPanel>
-                                            </Grid>
-                                        </pf:Card.Header>
+                                            </StackPanel>
+                                            <Button
+                                                Grid.Column="2"
+                                                Height="30"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding Step2SwitchLayerCommand}"
+                                                Content="执行"
+                                                Style="{DynamicResource ButtonPrimary}" />
+                                        </Grid>
 
-                                        <Border>
+                                      
 
-                                            <TextBox
-                                                Margin="5"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                FontSize="40"
-                                                IsReadOnly="True"
-                                                Text="{Binding ScanResult}"
-                                                TextAlignment="Center" />
-                                        </Border>
+                                        <!--  Step 3：拉料流程测试  -->
+                                        <Grid Margin="14,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Width="24"
+                                                Height="24"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding Step3Brush}"
+                                                CornerRadius="12">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="White"
+                                                    Text="3" />
+                                            </Border>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="6,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock FontSize="12" Text="拉料流程测试" />
+                                                <TextBlock
+                                                    FontSize="10"
+                                                    Foreground="#94A3B8"
+                                                    Text="（自动关闭凸片检测）" />
+                                            </StackPanel>
+                                            <Button
+                                                Grid.Column="2"
+                                                Height="30"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding Step3PullMaterialCommand}"
+                                                Content="执行"
+                                                Style="{DynamicResource ButtonPrimary}" />
+                                        </Grid>
 
-                                        <pf:Card.Footer>
-                                            <pf:ButtonGroup Margin="10">
-                                                <Button Command="{Binding TriggerScanCommand}" Content="触发扫码" />
-                                            </pf:ButtonGroup>
-                                        </pf:Card.Footer>
-                                    </pf:Card>
+                                       
+
+                                        <!--  Step 4：推料流程测试  -->
+                                        <Grid Margin="14,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Width="24"
+                                                Height="24"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding Step4Brush}"
+                                                CornerRadius="12">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="White"
+                                                    Text="4" />
+                                            </Border>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="6,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock FontSize="12" Text="推料流程测试" />
+                                                <TextBlock
+                                                    FontSize="10"
+                                                    Foreground="#94A3B8"
+                                                    Text="（自动关闭凸片检测）" />
+                                            </StackPanel>
+                                            <Button
+                                                Grid.Column="2"
+                                                Height="30"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding Step4PushMaterialCommand}"
+                                                Content="执行"
+                                                Style="{DynamicResource ButtonPrimary}" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </TabItem>
+
+                            <TabItem  Header="点位光源调试">
+                                <Border
+                                    Margin="0,10,0,0"
+                                    Padding="15"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+
+                                    <ScrollViewer>
+                                        <StackPanel>
+                                            <pf:Card Height="180" BorderBrush="{DynamicResource ControlDefultBrush}">
+                                                <pf:Card.Header>
+                                                    <Grid>
+                                                        <StackPanel Margin="10" Orientation="Horizontal">
+                                                            <TextBlock
+                                                                HorizontalAlignment="Left"
+                                                                Style="{DynamicResource TextBlockLargeBold}"
+                                                                Text="当前程式当前轴点位："
+                                                                TextTrimming="CharacterEllipsis"
+                                                                TextWrapping="NoWrap" />
+
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </pf:Card.Header>
+
+                                                <Border>
+
+                                                    <TextBox
+                                                        Margin="5"
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Stretch"
+                                                        FontSize="40"
+                                                        Text="{Binding RecipeAxisPosition}"
+                                                        TextAlignment="Center" />
+                                                </Border>
+
+                                                <pf:Card.Footer>
+                                                    <pf:ButtonGroup Margin="10">
+                                                        <Button Command="{Binding MoveToRecipePositionCommand}" Content="移动到" />
+                                                        <Button Command="{Binding GetCurrentPositionCommand}" Content="获取当前轴位置" />
+                                                        <Button Command="{Binding UpdateRecipePositionCommand}" Content="更新" />
+                                                    </pf:ButtonGroup>
+                                                </pf:Card.Footer>
+                                            </pf:Card>
+
+                                            <pf:Card
+                                                Height="180"
+                                                Margin="0,10,0,0"
+                                                BorderBrush="{DynamicResource ControlDefultBrush}">
+                                                <pf:Card.Header>
+                                                    <Grid>
+                                                        <StackPanel Margin="10" Orientation="Horizontal">
+                                                            <TextBlock
+                                                                HorizontalAlignment="Left"
+                                                                Style="{DynamicResource TextBlockLargeBold}"
+                                                                Text="扫码调试："
+                                                                TextTrimming="CharacterEllipsis"
+                                                                TextWrapping="NoWrap" />
+
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </pf:Card.Header>
+
+                                                <Border>
+
+                                                    <TextBox
+                                                        Margin="5"
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Stretch"
+                                                        FontSize="40"
+                                                        IsReadOnly="True"
+                                                        Text="{Binding ScanResult}"
+                                                        TextAlignment="Center" />
+                                                </Border>
+
+                                                <pf:Card.Footer>
+                                                    <pf:ButtonGroup Margin="10">
+                                                        <Button Command="{Binding TriggerScanCommand}" Content="触发扫码" />
+                                                    </pf:ButtonGroup>
+                                                </pf:Card.Footer>
+                                            </pf:Card>
 
 
-                                    <pf:Card
-                                        Height="180"
-                                        Margin="0,10,0,0"
-                                        BorderBrush="{DynamicResource ControlDefultBrush}">
-                                        <pf:Card.Header>
-                                            <Grid>
-                                                <StackPanel Margin="10" Orientation="Horizontal">
-                                                    <TextBlock
-                                                        HorizontalAlignment="Left"
-                                                        Style="{DynamicResource TextBlockLargeBold}"
-                                                        Text="OCR调试："
-                                                        TextTrimming="CharacterEllipsis"
-                                                        TextWrapping="NoWrap" />
+                                            <pf:Card
+                                                Height="180"
+                                                Margin="0,10,0,0"
+                                                BorderBrush="{DynamicResource ControlDefultBrush}">
+                                                <pf:Card.Header>
+                                                    <Grid>
+                                                        <StackPanel Margin="10" Orientation="Horizontal">
+                                                            <TextBlock
+                                                                HorizontalAlignment="Left"
+                                                                Style="{DynamicResource TextBlockLargeBold}"
+                                                                Text="OCR调试："
+                                                                TextTrimming="CharacterEllipsis"
+                                                                TextWrapping="NoWrap" />
 
-                                                </StackPanel>
-                                            </Grid>
-                                        </pf:Card.Header>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </pf:Card.Header>
 
-                                        <Border>
+                                                <Border>
 
-                                            <TextBox
-                                                Margin="5"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                FontSize="40"
-                                                IsReadOnly="True"
-                                                Text="{Binding OcrResult}"
-                                                TextAlignment="Center" />
-                                        </Border>
+                                                    <TextBox
+                                                        Margin="5"
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalAlignment="Stretch"
+                                                        FontSize="40"
+                                                        IsReadOnly="True"
+                                                        Text="{Binding OcrResult}"
+                                                        TextAlignment="Center" />
+                                                </Border>
 
-                                        <pf:Card.Footer>
-                                            <pf:ButtonGroup Margin="10">
-                                                <Button Command="{Binding TriggerOcrCommand}" Content="触发OCR" />
-                                            </pf:ButtonGroup>
-                                        </pf:Card.Footer>
+                                                <pf:Card.Footer>
+                                                    <pf:ButtonGroup Margin="10">
+                                                        <Button Command="{Binding TriggerOcrCommand}" Content="触发OCR" />
+                                                    </pf:ButtonGroup>
+                                                </pf:Card.Footer>
 
-                                    </pf:Card>
-
-
-                                </StackPanel>
-                            </ScrollViewer>
+                                            </pf:Card>
 
 
-                        </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+
+
+                                </Border>
+                            </TabItem>
+                        </TabControl>
+
+
+
+
                     </Grid>
                 </Grid>
 
