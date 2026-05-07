@@ -405,7 +405,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // 变量解析：读取三个特征物理传感器的布尔值
             bool iscom1 = _io.ReadInput(E_InPutName.晶圆轨道右晶圆在位检测1) == true;   // 晶圆轨道右晶圆在位检测1
             bool iscom2 = _io.ReadInput(E_InPutName.晶圆轨道右晶圆在位检测2) == true;
-            return iscom1 & iscom2;
+            return iscom1 || iscom2;
 
         }
 
