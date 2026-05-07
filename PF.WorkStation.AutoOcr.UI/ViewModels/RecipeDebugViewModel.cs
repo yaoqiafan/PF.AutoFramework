@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Recipe;
+using PF.Core.Models;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
@@ -18,6 +19,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace PF.WorkStation.AutoOcr.UI.ViewModels
@@ -50,6 +52,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private readonly WS1MaterialPullingModule? _ws1Module;
         private readonly WS2MaterialPullingModule? _ws2Module;
+        private readonly WS1FeedingModel? _ws1FeedingModule;
+        private readonly WS2FeedingModel? _ws2FeedingModule;
 
         private bool _isBusy;
         /// <summary>
@@ -65,6 +69,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     TestPullOutCommand?.RaiseCanExecuteChanged();
                     TestPushBackCommand?.RaiseCanExecuteChanged();
                     TestFullFlowCommand?.RaiseCanExecuteChanged();
+                    RaiseStepCanExecuteChanged();
                 }
             }
         }
@@ -85,6 +90,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             _ws1Module = containerProvider.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)) as WS1MaterialPullingModule;
             _ws2Module = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
+            _ws1FeedingModule = containerProvider.Resolve<IMechanism>(nameof(WS1FeedingModel)) as WS1FeedingModel;
+            _ws2FeedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModel)) as WS2FeedingModel;
 
             // 获取三个固定 OCR 轴
             _axisX = hardwareManager.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
@@ -128,6 +135,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (parameters.ContainsKey("CurrentRepice"))
                 _currentRecipe = parameters.GetValue<OCRRecipeParam>("CurrentRepice");
 
+            RaisePropertyChanged(nameof(RecipeWaferSizeText));
             // 从配方初始化光源值
             InfraredLightValue = _currentRecipe?.LightChanel1Value ?? 0;
             WhiteLightValue = _currentRecipe?.LightChanel2Value ?? 0;
@@ -326,6 +334,48 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion 光源参数属性
 
+        #region 模组调试步骤属性
+
+        private int _currentDebugStep;
+        public int CurrentDebugStep
+        {
+            get => _currentDebugStep;
+            private set
+            {
+                if (SetProperty(ref _currentDebugStep, value))
+                {
+                    RaisePropertyChanged(nameof(Step1Brush));
+                    RaisePropertyChanged(nameof(Step2Brush));
+                    RaisePropertyChanged(nameof(Step3Brush));
+                    RaisePropertyChanged(nameof(Step4Brush));
+                    RaiseStepCanExecuteChanged();
+                }
+            }
+        }
+
+        public string RecipeWaferSizeText => _currentRecipe != null ? _currentRecipe.WafeSize.ToString() : "—";
+
+        private int _targetLayerNumber = 1;
+        public int TargetLayerNumber
+        {
+            get => _targetLayerNumber;
+            set => SetProperty(ref _targetLayerNumber, value < 1 ? 1 : value);
+        }
+
+        private string _debugStepMessage = "请从第1步开始，按顺序执行调试流程";
+        public string DebugStepMessage
+        {
+            get => _debugStepMessage;
+            set => SetProperty(ref _debugStepMessage, value);
+        }
+
+        public Brush Step1Brush => CurrentDebugStep >= 1 ? Brushes.MediumSeaGreen : Brushes.CornflowerBlue;
+        public Brush Step2Brush => CurrentDebugStep >= 2 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 1 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
+        public Brush Step3Brush => CurrentDebugStep >= 3 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 2 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
+        public Brush Step4Brush => CurrentDebugStep >= 4 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 3 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
+
+        #endregion
+
         #region 命令定义
         /// <summary>
         /// SwitchRecipe 命令
@@ -410,6 +460,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// TestFullFlow 命令
         /// </summary>
         public DelegateCommand TestFullFlowCommand { get; private set; }
+
+        // ── 模组调试步骤命令 ──
+        public DelegateCommand Step1SwitchProductionCommand { get; private set; }
+        public DelegateCommand Step2SwitchLayerCommand { get; private set; }
+        public DelegateCommand Step3PullMaterialCommand { get; private set; }
+        public DelegateCommand Step4PushMaterialCommand { get; private set; }
+        public DelegateCommand ResetDebugStepsCommand { get; private set; }
 
         /// <summary>
         /// SyncAdjust 命令
@@ -503,6 +560,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             TestPullOutCommand = new DelegateCommand(async () => await ExecuteTestPullOutAsync(), () => !IsBusy);
             TestPushBackCommand = new DelegateCommand(async () => await ExecuteTestPushBackAsync(), () => !IsBusy);
             TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), () => !IsBusy);
+
+            // 模组调试步骤命令
+            Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy);
+            Step2SwitchLayerCommand = new DelegateCommand(async () => await ExecuteDebugStep2Async(), () => !IsBusy && CurrentDebugStep >= 1);
+            Step3PullMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep3Async(), () => !IsBusy && CurrentDebugStep >= 2);
+            Step4PushMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep4Async(), () => !IsBusy && CurrentDebugStep >= 3);
+            ResetDebugStepsCommand = new DelegateCommand(() =>
+            {
+                CurrentDebugStep = 0;
+                DebugStepMessage = "已重置，请从第1步开始";
+            });
 
             // 程式点位命令
             SyncAdjustCommand = new DelegateCommand(ExecuteSyncAdjust);
@@ -776,6 +844,139 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private IMechanism? GetCurrentModule()
         {
             return CurrentStation == E_WorkSpace.工位1 ? _ws1Module : _ws2Module;
+        }
+
+        private void RaiseStepCanExecuteChanged()
+        {
+            Step1SwitchProductionCommand?.RaiseCanExecuteChanged();
+            Step2SwitchLayerCommand?.RaiseCanExecuteChanged();
+            Step3PullMaterialCommand?.RaiseCanExecuteChanged();
+            Step4PushMaterialCommand?.RaiseCanExecuteChanged();
+        }
+
+        #endregion
+
+        #region 模组调试步骤命令实现
+
+        private async Task ExecuteDebugStep1Async()
+        {
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                var size = _currentRecipe?.WafeSize ?? E_WafeSize._8寸;
+                DebugStepMessage = $"正在切换生产状态（{size}）...";
+                var result = await FeedingSwitchProductionStateAsync(cts.Token);
+                if (!result.IsSuccess) throw new Exception(result.ErrorMessage);
+                CurrentDebugStep = 1;
+                DebugStepMessage = $"第1步完成：已切换为 {size} 生产状态，可执行第2步";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"第1步失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ExecuteDebugStep2Async()
+        {
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugStepMessage = $"正在切换至第 {TargetLayerNumber} 层...";
+                var result = await FeedingSwitchToLayerAsync(TargetLayerNumber, cts.Token);
+                if (!result.IsSuccess) throw new Exception(result.ErrorMessage);
+                CurrentDebugStep = 2;
+                DebugStepMessage = $"第2步完成：已定位至第 {TargetLayerNumber} 层，可执行第3步";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"第2步失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ExecuteDebugStep3Async()
+        {
+            var pullModule = GetCurrentModule();
+            if (pullModule == null) { DebugStepMessage = "当前工位拉料模组未就绪"; return; }
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugStepMessage = "正在关闭凸片检测...";
+                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
+
+                DebugStepMessage = "正在执行拉料流程...";
+                await InternalTestPullOutAsync(pullModule, cts.Token);
+                CurrentDebugStep = 3;
+                DebugStepMessage = "第3步完成：拉料流程测试完成，可执行第4步";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"第3步失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ExecuteDebugStep4Async()
+        {
+            var pullModule = GetCurrentModule();
+            if (pullModule == null) { DebugStepMessage = "当前工位拉料模组未就绪"; return; }
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugStepMessage = "正在关闭凸片检测...";
+                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
+
+                DebugStepMessage = "正在执行推料流程...";
+                await InternalTestPushBackAsync(pullModule, cts.Token);
+                CurrentDebugStep = 4;
+                DebugStepMessage = "第4步完成：推料流程测试完成，全流程调试结束";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"第4步失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task<MechResult> FeedingSwitchProductionStateAsync(CancellationToken token)
+        {
+            var size = _currentRecipe?.WafeSize ?? E_WafeSize._8寸;
+            if (CurrentStation == E_WorkSpace.工位1)
+            {
+                if (_ws1FeedingModule == null) throw new InvalidOperationException("工位1上料模组未就绪");
+                return await _ws1FeedingModule.SwitchProductionStateAsync(size, token);
+            }
+            if (_ws2FeedingModule == null) throw new InvalidOperationException("工位2上料模组未就绪");
+            return await _ws2FeedingModule.SwitchProductionStateAsync(size, token);
+        }
+
+        private async Task<MechResult> FeedingSwitchToLayerAsync(int layer, CancellationToken token)
+        {
+            if (CurrentStation == E_WorkSpace.工位1)
+            {
+                if (_ws1FeedingModule == null) throw new InvalidOperationException("工位1上料模组未就绪");
+                return await _ws1FeedingModule.SwitchToLayerAsync(layer, token);
+            }
+            if (_ws2FeedingModule == null) throw new InvalidOperationException("工位2上料模组未就绪");
+            return await _ws2FeedingModule.SwitchToLayerAsync(layer, token);
+        }
+
+        private async Task<MechResult> FeedingSetThrustWasherAsync(bool open, CancellationToken token)
+        {
+            if (CurrentStation == E_WorkSpace.工位1)
+            {
+                if (_ws1FeedingModule == null) throw new InvalidOperationException("工位1上料模组未就绪");
+                return await _ws1FeedingModule.SetThrustWasherAsync(open, token);
+            }
+            if (_ws2FeedingModule == null) throw new InvalidOperationException("工位2上料模组未就绪");
+            return await _ws2FeedingModule.SetThrustWasherAsync(open, token);
         }
 
         #endregion
