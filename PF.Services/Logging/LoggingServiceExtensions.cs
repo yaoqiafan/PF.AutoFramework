@@ -19,7 +19,7 @@ namespace PF.Services.Logging
             this IContainerRegistry containerRegistry,
             LogConfiguration? config = null)
         {
-            var logConfig = config ?? CreateDefaultLogConfiguration();
+            var logConfig = config ?? LogConfiguration.LoadOrDefault(LogConfiguration.GetDefaultFilePath());
             EnsureLogDirectories(logConfig);
 
             var logService = new LogService(logConfig);
@@ -28,28 +28,6 @@ namespace PF.Services.Logging
             return containerRegistry;
         }
 
-        private static LogConfiguration CreateDefaultLogConfiguration()
-        {
-            //var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
-            var logBasePath ="D://PF_Logs";
-
-            var config = new LogConfiguration
-            {
-                BasePath = logBasePath,
-                HistoricalLogPath = logBasePath,
-                EnableConsoleLogging = true,
-                EnableFileLogging = true,
-                EnableUiLogging = true,
-                MinimumLevel = LogLevel.Debug,
-                AutoDeleteLogs = true,
-                AutoDeleteIntervalDays = 30,
-                MaxUiEntries = 1000,
-                SplitByHour = false
-            };
-            config.ConfigureDefaultCategories();
-            config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
-            return config;
-        }
 
         private static void EnsureLogDirectories(LogConfiguration config)
         {
