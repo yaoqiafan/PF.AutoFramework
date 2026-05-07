@@ -535,7 +535,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token);
+                await _axis.MoveAbsoluteAsync(TargetPosition, JogVelocity, JogVelocity * 5, JogVelocity * 5, 0.08, _cts.Token);
             });
             MoveRelativeCommand = new DelegateCommand(async () =>
             {
@@ -578,7 +578,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 if (_axis == null) return;
                 RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(RecipeAxisPosition, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token);
+                await _axis.MoveAbsoluteAsync(RecipeAxisPosition, JogVelocity, JogVelocity * 5, JogVelocity * 5, 0.08, _cts.Token);
             });
             GetCurrentPositionCommand = new DelegateCommand(() =>
             {
