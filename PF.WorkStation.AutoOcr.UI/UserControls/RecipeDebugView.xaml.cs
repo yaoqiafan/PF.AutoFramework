@@ -1,17 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace PF.WorkStation.AutoOcr.UI.UserControls
 {
@@ -20,12 +8,45 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
     /// </summary>
     public partial class RecipeDebugView : UserControl
     {
+        private bool _minimizedByDeactivation;
+
         /// <summary>
         /// RecipeDebugView 构造函数
         /// </summary>
         public RecipeDebugView()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Deactivated += OnApplicationDeactivated;
+            Application.Current.Activated += OnApplicationActivated;
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Deactivated -= OnApplicationDeactivated;
+            Application.Current.Activated -= OnApplicationActivated;
+        }
+
+        private void OnApplicationDeactivated(object? sender, EventArgs e)
+        {
+            var host = Window.GetWindow(this);
+            if (host == null || host.WindowState == WindowState.Minimized) return;
+            _minimizedByDeactivation = true;
+            host.WindowState = WindowState.Minimized;
+        }
+
+        private void OnApplicationActivated(object? sender, EventArgs e)
+        {
+            if (!_minimizedByDeactivation) return;
+            _minimizedByDeactivation = false;
+            var host = Window.GetWindow(this);
+            if (host != null)
+                host.WindowState = WindowState.Normal;
         }
     }
 }
