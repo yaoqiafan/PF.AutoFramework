@@ -679,6 +679,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 复位启动信号，清除流程中误触发的冗余计数，确保每次都需要新的按钮按下
                             _sync.ResetSingleSignal(nameof(WorkstationSignals.工位1启动按钮按下));
 
+                           await Task.Delay(500);
                             // 阻塞等待外部信号触发
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1启动按钮按下), token).ConfigureAwait(false);
 
@@ -735,7 +736,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                     AlarmCodesExtensions.WS1Feeding.BoxBaseNotDetected => Station1FeedingStep.料盒公用底座未检测到物体,
                                     _ => Station1FeedingStep.料盒尺寸识别失败
                                 };
-                                RouteToError(errStep, Station1FeedingStep.识别料盒尺寸, sizeResult.ErrorCode);
+                                RouteToError(errStep, Station1FeedingStep.等待按下工位1启动按钮, sizeResult.ErrorCode);
                             }
                             break;
 

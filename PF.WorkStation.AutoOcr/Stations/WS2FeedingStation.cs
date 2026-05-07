@@ -734,7 +734,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                    
                                     _ => Station2FeedingStep.料盒尺寸识别失败
                                 };
-                                RouteToError(errStep, Station2FeedingStep.识别料盒尺寸, sizeResult.ErrorCode);
+                                RouteToError(errStep, Station2FeedingStep.等待按下工位2启动按钮, sizeResult.ErrorCode);
                             }
                             break;
 
