@@ -739,6 +739,20 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 触发本地或读码器扫码逻辑
                             var scanResult = await _pullingModule.CodeScanTigger(token);
                             _logger.Info($"[{StationName}] 扫码识别完成，结果：{(scanResult.IsSuccess ? string.Join(", ", scanResult.Data) : "未扫到码或校验失败")}");
+                            if (!scanResult.IsSuccess)
+                            {
+                                RouteToError(Station1PullingStep.扫码失败, Station1PullingStep.等待允许送料);
+                                break;
+                            }
+                            var checkResult = await _dataModule.CheckCodeAsync(E_WorkSpace.工位1, scanResult.Data, token);
+                            if (!checkResult.IsSuccess)
+                            {
+                                _logger.Warn($"[{StationName}] 条码校验不通过: {checkResult.ErrorMessage}");
+                                RouteToError(Station1PullingStep.扫码失败, Station1PullingStep.等待允许送料);
+                                break;
+                            }
+                            _dataModule.SetStationScanCodes(E_WorkSpace.工位1, scanResult.Data);
+                            _logger.Info($"[{StationName}] 条码校验通过，晶圆 [{checkResult.Data?.WaferId}] 已暂存至数据中枢");
                             _currentStep = Station1PullingStep.允许检测位检测;
                             break;
 
