@@ -297,7 +297,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         _currentLayerIndex = 0;
                         break;
 
-                   
+
 
                     default:
                         _logger.Info($"[{StationName}] 保持当前步序: {_currentStep}");
@@ -679,7 +679,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 复位启动信号，清除流程中误触发的冗余计数，确保每次都需要新的按钮按下
                             _sync.ResetSingleSignal(nameof(WorkstationSignals.工位1启动按钮按下));
 
-                           await Task.Delay(500);
+                            await Task.Delay(500);
                             // 阻塞等待外部信号触发
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1启动按钮按下), token).ConfigureAwait(false);
 
@@ -942,18 +942,29 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 RouteToError(Station1FeedingStep.等待物料拉出完成, Station1FeedingStep.等待物料拉出完成);
                             }
 
-                           
+
                             break;
 
                         case Station1FeedingStep.阻塞等待物料回退完成:
                             CurrentStepDescription = "阻塞等待物料回退完成...";
-                            // 等待拉料工站反馈 Y 轴已完全退回
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
+                            if (await _feedingModule.SetThrustWasherAsync(true, token))
+                            {
+                                await Task.Delay(500);
+                                // 等待拉料工站反馈 Y 轴已拉出至安全位
+                                // 等待拉料工站反馈 Y 轴已完全退回
+                                await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
-                            MemoryParam.CurrentLayerIndex = _currentLayerIndex;
-                            MemoryParam.PersistedStep = (int)Station1FeedingStep.计算下一层位置;
-                            FlushMemory();
-                            _currentStep = Station1FeedingStep.计算下一层位置;
+                                MemoryParam.CurrentLayerIndex = _currentLayerIndex;
+                                MemoryParam.PersistedStep = (int)Station1FeedingStep.计算下一层位置;
+                                FlushMemory();
+                                _currentStep = Station1FeedingStep.计算下一层位置;
+                            }
+                            else
+                            {
+                                _logger.Error($"[{StationName}] 第{_layersToProcess[_currentLayerIndex] + 1}层凸片传感器关闭失败。");
+                                RouteToError(Station1FeedingStep.阻塞等待物料回退完成, Station1FeedingStep.阻塞等待物料回退完成);
+                            }
+
                             break;
 
                         case Station1FeedingStep.计算下一层位置:
