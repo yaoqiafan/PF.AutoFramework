@@ -512,6 +512,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 Barcode1 = "CODE1",
                                 Barcode2 = "CODE2",
                                 Barcode3 = "CODE3",
+                                OcrText = _cachedOcrResult.OcrText,
                                 IsMatch = kk.IsSuccess,
                                 ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
                                 ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
