@@ -34,7 +34,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
         /// <summary>
         /// 相机程序列表
         /// </summary>
-        public abstract List <string > CameraProgram { get; }
+        public abstract List<string> CameraProgram { get; }
 
 
 
@@ -42,7 +42,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
         /// <summary>
         /// 超时时间（毫秒）
         /// </summary>
-        public abstract  int TimeOutMs { get; }
+        public abstract int TimeOutMs { get; }
+
+        public abstract string CurProgrammer { get; }
 
         /// <summary>
         /// 切换程序
