@@ -110,9 +110,9 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             // ── 工位 1 信号注册 (明确指定 Scope 作用域以实现精准的生命周期管理) ──
 
-            // 全局作用域信号 (无归属的物理按钮动作)
-            _sync.Register(nameof(WorkstationSignals.工位1启动按钮按下));
-            // 人工下料完成信号归属各自上下料工站 scope，避免 ResetSingleSignal 广播取消时跨工站误伤
+            // 启动按钮与人工下料信号均归属各自上下料工站 scope，
+            // 防止 ResetSingleSignal 广播取消 global scope 时跨工站误伤对方的 WaitAsync
+            _sync.Register(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
 
             // 局部作用域信号 (绑定至具体执行工站，工站复位时会自动清理其 Scope 下的信号残存)
@@ -125,8 +125,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             // ── 工位 2 信号注册 ──
 
-            // 全局作用域信号
-            _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下));
+            _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
 
             // 局部作用域信号
@@ -177,12 +176,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 switch (inputType)
                 {
                     case HardwareInputTypeExtension.WorkStation1Start:
-                        _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
+                        _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
                         _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
                         break;
 
                     case HardwareInputTypeExtension.WorkStation2Start:
-                        _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下));
+                        _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
                         _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
                         break;
                 }
