@@ -388,41 +388,41 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             try
             {
-                token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
+                token.ThrowIfCancellationRequested();
                 string originalPathDir = await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageOriginalPath.ToString());
+                int imageWaitTimeout = await ParamService.GetParamAsync<int>(E_Params.OCRCameraImageWaitTimeout.ToString());
+                if (imageWaitTimeout <= 0) imageWaitTimeout = 5000;
 
                 if (!IsCheckResult)
                 {
                     // 调试/强制抓图模式：清空旧图片以确保提取到的是最新一帧
                     DeleteDir(originalPathDir);
+                    var triggerTime = DateTime.Now;
                     string ocreec = await _camera.Tigger(token);
-                    string path = GetLatestCreatedFile(originalPathDir);
+                    string path = await WaitForNewImageAsync(originalPathDir, triggerTime, imageWaitTimeout, token);
                     return MechResult<(string, string)>.Success((ocreec, path));
                 }
                 else
                 {
                     // 生产模式：提供最多3次的容错重拍机会
                     string rec = string.Empty;
+                    DateTime lastTriggerTime = DateTime.Now;
                     for (int i = 0; i < 3; i++)
                     {
-                        token.ThrowIfCancellationRequested(); // 【新增】循环内取消探测
+                        token.ThrowIfCancellationRequested();
+                        lastTriggerTime = DateTime.Now;
+                        rec = await _camera.Tigger(token);
 
-                        rec = await _camera.Tigger(token); // 触发拍照与底层算法解析
-
-                        // 提交数据中枢进行逻辑比对
                         var flag = await _dataModule.CheckOcrTextAsync(workStation, rec, token);
-                        if (flag.IsSuccess)
-                        {
-                            break; // 校验成功，跳出重试
-                        }
+                        if (flag.IsSuccess) break;
                     }
 
-                    // 获取当前拍摄最新生成的图像物理路径
-                    string imagePath = GetLatestCreatedFile(originalPathDir);
+                    // 等待最后一次触发对应的图片落盘
+                    string imagePath = await WaitForNewImageAsync(originalPathDir, lastTriggerTime, imageWaitTimeout, token);
                     return MechResult<(string, string)>.Success((rec, imagePath));
                 }
             }
-            catch (OperationCanceledException) // 【新增】防吞噬拦截
+            catch (OperationCanceledException)
             {
                 throw;
             }
@@ -470,6 +470,25 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 轮询等待相机将图片写入磁盘。每 100ms 检查一次目录内是否出现创建时间晚于
+        /// <paramref name="afterTime"/> 的新文件；超时后返回 null。
+        /// </summary>
+        private async Task<string> WaitForNewImageAsync(string folderPath, DateTime afterTime, int timeoutMs, CancellationToken token)
+        {
+            var deadline = DateTime.Now.AddMilliseconds(timeoutMs);
+            while (DateTime.Now < deadline)
+            {
+                token.ThrowIfCancellationRequested();
+                var path = GetLatestCreatedFile(folderPath);
+                if (path != null && new FileInfo(path).CreationTime >= afterTime)
+                    return path;
+                await Task.Delay(100, token);
+            }
+            _logger.Warn($"[{MechanismName}] 等待相机存图超时（{timeoutMs} ms），图片路径返回 null");
+            return null;
         }
 
         /// <summary>

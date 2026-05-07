@@ -599,6 +599,12 @@ namespace PF.Workstation.AutoOcr.CostParam
         OCRCameraImageSavePath,
 
 
+        /// <summary>相机存图等待超时（毫秒）</summary>
+        [Category("OCR相机参数")]
+        [Description("触发拍照后等待相机将图片写入磁盘的最大超时时间（毫秒）")]
+        [DefaultValue(5000)]
+        OCRCameraImageWaitTimeout,
+
         /// <summary>工位X方向间距_8寸</summary>
         [Category("OCR相机参数")]
         [Description("工位X方向间距_8寸")]
