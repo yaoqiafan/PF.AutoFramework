@@ -569,7 +569,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private void OnStation1UnloadConfirm()
         {
             Station1UnloadMaskVisible = false;
-            _sync.Release(nameof(WorkstationSignals.工位1人工下料完成));
+            _sync.Release(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
         }
 
         /// <summary>
@@ -578,7 +578,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private void OnStation2UnloadConfirm()
         {
             Station2UnloadMaskVisible = false;
-            _sync.Release(nameof(WorkstationSignals.工位2人工下料完成));
+            _sync.Release(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
         }
 
         /// <summary>
