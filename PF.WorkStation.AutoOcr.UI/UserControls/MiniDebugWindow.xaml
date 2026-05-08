@@ -1,0 +1,439 @@
+<Window
+    x:Class="PF.WorkStation.AutoOcr.UI.UserControls.MiniDebugWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    AllowsTransparency="True"
+    Background="Transparent"
+    ResizeMode="NoResize"
+    SizeToContent="WidthAndHeight"
+    Topmost="True"
+    WindowStyle="None">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <pf:Card Width="360" Margin="8">
+        <pf:Card.Effect>
+            <DropShadowEffect BlurRadius="14" Opacity="0.28" ShadowDepth="4" Color="#000000" />
+        </pf:Card.Effect>
+
+        <!--  Header：翻页 + 标题 + 页码 + 关闭  -->
+        <pf:Card.Header>
+            <Grid
+                Height="44"
+                Cursor="SizeAll"
+                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="36" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="36" />
+                    <ColumnDefinition Width="36" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    Grid.Column="0"
+                    Width="28" Height="28"
+                    HorizontalAlignment="Center"
+                    Command="{Binding MiniCardPrevCommand}"
+                    Content="◀"
+                    FontSize="{DynamicResource FontSize.Body.Small}"
+                    Style="{DynamicResource ButtonDefault}" />
+
+                <TextBlock
+                    Grid.Column="1"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="Bold"
+                    Text="{Binding MiniCardTitle}" />
+
+                <TextBlock
+                    Grid.Column="2"
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Caption.Mini}"
+                    Foreground="#94A3B8"
+                    Text="{Binding MiniCardPageText}" />
+
+                <Button
+                    Grid.Column="3"
+                    Width="28" Height="28"
+                    HorizontalAlignment="Center"
+                    Command="{Binding MiniCardNextCommand}"
+                    Content="▶"
+                    FontSize="{DynamicResource FontSize.Body.Small}"
+                    Style="{DynamicResource ButtonDefault}" />
+
+                <Button
+                    Grid.Column="4"
+                    Width="28" Height="28"
+                    HorizontalAlignment="Center"
+                    Click="CloseButton_Click"
+                    Content="✕"
+                    FontSize="{DynamicResource FontSize.Body.Small}"
+                    Style="{DynamicResource ButtonDanger}" />
+            </Grid>
+        </pf:Card.Header>
+
+        <!--  内容区：7 页 DataTrigger 切换  -->
+        <Grid Margin="12,10,12,10">
+
+            <!--  页 0-2：轴调试（IsMiniAxisPage = true 时显示）  -->
+            <StackPanel Visibility="{Binding IsMiniAxisPage, Converter={StaticResource BoolToVis}}">
+
+                <!--  DRO  -->
+                <Border Margin="0,0,0,8" Padding="8,6" Background="#F1F5F9" CornerRadius="4">
+                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock
+                            FontFamily="Consolas"
+                            FontSize="{DynamicResource FontSize.H1.Large}"
+                            FontWeight="Heavy"
+                            Foreground="#4ADE80"
+                            Text="{Binding MiniAxisPosition}" />
+                        <TextBlock
+                            Margin="4,0,0,4" VerticalAlignment="Bottom"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            Foreground="#94A3B8" Text="um" />
+                    </StackPanel>
+                </Border>
+
+                <!--  IO 状态  -->
+                <UniformGrid Margin="0,0,0,8" Columns="3">
+                    <CheckBox Content="使能" IsChecked="{Binding MiniAxisIsEnabled, Mode=OneWay}" IsHitTestVisible="False" />
+                    <CheckBox Content="运动" Foreground="#0284C7" IsChecked="{Binding MiniAxisIsMoving, Mode=OneWay}" IsHitTestVisible="False" />
+                    <CheckBox Content="报警" Foreground="#EF4444" IsChecked="{Binding MiniAxisIsAlarm, Mode=OneWay}" IsHitTestVisible="False" />
+                </UniformGrid>
+
+                <!--  JOG 行  -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="46" />
+                        <ColumnDefinition Width="76" />
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Height="32" Content="◀ JOG-" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                <i:InvokeCommandAction Command="{Binding MiniJogNegativeCommand}" />
+                            </i:EventTrigger>
+                            <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                <i:InvokeCommandAction Command="{Binding MiniAxisStopCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </Button>
+                    <TextBlock Grid.Column="1" Margin="6,0,4,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="速度:" />
+                    <TextBox Grid.Column="2" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                             FontSize="{DynamicResource FontSize.Body.Small}"
+                             Text="{Binding MiniJogVelocity, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="3" Height="32" Margin="4,0" Command="{Binding MiniAxisStopCommand}" Content="停止"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonDanger}" />
+                    <Button Grid.Column="4" Height="32" Content="JOG+ ▶" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                <i:InvokeCommandAction Command="{Binding MiniJogPositiveCommand}" />
+                            </i:EventTrigger>
+                            <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                <i:InvokeCommandAction Command="{Binding MiniAxisStopCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </Button>
+                </Grid>
+
+                <!--  轴控制行  -->
+                <UniformGrid Columns="4">
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding MiniAxisEnableCommand}" Content="使能 ON"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding MiniAxisDisableCommand}" Content="使能 OFF"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonWarning}" />
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding MiniAxisHomeCommand}" Content="回零"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonSuccess}" />
+                    <Button Height="30" Command="{Binding MiniAxisResetCommand}" Content="复位"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonDefault}" />
+                </UniformGrid>
+            </StackPanel>
+
+            <!--  页 3：调试步骤  -->
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MiniCardIndex}" Value="3">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <!--  状态消息  -->
+                <Border Margin="0,0,0,8" Padding="8,5" Background="#F0F9FF" CornerRadius="4">
+                    <TextBlock FontSize="{DynamicResource FontSize.Caption.Mini}" Foreground="#0369A1"
+                               Text="{Binding DebugStepMessage}" TextWrapping="Wrap" />
+                </Border>
+
+                <!--  Step 0  -->
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="20" Height="20" VerticalAlignment="Center" Background="{Binding Step0Brush}" CornerRadius="10">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="0" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center"
+                               FontSize="{DynamicResource FontSize.Caption.Mini}" Text="移动挡料X轴到待机位" />
+                    <Button Grid.Column="2" Height="26" Command="{Binding Step0MoveStopperToStandbyCommand}" Content="执行"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <!--  Step 1  -->
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="20" Height="20" VerticalAlignment="Center" Background="{Binding Step1Brush}" CornerRadius="10">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="1" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center"
+                               FontSize="{DynamicResource FontSize.Caption.Mini}" Text="切换生产状态" />
+                    <Button Grid.Column="2" Height="26" Command="{Binding Step1SwitchProductionCommand}" Content="执行"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <!--  Step 2  -->
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="20" Height="20" VerticalAlignment="Center" Background="{Binding Step2Brush}" CornerRadius="10">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="2" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="6,0" VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="切换至第" />
+                        <TextBox Width="36" Height="22" Margin="4,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                 FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                 Text="{Binding TargetLayerNumber, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="层" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Height="26" Command="{Binding Step2SwitchLayerCommand}" Content="执行"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <!--  Step 3  -->
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="20" Height="20" VerticalAlignment="Center" Background="{Binding Step3Brush}" CornerRadius="10">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="3" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center"
+                               FontSize="{DynamicResource FontSize.Caption.Mini}" Text="拉料流程测试" />
+                    <Button Grid.Column="2" Height="26" Command="{Binding Step3PullMaterialCommand}" Content="执行"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <!--  Step 4  -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="20" Height="20" VerticalAlignment="Center" Background="{Binding Step4Brush}" CornerRadius="10">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="4" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Margin="6,0" VerticalAlignment="Center"
+                               FontSize="{DynamicResource FontSize.Caption.Mini}" Text="推料流程测试" />
+                    <Button Grid.Column="2" Height="26" Command="{Binding Step4PushMaterialCommand}" Content="执行"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <Button HorizontalAlignment="Right" Command="{Binding ResetDebugStepsCommand}" Content="重 置"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonDefault}" />
+            </StackPanel>
+
+            <!--  页 4：扫码 / OCR  -->
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MiniCardIndex}" Value="4">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <TextBlock Margin="0,0,0,4" FontSize="{DynamicResource FontSize.Body.Small}" FontWeight="SemiBold" Text="扫码调试" />
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="34" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}"
+                             IsReadOnly="True" Text="{Binding ScanResult}" TextAlignment="Center" />
+                    <Button Grid.Column="1" Height="34" Margin="8,0,0,0" Padding="10,0"
+                            Command="{Binding TriggerScanCommand}" Content="触发扫码"
+                            FontSize="{DynamicResource FontSize.Body.Small}" Style="{DynamicResource ButtonDefault}" />
+                </Grid>
+
+                <TextBlock Margin="0,0,0,4" FontSize="{DynamicResource FontSize.Body.Small}" FontWeight="SemiBold" Text="OCR 调试" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="34" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}"
+                             IsReadOnly="True" Text="{Binding OcrResult}" TextAlignment="Center" />
+                    <Button Grid.Column="1" Height="34" Margin="8,0,0,0" Padding="10,0"
+                            Command="{Binding TriggerOcrCommand}" Content="触发 OCR"
+                            FontSize="{DynamicResource FontSize.Body.Small}" Style="{DynamicResource ButtonDefault}" />
+                </Grid>
+            </StackPanel>
+
+            <!--  页 5：配方点位  -->
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MiniCardIndex}" Value="5">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <StackPanel Margin="0,0,0,6" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="当前工位：" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}"
+                               FontWeight="Bold" Foreground="#0284C7" Text="{Binding CurrentStation}" />
+                </StackPanel>
+
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#475569" Text="X" />
+                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}"
+                               FontWeight="Bold" Text="{Binding RecipePosX, StringFormat=F3}" />
+                </Grid>
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#475569" Text="Y" />
+                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}"
+                               FontWeight="Bold" Text="{Binding RecipePosY, StringFormat=F3}" />
+                </Grid>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#475569" Text="Z" />
+                    <TextBlock Grid.Column="1" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}"
+                               FontWeight="Bold" Text="{Binding RecipePosZ, StringFormat=F3}" />
+                </Grid>
+
+                <UniformGrid Columns="2" Margin="0,0,0,4">
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding MoveToRecipeXYZCommand}" Content="移动到配方"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                    <Button Height="30" Command="{Binding GetAndUpdateRecipeXYZCommand}" Content="获取位置→配方"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonSuccess}" />
+                </UniformGrid>
+                <Button HorizontalAlignment="Stretch" Height="30" Command="{Binding SyncAdjustCommand}" Content="同步调整"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonDefault}" />
+            </StackPanel>
+
+            <!--  页 6：设备控制  -->
+            <StackPanel>
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MiniCardIndex}" Value="6">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="当前轴：" />
+                    <ComboBox Grid.Column="1" Height="30" DisplayMemberPath="DeviceName"
+                              ItemsSource="{Binding AxisList}" SelectedItem="{Binding SelectedAxis}" />
+                </Grid>
+
+                <UniformGrid Columns="4" Margin="0,0,0,12">
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding EnableCommand}" Content="使能 ON"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonPrimary}" />
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding DisableCommand}" Content="使能 OFF"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonWarning}" />
+                    <Button Height="30" Margin="0,0,3,0" Command="{Binding HomeCommand}" Content="回零"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonSuccess}" />
+                    <Button Height="30" Command="{Binding ResetCommand}" Content="复位"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonDefault}" />
+                </UniformGrid>
+
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="36" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="红外光" />
+                    <Slider Grid.Column="1" Maximum="255" Minimum="0" Value="{Binding InfraredLightValue, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding InfraredLightValue}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="36" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="条光" />
+                    <Slider Grid.Column="1" Maximum="255" Minimum="0" Value="{Binding WhiteLightValue, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding WhiteLightValue}" />
+                </Grid>
+            </StackPanel>
+
+        </Grid>
+        <!--  Footer：当前工位（常驻）  -->
+        <pf:Card.Footer>
+            <StackPanel Margin="8,6" HorizontalAlignment="Center" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Foreground="#475569" Text="工位：" />
+                <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}"
+                           FontWeight="Bold" Foreground="#0284C7" Text="{Binding CurrentStation}" />
+                <Button Margin="16,0,0,0" MinHeight="24" Padding="10,0"
+                        Command="{Binding SwitchRecipeCommand}" Content="切换工位"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}" Style="{DynamicResource ButtonDefault}" />
+            </StackPanel>
+        </pf:Card.Footer>
+    </pf:Card>
+</Window>

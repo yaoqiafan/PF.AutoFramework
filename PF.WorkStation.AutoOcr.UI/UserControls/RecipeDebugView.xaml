@@ -728,21 +728,32 @@
         </Border>
 
         <!-- 底部对话框按钮 -->
-        <StackPanel
-            Grid.Row="3"
-            HorizontalAlignment="Right"
-            Orientation="Horizontal">
+        <Grid Grid.Row="3">
             <Button
+                x:Name="BtnMiniMode"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
                 MinHeight="35"
-                Padding="25,0"
-                Command="{Binding CancelCommand}"
-                Content="取消" />
-            <Button
-                MinHeight="35"
-                Margin="15,0,0,0"
-                Padding="25,0"
-                Command="{Binding ConfirmCommand}"
-                Content="应用" />
-        </StackPanel>
+                Padding="20,0"
+                Click="BtnMiniMode_Click"
+                Content="迷你模式"
+                Style="{DynamicResource ButtonSuccess}" />
+            <StackPanel
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <Button
+                    MinHeight="35"
+                    Padding="25,0"
+                    Command="{Binding CancelCommand}"
+                    Content="取消" />
+                <Button
+                    MinHeight="35"
+                    Margin="15,0,0,0"
+                    Padding="25,0"
+                    Command="{Binding ConfirmCommand}"
+                    Content="应用" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>
