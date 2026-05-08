@@ -443,6 +443,59 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion
 
+        #region 迷你模式属性
+
+        private int _miniCardIndex;
+        public int MiniCardIndex
+        {
+            get => _miniCardIndex;
+            set
+            {
+                if (SetProperty(ref _miniCardIndex, ((value % 7) + 7) % 7))
+                {
+                    RaisePropertyChanged(nameof(MiniCardTitle));
+                    RaisePropertyChanged(nameof(MiniCardPageText));
+                    RaisePropertyChanged(nameof(IsMiniAxisPage));
+                    RaisePropertyChanged(nameof(MiniAxisPosition));
+                    RaisePropertyChanged(nameof(MiniAxisIsEnabled));
+                    RaisePropertyChanged(nameof(MiniAxisIsMoving));
+                    RaisePropertyChanged(nameof(MiniAxisIsAlarm));
+                    RaisePropertyChanged(nameof(MiniJogVelocity));
+                }
+            }
+        }
+
+        public string MiniCardTitle => MiniCardIndex switch
+        {
+            0 => "视觉 X 轴", 1 => "视觉 Y 轴", 2 => "视觉 Z 轴",
+            3 => "调试步骤", 4 => "扫码 / OCR", 5 => "配方点位",
+            _ => "设备控制"
+        };
+        public string MiniCardPageText => $"{MiniCardIndex + 1} / 7";
+        public bool IsMiniAxisPage => MiniCardIndex <= 2;
+
+        public double MiniAxisPosition => MiniCardIndex switch { 0 => XAxisCurrentPosition, 1 => YAxisCurrentPosition, _ => ZAxisCurrentPosition };
+        public bool MiniAxisIsEnabled => MiniCardIndex switch { 0 => XAxisIsEnabled, 1 => YAxisIsEnabled, _ => ZAxisIsEnabled };
+        public bool MiniAxisIsMoving => MiniCardIndex switch { 0 => XAxisIsMoving, 1 => YAxisIsMoving, _ => ZAxisIsMoving };
+        public bool MiniAxisIsAlarm => MiniCardIndex switch { 0 => XAxisIsAlarm, 1 => YAxisIsAlarm, _ => ZAxisIsAlarm };
+
+        public double MiniJogVelocity
+        {
+            get => MiniCardIndex switch { 0 => XAxisJogVelocity, 1 => YAxisJogVelocity, _ => ZAxisJogVelocity };
+            set
+            {
+                switch (MiniCardIndex)
+                {
+                    case 0: XAxisJogVelocity = value; break;
+                    case 1: YAxisJogVelocity = value; break;
+                    default: ZAxisJogVelocity = value; break;
+                }
+                RaisePropertyChanged();
+            }
+        }
+
+        #endregion
+
         #region 命令定义
         /// <summary>
         /// SwitchRecipe 命令
@@ -556,6 +609,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// GetAndUpdateRecipeXYZ 命令 — 获取三轴当前位置并写入当前工位配方点位
         /// </summary>
         public DelegateCommand GetAndUpdateRecipeXYZCommand { get; private set; }
+
+        // ── 迷你模式命令 ──
+        public DelegateCommand MiniCardPrevCommand { get; private set; }
+        public DelegateCommand MiniCardNextCommand { get; private set; }
+        public DelegateCommand MiniJogPositiveCommand { get; private set; }
+        public DelegateCommand MiniJogNegativeCommand { get; private set; }
+        public DelegateCommand MiniAxisStopCommand { get; private set; }
+        public DelegateCommand MiniAxisEnableCommand { get; private set; }
+        public DelegateCommand MiniAxisDisableCommand { get; private set; }
+        public DelegateCommand MiniAxisHomeCommand { get; private set; }
+        public DelegateCommand MiniAxisResetCommand { get; private set; }
 
         /// <summary>
         /// SyncAdjust 命令
@@ -680,6 +744,45 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             // 获取三轴当前位置并写入配方
             GetAndUpdateRecipeXYZCommand = new DelegateCommand(ExecuteGetAndUpdateRecipeXYZ);
+
+            // 迷你模式命令
+            MiniCardPrevCommand = new DelegateCommand(() => MiniCardIndex--);
+            MiniCardNextCommand = new DelegateCommand(() => MiniCardIndex++);
+            MiniJogPositiveCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, _ => _axisZ };
+                if (axis != null) await axis.JogAsync(MiniJogVelocity, true, MiniJogVelocity * 5, MiniJogVelocity * 5);
+            });
+            MiniJogNegativeCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, _ => _axisZ };
+                if (axis != null) await axis.JogAsync(MiniJogVelocity, false, MiniJogVelocity * 5, MiniJogVelocity * 5);
+            });
+            MiniAxisStopCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, _ => _axisZ };
+                if (axis != null) await axis.StopAsync();
+            });
+            MiniAxisEnableCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                if (axis != null) await axis.EnableAsync();
+            });
+            MiniAxisDisableCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                if (axis != null) await axis.DisableAsync();
+            });
+            MiniAxisHomeCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                if (axis != null) await axis.HomeAsync(CancellationToken.None);
+            });
+            MiniAxisResetCommand = new DelegateCommand(async () =>
+            {
+                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                if (axis is BaseDevice dev) await dev.ResetAsync(CancellationToken.None);
+            });
 
             // 程式点位命令
             SyncAdjustCommand = new DelegateCommand(ExecuteSyncAdjust);
@@ -1256,6 +1359,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             IsPositiveLimit = axisio?.PEL ?? false;
             IsNegativeLimit = axisio?.MEL ?? false;
             IsAlarm = axisio?.ALM ?? false;
+
+            // 刷新迷你模式属性
+            RaisePropertyChanged(nameof(MiniAxisPosition));
+            RaisePropertyChanged(nameof(MiniAxisIsEnabled));
+            RaisePropertyChanged(nameof(MiniAxisIsMoving));
+            RaisePropertyChanged(nameof(MiniAxisIsAlarm));
         }
 
         private void RefreshCancellationToken()
