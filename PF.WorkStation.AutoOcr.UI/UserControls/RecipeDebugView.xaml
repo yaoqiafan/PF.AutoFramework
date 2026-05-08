@@ -7,792 +7,742 @@
     xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.UserControls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    d:DesignHeight="850"
-    d:DesignWidth="1000"
+    FontSize="{DynamicResource FontSize.H2.Title}"
+    d:DesignHeight="760"
+    d:DesignWidth="1100"
     mc:Ignorable="d">
+
     <Grid Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
-            <RowDefinition MaxHeight="740" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="40" />
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal">
-            <Button
-                MinHeight="35"
-                Margin="0,0,0,0"
-                Padding="25,0"
-                Command="{Binding SwitchRecipeCommand}"
-                Content="切换工位" />
+        <!-- 顶部工具栏 -->
+        <Grid Grid.Row="0">
+            <StackPanel Orientation="Horizontal">
+                <Button
+                    MinHeight="35"
+                    Padding="20,0"
+                    Command="{Binding SwitchRecipeCommand}"
+                    Content="切换工位" />
+                <Button
+                    MinHeight="35"
+                    Margin="15,0,0,0"
+                    Padding="20,0"
+                    Command="{Binding OpenScannerSoftwareCommand}"
+                    Content="打开扫码枪软件" />
+                <Button
+                    MinHeight="35"
+                    Margin="15,0,0,0"
+                    Padding="20,0"
+                    Command="{Binding OpenCameraSoftwareCommand}"
+                    Content="打开相机软件" />
+            </StackPanel>
+            <StackPanel
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontWeight="SemiBold"
+                    Text="当前工位：" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.H1.Large}"
+                    FontWeight="Bold"
+                    Foreground="#0284C7"
+                    Text="{Binding CurrentStation}" />
+            </StackPanel>
+        </Grid>
 
-            <Button
-                MinHeight="35"
-                Margin="25,0,0,0"
-                Padding="25,0"
-                Command="{Binding OpenScannerSoftwareCommand}"
-                Content="打开扫码枪软件" />
-            <Button
-                MinHeight="35"
-                Margin="25,0,0,0"
-                Padding="25,0"
-                Command="{Binding OpenCameraSoftwareCommand}"
-                Content="打开相机软件" />
-        </StackPanel>
+        <!-- 主内容区 -->
+        <Grid Grid.Row="1" Margin="0,5,0,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="440" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
+            <!-- ===== 左列：三轴卡片 + 设备控制 ===== -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-        <StackPanel
+                <!-- 视觉X轴卡片 -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,0,0,6"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock
+                            Margin="0,0,0,6"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Text="视觉 X 轴" />
+                        <Border
+                            Margin="0,0,0,6"
+                            Padding="8,4"
+                            Background="#F1F5F9"
+                            CornerRadius="4">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock
+                                    FontFamily="Consolas"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    FontWeight="Heavy"
+                                    Foreground="#4ADE80"
+                                    Text="{Binding XAxisCurrentPosition}" />
+                                <TextBlock
+                                    Margin="5,0,0,4"
+                                    VerticalAlignment="Bottom"
+                                    FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                    Foreground="#94A3B8"
+                                    Text="um" />
+                            </StackPanel>
+                        </Border>
+                        <UniformGrid Margin="0,0,0,6" Columns="5">
+                            <CheckBox Content="使能" IsChecked="{Binding XAxisIsEnabled, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="运动" Foreground="#0284C7" IsChecked="{Binding XAxisIsMoving, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="正限" Foreground="#EF4444" IsChecked="{Binding XAxisIsPosLimit, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="负限" Foreground="#EF4444" IsChecked="{Binding XAxisIsNegLimit, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="报警" Foreground="#EF4444" IsChecked="{Binding XAxisIsAlarm, Mode=OneWay}" IsHitTestVisible="False" />
+                        </UniformGrid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="80" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Height="32" Content="◀ JOG-" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding XJogNegativeCommand}" />
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                        <i:InvokeCommandAction Command="{Binding XAxisStopCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Button>
+                            <TextBlock Grid.Column="1" Margin="8,0,4,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="速度:" />
+                            <TextBox
+                                Grid.Column="2"
+                                Height="30"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Text="{Binding XAxisJogVelocity, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button
+                                Grid.Column="3"
+                                Height="32"
+                                Margin="4,0"
+                                Command="{Binding XAxisStopCommand}"
+                                Content="停止"
+                                Style="{DynamicResource ButtonDanger}" />
+                            <Button Grid.Column="4" Height="32" Content="JOG+ ▶" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding XJogPositiveCommand}" />
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                        <i:InvokeCommandAction Command="{Binding XAxisStopCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 视觉Y轴卡片 -->
+                <Border
+                    Grid.Row="1"
+                    Margin="0,0,0,6"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock
+                            Margin="0,0,0,6"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Text="视觉 Y 轴" />
+                        <Border
+                            Margin="0,0,0,6"
+                            Padding="8,4"
+                            Background="#F1F5F9"
+                            CornerRadius="4">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock
+                                    FontFamily="Consolas"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    FontWeight="Heavy"
+                                    Foreground="#4ADE80"
+                                    Text="{Binding YAxisCurrentPosition}" />
+                                <TextBlock
+                                    Margin="5,0,0,4"
+                                    VerticalAlignment="Bottom"
+                                    FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                    Foreground="#94A3B8"
+                                    Text="um" />
+                            </StackPanel>
+                        </Border>
+                        <UniformGrid Margin="0,0,0,6" Columns="5">
+                            <CheckBox Content="使能" IsChecked="{Binding YAxisIsEnabled, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="运动" Foreground="#0284C7" IsChecked="{Binding YAxisIsMoving, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="正限" Foreground="#EF4444" IsChecked="{Binding YAxisIsPosLimit, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="负限" Foreground="#EF4444" IsChecked="{Binding YAxisIsNegLimit, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="报警" Foreground="#EF4444" IsChecked="{Binding YAxisIsAlarm, Mode=OneWay}" IsHitTestVisible="False" />
+                        </UniformGrid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="80" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Height="32" Content="◀ JOG-" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding YJogNegativeCommand}" />
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                        <i:InvokeCommandAction Command="{Binding YAxisStopCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Button>
+                            <TextBlock Grid.Column="1" Margin="8,0,4,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="速度:" />
+                            <TextBox
+                                Grid.Column="2"
+                                Height="30"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Text="{Binding YAxisJogVelocity, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button
+                                Grid.Column="3"
+                                Height="32"
+                                Margin="4,0"
+                                Command="{Binding YAxisStopCommand}"
+                                Content="停止"
+                                Style="{DynamicResource ButtonDanger}" />
+                            <Button Grid.Column="4" Height="32" Content="JOG+ ▶" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding YJogPositiveCommand}" />
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                        <i:InvokeCommandAction Command="{Binding YAxisStopCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 视觉Z轴卡片 -->
+                <Border
+                    Grid.Row="2"
+                    Margin="0,0,0,6"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock
+                            Margin="0,0,0,6"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Text="视觉 Z 轴" />
+                        <Border
+                            Margin="0,0,0,6"
+                            Padding="8,4"
+                            Background="#F1F5F9"
+                            CornerRadius="4">
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock
+                                    FontFamily="Consolas"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    FontWeight="Heavy"
+                                    Foreground="#4ADE80"
+                                    Text="{Binding ZAxisCurrentPosition}" />
+                                <TextBlock
+                                    Margin="5,0,0,4"
+                                    VerticalAlignment="Bottom"
+                                    FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                    Foreground="#94A3B8"
+                                    Text="um" />
+                            </StackPanel>
+                        </Border>
+                        <UniformGrid Margin="0,0,0,6" Columns="5">
+                            <CheckBox Content="使能" IsChecked="{Binding ZAxisIsEnabled, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="运动" Foreground="#0284C7" IsChecked="{Binding ZAxisIsMoving, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="正限" Foreground="#EF4444" IsChecked="{Binding ZAxisIsPosLimit, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="负限" Foreground="#EF4444" IsChecked="{Binding ZAxisIsNegLimit, Mode=OneWay}" IsHitTestVisible="False" />
+                            <CheckBox Content="报警" Foreground="#EF4444" IsChecked="{Binding ZAxisIsAlarm, Mode=OneWay}" IsHitTestVisible="False" />
+                        </UniformGrid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="80" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Height="32" Content="◀ JOG-" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding ZJogNegativeCommand}" />
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                        <i:InvokeCommandAction Command="{Binding ZAxisStopCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Button>
+                            <TextBlock Grid.Column="1" Margin="8,0,4,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="速度:" />
+                            <TextBox
+                                Grid.Column="2"
+                                Height="30"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Text="{Binding ZAxisJogVelocity, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button
+                                Grid.Column="3"
+                                Height="32"
+                                Margin="4,0"
+                                Command="{Binding ZAxisStopCommand}"
+                                Content="停止"
+                                Style="{DynamicResource ButtonDanger}" />
+                            <Button Grid.Column="4" Height="32" Content="JOG+ ▶" FontWeight="Bold" Style="{DynamicResource ButtonDefault}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding ZJogPositiveCommand}" />
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
+                                        <i:InvokeCommandAction Command="{Binding ZAxisStopCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 设备控制（简化）-->
+                <Border
+                    Grid.Row="3"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock
+                            Margin="0,0,0,8"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Foreground="#475569"
+                            Text="设备控制" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="当前轴：" />
+                            <ComboBox
+                                Grid.Column="1"
+                                Height="30"
+                                DisplayMemberPath="DeviceName"
+                                ItemsSource="{Binding AxisList}"
+                                SelectedItem="{Binding SelectedAxis}" />
+                        </Grid>
+                        <UniformGrid Margin="0,8,0,0" Columns="4">
+                            <Button
+                                Height="32"
+                                Margin="0,0,4,0"
+                                Command="{Binding EnableCommand}"
+                                Content="使能 ON"
+                                Style="{DynamicResource ButtonPrimary}" />
+                            <Button
+                                Height="32"
+                                Margin="0,0,4,0"
+                                Command="{Binding DisableCommand}"
+                                Content="使能 OFF"
+                                Style="{DynamicResource ButtonWarning}" />
+                            <Button
+                                Height="32"
+                                Margin="0,0,4,0"
+                                Command="{Binding HomeCommand}"
+                                Content="回零"
+                                Style="{DynamicResource ButtonSuccess}" />
+                            <Button
+                                Height="32"
+                                Command="{Binding ResetCommand}"
+                                Content="复位"
+                                Style="{DynamicResource ButtonDefault}" />
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ===== 右列：调试步骤 + 扫码 + OCR + 光源 ===== -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- 模组调试步骤 -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,0,0,6"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="{DynamicResource FontSize.Body.Standard}"
+                                FontWeight="SemiBold"
+                                Text="模组调试（顺序流程）" />
+                            <Button
+                                HorizontalAlignment="Right"
+                                Command="{Binding ResetDebugStepsCommand}"
+                                Content="重 置"
+                                Style="{DynamicResource ButtonDefault}" />
+                        </Grid>
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="8,5"
+                            Background="#F0F9FF"
+                            CornerRadius="4">
+                            <TextBlock
+                                FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                Foreground="#0369A1"
+                                Text="{Binding DebugStepMessage}"
+                                TextWrapping="Wrap" />
+                        </Border>
+
+                        <!-- Step 0：移动挡料X轴到待机位 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step0Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="0" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Margin="8,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="移动挡料X轴到待机位" />
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step0MoveStopperToStandbyCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+
+                        <!-- Step 1：切换生产状态 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step1Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="1" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+                                <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="切换生产状态" />
+                                <TextBlock Margin="0,2,0,0" FontSize="{DynamicResource FontSize.Caption.Mini}" Foreground="#475569" Text="{Binding RecipeWaferSizeText}" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step1SwitchProductionCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+
+                        <!-- Step 2：切换至指定层 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step2Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="2" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+                                <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="切换至指定层" />
+                                <StackPanel Margin="0,2" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" Text="层数：" />
+                                    <TextBox
+                                        Width="48"
+                                        Height="22"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                        Text="{Binding TargetLayerNumber, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step2SwitchLayerCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+
+                        <!-- Step 3：拉料流程测试 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step3Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="3" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+                                <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="拉料流程测试" />
+                                <TextBlock Margin="0,2,0,0" FontSize="{DynamicResource FontSize.Caption.Mini}" Foreground="#94A3B8" Text="（自动关闭凸片检测）" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step3PullMaterialCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+
+                        <!-- Step 4：推料流程测试 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step4Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="4" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
+                                <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="推料流程测试" />
+                                <TextBlock Margin="0,2,0,0" FontSize="{DynamicResource FontSize.Caption.Mini}" Foreground="#94A3B8" Text="（自动关闭凸片检测）" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step4PushMaterialCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 扫码调试 -->
+                <Border
+                    Grid.Row="1"
+                    Margin="0,0,0,6"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="{DynamicResource FontSize.Body.Standard}"
+                                FontWeight="SemiBold"
+                                Text="扫码调试" />
+                            <TextBox
+                                Height="36"
+                                FontFamily="Consolas"
+                                FontSize="{DynamicResource FontSize.H2.Title}"
+                                IsReadOnly="True"
+                                Text="{Binding ScanResult}"
+                                TextAlignment="Center" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="1"
+                            Width="80"
+                            Height="36"
+                            Margin="12,22,0,0"
+                            VerticalAlignment="Bottom"
+                            Command="{Binding TriggerScanCommand}"
+                            Content="触发扫码"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </Grid>
+                </Border>
+
+                <!-- OCR调试 -->
+                <Border
+                    Grid.Row="2"
+                    Margin="0,0,0,6"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="{DynamicResource FontSize.Body.Standard}"
+                                FontWeight="SemiBold"
+                                Text="OCR 调试" />
+                            <TextBox
+                                Height="36"
+                                FontFamily="Consolas"
+                                FontSize="{DynamicResource FontSize.H2.Title}"
+                                IsReadOnly="True"
+                                Text="{Binding OcrResult}"
+                                TextAlignment="Center" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="1"
+                            Width="80"
+                            Height="36"
+                            Margin="12,22,0,0"
+                            VerticalAlignment="Bottom"
+                            Command="{Binding TriggerOcrCommand}"
+                            Content="触发 OCR"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </Grid>
+                </Border>
+
+                <!-- 光源控制 -->
+                <Border
+                    Grid.Row="3"
+                    Padding="12,10"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock
+                            Margin="0,0,0,8"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Foreground="#475569"
+                            Text="光源控制" />
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="40" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="红外光" />
+                            <Slider Grid.Column="1" Maximum="255" Minimum="0" Value="{Binding InfraredLightValue, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding InfraredLightValue}" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="40" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="条光" />
+                            <Slider Grid.Column="1" Maximum="255" Minimum="0" Value="{Binding WhiteLightValue, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding WhiteLightValue}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- 底部：当前工位配方点位 + 多轴运动 + 同步调整 -->
+        <Border
             Grid.Row="2"
+            Margin="0,0,0,5"
+            Padding="15,10"
+            Background="#F8FAFC"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
+            CornerRadius="6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 点位显示 -->
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" FontWeight="SemiBold" Foreground="#475569" Text="当前工位配方点位：" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#475569" Text="X = " />
+                    <TextBlock VerticalAlignment="Center" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold" Foreground="#1E293B" Text="{Binding RecipePosX, StringFormat=F3}" />
+                    <TextBlock Margin="18,0,0,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#475569" Text="Y = " />
+                    <TextBlock VerticalAlignment="Center" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold" Foreground="#1E293B" Text="{Binding RecipePosY, StringFormat=F3}" />
+                    <TextBlock Margin="18,0,0,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Foreground="#475569" Text="Z = " />
+                    <TextBlock VerticalAlignment="Center" FontFamily="Consolas" FontSize="{DynamicResource FontSize.Body.Standard}" FontWeight="Bold" Foreground="#1E293B" Text="{Binding RecipePosZ, StringFormat=F3}" />
+                </StackPanel>
+
+                <!-- 操作按钮 -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                    <Button
+                        MinHeight="32"
+                        Padding="18,0"
+                        Command="{Binding GetAndUpdateRecipeXYZCommand}"
+                        Content="获取当前轴位置"
+                        Style="{DynamicResource ButtonDefault}" />
+                    <Button
+                        MinHeight="32"
+                        Margin="10,0,0,0"
+                        Padding="18,0"
+                        Command="{Binding MoveToRecipeXYZCommand}"
+                        Content="移动到配方点位（XYZ）"
+                        Style="{DynamicResource ButtonPrimary}" />
+                    <Button
+                        MinHeight="32"
+                        Margin="10,0,0,0"
+                        Padding="18,0"
+                        Command="{Binding SyncAdjustCommand}"
+                        Content="同步调整"
+                        Style="{DynamicResource ButtonDefault}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 底部对话框按钮 -->
+        <StackPanel
+            Grid.Row="3"
             HorizontalAlignment="Right"
             Orientation="Horizontal">
             <Button
                 MinHeight="35"
-                Margin="0,0,0,0"
                 Padding="25,0"
                 Command="{Binding CancelCommand}"
                 Content="取消" />
-
             <Button
                 MinHeight="35"
-                Margin="25,0,0,0"
+                Margin="15,0,0,0"
                 Padding="25,0"
                 Command="{Binding ConfirmCommand}"
                 Content="应用" />
         </StackPanel>
-
-
-
-        <pf:Card Grid.Row="1" Width="900">
-            <Border Margin="10" CornerRadius="4,4,0,0">
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="340" />
-                        <ColumnDefinition Width="15" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <Grid Grid.Column="0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <Border
-                            Grid.Row="0"
-                            Margin="0,0,0,15"
-                            Padding="15"
-                            BorderBrush="#E2E8F0"
-                            BorderThickness="1"
-                            CornerRadius="6">
-                            <StackPanel>
-                                <TextBlock
-                                    Margin="0,0,0,10"
-                                    FontSize="{DynamicResource FontSize.Body.Standard}"
-                                    FontWeight="SemiBold"
-                                    Text="实时位置 (DRO)" />
-                                <Border
-                                    Padding="15"
-                                    Background="#E2E8F0"
-                                    CornerRadius="6">
-                                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                        <TextBlock
-                                            FontFamily="Consolas"
-                                            FontSize="36"
-                                            FontWeight="Heavy"
-                                            Foreground="#4ADE80"
-                                            Text="{Binding CurrentPosition}" />
-                                        <TextBlock
-                                            Margin="8,0,0,6"
-                                            VerticalAlignment="Bottom"
-                                            FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                            Foreground="#94A3B8"
-                                            Text=" um" />
-                                    </StackPanel>
-                                </Border>
-
-                                <TextBlock
-                                    Margin="0,15,0,10"
-                                    FontSize="{DynamicResource FontSize.Body.Standard}"
-                                    FontWeight="SemiBold"
-                                    Text="IO 状态监控" />
-                                <UniformGrid Margin="0,5" Columns="2">
-                                    <CheckBox
-                                        Margin="0,5"
-                                        Content="轴已使能 (SVON)"
-                                        IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                        IsHitTestVisible="False" />
-                                    <CheckBox
-                                        Margin="0,5"
-                                        Content="正在运动 (BUSY)"
-                                        Foreground="#0284C7"
-                                        IsChecked="{Binding IsMoving, Mode=OneWay}"
-                                        IsHitTestVisible="False" />
-                                    <CheckBox
-                                        Margin="0,5"
-                                        Content="正限位 (PEL)"
-                                        Foreground="#EF4444"
-                                        IsChecked="{Binding IsPositiveLimit, Mode=OneWay}"
-                                        IsHitTestVisible="False" />
-                                    <CheckBox
-                                        Margin="0,5"
-                                        Content="负限位 (NEL)"
-                                        Foreground="#EF4444"
-                                        IsChecked="{Binding IsNegativeLimit, Mode=OneWay}"
-                                        IsHitTestVisible="False" />
-                                    <CheckBox
-                                        Margin="0,5"
-                                        Content="驱动器报警 (ALM)"
-                                        Foreground="#EF4444"
-                                        IsChecked="{Binding IsAlarm, Mode=OneWay}"
-                                        IsHitTestVisible="False" />
-                                </UniformGrid>
-                            </StackPanel>
-                        </Border>
-
-                        <Border
-                            Grid.Row="1"
-                            Padding="15"
-                            BorderBrush="#E2E8F0"
-                            BorderThickness="1"
-                            CornerRadius="6">
-                            <StackPanel>
-                                <TextBlock
-                                    Margin="0,0,0,10"
-                                    FontSize="{DynamicResource FontSize.Body.Standard}"
-                                    FontWeight="SemiBold"
-                                    Foreground="#475569"
-                                    Text="设备启停" />
-                                <ScrollViewer>
-                                    <StackPanel>
-                                        <UniformGrid Margin="0,0,0,10" Columns="2">
-                                            <Button
-                                                Height="36"
-                                                Margin="0,0,5,5"
-                                                Command="{Binding ConnectCommand}"
-                                                Content="连接硬件"
-                                                Style="{DynamicResource ButtonDefault}" />
-                                            <Button
-                                                Height="36"
-                                                Margin="5,0,0,5"
-                                                Command="{Binding DisconnectCommand}"
-                                                Content="断开连接"
-                                                Style="{DynamicResource ButtonDefault}" />
-                                            <Button
-                                                Height="36"
-                                                Margin="0,5,5,0"
-                                                Command="{Binding EnableCommand}"
-                                                Content="伺服使能 (ON)"
-                                                Style="{DynamicResource ButtonPrimary}" />
-                                            <Button
-                                                Height="36"
-                                                Margin="5,5,0,0"
-                                                Command="{Binding DisableCommand}"
-                                                Content="断开使能 (OFF)"
-                                                Style="{DynamicResource ButtonWarning}" />
-                                        </UniformGrid>
-                                        <Button
-                                            Height="40"
-                                            Margin="0,5"
-                                            Command="{Binding HomeCommand}"
-                                            Content="执行回零 (HOME)"
-                                            Style="{DynamicResource ButtonSuccess}" />
-                                        <Button
-                                            Height="45"
-                                            Margin="0,5"
-                                            Command="{Binding StopCommand}"
-                                            Content="急 停 (E-STOP)"
-                                            FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                            FontWeight="Bold"
-                                            Style="{DynamicResource ButtonDanger}" />
-                                        <Button
-                                            Height="36"
-                                            Margin="0,5"
-                                            Command="{Binding ResetCommand}"
-                                            Content="报警复位 (RESET)"
-                                            Style="{DynamicResource ButtonDefault}" />
-                                    </StackPanel>
-
-                                </ScrollViewer>
-
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-
-                    <Grid Grid.Column="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <StackPanel Grid.Row="0">
-
-                            <Border
-                                Margin="0,0,0,10"
-                                Padding="15"
-                                BorderBrush="#E2E8F0"
-                                BorderThickness="1"
-                                CornerRadius="6">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="120" />
-                                    </Grid.ColumnDefinitions>
-                                    <Button
-                                        Grid.Column="0"
-                                        Height="40"
-                                        Content="◀ JOG -"
-                                        FontSize="{DynamicResource FontSize.Body.Standard}"
-                                        FontWeight="Bold"
-                                        Style="{DynamicResource ButtonDefault}">
-                                        <i:Interaction.Triggers>
-                                            <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
-                                                <i:InvokeCommandAction Command="{Binding JogNegativeCommand}" />
-                                            </i:EventTrigger>
-                                            <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
-                                                <i:InvokeCommandAction Command="{Binding AxisStopCommand}" />
-                                            </i:EventTrigger>
-                                        </i:Interaction.Triggers>
-                                    </Button>
-                                    <TextBlock
-                                        Grid.Column="1"
-                                        Margin="20,0,10,0"
-                                        VerticalAlignment="Center"
-                                        Text="点动速度(um/s):" />
-                                    <TextBox
-                                        Grid.Column="2"
-                                        Width="100"
-                                        Height="36"
-                                        Margin="0,0,20,0"
-                                        HorizontalContentAlignment="Center"
-                                        VerticalContentAlignment="Center"
-                                        Text="{Binding JogVelocity}" />
-                                    <Button
-                                        Grid.Column="4"
-                                        Height="40"
-                                        Content="JOG + ▶"
-                                        FontSize="{DynamicResource FontSize.Body.Standard}"
-                                        FontWeight="Bold"
-                                        Style="{DynamicResource ButtonDefault}">
-                                        <i:Interaction.Triggers>
-                                            <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
-                                                <i:InvokeCommandAction Command="{Binding JogPositiveCommand}" />
-                                            </i:EventTrigger>
-                                            <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
-                                                <i:InvokeCommandAction Command="{Binding AxisStopCommand}" />
-                                            </i:EventTrigger>
-                                        </i:Interaction.Triggers>
-                                    </Button>
-                                </Grid>
-                            </Border>
-
-
-
-                        </StackPanel>
-
-                        <TabControl Grid.Row="1">
-
-                            <TabItem Header="取料流程测试">
-                                <Border
-                                    Margin="0,0,0,10"
-                                    Padding="12"
-                                    BorderBrush="#E2E8F0"
-                                    BorderThickness="1"
-                                    CornerRadius="6">
-                                    <StackPanel>
-                                        <!--  Header  -->
-                                        <Grid Margin="0,0,0,8">
-                                            <TextBlock
-                                                VerticalAlignment="Center"
-                                                FontSize="{DynamicResource FontSize.Body.Standard}"
-                                                FontWeight="SemiBold"
-                                                Text="模组调试（顺序流程）" />
-                                            <Button
-                                               
-                                                HorizontalAlignment="Right"
-                                                Command="{Binding ResetDebugStepsCommand}"
-                                                Content="重 置"
-                                                Style="{DynamicResource ButtonDefault}" />
-                                        </Grid>
-
-                                        <!--  状态提示  -->
-                                        <Border
-                                            Margin="0,0,0,8"
-                                            Padding="8,5"
-                                            Background="#F0F9FF"
-                                            CornerRadius="4">
-                                            <TextBlock
-                                                FontSize="11"
-                                                Foreground="#0369A1"
-                                                Text="{Binding DebugStepMessage}"
-                                                TextWrapping="Wrap" />
-                                        </Border>
-
-                                        <!--  Step 1：切换生产状态  -->
-                                        <Grid Margin="14,10" >
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="52" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border
-                                                Width="24"
-                                                Height="24"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding Step1Brush}"
-                                                CornerRadius="12">
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="11"
-                                                    FontWeight="Bold"
-                                                    Foreground="White"
-                                                    Text="1" />
-                                            </Border>
-                                            <StackPanel
-                                                Grid.Column="1"
-                                                Margin="6,0"
-                                                VerticalAlignment="Center">
-                                                <TextBlock FontSize="12" Text="切换生产状态" />
-                                                <TextBlock
-                                                    Margin="0,3,0,0"
-                                                    FontSize="11"
-                                                    Foreground="#475569"
-                                                    Text="{Binding RecipeWaferSizeText}" />
-                                            </StackPanel>
-                                            <Button
-                                                Grid.Column="2"
-                                                Height="30"
-                                                VerticalAlignment="Center"
-                                                Command="{Binding Step1SwitchProductionCommand}"
-                                                Content="执行"
-                                                Style="{DynamicResource ButtonPrimary}" />
-                                        </Grid>
-
-                                       
-
-                                        <!--  Step 2：切换指定层  -->
-                                        <Grid Margin="14,10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="52" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border
-                                                Width="24"
-                                                Height="24"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding Step2Brush}"
-                                                CornerRadius="12">
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="11"
-                                                    FontWeight="Bold"
-                                                    Foreground="White"
-                                                    Text="2" />
-                                            </Border>
-                                            <StackPanel
-                                                Grid.Column="1"
-                                                Margin="6,0"
-                                                VerticalAlignment="Center">
-                                                <TextBlock FontSize="12" Text="切换至指定层" />
-                                                <StackPanel Margin="0,3,0,0" Orientation="Horizontal">
-                                                    <TextBlock
-                                                        VerticalAlignment="Center"
-                                                        FontSize="11"
-                                                        Text="层数：" />
-                                                    <TextBox
-                                                        Width="48"
-                                                        Height="24"
-                                                        HorizontalContentAlignment="Center"
-                                                        VerticalContentAlignment="Center"
-                                                        FontSize="11"
-                                                        Text="{Binding TargetLayerNumber, UpdateSourceTrigger=PropertyChanged}" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <Button
-                                                Grid.Column="2"
-                                                Height="30"
-                                                VerticalAlignment="Center"
-                                                Command="{Binding Step2SwitchLayerCommand}"
-                                                Content="执行"
-                                                Style="{DynamicResource ButtonPrimary}" />
-                                        </Grid>
-
-                                      
-
-                                        <!--  Step 3：拉料流程测试  -->
-                                        <Grid Margin="14,10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="52" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border
-                                                Width="24"
-                                                Height="24"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding Step3Brush}"
-                                                CornerRadius="12">
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="11"
-                                                    FontWeight="Bold"
-                                                    Foreground="White"
-                                                    Text="3" />
-                                            </Border>
-                                            <StackPanel
-                                                Grid.Column="1"
-                                                Margin="6,0"
-                                                VerticalAlignment="Center">
-                                                <TextBlock FontSize="12" Text="拉料流程测试" />
-                                                <TextBlock
-                                                    FontSize="10"
-                                                    Foreground="#94A3B8"
-                                                    Text="（自动关闭凸片检测）" />
-                                            </StackPanel>
-                                            <Button
-                                                Grid.Column="2"
-                                                Height="30"
-                                                VerticalAlignment="Center"
-                                                Command="{Binding Step3PullMaterialCommand}"
-                                                Content="执行"
-                                                Style="{DynamicResource ButtonPrimary}" />
-                                        </Grid>
-
-                                       
-
-                                        <!--  Step 4：推料流程测试  -->
-                                        <Grid Margin="14,10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="30" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="52" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border
-                                                Width="24"
-                                                Height="24"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding Step4Brush}"
-                                                CornerRadius="12">
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="11"
-                                                    FontWeight="Bold"
-                                                    Foreground="White"
-                                                    Text="4" />
-                                            </Border>
-                                            <StackPanel
-                                                Grid.Column="1"
-                                                Margin="6,0"
-                                                VerticalAlignment="Center">
-                                                <TextBlock FontSize="12" Text="推料流程测试" />
-                                                <TextBlock
-                                                    FontSize="10"
-                                                    Foreground="#94A3B8"
-                                                    Text="（自动关闭凸片检测）" />
-                                            </StackPanel>
-                                            <Button
-                                                Grid.Column="2"
-                                                Height="30"
-                                                VerticalAlignment="Center"
-                                                Command="{Binding Step4PushMaterialCommand}"
-                                                Content="执行"
-                                                Style="{DynamicResource ButtonPrimary}" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-                            </TabItem>
-
-                            <TabItem  Header="点位光源调试">
-                                <Border
-                                    Margin="0,10,0,0"
-                                    Padding="15"
-                                    BorderBrush="#E2E8F0"
-                                    BorderThickness="1"
-                                    CornerRadius="6">
-
-                                    <ScrollViewer>
-                                        <StackPanel>
-                                            <pf:Card Height="180" BorderBrush="{DynamicResource ControlDefultBrush}">
-                                                <pf:Card.Header>
-                                                    <Grid>
-                                                        <StackPanel Margin="10" Orientation="Horizontal">
-                                                            <TextBlock
-                                                                HorizontalAlignment="Left"
-                                                                Style="{DynamicResource TextBlockLargeBold}"
-                                                                Text="当前程式当前轴点位："
-                                                                TextTrimming="CharacterEllipsis"
-                                                                TextWrapping="NoWrap" />
-
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </pf:Card.Header>
-
-                                                <Border>
-
-                                                    <TextBox
-                                                        Margin="5"
-                                                        HorizontalAlignment="Stretch"
-                                                        VerticalAlignment="Stretch"
-                                                        FontSize="40"
-                                                        Text="{Binding RecipeAxisPosition}"
-                                                        TextAlignment="Center" />
-                                                </Border>
-
-                                                <pf:Card.Footer>
-                                                    <pf:ButtonGroup Margin="10">
-                                                        <Button Command="{Binding MoveToRecipePositionCommand}" Content="移动到" />
-                                                        <Button Command="{Binding GetCurrentPositionCommand}" Content="获取当前轴位置" />
-                                                        <Button Command="{Binding UpdateRecipePositionCommand}" Content="更新" />
-                                                    </pf:ButtonGroup>
-                                                </pf:Card.Footer>
-                                            </pf:Card>
-
-                                            <pf:Card
-                                                Height="180"
-                                                Margin="0,10,0,0"
-                                                BorderBrush="{DynamicResource ControlDefultBrush}">
-                                                <pf:Card.Header>
-                                                    <Grid>
-                                                        <StackPanel Margin="10" Orientation="Horizontal">
-                                                            <TextBlock
-                                                                HorizontalAlignment="Left"
-                                                                Style="{DynamicResource TextBlockLargeBold}"
-                                                                Text="扫码调试："
-                                                                TextTrimming="CharacterEllipsis"
-                                                                TextWrapping="NoWrap" />
-
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </pf:Card.Header>
-
-                                                <Border>
-
-                                                    <TextBox
-                                                        Margin="5"
-                                                        HorizontalAlignment="Stretch"
-                                                        VerticalAlignment="Stretch"
-                                                        FontSize="40"
-                                                        IsReadOnly="True"
-                                                        Text="{Binding ScanResult}"
-                                                        TextAlignment="Center" />
-                                                </Border>
-
-                                                <pf:Card.Footer>
-                                                    <pf:ButtonGroup Margin="10">
-                                                        <Button Command="{Binding TriggerScanCommand}" Content="触发扫码" />
-                                                    </pf:ButtonGroup>
-                                                </pf:Card.Footer>
-                                            </pf:Card>
-
-
-                                            <pf:Card
-                                                Height="180"
-                                                Margin="0,10,0,0"
-                                                BorderBrush="{DynamicResource ControlDefultBrush}">
-                                                <pf:Card.Header>
-                                                    <Grid>
-                                                        <StackPanel Margin="10" Orientation="Horizontal">
-                                                            <TextBlock
-                                                                HorizontalAlignment="Left"
-                                                                Style="{DynamicResource TextBlockLargeBold}"
-                                                                Text="OCR调试："
-                                                                TextTrimming="CharacterEllipsis"
-                                                                TextWrapping="NoWrap" />
-
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </pf:Card.Header>
-
-                                                <Border>
-
-                                                    <TextBox
-                                                        Margin="5"
-                                                        HorizontalAlignment="Stretch"
-                                                        VerticalAlignment="Stretch"
-                                                        FontSize="40"
-                                                        IsReadOnly="True"
-                                                        Text="{Binding OcrResult}"
-                                                        TextAlignment="Center" />
-                                                </Border>
-
-                                                <pf:Card.Footer>
-                                                    <pf:ButtonGroup Margin="10">
-                                                        <Button Command="{Binding TriggerOcrCommand}" Content="触发OCR" />
-                                                    </pf:ButtonGroup>
-                                                </pf:Card.Footer>
-
-                                            </pf:Card>
-
-
-                                        </StackPanel>
-                                    </ScrollViewer>
-
-
-                                </Border>
-                            </TabItem>
-                        </TabControl>
-
-
-
-
-                    </Grid>
-                </Grid>
-
-
-            </Border>
-            <pf:Card.Footer>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-
-
-                    <StackPanel Margin="10" Orientation="Horizontal">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock
-                                HorizontalAlignment="Left"
-                                Style="{DynamicResource TextBlockLargeBold}"
-                                Text="当前轴："
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                            <ComboBox
-                                MinWidth="100"
-                                Margin="0,0,25,0"
-                                HorizontalAlignment="Left"
-                                DisplayMemberPath="DeviceName"
-                                ItemsSource="{Binding AxisList}"
-                                SelectedItem="{Binding SelectedAxis}" />
-                        </StackPanel>
-
-
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock
-                                HorizontalAlignment="Left"
-                                Style="{DynamicResource TextBlockLargeBold}"
-                                Text="当前工位："
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                            <TextBlock
-                                MinWidth="80"
-                                Margin="0,0,0,0"
-                                HorizontalAlignment="Left"
-                                Style="{DynamicResource TextBlockLargeBold}"
-                                Text="{Binding CurrentStation}"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                        </StackPanel>
-                    </StackPanel>
-
-
-                    <StackPanel
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Bottom"
-                        Orientation="Horizontal">
-                        <Button
-                            MinHeight="35"
-                            Margin="10"
-                            Padding="25,0"
-                            Command="{Binding SyncAdjustCommand}"
-                            Content="同步调整" />
-                    </StackPanel>
-
-
-
-                    <StackPanel
-                        Grid.Row="1"
-                        Margin="10"
-                        Orientation="Horizontal">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock
-                                HorizontalAlignment="Left"
-                                Style="{DynamicResource TextBlockLargeBold}"
-                                Text="当前程式点位："
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                            <TextBlock
-                                Margin="0,6,0,0"
-                                HorizontalAlignment="Left"
-                                Style="{DynamicResource TextBlockLargeBold}"
-                                Text="{Binding CurrentRecipePosition, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
-
-
-
-                        <StackPanel
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom"
-                            Orientation="Horizontal">
-                            <Button
-                                MinHeight="35"
-                                Margin="10"
-                                Padding="25,0"
-                                Command="{Binding MoveToRecipePositionCommand}"
-                                Content="移动到当前点位" />
-                        </StackPanel>
-
-                    </StackPanel>
-
-                    <StackPanel Grid.Row=" 2" Margin="10">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition />
-                                <RowDefinition />
-                            </Grid.RowDefinitions>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width=" 100" />
-                                    <ColumnDefinition Width=" *" />
-                                    <ColumnDefinition Width=" 100" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Style="{DynamicResource TextBlockLargeBold}" Text="红外光" />
-                                <Slider
-                                    Grid.Column=" 1"
-                                    Maximum=" 255"
-                                    Minimum=" 0"
-                                    Value="{Binding InfraredLightValue, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock
-                                    Grid.Column=" 2"
-                                    Style="{DynamicResource TextBlockLargeBold}"
-                                    Text="{Binding InfraredLightValue}" />
-                            </Grid>
-
-                            <Grid Grid.Row=" 1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width=" 100" />
-                                    <ColumnDefinition Width=" *" />
-                                    <ColumnDefinition Width=" 100" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Style="{DynamicResource TextBlockLargeBold}" Text="条光" />
-                                <Slider
-                                    Grid.Column=" 1"
-                                    Maximum=" 255"
-                                    Minimum=" 0"
-                                    Value="{Binding WhiteLightValue, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock
-                                    Grid.Column=" 2"
-                                    Style="{DynamicResource TextBlockLargeBold}"
-                                    Text="{Binding WhiteLightValue}" />
-                            </Grid>
-
-                        </Grid>
-
-
-
-
-                    </StackPanel>
-
-
-
-                </Grid>
-            </pf:Card.Footer>
-        </pf:Card>
     </Grid>
 </UserControl>

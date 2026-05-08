@@ -35,6 +35,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IAxis? _axisX;
         private readonly IAxis? _axisY;
         private readonly IAxis? _axisZ;
+        private readonly IAxis? _axisStopperX1;
+        private readonly IAxis? _axisStopperX2;
         private readonly IBarcodeScan? _scanner1;
         private readonly IBarcodeScan? _scanner2;
         private readonly IIntelligentCamera? _camera;
@@ -69,6 +71,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     TestPullOutCommand?.RaiseCanExecuteChanged();
                     TestPushBackCommand?.RaiseCanExecuteChanged();
                     TestFullFlowCommand?.RaiseCanExecuteChanged();
+                    MoveToRecipeXYZCommand?.RaiseCanExecuteChanged();
                     RaiseStepCanExecuteChanged();
                 }
             }
@@ -97,6 +100,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _axisX = hardwareManager.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
             _axisY = hardwareManager.GetDevice(E_AxisName.视觉Y轴.ToString()) as IAxis;
             _axisZ = hardwareManager.GetDevice(E_AxisName.视觉Z轴.ToString()) as IAxis;
+            // 获取两个工位的挡料X轴
+            _axisStopperX1 = hardwareManager.GetDevice(E_AxisName.工位1挡料X轴.ToString()) as IAxis;
+            _axisStopperX2 = hardwareManager.GetDevice(E_AxisName.工位2挡料X轴.ToString()) as IAxis;
 
             // 获取两个扫码枪
             _scanner1 = hardwareManager.GetDevice(E_ScanCode.工位1扫码枪.ToString()) as IBarcodeScan;
@@ -196,6 +202,58 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion
 
+        #region 三轴独立状态属性
+
+        // -- 视觉X轴 --
+        private double _xAxisCurrentPosition;
+        public double XAxisCurrentPosition { get => _xAxisCurrentPosition; set => SetProperty(ref _xAxisCurrentPosition, value); }
+        private bool _xAxisIsEnabled;
+        public bool XAxisIsEnabled { get => _xAxisIsEnabled; set => SetProperty(ref _xAxisIsEnabled, value); }
+        private bool _xAxisIsMoving;
+        public bool XAxisIsMoving { get => _xAxisIsMoving; set => SetProperty(ref _xAxisIsMoving, value); }
+        private bool _xAxisIsAlarm;
+        public bool XAxisIsAlarm { get => _xAxisIsAlarm; set => SetProperty(ref _xAxisIsAlarm, value); }
+        private bool _xAxisIsPosLimit;
+        public bool XAxisIsPosLimit { get => _xAxisIsPosLimit; set => SetProperty(ref _xAxisIsPosLimit, value); }
+        private bool _xAxisIsNegLimit;
+        public bool XAxisIsNegLimit { get => _xAxisIsNegLimit; set => SetProperty(ref _xAxisIsNegLimit, value); }
+        private double _xAxisJogVelocity = 10.0;
+        public double XAxisJogVelocity { get => _xAxisJogVelocity; set => SetProperty(ref _xAxisJogVelocity, value); }
+
+        // -- 视觉Y轴 --
+        private double _yAxisCurrentPosition;
+        public double YAxisCurrentPosition { get => _yAxisCurrentPosition; set => SetProperty(ref _yAxisCurrentPosition, value); }
+        private bool _yAxisIsEnabled;
+        public bool YAxisIsEnabled { get => _yAxisIsEnabled; set => SetProperty(ref _yAxisIsEnabled, value); }
+        private bool _yAxisIsMoving;
+        public bool YAxisIsMoving { get => _yAxisIsMoving; set => SetProperty(ref _yAxisIsMoving, value); }
+        private bool _yAxisIsAlarm;
+        public bool YAxisIsAlarm { get => _yAxisIsAlarm; set => SetProperty(ref _yAxisIsAlarm, value); }
+        private bool _yAxisIsPosLimit;
+        public bool YAxisIsPosLimit { get => _yAxisIsPosLimit; set => SetProperty(ref _yAxisIsPosLimit, value); }
+        private bool _yAxisIsNegLimit;
+        public bool YAxisIsNegLimit { get => _yAxisIsNegLimit; set => SetProperty(ref _yAxisIsNegLimit, value); }
+        private double _yAxisJogVelocity = 10.0;
+        public double YAxisJogVelocity { get => _yAxisJogVelocity; set => SetProperty(ref _yAxisJogVelocity, value); }
+
+        // -- 视觉Z轴 --
+        private double _zAxisCurrentPosition;
+        public double ZAxisCurrentPosition { get => _zAxisCurrentPosition; set => SetProperty(ref _zAxisCurrentPosition, value); }
+        private bool _zAxisIsEnabled;
+        public bool ZAxisIsEnabled { get => _zAxisIsEnabled; set => SetProperty(ref _zAxisIsEnabled, value); }
+        private bool _zAxisIsMoving;
+        public bool ZAxisIsMoving { get => _zAxisIsMoving; set => SetProperty(ref _zAxisIsMoving, value); }
+        private bool _zAxisIsAlarm;
+        public bool ZAxisIsAlarm { get => _zAxisIsAlarm; set => SetProperty(ref _zAxisIsAlarm, value); }
+        private bool _zAxisIsPosLimit;
+        public bool ZAxisIsPosLimit { get => _zAxisIsPosLimit; set => SetProperty(ref _zAxisIsPosLimit, value); }
+        private bool _zAxisIsNegLimit;
+        public bool ZAxisIsNegLimit { get => _zAxisIsNegLimit; set => SetProperty(ref _zAxisIsNegLimit, value); }
+        private double _zAxisJogVelocity = 10.0;
+        public double ZAxisJogVelocity { get => _zAxisJogVelocity; set => SetProperty(ref _zAxisJogVelocity, value); }
+
+        #endregion
+
         #region 运动参数属性
 
         private double _targetPosition;
@@ -270,6 +328,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// 获取或设置 RecipeAxisPosition
         /// </summary>
         public double RecipeAxisPosition { get => _recipeAxisPosition; set => SetProperty(ref _recipeAxisPosition, value); }
+
+        private double _recipePosX;
+        public double RecipePosX { get => _recipePosX; set => SetProperty(ref _recipePosX, value); }
+        private double _recipePosY;
+        public double RecipePosY { get => _recipePosY; set => SetProperty(ref _recipePosY, value); }
+        private double _recipePosZ;
+        public double RecipePosZ { get => _recipePosZ; set => SetProperty(ref _recipePosZ, value); }
 
         private string _scanResult = "等待扫码...";
         /// <summary>
@@ -369,6 +434,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             set => SetProperty(ref _debugStepMessage, value);
         }
 
+        private bool _step0Done;
+        public Brush Step0Brush => _step0Done ? Brushes.MediumSeaGreen : Brushes.CornflowerBlue;
         public Brush Step1Brush => CurrentDebugStep >= 1 ? Brushes.MediumSeaGreen : Brushes.CornflowerBlue;
         public Brush Step2Brush => CurrentDebugStep >= 2 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 1 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
         public Brush Step3Brush => CurrentDebugStep >= 3 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 2 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
@@ -462,11 +529,33 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand TestFullFlowCommand { get; private set; }
 
         // ── 模组调试步骤命令 ──
+        public DelegateCommand Step0MoveStopperToStandbyCommand { get; private set; }
         public DelegateCommand Step1SwitchProductionCommand { get; private set; }
         public DelegateCommand Step2SwitchLayerCommand { get; private set; }
         public DelegateCommand Step3PullMaterialCommand { get; private set; }
         public DelegateCommand Step4PushMaterialCommand { get; private set; }
         public DelegateCommand ResetDebugStepsCommand { get; private set; }
+
+        // ── 三轴独立 JOG 命令 ──
+        public DelegateCommand XJogPositiveCommand { get; private set; }
+        public DelegateCommand XJogNegativeCommand { get; private set; }
+        public DelegateCommand XAxisStopCommand { get; private set; }
+        public DelegateCommand YJogPositiveCommand { get; private set; }
+        public DelegateCommand YJogNegativeCommand { get; private set; }
+        public DelegateCommand YAxisStopCommand { get; private set; }
+        public DelegateCommand ZJogPositiveCommand { get; private set; }
+        public DelegateCommand ZJogNegativeCommand { get; private set; }
+        public DelegateCommand ZAxisStopCommand { get; private set; }
+
+        /// <summary>
+        /// MoveToRecipeXYZ 命令 — 三轴并发移动到当前工位配方点位
+        /// </summary>
+        public DelegateCommand MoveToRecipeXYZCommand { get; private set; }
+
+        /// <summary>
+        /// GetAndUpdateRecipeXYZ 命令 — 获取三轴当前位置并写入当前工位配方点位
+        /// </summary>
+        public DelegateCommand GetAndUpdateRecipeXYZCommand { get; private set; }
 
         /// <summary>
         /// SyncAdjust 命令
@@ -562,6 +651,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), () => !IsBusy);
 
             // 模组调试步骤命令
+            Step0MoveStopperToStandbyCommand = new DelegateCommand(async () => await ExecuteStep0Async(), () => !IsBusy);
             Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy);
             Step2SwitchLayerCommand = new DelegateCommand(async () => await ExecuteDebugStep2Async(), () => !IsBusy && CurrentDebugStep >= 1);
             Step3PullMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep3Async(), () => !IsBusy && CurrentDebugStep >= 2);
@@ -569,8 +659,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             ResetDebugStepsCommand = new DelegateCommand(() =>
             {
                 CurrentDebugStep = 0;
+                _step0Done = false;
+                RaisePropertyChanged(nameof(Step0Brush));
                 DebugStepMessage = "已重置，请从第1步开始";
             });
+
+            // 三轴独立 JOG 命令
+            XJogPositiveCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.JogAsync(XAxisJogVelocity, true, XAxisJogVelocity * 5, XAxisJogVelocity * 5); });
+            XJogNegativeCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.JogAsync(XAxisJogVelocity, false, XAxisJogVelocity * 5, XAxisJogVelocity * 5); });
+            XAxisStopCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.StopAsync(); });
+            YJogPositiveCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.JogAsync(YAxisJogVelocity, true, YAxisJogVelocity * 5, YAxisJogVelocity * 5); });
+            YJogNegativeCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.JogAsync(YAxisJogVelocity, false, YAxisJogVelocity * 5, YAxisJogVelocity * 5); });
+            YAxisStopCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.StopAsync(); });
+            ZJogPositiveCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.JogAsync(ZAxisJogVelocity, true, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5); });
+            ZJogNegativeCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.JogAsync(ZAxisJogVelocity, false, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5); });
+            ZAxisStopCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.StopAsync(); });
+
+            // 三轴并发移动到配方点位
+            MoveToRecipeXYZCommand = new DelegateCommand(async () => await ExecuteMoveToRecipeXYZAsync(), () => !IsBusy);
+
+            // 获取三轴当前位置并写入配方
+            GetAndUpdateRecipeXYZCommand = new DelegateCommand(ExecuteGetAndUpdateRecipeXYZ);
 
             // 程式点位命令
             SyncAdjustCommand = new DelegateCommand(ExecuteSyncAdjust);
@@ -848,6 +957,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void RaiseStepCanExecuteChanged()
         {
+            Step0MoveStopperToStandbyCommand?.RaiseCanExecuteChanged();
             Step1SwitchProductionCommand?.RaiseCanExecuteChanged();
             Step2SwitchLayerCommand?.RaiseCanExecuteChanged();
             Step3PullMaterialCommand?.RaiseCanExecuteChanged();
@@ -857,6 +967,75 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion
 
         #region 模组调试步骤命令实现
+
+        private async Task ExecuteStep0Async()
+        {
+            var axis = CurrentStation == E_WorkSpace.工位1 ? _axisStopperX1 : _axisStopperX2;
+            if (axis == null) { DebugStepMessage = "挡料X轴未就绪"; return; }
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugStepMessage = "正在移动挡料X轴到待机位...";
+                await axis.MoveToPointAsync("待机位", cts.Token);
+                _step0Done = true;
+                RaisePropertyChanged(nameof(Step0Brush));
+                DebugStepMessage = "Step0 完成：挡料X轴已到达待机位，可继续后续步骤";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"Step0 失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ExecuteMoveToRecipeXYZAsync()
+        {
+            if (_currentRecipe == null) return;
+            IsBusy = true;
+            RefreshCancellationToken();
+            try
+            {
+                double x = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosX : _currentRecipe._2PosX;
+                double y = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosY : _currentRecipe._2PosY;
+                double z = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosZ : _currentRecipe._2PosZ;
+
+                var tasks = new System.Collections.Generic.List<Task>();
+                if (_axisX != null) tasks.Add(_axisX.MoveAbsoluteAsync(x, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token));
+                if (_axisY != null) tasks.Add(_axisY.MoveAbsoluteAsync(y, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token));
+                if (_axisZ != null) tasks.Add(_axisZ.MoveAbsoluteAsync(z, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token));
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"移动到配方点位失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally { IsBusy = false; }
+        }
+
+        private void ExecuteGetAndUpdateRecipeXYZ()
+        {
+            if (_currentRecipe == null) return;
+
+            double x = (int)(_axisX?.CurrentPosition ?? RecipePosX);
+            double y = (int)(_axisY?.CurrentPosition ?? RecipePosY);
+            double z = (int)(_axisZ?.CurrentPosition ?? RecipePosZ);
+
+            if (CurrentStation == E_WorkSpace.工位1)
+            {
+                _currentRecipe._1PosX = x;
+                _currentRecipe._1PosY = y;
+                _currentRecipe._1PosZ = z;
+            }
+            else
+            {
+                _currentRecipe._2PosX = x;
+                _currentRecipe._2PosY = y;
+                _currentRecipe._2PosZ = z;
+            }
+
+            UpdateRecipePositionDisplay();
+        }
 
         private async Task ExecuteDebugStep1Async()
         {
@@ -1019,6 +1198,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
 
             CurrentRecipePosition = $"(X={x}, Y={y}, Z={z})";
+            RecipePosX = x;
+            RecipePosY = y;
+            RecipePosZ = z;
 
             // 根据当前选中的轴确定 RecipeAxisPosition
             if (_axis == null) return;
@@ -1033,16 +1215,46 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnPollingTimerTick(object sender, EventArgs e)
         {
+            // 刷新三轴独立状态
+            if (_axisX != null)
+            {
+                var io = _axisX.AxisIOStatus;
+                XAxisCurrentPosition = (int)(_axisX.CurrentPosition ?? 0);
+                XAxisIsEnabled = io?.SVO ?? false;
+                XAxisIsMoving = io?.Moving ?? false;
+                XAxisIsAlarm = io?.ALM ?? false;
+                XAxisIsPosLimit = io?.PEL ?? false;
+                XAxisIsNegLimit = io?.MEL ?? false;
+            }
+            if (_axisY != null)
+            {
+                var io = _axisY.AxisIOStatus;
+                YAxisCurrentPosition = (int)(_axisY.CurrentPosition ?? 0);
+                YAxisIsEnabled = io?.SVO ?? false;
+                YAxisIsMoving = io?.Moving ?? false;
+                YAxisIsAlarm = io?.ALM ?? false;
+                YAxisIsPosLimit = io?.PEL ?? false;
+                YAxisIsNegLimit = io?.MEL ?? false;
+            }
+            if (_axisZ != null)
+            {
+                var io = _axisZ.AxisIOStatus;
+                ZAxisCurrentPosition = (int)(_axisZ.CurrentPosition ?? 0);
+                ZAxisIsEnabled = io?.SVO ?? false;
+                ZAxisIsMoving = io?.Moving ?? false;
+                ZAxisIsAlarm = io?.ALM ?? false;
+                ZAxisIsPosLimit = io?.PEL ?? false;
+                ZAxisIsNegLimit = io?.MEL ?? false;
+            }
+
+            // 兼容旧的单轴属性（设备控制 ComboBox 选中轴用）
             if (_axis == null) return;
             var axisio = _axis.AxisIOStatus;
-            //IsConnected = _axis.IsConnected;
             CurrentPosition = (int)(_axis.CurrentPosition ?? 0);
             IsMoving = axisio?.Moving ?? false;
             IsEnabled = axisio?.SVO ?? false;
             IsPositiveLimit = axisio?.PEL ?? false;
             IsNegativeLimit = axisio?.MEL ?? false;
-            //IsORG = axisio?.ORG ?? false;
-            //IsHoming = axisio?.Homing ?? false;
             IsAlarm = axisio?.ALM ?? false;
         }
 
