@@ -287,6 +287,49 @@
                                         Content="执行: 切换层" />
                                 </Grid>
 
+                                <TextBlock
+                                    Margin="0,10,0,5"
+                                    Foreground="Gray"
+                                    Text="挡料X轴快捷移动" />
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="5" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column="0"
+                                        Height="35"
+                                        Command="{Binding MoveXToStandbyCommand}"
+                                        Content="X轴 → 待机位" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Height="35"
+                                        Command="{Binding MoveXToStopperCommand}"
+                                        Content="X轴 → 挡料位" />
+                                </Grid>
+
+                                <TextBlock
+                                    Margin="0,0,0,5"
+                                    Foreground="Gray"
+                                    Text="凸片传感器控制" />
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="5" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column="0"
+                                        Height="35"
+                                        Command="{Binding SetThrustWasherOnCommand}"
+                                        Content="打开凸片检测" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Height="35"
+                                        Command="{Binding SetThrustWasherOffCommand}"
+                                        Content="关闭凸片检测" />
+                                </Grid>
 
                             </StackPanel>
                         </ScrollViewer>

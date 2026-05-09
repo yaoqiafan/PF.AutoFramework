@@ -224,7 +224,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// </summary>
         public DelegateCommand GoToLayerCommand { get; }
 
-        // 3. 点位保存
+        // 3. X轴快捷移动
+        /// <summary>
+        /// MoveXToStandby 命令
+        /// </summary>
+        public DelegateCommand MoveXToStandbyCommand { get; }
+        /// <summary>
+        /// MoveXToStopper 命令
+        /// </summary>
+        public DelegateCommand MoveXToStopperCommand { get; }
+
+        // 4. 凸片传感器
+        /// <summary>
+        /// SetThrustWasherOn 命令
+        /// </summary>
+        public DelegateCommand SetThrustWasherOnCommand { get; }
+        /// <summary>
+        /// SetThrustWasherOff 命令
+        /// </summary>
+        public DelegateCommand SetThrustWasherOffCommand { get; }
+
+        // 5. 点位保存
         /// <summary>
         /// SaveZAxisPoints 命令
         /// </summary>
@@ -259,6 +279,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
             SearchLayerCommand = new DelegateCommand<double?>(async (t) => await ExecuteSearchLayerAsync(t));
             GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
+
+            MoveXToStandbyCommand = new DelegateCommand(async () => await ExecuteAsync(
+                async () => { if (_feedingModule?.XAxis != null) await _feedingModule.XAxis.MoveToPointAsync(WS1FeedingModel.XAxisPoint.待机位.ToString()); }));
+            MoveXToStopperCommand = new DelegateCommand(async () => await ExecuteAsync(
+                async () => { if (_feedingModule?.XAxis != null) await _feedingModule.XAxis.MoveToPointAsync(WS1FeedingModel.XAxisPoint.挡料位.ToString()); }));
+
+            SetThrustWasherOnCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开凸片检测", () => _feedingModule?.SetThrustWasherAsync(true)));
+            SetThrustWasherOffCommand = new DelegateCommand(async () => await ExecuteCheckAsync("关闭凸片检测", () => _feedingModule?.SetThrustWasherAsync(false)));
 
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
             SaveXAxisPointsCommand = new DelegateCommand(SaveXAxisPoints);

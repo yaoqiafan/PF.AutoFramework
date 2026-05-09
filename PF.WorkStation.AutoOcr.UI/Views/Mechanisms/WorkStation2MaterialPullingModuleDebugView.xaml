@@ -269,6 +269,18 @@
                                             HorizontalAlignment="Stretch"
                                             Command="{Binding MoveInitialCommand}"
                                             Content=" 移动到待机位" />
+                                        <Button
+                                            Height=" 35"
+                                            Margin="5"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding MoveInitialNoScanCommand}"
+                                            Content=" 强制复位（无检测）" />
+                                        <Button
+                                            Height=" 35"
+                                            Margin="5"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding PutOverMoveCommand}"
+                                            Content=" 退回卸料安全位" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="1">
