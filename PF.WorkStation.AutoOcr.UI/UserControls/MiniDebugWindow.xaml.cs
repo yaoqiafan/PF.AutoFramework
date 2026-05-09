@@ -1,6 +1,8 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace PF.WorkStation.AutoOcr.UI.UserControls
 {
@@ -18,6 +20,13 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // PreviewMouseLeftButtonDown tunnels down first; skip if the actual click target is a Button
+            var dep = e.OriginalSource as DependencyObject;
+            while (dep != null && dep != sender as DependencyObject)
+            {
+                if (dep is Button) return;
+                dep = VisualTreeHelper.GetParent(dep);
+            }
             DragMove();
         }
 

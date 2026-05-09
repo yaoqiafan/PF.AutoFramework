@@ -435,6 +435,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private bool _step0Done;
+        private bool _step0Busy;
         public Brush Step0Brush => _step0Done ? Brushes.MediumSeaGreen : Brushes.CornflowerBlue;
         public Brush Step1Brush => CurrentDebugStep >= 1 ? Brushes.MediumSeaGreen : Brushes.CornflowerBlue;
         public Brush Step2Brush => CurrentDebugStep >= 2 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 1 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
@@ -715,8 +716,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), () => !IsBusy);
 
             // 模组调试步骤命令
-            Step0MoveStopperToStandbyCommand = new DelegateCommand(async () => await ExecuteStep0Async(), () => !IsBusy);
-            Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy);
+            Step0MoveStopperToStandbyCommand = new DelegateCommand(async () => await ExecuteStep0Async(), () => !_step0Busy);
+            Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy && _step0Done);
             Step2SwitchLayerCommand = new DelegateCommand(async () => await ExecuteDebugStep2Async(), () => !IsBusy && CurrentDebugStep >= 1);
             Step3PullMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep3Async(), () => !IsBusy && CurrentDebugStep >= 2);
             Step4PushMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep4Async(), () => !IsBusy && CurrentDebugStep >= 3);
@@ -725,7 +726,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 CurrentDebugStep = 0;
                 _step0Done = false;
                 RaisePropertyChanged(nameof(Step0Brush));
-                DebugStepMessage = "已重置，请从第1步开始";
+                Step1SwitchProductionCommand.RaiseCanExecuteChanged();
+                DebugStepMessage = "已重置，请从第0步开始";
             });
 
             // 三轴独立 JOG 命令
@@ -1060,7 +1062,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void RaiseStepCanExecuteChanged()
         {
-            Step0MoveStopperToStandbyCommand?.RaiseCanExecuteChanged();
+            // Step0 用独立 _step0Busy，不随 IsBusy 联动
             Step1SwitchProductionCommand?.RaiseCanExecuteChanged();
             Step2SwitchLayerCommand?.RaiseCanExecuteChanged();
             Step3PullMaterialCommand?.RaiseCanExecuteChanged();
@@ -1075,7 +1077,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             var axis = CurrentStation == E_WorkSpace.工位1 ? _axisStopperX1 : _axisStopperX2;
             if (axis == null) { DebugStepMessage = "挡料X轴未就绪"; return; }
-            IsBusy = true;
+            _step0Busy = true;
+            Step0MoveStopperToStandbyCommand.RaiseCanExecuteChanged();
             using var cts = new CancellationTokenSource();
             try
             {
@@ -1083,13 +1086,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 await axis.MoveToPointAsync("待机位", cts.Token);
                 _step0Done = true;
                 RaisePropertyChanged(nameof(Step0Brush));
+                Step1SwitchProductionCommand.RaiseCanExecuteChanged();
                 DebugStepMessage = "Step0 完成：挡料X轴已到达待机位，可继续后续步骤";
             }
             catch (Exception ex)
             {
                 DebugStepMessage = $"Step0 失败：{ex.Message}";
             }
-            finally { IsBusy = false; }
+            finally
+            {
+                _step0Busy = false;
+                Step0MoveStopperToStandbyCommand.RaiseCanExecuteChanged();
+            }
         }
 
         private async Task ExecuteMoveToRecipeXYZAsync()

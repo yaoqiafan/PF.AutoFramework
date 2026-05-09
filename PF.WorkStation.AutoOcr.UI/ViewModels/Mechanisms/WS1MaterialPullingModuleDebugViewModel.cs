@@ -282,6 +282,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         public DelegateCommand MoveInitialCommand { get; }
         /// <summary>
+        /// MoveInitialNoScan 命令
+        /// </summary>
+        public DelegateCommand MoveInitialNoScanCommand { get; }
+        /// <summary>
+        /// PutOverMove 命令
+        /// </summary>
+        public DelegateCommand PutOverMoveCommand { get; }
+        /// <summary>
         /// CodeTigger 命令
         /// </summary>
 
@@ -323,10 +331,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.StopAsync()));
             IsCanResetCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("可初始化动作", () => _materialPullingModule?.CheckTrackIsMaterial()));
-            InitializeGipper = new DelegateCommand(async () => await ExecuteMechResultAsync("初始化拉料工位", () => _materialPullingModule?.CheckTrackIsMaterial()));
+            InitializeGipper = new DelegateCommand(async () => await ExecuteMechResultAsync("初始化拉料工位", () => _materialPullingModule?.InitializeFullingAsync()));
 
-            Change_8StatusCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("切换到8寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._8寸)));
-            Change_12StatusCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("切换到12寸状态", () => _materialPullingModule?.CheckWafeSizeControl(E_WafeSize._12寸)));
+            Change_8StatusCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("切换到8寸状态", () => _materialPullingModule?.ChangeWafeSizeControl(E_WafeSize._8寸)));
+            Change_12StatusCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("切换到12寸状态", () => _materialPullingModule?.ChangeWafeSizeControl(E_WafeSize._12寸)));
             OpenGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("打开夹爪", () => _materialPullingModule?.OpenWafeGipper()));
 
             CloseGipperCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("闭合夹爪", () => _materialPullingModule?.CloseWafeGipper()));
@@ -335,6 +343,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             MoveFeedingCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到拉料位", () => _materialPullingModule?.InitialMoveFeeding()));
             MoveDetcetionCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
             MoveInitialCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
+            MoveInitialNoScanCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("强制复位（无检测）", () => _materialPullingModule?.MoveInitialNoScan()));
+            PutOverMoveCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("退回卸料安全位", () => _materialPullingModule?.PutOverMove()));
             CodeTiggerCommand = new DelegateCommand(async () => await ExecuteAsync(() => TiggerCode()));
             SaveLightValueCommand = new DelegateCommand(async () => await ExecuteAsync(() => SaveLightValue()));
 
