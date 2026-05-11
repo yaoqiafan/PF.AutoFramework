@@ -234,13 +234,13 @@
                 </UniformGrid>
             </StackPanel>
 
-            <!--  页 3：调试步骤  -->
+            <!--  页 0：调试步骤  -->
             <StackPanel>
                 <StackPanel.Style>
                     <Style TargetType="StackPanel">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding MiniCardIndex}" Value="3">
+                            <DataTrigger Binding="{Binding MiniCardIndex}" Value="0">
                                 <Setter Property="Visibility" Value="Visible" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -421,7 +421,7 @@
                 </Grid>
 
                 <!--  Step 4  -->
-                <Grid Margin="0,0,0,8">
+                <Grid Margin="0,0,0,5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="24" />
                         <ColumnDefinition Width="*" />
@@ -446,11 +446,83 @@
                         Margin="6,0"
                         VerticalAlignment="Center"
                         FontSize="{DynamicResource FontSize.Caption.Mini}"
+                        Text="相机移动到配方位置" />
+                    <Button
+                        Grid.Column="2"
+                        Height="26"
+                        Command="{Binding Step4MoveToRecipeXYZCommand}"
+                        Content="执行"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                        Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <!--  Step 5  -->
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        Background="{Binding Step5Brush}"
+                        CornerRadius="10">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Text="5" />
+                    </Border>
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="6,0"
+                        VerticalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                        Text="相机移动到待机位" />
+                    <Button
+                        Grid.Column="2"
+                        Height="26"
+                        Command="{Binding Step5MoveToStandbyCommand}"
+                        Content="执行"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                        Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <!--  Step 6  -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="20"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        Background="{Binding Step6Brush}"
+                        CornerRadius="10">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Text="6" />
+                    </Border>
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="6,0"
+                        VerticalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.Caption.Mini}"
                         Text="推料流程测试" />
                     <Button
                         Grid.Column="2"
                         Height="26"
-                        Command="{Binding Step4PushMaterialCommand}"
+                        Command="{Binding Step6PushMaterialCommand}"
                         Content="执行"
                         FontSize="{DynamicResource FontSize.Caption.Mini}"
                         Style="{DynamicResource ButtonPrimary}" />

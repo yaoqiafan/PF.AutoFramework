@@ -503,6 +503,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             using var cts = new CancellationTokenSource();
             try
             {
+                DebugMessage = "[调试] 关闭凸片检测...";
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
+
                 DebugMessage = "[调试] 开始执行单步测试：拉料流程...";
                 await InternalTestPullOutAsync(cts.Token);
                 DebugMessage = "[调试] 单步测试：拉料流程完成。";
@@ -515,6 +518,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             finally
             {
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
                 IsBusy = false;
             }
         }
@@ -529,6 +533,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             using var cts = new CancellationTokenSource();
             try
             {
+                DebugMessage = "[调试] 关闭凸片检测...";
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
+
                 DebugMessage = "[调试] 开始执行单步测试：推料流程...";
                 await InternalTestPushBackAsync(cts.Token);
                 DebugMessage = "[调试] 单步测试：推料流程完成。";
@@ -541,6 +548,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             finally
             {
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
                 IsBusy = false;
             }
         }
@@ -555,13 +563,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             using var cts = new CancellationTokenSource();
             try
             {
-                DebugMessage = "[调试] 开始执行完整闭环测试...";
+                DebugMessage = "[调试] 关闭凸片检测...";
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
 
+                DebugMessage = "[调试] 开始执行完整闭环测试...";
                 await InternalTestPullOutAsync(cts.Token);
 
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
                 DebugMessage = "[调试] 模拟视觉检测中...";
                 await Task.Delay(1500, cts.Token);
 
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
                 await InternalTestPushBackAsync(cts.Token);
 
                 DebugMessage = "[调试] 完整拉送料闭环测试完成。";
@@ -574,6 +586,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             finally
             {
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
                 IsBusy = false;
             }
         }

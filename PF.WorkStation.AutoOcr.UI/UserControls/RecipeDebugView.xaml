@@ -478,7 +478,7 @@
                                 Style="{DynamicResource ButtonPrimary}" />
                         </Grid>
 
-                        <!-- Step 4：推料流程测试 -->
+                        <!-- Step 4：相机移动到配方位置 -->
                         <Grid Margin="0,6">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="28" />
@@ -488,6 +488,46 @@
                             <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step4Brush}" CornerRadius="11">
                                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="4" />
                             </Border>
+                            <TextBlock Grid.Column="1" Margin="8,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="相机移动到配方位置" />
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step4MoveToRecipeXYZCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+
+                        <!-- Step 5：相机移动到待机位 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step5Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="5" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Margin="8,0" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="相机移动到待机位" />
+                            <Button
+                                Grid.Column="2"
+                                Height="28"
+                                VerticalAlignment="Center"
+                                Command="{Binding Step5MoveToStandbyCommand}"
+                                Content="执行"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+
+                        <!-- Step 6：推料流程测试 -->
+                        <Grid Margin="0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="52" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22" Height="22" VerticalAlignment="Center" Background="{Binding Step6Brush}" CornerRadius="11">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="Bold" Foreground="White" Text="6" />
+                            </Border>
                             <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
                                 <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="推料流程测试" />
                                 <TextBlock Margin="0,2,0,0" FontSize="{DynamicResource FontSize.Caption.Mini}" Foreground="#94A3B8" Text="（自动关闭凸片检测）" />
@@ -496,7 +536,7 @@
                                 Grid.Column="2"
                                 Height="28"
                                 VerticalAlignment="Center"
-                                Command="{Binding Step4PushMaterialCommand}"
+                                Command="{Binding Step6PushMaterialCommand}"
                                 Content="执行"
                                 Style="{DynamicResource ButtonPrimary}" />
                         </Grid>
