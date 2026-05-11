@@ -634,6 +634,18 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue(false)]
         BuzzerMuted,
 
+        /// <summary>屏蔽工位1（调试用，跳过硬件动作与启动按钮，流程空转）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽工位1：初始化跳过硬件，流程空转不阻塞")]
+        [DefaultValue(false)]
+        WorkStation1_Muted,
+
+        /// <summary>屏蔽工位2（调试用，跳过硬件动作与启动按钮，流程空转）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽工位2：初始化跳过硬件，流程空转不阻塞")]
+        [DefaultValue(false)]
+        WorkStation2_Muted,
+
         #endregion
 
 

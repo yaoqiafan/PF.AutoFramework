@@ -2,6 +2,7 @@ using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
@@ -203,6 +204,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly WS2MaterialPullingModule? _pullingModule;
         private readonly WSDataModule? _dataModule;
         private readonly IStationSyncService _sync;
+        private readonly IParamService _paramService;
 
         /// <summary>
         /// 当前批次缓存的工位工艺配方
@@ -223,6 +225,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _pullingModule = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _sync = sync;
+            _paramService = containerProvider.Resolve<IParamService>();
 
             if (_pullingModule != null)
             {
@@ -295,6 +298,17 @@ namespace PF.WorkStation.AutoOcr.Stations
             _logger.Info($"[{StationName}] 正在初始化拉料模组...");
             try
             {
+                if (await _paramService.GetParamAsync<bool>(E_Params.WorkStation2_Muted.ToString(), false))
+                {
+                    _logger.Warn($"[{StationName}] 工位2已屏蔽，跳过拉料模组初始化。");
+                    _sync.ResetScope(StationName);
+                    _sync.Release(nameof(WorkstationSignals.工位2拉料复位完成), "复位");
+                    _currentStep = Station2PullingStep.等待允许取料;
+                    _resumeStep  = Station2PullingStep.等待允许取料;
+                    Fire(MachineTrigger.InitializeDone);
+                    return;
+                }
+
                 var persistedStep = MemoryParam.PersistedStep;
                 _cachedRecipe = _dataModule.Station2ReciepParam;
                 // ── 根据持久化步序推导夹爪物理状态，执行恢复动作 ──
@@ -562,6 +576,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 【核心校验】每一轮步序流转前，强制校验取消状态，确保流程即时停止
                     token.ThrowIfCancellationRequested();
+
+                    if (await _paramService.GetParamAsync<bool>(E_Params.WorkStation2_Muted.ToString(), false))
+                    {
+                        await Task.Delay(1000, token);
+                        continue;
+                    }
 
                     switch (_currentStep)
                     {

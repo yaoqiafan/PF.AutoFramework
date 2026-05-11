@@ -62,6 +62,9 @@ namespace PF.Services.Hardware
                 .ToList();
 
             _paramService.ParamChanged += OnParamChanged;
+
+            // 构造时立即加载一次屏蔽状态，使 IsMuted 在 StartSafetyMonitoring 之前就已就绪
+            _ = LoadSafetyMuteStatesAsync();
         }
 
         /// <summary>

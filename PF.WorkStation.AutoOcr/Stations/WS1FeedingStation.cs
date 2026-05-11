@@ -4,6 +4,7 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Sync;
 using PF.Core.Interfaces.TowerLight;
@@ -229,6 +230,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly IHardwareInputMonitor? _hardwareInputMonitor;
         private readonly ITowerLightService _towerLight;
         private readonly IEventAggregator _eventAggregator;
+        private readonly IParamService _paramService;
 
         // 注意：_currentStep, _resumeStep, _cachedErrorCode 和 RouteToError() 均已下沉至基类。
 
@@ -260,6 +262,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _hardwareInputMonitor = containerProvider.Resolve<IHardwareInputMonitor>();
             _towerLight = towerLight;
             _eventAggregator = eventAggregator;
+            _paramService = containerProvider.Resolve<IParamService>();
 
             _feedingModule.AlarmTriggered += OnMechanismAlarm;
             _feedingModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
@@ -330,6 +333,17 @@ namespace PF.WorkStation.AutoOcr.Stations
             try
             {
                 token.ThrowIfCancellationRequested();
+
+                if (await _paramService.GetParamAsync<bool>(E_Params.WorkStation1_Muted.ToString(), false))
+                {
+                    _logger.Warn($"[{StationName}] 工位1已屏蔽，跳过全部初始化硬件动作。");
+                    _sync.ResetScope(StationName);
+                    _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
+                    _resumeStep  = Station1FeedingStep.等待按下工位1启动按钮;
+                    Fire(MachineTrigger.InitializeDone);
+                    return;
+                }
+
                 _logger.Info($"[{StationName}] 正在初始化上下料模组...");
 
                 try
@@ -677,6 +691,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 【核心校验】每一轮步序流转前强行校验取消状态，确保流程在停止请求下秒停
                     token.ThrowIfCancellationRequested();
+
+                    if (await _paramService.GetParamAsync<bool>(E_Params.WorkStation1_Muted.ToString(), false))
+                    {
+                        await Task.Delay(1000, token);
+                        continue;
+                    }
 
                     switch (_currentStep)
                     {
