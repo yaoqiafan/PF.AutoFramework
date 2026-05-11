@@ -15,7 +15,6 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 using Prism.Commands;
 using Prism.Ioc;
 using System;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Windows;
@@ -40,12 +39,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IBarcodeScan? _scanner1;
         private readonly IBarcodeScan? _scanner2;
         private readonly IIntelligentCamera? _camera;
-
-
         private readonly ILightController? _lightconnter;
 
-        private IAxis _axis;
-        private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
         private OCRRecipeParam _currentRecipe;
@@ -76,10 +71,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 }
             }
         }
-        /// <summary>
-        /// RecipeDebugViewModel 构造函数
-        /// </summary>
-
 
         public RecipeDebugViewModel(
             IHardwareManagerService hardwareManager,
@@ -96,45 +87,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _ws1FeedingModule = containerProvider.Resolve<IMechanism>(nameof(WS1FeedingModel)) as WS1FeedingModel;
             _ws2FeedingModule = containerProvider.Resolve<IMechanism>(nameof(WS2FeedingModel)) as WS2FeedingModel;
 
-            // 获取三个固定 OCR 轴
             _axisX = hardwareManager.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
             _axisY = hardwareManager.GetDevice(E_AxisName.视觉Y轴.ToString()) as IAxis;
             _axisZ = hardwareManager.GetDevice(E_AxisName.视觉Z轴.ToString()) as IAxis;
-            // 获取两个工位的挡料X轴
             _axisStopperX1 = hardwareManager.GetDevice(E_AxisName.工位1挡料X轴.ToString()) as IAxis;
             _axisStopperX2 = hardwareManager.GetDevice(E_AxisName.工位2挡料X轴.ToString()) as IAxis;
 
-            // 获取两个扫码枪
             _scanner1 = hardwareManager.GetDevice(E_ScanCode.工位1扫码枪.ToString()) as IBarcodeScan;
             _scanner2 = hardwareManager.GetDevice(E_ScanCode.工位2扫码枪.ToString()) as IBarcodeScan;
 
-            // 相机：从 ActiveDevices 中取第一个 IIntelligentCamera
             _camera = hardwareManager.ActiveDevices.OfType<IIntelligentCamera>().FirstOrDefault();
-
-
             _lightconnter = hardwareManager.ActiveDevices.OfType<ILightController>().FirstOrDefault();
-
-            // 初始化轴列表（只含三个 OCR 轴，过滤 null）
-            AxisList = new ObservableCollection<IAxis?>(
-                new[] { _axisX, _axisY, _axisZ }.Where(a => a != null));
-
-            // 默认运动参数
-            AbsVelocity = 50.0;
-            RelVelocity = 50.0;
-            JogVelocity = 10.0;
-            RelativeDistance = 10.0;
 
             InitializeCommands();
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _pollingTimer.Tick += OnPollingTimerTick;
-            SelectedAxis = AxisList.First();
         }
 
         #region Dialog 生命周期
-        /// <summary>
-        /// OnDialogOpened
-        /// </summary>
 
         public override void OnDialogOpened(IDialogParameters parameters)
         {
@@ -142,63 +113,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 _currentRecipe = parameters.GetValue<OCRRecipeParam>("CurrentRepice");
 
             RaisePropertyChanged(nameof(RecipeWaferSizeText));
-            // 从配方初始化光源值
             InfraredLightValue = _currentRecipe?.LightChanel1Value ?? 0;
             WhiteLightValue = _currentRecipe?.LightChanel2Value ?? 0;
 
             UpdateRecipePositionDisplay();
-
-            if (_axis != null) _pollingTimer.Start();
+            _pollingTimer.Start();
         }
-        /// <summary>
-        /// OnDialogClosed
-        /// </summary>
 
         public override void OnDialogClosed()
         {
             _pollingTimer.Stop();
             _cts?.Cancel();
         }
-
-        #endregion
-
-        #region 实时状态属性
-
-        private double _currentPosition;
-        /// <summary>
-        /// 获取或设置 CurrentPosition
-        /// </summary>
-        public double CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
-
-        private bool _isMoving;
-        /// <summary>
-        /// 获取或设置 IsMoving
-        /// </summary>
-        public bool IsMoving { get => _isMoving; set => SetProperty(ref _isMoving, value); }
-
-        private bool _isEnabled;
-        /// <summary>
-        /// 获取或设置 IsEnabled
-        /// </summary>
-        public bool IsEnabled { get => _isEnabled; set => SetProperty(ref _isEnabled, value); }
-
-        private bool _isPositiveLimit;
-        /// <summary>
-        /// 获取或设置 IsPositiveLimit
-        /// </summary>
-        public bool IsPositiveLimit { get => _isPositiveLimit; set => SetProperty(ref _isPositiveLimit, value); }
-
-        private bool _isNegativeLimit;
-        /// <summary>
-        /// 获取或设置 IsNegativeLimit
-        /// </summary>
-        public bool IsNegativeLimit { get => _isNegativeLimit; set => SetProperty(ref _isNegativeLimit, value); }
-
-        private bool _isAlarm;
-        /// <summary>
-        /// 获取或设置 IsAlarm
-        /// </summary>
-        public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
         #endregion
 
@@ -254,80 +180,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion
 
-        #region 运动参数属性
-
-        private double _targetPosition;
-        /// <summary>
-        /// 获取或设置 TargetPosition
-        /// </summary>
-        public double TargetPosition { get => _targetPosition; set => SetProperty(ref _targetPosition, value); }
-
-        private double _absVelocity;
-        /// <summary>
-        /// 获取或设置 AbsVelocity
-        /// </summary>
-        public double AbsVelocity { get => _absVelocity; set => SetProperty(ref _absVelocity, value); }
-
-        private double _relativeDistance;
-        /// <summary>
-        /// 获取或设置 RelativeDistance
-        /// </summary>
-        public double RelativeDistance { get => _relativeDistance; set => SetProperty(ref _relativeDistance, value); }
-
-        private double _relVelocity;
-        /// <summary>
-        /// 获取或设置 RelVelocity
-        /// </summary>
-        public double RelVelocity { get => _relVelocity; set => SetProperty(ref _relVelocity, value); }
-
-        private double _jogVelocity;
-        /// <summary>
-        /// 获取或设置 JogVelocity
-        /// </summary>
-        public double JogVelocity { get => _jogVelocity; set => SetProperty(ref _jogVelocity, value); }
-
-        #endregion
-
-        #region 轴/工位选择属性
-        /// <summary>
-        /// 获取或设置 AxisList
-        /// </summary>
-
-        public ObservableCollection<IAxis?> AxisList { get; }
-
-        private IAxis _selectedAxis;
-        /// <summary>
-        /// 成员
-        /// </summary>
-        public IAxis SelectedAxis
-        {
-            get => _selectedAxis;
-            set
-            {
-                if (SetProperty(ref _selectedAxis, value))
-                    OnSelectedAxisChanged();
-            }
-        }
-
-
+        #region 工位选择属性
 
         private E_WorkSpace _currentStation = E_WorkSpace.工位1;
-        /// <summary>
-        /// 获取或设置 CurrentStation
-        /// </summary>
         public E_WorkSpace CurrentStation { get => _currentStation; set => SetProperty(ref _currentStation, value); }
 
         private string _currentRecipePosition = "(X=0.000, Y=0.000, Z=0.000)";
-        /// <summary>
-        /// 获取或设置 CurrentRecipePosition
-        /// </summary>
         public string CurrentRecipePosition { get => _currentRecipePosition; set => SetProperty(ref _currentRecipePosition, value); }
-
-        private double _recipeAxisPosition;
-        /// <summary>
-        /// 获取或设置 RecipeAxisPosition
-        /// </summary>
-        public double RecipeAxisPosition { get => _recipeAxisPosition; set => SetProperty(ref _recipeAxisPosition, value); }
 
         private double _recipePosX;
         public double RecipePosX { get => _recipePosX; set => SetProperty(ref _recipePosX, value); }
@@ -337,15 +196,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public double RecipePosZ { get => _recipePosZ; set => SetProperty(ref _recipePosZ, value); }
 
         private string _scanResult = "等待扫码...";
-        /// <summary>
-        /// 获取或设置 ScanResult
-        /// </summary>
         public string ScanResult { get => _scanResult; set => SetProperty(ref _scanResult, value); }
 
         private string _ocrResult = "等待OCR...";
-        /// <summary>
-        /// 获取或设置 OcrResult
-        /// </summary>
         public string OcrResult { get => _ocrResult; set => SetProperty(ref _ocrResult, value); }
 
         #endregion
@@ -353,10 +206,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 光源参数属性
 
         private double _infraredLightValue;
-        /// <summary>
-        /// 成员
-        /// </summary>
-
         public double InfraredLightValue
         {
             get => _infraredLightValue;
@@ -372,10 +221,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private double _whiteLightValue;
-        /// <summary>
-        /// 成员
-        /// </summary>
-
         public double WhiteLightValue
         {
             get => _whiteLightValue;
@@ -390,14 +235,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
-
-
         private void UpdateLihtValue(int chanel, int vale)
         {
             _lightconnter?.SetLightValue(chanel, vale);
         }
 
-        #endregion 光源参数属性
+        #endregion
 
         #region 模组调试步骤属性
 
@@ -470,7 +313,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             0 => "视觉 X 轴", 1 => "视觉 Y 轴", 2 => "视觉 Z 轴",
             3 => "调试步骤", 4 => "扫码 / OCR", 5 => "配方点位",
-            _ => "设备控制"
+            _ => "光源控制"
         };
         public string MiniCardPageText => $"{MiniCardIndex + 1} / 7";
         public bool IsMiniAxisPage => MiniCardIndex <= 2;
@@ -498,88 +341,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion
 
         #region 命令定义
-        /// <summary>
-        /// SwitchRecipe 命令
-        /// </summary>
 
         public DelegateCommand SwitchRecipeCommand { get; private set; }
-        /// <summary>
-        /// TriggerScan 命令
-        /// </summary>
         public DelegateCommand TriggerScanCommand { get; private set; }
-        /// <summary>
-        /// TriggerOcr 命令
-        /// </summary>
         public DelegateCommand TriggerOcrCommand { get; private set; }
-        /// <summary>
-        /// OpenScannerSoftware 命令
-        /// </summary>
         public DelegateCommand OpenScannerSoftwareCommand { get; private set; }
-        /// <summary>
-        /// OpenCameraSoftware 命令
-        /// </summary>
         public DelegateCommand OpenCameraSoftwareCommand { get; private set; }
-        /// <summary>
-        /// Connect 命令
-        /// </summary>
 
-        public DelegateCommand ConnectCommand { get; private set; }
-        /// <summary>
-        /// Disconnect 命令
-        /// </summary>
-        public DelegateCommand DisconnectCommand { get; private set; }
-        /// <summary>
-        /// Enable 命令
-        /// </summary>
-        public DelegateCommand EnableCommand { get; private set; }
-        /// <summary>
-        /// Disable 命令
-        /// </summary>
-        public DelegateCommand DisableCommand { get; private set; }
-        /// <summary>
-        /// Home 命令
-        /// </summary>
-        public DelegateCommand HomeCommand { get; private set; }
-        /// <summary>
-        /// Stop 命令
-        /// </summary>
-        public DelegateCommand StopCommand { get; private set; }
-        /// <summary>
-        /// Reset 命令
-        /// </summary>
-        public DelegateCommand ResetCommand { get; private set; }
-        /// <summary>
-        /// MoveAbsolute 命令
-        /// </summary>
-
-        public DelegateCommand MoveAbsoluteCommand { get; private set; }
-        /// <summary>
-        /// MoveRelative 命令
-        /// </summary>
-        public DelegateCommand MoveRelativeCommand { get; private set; }
-        /// <summary>
-        /// JogPositive 命令
-        /// </summary>
-        public DelegateCommand JogPositiveCommand { get; private set; }
-        /// <summary>
-        /// JogNegative 命令
-        /// </summary>
-        public DelegateCommand JogNegativeCommand { get; private set; }
-        /// <summary>
-        /// 轴停止命令
-        /// </summary>
-        public DelegateCommand AxisStopCommand { get; private set; }
-        /// <summary>
-        /// TestPullOut 命令
-        /// </summary>
         public DelegateCommand TestPullOutCommand { get; private set; }
-        /// <summary>
-        /// TestPushBack 命令
-        /// </summary>
         public DelegateCommand TestPushBackCommand { get; private set; }
-        /// <summary>
-        /// TestFullFlow 命令
-        /// </summary>
         public DelegateCommand TestFullFlowCommand { get; private set; }
 
         // ── 模组调试步骤命令 ──
@@ -601,15 +371,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand ZJogNegativeCommand { get; private set; }
         public DelegateCommand ZAxisStopCommand { get; private set; }
 
-        /// <summary>
-        /// MoveToRecipeXYZ 命令 — 三轴并发移动到当前工位配方点位
-        /// </summary>
         public DelegateCommand MoveToRecipeXYZCommand { get; private set; }
-
-        /// <summary>
-        /// GetAndUpdateRecipeXYZ 命令 — 获取三轴当前位置并写入当前工位配方点位
-        /// </summary>
         public DelegateCommand GetAndUpdateRecipeXYZCommand { get; private set; }
+        public DelegateCommand SyncAdjustCommand { get; private set; }
 
         // ── 迷你模式命令 ──
         public DelegateCommand MiniCardPrevCommand { get; private set; }
@@ -622,100 +386,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand MiniAxisHomeCommand { get; private set; }
         public DelegateCommand MiniAxisResetCommand { get; private set; }
 
-        /// <summary>
-        /// SyncAdjust 命令
-        /// </summary>
-
-        public DelegateCommand SyncAdjustCommand { get; private set; }
-        /// <summary>
-        /// MoveToRecipePosition 命令
-        /// </summary>
-        public DelegateCommand MoveToRecipePositionCommand { get; private set; }
-        /// <summary>
-        /// GetCurrentPosition 命令
-        /// </summary>
-        public DelegateCommand GetCurrentPositionCommand { get; private set; }
-        /// <summary>
-        /// UpdateRecipePosition 命令
-        /// </summary>
-        public DelegateCommand UpdateRecipePositionCommand { get; private set; }
-
         private void InitializeCommands()
         {
-            // 顶部功能命令
             SwitchRecipeCommand = new DelegateCommand(ExecuteSwitchRecipe);
             TriggerScanCommand = new DelegateCommand(ExecuteTriggerScan);
             TriggerOcrCommand = new DelegateCommand(ExecuteTriggerOcr);
             OpenScannerSoftwareCommand = new DelegateCommand(ExecuteOpenScannerSoftware);
             OpenCameraSoftwareCommand = new DelegateCommand(ExecuteOpenCameraSoftware);
 
-            // 底部对话框按钮
             CancelCommand = new DelegateCommand(() => RequestClose.Invoke(ButtonResult.Cancel));
             ConfirmCommand = new DelegateCommand(ExecuteConfirm);
 
-            // 硬件控制命令
-            ConnectCommand = new DelegateCommand(async () =>
-            {
-                if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None);
-            });
-            DisconnectCommand = new DelegateCommand(async () =>
-            {
-                if (_baseDevice != null) await _baseDevice.DisconnectAsync();
-            });
-            EnableCommand = new DelegateCommand(async () =>
-            {
-                if (_axis != null) await _axis.EnableAsync();
-            });
-            DisableCommand = new DelegateCommand(async () =>
-            {
-                if (_axis != null) await _axis.DisableAsync();
-            });
-            HomeCommand = new DelegateCommand(async () =>
-            {
-                if (_axis != null) await _axis.HomeAsync(CancellationToken.None);
-            });
-            StopCommand = new DelegateCommand(async () =>
-            {
-                _cts?.Cancel();
-                if (_axis != null) await _axis.StopAsync();
-            });
-            ResetCommand = new DelegateCommand(async () =>
-            {
-                if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None);
-            });
-
-            // 运动控制命令
-            MoveAbsoluteCommand = new DelegateCommand(async () =>
-            {
-                if (_axis == null) return;
-                RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(TargetPosition, JogVelocity, JogVelocity * 5, JogVelocity * 5, 0.08, _cts.Token);
-            });
-            MoveRelativeCommand = new DelegateCommand(async () =>
-            {
-                if (_axis == null) return;
-                RefreshCancellationToken();
-                await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity * 5, RelVelocity * 5, 0.08, _cts.Token);
-            });
-            JogPositiveCommand = new DelegateCommand(async () =>
-            {
-                if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity * 5, JogVelocity * 5);
-            });
-            JogNegativeCommand = new DelegateCommand(async () =>
-            {
-                if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity * 5, JogVelocity * 5);
-            });
-            AxisStopCommand = new DelegateCommand(async () =>
-            {
-                if (_axis != null) await _axis.StopAsync();
-            });
-
-            // 模组调试命令
             TestPullOutCommand = new DelegateCommand(async () => await ExecuteTestPullOutAsync(), () => !IsBusy);
             TestPushBackCommand = new DelegateCommand(async () => await ExecuteTestPushBackAsync(), () => !IsBusy);
             TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), () => !IsBusy);
 
-            // 模组调试步骤命令
             Step0MoveStopperToStandbyCommand = new DelegateCommand(async () => await ExecuteStep0Async(), () => !_step0Busy);
             Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy && _step0Done);
             Step2SwitchLayerCommand = new DelegateCommand(async () => await ExecuteDebugStep2Async(), () => !IsBusy && CurrentDebugStep >= 1);
@@ -730,7 +415,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 DebugStepMessage = "已重置，请从第0步开始";
             });
 
-            // 三轴独立 JOG 命令
             XJogPositiveCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.JogAsync(XAxisJogVelocity, true, XAxisJogVelocity * 5, XAxisJogVelocity * 5); });
             XJogNegativeCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.JogAsync(XAxisJogVelocity, false, XAxisJogVelocity * 5, XAxisJogVelocity * 5); });
             XAxisStopCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.StopAsync(); });
@@ -741,13 +425,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             ZJogNegativeCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.JogAsync(ZAxisJogVelocity, false, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5); });
             ZAxisStopCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.StopAsync(); });
 
-            // 三轴并发移动到配方点位
             MoveToRecipeXYZCommand = new DelegateCommand(async () => await ExecuteMoveToRecipeXYZAsync(), () => !IsBusy);
-
-            // 获取三轴当前位置并写入配方
             GetAndUpdateRecipeXYZCommand = new DelegateCommand(ExecuteGetAndUpdateRecipeXYZ);
+            SyncAdjustCommand = new DelegateCommand(() =>
+                MessageService.ShowMessage("同步调整算法待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information));
 
-            // 迷你模式命令
             MiniCardPrevCommand = new DelegateCommand(() => MiniCardIndex--);
             MiniCardNextCommand = new DelegateCommand(() => MiniCardIndex++);
             MiniJogPositiveCommand = new DelegateCommand(async () =>
@@ -784,63 +466,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
                 if (axis is BaseDevice dev) await dev.ResetAsync(CancellationToken.None);
-            });
-
-            // 程式点位命令
-            SyncAdjustCommand = new DelegateCommand(ExecuteSyncAdjust);
-            MoveToRecipePositionCommand = new DelegateCommand(async () =>
-            {
-                if (_axis == null) return;
-                RefreshCancellationToken();
-                await _axis.MoveAbsoluteAsync(RecipeAxisPosition, JogVelocity, JogVelocity * 5, JogVelocity * 5, 0.08, _cts.Token);
-            });
-            GetCurrentPositionCommand = new DelegateCommand(() =>
-            {
-                if (_axis == null) return;
-                RecipeAxisPosition = (int)(_axis.CurrentPosition ?? 0);
-            });
-            UpdateRecipePositionCommand = new DelegateCommand(() =>
-            {
-                if (_currentRecipe == null || _axis == null) return;
-                if (_axis == _axisX)
-                {
-                    if (CurrentStation == E_WorkSpace.工位1)
-                    {
-                        _currentRecipe._1PosX = RecipeAxisPosition;
-                        if (_currentRecipe .WafeSize == E_WafeSize._8寸 )
-                        {
-                            _currentRecipe._2PosX = RecipeAxisPosition + _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_8 .ToString ()).GetAwaiter().GetResult();
-                        }
-                        else
-                        {
-                            _currentRecipe._2PosX = RecipeAxisPosition + _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_12.ToString()).GetAwaiter().GetResult();
-                        }
-                        
-                    }
-                    else
-                    {
-                        _currentRecipe._2PosX = RecipeAxisPosition;
-                        if (_currentRecipe.WafeSize == E_WafeSize._8寸)
-                        {
-                            _currentRecipe._2PosX = RecipeAxisPosition - _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_8.ToString()).GetAwaiter().GetResult();
-                        }
-                        else
-                        {
-                            _currentRecipe._2PosX = RecipeAxisPosition - _paramservice.GetParamAsync<double>(E_Params.OCRStationDistance_12.ToString()).GetAwaiter().GetResult();
-                        }
-                    }
-                }
-                else if (_axis == _axisY)
-                {
-                    if (CurrentStation == E_WorkSpace.工位1) _currentRecipe._1PosY = RecipeAxisPosition;
-                    else _currentRecipe._2PosY = RecipeAxisPosition;
-                }
-                else if (_axis == _axisZ)
-                {
-                    if (CurrentStation == E_WorkSpace.工位1) _currentRecipe._1PosZ = RecipeAxisPosition;
-                    else _currentRecipe._2PosZ = RecipeAxisPosition;
-                }
-                UpdateRecipePositionDisplay();
             });
         }
 
@@ -915,27 +540,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void ExecuteConfirm()
         {
-
-
             var param = new DialogParameters() { { "CallBackRecipe", _currentRecipe } };
-
-
             RequestClose.Invoke(param, ButtonResult.OK);
-        }
-
-        private void ExecuteSyncAdjust()
-        {
-            SyncStation2ByStation1();
-        }
-
-        /// <summary>
-        /// 根据工位1参数通过算法推导工位2参数。
-        /// TODO: 算法待实现。
-        /// </summary>
-        private void SyncStation2ByStation1()
-        {
-            // TODO: 实现工位1→工位2同步调整算法
-            MessageService.ShowMessage("同步调整算法待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         #endregion
@@ -1062,7 +668,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void RaiseStepCanExecuteChanged()
         {
-            // Step0 用独立 _step0Busy，不随 IsBusy 联动
             Step1SwitchProductionCommand?.RaiseCanExecuteChanged();
             Step2SwitchLayerCommand?.RaiseCanExecuteChanged();
             Step3PullMaterialCommand?.RaiseCanExecuteChanged();
@@ -1104,7 +709,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (_currentRecipe == null) return;
             IsBusy = true;
-            RefreshCancellationToken();
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
             try
             {
                 double x = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosX : _currentRecipe._2PosX;
@@ -1112,9 +718,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 double z = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosZ : _currentRecipe._2PosZ;
 
                 var tasks = new System.Collections.Generic.List<Task>();
-                if (_axisX != null) tasks.Add(_axisX.MoveAbsoluteAsync(x, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token));
-                if (_axisY != null) tasks.Add(_axisY.MoveAbsoluteAsync(y, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token));
-                if (_axisZ != null) tasks.Add(_axisZ.MoveAbsoluteAsync(z, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token));
+                if (_axisX != null) tasks.Add(_axisX.MoveAbsoluteAsync(x, XAxisJogVelocity, XAxisJogVelocity * 5, XAxisJogVelocity * 5, 0.08, _cts.Token));
+                if (_axisY != null) tasks.Add(_axisY.MoveAbsoluteAsync(y, YAxisJogVelocity, YAxisJogVelocity * 5, YAxisJogVelocity * 5, 0.08, _cts.Token));
+                if (_axisZ != null) tasks.Add(_axisZ.MoveAbsoluteAsync(z, ZAxisJogVelocity, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5, 0.08, _cts.Token));
                 await Task.WhenAll(tasks);
             }
             catch (Exception ex)
@@ -1271,30 +877,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion
 
-        #region 轴/工位切换
-
-        private void OnSelectedAxisChanged()
-        {
-            _pollingTimer.Stop();
-            _axis = SelectedAxis;
-            _baseDevice = _axis as BaseDevice;
-            UpdateRecipePositionDisplay();
-            if (_axis != null) _pollingTimer.Start();
-        }
+        #region 工位切换
 
         private void OnSelectedStationChanged()
         {
             UpdateRecipePositionDisplay();
         }
 
-        /// <summary>
-        /// 根据当前工位和选中轴更新程式点位显示。
-        /// </summary>
         private void UpdateRecipePositionDisplay()
         {
             if (_currentRecipe == null) return;
 
-            double x = 0, y = 0, z = 0;
+            double x, y, z;
             if (CurrentStation == 0)
             {
                 x = _currentRecipe._1PosX;
@@ -1312,12 +906,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             RecipePosX = x;
             RecipePosY = y;
             RecipePosZ = z;
-
-            // 根据当前选中的轴确定 RecipeAxisPosition
-            if (_axis == null) return;
-            if (_axis == _axisX) RecipeAxisPosition = x;
-            else if (_axis == _axisY) RecipeAxisPosition = y;
-            else if (_axis == _axisZ) RecipeAxisPosition = z;
         }
 
         #endregion
@@ -1326,7 +914,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnPollingTimerTick(object sender, EventArgs e)
         {
-            // 刷新三轴独立状态
             if (_axisX != null)
             {
                 var io = _axisX.AxisIOStatus;
@@ -1358,27 +945,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 ZAxisIsNegLimit = io?.MEL ?? false;
             }
 
-            // 兼容旧的单轴属性（设备控制 ComboBox 选中轴用）
-            if (_axis == null) return;
-            var axisio = _axis.AxisIOStatus;
-            CurrentPosition = (int)(_axis.CurrentPosition ?? 0);
-            IsMoving = axisio?.Moving ?? false;
-            IsEnabled = axisio?.SVO ?? false;
-            IsPositiveLimit = axisio?.PEL ?? false;
-            IsNegativeLimit = axisio?.MEL ?? false;
-            IsAlarm = axisio?.ALM ?? false;
-
-            // 刷新迷你模式属性
             RaisePropertyChanged(nameof(MiniAxisPosition));
             RaisePropertyChanged(nameof(MiniAxisIsEnabled));
             RaisePropertyChanged(nameof(MiniAxisIsMoving));
             RaisePropertyChanged(nameof(MiniAxisIsAlarm));
-        }
-
-        private void RefreshCancellationToken()
-        {
-            _cts?.Cancel();
-            _cts = new CancellationTokenSource();
         }
 
         #endregion

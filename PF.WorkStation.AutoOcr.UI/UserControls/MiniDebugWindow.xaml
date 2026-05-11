@@ -628,6 +628,7 @@
                         Style="{DynamicResource ButtonSuccess}" />
                 </UniformGrid>
                 <Button
+                    Margin="0,4,0,0"
                     Height="30"
                     HorizontalAlignment="Stretch"
                     Command="{Binding SyncAdjustCommand}"
@@ -636,7 +637,7 @@
                     Style="{DynamicResource ButtonDefault}" />
             </StackPanel>
 
-            <!--  页 6：设备控制  -->
+            <!--  页 6：光源控制  -->
             <StackPanel>
                 <StackPanel.Style>
                     <Style TargetType="StackPanel">
@@ -649,73 +650,19 @@
                     </Style>
                 </StackPanel.Style>
 
-                <Grid Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        FontSize="{DynamicResource FontSize.Body.Small}"
-                        Text="当前轴：" />
-                    <ComboBox
-                        Grid.Column="1"
-                        Height="30"
-                        DisplayMemberPath="DeviceName"
-                        ItemsSource="{Binding AxisList}"
-                        SelectedItem="{Binding SelectedAxis}" />
-                </Grid>
-
-                <UniformGrid Margin="0,0,0,12" Columns="4">
-                    <Button
-                        Height="30"
-                        Margin="0,0,3,0"
-                        Command="{Binding EnableCommand}"
-                        Content="使能 ON"
-                        FontSize="{DynamicResource FontSize.Caption.Mini}"
-                        Style="{DynamicResource ButtonPrimary}" />
-                    <Button
-                        Height="30"
-                        Margin="0,0,3,0"
-                        Command="{Binding DisableCommand}"
-                        Content="使能 OFF"
-                        FontSize="{DynamicResource FontSize.Caption.Mini}"
-                        Style="{DynamicResource ButtonWarning}" />
-                    <Button
-                        Height="30"
-                        Margin="0,0,3,0"
-                        Command="{Binding HomeCommand}"
-                        Content="回零"
-                        FontSize="{DynamicResource FontSize.Caption.Mini}"
-                        Style="{DynamicResource ButtonSuccess}" />
-                    <Button
-                        Height="30"
-                        Command="{Binding ResetCommand}"
-                        Content="复位"
-                        FontSize="{DynamicResource FontSize.Caption.Mini}"
-                        Style="{DynamicResource ButtonDefault}" />
-                </UniformGrid>
-
-                <Grid Margin="0,0,0,6">
+                <Grid Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="48" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="36" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        FontSize="{DynamicResource FontSize.Body.Small}"
-                        Text="红外光" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="红外光" />
                     <Slider
                         Grid.Column="1"
                         Maximum="255"
                         Minimum="0"
                         Value="{Binding InfraredLightValue, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock
-                        Grid.Column="2"
-                        VerticalAlignment="Center"
-                        FontSize="{DynamicResource FontSize.Body.Small}"
-                        Text="{Binding InfraredLightValue}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding InfraredLightValue}" />
                 </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -723,20 +670,13 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="36" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        FontSize="{DynamicResource FontSize.Body.Small}"
-                        Text="条光" />
+                    <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="条光" />
                     <Slider
                         Grid.Column="1"
                         Maximum="255"
                         Minimum="0"
                         Value="{Binding WhiteLightValue, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock
-                        Grid.Column="2"
-                        VerticalAlignment="Center"
-                        FontSize="{DynamicResource FontSize.Body.Small}"
-                        Text="{Binding WhiteLightValue}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding WhiteLightValue}" />
                 </Grid>
             </StackPanel>
 

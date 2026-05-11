@@ -183,12 +183,10 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     case HardwareInputTypeExtension.WorkStation1Start:
                         _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
-                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
                         break;
 
                     case HardwareInputTypeExtension.WorkStation2Start:
                         _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
-                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
                         break;
                 }
 
@@ -218,8 +216,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
                     _hardwareInputMonitor.StartSafetyMonitoring();
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+                   
                 }
                 else if (newState == Core.Enums.MachineState.Uninitialized)
                 {

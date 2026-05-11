@@ -72,7 +72,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <!-- 视觉X轴卡片 -->
@@ -337,59 +336,6 @@
                 </Border>
 
                 <!-- 设备控制（简化）-->
-                <Border
-                    Grid.Row="3"
-                    Padding="12,10"
-                    BorderBrush="#E2E8F0"
-                    BorderThickness="1"
-                    CornerRadius="6">
-                    <StackPanel>
-                        <TextBlock
-                            Margin="0,0,0,8"
-                            FontSize="{DynamicResource FontSize.Body.Standard}"
-                            FontWeight="SemiBold"
-                            Foreground="#475569"
-                            Text="设备控制" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource FontSize.Body.Small}" Text="当前轴：" />
-                            <ComboBox
-                                Grid.Column="1"
-                                Height="30"
-                                DisplayMemberPath="DeviceName"
-                                ItemsSource="{Binding AxisList}"
-                                SelectedItem="{Binding SelectedAxis}" />
-                        </Grid>
-                        <UniformGrid Margin="0,8,0,0" Columns="4">
-                            <Button
-                                Height="32"
-                                Margin="0,0,4,0"
-                                Command="{Binding EnableCommand}"
-                                Content="使能 ON"
-                                Style="{DynamicResource ButtonPrimary}" />
-                            <Button
-                                Height="32"
-                                Margin="0,0,4,0"
-                                Command="{Binding DisableCommand}"
-                                Content="使能 OFF"
-                                Style="{DynamicResource ButtonWarning}" />
-                            <Button
-                                Height="32"
-                                Margin="0,0,4,0"
-                                Command="{Binding HomeCommand}"
-                                Content="回零"
-                                Style="{DynamicResource ButtonSuccess}" />
-                            <Button
-                                Height="32"
-                                Command="{Binding ResetCommand}"
-                                Content="复位"
-                                Style="{DynamicResource ButtonDefault}" />
-                        </UniformGrid>
-                    </StackPanel>
-                </Border>
             </Grid>
 
             <!-- ===== 右列：调试步骤 + 扫码 + OCR + 光源 ===== -->
