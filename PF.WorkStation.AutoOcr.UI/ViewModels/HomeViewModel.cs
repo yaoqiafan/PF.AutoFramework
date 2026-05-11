@@ -271,6 +271,26 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             private set => SetProperty(ref _station2SlotStatesDisplay, value);
         }
 
+        private bool _station1IsMuted;
+        /// <summary>工位1是否处于屏蔽模式</summary>
+        public bool Station1IsMuted
+        {
+            get => _station1IsMuted;
+            private set { if (SetProperty(ref _station1IsMuted, value)) RaisePropertyChanged(nameof(Station1IsEnabled)); }
+        }
+        /// <summary>工位1 UI 卡片是否可操作（屏蔽时禁用）</summary>
+        public bool Station1IsEnabled => !_station1IsMuted;
+
+        private bool _station2IsMuted;
+        /// <summary>工位2是否处于屏蔽模式</summary>
+        public bool Station2IsMuted
+        {
+            get => _station2IsMuted;
+            private set { if (SetProperty(ref _station2IsMuted, value)) RaisePropertyChanged(nameof(Station2IsEnabled)); }
+        }
+        /// <summary>工位2 UI 卡片是否可操作（屏蔽时禁用）</summary>
+        public bool Station2IsEnabled => !_station2IsMuted;
+
         private ObservableCollection<MachineDetectionData> _station1MachineDetection = [];
         /// <summary>获取或设置工位1检测数据集合</summary>
         public ObservableCollection<MachineDetectionData> Station1MachineDetection
@@ -483,10 +503,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>从 WSDataModule 更新 UI 派生字段</summary>
-        private Task RefreshAllAsync()
+        private async Task RefreshAllAsync()
         {
             if (_dataModule == null)
-                return Task.CompletedTask;
+                return;
 
             Station1SlotStatesDisplay = new ObservableCollection<WaferSlotInfo>(
                 _dataModule.Station1SlotStates.OrderByDescending(s => s.SlotIndex));
@@ -515,7 +535,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 if (latest != null) Station2CurrentMachineDetection = latest;
             }
 
-            return Task.CompletedTask;
+            Station1IsMuted = await _paramService.GetParamAsync<bool>(E_Params.WorkStation1_Muted.ToString(), false);
+            Station2IsMuted = await _paramService.GetParamAsync<bool>(E_Params.WorkStation2_Muted.ToString(), false);
         }
 
         #region 切换批次

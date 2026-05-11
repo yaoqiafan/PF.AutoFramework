@@ -57,7 +57,7 @@
                 </Grid.ColumnDefinitions>
 
                 <Grid Grid.Column="0" Margin="10">
-                    <pf:Card FontSize="{DynamicResource FontSize.Body.Standard}">
+                    <pf:Card FontSize="{DynamicResource FontSize.Body.Standard}" IsEnabled="{Binding Station1IsEnabled}">
                         <pf:Card.Header>
                             <Grid Margin="10">
                                 <TextBlock
@@ -273,7 +273,7 @@
                 </Grid>
 
                 <Grid Grid.Column="1" Margin="10">
-                    <pf:Card FontSize="{DynamicResource FontSize.Body.Standard}">
+                    <pf:Card FontSize="{DynamicResource FontSize.Body.Standard}" IsEnabled="{Binding Station2IsEnabled}">
                         <pf:Card.Header>
                             <Grid Margin="10">
                                 <TextBlock
