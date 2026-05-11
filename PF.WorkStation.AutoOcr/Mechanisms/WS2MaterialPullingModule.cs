@@ -566,7 +566,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 bool hasMaterial = res1.Value;
                 _logger.Info($"[{MechanismName}]检测晶圆铁环防反检测，状态为{hasMaterial}");
 
-                if (hasMaterial)
+                if (!hasMaterial)
                 {
                     return MechResult<bool>.Success(true);
                 }
