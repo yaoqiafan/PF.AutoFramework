@@ -89,6 +89,11 @@ namespace PF.Core.Interfaces.Device.Hardware
         void SetSafetyDoorEnabled(string name, bool enabled);
 
         /// <summary>
+        /// Safety 扫描线程当前是否正在运行。
+        /// </summary>
+        bool IsSafetyMonitoringRunning { get; }
+
+        /// <summary>
         /// 获取所有安全门的当前状态快照。
         /// </summary>
         IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot();

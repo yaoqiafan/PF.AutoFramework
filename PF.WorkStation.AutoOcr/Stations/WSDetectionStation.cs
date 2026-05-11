@@ -544,6 +544,11 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 // 裸跑 DB 写入（异常会上弹）
                                 await _dataModule.AddMachineDetectionAsync(_currentworkSpace, _cachedDetectionData).ConfigureAwait(false);
                                 _logger.Info($"[{StationName}] 检测数据已推入中枢（{_currentworkSpace}），匹配结果：{_cachedDetectionData.IsMatch}。");
+
+                                int inspSlot = _dataModule.GetInspectingSlot(_currentworkSpace);
+                                if (inspSlot >= 0)
+                                    _dataModule.UpdateSlotStatus(_currentworkSpace, inspSlot,
+                                        _cachedDetectionData.IsMatch ? WaferSlotStatus.OK : WaferSlotStatus.NG);
                             }
                             _currentStep = StationDetectionStep.检测完成;
                             break;

@@ -512,35 +512,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue(15)]
         LayerPitch_12,
 
-        /// <summary>8寸晶圆扫描正偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("8寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningPositiveOffset_8,
-
-        /// <summary>12寸晶圆扫描正偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("12寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningPositiveOffset_12,
-
-        /// <summary>8寸晶圆扫描负偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("8寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningNegativeOffset_8,
-
-        /// <summary>12寸晶圆扫描负偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("12寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningNegativeOffset_12,
-
-        /// <summary>扫层速度</summary>
-        [Category("上下料模组参数")]
-        [Description("扫层速度")]
-        [DefaultValue(1)]
-        ZScanSpeed,
+      
         #endregion
 
 
@@ -622,11 +594,7 @@ namespace PF.Workstation.AutoOcr.CostParam
 
         #region 安全门参数
 
-        /// <summary>屏蔽安全门1-2检测（调试用，正式生产必须关闭）</summary>
-        //[Category("屏蔽参数")]
-        //[Description("屏蔽安全门1-2检测")]
-        //[DefaultValue(false)]
-        //SafeDoor_1_2_Muted,
+       
         /// <summary>屏蔽安全门1检测（调试用，正式生产必须关闭）</summary>
         [Category("屏蔽参数")]
         [Description("屏蔽安全门1检测")]

@@ -1,5 +1,6 @@
 using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Recipe;
@@ -36,6 +37,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly DispatcherTimer _pollTimer;
         private readonly IEventAggregator _eventAggregator;
         private readonly IStationSyncService _sync;
+        private readonly IHardwareInputMonitor? _hardwareInputMonitor;
 
         private readonly IParamService _paramService;
 
@@ -141,6 +143,62 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             set => SetProperty(ref _station2UnloadMaskVisible, value);
         }
 
+        // ── 安全门三态指示 ──────────────────────────────────────────
+
+        private static readonly Brush _doorActiveBrush  = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // 绿
+        private static readonly Brush _doorStoppedBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x07)); // 黄
+        private static readonly Brush _doorMutedBrush   = new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0x9E)); // 灰
+
+        private SafetyDoorMonitorState _door1State = SafetyDoorMonitorState.Stopped;
+        private SafetyDoorMonitorState _door2State = SafetyDoorMonitorState.Stopped;
+
+        /// <summary>工位1安全门指示灯颜色（绿=检测中 黄=已停止 灰=屏蔽）</summary>
+        public Brush Door1StatusBrush => StateToBrush(_door1State);
+        /// <summary>工位1安全门状态文字</summary>
+        public string Door1StatusText => StateToText(_door1State);
+
+        /// <summary>工位2安全门指示灯颜色（绿=检测中 黄=已停止 灰=屏蔽）</summary>
+        public Brush Door2StatusBrush => StateToBrush(_door2State);
+        /// <summary>工位2安全门状态文字</summary>
+        public string Door2StatusText => StateToText(_door2State);
+
+        private static Brush StateToBrush(SafetyDoorMonitorState s) => s switch
+        {
+            SafetyDoorMonitorState.Active  => _doorActiveBrush,
+            SafetyDoorMonitorState.Stopped => _doorStoppedBrush,
+            _                              => _doorMutedBrush
+        };
+
+        private static string StateToText(SafetyDoorMonitorState s) => s switch
+        {
+            SafetyDoorMonitorState.Active  => "安全门: 检测中",
+            SafetyDoorMonitorState.Stopped => "安全门: 已停止",
+            _                              => "安全门: 屏蔽"
+        };
+
+        private static SafetyDoorMonitorState ComputeDoorState(SafetyDoorState door, bool threadRunning)
+        {
+            if (door.IsMuted) return SafetyDoorMonitorState.Muted;
+            if (!threadRunning || !door.IsEnabled) return SafetyDoorMonitorState.Stopped;
+            return SafetyDoorMonitorState.Active;
+        }
+
+        private void SetDoor1State(SafetyDoorMonitorState s)
+        {
+            if (_door1State == s) return;
+            _door1State = s;
+            RaisePropertyChanged(nameof(Door1StatusBrush));
+            RaisePropertyChanged(nameof(Door1StatusText));
+        }
+
+        private void SetDoor2State(SafetyDoorMonitorState s)
+        {
+            if (_door2State == s) return;
+            _door2State = s;
+            RaisePropertyChanged(nameof(Door2StatusBrush));
+            RaisePropertyChanged(nameof(Door2StatusText));
+        }
+
         private string _station1RecipeName = "NONE";
         /// <summary>获取或设置工位1程式名称</summary>
         public string Station1RecipeName
@@ -161,8 +219,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 清除机台记忆
 
-        /// <summary>各工站清除记忆选择项</summary>
-        public ObservableCollection<StationMemoryItem> StationMemoryItems { get; }
+        /// <summary>工位复合清除记忆选择项（工位一 / 工位二）</summary>
+        public ObservableCollection<WorkstationMemoryGroup> StationMemoryItems { get; }
 
         private bool _suppressSelectAllUpdate;
         private bool? _isSelectAllMemoryChecked = false;
@@ -186,7 +244,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnStationMemoryItemChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (_suppressSelectAllUpdate || e.PropertyName != nameof(StationMemoryItem.IsChecked)) return;
+            if (_suppressSelectAllUpdate || e.PropertyName != nameof(WorkstationMemoryGroup.IsChecked)) return;
             bool allChecked  = StationMemoryItems.All(x => x.IsChecked);
             bool noneChecked = StationMemoryItems.All(x => !x.IsChecked);
             _isSelectAllMemoryChecked = allChecked ? true : noneChecked ? false : (bool?)null;
@@ -196,6 +254,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion
 
         #region 数据集合
+
+        private ObservableCollection<WaferSlotInfo> _station1SlotStatesDisplay = new();
+        /// <summary>工位1晶圆盒槽位状态（倒序：索引12在顶，索引0在底）</summary>
+        public ObservableCollection<WaferSlotInfo> Station1SlotStatesDisplay
+        {
+            get => _station1SlotStatesDisplay;
+            private set => SetProperty(ref _station1SlotStatesDisplay, value);
+        }
+
+        private ObservableCollection<WaferSlotInfo> _station2SlotStatesDisplay = new();
+        /// <summary>工位2晶圆盒槽位状态（倒序：索引12在顶，索引0在底）</summary>
+        public ObservableCollection<WaferSlotInfo> Station2SlotStatesDisplay
+        {
+            get => _station2SlotStatesDisplay;
+            private set => SetProperty(ref _station2SlotStatesDisplay, value);
+        }
 
         private ObservableCollection<MachineDetectionData> _station1MachineDetection = [];
         /// <summary>获取或设置工位1检测数据集合</summary>
@@ -271,18 +345,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
             _eventAggregator = containerProvider.Resolve<IEventAggregator>();
             _sync = containerProvider.Resolve<IStationSyncService>();
+            _hardwareInputMonitor = containerProvider.Resolve<IHardwareInputMonitor>();
 
             // 订阅操作员下料请求事件：弹出确认弹窗，操作员确认后释放同步信号
             _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>()
                 .Subscribe(OnOperatorUnloadRequested, ThreadOption.UIThread);
 
-            StationMemoryItems = new ObservableCollection<StationMemoryItem>
+            StationMemoryItems = new ObservableCollection<WorkstationMemoryGroup>
             {
-                new StationMemoryItem("工位1上下料工站", E_WorkStation.工位1上下料工站.ToString()),
-                new StationMemoryItem("OCR检测工站",     E_WorkStation.OCR检测工站.ToString()),
-                new StationMemoryItem("工位1拉料工站",   E_WorkStation.工位1拉料工站.ToString()),
-                new StationMemoryItem("工位2上下料工站", E_WorkStation.工位2上下料工站.ToString()),
-                new StationMemoryItem("工位2拉料工站",   E_WorkStation.工位2拉料工站.ToString()),
+                new WorkstationMemoryGroup("工位一", new[]
+                {
+                    E_WorkStation.工位1上下料工站.ToString(),
+                    E_WorkStation.工位1拉料工站.ToString()
+                }),
+                new WorkstationMemoryGroup("工位二", new[]
+                {
+                    E_WorkStation.工位2上下料工站.ToString(),
+                    E_WorkStation.工位2拉料工站.ToString()
+                }),
             };
             foreach (var item in StationMemoryItems)
                 item.PropertyChanged += OnStationMemoryItemChanged;
@@ -301,10 +381,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         {
                             try
                             {
-                                foreach (var si in selectedItems)
+                                foreach (var group in selectedItems)
                                 {
-                                    _controller.ClearStationMemory(si.StationName);
-                                    si.IsChecked = false;
+                                    foreach (var stationName in group.StationNames)
+                                        _controller.ClearStationMemory(stationName);
+                                    group.IsChecked = false;
                                 }
                             }
                             catch (Exception ex)
@@ -386,6 +467,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             PauseCommand.RaiseCanExecuteChanged();
             StopCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
+
+            if (_hardwareInputMonitor != null)
+            {
+                bool threadRunning = _hardwareInputMonitor.IsSafetyMonitoringRunning;
+                var doors = _hardwareInputMonitor.GetSafetyDoorSnapshot();
+                foreach (var door in doors)
+                {
+                    if (door.Name == nameof(E_InPutName.工位1门锁))
+                        SetDoor1State(ComputeDoorState(door, threadRunning));
+                    else if (door.Name == nameof(E_InPutName.工位2门锁))
+                        SetDoor2State(ComputeDoorState(door, threadRunning));
+                }
+            }
         }
 
         /// <summary>从 WSDataModule 更新 UI 派生字段</summary>
@@ -393,6 +487,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             if (_dataModule == null)
                 return Task.CompletedTask;
+
+            Station1SlotStatesDisplay = new ObservableCollection<WaferSlotInfo>(
+                _dataModule.Station1SlotStates.OrderByDescending(s => s.SlotIndex));
+            Station2SlotStatesDisplay = new ObservableCollection<WaferSlotInfo>(
+                _dataModule.Station2SlotStates.OrderByDescending(s => s.SlotIndex));
 
             Station1MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation1MachineDetectionData);
             Station2MachineDetection = new ObservableCollection<MachineDetectionData>(_dataModule.Sation2MachineDetectionData);
@@ -590,16 +689,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
     }
 
-    /// <summary>单个工站的清除记忆选择项，供 UI 列表绑定使用</summary>
-    public class StationMemoryItem : INotifyPropertyChanged
+    /// <summary>安全门运行时监控状态（三态）</summary>
+    public enum SafetyDoorMonitorState
+    {
+        /// <summary>检测中：Safety 线程运行 且 IsEnabled = true 且 IsMuted = false</summary>
+        Active,
+        /// <summary>已停止：Safety 线程未运行 或 IsEnabled = false（临时屏蔽）且 IsMuted = false</summary>
+        Stopped,
+        /// <summary>屏蔽：IsMuted = true（数据库持久化屏蔽参数）</summary>
+        Muted
+    }
+
+    /// <summary>工位复合清除记忆选项：选中时同步清除该工位下所有子工站的记忆。</summary>
+    public class WorkstationMemoryGroup : INotifyPropertyChanged
     {
         private bool _isChecked;
 
-        /// <summary>界面显示名称</summary>
+        /// <summary>界面显示名称（如"工位一"）</summary>
         public string DisplayName { get; }
 
-        /// <summary>工站名称（对应 StationBase.StationName）</summary>
-        public string StationName { get; }
+        /// <summary>需要清除记忆的工站名称列表（对应 StationBase.StationName）</summary>
+        public string[] StationNames { get; }
 
         /// <summary>是否勾选清除</summary>
         public bool IsChecked
@@ -615,10 +725,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public StationMemoryItem(string displayName, string stationName)
+        public WorkstationMemoryGroup(string displayName, string[] stationNames)
         {
             DisplayName = displayName;
-            StationName = stationName;
+            StationNames = stationNames;
         }
     }
 }

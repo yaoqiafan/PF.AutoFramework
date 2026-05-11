@@ -632,6 +632,69 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #endregion
 
+        #region Cassette Slot States (晶圆盒槽位状态)
+
+        private const int CassetteSlotCount = 13;
+
+        private volatile List<WaferSlotInfo> _station1SlotStates = CreateEmptySlots();
+        private volatile List<WaferSlotInfo> _station2SlotStates = CreateEmptySlots();
+        private volatile int _station1InspectingSlot = -1;
+        private volatile int _station2InspectingSlot = -1;
+
+        private static List<WaferSlotInfo> CreateEmptySlots() =>
+            Enumerable.Range(0, CassetteSlotCount)
+                      .Select(i => new WaferSlotInfo { SlotIndex = i })
+                      .ToList();
+
+        /// <summary>工位1晶圆盒槽位状态（0-12，共13层）</summary>
+        public IReadOnlyList<WaferSlotInfo> Station1SlotStates => _station1SlotStates;
+
+        /// <summary>工位2晶圆盒槽位状态</summary>
+        public IReadOnlyList<WaferSlotInfo> Station2SlotStates => _station2SlotStates;
+
+        /// <summary>
+        /// 算法过滤完成后调用：初始化整盒13个槽位的状态。
+        /// activeSlots 为 _layersToProcess（0-based物理层索引），其余槽位置为 Empty。
+        /// </summary>
+        public void InitializeSlotStates(E_WorkSpace station, IEnumerable<int> activeSlots)
+        {
+            var active = new HashSet<int>(activeSlots);
+            var list = Enumerable.Range(0, CassetteSlotCount)
+                                 .Select(i => new WaferSlotInfo
+                                 {
+                                     SlotIndex = i,
+                                     Status = active.Contains(i) ? WaferSlotStatus.HasMaterial : WaferSlotStatus.Empty
+                                 }).ToList();
+            if (station == E_WorkSpace.工位1) _station1SlotStates = list;
+            else _station2SlotStates = list;
+            Save(_filepath);
+            RaiseDataChanged();
+        }
+
+        /// <summary>暂存当前正在检测的槽位（0-based物理层索引），供检测工站读取。</summary>
+        public void SetInspectingSlot(E_WorkSpace station, int slotIndex0Based)
+        {
+            if (station == E_WorkSpace.工位1) _station1InspectingSlot = slotIndex0Based;
+            else _station2InspectingSlot = slotIndex0Based;
+        }
+
+        /// <summary>读取当前工位正在检测的槽位（-1 表示无）。</summary>
+        public int GetInspectingSlot(E_WorkSpace station) =>
+            station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
+
+        /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status)
+        {
+            var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
+            var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
+            if (slot == null) return;
+            slot.Status = status;
+            Save(_filepath);
+            RaiseDataChanged();
+        }
+
+        #endregion
+
         #region Serialization & Persistence (序列化与数据持久化快照)
 
         /// <summary>
@@ -649,6 +712,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = new List<MachineDetectionData>();
             public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch { get; set; } = new ConcurrentDictionary<string, List<MachineDetectionData>>();
             public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new ConcurrentDictionary<string, int>();
+            public List<WaferSlotInfo> Station1SlotStates { get; set; } = new();
+            public List<WaferSlotInfo> Station2SlotStates { get; set; } = new();
         }
 
 
@@ -674,6 +739,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         Sation2MachineDetectionData = _sation2MachineDetectionData,
                         MachineDataByBatch = _machineDataByBatch,
                         BatchQuantityMap = _batchQuantityMap,
+                        Station1SlotStates = new List<WaferSlotInfo>(_station1SlotStates),
+                        Station2SlotStates = new List<WaferSlotInfo>(_station2SlotStates),
                     };
 
                     var options = new JsonSerializerOptions { WriteIndented = true };
@@ -726,6 +793,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     this._sation2MachineDetectionData = tempModule.Sation2MachineDetectionData;
                     this._machineDataByBatch = tempModule.MachineDataByBatch;
                     this._batchQuantityMap = tempModule.BatchQuantityMap;
+                    this._station1SlotStates = tempModule.Station1SlotStates?.Count > 0
+                        ? tempModule.Station1SlotStates : CreateEmptySlots();
+                    this._station2SlotStates = tempModule.Station2SlotStates?.Count > 0
+                        ? tempModule.Station2SlotStates : CreateEmptySlots();
 
                     _logger?.Info($"{MechanismName} 历史数据加载成功");
 
@@ -837,6 +908,35 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>晶圆所在的物理槽位 ID 号</summary>
         public string WaferId { get; set; }
+    }
+
+    /// <summary>晶圆盒槽位检测状态</summary>
+    public enum WaferSlotStatus
+    {
+        /// <summary>空槽（寻层未发现物料）</summary>
+        Empty,
+        /// <summary>有料（寻层算法过滤后确认有料，待检测）</summary>
+        HasMaterial,
+        /// <summary>检测中（拉料工站已取出，龙门正在拍照）</summary>
+        Inspecting,
+        /// <summary>OCR 结果 OK</summary>
+        OK,
+        /// <summary>OCR 结果 NG</summary>
+        NG
+    }
+
+    /// <summary>晶圆盒单槽状态（供 UI 列表绑定）</summary>
+    public class WaferSlotInfo
+    {
+        /// <summary>0-based 物理层索引（0 = 第1层）</summary>
+        public int SlotIndex { get; set; }
+
+        /// <summary>界面显示编号 = SlotIndex + 1</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int DisplayIndex => SlotIndex + 1;
+
+        /// <summary>当前槽位检测状态</summary>
+        public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
     }
 
     #endregion

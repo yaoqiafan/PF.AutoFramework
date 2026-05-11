@@ -134,6 +134,11 @@ namespace PF.Services.Hardware
         // Safety (安全装置) 控制
         // ==========================================
 
+        /// <inheritdoc/>
+        public bool IsSafetyMonitoringRunning =>
+            _safetyCts != null && !_safetyCts.IsCancellationRequested &&
+            _safetyTask is { IsCompleted: false };
+
         /// <summary>
         /// StartSafetyMonitoring 监控器
         /// </summary>

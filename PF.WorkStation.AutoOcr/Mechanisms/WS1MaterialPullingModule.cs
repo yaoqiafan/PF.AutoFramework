@@ -61,8 +61,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             待机位置,         // Y轴退回最深处的安全位，不干涉 Z轴升降 与 上下料
             /// <summary>晶圆取料位置</summary>
             晶圆取料位置,     // Y轴伸入料盒内部，夹爪中心对准铁环的位置
-            /// <summary>晶圆拉出位置</summary>
-            晶圆拉出位置,     // 夹持晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
+            /// <summary>晶圆8寸拉出位置</summary>
+            晶圆8寸拉出位置,  // 夹持8寸晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
+            /// <summary>晶圆12寸拉出位置</summary>
+            晶圆12寸拉出位置, // 夹持12寸晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
             /// <summary>取出安全位置</summary>
             取出安全位置,     // 晶圆完全离开料盒后的安全驻留位
         }
@@ -693,12 +695,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <para>技术亮点：使用 <see cref="Task.WhenAny"/> 实现运动与双重硬件防呆的并发执行。
         /// 运动过程中若检测到拉力异常(卡料)或物料脱落(丢料)，能在毫秒级响应并切断运动。</para>
         /// </summary>
-        public async Task<MechResult> MoveDetection(CancellationToken token = default)
+        public async Task<MechResult> MoveDetection(E_WafeSize wafesize, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 入口检查
             using var timeoutcts = new CancellationTokenSource(await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()));
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutcts.Token);
             var linkedToken = cts.Token;
+            var pullPoint = wafesize == E_WafeSize._8寸 ? YAxisPoint.晶圆8寸拉出位置.ToString() : YAxisPoint.晶圆12寸拉出位置.ToString();
 
             try
             {
@@ -720,7 +723,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     }
                 }, linkedToken);
 
-                if (!await _yAxis.MoveToPointAsync(YAxisPoint.晶圆拉出位置.ToString(), linkedToken))
+                if (!await _yAxis.MoveToPointAsync(pullPoint, linkedToken))
                 {
                     cts.Cancel();
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "轴底层运动触发指令下发失败");

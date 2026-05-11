@@ -164,6 +164,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         public bool WafeInPlace2 { get => _wafeInPlace2; set => SetProperty(ref _wafeInPlace2, value); }
 
+        private E_WafeSize _selectedWafeSize = E_WafeSize._12寸;
+        /// <summary>
+        /// 调试时使用的晶圆尺寸（决定拉出目标点位）
+        /// </summary>
+        public E_WafeSize SelectedWafeSize { get => _selectedWafeSize; set => SetProperty(ref _selectedWafeSize, value); }
+
         #endregion 状态监控属性 (UI 实时刷新)
 
 
@@ -340,7 +346,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             SavePointCommand = new DelegateCommand(SavePoint);
 
             MoveFeedingCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到拉料位", () => _materialPullingModule?.InitialMoveFeeding()));
-            MoveDetcetionCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到检测位", () => _materialPullingModule?.MoveDetection()));
+            MoveDetcetionCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到检测位", () => _materialPullingModule?.MoveDetection(SelectedWafeSize)));
             MoveInitialCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("移动到初始位", () => _materialPullingModule?.MoveInitial()));
             MoveInitialNoScanCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("强制复位（无检测）", () => _materialPullingModule?.MoveInitialNoScan()));
             PutOverMoveCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("退回卸料安全位", () => _materialPullingModule?.PutOverMove()));
@@ -581,7 +587,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
             if (!await _materialPullingModule.CheckStackedPieces(token)) throw new Exception("检测到叠料异常");
 
-            var resDetect = await _materialPullingModule.MoveDetection(token);
+            var resDetect = await _materialPullingModule.MoveDetection(SelectedWafeSize, token);
             if (!resDetect.IsSuccess) throw new Exception($"拉出至检测位失败: {resDetect.ErrorMessage}");
         }
 

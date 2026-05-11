@@ -24,6 +24,7 @@
             </ContextMenu>
         </Grid.ContextMenu>
 
+        <!--  真实图片层：可随鼠标缩放/平移  -->
         <Grid x:Name="TransformRoot" RenderTransformOrigin="0,0">
             <Grid.RenderTransform>
                 <TransformGroup>
@@ -32,9 +33,9 @@
                 </TransformGroup>
             </Grid.RenderTransform>
 
-            <Image x:Name="MainImage" Stretch="Uniform" />
+            <Image x:Name="MainImage" Stretch="Uniform" Visibility="Collapsed" />
 
-            <Border Margin="15" Padding="8,5" CornerRadius="4" Background="{DynamicResource  DarkOpacityBrush}"  
+            <Border Margin="15" Padding="8,5" CornerRadius="4" Background="{DynamicResource  DarkOpacityBrush}"
                     HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False"
                     >
                 <ContentPresenter Content="{Binding AnnotationContent, RelativeSource={RelativeSource AncestorType=UserControl}}" >
@@ -46,5 +47,16 @@
                 </ContentPresenter>
             </Border>
         </Grid>
+
+        <!--  占位图层：在无有效图片时居中显示固定尺寸图标，不受缩放/平移影响  -->
+        <Image
+            x:Name="PlaceholderImage"
+            Width="100"
+            Height="100"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            IsHitTestVisible="False"
+            Stretch="Uniform"
+            Visibility="Visible" />
     </Grid>
 </UserControl>
