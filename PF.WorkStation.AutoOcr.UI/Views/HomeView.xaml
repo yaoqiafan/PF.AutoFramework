@@ -154,7 +154,7 @@
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    BorderThickness="0.5"
+                                                    BorderThickness="1"
                                                     CornerRadius="2"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
@@ -370,7 +370,7 @@
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    BorderThickness="0.5"
+                                                    BorderThickness="1"
                                                     CornerRadius="2"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
