@@ -1,4 +1,6 @@
+using MathNet.Numerics.LinearAlgebra.Factorization;
 using Microsoft.Win32;
+using NPOI.SS.Formula.Functions;
 using System;
 using System.IO;
 using System.Windows;
@@ -6,6 +8,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+
+
 
 namespace PF.WorkStation.AutoOcr.UI.UserControls
 {
@@ -18,8 +22,8 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
 
         private static Geometry ExtractDefaultInfoGeometry()
         {
-            // 蓝色扁平化“信息(i)”矢量路径数据
-            var d = "M16,2 C8.271,2 2,8.271 2,16 C2,23.729 8.271,30 16,30 C23.729,30 30,23.729 30,16 C30,8.271 23.729,2 16,2 z M17,25 L15,25 L15,14 L17,14 L17,25 z M17,11 L15,11 L15,9 L17,9 L17,11 z";
+
+            var d = "M811.63239 999.02439c-13.786537 0-24.97561-11.264-24.97561-25.125463v-150.353171h-149.95356c-13.761561 0-24.97561-11.264-24.97561-25.125463 0-13.836488 11.214049-25.125463 24.97561-25.125464h149.95356v-150.328195c0-13.861463 11.189073-25.125463 24.97561-25.125463 13.761561 0 24.97561 11.264 24.97561 25.125463v150.353171H986.536585c13.761561 0 24.97561 11.239024 24.97561 25.100488 0 13.861463-11.214049 25.125463-24.97561 25.125463h-149.928585v150.353171c0 13.861463-11.214049 25.125463-24.97561 25.125463zM101.351024 952.694634C59.841561 952.694634 12.487805 905.191024 12.487805 863.531707V89.162927C12.487805 47.50361 59.841561 0 101.351024 0h771.846244c41.534439 0 88.86322 47.50361 88.86322 89.162927v393.815414a25.100488 25.100488 0 0 1-24.97561 24.850732 25.100488 25.100488 0 0 1-24.97561-25.924683V125.377561c0-41.459512-33.642146-75.176585-74.97678-75.176585H137.415805A75.15161 75.15161 0 0 0 62.439024 125.427512v701.889561a75.15161 75.15161 0 0 0 74.976781 75.176586h367.915707a25.100488 25.100488 0 0 1 0 50.200975H101.376z m93.708488-247.982829l186.742634-189.015415 65.71083 111.640976 230.524878-298.358634 47.128975 142.835512a159.094634 159.094634 0 0 0-74.702049 134.518634v28.397268h-28.222439a156.846829 156.846829 0 0 0-130.447609 69.981659H195.059512z m117.385366-353.554732c-27.548098 0-49.95122-22.528-49.951219-50.200975 0-27.672976 22.403122-50.176 49.951219-50.176s49.95122 22.503024 49.95122 50.200975c0 27.648-22.403122 50.176-49.95122 50.176z";
             return Geometry.Parse(d);
         }
 
@@ -117,21 +121,24 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
         }
 
         /// <summary>
-        /// 显示保底的矢量默认图标（无极缩放永不糊）
+        /// 显示保底的矢量默认图标（固定尺寸居中，无极缩放永不糊）
         /// </summary>
         private void ShowDefaultInfo()
         {
             var drawing = new GeometryDrawing
             {
                 Geometry = DefaultInfoGeometry,
-                Brush = new SolidColorBrush(Color.FromArgb(255, 30, 144, 255))
+                Brush = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255))
             };
 
             var drawingImage = new DrawingImage(drawing);
-            drawingImage.Freeze(); // 冻结提升渲染性能
+            drawingImage.Freeze();
 
-            MainImage.Source = drawingImage;
-            _currentDisplayedPath = null; // 矢量图无实体路径
+            PlaceholderImage.Source = drawingImage;
+            PlaceholderImage.Visibility = Visibility.Visible;
+            MainImage.Visibility = Visibility.Collapsed;
+            MainImage.Source = null;
+            _currentDisplayedPath = null;
         }
 
         /// <summary>
@@ -169,25 +176,30 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
         /// </summary>
         private void LoadImageSafe(string imagePath)
         {
-            // 优先级 1：尝试加载物理主图
+            // 优先级 1：尝试加载物理主图 → 全尺寸可缩放显示
             if (TryLoadBitmap(imagePath, out var mainBitmap))
             {
                 MainImage.Source = mainBitmap;
+                MainImage.Visibility = Visibility.Visible;
+                PlaceholderImage.Visibility = Visibility.Collapsed;
                 _currentDisplayedPath = imagePath;
             }
-            // 优先级 2：主图失败，降级加载 ErrorSource 资源图
+            // 优先级 2：主图失败，降级加载 ErrorSource → 固定尺寸居中占位
             else if (ErrorSource != null)
             {
-                MainImage.Source = ErrorSource;
+                PlaceholderImage.Source = ErrorSource;
+                PlaceholderImage.Visibility = Visibility.Visible;
+                MainImage.Visibility = Visibility.Collapsed;
+                MainImage.Source = null;
                 _currentDisplayedPath = null;
             }
-            // 优先级 3：彻底兜底，退回矢量图标
+            // 优先级 3：彻底兜底，退回矢量图标 → 固定尺寸居中占位
             else
             {
                 ShowDefaultInfo();
             }
 
-            // 无论切了什么图，都将其缩放和平移状态复原居中
+            // 无论切了什么图，都将缩放和平移状态复原
             ResetTransform();
         }
 

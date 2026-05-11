@@ -61,8 +61,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             待机位置,         // Y轴退回最深处的安全位，不干涉 Z轴升降 与 上下料
             /// <summary>晶圆取料位置</summary>
             晶圆取料位置,     // Y轴伸入料盒内部，夹爪中心对准铁环的位置
-            /// <summary>晶圆拉出位置</summary>
-            晶圆拉出位置,     // 夹持晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
+            /// <summary>晶圆8寸拉出位置</summary>
+            晶圆8寸拉出位置,  // 夹持8寸晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
+            /// <summary>晶圆12寸拉出位置</summary>
+            晶圆12寸拉出位置, // 夹持12寸晶圆后，往回拉出用于进行扫码或视觉检测的基准位置
             /// <summary>取出安全位置</summary>
             取出安全位置,     // 晶圆完全离开料盒后的安全驻留位
         }
@@ -381,11 +383,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public async Task <bool ? > CheckGipperIsExist(CancellationToken token = default)
+        public async Task<bool?> CheckGipperIsExist(CancellationToken token = default)
         {
 
-            bool ? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右铁环有无检测);
-            if ( !res2 .HasValue )
+            bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪右铁环有无检测);
+            if (!res2.HasValue)
             {
                 return null;
             }
@@ -491,47 +493,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
 
 
-        /// <summary>
-        /// 判断物料的方向
-        /// </summary>
-        /// <param name="wafesize">物料尺寸</param>
-        /// <param name="token">取消令牌</param>
-        /// <returns></returns>
-        public async Task<MechResult> CheckProductDirection(E_WafeSize wafesize, CancellationToken token = default)
-        {
-            //token.ThrowIfCancellationRequested(); // 【新增】入口检查
-            //CheckReady();
-            //_logger.Info($"[{MechanismName}] 检测物料方向");
-            //// 读取IO信号
-            //bool? res1 = wafesize == E_WafeSize._8寸 ? _io.ReadInput((int)E_InPutName.上晶圆右8寸铁环防反检测) : _io.ReadInput((int)E_InPutName.上晶圆右12寸铁环防反检测);
-            //if (res1.HasValue)
-            //{
-
-            //    bool hasMaterial = res1.Value;
-            //    _logger.Info($"[{MechanismName}]检测晶圆铁环防反检测，状态为{hasMaterial}");
-
-            //    if (hasMaterial)
-            //    {
-                    return MechResult<bool>.Success(true);
-            //    }
-            //    else
-            //    {
-            //        return wafesize == E_WafeSize._8寸 ? MechResult<bool>.Fail(AlarmCodesExtensions.WS2Pulling.Wafer8InchReversed, "8寸晶圆放反") : MechResult<bool>.Fail(AlarmCodesExtensions.WS2Pulling.Wafer12InchReversed, "12寸晶圆放反");
-            //    }
-            //}
-            //else
-            //{
-            //    // 找出具体失败的传感器名称
-            //    string failedSensor = wafesize == E_WafeSize._8寸 ? E_InPutName.上晶圆左8寸铁环防反检测.ToString() : E_InPutName.上晶圆左12寸铁环防反检测.ToString();
-
-            //    _logger.Error($"[{MechanismName}] 检测晶圆铁环防反检测失败，未能成功读取 {failedSensor} 信号。");
-            //    return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取检测信号({failedSensor})失败");
-            //}
-        }
-
-
-
-
         #endregion
 
         #region Motion Sequences (核心联动序列)
@@ -584,6 +545,44 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Warn(ex.Message);
                 return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.MoveInitialNoScanFailed, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// 判断物料的方向
+        /// </summary>
+        /// <param name="wafesize">物料尺寸</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        public async Task<MechResult> CheckProductDirection(E_WafeSize wafesize, CancellationToken token = default)
+        {
+            //token.ThrowIfCancellationRequested(); // 【新增】入口检查
+            //CheckReady();
+            //_logger.Info($"[{MechanismName}] 检测物料方向");
+            //// 读取IO信号
+            //bool? res1 = wafesize == E_WafeSize._8寸 ? _io.ReadInput((int)E_InPutName.上晶圆右8寸铁环防反检测) : _io.ReadInput((int)E_InPutName.上晶圆右12寸铁环防反检测);
+            //if (res1.HasValue)
+            //{
+
+            //    bool hasMaterial = res1.Value;
+            //    _logger.Info($"[{MechanismName}]检测晶圆铁环防反检测，状态为{hasMaterial}");
+
+            //    if (hasMaterial)
+            //    {
+                    return MechResult<bool>.Success(true);
+            //    }
+            //    else
+            //    {
+            //        return wafesize == E_WafeSize._8寸 ? MechResult<bool>.Fail(AlarmCodesExtensions.WS2Pulling.Wafer8InchReversed, "8寸晶圆放反") : MechResult<bool>.Fail(AlarmCodesExtensions.WS2Pulling.Wafer12InchReversed, "12寸晶圆放反");
+            //    }
+            //}
+            //else
+            //{
+            //    // 找出具体失败的传感器名称
+            //    string failedSensor = wafesize == E_WafeSize._8寸 ? E_InPutName.上晶圆左8寸铁环防反检测.ToString() : E_InPutName.上晶圆左12寸铁环防反检测.ToString();
+
+            //    _logger.Error($"[{MechanismName}] 检测晶圆铁环防反检测失败，未能成功读取 {failedSensor} 信号。");
+            //    return MechResult<bool>.Fail(AlarmCodes.Hardware.IoGetError, $"读取检测信号({failedSensor})失败");
+            //}
         }
 
         /// <summary>
@@ -694,12 +693,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <para>技术亮点：使用 <see cref="Task.WhenAny"/> 实现运动与双重硬件防呆的并发执行。
         /// 运动过程中若检测到拉力异常(卡料)或物料脱落(丢料)，能在毫秒级响应并切断运动。</para>
         /// </summary>
-        public async Task<MechResult> MoveDetection(CancellationToken token = default)
+        public async Task<MechResult> MoveDetection(E_WafeSize wafesize, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 入口检查
             using var timeoutcts = new CancellationTokenSource(await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()));
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutcts.Token);
             var linkedToken = cts.Token;
+            var pullPoint = wafesize == E_WafeSize._8寸 ? YAxisPoint.晶圆8寸拉出位置.ToString() : YAxisPoint.晶圆12寸拉出位置.ToString();
 
             try
             {
@@ -721,7 +721,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     }
                 }, linkedToken);
 
-                if (!await _yAxis.MoveToPointAsync(YAxisPoint.晶圆拉出位置.ToString(), linkedToken))
+                if (!await _yAxis.MoveToPointAsync(pullPoint, linkedToken))
                 {
                     cts.Cancel();
                     return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.PullOutTriggerFailed, "轴底层运动触发指令下发失败");

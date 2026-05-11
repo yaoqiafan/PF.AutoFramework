@@ -1,4 +1,5 @@
-﻿using PF.Core.Events;
+﻿using PF.Core.Constants;
+using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
@@ -152,9 +153,14 @@ namespace PF.WorkStation.AutoOcr.Stations
                 _sync?.ResetScope("复位");
             }
 
-            _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
-            _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
-
+            // 仅安全门报警本身才需要在此关闭监控（边沿检测已防重复触发）。
+            // 业务报警（夹爪/叠料/配方等）不关闭安全门：机台虽已暂停，但门监控仍应有效，
+            // 保证操作员排查时开门能正确触发安全门报警链路。
+            if (e.ErrorCode == AlarmCodes.Safety.SafeDoorOpen)
+            {
+                _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
+                _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
+            }
         }
 
         #endregion

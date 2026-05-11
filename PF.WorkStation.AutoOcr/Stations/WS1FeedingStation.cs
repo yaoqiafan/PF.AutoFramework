@@ -869,6 +869,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                     MemoryParam.DetectedWaferSize = _detectedWaferSize;
                                     MemoryParam.PersistedStep = (int)Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
                                     FlushMemory();
+                                    _dataModule?.InitializeSlotStates(E_WorkSpace.工位1, _layersToProcess);
                                     _currentStep = Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
                                 }
                             }
@@ -936,6 +937,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1FeedingStep.等待物料拉出完成:
                             CurrentStepDescription = "等待物料拉出完成...";
+                            _dataModule?.SetInspectingSlot(E_WorkSpace.工位1, _layersToProcess[_currentLayerIndex]);
+                            _dataModule?.UpdateSlotStatus(E_WorkSpace.工位1, _layersToProcess[_currentLayerIndex], WaferSlotStatus.Inspecting);
 
                             if (await _feedingModule.SetThrustWasherAsync(true, token))
                             {
@@ -1059,12 +1062,17 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 发布事件通知 UI 弹出确认弹窗
                             _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>().Publish("工位1");
 
-                            // 等待人工确认完成下料
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1人工下料完成), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
-
-                            // 操作员确认后：停止蜂鸣器，恢复安全门监控
-                            _towerLight.SetLight(LightColor.Buzzer, LightState.Off);
-                            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                            try
+                            {
+                                // 等待人工确认完成下料
+                                await _sync.WaitAsync(nameof(WorkstationSignals.工位1人工下料完成), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                // 无论正常完成还是外部取消/停止，都必须恢复安全门监控和蜂鸣器
+                                _towerLight.SetLight(LightColor.Buzzer, LightState.Off);
+                                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                            }
 
                             _currentStep = Station1FeedingStep.生产完毕;
                             break;

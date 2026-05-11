@@ -950,7 +950,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
-                await InternalTestPullOutAsync(module, cts.Token);
+                await InternalTestPullOutAsync(module, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
                 MessageService.ShowMessage("拉料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -992,7 +992,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
-                await InternalTestPullOutAsync(module, cts.Token);
+                await InternalTestPullOutAsync(module, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
                 await Task.Delay(1500, cts.Token);
                 await InternalTestPushBackAsync(module, cts.Token);
                 MessageService.ShowMessage("完整拉送料闭环测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1007,7 +1007,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
-        private static async Task InternalTestPullOutAsync(IMechanism module, CancellationToken token)
+        private static async Task InternalTestPullOutAsync(IMechanism module, E_WafeSize wafesize, CancellationToken token)
         {
             if (module is WS1MaterialPullingModule ws1)
             {
@@ -1016,7 +1016,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 var resClose = await ws1.CloseWafeGipper(token);
                 if (!resClose.IsSuccess) throw new Exception($"关闭夹爪失败: {resClose.ErrorMessage}");
                 if (!await ws1.CheckStackedPieces(token)) throw new Exception("检测到叠料异常");
-                var resDetect = await ws1.MoveDetection(token);
+                var resDetect = await ws1.MoveDetection(wafesize, token);
                 if (!resDetect.IsSuccess) throw new Exception($"拉出至检测位失败: {resDetect.ErrorMessage}");
             }
             else if (module is WS2MaterialPullingModule ws2)
@@ -1026,7 +1026,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 var resClose = await ws2.CloseWafeGipper(token);
                 if (!resClose.IsSuccess) throw new Exception($"关闭夹爪失败: {resClose.ErrorMessage}");
                 if (!await ws2.CheckStackedPieces(token)) throw new Exception("检测到叠料异常");
-                var resDetect = await ws2.MoveDetection(token);
+                var resDetect = await ws2.MoveDetection(wafesize, token);
                 if (!resDetect.IsSuccess) throw new Exception($"拉出至检测位失败: {resDetect.ErrorMessage}");
             }
         }
@@ -1200,7 +1200,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
 
                 DebugStepMessage = "正在执行拉料流程...";
-                await InternalTestPullOutAsync(pullModule, cts.Token);
+                await InternalTestPullOutAsync(pullModule, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
                 CurrentDebugStep = 3;
                 DebugStepMessage = "第3步完成：拉料流程测试完成，可执行第4步";
             }

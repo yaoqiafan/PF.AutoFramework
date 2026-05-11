@@ -337,7 +337,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         return;
                     }
 
-                    if (!await _pullingModule.MoveDetection(token))
+                    if (!await _pullingModule.MoveDetection(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
                         Fire(MachineTrigger.Error);
@@ -367,7 +367,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         return;
                     }
 
-                    if (!await _pullingModule.MoveDetection(token))
+                    if (!await _pullingModule.MoveDetection(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
                         Fire(MachineTrigger.Error);
@@ -700,7 +700,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "移动到检测位...";
                             MemoryParam.PersistedStep = (int)Station1PullingStep.移动到检测位;
                             // 将晶圆拉出至相机视场中心
-                            var detectMoveResult = await _pullingModule.MoveDetection(token);
+                            var detectMoveResult = await _pullingModule.MoveDetection(_cachedRecipe.WafeSize, token);
                             if (detectMoveResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 运动到检测位成功");
