@@ -256,6 +256,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     RaisePropertyChanged(nameof(Step2Brush));
                     RaisePropertyChanged(nameof(Step3Brush));
                     RaisePropertyChanged(nameof(Step4Brush));
+                    RaisePropertyChanged(nameof(Step5Brush));
+                    RaisePropertyChanged(nameof(Step6Brush));
                     RaiseStepCanExecuteChanged();
                 }
             }
@@ -284,6 +286,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public Brush Step2Brush => CurrentDebugStep >= 2 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 1 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
         public Brush Step3Brush => CurrentDebugStep >= 3 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 2 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
         public Brush Step4Brush => CurrentDebugStep >= 4 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 3 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
+        public Brush Step5Brush => CurrentDebugStep >= 5 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 4 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
+        public Brush Step6Brush => CurrentDebugStep >= 6 ? Brushes.MediumSeaGreen : (CurrentDebugStep >= 5 ? Brushes.CornflowerBlue : Brushes.LightSlateGray);
 
         #endregion
 
@@ -311,27 +315,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         public string MiniCardTitle => MiniCardIndex switch
         {
-            0 => "视觉 X 轴", 1 => "视觉 Y 轴", 2 => "视觉 Z 轴",
-            3 => "调试步骤", 4 => "扫码 / OCR", 5 => "配方点位",
+            0 => "调试步骤", 1 => "视觉 X 轴", 2 => "视觉 Y 轴",
+            3 => "视觉 Z 轴", 4 => "扫码 / OCR", 5 => "配方点位",
             _ => "光源控制"
         };
         public string MiniCardPageText => $"{MiniCardIndex + 1} / 7";
-        public bool IsMiniAxisPage => MiniCardIndex <= 2;
+        public bool IsMiniAxisPage => MiniCardIndex >= 1 && MiniCardIndex <= 3;
 
-        public double MiniAxisPosition => MiniCardIndex switch { 0 => XAxisCurrentPosition, 1 => YAxisCurrentPosition, _ => ZAxisCurrentPosition };
-        public bool MiniAxisIsEnabled => MiniCardIndex switch { 0 => XAxisIsEnabled, 1 => YAxisIsEnabled, _ => ZAxisIsEnabled };
-        public bool MiniAxisIsMoving => MiniCardIndex switch { 0 => XAxisIsMoving, 1 => YAxisIsMoving, _ => ZAxisIsMoving };
-        public bool MiniAxisIsAlarm => MiniCardIndex switch { 0 => XAxisIsAlarm, 1 => YAxisIsAlarm, _ => ZAxisIsAlarm };
+        public double MiniAxisPosition => MiniCardIndex switch { 1 => XAxisCurrentPosition, 2 => YAxisCurrentPosition, _ => ZAxisCurrentPosition };
+        public bool MiniAxisIsEnabled => MiniCardIndex switch { 1 => XAxisIsEnabled, 2 => YAxisIsEnabled, _ => ZAxisIsEnabled };
+        public bool MiniAxisIsMoving => MiniCardIndex switch { 1 => XAxisIsMoving, 2 => YAxisIsMoving, _ => ZAxisIsMoving };
+        public bool MiniAxisIsAlarm => MiniCardIndex switch { 1 => XAxisIsAlarm, 2 => YAxisIsAlarm, _ => ZAxisIsAlarm };
 
         public double MiniJogVelocity
         {
-            get => MiniCardIndex switch { 0 => XAxisJogVelocity, 1 => YAxisJogVelocity, _ => ZAxisJogVelocity };
+            get => MiniCardIndex switch { 1 => XAxisJogVelocity, 2 => YAxisJogVelocity, _ => ZAxisJogVelocity };
             set
             {
                 switch (MiniCardIndex)
                 {
-                    case 0: XAxisJogVelocity = value; break;
-                    case 1: YAxisJogVelocity = value; break;
+                    case 1: XAxisJogVelocity = value; break;
+                    case 2: YAxisJogVelocity = value; break;
                     default: ZAxisJogVelocity = value; break;
                 }
                 RaisePropertyChanged();
@@ -357,7 +361,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand Step1SwitchProductionCommand { get; private set; }
         public DelegateCommand Step2SwitchLayerCommand { get; private set; }
         public DelegateCommand Step3PullMaterialCommand { get; private set; }
-        public DelegateCommand Step4PushMaterialCommand { get; private set; }
+        public DelegateCommand Step4MoveToRecipeXYZCommand { get; private set; }
+        public DelegateCommand Step5MoveToStandbyCommand { get; private set; }
+        public DelegateCommand Step6PushMaterialCommand { get; private set; }
         public DelegateCommand ResetDebugStepsCommand { get; private set; }
 
         // ── 三轴独立 JOG 命令 ──
@@ -405,7 +411,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy && _step0Done);
             Step2SwitchLayerCommand = new DelegateCommand(async () => await ExecuteDebugStep2Async(), () => !IsBusy && CurrentDebugStep >= 1);
             Step3PullMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep3Async(), () => !IsBusy && CurrentDebugStep >= 2);
-            Step4PushMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep4Async(), () => !IsBusy && CurrentDebugStep >= 3);
+            Step4MoveToRecipeXYZCommand = new DelegateCommand(async () => await ExecuteDebugStep4Async(), () => !IsBusy && CurrentDebugStep >= 3);
+            Step5MoveToStandbyCommand = new DelegateCommand(async () => await ExecuteDebugStep5Async(), () => !IsBusy && CurrentDebugStep >= 4);
+            Step6PushMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep6Async(), () => !IsBusy && CurrentDebugStep >= 5);
             ResetDebugStepsCommand = new DelegateCommand(() =>
             {
                 CurrentDebugStep = 0;
@@ -434,37 +442,37 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             MiniCardNextCommand = new DelegateCommand(() => MiniCardIndex++);
             MiniJogPositiveCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, _ => _axisZ };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, _ => _axisZ };
                 if (axis != null) await axis.JogAsync(MiniJogVelocity, true, MiniJogVelocity * 5, MiniJogVelocity * 5);
             });
             MiniJogNegativeCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, _ => _axisZ };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, _ => _axisZ };
                 if (axis != null) await axis.JogAsync(MiniJogVelocity, false, MiniJogVelocity * 5, MiniJogVelocity * 5);
             });
             MiniAxisStopCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, _ => _axisZ };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, _ => _axisZ };
                 if (axis != null) await axis.StopAsync();
             });
             MiniAxisEnableCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
                 if (axis != null) await axis.EnableAsync();
             });
             MiniAxisDisableCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
                 if (axis != null) await axis.DisableAsync();
             });
             MiniAxisHomeCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
                 if (axis != null) await axis.HomeAsync(CancellationToken.None);
             });
             MiniAxisResetCommand = new DelegateCommand(async () =>
             {
-                IAxis? axis = MiniCardIndex switch { 0 => _axisX, 1 => _axisY, 2 => _axisZ, _ => null };
+                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
                 if (axis is BaseDevice dev) await dev.ResetAsync(CancellationToken.None);
             });
         }
@@ -556,7 +564,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
+                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
+
                 await InternalTestPullOutAsync(module, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
+                await MoveToRecipeXYZInternalAsync(cts.Token);
+
+                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
+
                 MessageService.ShowMessage("拉料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -577,7 +593,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
+                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
+
                 await InternalTestPushBackAsync(module, cts.Token);
+
+                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
+
                 MessageService.ShowMessage("推料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -598,9 +621,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
+                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
+
                 await InternalTestPullOutAsync(module, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
+                await MoveToRecipeXYZInternalAsync(cts.Token);
+
+                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
+
                 await Task.Delay(1500, cts.Token);
+
+                var closeResult2 = await FeedingSetThrustWasherAsync(false, cts.Token);
+                if (!closeResult2.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult2.ErrorMessage}");
+
                 await InternalTestPushBackAsync(module, cts.Token);
+
+                var openResult2 = await FeedingSetThrustWasherAsync(true, cts.Token);
+                if (!openResult2.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult2.ErrorMessage}");
+
                 MessageService.ShowMessage("完整拉送料闭环测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -671,7 +710,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Step1SwitchProductionCommand?.RaiseCanExecuteChanged();
             Step2SwitchLayerCommand?.RaiseCanExecuteChanged();
             Step3PullMaterialCommand?.RaiseCanExecuteChanged();
-            Step4PushMaterialCommand?.RaiseCanExecuteChanged();
+            Step4MoveToRecipeXYZCommand?.RaiseCanExecuteChanged();
+            Step5MoveToStandbyCommand?.RaiseCanExecuteChanged();
+            Step6PushMaterialCommand?.RaiseCanExecuteChanged();
         }
 
         #endregion
@@ -713,21 +754,36 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _cts = new CancellationTokenSource();
             try
             {
-                double x = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosX : _currentRecipe._2PosX;
-                double y = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosY : _currentRecipe._2PosY;
-                double z = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosZ : _currentRecipe._2PosZ;
-
-                var tasks = new System.Collections.Generic.List<Task>();
-                if (_axisX != null) tasks.Add(_axisX.MoveAbsoluteAsync(x, XAxisJogVelocity, XAxisJogVelocity * 5, XAxisJogVelocity * 5, 0.08, _cts.Token));
-                if (_axisY != null) tasks.Add(_axisY.MoveAbsoluteAsync(y, YAxisJogVelocity, YAxisJogVelocity * 5, YAxisJogVelocity * 5, 0.08, _cts.Token));
-                if (_axisZ != null) tasks.Add(_axisZ.MoveAbsoluteAsync(z, ZAxisJogVelocity, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5, 0.08, _cts.Token));
-                await Task.WhenAll(tasks);
+                await MoveToRecipeXYZInternalAsync(_cts.Token);
             }
             catch (Exception ex)
             {
                 MessageService.ShowMessage($"移动到配方点位失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally { IsBusy = false; }
+        }
+
+        private async Task MoveToRecipeXYZInternalAsync(CancellationToken token)
+        {
+            if (_currentRecipe == null) return;
+
+            double x = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosX : _currentRecipe._2PosX;
+            double y = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosY : _currentRecipe._2PosY;
+            double z = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosZ : _currentRecipe._2PosZ;
+
+            // 1. Z轴先退到待机位，防止XY移动时相机干涉
+            if (_axisZ != null)
+                await _axisZ.MoveToPointAsync("待机位", token);
+
+            // 2. XY轴并行移动到目标位
+            var xyTasks = new System.Collections.Generic.List<Task>();
+            if (_axisX != null) xyTasks.Add(_axisX.MoveAbsoluteAsync(x, _axisX.Param.Vel, _axisX.Param.Acc, _axisX.Param.Dec, 0.08, token));
+            if (_axisY != null) xyTasks.Add(_axisY.MoveAbsoluteAsync(y, _axisY.Param.Vel, _axisY.Param.Acc, _axisY.Param.Dec, 0.08, token));
+            await Task.WhenAll(xyTasks);
+
+            // 3. Z轴移动到配方检测位
+            if (_axisZ != null)
+                await _axisZ.MoveAbsoluteAsync(z, _axisZ.Param.Vel, _axisZ.Param.Acc, _axisZ.Param.Dec, 0.08, token);
         }
 
         private void ExecuteGetAndUpdateRecipeXYZ()
@@ -807,6 +863,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 DebugStepMessage = "正在执行拉料流程...";
                 await InternalTestPullOutAsync(pullModule, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
+
+                DebugStepMessage = "正在打开凸片检测...";
+                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
+
                 CurrentDebugStep = 3;
                 DebugStepMessage = "第3步完成：拉料流程测试完成，可执行第4步";
             }
@@ -818,6 +879,47 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private async Task ExecuteDebugStep4Async()
+        {
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugStepMessage = "正在移动相机到配方位置...";
+                await MoveToRecipeXYZInternalAsync(cts.Token);
+                CurrentDebugStep = 4;
+                DebugStepMessage = "第4步完成：相机已移动到配方位置，可执行第5步";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"第4步失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ExecuteDebugStep5Async()
+        {
+            IsBusy = true;
+            using var cts = new CancellationTokenSource();
+            try
+            {
+                DebugStepMessage = "正在移动相机到待机位...";
+                if (_axisZ != null)
+                    await _axisZ.MoveToPointAsync("待机位", cts.Token);
+                var xyTasks = new System.Collections.Generic.List<Task>();
+                if (_axisX != null) xyTasks.Add(_axisX.MoveToPointAsync("待机位", cts.Token));
+                if (_axisY != null) xyTasks.Add(_axisY.MoveToPointAsync("待机位", cts.Token));
+                await Task.WhenAll(xyTasks);
+                CurrentDebugStep = 5;
+                DebugStepMessage = "第5步完成：相机已回到待机位，可执行第6步";
+            }
+            catch (Exception ex)
+            {
+                DebugStepMessage = $"第5步失败：{ex.Message}";
+            }
+            finally { IsBusy = false; }
+        }
+
+        private async Task ExecuteDebugStep6Async()
         {
             var pullModule = GetCurrentModule();
             if (pullModule == null) { DebugStepMessage = "当前工位拉料模组未就绪"; return; }
@@ -831,12 +933,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 DebugStepMessage = "正在执行推料流程...";
                 await InternalTestPushBackAsync(pullModule, cts.Token);
-                CurrentDebugStep = 4;
-                DebugStepMessage = "第4步完成：推料流程测试完成，全流程调试结束";
+
+                DebugStepMessage = "正在打开凸片检测...";
+                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
+
+                CurrentDebugStep = 6;
+                DebugStepMessage = "第6步完成：推料流程测试完成，全流程调试结束";
             }
             catch (Exception ex)
             {
-                DebugStepMessage = $"第4步失败：{ex.Message}";
+                DebugStepMessage = $"第6步失败：{ex.Message}";
             }
             finally { IsBusy = false; }
         }
