@@ -1,3 +1,4 @@
+using ICSharpCode.SharpZipLib.Tar;
 using MathNet.Numerics.LinearAlgebra.Factorization;
 using Microsoft.Win32;
 using NPOI.SS.Formula.Functions;
@@ -149,7 +150,11 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
             bitmap = null;
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                return false;
+                Thread.Sleep(500);
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    return false;
+                }
             }
 
             try
