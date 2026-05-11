@@ -713,6 +713,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _sync.DrainSignal(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2启动按钮按下), token, scope: E_WorkStation.工位2上下料工站.ToString()).ConfigureAwait(false);
 
+                            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+
                             _logger.Info($"[{StationName}] 检测到启动信号，开始执行上料流程。");
                             _currentStep = Station2FeedingStep.验证当前批次产品个数;
                             break;
