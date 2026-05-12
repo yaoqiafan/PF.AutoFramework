@@ -1,4 +1,3 @@
-using log4net.Appender;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using PF.Core.Attributes;
@@ -13,13 +12,7 @@ using PF.Core.Models;
 using PF.Infrastructure.Mechanisms;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {
@@ -518,8 +511,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 { latchNo2, new List<double>() }
             };
 
+            bool lockAcquired = false;
             try
             {
+                _logger.Info($"[{MechanismName}] 等待寻层互斥锁（避免与工位1同时扫描）...");
+                await FeedingModelShared.SearchLayerLock.WaitAsync(token).ConfigureAwait(false);
+                lockAcquired = true;
+
                 token.ThrowIfCancellationRequested(); // 【新增】进入核心逻辑前检查
                                                       // Step 0: 打开凸片传感器
                 var iores = _io.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, false);
@@ -596,6 +594,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 _logger.Error($"[{MechanismName}] 扫描发生异常: {ex.Message}");
                 return MechResult<Dictionary<int, List<double>>>.Fail(AlarmCodesExtensions.WS2Feeding.LayerScanFailed, $"扫描发生异常: {ex.Message}");
+            }
+            finally
+            {
+                if (lockAcquired)
+                    FeedingModelShared.SearchLayerLock.Release();
             }
         }
 
