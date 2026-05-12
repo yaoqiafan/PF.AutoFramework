@@ -369,7 +369,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             // 订阅操作员下料请求事件：弹出确认弹窗，操作员确认后释放同步信号
             _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>()
-                .Subscribe(OnOperatorUnloadRequested, ThreadOption.UIThread);
+                .Subscribe(OnOperatorUnloadRequested, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
             StationMemoryItems = new ObservableCollection<WorkstationMemoryGroup>
             {

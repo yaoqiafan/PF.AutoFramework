@@ -1077,6 +1077,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station1FeedingStep.通知操作员下料:
                             CurrentStepDescription = "通知操作员下料，等待确认...";
 
+                            // 清除暂停期间操作员已确认产生的残留信号，防止 WaitAsync 立即返回导致遮罩不显示
+                            _sync.DrainSignal(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
+
                             // 屏蔽工位1安全门，防止操作员下料时触发安全门报警
                             _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
 
