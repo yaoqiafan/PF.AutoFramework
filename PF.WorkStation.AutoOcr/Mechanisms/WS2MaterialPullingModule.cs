@@ -891,7 +891,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             try
             {
                 token.ThrowIfCancellationRequested(); // 【新增】入口检查
-                await _lightController.SetLightValue(3, await ParamService.GetParamAsync<int>(E_Params.WorkStation2LightBrightness.ToString()));
+                await _lightController.SetLightValue(4, await ParamService.GetParamAsync<int>(E_Params.WorkStation2LightBrightness.ToString()));
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -925,12 +925,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
-                await _lightController.SetLightValue(3, 0);
+                await _lightController.SetLightValue(4, 0);
                 return MechResult<List<string>>.Fail(AlarmCodesExtensions.WS2Pulling.CodeScanFailed, $"扫码异常: {ex.Message}");
             }
             finally
             {
-                await _lightController.SetLightValue(3, 0);
+                await _lightController.SetLightValue(4, 0);
             }
         }
 
