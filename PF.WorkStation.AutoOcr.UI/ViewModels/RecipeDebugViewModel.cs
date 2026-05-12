@@ -69,7 +69,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     TestPullOutCommand?.RaiseCanExecuteChanged();
                     TestPushBackCommand?.RaiseCanExecuteChanged();
-                    TestFullFlowCommand?.RaiseCanExecuteChanged();
                     MoveToRecipeXYZCommand?.RaiseCanExecuteChanged();
                     RaiseStepCanExecuteChanged();
                 }
@@ -401,7 +400,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         public DelegateCommand TestPullOutCommand { get; private set; }
         public DelegateCommand TestPushBackCommand { get; private set; }
-        public DelegateCommand TestFullFlowCommand { get; private set; }
+       
 
         // ── 模组调试步骤命令 ──
         public DelegateCommand Step0MoveStopperToStandbyCommand { get; private set; }
@@ -464,7 +463,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             TestPullOutCommand = new DelegateCommand(async () => await ExecuteTestPullOutAsync(), () => !IsBusy);
             TestPushBackCommand = new DelegateCommand(async () => await ExecuteTestPushBackAsync(), () => !IsBusy);
-            TestFullFlowCommand = new DelegateCommand(async () => await ExecuteTestFullFlowAsync(), () => !IsBusy);
+          
 
             Step0MoveStopperToStandbyCommand = new DelegateCommand(async () => await ExecuteStep0Async(), () => !_step0Busy);
             Step1SwitchProductionCommand = new DelegateCommand(async () => await ExecuteDebugStep1Async(), () => !IsBusy && _step0Done);
@@ -599,13 +598,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
-                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                var closeResult = await FeedingSetThrustWasherAsync(true, cts.Token);
                 if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
 
                 await InternalTestPullOutAsync(module, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
                 await MoveToRecipeXYZInternalAsync(cts.Token);
 
-                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                var openResult = await FeedingSetThrustWasherAsync(false, cts.Token);
                 if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
 
                 MessageService.ShowMessage("拉料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -628,12 +627,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             using var cts = new CancellationTokenSource();
             try
             {
-                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                var closeResult = await FeedingSetThrustWasherAsync(true, cts.Token);
                 if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
 
                 await InternalTestPushBackAsync(module, cts.Token);
 
-                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                var openResult = await FeedingSetThrustWasherAsync(false, cts.Token);
                 if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
 
                 MessageService.ShowMessage("推料流程测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -648,44 +647,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
-        private async Task ExecuteTestFullFlowAsync()
-        {
-            var module = GetCurrentModule();
-            if (module == null) return;
-            IsBusy = true;
-            using var cts = new CancellationTokenSource();
-            try
-            {
-                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
-                if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
-
-                await InternalTestPullOutAsync(module, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
-                await MoveToRecipeXYZInternalAsync(cts.Token);
-
-                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
-                if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
-
-                await Task.Delay(1500, cts.Token);
-
-                var closeResult2 = await FeedingSetThrustWasherAsync(false, cts.Token);
-                if (!closeResult2.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult2.ErrorMessage}");
-
-                await InternalTestPushBackAsync(module, cts.Token);
-
-                var openResult2 = await FeedingSetThrustWasherAsync(true, cts.Token);
-                if (!openResult2.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult2.ErrorMessage}");
-
-                MessageService.ShowMessage("完整拉送料闭环测试完成", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageService.ShowMessage($"完整闭环测试中断: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
+      
 
         private static async Task InternalTestPullOutAsync(IMechanism module, E_WafeSize wafesize, CancellationToken token)
         {
@@ -909,14 +871,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             try
             {
                 DebugStepMessage = "正在关闭凸片检测...";
-                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                var closeResult = await FeedingSetThrustWasherAsync(true, cts.Token);
                 if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
 
                 DebugStepMessage = "正在执行拉料流程...";
                 await InternalTestPullOutAsync(pullModule, _currentRecipe?.WafeSize ?? E_WafeSize._12寸, cts.Token);
 
                 DebugStepMessage = "正在打开凸片检测...";
-                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                var openResult = await FeedingSetThrustWasherAsync(false, cts.Token);
                 if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
 
                 CurrentDebugStep = 3;
@@ -979,14 +941,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             try
             {
                 DebugStepMessage = "正在关闭凸片检测...";
-                var closeResult = await FeedingSetThrustWasherAsync(false, cts.Token);
+                var closeResult = await FeedingSetThrustWasherAsync(true, cts.Token);
                 if (!closeResult.IsSuccess) throw new Exception($"关闭凸片检测失败: {closeResult.ErrorMessage}");
 
                 DebugStepMessage = "正在执行推料流程...";
                 await InternalTestPushBackAsync(pullModule, cts.Token);
 
                 DebugStepMessage = "正在打开凸片检测...";
-                var openResult = await FeedingSetThrustWasherAsync(true, cts.Token);
+                var openResult = await FeedingSetThrustWasherAsync(false, cts.Token);
                 if (!openResult.IsSuccess) throw new Exception($"打开凸片检测失败: {openResult.ErrorMessage}");
 
                 CurrentDebugStep = 6;
