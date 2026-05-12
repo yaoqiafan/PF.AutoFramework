@@ -1156,7 +1156,7 @@
                     VerticalAlignment="Center"
                     FontSize="{DynamicResource FontSize.Body.Standard}"
                     FontWeight="SemiBold"
-                    Text="同步公差："
+                    Text="{Binding SyncToleranceLabel}"
                     Visibility="{Binding IsSuperUser, Converter={StaticResource BoolToVis}}" />
 
                 <pf:NumericUpDown
