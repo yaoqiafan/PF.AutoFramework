@@ -374,6 +374,7 @@ namespace PF.Services.Hardware
             }
             else if (state.Config.ScanGroup == InputScanGroup.Safety
                      && !state.Config.IsMuted
+                     && state.IsEnabled
                      && wasActive && !isActive)
             {
                 _logger.Info($"【硬件输入】{state.Config.Name} 恢复 → 类型：{state.Config.InputType}");
