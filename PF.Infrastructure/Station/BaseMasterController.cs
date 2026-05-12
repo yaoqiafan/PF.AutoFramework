@@ -365,6 +365,18 @@ namespace PF.Infrastructure.Station
         #region Hardware Smart Routing
 
         /// <summary>
+        /// 以"主控"为来源触发报警，供子类在 OnHardwareInputReceived 重写中调用特定硬件输入的报警。
+        /// </summary>
+        protected void TriggerMasterAlarm(string errorCode, string? runtimeMessage = null)
+            => _alarmService?.TriggerAlarm("主控", errorCode, runtimeMessage);
+
+        /// <summary>
+        /// 以"主控"为来源清除指定报警，供子类在 OnHardwareInputRestored 重写中调用。
+        /// </summary>
+        protected void ClearMasterAlarm(string errorCode)
+            => _alarmService?.ClearAlarm("主控", errorCode);
+
+        /// <summary>
         /// 处理来自 <see cref="HardwareInputEventBus"/> 的物理按钮输入。
         /// 默认路由：Start → SmartStart（带互斥门）；Pause → PauseAll；Reset → SmartReset（带互斥门）。
         /// 如需处理自定义输入类型，重写此方法并在 base.OnHardwareInputReceived 前/后添加分支。
