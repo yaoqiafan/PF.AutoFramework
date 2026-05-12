@@ -707,14 +707,16 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station2FeedingStep.等待按下工位2启动按钮:
                             CurrentStepDescription = "等待按下工位2启动按钮...";
-                            _logger.Info($"[{StationName}] 等待操作员按下工位2启动按钮...");
+                            _logger.Info($"[{StationName}] 等待操作员切换批次并按下工位2启动按钮...");
 
-                            // 阻塞等待外部信号触发
+                            // 等待批次切换期间允许操作员开门操作，禁用安全门检测
                             _sync.DrainSignal(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
+                            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
+
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2启动按钮按下), token, scope: E_WorkStation.工位2上下料工站.ToString()).ConfigureAwait(false);
 
+                            // 收到启动信号后恢复安全门监控
                             _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
-
                             _logger.Info($"[{StationName}] 检测到启动信号，开始执行上料流程。");
                             _currentStep = Station2FeedingStep.验证当前批次产品个数;
                             break;

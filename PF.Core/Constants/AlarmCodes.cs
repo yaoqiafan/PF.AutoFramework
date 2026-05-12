@@ -194,13 +194,29 @@ namespace PF.Core.Constants
         /// <summary>安全相关报警代码</summary>
         public static class Safety
         {
-            /// <summary>安全门打开，设备已暂停</summary>
+            /// <summary>安全门打开，设备已暂停（通用，适用于非独立通道）</summary>
             [AlarmInfo("安全防护", "安全门打开，设备已暂停", AlarmSeverity.Warning,
                 "1. 确认人员已撤离设备操作区域;\n" +
                 "2. 关闭安全门后点击【启动】继续运行;\n" +
                 "3. 如门锁无法正常关闭，请检查传感器接线;\n" +
                 "4. 确认门锁信号正常后重新操作;")]
             public const string SafeDoorOpen = "HW_SAFE_001";
+
+            /// <summary>工位1安全门打开，设备已暂停</summary>
+            [AlarmInfo("安全防护", "工位1安全门打开，设备已暂停", AlarmSeverity.Warning,
+                "1. 确认人员已撤离工位1操作区域;\n" +
+                "2. 关闭工位1安全门后点击【启动】继续运行;\n" +
+                "3. 如门锁无法正常关闭，请检查传感器接线;\n" +
+                "4. 确认门锁信号正常后重新操作;")]
+            public const string SafeDoorOpen1 = "HW_SAFE_001_1";
+
+            /// <summary>工位2安全门打开，设备已暂停</summary>
+            [AlarmInfo("安全防护", "工位2安全门打开，设备已暂停", AlarmSeverity.Warning,
+                "1. 确认人员已撤离工位2操作区域;\n" +
+                "2. 关闭工位2安全门后点击【启动】继续运行;\n" +
+                "3. 如门锁无法正常关闭，请检查传感器接线;\n" +
+                "4. 确认门锁信号正常后重新操作;")]
+            public const string SafeDoorOpen2 = "HW_SAFE_001_2";
         }
     }
 
