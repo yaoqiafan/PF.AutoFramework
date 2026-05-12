@@ -116,7 +116,7 @@
                 </Border>
 
                 <!--  IO 状态  -->
-                <UniformGrid Margin="0,0,0,8" Columns="3">
+                <UniformGrid Margin="0,0,0,8" Columns="7">
                     <CheckBox
                         Content="使能"
                         IsChecked="{Binding MiniAxisIsEnabled, Mode=OneWay}"
@@ -125,6 +125,26 @@
                         Content="运动"
                         Foreground="#0284C7"
                         IsChecked="{Binding MiniAxisIsMoving, Mode=OneWay}"
+                        IsHitTestVisible="False" />
+                    <CheckBox
+                        Content="回零"
+                        Foreground="#16A34A"
+                        IsChecked="{Binding MiniAxisIsHomed, Mode=OneWay}"
+                        IsHitTestVisible="False" />
+                    <CheckBox
+                        Content="正限"
+                        Foreground="#EF4444"
+                        IsChecked="{Binding MiniAxisIsPosLimit, Mode=OneWay}"
+                        IsHitTestVisible="False" />
+                    <CheckBox
+                        Content="原点"
+                        Foreground="#D97706"
+                        IsChecked="{Binding MiniAxisIsORG, Mode=OneWay}"
+                        IsHitTestVisible="False" />
+                    <CheckBox
+                        Content="负限"
+                        Foreground="#EF4444"
+                        IsChecked="{Binding MiniAxisIsNegLimit, Mode=OneWay}"
                         IsHitTestVisible="False" />
                     <CheckBox
                         Content="报警"

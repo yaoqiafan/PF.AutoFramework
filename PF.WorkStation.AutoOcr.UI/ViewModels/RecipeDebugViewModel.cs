@@ -1,3 +1,4 @@
+using PF.Core.Enums;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
@@ -5,6 +6,7 @@ using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Models;
 using PF.Infrastructure.Hardware;
@@ -18,6 +20,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -30,6 +33,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         private readonly IHardwareManagerService _hardwareManager;
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
+        private readonly IUserService _userService;
 
         private readonly IAxis? _axisX;
         private readonly IAxis? _axisY;
@@ -81,6 +85,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _hardwareManager = hardwareManager;
             _recipeService = recipeService;
             _paramservice = paramService;
+            _userService = containerProvider.Resolve<IUserService>();
 
             _ws1Module = containerProvider.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)) as WS1MaterialPullingModule;
             _ws2Module = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
@@ -143,6 +148,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public bool XAxisIsPosLimit { get => _xAxisIsPosLimit; set => SetProperty(ref _xAxisIsPosLimit, value); }
         private bool _xAxisIsNegLimit;
         public bool XAxisIsNegLimit { get => _xAxisIsNegLimit; set => SetProperty(ref _xAxisIsNegLimit, value); }
+        private bool _xAxisIsHomed;
+        public bool XAxisIsHomed { get => _xAxisIsHomed; set => SetProperty(ref _xAxisIsHomed, value); }
+        private bool _xAxisIsORG;
+        public bool XAxisIsORG { get => _xAxisIsORG; set => SetProperty(ref _xAxisIsORG, value); }
         private double _xAxisJogVelocity = 10.0;
         public double XAxisJogVelocity { get => _xAxisJogVelocity; set => SetProperty(ref _xAxisJogVelocity, value); }
 
@@ -159,6 +168,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public bool YAxisIsPosLimit { get => _yAxisIsPosLimit; set => SetProperty(ref _yAxisIsPosLimit, value); }
         private bool _yAxisIsNegLimit;
         public bool YAxisIsNegLimit { get => _yAxisIsNegLimit; set => SetProperty(ref _yAxisIsNegLimit, value); }
+        private bool _yAxisIsHomed;
+        public bool YAxisIsHomed { get => _yAxisIsHomed; set => SetProperty(ref _yAxisIsHomed, value); }
+        private bool _yAxisIsORG;
+        public bool YAxisIsORG { get => _yAxisIsORG; set => SetProperty(ref _yAxisIsORG, value); }
         private double _yAxisJogVelocity = 10.0;
         public double YAxisJogVelocity { get => _yAxisJogVelocity; set => SetProperty(ref _yAxisJogVelocity, value); }
 
@@ -175,6 +188,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public bool ZAxisIsPosLimit { get => _zAxisIsPosLimit; set => SetProperty(ref _zAxisIsPosLimit, value); }
         private bool _zAxisIsNegLimit;
         public bool ZAxisIsNegLimit { get => _zAxisIsNegLimit; set => SetProperty(ref _zAxisIsNegLimit, value); }
+        private bool _zAxisIsHomed;
+        public bool ZAxisIsHomed { get => _zAxisIsHomed; set => SetProperty(ref _zAxisIsHomed, value); }
+        private bool _zAxisIsORG;
+        public bool ZAxisIsORG { get => _zAxisIsORG; set => SetProperty(ref _zAxisIsORG, value); }
         private double _zAxisJogVelocity = 10.0;
         public double ZAxisJogVelocity { get => _zAxisJogVelocity; set => SetProperty(ref _zAxisJogVelocity, value); }
 
@@ -200,6 +217,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private string _ocrResult = "等待OCR...";
         public string OcrResult { get => _ocrResult; set => SetProperty(ref _ocrResult, value); }
+
+        /// <summary>
+        /// 是否为超级用户，控制同步公差控件的可见性
+        /// </summary>
+        public bool IsSuperUser => _userService.IsAuthorized(UserLevel.SuperUser);
+
+        private double _syncTolerance = 540000;
+        /// <summary>
+        /// 同步公差（单位 um）：工位1→工位2 X 轴偏移量
+        /// </summary>
+        public double SyncTolerance
+        {
+            get => _syncTolerance;
+            set => SetProperty(ref _syncTolerance, value);
+        }
 
         #endregion
 
@@ -307,8 +339,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     RaisePropertyChanged(nameof(MiniAxisPosition));
                     RaisePropertyChanged(nameof(MiniAxisIsEnabled));
                     RaisePropertyChanged(nameof(MiniAxisIsMoving));
+                    RaisePropertyChanged(nameof(MiniAxisIsHomed));
+                    RaisePropertyChanged(nameof(MiniAxisIsPosLimit));
+                    RaisePropertyChanged(nameof(MiniAxisIsORG));
+                    RaisePropertyChanged(nameof(MiniAxisIsNegLimit));
                     RaisePropertyChanged(nameof(MiniAxisIsAlarm));
                     RaisePropertyChanged(nameof(MiniJogVelocity));
+                    RaisePropertyChanged(nameof(MiniJogPositiveCommand));
+                    RaisePropertyChanged(nameof(MiniJogNegativeCommand));
+                    RaisePropertyChanged(nameof(MiniAxisStopCommand));
+                    RaisePropertyChanged(nameof(MiniAxisEnableCommand));
+                    RaisePropertyChanged(nameof(MiniAxisDisableCommand));
+                    RaisePropertyChanged(nameof(MiniAxisHomeCommand));
+                    RaisePropertyChanged(nameof(MiniAxisResetCommand));
                 }
             }
         }
@@ -325,6 +368,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public double MiniAxisPosition => MiniCardIndex switch { 1 => XAxisCurrentPosition, 2 => YAxisCurrentPosition, _ => ZAxisCurrentPosition };
         public bool MiniAxisIsEnabled => MiniCardIndex switch { 1 => XAxisIsEnabled, 2 => YAxisIsEnabled, _ => ZAxisIsEnabled };
         public bool MiniAxisIsMoving => MiniCardIndex switch { 1 => XAxisIsMoving, 2 => YAxisIsMoving, _ => ZAxisIsMoving };
+        public bool MiniAxisIsHomed => MiniCardIndex switch { 1 => XAxisIsHomed, 2 => YAxisIsHomed, _ => ZAxisIsHomed };
+        public bool MiniAxisIsPosLimit => MiniCardIndex switch { 1 => XAxisIsPosLimit, 2 => YAxisIsPosLimit, _ => ZAxisIsPosLimit };
+        public bool MiniAxisIsORG => MiniCardIndex switch { 1 => XAxisIsORG, 2 => YAxisIsORG, _ => ZAxisIsORG };
+        public bool MiniAxisIsNegLimit => MiniCardIndex switch { 1 => XAxisIsNegLimit, 2 => YAxisIsNegLimit, _ => ZAxisIsNegLimit };
         public bool MiniAxisIsAlarm => MiniCardIndex switch { 1 => XAxisIsAlarm, 2 => YAxisIsAlarm, _ => ZAxisIsAlarm };
 
         public double MiniJogVelocity
@@ -370,12 +417,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand XJogPositiveCommand { get; private set; }
         public DelegateCommand XJogNegativeCommand { get; private set; }
         public DelegateCommand XAxisStopCommand { get; private set; }
+        public DelegateCommand XAxisEnableCommand { get; private set; }
+        public DelegateCommand XAxisDisableCommand { get; private set; }
+        public DelegateCommand XAxisHomeCommand { get; private set; }
+        public DelegateCommand XAxisResetCommand { get; private set; }
         public DelegateCommand YJogPositiveCommand { get; private set; }
         public DelegateCommand YJogNegativeCommand { get; private set; }
         public DelegateCommand YAxisStopCommand { get; private set; }
+        public DelegateCommand YAxisEnableCommand { get; private set; }
+        public DelegateCommand YAxisDisableCommand { get; private set; }
+        public DelegateCommand YAxisHomeCommand { get; private set; }
+        public DelegateCommand YAxisResetCommand { get; private set; }
         public DelegateCommand ZJogPositiveCommand { get; private set; }
         public DelegateCommand ZJogNegativeCommand { get; private set; }
         public DelegateCommand ZAxisStopCommand { get; private set; }
+        public DelegateCommand ZAxisEnableCommand { get; private set; }
+        public DelegateCommand ZAxisDisableCommand { get; private set; }
+        public DelegateCommand ZAxisHomeCommand { get; private set; }
+        public DelegateCommand ZAxisResetCommand { get; private set; }
 
         public DelegateCommand MoveToRecipeXYZCommand { get; private set; }
         public DelegateCommand GetAndUpdateRecipeXYZCommand { get; private set; }
@@ -384,13 +443,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         // ── 迷你模式命令 ──
         public DelegateCommand MiniCardPrevCommand { get; private set; }
         public DelegateCommand MiniCardNextCommand { get; private set; }
-        public DelegateCommand MiniJogPositiveCommand { get; private set; }
-        public DelegateCommand MiniJogNegativeCommand { get; private set; }
-        public DelegateCommand MiniAxisStopCommand { get; private set; }
-        public DelegateCommand MiniAxisEnableCommand { get; private set; }
-        public DelegateCommand MiniAxisDisableCommand { get; private set; }
-        public DelegateCommand MiniAxisHomeCommand { get; private set; }
-        public DelegateCommand MiniAxisResetCommand { get; private set; }
+        public DelegateCommand MiniJogPositiveCommand => MiniCardIndex switch { 1 => XJogPositiveCommand, 2 => YJogPositiveCommand, _ => ZJogPositiveCommand };
+        public DelegateCommand MiniJogNegativeCommand => MiniCardIndex switch { 1 => XJogNegativeCommand, 2 => YJogNegativeCommand, _ => ZJogNegativeCommand };
+        public DelegateCommand MiniAxisStopCommand => MiniCardIndex switch { 1 => XAxisStopCommand, 2 => YAxisStopCommand, _ => ZAxisStopCommand };
+        public DelegateCommand MiniAxisEnableCommand => MiniCardIndex switch { 1 => XAxisEnableCommand, 2 => YAxisEnableCommand, _ => ZAxisEnableCommand };
+        public DelegateCommand MiniAxisDisableCommand => MiniCardIndex switch { 1 => XAxisDisableCommand, 2 => YAxisDisableCommand, _ => ZAxisDisableCommand };
+        public DelegateCommand MiniAxisHomeCommand => MiniCardIndex switch { 1 => XAxisHomeCommand, 2 => YAxisHomeCommand, _ => ZAxisHomeCommand };
+        public DelegateCommand MiniAxisResetCommand => MiniCardIndex switch { 1 => XAxisResetCommand, 2 => YAxisResetCommand, _ => ZAxisResetCommand };
 
         private void InitializeCommands()
         {
@@ -426,55 +485,31 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             XJogPositiveCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.JogAsync(XAxisJogVelocity, true, XAxisJogVelocity * 5, XAxisJogVelocity * 5); });
             XJogNegativeCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.JogAsync(XAxisJogVelocity, false, XAxisJogVelocity * 5, XAxisJogVelocity * 5); });
             XAxisStopCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.StopAsync(); });
+            XAxisEnableCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.EnableAsync(); });
+            XAxisDisableCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.DisableAsync(); });
+            XAxisHomeCommand = new DelegateCommand(async () => { if (_axisX != null) await _axisX.HomeAsync(CancellationToken.None); });
+            XAxisResetCommand = new DelegateCommand(async () => { if (_axisX is BaseDevice devX) await devX.ResetAsync(CancellationToken.None); });
             YJogPositiveCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.JogAsync(YAxisJogVelocity, true, YAxisJogVelocity * 5, YAxisJogVelocity * 5); });
             YJogNegativeCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.JogAsync(YAxisJogVelocity, false, YAxisJogVelocity * 5, YAxisJogVelocity * 5); });
             YAxisStopCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.StopAsync(); });
+            YAxisEnableCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.EnableAsync(); });
+            YAxisDisableCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.DisableAsync(); });
+            YAxisHomeCommand = new DelegateCommand(async () => { if (_axisY != null) await _axisY.HomeAsync(CancellationToken.None); });
+            YAxisResetCommand = new DelegateCommand(async () => { if (_axisY is BaseDevice devY) await devY.ResetAsync(CancellationToken.None); });
             ZJogPositiveCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.JogAsync(ZAxisJogVelocity, true, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5); });
             ZJogNegativeCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.JogAsync(ZAxisJogVelocity, false, ZAxisJogVelocity * 5, ZAxisJogVelocity * 5); });
             ZAxisStopCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.StopAsync(); });
+            ZAxisEnableCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.EnableAsync(); });
+            ZAxisDisableCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.DisableAsync(); });
+            ZAxisHomeCommand = new DelegateCommand(async () => { if (_axisZ != null) await _axisZ.HomeAsync(CancellationToken.None); });
+            ZAxisResetCommand = new DelegateCommand(async () => { if (_axisZ is BaseDevice devZ) await devZ.ResetAsync(CancellationToken.None); });
 
             MoveToRecipeXYZCommand = new DelegateCommand(async () => await ExecuteMoveToRecipeXYZAsync(), () => !IsBusy);
             GetAndUpdateRecipeXYZCommand = new DelegateCommand(ExecuteGetAndUpdateRecipeXYZ);
-            SyncAdjustCommand = new DelegateCommand(() =>
-                MessageService.ShowMessage("同步调整算法待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information));
+            SyncAdjustCommand = new DelegateCommand(ExecuteSyncAdjust);
 
             MiniCardPrevCommand = new DelegateCommand(() => MiniCardIndex--);
             MiniCardNextCommand = new DelegateCommand(() => MiniCardIndex++);
-            MiniJogPositiveCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, _ => _axisZ };
-                if (axis != null) await axis.JogAsync(MiniJogVelocity, true, MiniJogVelocity * 5, MiniJogVelocity * 5);
-            });
-            MiniJogNegativeCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, _ => _axisZ };
-                if (axis != null) await axis.JogAsync(MiniJogVelocity, false, MiniJogVelocity * 5, MiniJogVelocity * 5);
-            });
-            MiniAxisStopCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, _ => _axisZ };
-                if (axis != null) await axis.StopAsync();
-            });
-            MiniAxisEnableCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
-                if (axis != null) await axis.EnableAsync();
-            });
-            MiniAxisDisableCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
-                if (axis != null) await axis.DisableAsync();
-            });
-            MiniAxisHomeCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
-                if (axis != null) await axis.HomeAsync(CancellationToken.None);
-            });
-            MiniAxisResetCommand = new DelegateCommand(async () =>
-            {
-                IAxis? axis = MiniCardIndex switch { 1 => _axisX, 2 => _axisY, 3 => _axisZ, _ => null };
-                if (axis is BaseDevice dev) await dev.ResetAsync(CancellationToken.None);
-            });
         }
 
         #endregion
@@ -771,19 +806,35 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             double y = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosY : _currentRecipe._2PosY;
             double z = CurrentStation == E_WorkSpace.工位1 ? _currentRecipe._1PosZ : _currentRecipe._2PosZ;
 
+            // 校验各轴参数已配置（Vel=0 时运动控制器会报错）
+            if (_axisX != null && (_axisX.Param == null || _axisX.Param.Vel <= 0))
+                throw new InvalidOperationException("视觉X轴运动参数未配置，请先在轴参数页设置速度/加速度");
+            if (_axisY != null && (_axisY.Param == null || _axisY.Param.Vel <= 0))
+                throw new InvalidOperationException("视觉Y轴运动参数未配置，请先在轴参数页设置速度/加速度");
+            if (_axisZ != null && (_axisZ.Param == null || _axisZ.Param.Vel <= 0))
+                throw new InvalidOperationException("视觉Z轴运动参数未配置，请先在轴参数页设置速度/加速度");
+
             // 1. Z轴先退到待机位，防止XY移动时相机干涉
             if (_axisZ != null)
-                await _axisZ.MoveToPointAsync("待机位", token);
+            {
+                bool zRetract = await _axisZ.MoveToPointAsync("待机位", token);
+                if (!zRetract) throw new InvalidOperationException("Z轴退至待机位失败，请检查轴状态");
+            }
 
             // 2. XY轴并行移动到目标位
-            var xyTasks = new System.Collections.Generic.List<Task>();
+            var xyTasks = new System.Collections.Generic.List<Task<bool>>();
             if (_axisX != null) xyTasks.Add(_axisX.MoveAbsoluteAsync(x, _axisX.Param.Vel, _axisX.Param.Acc, _axisX.Param.Dec, 0.08, token));
             if (_axisY != null) xyTasks.Add(_axisY.MoveAbsoluteAsync(y, _axisY.Param.Vel, _axisY.Param.Acc, _axisY.Param.Dec, 0.08, token));
-            await Task.WhenAll(xyTasks);
+            bool[] xyResults = await Task.WhenAll(xyTasks);
+            if (System.Array.Exists(xyResults, r => !r))
+                throw new InvalidOperationException("XY轴移动到配方位置失败，请检查轴使能状态及软限位设置");
 
             // 3. Z轴移动到配方检测位
             if (_axisZ != null)
-                await _axisZ.MoveAbsoluteAsync(z, _axisZ.Param.Vel, _axisZ.Param.Acc, _axisZ.Param.Dec, 0.08, token);
+            {
+                bool zMove = await _axisZ.MoveAbsoluteAsync(z, _axisZ.Param.Vel, _axisZ.Param.Acc, _axisZ.Param.Dec, 0.08, token);
+                if (!zMove) throw new InvalidOperationException("Z轴移动到配方检测位失败，请检查轴使能状态及软限位设置");
+            }
         }
 
         private void ExecuteGetAndUpdateRecipeXYZ()
@@ -984,6 +1035,57 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #endregion
 
+        #region 同步调整
+
+        /// <summary>
+        /// 同步调整：以当前工位的配方点位为基准，镜像生成另一工位的 X 轴点位。
+        /// <para>规则：Y 轴、Z 轴坐标不变，仅 X 轴按同步公差偏移。</para>
+        /// <para>当前工位1 → 工位2.X = 工位1.X + 同步公差</para>
+        /// <para>当前工位2 → 工位1.X = 工位2.X - 同步公差</para>
+        /// </summary>
+        private void ExecuteSyncAdjust()
+        {
+            if (_currentRecipe == null) return;
+
+            var confirm = MessageService.ShowSystemMessage(
+                $"将以当前工位（{CurrentStation}）的配方点位为基准，\n" +
+                $"按同步公差 {SyncTolerance} um 镜像计算另一工位的 X 轴点位。\n" +
+                "Y 轴、Z 轴保持一致。\n\n确认执行同步调整？",
+                "同步调整确认",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.OK) return;
+
+            if (CurrentStation == E_WorkSpace.工位1)
+            {
+                // 工位1 → 工位2：X 加上同步公差，Y/Z 直接镜像
+                _currentRecipe._2PosX = _currentRecipe._1PosX + SyncTolerance;
+                _currentRecipe._2PosY = _currentRecipe._1PosY;
+                _currentRecipe._2PosZ = _currentRecipe._1PosZ;
+
+                MessageService.ShowMessage(
+                    $"同步调整完成。\n工位2 点位：X={_currentRecipe._2PosX}, Y={_currentRecipe._2PosY}, Z={_currentRecipe._2PosZ}",
+                    "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                // 工位2 → 工位1：X 减去同步公差，Y/Z 直接镜像
+                _currentRecipe._1PosX = _currentRecipe._2PosX - SyncTolerance;
+                _currentRecipe._1PosY = _currentRecipe._2PosY;
+                _currentRecipe._1PosZ = _currentRecipe._2PosZ;
+
+                MessageService.ShowMessage(
+                    $"同步调整完成。\n工位1 点位：X={_currentRecipe._1PosX}, Y={_currentRecipe._1PosY}, Z={_currentRecipe._1PosZ}",
+                    "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            // 刷新当前工位点位显示
+            UpdateRecipePositionDisplay();
+        }
+
+        #endregion
+
         #region 工位切换
 
         private void OnSelectedStationChanged()
@@ -1027,9 +1129,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 XAxisCurrentPosition = (int)(_axisX.CurrentPosition ?? 0);
                 XAxisIsEnabled = io?.SVO ?? false;
                 XAxisIsMoving = io?.Moving ?? false;
-                XAxisIsAlarm = io?.ALM ?? false;
+                XAxisIsHomed = io?.HomeDone ?? false;
                 XAxisIsPosLimit = io?.PEL ?? false;
+                XAxisIsORG = io?.ORG ?? false;
                 XAxisIsNegLimit = io?.MEL ?? false;
+                XAxisIsAlarm = io?.ALM ?? false;
             }
             if (_axisY != null)
             {
@@ -1037,9 +1141,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 YAxisCurrentPosition = (int)(_axisY.CurrentPosition ?? 0);
                 YAxisIsEnabled = io?.SVO ?? false;
                 YAxisIsMoving = io?.Moving ?? false;
-                YAxisIsAlarm = io?.ALM ?? false;
+                YAxisIsHomed = io?.HomeDone ?? false;
                 YAxisIsPosLimit = io?.PEL ?? false;
+                YAxisIsORG = io?.ORG ?? false;
                 YAxisIsNegLimit = io?.MEL ?? false;
+                YAxisIsAlarm = io?.ALM ?? false;
             }
             if (_axisZ != null)
             {
@@ -1047,14 +1153,20 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 ZAxisCurrentPosition = (int)(_axisZ.CurrentPosition ?? 0);
                 ZAxisIsEnabled = io?.SVO ?? false;
                 ZAxisIsMoving = io?.Moving ?? false;
-                ZAxisIsAlarm = io?.ALM ?? false;
+                ZAxisIsHomed = io?.HomeDone ?? false;
                 ZAxisIsPosLimit = io?.PEL ?? false;
+                ZAxisIsORG = io?.ORG ?? false;
                 ZAxisIsNegLimit = io?.MEL ?? false;
+                ZAxisIsAlarm = io?.ALM ?? false;
             }
 
             RaisePropertyChanged(nameof(MiniAxisPosition));
             RaisePropertyChanged(nameof(MiniAxisIsEnabled));
             RaisePropertyChanged(nameof(MiniAxisIsMoving));
+            RaisePropertyChanged(nameof(MiniAxisIsHomed));
+            RaisePropertyChanged(nameof(MiniAxisIsPosLimit));
+            RaisePropertyChanged(nameof(MiniAxisIsORG));
+            RaisePropertyChanged(nameof(MiniAxisIsNegLimit));
             RaisePropertyChanged(nameof(MiniAxisIsAlarm));
         }
 
