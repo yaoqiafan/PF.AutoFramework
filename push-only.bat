@@ -36,6 +36,10 @@ echo   ^<packageSources^> >> "%CONFIG_FILE%"
 echo     ^<add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" /^> >> "%CONFIG_FILE%"
 echo     ^<add key="%SOURCE_NAME%" value="%SOURCE_URL%" allowInsecureConnections="true" /^> >> "%CONFIG_FILE%"
 echo   ^</packageSources^> >> "%CONFIG_FILE%"
+echo   ^<packageRestore^> >> "%CONFIG_FILE%"
+echo     ^<add key="enabled" value="True" /^> >> "%CONFIG_FILE%"
+echo     ^<add key="automatic" value="False" /^> >> "%CONFIG_FILE%"
+echo   ^</packageRestore^> >> "%CONFIG_FILE%"
 echo ^</configuration^> >> "%CONFIG_FILE%"
 echo [OK] 配置文件已就绪。 
 
