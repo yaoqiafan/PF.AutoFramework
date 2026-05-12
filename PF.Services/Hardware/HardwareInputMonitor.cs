@@ -370,14 +370,16 @@ namespace PF.Services.Hardware
                 }
 
                 _logger.Info($"【硬件输入】{state.Config.Name} 触发 → 类型：{state.Config.InputType}");
+                state.WasTriggeredWhileEnabled = true;
                 _eventBus.PublishInputEvent(state.Config.InputType);
             }
             else if (state.Config.ScanGroup == InputScanGroup.Safety
                      && !state.Config.IsMuted
-                     && state.IsEnabled
+                     && state.WasTriggeredWhileEnabled
                      && wasActive && !isActive)
             {
                 _logger.Info($"【硬件输入】{state.Config.Name} 恢复 → 类型：{state.Config.InputType}");
+                state.WasTriggeredWhileEnabled = false;
                 _eventBus.PublishRestoreEvent(state.Config.InputType);
             }
 
@@ -389,6 +391,8 @@ namespace PF.Services.Hardware
             public IHardwareInputConfig Config { get; }
             public bool LastValue { get; set; }
             public bool IsEnabled { get; set; } = true;
+            // 仅当 IsEnabled=true 时发生的触发才允许后续恢复事件，防止禁用期间开关门产生误恢复
+            public bool WasTriggeredWhileEnabled { get; set; }
 
             public InputScanState(IHardwareInputConfig config)
             {
