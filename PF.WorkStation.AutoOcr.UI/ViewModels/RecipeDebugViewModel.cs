@@ -118,6 +118,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 _currentRecipe = parameters.GetValue<OCRRecipeParam>("CurrentRepice");
 
             RaisePropertyChanged(nameof(RecipeWaferSizeText));
+            SyncTolerance = _currentRecipe?.WafeSize == E_WafeSize._8寸 ? 641000 : 535000;
+            RaisePropertyChanged(nameof(SyncToleranceLabel));
             InfraredLightValue = _currentRecipe?.LightChanel1Value ?? 0;
             WhiteLightValue = _currentRecipe?.LightChanel2Value ?? 0;
 
@@ -223,15 +225,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         public bool IsSuperUser => _userService.IsAuthorized(UserLevel.SuperUser);
 
-        private double _syncTolerance = 540000;
+        private double _syncTolerance;
         /// <summary>
-        /// 同步公差（单位 um）：工位1→工位2 X 轴偏移量
+        /// 同步公差（单位 um）：工位1→工位2 X 轴偏移量，默认值按物料尺寸区分（8寸=641000，12寸=535000）
         /// </summary>
         public double SyncTolerance
         {
             get => _syncTolerance;
             set => SetProperty(ref _syncTolerance, value);
         }
+
+        public string SyncToleranceLabel => _currentRecipe?.WafeSize == E_WafeSize._8寸
+            ? "同步公差（8寸）："
+            : "同步公差（12寸）：";
 
         #endregion
 
