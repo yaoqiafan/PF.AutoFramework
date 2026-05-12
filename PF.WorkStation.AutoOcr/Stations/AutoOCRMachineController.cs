@@ -231,6 +231,25 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #endregion
 
+        #region Hardware Restore Routing (安全信号恢复路由)
+
+        /// <summary>
+        /// 安全门关闭时，重新启用两扇门的检测，使下次开门能正常触发。
+        /// </summary>
+        protected override void OnHardwareInputRestored(string inputType)
+        {
+            base.OnHardwareInputRestored(inputType);
+
+            if (inputType == HardwareInputType.SafeDoor)
+            {
+                _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+                _logger.Info("【主控】安全门已关闭，重新启用安全门检测。");
+            }
+        }
+
+        #endregion
+
         #region Lifecycle Hooks (生命周期钩子)
 
         /// <summary>

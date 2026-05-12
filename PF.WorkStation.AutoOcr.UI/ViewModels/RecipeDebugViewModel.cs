@@ -817,23 +817,59 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             // 1. Z轴先退到待机位，防止XY移动时相机干涉
             if (_axisZ != null)
             {
-                bool zRetract = await _axisZ.MoveToPointAsync("待机位", token);
-                if (!zRetract) throw new InvalidOperationException("Z轴退至待机位失败，请检查轴状态");
+                if (!await _axisZ.MoveToPointAsync("待机位", token))
+                    throw new InvalidOperationException("Z轴退至待机位指令失败，请检查轴状态");
+                if (!await WaitAxisMoveDoneAsync(_axisZ, token: token))
+                    throw new InvalidOperationException("Z轴退至待机位超时或报警");
             }
 
-            // 2. XY轴并行移动到目标位
-            var xyTasks = new System.Collections.Generic.List<Task<bool>>();
-            if (_axisX != null) xyTasks.Add(_axisX.MoveAbsoluteAsync(x, _axisX.Param.Vel, _axisX.Param.Acc, _axisX.Param.Dec, 0.08, token));
-            if (_axisY != null) xyTasks.Add(_axisY.MoveAbsoluteAsync(y, _axisY.Param.Vel, _axisY.Param.Acc, _axisY.Param.Dec, 0.08, token));
-            bool[] xyResults = await Task.WhenAll(xyTasks);
-            if (System.Array.Exists(xyResults, r => !r))
-                throw new InvalidOperationException("XY轴移动到配方位置失败，请检查轴使能状态及软限位设置");
+            // 2. XY轴并行发送运动指令
+            var xyStartTasks = new System.Collections.Generic.List<Task<bool>>();
+            if (_axisX != null) xyStartTasks.Add(_axisX.MoveAbsoluteAsync(x, _axisX.Param.Vel, _axisX.Param.Acc, _axisX.Param.Dec, 0.08, token));
+            if (_axisY != null) xyStartTasks.Add(_axisY.MoveAbsoluteAsync(y, _axisY.Param.Vel, _axisY.Param.Acc, _axisY.Param.Dec, 0.08, token));
+            bool[] xyStarted = await Task.WhenAll(xyStartTasks);
+            if (System.Array.Exists(xyStarted, r => !r))
+                throw new InvalidOperationException("XY轴运动指令发送失败，请检查轴使能状态及软限位设置");
+
+            // 等待XY轴均到位
+            var xyWaitTasks = new System.Collections.Generic.List<Task<bool>>();
+            if (_axisX != null) xyWaitTasks.Add(WaitAxisMoveDoneAsync(_axisX, token: token));
+            if (_axisY != null) xyWaitTasks.Add(WaitAxisMoveDoneAsync(_axisY, token: token));
+            bool[] xyDone = await Task.WhenAll(xyWaitTasks);
+            if (System.Array.Exists(xyDone, r => !r))
+                throw new InvalidOperationException("XY轴等待到位超时或报警");
 
             // 3. Z轴移动到配方检测位
             if (_axisZ != null)
             {
-                bool zMove = await _axisZ.MoveAbsoluteAsync(z, _axisZ.Param.Vel, _axisZ.Param.Acc, _axisZ.Param.Dec, 0.08, token);
-                if (!zMove) throw new InvalidOperationException("Z轴移动到配方检测位失败，请检查轴使能状态及软限位设置");
+                if (!await _axisZ.MoveAbsoluteAsync(z, _axisZ.Param.Vel, _axisZ.Param.Acc, _axisZ.Param.Dec, 0.08, token))
+                    throw new InvalidOperationException("Z轴移动到配方检测位指令失败，请检查轴使能状态及软限位设置");
+                if (!await WaitAxisMoveDoneAsync(_axisZ, token: token))
+                    throw new InvalidOperationException("Z轴移动到配方检测位超时或报警");
+            }
+        }
+
+        private static async Task<bool> WaitAxisMoveDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
+        {
+            if ((axis as IHardwareDevice)?.IsSimulated == true) return true;
+
+            using var timeoutCts = new CancellationTokenSource(timeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+            try
+            {
+                while (true)
+                {
+                    await Task.Delay(50, linked.Token).ConfigureAwait(false);
+                    var status = axis.AxisIOStatus;
+                    if (status != null && status.MoveDone && !status.Moving)
+                        return true;
+                    if (status?.ALM == true)
+                        return false;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
             }
         }
 
