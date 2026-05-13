@@ -320,7 +320,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 【核心校验】每一轮步序流转前，强行校验取消状态，确保流程即时响应停止请求
                     token.ThrowIfCancellationRequested();
-
+                    await Task.Delay(250);
                     switch (_currentStep)
                     {
                         // ══════════════════════════════════════════════════════════
@@ -628,7 +628,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case StationDetectionStep.工位1相机配方切换失败:
                         case StationDetectionStep.工位2相机配方切换失败:
                         case StationDetectionStep.触发检测异常:
-                            var camCode = _cachedErrorCode ?? AlarmCodesExtensions.Detection.CameraTiggerFailed;
+                            var camCode = _cachedErrorCode ?? AlarmCodesExtensions.Detection.CameraCaptureFailed;
                             TriggerAlarm(camCode, $"相机控制异常: {_currentStep}");
                             _cachedErrorCode = null;
                             _currentStep = _resumeStep;
