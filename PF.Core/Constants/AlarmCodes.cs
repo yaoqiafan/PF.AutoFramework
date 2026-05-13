@@ -129,6 +129,21 @@ namespace PF.Core.Constants
                 "3. 手动移动轴后重新执行初始化;\n" +
                 "4. 检查限位开关是否触发;")]
             public const string HomingTimeout = "HW_AXIS_004";
+
+            /// <summary>伺服轴到位精度超限</summary>
+            [AlarmInfo("定位异常", "伺服轴到位精度超限，实际位置与目标位置偏差过大", AlarmSeverity.Error,
+                "1. 检查轴机械传动是否存在间隙或磨损;\n" +
+                "2. 确认定位精度参数设置是否合理;\n" +
+                "3. 检查伺服增益参数;\n" +
+                "4. 复位后重新运行;")]
+            public const string AxisMoveInaccuratePositioning = "HW_AXIS_005";
+
+            /// <summary>伺服轴获取当前位置失败</summary>
+            [AlarmInfo("定位异常", "伺服轴获取当前位置失败，无法进行定位精度校验", AlarmSeverity.Error,
+                "1. 检查伺服驱动器与运动控制卡通讯是否正常;\n" +
+                "2. 确认轴编码器反馈信号是否正常;\n" +
+                "3. 复位后重新运行;")]
+            public const string AxisGetCurrentPositionFailed = "HW_AXIS_006";
         }
 
        

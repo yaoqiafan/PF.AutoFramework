@@ -1,4 +1,5 @@
-﻿using PF.Core.Constants;
+﻿using Org.BouncyCastle.Asn1.Tsp;
+using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
@@ -272,8 +273,9 @@ namespace PF.Infrastructure.Mechanisms
         /// </summary>
         /// <param name="axis">目标轴</param>
         /// <param name="timeoutMs">超时毫秒数，默认 30 秒</param>
+        /// <param name="pose">运动点位</param>
         /// <param name="token">取消令牌</param>
-        public async Task<bool> WaitAxisMoveDoneAsync(IAxis axis, int timeoutMs = 30_000, CancellationToken token = default)
+        public async Task<bool> WaitAxisMoveDoneAsync(IAxis axis, int timeoutMs = 30_000,double? pose = null, CancellationToken token = default)
         {
             // 修复 2：前置非空校验，尽早暴露错误
             ArgumentNullException.ThrowIfNull(axis);
@@ -300,6 +302,44 @@ namespace PF.Infrastructure.Mechanisms
                     var status = axis.AxisIOStatus;
                     if (status != null && status.MoveDone && !status.Moving)
                     {
+                        var currentpose = axis.CurrentPosition;
+
+                        if (pose.HasValue)
+                        {
+                            if (currentpose.HasValue)
+                            {
+                                var abspose = Math.Abs(pose.Value - currentpose.Value);
+                                if (abspose > axis.Param.PositioningAccuracy)
+                                {
+                                    HasAlarm = true;
+                                    _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 运动误差超限（{abspose:F3} > {axis.Param.PositioningAccuracy}）");
+                                    pendingAlarm = new MechanismAlarmEventArgs
+                                    {
+                                        MechanismName = this.MechanismName,
+                                        HardwareName = axisName,
+                                        ErrorCode = AlarmCodes.Hardware.AxisMoveInaccuratePositioning,
+                                        ErrorMessage = $"轴 [{axisName}] 运动误差超限（{abspose:F3} > {axis.Param.PositioningAccuracy}）"
+                                    };
+                                    break;
+                                }
+
+                            }
+                            else
+                            {
+                                HasAlarm = true;
+                                _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 获取当前位置失败，无法校验定位精度");
+                                pendingAlarm = new MechanismAlarmEventArgs
+                                {
+                                    MechanismName = this.MechanismName,
+                                    HardwareName = axisName,
+                                    ErrorCode = AlarmCodes.Hardware.AxisGetCurrentPositionFailed,
+                                    ErrorMessage = $"轴 [{axisName}] 获取当前位置失败，无法校验定位精度"
+                                };
+                                break;
+                            }
+
+                        }
+
                         _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 运动完成");
                         return true;
                     }
@@ -342,6 +382,7 @@ namespace PF.Infrastructure.Mechanisms
                     };
                 }
             }
+
 
             // 在 catch 外部触发报警事件，避免在异常处理上下文中同步调用事件链
             // （事件链会进入 StationBase.RaiseAlarm → Fire(Error) → 获取 _stateLock）
@@ -428,7 +469,7 @@ namespace PF.Infrastructure.Mechanisms
             if (!await axis.MoveAbsoluteAsync(position, velocity, acc, dec, sTime, token).ConfigureAwait(false))
                 return false;
 
-            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+            return await WaitAxisMoveDoneAsync(axis, timeoutMs, position, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -445,7 +486,7 @@ namespace PF.Infrastructure.Mechanisms
             if (!await axis.MoveRelativeAsync(distance, velocity, acc, dec, sTime, token).ConfigureAwait(false))
                 return false;
 
-            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+            return await WaitAxisMoveDoneAsync(axis, timeoutMs, token: token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -461,7 +502,7 @@ namespace PF.Infrastructure.Mechanisms
             if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
                 return false;
 
-            bool success = await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+            bool success = await WaitAxisMoveDoneAsync(axis, timeoutMs, token: token).ConfigureAwait(false);
             if (success) return true;
 
             // 运动未完成且存在暂停感知 → 暂停恢复后重新发起运动
@@ -470,7 +511,7 @@ namespace PF.Infrastructure.Mechanisms
                 _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 暂停恢复，重新移动到 [{pointName}]");
                 if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
                     return false;
-                return await WaitAxisMoveDoneAsync(axis, timeoutMs, token).ConfigureAwait(false);
+                return await WaitAxisMoveDoneAsync(axis, timeoutMs, token: token).ConfigureAwait(false);
             }
 
             return false;
@@ -517,7 +558,7 @@ namespace PF.Infrastructure.Mechanisms
 
             // 2. 并发等待所有轴到位
             var waitTasks = moveList
-                .Select(m => WaitAxisMoveDoneAsync(m.axis, timeoutMs, token))
+                .Select(m => WaitAxisMoveDoneAsync(m.axis, timeoutMs, token: token))
                 .ToList();
 
             bool[] waitResults = await Task.WhenAll(waitTasks).ConfigureAwait(false);
