@@ -690,6 +690,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             break;
 
                         case Station2PullingStep.检查料盒当前层是否有物料:
+                            CurrentStepDescription = "检查料盒当前层是否有物料...";
                             var checkgipperresult = await _pullingModule.DetermineCurLayyerIsExits(token);
                             if (checkgipperresult.IsSuccess)
                             {
@@ -920,13 +921,14 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         #region Phase D  异常流程自动动作步序
                         case Station2PullingStep.检查夹爪无料异常步序1:
+                            CurrentStepDescription = "检查夹爪无料异常步序1...";
                             _sync.Release(nameof(WorkstationSignals.工位2拉料完成), StationName);
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许退料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
                             _currentStep = Station2PullingStep.检查夹爪无料异常步序2;
                             break;
                         case Station2PullingStep.检查夹爪无料异常步序2:
+                            CurrentStepDescription = "检查夹爪无料异常步序2...";
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许退料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
-                            _currentStep = Station2PullingStep.送料到取料位;
+                            _currentStep = Station2PullingStep.移动到待机位;
                             break;
 
 
