@@ -359,7 +359,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (!await _feedingModule.InitializeAsync(token))
                         throw new Exception($"[{StationName}] 上下料模组初始化通信失败！");
 
-                    if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.ZAxis, token: token))
+                    if (!await _feedingModule.HomeZAxisAsync( token: token))
                         throw new Exception("Z轴回零失败");
 
                     if (!await _feedingModule.WaitHomeDoneAsync(_feedingModule.XAxis, token: token))
