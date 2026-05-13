@@ -273,6 +273,20 @@ namespace PF.UI.Controls
         {
             base.OnSourceInitialized(e);
             this.GetHwndSource()?.AddHook(HwndSourceHook);
+
+            // WindowChrome 在 base.OnSourceInitialized 期间会重置扩展样式，
+            // 导致 WS_POPUP 窗口（WindowStyle=None）的 WS_EX_APPWINDOW 被清除，
+            // 进而使任务栏图标消失。在此补回，确保 ShowInTaskbar 语义生效。
+            if (ShowInTaskbar)
+            {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (hwnd != IntPtr.Zero)
+                {
+                    const int WS_EX_APPWINDOW = 0x00040000;
+                    int exStyle = InteropMethods.GetWindowLong(hwnd, InteropValues.GWL.EXSTYLE);
+                    InteropMethods.SetWindowLong(hwnd, InteropValues.GWL.EXSTYLE, exStyle | WS_EX_APPWINDOW);
+                }
+            }
         }
 
         // 优化：重写 OnClosing 并在其中移除 HwndSourceHook，避免在关闭后获取 Handle 报错
