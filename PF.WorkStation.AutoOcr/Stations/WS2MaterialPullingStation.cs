@@ -37,10 +37,12 @@ namespace PF.WorkStation.AutoOcr.Stations
         调整流道尺寸 = 30,
         /// <summary>移动到取料位</summary>
         移动到取料位 = 40,
+        /// <summary>检查料盒当前层是否有物料</summary>
+        检查料盒当前层是否有物料 = 50,
         /// <summary>关闭夹爪</summary>
-        关闭夹爪 = 50,
+        关闭夹爪 = 60,
         /// <summary>检测叠料</summary>
-        检测叠料 = 60,
+        检测叠料 = 70,
 
         #endregion
 
@@ -80,7 +82,16 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         #endregion
 
-        #region 阶段 D：异常拦截与断点续跑节点 (100000+)
+        #region 阶段D: 异常流程自动动作步序
+
+        /// <summary>检查夹爪无料异常步序1</summary>
+        检查夹爪无料异常步序1 = 1000,
+        /// <summary>检查夹爪无料异常步序2</summary>
+        检查夹爪无料异常步序2 = 1010,
+
+        #endregion 阶段D:  异常流程自动动作步序
+
+        #region 阶段 E：异常拦截与断点续跑节点 (100000+)
 
         // ── 业务与数据校验异常 (10000X) ──
         /// <summary>配方参数为空</summary>
@@ -165,7 +176,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         // ── 相机与视觉异常 (10005X) ──
         /// <summary>扫码失败或校验不合法</summary>
         扫码失败 = 100050,
-
+        /// <summary>夹爪检查物料</summary>
+        检查料盒当前层是否有物料异常 = 100100,
         // ── 系统级异常 (10009X) ──
         /// <summary>状态机指针漂移，进入未定义步序</summary>
         状态机进入未定义步序 = 100099
@@ -282,7 +294,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// 步序值域: 关闭夹爪(50) ~ 等待检测位检测完成(140), 等待允许送料(200) ~ 送料到取料位(210)
         /// </summary>
         private static bool IsGripperHoldingMaterial(int stepValue) =>
-            (stepValue >= 50 && stepValue <= 150);
+            (stepValue >= 60 && stepValue <= 150);
 
         /// <summary>
         /// 根据持久化的步序值判断是否处于退料阶段（夹爪有料但传感器可能不可靠）。
@@ -669,13 +681,29 @@ namespace PF.WorkStation.AutoOcr.Stations
                             if (moveResult.IsSuccess)
                             {
                                 _logger.Info($"[{StationName}] 运动到取料位成功");
-                                _currentStep = Station2PullingStep.关闭夹爪;
+                                _currentStep = Station2PullingStep.检查料盒当前层是否有物料;
                             }
                             else
                             {
                                 RouteToError(Station2PullingStep.Y轴移动到取料位置失败, Station2PullingStep.移动到取料位, moveResult.ErrorCode);
                             }
                             break;
+
+                        case Station2PullingStep.检查料盒当前层是否有物料:
+                            CurrentStepDescription = "检查料盒当前层是否有物料...";
+                            var checkgipperresult = await _pullingModule.DetermineCurLayyerIsExits(token);
+                            if (checkgipperresult.IsSuccess)
+                            {
+                                _logger.Info($"[{StationName}] 夹爪有物料");
+                                _currentStep = Station2PullingStep.关闭夹爪;
+                            }
+                            else
+                            {
+                                RouteToError(Station2PullingStep.检查料盒当前层是否有物料异常, Station2PullingStep.检查夹爪无料异常步序1, checkgipperresult.ErrorCode);
+                            }
+                            break;
+
+
 
                         case Station2PullingStep.关闭夹爪:
                             CurrentStepDescription = "关闭夹爪...";
@@ -888,9 +916,31 @@ namespace PF.WorkStation.AutoOcr.Stations
                         #endregion
 
                         // ══════════════════════════════════════════════════════════
-                        //  阶段 D：业务异常流转处理 (状态机容错层)
+                        //  阶段 D  异常流程自动动作步序
                         // ══════════════════════════════════════════════════════════
-                        #region Phase D (Logic Exceptions)
+
+                        #region Phase D  异常流程自动动作步序
+                        case Station2PullingStep.检查夹爪无料异常步序1:
+                            CurrentStepDescription = "检查夹爪无料异常步序1...";
+                            _sync.Release(nameof(WorkstationSignals.工位2拉料完成), StationName);
+                            _currentStep = Station2PullingStep.检查夹爪无料异常步序2;
+                            break;
+                        case Station2PullingStep.检查夹爪无料异常步序2:
+                            CurrentStepDescription = "检查夹爪无料异常步序2...";
+                            await _sync.WaitAsync(nameof(WorkstationSignals.工位2允许退料), token, scope: nameof(E_WorkStation.工位2上下料工站)).ConfigureAwait(false);
+                            _currentStep = Station2PullingStep.移动到待机位;
+                            break;
+
+
+                        #endregion Phase D  异常流程自动动作步序
+
+
+
+                        // ══════════════════════════════════════════════════════════
+                        //  阶段 E：业务异常流转处理 (状态机容错层)
+                        // ══════════════════════════════════════════════════════════
+
+                        #region Phase E (Logic Exceptions)
 
                         case Station2PullingStep.配方参数为空:
                             TriggerAlarm(AlarmCodesExtensions.WS2Pulling.RecipeNull, "工位2配方参数为空");
@@ -919,6 +969,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station2PullingStep.夹爪闭合超时:
                         case Station2PullingStep.判断流道尺寸异常:
                         case Station2PullingStep.物料正反检测报警:
+                        case Station2PullingStep.检查料盒当前层是否有物料异常:
                             var actCode = _cachedErrorCode ?? AlarmCodesExtensions.WS2Pulling.GripperCloseFailed;
                             TriggerAlarm(actCode, $"执行器控制异常: {_currentStep}");
                             _cachedErrorCode = null;
@@ -971,7 +1022,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             break;
 
-                            #endregion
+                        #endregion
+
+
+
+
+                   
                     }
                 }
             }
