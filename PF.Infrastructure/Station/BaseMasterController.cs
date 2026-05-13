@@ -85,6 +85,18 @@ namespace PF.Infrastructure.Station
         /// </summary>
         public event EventHandler<StationAlarmEventArgs>? MasterAlarmTriggered;
 
+        /// <summary>
+        /// 指示当前是否因参数变更而需要重新初始化设备。
+        /// 基类默认返回 false，子类可 override 以提供实际状态。
+        /// </summary>
+        public virtual bool IsReinitializationRequired => false;
+
+        /// <summary>
+        /// 当检测到需要重新初始化设备的参数变更时触发。
+        /// 基类默认不会触发此事件，子类可 override 以提供实际实现。
+        /// </summary>
+        public virtual event EventHandler? ReinitializationRequired;
+
         /// <summary>日志服务，构造时注入，不允许为 null。</summary>
         protected readonly ILogService _logger;
 

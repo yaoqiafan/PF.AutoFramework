@@ -47,7 +47,27 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-
+            <!--  工位屏蔽参数变更后的重初始化提示横幅  -->
+            <Border
+                Grid.Row="0"
+                Padding="12,8"
+                Background="#FFF3CD"
+                BorderBrush="#FFC107"
+                BorderThickness="0,0,0,2"
+                Visibility="{Binding NeedsReinitialize, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#856404"
+                        Text="⚠  " />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="13"
+                        Foreground="#856404"
+                        Text="工位屏蔽参数已修改，请重新初始化设备以使配置生效。" />
+                </StackPanel>
+            </Border>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>

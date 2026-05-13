@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
@@ -88,6 +89,20 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// </summary>
         private readonly IStationSyncService _sync;
 
+        private readonly IParamService _paramService;
+
+        private volatile bool _isReinitializationRequired;
+        private Core.Enums.MachineState _previousState = Core.Enums.MachineState.Uninitialized;
+
+        private static readonly HashSet<string> _reinitTriggerParams = new()
+        {
+            E_Params.WorkStation1_Muted.ToString(),
+            E_Params.WorkStation2_Muted.ToString(),
+        };
+
+        public override bool IsReinitializationRequired => _isReinitializationRequired;
+        public override event EventHandler? ReinitializationRequired;
+
         #endregion
 
         #region Constructor & Signal Registration (构造与信号注册)
@@ -101,11 +116,14 @@ namespace PF.WorkStation.AutoOcr.Stations
             HardwareInputEventBus hardwareEventBus,
             IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
+            IParamService paramService,
             IEnumerable<IStation> subStations)
             : base(logger, hardwareEventBus, subStations, alarmService)
         {
             _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
+            _paramService = paramService;
+            _paramService.ParamChanged += OnParamChanged;
 
             // 根据主控状态驱动 Safety 监控线程的启停
             MasterStateChanged += OnMasterStateChanged;
@@ -199,6 +217,13 @@ namespace PF.WorkStation.AutoOcr.Stations
 
 
 
+        private void OnParamChanged(object? sender, ParamChangedEventArgs e)
+        {
+            if (!_reinitTriggerParams.Contains(e.ParamName)) return;
+            _isReinitializationRequired = true;
+            ReinitializationRequired?.Invoke(this, EventArgs.Empty);
+        }
+
         /// <summary>
         /// 监听主控状态变迁，根据状态驱动 Safety 监控线程的启停。
         /// Running  → 启动 Safety 监控（此时屏蔽参数会被重新从数据库加载）。
@@ -211,6 +236,14 @@ namespace PF.WorkStation.AutoOcr.Stations
         {
             try
             {
+                // 从 Initializing → Idle 表示初始化成功，清除重初始化标记
+                if (newState == Core.Enums.MachineState.Idle
+                    && _previousState == Core.Enums.MachineState.Initializing)
+                {
+                    _isReinitializationRequired = false;
+                }
+                _previousState = newState;
+
                 if (newState == Core.Enums.MachineState.Running)
                 {
                     _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
