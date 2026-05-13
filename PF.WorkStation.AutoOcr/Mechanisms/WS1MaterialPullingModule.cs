@@ -491,6 +491,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
         }
 
+
+
+        /// <summary>
+        /// 检查料盒当前层是否有料
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task <MechResult > DetermineCurLayyerIsExits(CancellationToken token =default )
+        {
+            bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
+            if (!res1.HasValue)
+                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperCloseNoRing, "铁环检测传感器读取失败");
+
+            if (res1.Value)
+            {
+
+                return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperCloseNoRing, "夹爪未检测到铁环物料（空夹）");
+            }
+            return MechResult.Success();
+        }
+
         #endregion
 
         #region Motion Sequences (核心联动序列)
