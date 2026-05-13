@@ -419,10 +419,6 @@ namespace PF.WorkStation.AutoOcr.Stations
                     }
                 }
 
-
-
-
-
             }
             catch
             {

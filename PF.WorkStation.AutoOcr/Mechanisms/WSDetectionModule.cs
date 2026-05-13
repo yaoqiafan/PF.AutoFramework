@@ -298,9 +298,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 // 等待物理运动最终到位
                 int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
-                if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
-                    !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
-                    !await WaitAxisMoveDoneAsync(_zAxis, timeout, token))
+                if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token: token) ||
+                    !await WaitAxisMoveDoneAsync(_yAxis, timeout, token: token) ||
+                    !await WaitAxisMoveDoneAsync(_zAxis, timeout, token: token))
                 {
                     return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation1MoveTimeout, "XYZ轴移动到工位1超时");
                 }
@@ -353,9 +353,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 token.ThrowIfCancellationRequested(); // 【新增】耗时指令下发后检查
 
                 int timeout = await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString());
-                if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token) ||
-                    !await WaitAxisMoveDoneAsync(_yAxis, timeout, token) ||
-                    !await WaitAxisMoveDoneAsync(_zAxis, timeout, token))
+                if (!await WaitAxisMoveDoneAsync(_xAxis, timeout, token: token) ||
+                    !await WaitAxisMoveDoneAsync(_yAxis, timeout, token: token) ||
+                    !await WaitAxisMoveDoneAsync(_zAxis, timeout, token: token))
                 {
                     return MechResult.Fail(AlarmCodesExtensions.Detection.MoveToStation2MoveTimeout, "XYZ轴移动到工位2超时");
                 }
