@@ -224,20 +224,32 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             token.ThrowIfCancellationRequested();
             _logger.Info($"[{MechanismName}] 初始化上料状态...");
 
-            // 并发控制指令：多轴插补运动提升设备初始化节拍 (Cycle Time)
-            if (await MoveMultiAxesToPointsAsync([
-                    (_xAxis, nameof(XAxisPoint.挡料位)),
-                    (_zAxis, nameof(ZAxisPoint.待机位))
-                ], token: token))
+            // 运动前打开凸片传感器
+            var openRes = await SetThrustWasherAsync(false, token);
+            if (!openRes.IsSuccess)
+                return openRes;
+
+            try
             {
-                token.ThrowIfCancellationRequested(); // 【新增】耗时运动结束后的取消检查
-                _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
-                return MechResult.Success();
+                // 并发控制指令：多轴插补运动提升设备初始化节拍 (Cycle Time)
+                if (await MoveMultiAxesToPointsAsync([
+                        (_xAxis, nameof(XAxisPoint.挡料位)),
+                        (_zAxis, nameof(ZAxisPoint.待机位))
+                    ], token: token))
+                {
+                    token.ThrowIfCancellationRequested(); // 【新增】耗时运动结束后的取消检查
+                    _logger.Success($"[{MechanismName}] 上料状态初始化完成。");
+                    return MechResult.Success();
+                }
+                else
+                {
+                    _logger.Warn($"[{MechanismName}] 上料状态初始化失败。");
+                    return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.InitFeedingStateFailed, "初始化上料状态失败，Z/X轴运动到待机位失败");
+                }
             }
-            else
+            finally
             {
-                _logger.Warn($"[{MechanismName}] 上料状态初始化失败。");
-                return MechResult.Fail(AlarmCodesExtensions.WS1Feeding.InitFeedingStateFailed, "初始化上料状态失败，Z/X轴运动到待机位失败");
+                await SetThrustWasherAsync(true, token);
             }
         }
 
@@ -374,11 +386,46 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             else
             {
+                await Task.Delay(50);
                 return MechResult.Success();
             }
         }
 
+        /// <summary>
+        /// 7. Z 轴回零：运动前打开凸片传感器，回零完成后关闭凸片检测。
+        /// </summary>
+        /// <param name="token">取消令牌</param>
+        public async Task<MechResult> HomeZAxisAsync(CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            CheckReady();
+            _logger.Info($"[{MechanismName}] 开始 Z 轴回零...");
 
+            // 运动前打开凸片传感器，避免回零过程中误触发突片检测
+            var openRes = await SetThrustWasherAsync(false, token);
+            if (!openRes.IsSuccess)
+                return openRes;
+
+            try
+            {
+                bool homed = await WaitHomeDoneAsync(_zAxis, token: token);
+                token.ThrowIfCancellationRequested();
+
+                if (!homed)
+                {
+                    _logger.Error($"[{MechanismName}] Z 轴回零失败。");
+                    return MechResult.Fail(AlarmCodes.Hardware.HomingTimeout, "Z 轴回零失败或超时");
+                }
+
+                _logger.Success($"[{MechanismName}] Z 轴回零完成。");
+                return MechResult.Success();
+            }
+            finally
+            {
+                // 无论成功或失败，回零结束后关闭凸片检测
+                await SetThrustWasherAsync(true, token);
+            }
+        }
 
         #endregion
 
