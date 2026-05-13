@@ -692,6 +692,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
 
                         case Station1PullingStep.检查料盒当前层是否有物料:
+                            CurrentStepDescription = "检查料盒当前层是否有物料...";
                             var checkgipperresult = await _pullingModule.DetermineCurLayyerIsExits(token);
                             if (checkgipperresult.IsSuccess)
                             {
@@ -917,18 +918,20 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         #endregion
 
-                        // ══════════════════════════════════════════════════════════
-                        //  阶段 D：异常流程自动动作步序
-                        // ══════════════════════════════════════════════════════════
-                        #region PhaseD 异常流程自动动作步序
+                            // ══════════════════════════════════════════════════════════
+                            //  阶段 D：异常流程自动动作步序
+                            // ══════════════════════════════════════════════════════════
+                            #region PhaseD 异常流程自动动作步序
+                          
                         case Station1PullingStep.检查夹爪无料异常步序1:
+                            CurrentStepDescription = "异常流程自动动作步序1...";
                             _sync.Release(nameof(WorkstationSignals.工位1拉料完成), StationName);
-                            await _sync.WaitAsync(nameof(WorkstationSignals.工位1允许退料), token, scope: nameof(E_WorkStation.工位1上下料工站)).ConfigureAwait(false);
                             _currentStep = Station1PullingStep.检查夹爪无料异常步序2;
                             break;
                         case Station1PullingStep.检查夹爪无料异常步序2:
+                            CurrentStepDescription = "异常流程自动动作步序2...";
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1允许退料), token, scope: nameof(E_WorkStation.工位1上下料工站)).ConfigureAwait(false);
-                            _currentStep = Station1PullingStep.送料到取料位;
+                            _currentStep = Station1PullingStep.移动到待机位;
                             break;
 
 
