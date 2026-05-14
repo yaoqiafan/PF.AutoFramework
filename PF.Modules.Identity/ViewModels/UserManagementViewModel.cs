@@ -132,7 +132,7 @@ namespace PF.Modules.Identity.ViewModels
                 // 越权可见性控制：只显示权限等级 ≤ 当前登录用户的账号
                 var currentLevel = _userService.CurrentUser?.Root ?? UserLevel.Null;
                 var filtered = (list ?? new ObservableCollection<UserInfo>())
-                    .Where(u => (int)u.Root <= (int)currentLevel)
+                    .Where(u => (int)u.Root < (int)currentLevel || u.UserId == _userService.CurrentUser?.UserId)
                     .ToList();
 
                 Users = new ObservableCollection<UserInfo>(filtered);
