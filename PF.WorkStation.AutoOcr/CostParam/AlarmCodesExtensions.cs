@@ -54,9 +54,9 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>寻层算法判定为0层</summary>
             [AlarmInfo("流程异常/算法", "工位1上下料-寻层算法判定为0层", AlarmSeverity.Error,
-                "1. 确认料盒已正确放置到位;\n" +
-                "2. 检查寻层传感器信号是否正常;\n" +
-                "3. 确认料盒内确实有物料;\n" +
+                "1. 确认料盒内确实有物料;\n" +
+                "2. 确认料盒已正确放置到位;\n" +
+                "3. 检查寻层传感器信号是否正常;\n" +
                 "4. 复位后重新执行寻层;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmZeroLayers = "PROC_WS1F_ALG_001";
@@ -89,7 +89,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>X轴运动条件不满足</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-X轴运动条件不满足", AlarmSeverity.Error,
-                "1. 检查夹爪是否处于张开状态;\n" +
+                "1. 检查凸片传感器是否有信号（铁环凸片是否触发）;\n" +
                 "2. 确认X轴伺服是否报警;\n" +
                 "3. 处理后复位，将重新评估X轴状态;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
@@ -114,19 +114,21 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>Z轴运动超时</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-Z轴运动超时", AlarmSeverity.Error,
-                "1. 检查Z轴是否卡在中途（机械干涉）;\n" +
-                "2. 手动点动Z轴确认运动正常;\n" +
-                "3. 检查运动参数（速度/加速度）;\n" +
-                "4. 复位后重新运行;",
+                "1. 检查Z轴伺服驱动器是否报警;\n" +
+                "2. 检查Z轴是否卡在中途（机械干涉）;\n" +
+                "3. 手动点动Z轴确认运动正常;\n" +
+                "4. 检查运动参数（速度/加速度）;\n" +
+                "5. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisMoveTimeout = "PROC_WS1F_MOT_003";
 
             /// <summary>X轴运动超时</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-X轴运动超时", AlarmSeverity.Error,
-                "1. 检查X轴是否卡在中途（机械干涉）;\n" +
-                "2. 手动点动X轴确认运动正常;\n" +
-                "3. 检查运动参数（速度/加速度）;\n" +
-                "4. 复位后重新运行;",
+                "1. 检查X轴伺服驱动器是否报警;\n" +
+                "2. 检查X轴是否卡在中途（机械干涉）;\n" +
+                "3. 手动点动X轴确认运动正常;\n" +
+                "4. 检查运动参数（速度/加速度）;\n" +
+                "5. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisMoveTimeout = "PROC_WS1F_MOT_004";
 
@@ -144,10 +146,9 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>切换阵列配方尺寸失败（SwitchProductionStateAsync 执行失败）</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-切换阵列配方尺寸失败", AlarmSeverity.Error,
-                "1. 检查机构是否卡阻或存在异物;\n" +
-                "2. 手动点动确认尺寸切换机构运动正常;\n" +
-                "3. 确认当前配方尺寸与料盒规格一致;\n" +
-                "4. 复位后重新运行;",
+                "1. 确认当前配方尺寸与料盒规格一致;\n" +
+                "2. 检查配方中阵列点位参数是否完整;\n" +
+                "3. 重新下发配方后复位重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SwitchArrayRecipeSizeFailed = "PROC_WS1F_MOT_007";
 
@@ -202,7 +203,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查底座到位传感器;\n" +
                 "3. 复位后重新检查;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
-            public const string ZAxisBoxNotInPlace = "PROC_WS1F_MOT_007";
+            public const string ZAxisBoxNotInPlace = "PROC_WS1F_MOT_011";
 
             /// <summary>X轴互锁失败：存在铁环突片</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-X轴互锁失败：存在铁环突片", AlarmSeverity.Error,
@@ -222,9 +223,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>寻层扫描移动到起点失败</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-寻层扫描移动到起点失败", AlarmSeverity.Error,
-                "1. 检查Z轴是否卡在中途;\n" +
-                "2. 手动点动Z轴确认运动正常;\n" +
-                "3. 复位后重新运行;",
+                "1. 检查Z轴伺服驱动器是否报警;\n" +
+                "2. 检查Z轴是否卡在中途;\n" +
+                "3. 手动点动Z轴确认运动正常;\n" +
+                "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToStartFailed = "PROC_WS1F_MOT_009";
 
@@ -238,9 +240,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>寻层扫描移动到终点失败</summary>
             [AlarmInfo("流程异常/运动", "工位1上下料-寻层扫描移动到终点失败", AlarmSeverity.Error,
-                "1. 检查Z轴是否卡在中途;\n" +
-                "2. 手动点动Z轴确认运动正常;\n" +
-                "3. 复位后重新运行;",
+                "1. 检查Z轴伺服驱动器是否报警;\n" +
+                "2. 检查Z轴是否卡在中途;\n" +
+                "3. 手动点动Z轴确认运动正常;\n" +
+                "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToEndFailed = "PROC_WS1F_MOT_010";
 
@@ -336,9 +339,9 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>寻层算法判定为0层</summary>
             [AlarmInfo("流程异常/算法", "工位2上下料-寻层算法判定为0层", AlarmSeverity.Error,
-                "1. 确认料盒已正确放置到位;\n" +
-                "2. 检查寻层传感器信号是否正常;\n" +
-                "3. 确认料盒内确实有物料;\n" +
+                "1. 确认料盒内确实有物料;\n" +
+                "2. 确认料盒已正确放置到位;\n" +
+                "3. 检查寻层传感器信号是否正常;\n" +
                 "4. 复位后重新执行寻层;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmZeroLayers = "PROC_WS2F_ALG_001";
@@ -371,7 +374,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>X轴运动条件不满足</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-X轴运动条件不满足", AlarmSeverity.Error,
-                "1. 检查夹爪是否处于张开状态;\n" +
+                "1. 检查凸片传感器是否有信号（铁环凸片是否触发）;\n" +
                 "2. 确认X轴伺服是否报警;\n" +
                 "3. 处理后复位，将重新评估X轴状态;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
@@ -396,19 +399,21 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>Z轴运动超时</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-Z轴运动超时", AlarmSeverity.Error,
-                "1. 检查Z轴是否卡在中途（机械干涉）;\n" +
-                "2. 手动点动Z轴确认运动正常;\n" +
-                "3. 检查运动参数（速度/加速度）;\n" +
-                "4. 复位后重新运行;",
+                "1. 检查Z轴伺服驱动器是否报警;\n" +
+                "2. 检查Z轴是否卡在中途（机械干涉）;\n" +
+                "3. 手动点动Z轴确认运动正常;\n" +
+                "4. 检查运动参数（速度/加速度）;\n" +
+                "5. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisMoveTimeout = "PROC_WS2F_MOT_003";
 
             /// <summary>X轴运动超时</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-X轴运动超时", AlarmSeverity.Error,
-                "1. 检查X轴是否卡在中途（机械干涉）;\n" +
-                "2. 手动点动X轴确认运动正常;\n" +
-                "3. 检查运动参数（速度/加速度）;\n" +
-                "4. 复位后重新运行;",
+                "1. 检查X轴伺服驱动器是否报警;\n" +
+                "2. 检查X轴是否卡在中途（机械干涉）;\n" +
+                "3. 手动点动X轴确认运动正常;\n" +
+                "4. 检查运动参数（速度/加速度）;\n" +
+                "5. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisMoveTimeout = "PROC_WS2F_MOT_004";
 
@@ -426,10 +431,9 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>切换阵列配方尺寸失败（SwitchProductionStateAsync 执行失败）</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-切换阵列配方尺寸失败", AlarmSeverity.Error,
-                "1. 检查机构是否卡阻或存在异物;\n" +
-                "2. 手动点动确认尺寸切换机构运动正常;\n" +
-                "3. 确认当前配方尺寸与料盒规格一致;\n" +
-                "4. 复位后重新运行;",
+                "1. 确认当前配方尺寸与料盒规格一致;\n" +
+                "2. 检查配方中阵列点位参数是否完整;\n" +
+                "3. 重新下发配方后复位重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SwitchArrayRecipeSizeFailed = "PROC_WS2F_MOT_007";
 
@@ -484,7 +488,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查底座到位传感器;\n" +
                 "3. 复位后重新检查;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
-            public const string ZAxisBoxNotInPlace = "PROC_WS2F_MOT_007";
+            public const string ZAxisBoxNotInPlace = "PROC_WS2F_MOT_011";
 
             /// <summary>X轴互锁失败：存在铁环突片</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-X轴互锁失败：存在铁环突片", AlarmSeverity.Error,
@@ -504,9 +508,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>寻层扫描移动到起点失败</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-寻层扫描移动到起点失败", AlarmSeverity.Error,
-                "1. 检查Z轴是否卡在中途;\n" +
-                "2. 手动点动Z轴确认运动正常;\n" +
-                "3. 复位后重新运行;",
+                "1. 检查Z轴伺服驱动器是否报警;\n" +
+                "2. 检查Z轴是否卡在中途;\n" +
+                "3. 手动点动Z轴确认运动正常;\n" +
+                "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToStartFailed = "PROC_WS2F_MOT_009";
 
@@ -520,9 +525,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>寻层扫描移动到终点失败</summary>
             [AlarmInfo("流程异常/运动", "工位2上下料-寻层扫描移动到终点失败", AlarmSeverity.Error,
-                "1. 检查Z轴是否卡在中途;\n" +
-                "2. 手动点动Z轴确认运动正常;\n" +
-                "3. 复位后重新运行;",
+                "1. 检查Z轴伺服驱动器是否报警;\n" +
+                "2. 检查Z轴是否卡在中途;\n" +
+                "3. 手动点动Z轴确认运动正常;\n" +
+                "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToEndFailed = "PROC_WS2F_MOT_010";
 
@@ -658,17 +664,19 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>拉出至检测位失败（运动被中断）</summary>
             [AlarmInfo("流程异常/运动", "工位1拉料-拉出至检测位失败（运动被中断）", AlarmSeverity.Error,
-                "1. 检查是否触发卡料或掉料防呆;\n" +
-                "2. 手动确认Y轴运动是否顺畅;\n" +
-                "3. 复位后将重试拉出;",
+                "1. 检查Y轴伺服驱动器是否报警;\n" +
+                "2. 检查是否触发卡料或掉料防呆;\n" +
+                "3. 手动确认Y轴运动是否顺畅;\n" +
+                "4. 复位后将重试拉出;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutToInspectionFailed = "PROC_WS1P_MOT_003";
 
             /// <summary>推回至料盒失败（运动被中断）</summary>
             [AlarmInfo("流程异常/运动", "工位1拉料-推回至料盒失败（运动被中断）", AlarmSeverity.Error,
-                "1. 检查是否触发防呆拦截;\n" +
-                "2. 确认Y轴无卡阻;\n" +
-                "3. 复位后将重试推回;",
+                "1. 检查Y轴伺服驱动器是否报警;\n" +
+                "2. 检查是否触发防呆拦截;\n" +
+                "3. 确认Y轴无卡阻;\n" +
+                "4. 复位后将重试推回;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackToCassetteFailed = "PROC_WS1P_MOT_004";
 
@@ -765,9 +773,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>夹爪闭合后未检测到铁环</summary>
             [AlarmInfo("流程异常/传感器", "工位1拉料-夹爪闭合后未检测到铁环（空夹）", AlarmSeverity.Error,
-                "1. 确认晶圆铁环是否在正确位置;\n" +
-                "2. 检查铁环检测传感器;\n" +
-                "3. 复位后重新运行;",
+                "1. 确认上料工站已将物料正确推送至拉料位;\n" +
+                "2. 确认晶圆铁环是否在正确位置;\n" +
+                "3. 检查铁环检测传感器;\n" +
+                "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseNoRing = "PROC_WS1P_SEN_001";
 
@@ -947,17 +956,19 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>拉出至检测位失败（运动被中断）</summary>
             [AlarmInfo("流程异常/运动", "工位2拉料-拉出至检测位失败（运动被中断）", AlarmSeverity.Error,
-                "1. 检查是否触发卡料或掉料防呆;\n" +
-                "2. 手动确认Y轴运动是否顺畅;\n" +
-                "3. 复位后将重试拉出;",
+                "1. 检查Y轴伺服驱动器是否报警;\n" +
+                "2. 检查是否触发卡料或掉料防呆;\n" +
+                "3. 手动确认Y轴运动是否顺畅;\n" +
+                "4. 复位后将重试拉出;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutToInspectionFailed = "PROC_WS2P_MOT_003";
 
             /// <summary>推回至料盒失败（运动被中断）</summary>
             [AlarmInfo("流程异常/运动", "工位2拉料-推回至料盒失败（运动被中断）", AlarmSeverity.Error,
-                "1. 检查是否触发防呆拦截;\n" +
-                "2. 确认Y轴无卡阻;\n" +
-                "3. 复位后将重试推回;",
+                "1. 检查Y轴伺服驱动器是否报警;\n" +
+                "2. 检查是否触发防呆拦截;\n" +
+                "3. 确认Y轴无卡阻;\n" +
+                "4. 复位后将重试推回;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackToCassetteFailed = "PROC_WS2P_MOT_004";
 
@@ -1054,9 +1065,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
 
             /// <summary>夹爪闭合后未检测到铁环</summary>
             [AlarmInfo("流程异常/传感器", "工位2拉料-夹爪闭合后未检测到铁环（空夹）", AlarmSeverity.Error,
-                "1. 确认晶圆铁环是否在正确位置;\n" +
-                "2. 检查铁环检测传感器;\n" +
-                "3. 复位后重新运行;",
+                "1. 确认上料工站已将物料正确推送至拉料位;\n" +
+                "2. 确认晶圆铁环是否在正确位置;\n" +
+                "3. 检查铁环检测传感器;\n" +
+                "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseNoRing = "PROC_WS2P_SEN_001";
 
@@ -1232,9 +1244,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
             /// <summary>相机握手失败（光源或相机掉线）</summary>
             [AlarmInfo("流程异常/相机", "OCR检测-相机握手失败（光源或相机掉线）", AlarmSeverity.Error,
                 "1. 检查相机连接状态;\n" +
-                "2. 确认相机触发参数配置正确;\n" +
-                "3. 手动触发相机确认功能;\n" +
-                "4. 复位后重新运行;",
+                "2. 检查光源控制器通讯状态;\n" +
+                "3. 确认相机触发参数配置正确;\n" +
+                "4. 手动触发相机确认功能;\n" +
+                "5. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string CameraTriggerFailed = "PROC_DET_CAM_001";
 
@@ -1349,7 +1362,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 手动触发相机确认功能;\n" +
                 "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
-            public const string CameraTiggerFailed = "PROC_DET_CAM_004";
+            public const string CameraCaptureFailed = "PROC_DET_CAM_004";
         }
 
         // ─────────────────────────────────────────────────────────────────────

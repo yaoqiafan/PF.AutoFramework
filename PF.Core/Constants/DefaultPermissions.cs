@@ -17,6 +17,22 @@ namespace PF.Core.Constants
         // 各模块动态注册的额外页面路由：key = 所需最低权限等级
         private static readonly Dictionary<UserLevel, List<string>> _extraViews = new();
 
+        // 机台运行/初始化/复位期间对普通用户锁定的视图（超级用户豁免）
+        private static readonly HashSet<string> _protectedViews = new()
+        {
+            NavigationConstants.Views.ParameterView,
+            NavigationConstants.Views.ParameterView_SystemConfigParam,
+            NavigationConstants.Views.ParameterView_HardwareParam,
+            NavigationConstants.Views.ParameterView_UserLoginParam,
+            NavigationConstants.Views.HardwareDebugView,
+            NavigationConstants.Views.MechanismDebugView,
+            NavigationConstants.Views.StationDebugView,
+            NavigationConstants.Views.CommonParamView,
+            NavigationConstants.Views.PagePermissionView,
+        };
+
+        private static readonly HashSet<string> _extraProtectedViews = new();
+
         /// <summary>
         /// 从任意模块注册默认可访问页面路由。
         /// <para>
@@ -36,6 +52,26 @@ namespace PF.Core.Constants
                 _extraViews[minimumLevel] = list;
             }
             list.AddRange(viewNames);
+        }
+
+        /// <summary>
+        /// 注册一个在机台运行/初始化/复位期间需要对普通用户锁定的视图（超级用户豁免）。
+        /// <para>示例：<code>DefaultPermissions.RegisterProtectedViews("MyCustomDebugView");</code></para>
+        /// </summary>
+        /// <param name="viewName">视图路由名称。</param>
+        public static void RegisterProtectedViews(string viewName)
+        {
+            if (!string.IsNullOrEmpty(viewName))
+                _extraProtectedViews.Add(viewName);
+        }
+
+        /// <summary>
+        /// 判断指定视图是否属于机台状态保护视图。
+        /// </summary>
+        public static bool IsProtectedView(string viewName)
+        {
+            if (string.IsNullOrEmpty(viewName)) return false;
+            return _protectedViews.Contains(viewName) || _extraProtectedViews.Contains(viewName);
         }
 
         /// <summary>

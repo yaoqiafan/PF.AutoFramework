@@ -288,6 +288,9 @@ namespace PF.Application.Shell
             // 激活 TowerLightManager（构造函数中自动订阅 EA，Singleton 首次 Resolve 即生效）
             Container.Resolve<TowerLightManager>();
 
+            // ── 重初始化提醒：工位屏蔽参数变更 → ReinitializeRequiredEvent → HomeViewModel ──
+            controller.ReinitializationRequired += (_, _) => ea.GetEvent<ReinitializeRequiredEvent>().Publish();
+
             base.OnInitialized();
         }
 

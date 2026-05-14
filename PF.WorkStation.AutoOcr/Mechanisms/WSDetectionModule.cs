@@ -429,7 +429,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
-                return MechResult<(string, string)>.Fail(AlarmCodesExtensions.Detection.CameraTiggerFailed, $"相机拍照触发异常: {ex.Message}");
+                return MechResult<(string, string)>.Fail(AlarmCodesExtensions.Detection.CameraCaptureFailed, $"相机拍照触发异常: {ex.Message}");
             }
         }
 

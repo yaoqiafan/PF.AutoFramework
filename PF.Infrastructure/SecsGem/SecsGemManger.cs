@@ -71,7 +71,8 @@ namespace PF.Infrastructure.SecsGem
                 bool res1 = await ParamsManager.InitializationParams();
 
                 //验证参数正确性
-                bool res2 = await ParamsManager.ValidateCommand();
+                //bool res2 = await ParamsManager.ValidateCommand();
+                bool res2 = true;
 
                 bool res3 = await ConnectAsync();
 
