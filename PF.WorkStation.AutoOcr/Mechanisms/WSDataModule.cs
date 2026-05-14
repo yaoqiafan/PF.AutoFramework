@@ -469,7 +469,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 //    if (OKcodes.Count == _station1ReciepParam.CodeCount)
                 //    {
-                        return Task.FromResult(MechResult<WaferInfo>.Success(new WaferInfo() { CustomerBatch  = "",WaferId=""}));
+                return Task.FromResult(MechResult<WaferInfo>.Success(new WaferInfo() { CustomerBatch = "", WaferId = "" }));
                 //    }
                 //    else
                 //    {
@@ -683,12 +683,26 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
 
         /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
-        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status)
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData)
         {
             var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
             var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
             if (slot == null) return;
             slot.Status = status;
+            slot.Time = detectionData.Time;
+            slot.InternalBatchId = detectionData.InternalBatchId;
+            slot.CustomerBatch = detectionData.CustomerBatch;
+            slot.WaferId = detectionData.WaferId;
+            slot.OcrText = detectionData.OcrText;
+            slot.Barcode1 = detectionData.Barcode1;
+            slot.Barcode2 = detectionData.Barcode2;
+            slot.Barcode3 = detectionData.Barcode3;
+            slot.IsMatch = detectionData.IsMatch;
+            slot.ErrorMessage = detectionData.ErrorMessage;
+            slot.ProductModel = detectionData.ProductModel;
+            slot.OperatorId = detectionData.OperatorId;
+            slot.RecipeName = detectionData.RecipeName;
+            slot.ImagePath = detectionData.ImagePath;
             Save(_filepath);
             RaiseDataChanged();
         }
@@ -761,7 +775,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     _logger?.Error($"{MechanismName} 序列化保存失败: {ex.Message}");
                 }
             }
-           
+
         }
 
         /// <summary>
@@ -937,6 +951,50 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>当前槽位检测状态</summary>
         public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
+
+        /// <summary>触发检测的时间戳 (转换为 OADate 存储)</summary>
+        public double Time { get; set; } = DateTime.Now.ToOADate();
+
+        /// <summary>关联的内部批次号</summary>
+        public string InternalBatchId { get; set; } = "";
+
+        /// <summary>关联的客户批次号</summary>
+        public string CustomerBatch { get; set; } = "";
+
+        /// <summary>该片晶圆在料盒中的 ID 号 (如 "01", "25")</summary>
+        public string WaferId { get; set; } = "";
+
+        /// <summary>视觉相机读取到的原生 OCR 字符串</summary>
+        public string OcrText { get; set; } = "";
+
+        /// <summary>硬件扫码枪读取到的条码1</summary>
+        public string Barcode1 { get; set; } = "";
+
+        /// <summary>硬件扫码枪读取到的条码2 (预留多码扫码)</summary>
+        public string Barcode2 { get; set; } = "";
+
+        /// <summary>硬件扫码枪读取到的条码3 (预留多码扫码)</summary>
+        public string Barcode3 { get; set; } = "";
+
+        /// <summary>当前晶圆的数据与 MES 下发数据是否比对通过（OK/NG）</summary>
+        public bool IsMatch { get; set; }
+
+        /// <summary>若比对异常，记录的具体错误信息原因</summary>
+        public string ErrorMessage { get; set; } = "NONE";
+
+        /// <summary>检测产品型号溯源</summary>
+        public string ProductModel { get; set; } = "";
+
+        /// <summary>检测人工号溯源</summary>
+        public string OperatorId { get; set; } = "NONE";
+
+        /// <summary>配方名称溯源</summary>
+        public string RecipeName { get; set; } = "NONE";
+
+        /// <summary>不良排查使用的视觉留存原图路径</summary>
+        public string ImagePath { get; set; } = "NONE";
+
+
     }
 
     #endregion
