@@ -548,7 +548,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 int inspSlot = _dataModule.GetInspectingSlot(_currentworkSpace);
                                 if (inspSlot >= 0)
                                     _dataModule.UpdateSlotStatus(_currentworkSpace, inspSlot,
-                                        _cachedDetectionData.IsMatch ? WaferSlotStatus.OK : WaferSlotStatus.NG);
+                                        _cachedDetectionData.IsMatch ? WaferSlotStatus.OK : WaferSlotStatus.NG, _cachedDetectionData.ErrorMessage);
                             }
                             _currentStep = StationDetectionStep.检测完成;
                             break;
