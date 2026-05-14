@@ -18,20 +18,25 @@ namespace PF.Core.Constants
         /// </summary>
         public static class Hardware
         {
+            #region 伺服驱动器 (SRV)
             /// <summary>伺服驱动器离线或报错</summary>
             [AlarmInfo("硬件异常", "伺服驱动器离线或报错", AlarmSeverity.Fatal,
                 "1. 检查伺服驱动器电源指示灯是否正常;\n" +
                 "2. 检查伺服驱动器与运动控制卡之间的通讯线是否松动;\n" +
                 "3. 查看驱动器面板报警代码，对照手册处理;\n" +
-                "4. 重启驱动器后点击【复位】按钮;")]
+                "4. 重启驱动器后点击【复位】按钮;",
+                "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string ServoError = "HW_SRV_001";
+            #endregion
 
+            #region IO 模块 (IO)
             /// <summary>IO模块连接失败</summary>
             [AlarmInfo("硬件异常", "IO 模块连接失败", AlarmSeverity.Error,
                 "1. 检查 EtherCAT 通讯线是否正确连接;\n" +
                 "2. 检查 IO 模块供电是否正常;\n" +
                 "3. 在调试页面尝试重新初始化硬件;\n" +
-                "4. 重新上电后点击【复位】按钮;")]
+                "4. 重新上电后点击【复位】按钮;",
+                "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
             public const string IoModuleError = "HW_IO_001";
 
             /// <summary>IO模块读取异常</summary>
@@ -39,95 +44,119 @@ namespace PF.Core.Constants
                 "1. 检查 EtherCAT 通讯线是否正确连接;\n" +
                 "2. 检查 IO 模块供电是否正常;\n" +
                 "3. 在调试页面尝试重新初始化硬件;\n" +
-                "4. 重新上电后点击【复位】按钮;")]
+                "4. 重新上电后点击【复位】按钮;",
+                "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
             public const string IoGetError = "HW_IO_002";
-            /// <summary>IO模块读取异常</summary>
+
+            /// <summary>IO模块设置异常</summary>
             [AlarmInfo("硬件异常", "IO 设置异常", AlarmSeverity.Error,
                 "1. 检查 EtherCAT 通讯线是否正确连接;\n" +
                 "2. 检查 IO 模块供电是否正常;\n" +
                 "3. 在调试页面尝试重新初始化硬件;\n" +
-                "4. 重新上电后点击【复位】按钮;")]
+                "4. 重新上电后点击【复位】按钮;",
+                "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
             public const string IoSetError = "HW_IO_003";
+            #endregion
 
+            #region 运动控制卡 (CARD)
             /// <summary>运动控制卡初始化失败</summary>
             [AlarmInfo("硬件异常", "运动控制卡初始化失败", AlarmSeverity.Fatal,
                 "1. 检查运动控制卡是否安装到位;\n" +
                 "2. 检查控制卡驱动是否安装;\n" +
                 "3. 检查设备管理器中是否存在控制卡设备;\n" +
-                "4. 尝试重启电脑后重新启动软件;")]
+                "4. 尝试重启电脑后重新启动软件;",
+                "/PF.UI.Infrastructure;component/HardwareImage/运动控制卡.png")]
             public const string MotionCardInitFailed = "HW_CARD_001";
-
-            /// <summary>相机连接超时</summary>
-            [AlarmInfo("硬件异常", "相机连接超时", AlarmSeverity.Error,
-                "1. 检查相机网线是否正确连接;\n" +
-                "2. 检查网络适配器 IP 配置是否与相机在同一网段;\n" +
-                "3. 使用 Ping 命令测试相机 IP 是否可达;\n" +
-                "4. 检查相机供电;\n" +
-                "5. 重启相机后重新初始化;")]
-            public const string CameraTimeout = "HW_CAM_001";
-
-            /// <summary>条码扫描枪连接失败</summary>
-            [AlarmInfo("硬件异常", "条码扫描枪连接失败", AlarmSeverity.Warning,
-                "1. 检查扫描枪 USB 或串口连接是否正常;\n" +
-                "2. 尝试重新插拔扫描枪;\n" +
-                "3. 检查设备管理器中是否正确识别;\n" +
-                "4. 确认端口号与参数配置一致;")]
-            public const string BarcodeReaderError = "HW_BCR_001";
-
-            /// <summary>光源控制器通讯异常</summary>
-            [AlarmInfo("硬件异常", "光源控制器通讯异常", AlarmSeverity.Warning,
-                "1. 检查光源控制器串口线是否连接;\n" +
-                "2. 确认波特率等串口参数配置正确;\n" +
-                "3. 重启光源控制器;\n" +
-                "4. 在参数页面核对 COM 端口号;")]
-            public const string LightControllerError = "HW_LGT_001";
 
             /// <summary>运动控制卡总线通讯错误</summary>
             [AlarmInfo("硬件异常", "运动控制卡总线通讯错误（运行期检测）", AlarmSeverity.Fatal,
                 "1. 检查 EtherCAT 总线连接线是否松动或断开;\n" +
                 "2. 检查各伺服驱动器及 IO 模块供电是否正常;\n" +
                 "3. 在调试页面重新初始化运动控制卡;\n" +
-                "4. 尝试重启设备后重新启动软件;")]
+                "4. 尝试重启设备后重新启动软件;",
+                "/PF.UI.Infrastructure;component/HardwareImage/运动控制卡.png")]
             public const string MotionCardBusError = "HW_CARD_002";
+            #endregion
 
-            /// <summary>伺服轴触发限位保护</summary>
-            [AlarmInfo("硬件异常", "伺服轴触发限位保护（PEL/MEL）", AlarmSeverity.Error,
-                "1. 检查轴当前位置是否超出行程范围;\n" +
-                "2. 手动将轴移离限位开关后点击【复位】;\n" +
-                "3. 确认限位开关接线和信号极性是否正确;\n" +
-                "4. 检查运动参数中行程保护设置是否合理;")]
-            public const string AxisLimitError = "HW_AXIS_002";
+            #region 相机 (CAM)
+            /// <summary>相机连接超时</summary>
+            [AlarmInfo("硬件异常", "相机连接超时", AlarmSeverity.Error,
+                "1. 检查相机网线是否正确连接;\n" +
+                "2. 检查网络适配器 IP 配置是否与相机在同一网段;\n" +
+                "3. 使用 Ping 命令测试相机 IP 是否可达;\n" +
+                "4. 检查相机供电;\n" +
+                "5. 重启相机后重新初始化;",
+                "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
+            public const string CameraTimeout = "HW_CAM_001";
 
             /// <summary>相机通讯心跳超时</summary>
             [AlarmInfo("硬件异常", "相机通讯心跳超时（TCP 连接丢失）", AlarmSeverity.Error,
                 "1. 检查相机网线是否松动或断开;\n" +
                 "2. 使用 Ping 命令验证相机 IP 是否可达;\n" +
                 "3. 确认网络适配器 IP 与相机在同一网段;\n" +
-                "4. 重启相机后点击【复位】重新连接;")]
+                "4. 重启相机后点击【复位】重新连接;",
+                "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
             public const string CameraHeartbeatTimeout = "HW_CAM_002";
+            #endregion
+
+            #region 条码扫描 (BCR)
+            /// <summary>条码扫描枪连接失败</summary>
+            [AlarmInfo("硬件异常", "条码扫描枪连接失败", AlarmSeverity.Warning,
+                "1. 检查扫描枪 USB 或串口连接是否正常;\n" +
+                "2. 尝试重新插拔扫描枪;\n" +
+                "3. 检查设备管理器中是否正确识别;\n" +
+                "4. 确认端口号与参数配置一致;",
+                "/PF.UI.Infrastructure;component/HardwareImage/海康读码器.png")]
+            public const string BarcodeReaderError = "HW_BCR_001";
 
             /// <summary>扫码枪通讯心跳超时</summary>
             [AlarmInfo("硬件异常", "扫码枪通讯心跳超时（TCP 连接丢失）", AlarmSeverity.Warning,
                 "1. 检查扫码枪网线或 USB 连接是否正常;\n" +
                 "2. 使用 Ping 命令验证扫码枪 IP 是否可达;\n" +
                 "3. 重启扫码枪后点击【复位】重新连接;\n" +
-                "4. 确认端口号与配置文件一致;")]
+                "4. 确认端口号与配置文件一致;",
+                "/PF.UI.Infrastructure;component/HardwareImage/海康读码器.png")]
             public const string BarcodeScannerHeartbeatTimeout = "HW_BCR_002";
+            #endregion
+
+            #region 光源控制 (LGT)
+            /// <summary>光源控制器通讯异常</summary>
+            [AlarmInfo("硬件异常", "光源控制器通讯异常", AlarmSeverity.Warning,
+                "1. 检查光源控制器串口线是否连接;\n" +
+                "2. 确认波特率等串口参数配置正确;\n" +
+                "3. 重启光源控制器;\n" +
+                "4. 在参数页面核对 COM 端口号;",
+                "/PF.UI.Infrastructure;component/HardwareImage/控制器.png")]
+            public const string LightControllerError = "HW_LGT_001";
+            #endregion
+
+            #region 伺服轴 (AXIS)
+            /// <summary>伺服轴触发限位保护</summary>
+            [AlarmInfo("硬件异常", "伺服轴触发限位保护（PEL/MEL）", AlarmSeverity.Error,
+                "1. 检查轴当前位置是否超出行程范围;\n" +
+                "2. 手动将轴移离限位开关后点击【复位】;\n" +
+                "3. 确认限位开关接线和信号极性是否正确;\n" +
+                "4. 检查运动参数中行程保护设置是否合理;",
+                "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
+            public const string AxisLimitError = "HW_AXIS_002";
 
             /// <summary>伺服轴运动完成等待超时</summary>
             [AlarmInfo("运动超时", "伺服轴运动完成等待超时", AlarmSeverity.Error,
-                "1. 检查轴当前是否卡在中途（机械干涉、摩擦过大）;\n" +
-                "2. 手动点动该轴，确认运动是否正常;\n" +
-                "3. 检查运动参数（速度/加速度）是否合理;\n" +
-                "4. 复位后重新运行;")]
+                "1. 检查伺服驱动器是否报警（查看驱动器面板代码）;\n" +
+                "2. 检查轴当前是否卡在中途（机械干涉、摩擦过大）;\n" +
+                "3. 手动点动该轴，确认运动是否正常;\n" +
+                "4. 检查运动参数（速度/加速度）是否合理;\n" +
+                "5. 复位后重新运行;",
+                "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisMoveTimeout = "HW_AXIS_003";
 
             /// <summary>伺服轴回原点完成等待超时</summary>
             [AlarmInfo("运动超时", "伺服轴回原点完成等待超时", AlarmSeverity.Error,
                 "1. 检查原点传感器信号是否正常;\n" +
-                "2. 确认回零方向与速度参数配置是否正确;\n" +
-                "3. 手动移动轴后重新执行初始化;\n" +
-                "4. 检查限位开关是否触发;")]
+                "2. 检查限位开关是否触发;\n" +
+                "3. 确认回零方向与速度参数配置是否正确;\n" +
+                "4. 手动移动轴后重新执行初始化;",
+                "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string HomingTimeout = "HW_AXIS_004";
 
             /// <summary>伺服轴到位精度超限</summary>
@@ -135,15 +164,18 @@ namespace PF.Core.Constants
                 "1. 检查轴机械传动是否存在间隙或磨损;\n" +
                 "2. 确认定位精度参数设置是否合理;\n" +
                 "3. 检查伺服增益参数;\n" +
-                "4. 复位后重新运行;")]
+                "4. 复位后重新运行;",
+                "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisMoveInaccuratePositioning = "HW_AXIS_005";
 
             /// <summary>伺服轴获取当前位置失败</summary>
             [AlarmInfo("定位异常", "伺服轴获取当前位置失败，无法进行定位精度校验", AlarmSeverity.Error,
                 "1. 检查伺服驱动器与运动控制卡通讯是否正常;\n" +
                 "2. 确认轴编码器反馈信号是否正常;\n" +
-                "3. 复位后重新运行;")]
+                "3. 复位后重新运行;",
+                "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisGetCurrentPositionFailed = "HW_AXIS_006";
+            #endregion
         }
 
        
@@ -212,25 +244,31 @@ namespace PF.Core.Constants
             /// <summary>安全门打开，设备已暂停（通用，适用于非独立通道）</summary>
             [AlarmInfo("安全防护", "安全门打开，设备已暂停", AlarmSeverity.Warning,
                 "1. 确认人员已撤离设备操作区域;\n" +
-                "2. 关闭安全门后点击【启动】继续运行;\n" +
-                "3. 如门锁无法正常关闭，请检查传感器接线;\n" +
-                "4. 确认门锁信号正常后重新操作;")]
+                "2. 关闭安全门（报警将自动消除）;\n" +
+                "3. 点击【启动】继续运行;\n" +
+                "4. 如门锁无法正常关闭，请检查传感器接线;\n" +
+                "5. 确认门锁信号正常后重新操作;",
+                "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen = "HW_SAFE_001";
 
             /// <summary>工位1安全门打开，设备已暂停</summary>
             [AlarmInfo("安全防护", "工位1安全门打开，设备已暂停", AlarmSeverity.Warning,
                 "1. 确认人员已撤离工位1操作区域;\n" +
-                "2. 关闭工位1安全门后点击【启动】继续运行;\n" +
-                "3. 如门锁无法正常关闭，请检查传感器接线;\n" +
-                "4. 确认门锁信号正常后重新操作;")]
+                "2. 关闭工位1安全门（报警将自动消除）;\n" +
+                "3. 点击【启动】继续运行;\n" +
+                "4. 如门锁无法正常关闭，请检查传感器接线;\n" +
+                "5. 确认门锁信号正常后重新操作;",
+                "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen1 = "HW_SAFE_001_1";
 
             /// <summary>工位2安全门打开，设备已暂停</summary>
             [AlarmInfo("安全防护", "工位2安全门打开，设备已暂停", AlarmSeverity.Warning,
                 "1. 确认人员已撤离工位2操作区域;\n" +
-                "2. 关闭工位2安全门后点击【启动】继续运行;\n" +
-                "3. 如门锁无法正常关闭，请检查传感器接线;\n" +
-                "4. 确认门锁信号正常后重新操作;")]
+                "2. 关闭工位2安全门（报警将自动消除）;\n" +
+                "3. 点击【启动】继续运行;\n" +
+                "4. 如门锁无法正常关闭，请检查传感器接线;\n" +
+                "5. 确认门锁信号正常后重新操作;",
+                "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen2 = "HW_SAFE_001_2";
         }
     }

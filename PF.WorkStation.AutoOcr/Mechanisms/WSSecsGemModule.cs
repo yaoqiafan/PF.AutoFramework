@@ -123,7 +123,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             _secsGemlog.Info("SecsGem 连接成功。");
 
-            // 绑定全局消息监听路由
+            // 绑定全局消息监听路由（-= 保护防止重复初始化时双重订阅）
+            _secsGemManger.MessageReceived -= SecsGemManger_MessageReceived;
             _secsGemManger.MessageReceived += SecsGemManger_MessageReceived;
 
             return true;

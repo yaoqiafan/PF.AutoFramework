@@ -31,6 +31,17 @@ namespace PF.Core.Interfaces.Station
         event EventHandler<MachineState> MasterStateChanged;
 
         /// <summary>
+        /// 指示当前是否因参数变更而需要重新初始化设备。
+        /// 当工位屏蔽参数发生变更时置为 true，初始化成功后（进入 Idle）自动清除。
+        /// </summary>
+        bool IsReinitializationRequired { get; }
+
+        /// <summary>
+        /// 当检测到需要重新初始化设备的参数变更时触发。
+        /// </summary>
+        event EventHandler? ReinitializationRequired;
+
+        /// <summary>
         /// 丰富报警事件，当主控或任一子工站触发真实报警时引发，携带硬件名、运行时消息及错误码等上下文。
         /// </summary>
         event EventHandler<StationAlarmEventArgs> MasterAlarmTriggered;

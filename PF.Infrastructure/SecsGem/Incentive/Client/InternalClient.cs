@@ -29,7 +29,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
         private readonly IParams _paramConfig;
         private readonly ICommandManager _commandManager;
         private readonly SecsGemMessageProcessor _secsGemMessageProcessor;
-        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+        private CancellationTokenSource _cts = new CancellationTokenSource();
 
         private byte[] _deviceId;
         /// <summary>
@@ -80,6 +80,11 @@ namespace PF.Infrastructure.SecsGem.Incentive
 
                 if (await StartClient())
                 {
+                    _client.Connected -= Client_Connected;
+                    _client.Disconnected -= Client_Disconnected;
+                    _client.DataReceived -= Client_DataReceived;
+                    _client.ErrorOccurred -= Client_ErrorOccurred;
+
                     _client.Connected += Client_Connected;
                     _client.Disconnected += Client_Disconnected;
                     _client.DataReceived += Client_DataReceived;
@@ -110,12 +115,17 @@ namespace PF.Infrastructure.SecsGem.Incentive
         {
             try
             {
+                await _client.DisconnectAsync();
                 // 连接服务器
                 var connected = await _client.ConnectAsync("127.0.0.1", 6800);
                 if (!connected)
                 {
                     return false;
                 }
+
+                // 每次重新启动前确保 CTS 是新鲜的（断开后旧 CTS 已被取消/释放）
+                if (_cts.IsCancellationRequested)
+                    _cts = new CancellationTokenSource();
 
                 // 启动处理任务
                 _ = Task.Run(() => ProcessActiveAsync(_cts.Token));
@@ -138,6 +148,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             try
             {
                 _cts.Cancel();
+                _cts.Dispose();
 
                 // 取消事件订阅
                 _client.Connected -= Client_Connected;
@@ -146,11 +157,14 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 _client.ErrorOccurred -= Client_ErrorOccurred;
 
                 await _client.DisconnectAsync();
-                _status = false;
             }
             catch (Exception ex)
             {
                 WriteSecsGemLog($"关闭客户端时出错: {ex.Message}");
+            }
+            finally
+            {
+                _status = false;
             }
         }
 

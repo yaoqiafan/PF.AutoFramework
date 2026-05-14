@@ -54,6 +54,9 @@ namespace PF.Application.Shell.ViewModels
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
+        // 记录用户当前所在视图，用于机台状态变化时判断是否需要强制离页
+        private string _currentViewName = string.Empty;
+
         // 无操作自动降权计时器（60 秒无鼠标/键盘操作 → 重置为 Operator）
         private readonly IdleMonitorService _idleMonitor =
             new IdleMonitorService(TimeSpan.FromSeconds(600000));
@@ -279,8 +282,8 @@ namespace PF.Application.Shell.ViewModels
                     string viewName = navItem.ViewName;
                     string category = NavigationConstantMapper.GetCategory(viewName);
 
-                    // ── 页面权限拦截（唯一检查点）────────────────────────────────
-                    if ( !_userService.HasPagePermission(viewName))
+                    // ── 页面权限拦截 ──────────────────────────────────────────────
+                    if (!_userService.HasPagePermission(viewName))
                     {
                         _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
                         var displayName = PermissionHelper.GetViewDisplayName(viewName);
@@ -294,8 +297,25 @@ namespace PF.Application.Shell.ViewModels
                     }
                     // ── 权限拦截结束 ─────────────────────────────────────────────
 
+                    // ── 机台状态拦截（Running/Initializing/Resetting 期间锁定参数与调试页面，超级用户豁免）──
+                    if (DefaultPermissions.IsProtectedView(viewName)
+                        && IsMachineLocked(_machineState)
+                        && CurrentUser?.Root < UserLevel.SuperUser)
+                    {
+                        _logService?.Warn($"用户 [{CurrentUser?.UserName}] 在设备{MachineStateText}期间尝试访问受保护页面: {viewName}", "Security");
+                        MessageService.ShowMessage(
+                            $"设备{MachineStateText}期间，参数与调试页面已锁定，请停止设备后重试。",
+                            "操作受限",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                        SelectedMenuItem = null;
+                        return;
+                    }
+                    // ── 机台状态拦截结束 ──────────────────────────────────────────
+
                     if (IsParameterView(viewName))
                     {
+                        _currentViewName = viewName;
                         var parameters = new NavigationParameters();
                         parameters.Add("TargetParamType", viewName);
                         RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
@@ -305,6 +325,7 @@ namespace PF.Application.Shell.ViewModels
                     switch (category)
                     {
                         case nameof(NavigationConstants.Views):
+                            _currentViewName = viewName;
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                             break;
 
@@ -314,12 +335,13 @@ namespace PF.Application.Shell.ViewModels
                             break;
                     }
 
-                    if (category==null)
+                    if (category == null)
                     {
                         bool isRegistered = _containerProvider.IsRegistered<object>(viewName);
 
                         if (isRegistered)
                         {
+                            _currentViewName = viewName;
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                         }
                     }
@@ -342,6 +364,33 @@ namespace PF.Application.Shell.ViewModels
             {
                 _logService?.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
             }
+        }
+
+        /// <summary>
+        /// 机台进入锁定状态（Running/Initializing/Resetting）时触发：
+        /// 若当前用户（非超级用户）正处于受保护页面，则强制跳回首页并给出提示。
+        /// </summary>
+        private void OnMachineLockedStateEntered()
+        {
+            if (CurrentUser?.Root >= UserLevel.SuperUser) return;
+            if (!DefaultPermissions.IsProtectedView(_currentViewName)) return;
+
+            // 立即清除，防止状态快速切换时重复触发
+            _currentViewName = NavigationConstants.Views.HomeView;
+
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                RegionManager.RequestNavigate(
+                    NavigationConstants.Regions.SoftwareViewRegion,
+                    NavigationConstants.Views.HomeView,
+                    _ => { });
+                SelectedMenuItem = null;
+                MessageService.ShowMessage(
+                    $"设备已{MachineStateText}，已自动退出参数与调试页面。",
+                    "操作受限",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }));
         }
         #endregion
 
@@ -413,11 +462,19 @@ namespace PF.Application.Shell.ViewModels
             get => _machineState;
             set
             {
-                SetProperty(ref _machineState, value);
-                RaisePropertyChanged(nameof(MachineStateBrush));
-                RaisePropertyChanged(nameof(MachineStateText));
+                var previous = _machineState;
+                if (SetProperty(ref _machineState, value))
+                {
+                    RaisePropertyChanged(nameof(MachineStateBrush));
+                    RaisePropertyChanged(nameof(MachineStateText));
+                    if (!IsMachineLocked(previous) && IsMachineLocked(value))
+                        OnMachineLockedStateEntered();
+                }
             }
         }
+
+        private static bool IsMachineLocked(MachineState state) =>
+            state == MachineState.Running || state == MachineState.Initializing || state == MachineState.Resetting;
 
         /// <summary>获取设备状态颜色画刷</summary>
         public Brush MachineStateBrush => _machineState switch

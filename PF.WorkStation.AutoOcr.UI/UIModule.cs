@@ -31,7 +31,9 @@ namespace PF.WorkStation.AutoOcr.UI
 
             DefaultPermissions.RegisterViews(Core.Enums.UserLevel.Administrator, nameof(OcrRecipeManageView));
 
-           
+            DefaultPermissions.RegisterProtectedViews(nameof(OcrRecipeManageView));
+
+
         }
         /// <summary>
         /// RegisterTypes

@@ -41,6 +41,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private readonly IParamService _paramService;
 
+        #region 重初始化提醒
+
+        private bool _needsReinitialize;
+        /// <summary>工位屏蔽参数已变更，需要重新初始化设备才能生效</summary>
+        public bool NeedsReinitialize
+        {
+            get => _needsReinitialize;
+            private set => SetProperty(ref _needsReinitialize, value);
+        }
+
+        #endregion
+
         #region 设备总控状态
 
         private static readonly Dictionary<MachineState, Brush> _stateBrushMap = new()
@@ -371,6 +383,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>()
                 .Subscribe(OnOperatorUnloadRequested, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
+            // 订阅屏蔽参数变更通知：显示横幅提示用户需重新初始化
+            _eventAggregator.GetEvent<ReinitializeRequiredEvent>()
+                .Subscribe(() => NeedsReinitialize = true, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
+
+            // 同步控制器当前重初始化标记（应用启动时可能已有残留状态）
+            NeedsReinitialize = _controller.IsReinitializationRequired;
+
             StationMemoryItems = new ObservableCollection<WorkstationMemoryGroup>
             {
                 new WorkstationMemoryGroup("工位一", new[]
@@ -415,6 +434,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                             }
                         }
                         await _controller.InitializeAllAsync();
+                        if (_controller.CurrentState == MachineState.Idle)
+                            NeedsReinitialize = false;
                     }
                     catch { }
                 },

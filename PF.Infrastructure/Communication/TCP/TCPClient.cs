@@ -388,7 +388,8 @@ namespace PF.Infrastructure.Communication.TCP
             await _connectLock.WaitAsync();
             try
             {
-                if (Status != ClientStatus.Connected) return;
+                // None / Disconnected 表示本就未连接，无需清理；其余状态（Connected / Error / Connecting）均执行断开
+                if (Status == ClientStatus.None || Status == ClientStatus.Disconnected) return;
 
                 Status = ClientStatus.Disconnected;
                 OnDisconnected("客户端主动断开", true);
