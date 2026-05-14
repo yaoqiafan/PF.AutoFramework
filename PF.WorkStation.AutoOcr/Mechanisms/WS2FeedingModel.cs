@@ -279,7 +279,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 _logger.Success($"[{MechanismName}] 识别到 8寸 晶圆料盒。");
                 _currentWaferSize = E_WafeSize._8寸;
-               
+
                 return MechResult<E_WafeSize>.Success(E_WafeSize._8寸);
             }
             else if (is12inch && !is8inch)
@@ -287,7 +287,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _logger.Success($"[{MechanismName}] 识别到 12寸 晶圆料盒。");
                 _currentWaferSize = E_WafeSize._12寸;
 
-               
+
                 return MechResult<E_WafeSize>.Success(E_WafeSize._12寸);
             }
             else
@@ -432,7 +432,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Safety Interlocks (安全互锁守卫)
 
         /**********判断轨道上是否有晶圆************/
-        public  async Task <bool > IsTrackProExist(CancellationToken token = default)
+        public async Task<bool> IsTrackProExist(CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
             CheckReady();
@@ -582,7 +582,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 // Step 2: 配置硬件锁存参数
                 _logger.Info($"[{MechanismName}] 正在配置硬件锁存参数 (通道 {latchNo1} 和 通道 {latchNo2})...");
-                inputPort1 =   (int)E_InPutName.上晶圆右错层公共检测;
+                inputPort1 = (int)E_InPutName.上晶圆右错层公共检测;
                 inputPort2 = _currentWaferSize == E_WafeSize._12寸 ? (int)E_InPutName.上晶圆右错层12寸检测 : (int)E_InPutName.上晶圆右错层8寸检测;
 
                 bool latch1Set = await _zAxis.SetLatchMode(LatchNo: latchNo1, InPutPort: inputPort1, LtcMode: 1, LtcLogic: 1, Filter: 1.0, LatchSource: 0, token: token);
@@ -624,7 +624,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 _logger.Success($"[{MechanismName}] 扫描完毕。通道1识别 {resultMap[latchNo1].Count} 层，通道2识别 {resultMap[latchNo2].Count} 层。");
 
-                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{DateTime.Now:yyyyMMddHHmmss}.xlsx", resultMap);
+                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{this.MechanismName}//{DateTime.Now:yyyyMMddHHmmss}.xlsx", resultMap);
 
                 return MechResult<Dictionary<int, List<double>>>.Success(resultMap);
             }
@@ -674,7 +674,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             var sensor2Data = rawMappingData[rawMappingData.Keys.ElementAt(1)];
 
             // [防呆1：总体数量宏观比对]
-            if (Math.Abs(sensor1Data.Count - sensor2Data.Count) >0)
+            if (Math.Abs(sensor1Data.Count - sensor2Data.Count) > 0)
             {
                 return MechResult<Dictionary<int, double>>.Fail(AlarmCodesExtensions.WS2Feeding.AlgorithmCountMismatch,
                     $"识别数量差异过大(S1:{sensor1Data.Count}, S2:{sensor2Data.Count})，疑似斜片或传感器失效");
