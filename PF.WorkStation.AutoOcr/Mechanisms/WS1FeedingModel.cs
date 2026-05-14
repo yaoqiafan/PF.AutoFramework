@@ -628,7 +628,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 _logger.Success($"[{MechanismName}] 扫描完毕。通道1识别 {resultMap[latchNo1].Count} 层，通道2识别 {resultMap[latchNo2].Count} 层。");
 
-                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{DateTime.Now:yyyyMMddHHmmss}.xlsx", resultMap);
+                SavePoint($"D://ScanPoint//{DateTime.Now.Year}//{DateTime.Now.Month}//{DateTime.Now.Day}//{this .MechanismName }//{DateTime.Now:yyyyMMddHHmmss}.xlsx", resultMap);
 
                 return MechResult<Dictionary<int, List<double>>>.Success(resultMap);
             }
