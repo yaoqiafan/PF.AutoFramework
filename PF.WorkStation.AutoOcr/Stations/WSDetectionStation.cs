@@ -695,6 +695,9 @@ namespace PF.WorkStation.AutoOcr.Stations
             // ── 屏蔽OCR校验：不管比对结果，强制视为 OK ──────────────────────────────
             if (disableCheck)
             {
+               
+
+
                 var errNote = kk.IsSuccess ? "NONE" : $"DisableOCRCheck|{kk.ErrorMessage}";
                 _logger.Warn($"[{StationName}] [{_currentworkSpace}] OCR校验已屏蔽，强制视为 OK（文本：[{ocrTextToCheck}]，比对原始结果：{(kk.IsSuccess ? "通过" : $"NG-{kk.ErrorMessage}")}）。");
                 var bypassPath = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
