@@ -581,6 +581,17 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue("E//OCRImagePath")]
         OCRCameraImageSavePath,
 
+        /// <summary>磁盘预警阈值</summary>
+        [Category("OCR相机参数")]
+        [Description("磁盘预警阈值(%)")]
+        [DefaultValue(80.0)]
+        DiskWarningThreshold,
+
+        /// <summary>相机图片存储时间</summary>
+        [Category("OCR相机参数")]
+        [Description("相机图片存储时间(月)，超出时间的图片文件夹将被自动清理")]
+        [DefaultValue(3)]
+        OCRCameraImageRetentionMonths,
 
         /// <summary>相机存图等待超时（毫秒）</summary>
         [Category("OCR相机参数")]
@@ -600,12 +611,13 @@ namespace PF.Workstation.AutoOcr.CostParam
         [Description("工位X方向间距_12寸")]
         [DefaultValue(540.0)]
         OCRStationDistance_12,
+
         #endregion OCR相机参数
 
 
         #region 安全门参数
 
-       
+
         /// <summary>屏蔽安全门1检测（调试用，正式生产必须关闭）</summary>
         [Category("屏蔽参数")]
         [Description("屏蔽安全门1检测")]
@@ -659,8 +671,7 @@ namespace PF.Workstation.AutoOcr.CostParam
 
         #endregion
 
-
-
+        
     }
 
 

@@ -9,18 +9,19 @@
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
-    <Grid x:Name="ViewportGrid" 
-          ClipToBounds="True"
-          MouseWheel="OnMouseWheel"
-          MouseLeftButtonDown="OnMouseLeftButtonDown"
-          MouseLeftButtonUp="OnMouseLeftButtonUp"
-          MouseMove="OnMouseMove">
+    <Grid
+        x:Name="ViewportGrid"
+        ClipToBounds="True"
+        MouseLeftButtonDown="OnMouseLeftButtonDown"
+        MouseLeftButtonUp="OnMouseLeftButtonUp"
+        MouseMove="OnMouseMove"
+        MouseWheel="OnMouseWheel">
 
         <Grid.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="复原 (Reset)" Click="MenuItem_Reset_Click" />
+                <MenuItem Click="MenuItem_Reset_Click" Header="复原 (Reset)" />
                 <Separator />
-                <MenuItem Header="另存为原图... (Save As)" Click="MenuItem_SaveAs_Click" />
+                <MenuItem Click="MenuItem_SaveAs_Click" Header="另存为原图... (Save As)" />
             </ContextMenu>
         </Grid.ContextMenu>
 
@@ -33,15 +34,29 @@
                 </TransformGroup>
             </Grid.RenderTransform>
 
-            <Image x:Name="MainImage" Stretch="Uniform" Visibility="Collapsed" />
+            <Image
+                x:Name="MainImage"
+                Stretch="Uniform"
+                Visibility="Collapsed" />
 
-            <Border Margin="15" Padding="8,5" CornerRadius="4" Background="{DynamicResource  DarkOpacityBrush}"
-                    HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False"
-                    >
-                <ContentPresenter Content="{Binding AnnotationContent, RelativeSource={RelativeSource AncestorType=UserControl}}" >
+            <Border
+                Margin="15"
+                Padding="8,5"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Background="{DynamicResource DarkOpacityBrush}"
+                CornerRadius="4"
+                IsHitTestVisible="False">
+                <ContentPresenter Content="{Binding AnnotationContent, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <ContentPresenter.Resources>
                         <DataTemplate DataType="{x:Type sys:String}">
-                            <TextBlock Background="Transparent" Text="{Binding}" Foreground="White" FontWeight="Bold" FontSize="{DynamicResource FontSize.Body.Small}" TextWrapping="Wrap"/>
+                            <TextBlock
+                                Background="Transparent"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="{Binding}"
+                                TextWrapping="Wrap" />
                         </DataTemplate>
                     </ContentPresenter.Resources>
                 </ContentPresenter>
