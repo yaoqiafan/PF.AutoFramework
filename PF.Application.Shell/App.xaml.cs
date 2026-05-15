@@ -296,6 +296,12 @@ namespace PF.Application.Shell
             // 启动集中定时服务（在所有服务初始化完成后启动，确保订阅者已就绪）
             Container.Resolve<IAppTimerService>().Start();
 
+            // 注册每日磁盘使用量预警任务（08:00 执行，启动时补偿）
+            RegisterDiskWarningTask();
+
+            // 注册每日图片定期清理任务（08:00 执行，启动时补偿）
+            RegisterImageCleanupTask();
+
             base.OnInitialized();
         }
 
@@ -740,6 +746,203 @@ namespace PF.Application.Shell
             {
                 _dbLogger.Error("定时服务注册失败", ex);
                 throw;
+            }
+        }
+
+        #endregion
+
+        #region 磁盘预警定时任务
+
+        private void RegisterDiskWarningTask()
+        {
+            var timer = Container.Resolve<IAppTimerService>();
+            timer.RegisterDailyAt(
+                key:             "DiskWarning_OCRImagePath",
+                timeOfDay:       new TimeSpan(8, 0, 0),
+                callback:        () => _ = CheckDiskUsageAsync(),
+                catchUpOnStart:  true);
+
+            _uiLogger.Info("[磁盘预警] 定时任务已注册（每日 08:00）");
+        }
+
+        private async Task CheckDiskUsageAsync()
+        {
+            try
+            {
+                var paramService = Container.Resolve<IParamService>();
+
+                var imagePath = await paramService.GetParamAsync<string>(
+                    E_Params.OCRCameraImageSavePath.ToString());
+                var threshold = await paramService.GetParamAsync<double>(
+                    E_Params.DiskWarningThreshold.ToString(), 80.0);
+
+                if (string.IsNullOrWhiteSpace(imagePath))
+                {
+                    _uiLogger.Warn("[磁盘预警] 图片保存路径参数为空，跳过检查");
+                    return;
+                }
+
+                // 兼容 "E//path"、"E:\\path"、"E:/path" 等多种路径格式
+                var normalized = imagePath.Replace("//", "\\").Replace("/", "\\");
+                var root = Path.GetPathRoot(normalized);
+                if (string.IsNullOrEmpty(root))
+                {
+                    _uiLogger.Warn($"[磁盘预警] 无法从路径 [{imagePath}] 解析驱动器，跳过检查");
+                    return;
+                }
+
+                var drive = new DriveInfo(root);
+                if (!drive.IsReady)
+                {
+                    _uiLogger.Warn($"[磁盘预警] 驱动器 {root} 未就绪，跳过检查");
+                    return;
+                }
+
+                double usedPercent = (1.0 - (double)drive.AvailableFreeSpace / drive.TotalSize) * 100.0;
+                double freeGb      = drive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
+                double totalGb     = drive.TotalSize          / (1024.0 * 1024 * 1024);
+
+                _uiLogger.Info($"[磁盘预警] 驱动器 {root}  使用率 {usedPercent:F1}%，" +
+                               $"剩余 {freeGb:F2} GB / 总计 {totalGb:F2} GB，阈值 {threshold}%");
+
+                if (usedPercent < threshold) return;
+
+                _uiLogger.Warn($"[磁盘预警] 触发预警：使用率 {usedPercent:F1}% ≥ 阈值 {threshold}%");
+
+                await this.Dispatcher.InvokeAsync(() =>
+                {
+                    Container.Resolve<IMessageService>().ShowMessage(
+                        $"图片保存路径所在驱动器：{root}\n" +
+                        $"当前使用率：{usedPercent:F1}%（预警阈值：{threshold}%）\n" +
+                        $"剩余空间：{freeGb:F2} GB / 总容量：{totalGb:F2} GB\n\n" +
+                        $"请及时清理磁盘，避免影响生产图片的正常存储！",
+                        "磁盘存储预警",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                });
+            }
+            catch (Exception ex)
+            {
+                _uiLogger.Error("[磁盘预警] 检查过程发生异常", ex);
+            }
+        }
+
+        #endregion
+
+        #region 图片定期清理任务
+
+        private void RegisterImageCleanupTask()
+        {
+            var timer = Container.Resolve<IAppTimerService>();
+            timer.RegisterDailyAt(
+                key:            "ImageCleanup_OCRImagePath",
+                timeOfDay:      new TimeSpan(8, 0, 0),
+                callback:       () => _ = CleanupOldImagesAsync(),
+                catchUpOnStart: true);
+
+            _uiLogger.Info("[图片清理] 定时任务已注册（每日 08:00）");
+        }
+
+        private async Task CleanupOldImagesAsync()
+        {
+            try
+            {
+                var paramService = Container.Resolve<IParamService>();
+
+                var rawPath = await paramService.GetParamAsync<string>(
+                    E_Params.OCRCameraImageSavePath.ToString());
+                var retentionMonths = await paramService.GetParamAsync<int>(
+                    E_Params.OCRCameraImageRetentionMonths.ToString(), 3);
+
+                if (retentionMonths <= 0)
+                {
+                    _uiLogger.Info("[图片清理] 存储时间参数为 0，自动清理已禁用，跳过");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(rawPath))
+                {
+                    _uiLogger.Warn("[图片清理] 图片保存路径参数为空，跳过");
+                    return;
+                }
+
+                // 兼容 "E//path"、"E:\\path"、"E:/path" 格式
+                var basePath = rawPath.Replace("//", "\\").Replace("/", "\\");
+                if (!Directory.Exists(basePath))
+                {
+                    _uiLogger.Info($"[图片清理] 路径不存在，跳过: {basePath}");
+                    return;
+                }
+
+                var cutoff = DateTime.Now.AddMonths(-retentionMonths);
+                _uiLogger.Info($"[图片清理] 开始扫描 {basePath}，保留近 {retentionMonths} 个月，截止日期: {cutoff:yyyy-MM-dd}");
+
+                int deleted = 0, skipped = 0;
+
+                // 文件 I/O 在线程池执行，避免阻塞定时器线程
+                await Task.Run(() =>
+                {
+                    foreach (var dir in Directory.EnumerateDirectories(basePath))
+                    {
+                        try
+                        {
+                            var info = new DirectoryInfo(dir);
+                            if (info.CreationTime >= cutoff)
+                                continue;
+
+                            _uiLogger.Info($"[图片清理] 准备删除: {dir}（创建于 {info.CreationTime:yyyy-MM-dd}）");
+
+                            if (TryDeleteDirectorySafe(dir))
+                                deleted++;
+                            else
+                                skipped++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _uiLogger.Warn($"[图片清理] 处理目录异常: {dir} — {ex.Message}");
+                            skipped++;
+                        }
+                    }
+                });
+
+                _uiLogger.Info($"[图片清理] 完成，已删除: {deleted} 个目录，跳过: {skipped} 个目录");
+            }
+            catch (Exception ex)
+            {
+                _uiLogger.Error("[图片清理] 清理过程发生异常", ex);
+            }
+        }
+
+        /// <summary>
+        /// 尝试安全删除指定目录（含子目录和文件）。
+        /// 遇到文件锁或权限不足时记录警告并返回 false，不抛出异常。
+        /// </summary>
+        private bool TryDeleteDirectorySafe(string dirPath)
+        {
+            try
+            {
+                // 逐文件去除只读属性，防止只读标记阻止删除
+                foreach (var file in Directory.EnumerateFiles(dirPath, "*", SearchOption.AllDirectories))
+                {
+                    try { File.SetAttributes(file, FileAttributes.Normal); }
+                    catch { /* 属性清除失败时忽略，后续 Delete 若失败会被外层捕获 */ }
+                }
+
+                Directory.Delete(dirPath, recursive: true);
+                _uiLogger.Info($"[图片清理] 已删除: {dirPath}");
+                return true;
+            }
+            catch (IOException ex)
+            {
+                // 文件被其他进程占用（文件锁）
+                _uiLogger.Warn($"[图片清理] 文件被占用，跳过本次: {dirPath} — {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // 权限不足
+                _uiLogger.Warn($"[图片清理] 无访问权限，跳过: {dirPath} — {ex.Message}");
+                return false;
             }
         }
 
