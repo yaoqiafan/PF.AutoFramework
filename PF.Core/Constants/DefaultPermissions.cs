@@ -105,7 +105,7 @@ namespace PF.Core.Constants
                 {
                     NavigationConstants.Views.MechanismDebugView,
                     NavigationConstants.Views.StationDebugView,
-                   
+                    NavigationConstants.Views.PagePermissionView,
                 });
             }
 
@@ -114,8 +114,7 @@ namespace PF.Core.Constants
                 views.AddRange(new[]
                 {
                     NavigationConstants.Views.CommonParamView,
-                     NavigationConstants.Views.PagePermissionView,
-
+                    NavigationConstants.Views.ParameterView_HardwareParam,
                 });
             }
 
