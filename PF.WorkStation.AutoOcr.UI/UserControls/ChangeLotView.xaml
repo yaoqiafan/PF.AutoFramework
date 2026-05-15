@@ -1,79 +1,189 @@
-﻿<UserControl
+<UserControl
     x:Class="PF.WorkStation.AutoOcr.UI.UserControls.ChangeLotView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:behaviors="clr-namespace:PF.UI.Infrastructure.Behaviors;assembly=PF.UI.Infrastructure" 
+    xmlns:behaviors="clr-namespace:PF.UI.Infrastructure.Behaviors;assembly=PF.UI.Infrastructure"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.UserControls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    d:DesignHeight="200"
-    d:DesignWidth="300"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    d:DesignHeight="380"
+    MinWidth="380"
+    Width="auto"
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <Style BasedOn="{StaticResource TextBlockBaseStyle}" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
-        </Style>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height=" *" />
-            <RowDefinition Height=" *" />
-            <RowDefinition Height=" 50" />
-        </Grid.RowDefinitions>
-        <Grid Grid.Row=" 0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width=" auto" />
-                <ColumnDefinition Width=" *" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Margin="10,0,0,0" Text="内部批次:" />
-            <TextBox
-                Grid.Column=" 1"
-                Margin="10,10,10,10"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Text="{Binding LotId, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" behaviors:EnterKeyTraversalBehavior.IsEnabled="True">
-                
-            </TextBox>
-        </Grid>
 
-        <Grid Grid.Row=" 1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width=" auto" />
-                <ColumnDefinition Width=" *" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Margin="10,0,0,0" Text="工       号:" />
-            <TextBox 
-                Grid.Column=" 1"
-                Margin="10,10,10,10"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Text="{Binding UserId, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"   >
-                <TextBox.InputBindings>
-                    <KeyBinding Command="{Binding ConfirmCommand}"  Key="Enter" />
-                </TextBox.InputBindings>
-            </TextBox>
-            
-        </Grid>
+    <Border
+        Padding="20"
+        Background="{DynamicResource RegionColorBrush}">
 
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="15" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="15" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="10" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="15" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <Grid Grid.Row=" 2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width=" *" />
-                <ColumnDefinition Width=" *" />
-            </Grid.ColumnDefinitions>
-            <Button
-                Height=" 40"
-                Margin="20,5,5,5"
-                Command="{Binding ConfirmCommand}"  
-                Content="确定" />
-            <Button
-                Grid.Column=" 1"
-                Height=" 40"
-                Margin="5,5,20,5"
-                Command="{Binding CancelCommand}"
-                Content="取消" />
+            <!-- 内部批次 -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="内部批次:" />
+                <TextBox
+                    Grid.Column="1"
+                    Height="36"
+                    VerticalContentAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    Text="{Binding LotId, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                    behaviors:EnterKeyTraversalBehavior.IsEnabled="True" />
+            </Grid>
+
+            <!-- 工号 -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="工       号:" />
+                <TextBox
+                    Grid.Column="1"
+                    Height="36"
+                    VerticalContentAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    Text="{Binding UserId, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Command="{Binding ConfirmCommand}" Key="Enter" />
+                    </TextBox.InputBindings>
+                </TextBox>
+            </Grid>
+
+            <!-- 选择程式（仅超级用户可见，调试用） -->
+            <Grid Grid.Row="4" Visibility="{Binding IsSuperUser, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="选择程式:" />
+                <ComboBox
+                    Grid.Column="1"
+                    Height="36"
+                    VerticalContentAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    IsEditable="True"
+                    ItemsSource="{Binding RecipeNames}"
+                    Text="{Binding Recipe, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+            </Grid>
+
+            <!-- 检测模式 -->
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="检测模式:" />
+                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <RadioButton
+                        Margin="0,0,20,0"
+                        Content="全做"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        IsChecked="{Binding IsLayerModeAll, Mode=TwoWay}" />
+                    <RadioButton
+                        Content="指定层"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        IsChecked="{Binding IsLayerModeSpecified, Mode=TwoWay}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 指定层选择面板（仅指定层模式下可见） -->
+            <Border
+                Grid.Row="7"
+                Margin="0,8,0,0"
+                Padding="8"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding IsSpecifiedLayerPanelVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        VerticalAlignment="Top"
+                        Margin="0,4,0,0"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        FontWeight="SemiBold"
+                        Text="选择层号:" />
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding SpecifiedLayerItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="7" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Width="auto"
+                                    Margin="2,3"
+                                    HorizontalAlignment="Center"
+                                    Content="{Binding DisplayIndex}"
+                                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                                    IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <!-- 按钮 -->
+            <StackPanel
+                Grid.Row="9"
+                HorizontalAlignment="Right"
+                Orientation="Horizontal">
+                <Button
+                    Height="36"
+                    MinWidth="90"
+                    Margin="0,0,15,0"
+                    Command="{Binding CancelCommand}"
+                    Content="取消"
+                    Style="{DynamicResource ButtonDefault}" />
+                <Button
+                    Height="36"
+                    MinWidth="90"
+                    Command="{Binding ConfirmCommand}"
+                    Content="确定"
+                    Style="{DynamicResource ButtonPrimary}" />
+            </StackPanel>
         </Grid>
-    </Grid>
+    </Border>
 </UserControl>

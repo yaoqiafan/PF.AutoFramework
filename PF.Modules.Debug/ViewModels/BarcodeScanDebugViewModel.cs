@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
@@ -127,6 +128,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand ChangeUserParamCommand { get; private set; }
         /// <summary>清除历史命令</summary>
         public DelegateCommand ClearHistoryCommand { get; private set; }
+        /// <summary>模拟硬件报警命令</summary>
+        public DelegateCommand SimulateAlarmCommand { get; private set; }
 
         private void InitializeCommands()
         {
@@ -172,6 +175,10 @@ namespace PF.Modules.Debug.ViewModels
             });
 
             ClearHistoryCommand = new DelegateCommand(() => ScanHistory.Clear());
+            SimulateAlarmCommand = new DelegateCommand(() =>
+            {
+                _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.BarcodeReaderError, "调试页面手动模拟扫码枪报警");
+            });
         }
 
         private void RefreshCancellationToken()

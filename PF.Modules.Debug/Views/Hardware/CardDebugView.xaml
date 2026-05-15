@@ -84,6 +84,11 @@
                             Command="{Binding ResetCommand}"
                             Content="板卡复位"
                             Style="{DynamicResource ButtonWarning}" />
+                            <Button
+                            Height="32"
+                            Command="{Binding SimulateAlarmCommand}"
+                            Content="模拟报警测试"
+                            Style="{DynamicResource ButtonDanger}" />
                     </StackPanel>
 
                     <!-- 状态指示 -->

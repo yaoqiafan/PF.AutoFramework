@@ -1,4 +1,7 @@
-﻿using PF.Services.Logging;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
+using PF.Services.Logging;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;
@@ -12,6 +15,18 @@ namespace PF.CommonTools.ServeTool
     /// </summary>
     public class ServerMangerTool
     {
+        private static ILogService _logger = LogService.Instance;
+        private static CategoryLogger _systemLogger = CategoryLoggerFactory.System(_logger);
+
+        /// <summary>
+        /// 注入外部日志服务（由 DI 容器在启动时调用）。
+        /// 若不调用此方法，默认使用 <see cref="LogService.Instance"/> 单例。
+        /// </summary>
+        public static void Initialize(ILogService logger)
+        {
+            _logger = logger ?? LogService.Instance;
+            _systemLogger = CategoryLoggerFactory.System(_logger);
+        }
 
         #region 软件启动权限
 
@@ -61,11 +76,11 @@ namespace PF.CommonTools.ServeTool
                     // 用户取消UAC授权时触发
                     if (ex.NativeErrorCode == 1223)
                     {
-                        LogService.Instance.Info("你取消了管理员权限授权，程序将以普通模式运行");
+                        _systemLogger.Info("你取消了管理员权限授权，程序将以普通模式运行");
                     }
                     else
                     {
-                        LogService.Instance.Info($"重启程序失败：{ex.Message}");
+                        _systemLogger.Info($"重启程序失败：{ex.Message}");
                     }
                     return false;
                 }
@@ -110,7 +125,7 @@ namespace PF.CommonTools.ServeTool
             catch (InvalidOperationException ex)
             {
                 // 异常：服务不存在/权限不足/服务控制器未运行
-                LogService.Instance.Error($"查询服务失败：{ex.Message}");
+                _systemLogger.Error($"查询服务失败：{ex.Message}");
                 return false;
             }
             finally
@@ -135,14 +150,14 @@ namespace PF.CommonTools.ServeTool
             // 1. 权限检查
             if (!IsAdministrator())
             {
-                LogService.Instance.Warn("错误：需要管理员权限才能安装服务！");
+                _systemLogger.Warn("错误：需要管理员权限才能安装服务！");
                 return false;
             }
 
             // 2. 路径合法性检查
             if (!File.Exists(serviceExePath))
             {
-                LogService.Instance.Warn($"错误：指定的服务程序不存在！路径：{serviceExePath}");
+                _systemLogger.Warn($"错误：指定的服务程序不存在！路径：{serviceExePath}");
                 return false;
             }
 
@@ -171,21 +186,21 @@ namespace PF.CommonTools.ServeTool
                     // 5. 检查执行结果
                     if (process.ExitCode == 0)
                     {
-                        LogService.Instance.Info($"服务【{serviceName}】安装成功！");
-                        LogService.Instance.Info($"输出信息：{output}");
+                        _systemLogger.Info($"服务【{serviceName}】安装成功！");
+                        _systemLogger.Info($"输出信息：{output}");
                         return true;
                     }
                     else
                     {
-                        LogService.Instance.Info($"服务安装失败！错误码：{process.ExitCode}");
-                        LogService.Instance.Info($"错误信息：{error}");
+                        _systemLogger.Info($"服务安装失败！错误码：{process.ExitCode}");
+                        _systemLogger.Info($"错误信息：{error}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                LogService.Instance.Info($"安装服务时发生异常：{ex.Message}");
+                _systemLogger.Info($"安装服务时发生异常：{ex.Message}");
                 return false;
             }
         }
@@ -201,7 +216,7 @@ namespace PF.CommonTools.ServeTool
         {
             if (!IsAdministrator())
             {
-                LogService.Instance.Warn("错误：需要管理员权限才能卸载服务！");
+                _systemLogger.Warn("错误：需要管理员权限才能卸载服务！");
                 return false;
             }
 
@@ -228,21 +243,21 @@ namespace PF.CommonTools.ServeTool
 
                     if (process.ExitCode == 0)
                     {
-                        LogService.Instance.Info($"服务【{serviceName}】卸载成功！");
-                        LogService.Instance.Info($"输出信息：{output}");
+                        _systemLogger.Info($"服务【{serviceName}】卸载成功！");
+                        _systemLogger.Info($"输出信息：{output}");
                         return true;
                     }
                     else
                     {
-                        LogService.Instance.Info($"服务卸载失败！错误码：{process.ExitCode}");
-                        LogService.Instance.Info($"错误信息：{error}");
+                        _systemLogger.Info($"服务卸载失败！错误码：{process.ExitCode}");
+                        _systemLogger.Info($"错误信息：{error}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                LogService.Instance.Warn($"卸载服务时发生异常：{ex.Message}");
+                _systemLogger.Warn($"卸载服务时发生异常：{ex.Message}");
                 return false;
             }
         }
@@ -275,14 +290,14 @@ namespace PF.CommonTools.ServeTool
                 switch (service.Status)
                 {
                     case ServiceControllerStatus.Running:
-                        LogService.Instance.Info($"服务【{serviceName}】已处于运行状态，无需启动");
+                        _systemLogger.Info($"服务【{serviceName}】已处于运行状态，无需启动");
                         return true;
                     case ServiceControllerStatus.StartPending:
-                        LogService.Instance.Info($"服务【{serviceName}】正在启动中");
+                        _systemLogger.Info($"服务【{serviceName}】正在启动中");
                         return true;
                     case ServiceControllerStatus.Stopped:
                         // 2. 停止状态下执行启动
-                        LogService.Instance.Info($"开始启动服务【{serviceName}】...");
+                        _systemLogger.Info($"开始启动服务【{serviceName}】...");
                         service.Start();
 
                         // 3. 等待服务启动完成（超时则判定失败）
@@ -292,36 +307,36 @@ namespace PF.CommonTools.ServeTool
                         service.Refresh();
                         if (service.Status == ServiceControllerStatus.Running)
                         {
-                            LogService.Instance.Info($"服务【{serviceName}】启动成功");
+                            _systemLogger.Info($"服务【{serviceName}】启动成功");
                             return true;
                         }
                         else
                         {
-                            LogService.Instance.Info($"服务【{serviceName}】启动超时/状态异常，当前状态：{service.Status}");
+                            _systemLogger.Info($"服务【{serviceName}】启动超时/状态异常，当前状态：{service.Status}");
                             return false;
                         }
                     default:
                         // 暂停、停止中、暂停中等状态
-                        LogService.Instance.Info($"服务【{serviceName}】当前状态为{service.Status}，无法直接启动");
+                        _systemLogger.Info($"服务【{serviceName}】当前状态为{service.Status}，无法直接启动");
                         return false;
                 }
             }
             catch (InvalidOperationException ex)
             {
                 // 异常：服务不存在/服务已标记为删除/服务无法启动
-                LogService.Instance.Warn($"启动服务失败：{ex.Message}");
+                _systemLogger.Warn($"启动服务失败：{ex.Message}");
                 return false;
             }
             catch (System.ComponentModel.Win32Exception ex)
             {
                 // 异常：权限不足（需管理员权限）/服务依赖缺失
-                LogService.Instance.Warn($"系统权限不足/服务依赖缺失：{ex.Message}");
+                _systemLogger.Warn($"系统权限不足/服务依赖缺失：{ex.Message}");
                 return false;
             }
             catch (System.TimeoutException ex)
             {
                 // 异常：启动超时
-                LogService.Instance.Warn($"服务启动超时（{timeoutSeconds}秒）：{ex.Message}");
+                _systemLogger.Warn($"服务启动超时（{timeoutSeconds}秒）：{ex.Message}");
                 return false;
             }
             finally
@@ -363,7 +378,7 @@ namespace PF.CommonTools.ServeTool
             }
             catch (Exception ex)
             {
-                LogService.Instance.Error($"获取电脑服务失败",null, ex);
+                _systemLogger.Error($"获取电脑服务失败", ex);
                 return false;
             }
             // 空值校验

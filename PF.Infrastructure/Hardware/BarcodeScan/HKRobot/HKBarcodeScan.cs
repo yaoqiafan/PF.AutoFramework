@@ -240,10 +240,8 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         /// <summary>
         /// 内部复位实现
         /// </summary>
-        protected override async Task InternalResetAsync(CancellationToken token)
-        {
-            await tiggerclient.ReconnectAsync();
-        }
+        protected override Task InternalResetAsync(CancellationToken token)
+            => Task.CompletedTask;
 
         /// <summary>
         /// 内部健康检查实现
@@ -253,7 +251,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             if (!IsSimulated)
             {
                 bool trigOk = tiggerclient.Status == ClientStatus.Connected;
-                bool userOk = Userpowerclient.Status == ClientStatus.Connected;
+                bool userOk = true;
                 if ((!trigOk || !userOk) && !HasAlarm)
                     RaiseAlarm(AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
                         $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");

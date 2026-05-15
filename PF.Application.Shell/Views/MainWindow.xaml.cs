@@ -8,7 +8,6 @@ using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
 using System.Collections.ObjectModel;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -28,6 +27,7 @@ namespace PF.Application.Shell.Views
         private readonly IEventAggregator _eventAggregator;
         private readonly IEnumerable<IMechanism> _mechanismslist;
 
+      
         /// <summary>
         /// 初始化实例
         /// </summary>
@@ -44,6 +44,7 @@ namespace PF.Application.Shell.Views
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+           
             if (this.DataContext is MainWindowViewModel vm)
             {
                 RenderSideMenu(vm.MenuItems);
@@ -53,6 +54,8 @@ namespace PF.Application.Shell.Views
                     Dispatcher.Invoke(() => RenderSideMenu(vm.MenuItems));
                 };
             }
+
+
         }
 
         private async void OnUserLogined(UserInfo? info)
@@ -114,7 +117,8 @@ namespace PF.Application.Shell.Views
                     DataContext = group,
                     Background = (Brush)FindResource("LightPrimaryBrush"), // 还原原有的背景色
                     Margin = new Thickness(0, 0, 0, 10),
-                    Icon = CreateIconElement(group.Icon) // 渲染组图标
+                    Icon = CreateIconElement(group.Icon), // 渲染组图标
+                    IsExpanded = false// 渲染子节点图标
                 };
 
                 foreach (var child in group.Children)
@@ -125,7 +129,7 @@ namespace PF.Application.Shell.Views
                         Tag = child,
                         DataContext = child,
                         Icon = CreateIconElement(child.Icon),
-                        IsExpanded = true// 渲染子节点图标
+                        IsExpanded = false// 渲染子节点图标
                     };
 
                     groupItem.Items.Add(childItem);

@@ -67,6 +67,16 @@ namespace PF.Core.Interfaces.Sync
         void ResetSingleSignal(string name, string scope = "global");
 
         /// <summary>
+        /// 非阻塞地排空指定信号量的全部待处理计数，确保下次 WaitAsync 必须等待新的 Release。
+        /// 与 ResetSingleSignal 不同，此方法不取消 scope 的 ResetCts，因此不会中断
+        /// 同一 scope 内其他正在等待不同信号量的工站线程。
+        /// 适用场景：每轮循环开始前清除上轮残留的启动按钮计数，防止历史信号立即穿透等待。
+        /// </summary>
+        /// <param name="name">要排空的信号量名称</param>
+        /// <param name="scope">所属工站分组名，默认 "global"</param>
+        void DrainSignal(string name, string scope = "global");
+
+        /// <summary>
         /// 快照读取所有已注册信号量的当前状态（只读，供监控 UI 轮询）。
         /// 返回字典：Key = "scope/name"，Value = (初始计数, 当前可用计数)。
         /// </summary>

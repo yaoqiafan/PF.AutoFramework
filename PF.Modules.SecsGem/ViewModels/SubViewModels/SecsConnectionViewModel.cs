@@ -27,8 +27,8 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         public SecsConnectionViewModel(ISecsGemManager manager, ISecsGemDataBase db, SecsLogViewModel log)
         {
             _manager = manager;
-            _db      = db;
-            _log     = log;
+            _db = db;
+            _log = log;
 
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _timer.Tick += (_, _) =>
@@ -43,16 +43,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 () => !IsInitializing)
                 .ObservesProperty(() => IsInitializing);
 
-            ConnectCommand = new DelegateCommand(
-                async () => await ExecuteConnectAsync(),
-                () => !IsConnected && !IsConnecting)
-                .ObservesProperty(() => IsConnected)
-                .ObservesProperty(() => IsConnecting);
-
             DisconnectCommand = new DelegateCommand(
-                async () => await ExecuteDisconnectAsync(),
-                () => IsConnected)
-                .ObservesProperty(() => IsConnected);
+       async () => await ExecuteDisconnectAsync(),
+       () => IsConnected)
+                      .ObservesProperty(() => IsConnected);
         }
 
         // ── 连接状态属性 ───────────────────────────────────────────────────────
@@ -80,16 +74,8 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             set => SetProperty(ref _isInitializing, value);
         }
 
-        private bool _isConnecting;
-        /// <summary>获取或设置是否正在连接</summary>
-        public bool IsConnecting
-        {
-            get => _isConnecting;
-            set => SetProperty(ref _isConnecting, value);
-        }
-
         /// <summary>获取状态颜色</summary>
-        public string StatusColor          => IsConnected ? "#4CAF50" : "#F44336";
+        public string StatusColor => IsConnected ? "#4CAF50" : "#F44336";
         /// <summary>获取连接状态文本</summary>
         public string ConnectionStatusText => IsConnected ? "已连接 (Connected)" : "未连接 (Disconnected)";
 
@@ -111,13 +97,11 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 命令 ───────────────────────────────────────────────────────────────
 
-        /// <summary>初始化命令</summary>
-        public DelegateCommand InitializeCommand  { get; }
-        /// <summary>连接命令</summary>
-        public DelegateCommand ConnectCommand     { get; }
+        /// <summary>初始化命令（含参数校验与连接）</summary>
+        public DelegateCommand InitializeCommand { get; }
         /// <summary>断开连接命令</summary>
-        public DelegateCommand DisconnectCommand  { get; }
 
+        public DelegateCommand DisconnectCommand { get; }
         // ── 生命周期 ───────────────────────────────────────────────────────────
 
         /// <summary>同步初始连接状态并启动轮询定时器。</summary>
@@ -137,16 +121,16 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                var vidRepo  = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
+                var vidRepo = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
                 int vidCount = await vidRepo.CountAsync();
 
                 var sysParam = _manager.ParamsManager.GetParamOrDefault<SecsGemSystemParam>(ParamType.System, null);
                 bool sysEmpty = sysParam == null || string.IsNullOrEmpty(sysParam.IPAddress);
-                bool isEmpty  = vidCount == 0 || sysEmpty;
+                bool isEmpty = vidCount == 0 || sysEmpty;
 
                 Application.Current?.Dispatcher.Invoke(() =>
                 {
-                    IsDbEmpty      = isEmpty;
+                    IsDbEmpty = isEmpty;
                     DbEmptyMessage = isEmpty
                         ? "⚠  系统参数或变量库 (VID) 为空，请先从右侧面板导入配置文件"
                         : string.Empty;
@@ -156,7 +140,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             {
                 Application.Current?.Dispatcher.Invoke(() =>
                 {
-                    IsDbEmpty      = true;
+                    IsDbEmpty = true;
                     DbEmptyMessage = $"⚠  数据库检测异常: {ex.Message}";
                 });
             }
@@ -183,24 +167,6 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             }
         }
 
-        private async Task ExecuteConnectAsync()
-        {
-            IsConnecting = true;
-            try
-            {
-                bool ok = await _manager.ConnectAsync();
-                IsConnected = ok;
-                _log.Append(null, ok ? "连接成功" : "连接失败", isSystem: true);
-            }
-            catch (Exception ex)
-            {
-                _log.Append(null, $"连接异常: {ex.Message}", isSystem: true);
-            }
-            finally
-            {
-                IsConnecting = false;
-            }
-        }
 
         private async Task ExecuteDisconnectAsync()
         {
@@ -215,5 +181,6 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 _log.Append(null, $"断开异常: {ex.Message}", isSystem: true);
             }
         }
+
     }
 }

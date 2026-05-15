@@ -1,13 +1,16 @@
-﻿using PF.Core.Events;
+﻿using PF.Core.Constants;
+using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Infrastructure.Station;
-using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PF.WorkStation.AutoOcr.Stations
 {
@@ -55,7 +58,14 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>工位2检测完成</summary>
         工位2检测完成,
         /// <summary>工位2人工下料完成</summary>
-        工位2人工下料完成
+        工位2人工下料完成,
+        /***********复位完成标志*********/
+        检测模组复位完成,
+
+        工位1拉料复位完成,
+
+        工位2拉料复位完成,
+
     }
 
     #endregion
@@ -79,6 +89,20 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// </summary>
         private readonly IStationSyncService _sync;
 
+        private readonly IParamService _paramService;
+
+        private volatile bool _isReinitializationRequired;
+        private Core.Enums.MachineState _previousState = Core.Enums.MachineState.Uninitialized;
+
+        private static readonly HashSet<string> _reinitTriggerParams = new()
+        {
+            E_Params.WorkStation1_Muted.ToString(),
+            E_Params.WorkStation2_Muted.ToString(),
+        };
+
+        public override bool IsReinitializationRequired => _isReinitializationRequired;
+        public override event EventHandler? ReinitializationRequired;
+
         #endregion
 
         #region Constructor & Signal Registration (构造与信号注册)
@@ -92,17 +116,24 @@ namespace PF.WorkStation.AutoOcr.Stations
             HardwareInputEventBus hardwareEventBus,
             IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
-            IEnumerable<StationBase<StationMemoryBaseParam>> subStations)
+            IParamService paramService,
+            IEnumerable<IStation> subStations)
             : base(logger, hardwareEventBus, subStations, alarmService)
         {
             _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
+            _paramService = paramService;
+            _paramService.ParamChanged += OnParamChanged;
+
+            // 根据主控状态驱动 Safety 监控线程的启停
+            MasterStateChanged += OnMasterStateChanged;
 
             // ── 工位 1 信号注册 (明确指定 Scope 作用域以实现精准的生命周期管理) ──
 
-            // 全局作用域信号 (无归属的物理按钮动作)
-            _sync.Register(nameof(WorkstationSignals.工位1启动按钮按下));
-            _sync.Register(nameof(WorkstationSignals.工位1人工下料完成));
+            // 启动按钮与人工下料信号均归属各自上下料工站 scope，
+            // 防止 ResetSingleSignal 广播取消 global scope 时跨工站误伤对方的 WaitAsync
+            _sync.Register(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
 
             // 局部作用域信号 (绑定至具体执行工站，工站复位时会自动清理其 Scope 下的信号残存)
             _sync.Register(nameof(WorkstationSignals.工位1允许拉料), scope: E_WorkStation.工位1上下料工站.ToString());
@@ -114,9 +145,8 @@ namespace PF.WorkStation.AutoOcr.Stations
 
             // ── 工位 2 信号注册 ──
 
-            // 全局作用域信号
-            _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下));
-            _sync.Register(nameof(WorkstationSignals.工位2人工下料完成));
+            _sync.Register(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
+            _sync.Register(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
 
             // 局部作用域信号
             _sync.Register(nameof(WorkstationSignals.工位2允许拉料), scope: E_WorkStation.工位2上下料工站.ToString());
@@ -125,6 +155,22 @@ namespace PF.WorkStation.AutoOcr.Stations
             _sync.Register(nameof(WorkstationSignals.工位2退料完成), scope: E_WorkStation.工位2拉料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位2允许检测), scope: E_WorkStation.工位2拉料工站.ToString());
             _sync.Register(nameof(WorkstationSignals.工位2检测完成), scope: E_WorkStation.OCR检测工站.ToString());
+
+
+            _sync.Register(nameof(WorkstationSignals.检测模组复位完成), maxCount: 2, scope: "复位");
+
+            _sync.Register(nameof(WorkstationSignals.工位1拉料复位完成), scope: "复位");
+
+            _sync.Register(nameof(WorkstationSignals.工位2拉料复位完成), scope: "复位");
+            MasterAlarmTriggered += AutoOCRMachineController_MasterAlarmTriggered;
+        }
+
+        private void AutoOCRMachineController_MasterAlarmTriggered(object? sender, StationAlarmEventArgs e)
+        {
+            if (MasterCameFromInitAlarm)
+            {
+                _sync?.ResetScope("复位");
+            }
         }
 
         #endregion
@@ -133,28 +179,142 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         /// <summary>
         /// 拦截并处理底层广播的物理硬件输入事件。
-        /// 扩展了基类的标准按键处理，追加了具体工站的启动信号释放与安全监控启动机制。
+        /// 工位1/2安全门使用独立通道（SafeDoor1/SafeDoor2），直接在此处理，不走基类通用 SafeDoor 路径。
+        /// 其余标准输入（Start/Pause/Reset）仍由基类路由。
         /// </summary>
         /// <param name="inputType">事件类型标识符</param>
         protected override void OnHardwareInputReceived(string inputType)
         {
-            // 优先执行基类中封装的标准路由 (如标准 Start/Stop/Reset/Pause 状态机流转)
-            base.OnHardwareInputReceived(inputType);
-
-            // 处理特定于本扩展机台的物理按键逻辑
+            // 工位独立安全门：PauseAll + 触发各自专属报警码，不调用基类（基类只处理通用 SafeDoor）
             switch (inputType)
             {
-                case HardwareInputTypeExtension.WorkStation1Start:
-                    _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下));
-                    _hardwareInputMonitor.StartSafetyMonitoring();
-                    break;
+                case HardwareInputType.SafeDoor1:
+                    PauseAll();
+                    TriggerMasterAlarm(AlarmCodes.Safety.SafeDoorOpen1);
+                    return;
+                case HardwareInputType.SafeDoor2:
+                    PauseAll();
+                    TriggerMasterAlarm(AlarmCodes.Safety.SafeDoorOpen2);
+                    return;
+            }
 
-                case HardwareInputTypeExtension.WorkStation2Start:
-                    _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下));
-                    _hardwareInputMonitor.StartSafetyMonitoring();
-                    break;
+            // 优先执行基类中封装的标准路由 (如标准 Start/Stop/Reset/Pause 状态机流转)
+            base.OnHardwareInputReceived(inputType);
+            if (CurrentState == Core.Enums.MachineState.Running)
+            {
+                switch (inputType)
+                {
+                    case HardwareInputTypeExtension.WorkStation1Start:
+                        _sync.Release(nameof(WorkstationSignals.工位1启动按钮按下), scope: E_WorkStation.工位1上下料工站.ToString());
+                        break;
+                    case HardwareInputTypeExtension.WorkStation2Start:
+                        _sync.Release(nameof(WorkstationSignals.工位2启动按钮按下), scope: E_WorkStation.工位2上下料工站.ToString());
+                        break;
+                }
+            }
+        }
 
+
+
+
+        private void OnParamChanged(object? sender, ParamChangedEventArgs e)
+        {
+            if (!_reinitTriggerParams.Contains(e.ParamName)) return;
+            _isReinitializationRequired = true;
+            ReinitializationRequired?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// 监听主控状态变迁，根据状态驱动 Safety 监控线程的启停。
+        /// Running  → 启动 Safety 监控（此时屏蔽参数会被重新从数据库加载）。
+        /// 安全门监控需在 Running / Paused / Idle / Alarm 等所有运行态下保持运行，
+        /// 否则安全门关闭的恢复事件无法被检测到，导致 ClearAlarm 不被调用，
+        /// 下一次安全门触发时报警服务因去重而无法弹窗。
+        /// Standard 监控由 App.xaml.cs 在启动画面结束后统一启动，此处不干预。
+        /// </summary>
+        private void OnMasterStateChanged(object? sender, Core.Enums.MachineState newState)
+        {
+            try
+            {
+                // 从 Initializing → Idle 表示初始化成功，清除重初始化标记
+                if (newState == Core.Enums.MachineState.Idle
+                    && _previousState == Core.Enums.MachineState.Initializing)
+                {
+                    _isReinitializationRequired = false;
+                }
+                _previousState = newState;
+
+                if (newState == Core.Enums.MachineState.Running)
+                {
+                    _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
+                    _hardwareInputMonitor.StartSafetyMonitoring();
+                    // 兜底：清除 IsEnabled 残留的 false 状态，确保安全门监控有效
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+                }
+                else if (newState == Core.Enums.MachineState.Paused)
+                {
+                    _logger.Info("【主控】机台进入 Paused，禁用安全门检测（允许操作员进门查看）...");
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
+                }
+                else if (newState == Core.Enums.MachineState.Uninitialized)
+                {
+                    _hardwareInputMonitor.StopSafetyMonitoring();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"【主控】Safety 监控状态切换异常：{ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Hardware Restore Routing (安全信号恢复路由)
+
+        /// <summary>
+        /// 安全门关闭时，仅清除该扇门自身的报警并重新启用其检测。
+        /// 工位1/2各自独立处理，互不影响。其余通用安全门走基类路径。
+        /// </summary>
+        protected override void OnHardwareInputRestored(string inputType)
+        {
+            switch (inputType)
+            {
+                case HardwareInputType.SafeDoor1:
+                {
+                    var door = _hardwareInputMonitor.GetSafetyDoorSnapshot()
+                        .FirstOrDefault(d => d.Name == nameof(E_InPutName.工位1门锁));
+                    if (door?.IsActive == false)
+                    {
+                        ClearMasterAlarm(AlarmCodes.Safety.SafeDoorOpen1);
+                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                        _logger.Info("【主控】工位1安全门已关闭，清除报警并重新启用检测。");
+                    }
+                    else
+                    {
+                        _logger.Info("【主控】工位1安全门仍处于开启状态，保持报警激活。");
+                    }
+                    break;
+                }
+                case HardwareInputType.SafeDoor2:
+                {
+                    var door = _hardwareInputMonitor.GetSafetyDoorSnapshot()
+                        .FirstOrDefault(d => d.Name == nameof(E_InPutName.工位2门锁));
+                    if (door?.IsActive == false)
+                    {
+                        ClearMasterAlarm(AlarmCodes.Safety.SafeDoorOpen2);
+                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+                        _logger.Info("【主控】工位2安全门已关闭，清除报警并重新启用检测。");
+                    }
+                    else
+                    {
+                        _logger.Info("【主控】工位2安全门仍处于开启状态，保持报警激活。");
+                    }
+                    break;
+                }
                 default:
+                    base.OnHardwareInputRestored(inputType);
                     break;
             }
         }
@@ -180,6 +340,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             else
             {
                 _logger.Info("【主控】运行期报警复位，保留信号量以支持断点续跑。");
+                _sync.ResetScope("复位");
             }
         }
 

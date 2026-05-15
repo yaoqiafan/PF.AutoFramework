@@ -1,0 +1,195 @@
+<UserControl
+    x:Class="PF.WorkStation.AutoOcr.UI.UserControls.WaferSlotDetailView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:PF.WorkStation.AutoOcr.UI.Converters"
+    xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.UserControls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    MinWidth="500"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <Border Padding="24" Background="{DynamicResource RegionColorBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="220" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  标题行：层号 + 状态徽章  -->
+            <Grid Grid.Row="0">
+                <TextBlock
+                    FontSize="{DynamicResource FontSize.H1.Large}"
+                    FontWeight="Bold"
+                    Text="{Binding DisplayIndex, StringFormat=第 {0} 层  检测详情}" />
+                <Border
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Padding="12,4"
+                    CornerRadius="4"
+                    Background="{Binding StatusBrush}">
+                    <TextBlock
+                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="{Binding StatusText}" />
+                </Border>
+            </Grid>
+
+            <Separator Grid.Row="1" Margin="0,2" Background="{DynamicResource BorderBrush}" Opacity="0.5" />
+
+            <!--  检测数据表格  -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!--  行0：检测时间 / 客户批次  -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="检测时间：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DetectionTime}" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="客户批次：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding CustomerBatch}" />
+
+                <!--  行1：内部批次 / 晶圆 ID  -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="内部批次：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InternalBatchId}" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="晶圆 ID：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding WaferId}" />
+
+                <!--  行2：产品型号 / 操作员  -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="产品型号：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProductModel}" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="操作员：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding OperatorId}" />
+
+                <!--  行3：配方名称（单值横跨）  -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="配方名称：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding RecipeName}" />
+
+                <!--  行4：OCR 值（可能较长，自动换行）  -->
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="OCR 值：" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,6,0,6" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding OcrText}" TextWrapping="Wrap" Margin="0,6,0,6" />
+
+                <!--  行5：条码1 / 条码2（条码2无值时标签和值均隐藏）  -->
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="条　码1：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Barcode1}" />
+                <TextBlock Grid.Row="5" Grid.Column="2" Text="条　码2：" FontWeight="SemiBold"
+                    Visibility="{Binding HasBarcode2, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Grid.Row="5" Grid.Column="3" Text="{Binding Barcode2}"
+                    Visibility="{Binding HasBarcode2, Converter={StaticResource BoolToVis}}" />
+
+                <!--  行6：条码3（无值时整行折叠）  -->
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="条　码3：" FontWeight="SemiBold" Margin="0,6,0,0"
+                    VerticalAlignment="Top"
+                    Visibility="{Binding HasBarcode3, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding Barcode3}" Margin="0,6,0,0"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding HasBarcode3, Converter={StaticResource BoolToVis}}" />
+
+                <!--  行7：匹配结果  -->
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="匹配结果：" FontWeight="SemiBold" Margin="0,6,0,0" VerticalAlignment="Top" />
+                <Border
+                    Grid.Row="7"
+                    Grid.Column="1"
+                    Margin="0,8,0,6"
+                    Padding="10,2"
+                    HorizontalAlignment="Left"
+                    CornerRadius="4">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="#E8F5E9" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                    <Setter Property="Background" Value="#FFEBEE" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontWeight="Bold">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="✓  OK" />
+                                <Setter Property="Foreground" Value="#2E7D32" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMatch}" Value="False">
+                                        <Setter Property="Text" Value="✗  NG" />
+                                        <Setter Property="Foreground" Value="#C62828" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <!--  行8：错误信息（NG 且有有效错误内容时显示）  -->
+                <TextBlock
+                    Grid.Row="8" Grid.Column="0"
+                    Margin="0,4,0,8"
+                    VerticalAlignment="Top"
+                    Text="错误信息："
+                    FontWeight="SemiBold"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                <TextBlock
+                    Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"
+                    Margin="0,4,0,8"
+                    Foreground="#C62828"
+                    Text="{Binding ErrorMessage}"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+            </Grid>
+
+            <!--  原图预览  -->
+            <local:ZoomableImageViewer
+                Grid.Row="4"
+                AnnotationContent="{Binding DetectionData}"
+                Source="{Binding ImagePath}" />
+
+            <!--  底部按钮行  -->
+            <StackPanel
+                Grid.Row="6"
+                HorizontalAlignment="Right"
+                Orientation="Horizontal">
+                <Button
+                    Height="36"
+                    MinWidth="100"
+                    Margin="0,0,12,0"
+                    Click="OnExportScreenshot"
+                    Content="导出截图"
+                    Style="{DynamicResource ButtonDefault}" />
+                <Button
+                    Height="36"
+                    MinWidth="90"
+                    Command="{Binding CancelCommand}"
+                    Content="关  闭"
+                    Style="{DynamicResource ButtonDefault}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

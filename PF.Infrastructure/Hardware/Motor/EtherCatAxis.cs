@@ -72,6 +72,19 @@ namespace PF.Infrastructure.Hardware.Motor
             return ParentCard!.ClearAxisError (AxisIndex);
         }
 
+        /// <summary>
+        /// 仅清除驱动器层报警标志（不清除轴错误码，用于硬件清警路径）
+        /// </summary>
+        protected override Task InternalResetHardwareAlarmAsync(CancellationToken token)
+        {
+            EnsureCardAttached();
+            if (IsSimulated)
+            {
+                return Task.CompletedTask;
+            }
+            return ParentCard!.ClearAxisError(AxisIndex);
+        }
+
 
 
         // ── 私有工具 ────────────────────────────────────────────────────────────
@@ -103,10 +116,10 @@ namespace PF.Infrastructure.Hardware.Motor
             var ios = ParentCard.GetMotionIOStatus(AxisIndex);
             if (ios.ALM && !HasAlarm )
                 RaiseAlarm(AlarmCodes.Hardware.ServoError,
-                    $"轴[{AxisIndex}]伺服驱动器报警（ALM 信号有效）");
+                    $"轴[{AxisIndex}]-{DeviceName}伺服驱动器报警（ALM 信号有效）");
             else if ((ios.PEL || ios.MEL) && !HasAlarm && !ios.Homing)
                 RaiseAlarm(AlarmCodes.Hardware.AxisLimitError,
-                    $"轴[{AxisIndex}]限位保护触发（PEL={ios.PEL}, MEL={ios.MEL}）");
+                    $"轴[{AxisIndex}]-{DeviceName}限位保护触发（PEL={ios.PEL}, MEL={ios.MEL}）");
             return Task.CompletedTask;
         }
     }

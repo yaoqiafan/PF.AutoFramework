@@ -2,8 +2,10 @@
 using PF.Core.Enums;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace PF.Core.Entities.Configuration
@@ -16,7 +18,7 @@ namespace PF.Core.Entities.Configuration
         /// <summary>
         /// 全局最低日志记录级别
         /// </summary>
-        public LogLevel MinimumLevel { get; set; } = LogLevel.Info;
+        public LogLevel MinimumLevel { get; set; } = LogLevel.Debug;
 
         /// <summary>
         /// 是否启用UI界面日志显示
@@ -71,6 +73,97 @@ namespace PF.Core.Entities.Configuration
             new Dictionary<string, CategoryConfig>();
 
         /// <summary>
+        /// 默认配置文件名
+        /// </summary>
+        public const string DefaultConfigFileName = "log_config.json";
+
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            WriteIndented = true,
+            PropertyNameCaseInsensitive = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        };
+
+        /// <summary>
+        /// 保存配置到本地 JSON 文件
+        /// </summary>
+        public void Save(string filePath)
+        {
+            var dir = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            var json = JsonSerializer.Serialize(this, _jsonOptions);
+            File.WriteAllText(filePath, json, Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// 从本地 JSON 文件加载配置，文件不存在时返回默认配置
+        /// </summary>
+        public static LogConfiguration LoadOrDefault(string filePath)
+        {
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    var json = File.ReadAllText(filePath, Encoding.UTF8);
+                    var config = JsonSerializer.Deserialize<LogConfiguration>(json, _jsonOptions);
+                    if (config != null && config.Categories.Count > 0)
+                        return config;
+                }
+                else
+                {
+                    var configdefault = CreateDefaultLogConfiguration().ConfigureDefaultCategories();
+
+                    string strjson = JsonSerializer.Serialize<LogConfiguration>(configdefault, _jsonOptions);
+
+                    File.WriteAllText(filePath, strjson);
+
+                    if (configdefault != null && configdefault.Categories.Count > 0)
+                        return configdefault;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LogConfiguration] 加载配置文件失败，使用默认配置: {ex.Message}");
+            }
+                return CreateDefaultLogConfiguration().ConfigureDefaultCategories();
+        }
+
+
+
+        private static LogConfiguration CreateDefaultLogConfiguration()
+        {
+            //var appBasePath = AppDomain.CurrentDomain.BaseDirectory;
+            var logBasePath = "D://PF_Logs";
+
+            var config = new LogConfiguration
+            {
+                BasePath = logBasePath,
+                HistoricalLogPath = logBasePath,
+                EnableConsoleLogging = true,
+                EnableFileLogging = true,
+                EnableUiLogging = true,
+                MinimumLevel = LogLevel.Debug,
+                AutoDeleteLogs = true,
+                AutoDeleteIntervalDays = 30,
+                MaxUiEntries = 1000,
+                SplitByHour = false
+            };
+            config.ConfigureDefaultCategories();
+            config.AddCategory(LogCategories.Custom, LogLevel.Warn, LogCategories.Custom);
+            return config;
+        }
+
+        /// <summary>
+        /// 获取默认配置文件路径（应用程序根目录下）
+        /// </summary>
+        public static string GetDefaultFilePath() =>
+            Path.Combine(ConstGlobalParam.ConfigPath, DefaultConfigFileName);
+
+        /// <summary>
         /// 配置默认分类
         /// </summary>
         public LogConfiguration ConfigureDefaultCategories()
@@ -89,6 +182,7 @@ namespace PF.Core.Entities.Configuration
 
             // 默认分类 - 未明确分类的日志
             AddCategory("Default", LogLevel.Info, "General");
+
             //硬件日志 - 记录硬件调试
             AddCategory(LogCategories.HaraWare, LogLevel.Debug, LogCategories.HaraWare);
 

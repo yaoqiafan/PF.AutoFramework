@@ -18,19 +18,27 @@ echo.
 :: ==========================================
 :: 阶段 1：清理旧工作区
 :: ==========================================
-echo [1/2] 清理旧缓存与编译文件...
+echo [1/3] 清理旧缓存与编译文件...
 if exist "%NUPKG_DIR%" rd /s /q "%NUPKG_DIR%"
 mkdir "%NUPKG_DIR%"
 :: 清理整个解决方案
 dotnet clean -c Release >nul
 
 :: ==========================================
-:: 阶段 2：编译与打包
+:: 阶段 2：还原依赖包
 :: ==========================================
 echo.
-echo [2/2] 正在按依赖顺序编译并打包到本地目录... 
+echo [2/3] 正在还原 NuGet 依赖包...
+dotnet restore
+if %ERRORLEVEL% NEQ 0 goto :ERROR_EXIT
+
+:: ==========================================
+:: 阶段 3：编译与打包
+:: ==========================================
+echo.
+echo [3/3] 正在按依赖顺序编译并打包到本地目录...
 :: 1. 编译 (Release 模式)
-dotnet build -c Release
+dotnet build -c Release --no-restore
 if %ERRORLEVEL% NEQ 0 goto :ERROR_EXIT
 
 :: 2. 打包所有项目到指定目录

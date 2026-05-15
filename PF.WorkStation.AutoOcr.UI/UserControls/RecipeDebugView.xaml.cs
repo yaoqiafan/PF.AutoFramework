@@ -1,31 +1,42 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace PF.WorkStation.AutoOcr.UI.UserControls
 {
-    /// <summary>
-    /// RecipeDebugView.xaml 的交互逻辑
-    /// </summary>
     public partial class RecipeDebugView : UserControl
     {
-        /// <summary>
-        /// RecipeDebugView 构造函数
-        /// </summary>
+        private MiniDebugWindow? _miniWindow;
+
         public RecipeDebugView()
         {
             InitializeComponent();
+        }
+
+        private void BtnMiniMode_Click(object sender, RoutedEventArgs e)
+        {
+            if (_miniWindow?.IsVisible == true)
+            {
+                _miniWindow.Activate();
+                return;
+            }
+
+            var dialogWindow = Window.GetWindow(this);
+            var mainWindow = Application.Current.MainWindow;
+
+            _miniWindow = new MiniDebugWindow { DataContext = DataContext };
+            _miniWindow.OnClosed = () =>
+            {
+                dialogWindow?.Show();
+                if (mainWindow != null)
+                    mainWindow.WindowState = WindowState.Normal;
+                dialogWindow?.Activate();
+            };
+
+            dialogWindow?.Hide();
+            if (mainWindow != null && mainWindow != dialogWindow)
+                mainWindow.WindowState = WindowState.Minimized;
+
+            _miniWindow.Show();
         }
     }
 }

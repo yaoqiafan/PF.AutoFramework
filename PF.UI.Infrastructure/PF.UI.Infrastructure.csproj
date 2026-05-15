@@ -1,12 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+
+	<ItemGroup>
+	  <None Remove="HardwareImage\IO模块.png" />
+	  <None Remove="HardwareImage\安全门.png" />
+	  <None Remove="HardwareImage\控制器.png" />
+	  <None Remove="HardwareImage\海康读码器.png" />
+	  <None Remove="HardwareImage\相机.png" />
+	  <None Remove="HardwareImage\运动控制卡.png" />
+	  <None Remove="HardwareImage\驱动器.png" />
+	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
 	  <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Resource Include="HardwareImage\IO模块.png" />
+	  <Resource Include="HardwareImage\安全门.png" />
+	  <Resource Include="HardwareImage\控制器.png" />
+	  <Resource Include="HardwareImage\海康读码器.png" />
+	  <Resource Include="HardwareImage\相机.png" />
+	  <Resource Include="HardwareImage\运动控制卡.png" />
+	  <Resource Include="HardwareImage\驱动器.png" />
 	</ItemGroup>
 
 	<PropertyGroup>

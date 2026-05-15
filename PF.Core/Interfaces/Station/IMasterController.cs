@@ -13,7 +13,7 @@ namespace PF.Core.Interfaces.Station
     /// 全局主控调度器接口。
     /// 负责统筹和协调整个机台或生产线上所有子工站的生命周期、状态流转以及运行模式控制。
     /// </summary>
-    public interface IMasterController
+    public interface IMasterController: IDisposable
     {
         /// <summary>
         /// 获取当前主控调度器所处的设备运行状态（如：未初始化、待机、运行中、报警等）。
@@ -29,6 +29,17 @@ namespace PF.Core.Interfaces.Station
         /// 当主控调度器的运行状态发生流转/改变时触发的事件。
         /// </summary>
         event EventHandler<MachineState> MasterStateChanged;
+
+        /// <summary>
+        /// 指示当前是否因参数变更而需要重新初始化设备。
+        /// 当工位屏蔽参数发生变更时置为 true，初始化成功后（进入 Idle）自动清除。
+        /// </summary>
+        bool IsReinitializationRequired { get; }
+
+        /// <summary>
+        /// 当检测到需要重新初始化设备的参数变更时触发。
+        /// </summary>
+        event EventHandler? ReinitializationRequired;
 
         /// <summary>
         /// 丰富报警事件，当主控或任一子工站触发真实报警时引发，携带硬件名、运行时消息及错误码等上下文。
@@ -99,5 +110,19 @@ namespace PF.Core.Interfaces.Station
         /// </summary>
         /// <returns>表示异步系统复位操作的任务</returns>
         Task RequestSystemResetAsync();
+
+        /// <summary>
+        /// 清空机台上所有子工站的记忆参数（仅允许在未初始化状态下调用）。
+        /// 将每个工站的内存参数重置为默认值，并删除对应的磁盘持久化文件。
+        /// </summary>
+        /// <exception cref="InvalidOperationException">当设备不处于未初始化状态时抛出。</exception>
+        void ClearAllStationMemory();
+
+        /// <summary>
+        /// 清空指定名称工站的记忆参数（仅允许在未初始化状态下调用）。
+        /// </summary>
+        /// <param name="stationName">工站名称，对应 <c>StationBase.StationName</c></param>
+        /// <exception cref="InvalidOperationException">当设备不处于未初始化状态时抛出。</exception>
+        void ClearStationMemory(string stationName);
     }
 }

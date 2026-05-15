@@ -1,10 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 	<ItemGroup>
+	  <None Remove="ModelImages\上晶圆-成品.png" />
+	  <None Remove="ModelImages\夹爪-成品.png" />
+	  <None Remove="ModelImages\整机-成品.png" />
+	  <None Remove="ModelImages\视觉龙门-成品.png" />
+	  <None Remove="ModelImages\轨道-成品.png" />
+	</ItemGroup>
+	<ItemGroup>
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.WorkStation.AutoOcr\PF.WorkStation.AutoOcr.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Resource Include="ModelImages\上晶圆-成品.png" />
+	  <Resource Include="ModelImages\夹爪-成品.png" />
+	  <Resource Include="ModelImages\整机-成品.png" />
+	  <Resource Include="ModelImages\视觉龙门-成品.png" />
+	  <Resource Include="ModelImages\轨道-成品.png" />
 	</ItemGroup>
 </Project>

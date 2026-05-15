@@ -153,13 +153,6 @@
                     <Button
                         Width="90"
                         Margin="5"
-                        Command="{Binding Connection.ConnectCommand}"
-                        Content="🔗 连接"
-                        Style="{StaticResource PrimaryButtonStyle}" />
-
-                    <Button
-                        Width="90"
-                        Margin="5"
                         Command="{Binding Connection.DisconnectCommand}"
                         Content="✖ 断开"
                         Style="{StaticResource DangerButtonStyle}" />

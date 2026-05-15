@@ -2,6 +2,7 @@ using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using PF.Modules.Alarm.Dialogs;
 using PF.Modules.Alarm.ViewModels;
 using PF.Modules.Alarm.Views;
@@ -17,13 +18,13 @@ namespace PF.Modules.Alarm
     public class AlarmModule : IModule
     {
         private readonly IRegionManager _regionManager;
-        private readonly ILogService _logService;
+        private readonly CategoryLogger _uiLogger;
 
         /// <summary>初始化报警模块</summary>
         public AlarmModule(IRegionManager regionManager, ILogService logService)
         {
             _regionManager = regionManager;
-            _logService    = logService;
+            _uiLogger = CategoryLoggerFactory.UI(logService);
         }
 
         /// <summary>注册报警模块的视图和对话框</summary>
@@ -52,11 +53,11 @@ namespace PF.Modules.Alarm
                 var dictService = containerProvider.Resolve<IAlarmDictionaryService>();
                 await dictService.InitializeAsync();
 
-                _logService.Info("报警模块初始化完成", "AlarmModule");
+                _uiLogger.Info("报警模块初始化完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("报警模块初始化失败", "AlarmModule", ex);
+                _uiLogger.Error("报警模块初始化失败", ex);
             }
 
             // 扫描当前程序集，自动注册菜单导航项

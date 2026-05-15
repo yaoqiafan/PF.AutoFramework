@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.WorkStation.AutoOcr.UI.Views.Mechanisms"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="800"
     d:DesignWidth="1100"
@@ -248,11 +249,18 @@
                                     Margin="0,0,0,5"
                                     Foreground="Gray"
                                     Text="核心业务流测试" />
-                                <Button
-                                    Height="35"
-                                    Margin="0,0,0,5"
-                                    Command="{Binding SearchLayerCommand}"
-                                    Content="执行: Z轴扫描寻层 (SearchLayer)" />
+
+                                <StackPanel Margin="0,0,0,5" Orientation="Horizontal">
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="次数："></TextBlock>
+                                    <pf:NumericUpDown Width="55" Margin="10,0" x:Name="times"></pf:NumericUpDown>
+                                    <Button HorizontalAlignment="Right"
+                                        Height="35"
+                                        Command="{Binding SearchLayerCommand}"
+                                        Content="执行: Z轴扫描寻层 (SearchLayer)" CommandParameter="{Binding ElementName=times, Path=Value}" />
+
+                                   
+                                </StackPanel>
+
 
                                 <Grid Margin="0,0,0,5">
                                     <Grid.ColumnDefinitions>
@@ -279,7 +287,50 @@
                                         Content="执行: 切换层" />
                                 </Grid>
 
-                              
+                                <TextBlock
+                                    Margin="0,10,0,5"
+                                    Foreground="Gray"
+                                    Text="挡料X轴快捷移动" />
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="5" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column="0"
+                                        Height="35"
+                                        Command="{Binding MoveXToStandbyCommand}"
+                                        Content="X轴 → 待机位" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Height="35"
+                                        Command="{Binding MoveXToStopperCommand}"
+                                        Content="X轴 → 挡料位" />
+                                </Grid>
+
+                                <TextBlock
+                                    Margin="0,0,0,5"
+                                    Foreground="Gray"
+                                    Text="凸片传感器控制" />
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="5" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        Grid.Column="0"
+                                        Height="35"
+                                        Command="{Binding SetThrustWasherOnCommand}"
+                                        Content="打开凸片检测" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Height="35"
+                                        Command="{Binding SetThrustWasherOffCommand}"
+                                        Content="关闭凸片检测" />
+                                </Grid>
+
                             </StackPanel>
                         </ScrollViewer>
                     </GroupBox>
@@ -454,7 +505,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsErrorLayer1}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -472,7 +523,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsErrorLayer2}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -490,7 +541,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsIronTabDetected}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -509,7 +560,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is8InchIronReverse}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -528,7 +579,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is12InchIronReverse}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -547,7 +598,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is8InchStopRod}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -566,7 +617,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is12InchStopRod1}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -585,7 +636,7 @@
                                                 <Ellipse.Style>
                                                     <Style BasedOn="{StaticResource IoLightBaseStyle}" TargetType="Ellipse">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsGripperOpen}" Value="True">
+                                                            <DataTrigger Binding="{Binding Is12InchStopRod2}" Value="True">
                                                                 <Setter Property="Fill" Value="#2ECC71" />
                                                             </DataTrigger>
                                                         </Style.Triggers>

@@ -2,8 +2,10 @@
 using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Infrastructure.Communication.TCP;
+using PF.Infrastructure.Logging;
 using PF.SecsGem.DataBase.Entities.System;
 using PF.Infrastructure.SecsGem.Tools;
 using System.Collections.Concurrent;
@@ -20,7 +22,7 @@ namespace PF.SecsGem.Service
     public class Worker : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly ILogger<Worker> _logger;
+        private readonly CategoryLogger _commLogger;
 
         #region Parames
         private SecsGemSystemParam? _secsGemSystemParam;
@@ -314,12 +316,12 @@ namespace PF.SecsGem.Service
 
                 if (buffer.Size > 0)
                 {
-                    _logger.LogDebug($"客户端 {e.ClientId} 缓冲区剩余数据: {buffer.Size} 字节");
+                    _commLogger.Debug($"客户端 {e.ClientId} 缓冲区剩余数据: {buffer.Size} 字节");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"处理SecsGem数据时发生错误: {ex.Message}");
+                _commLogger.Error("处理SecsGem数据时发生错误", ex);
             }
         }
 
@@ -347,7 +349,7 @@ namespace PF.SecsGem.Service
             }
             catch (Exception ex)
             {
-                _logger.LogError($"处理本地数据时发生错误: {ex.Message}");
+                _commLogger.Error("处理本地数据时发生错误", ex);
             }
         }
 
@@ -374,12 +376,12 @@ namespace PF.SecsGem.Service
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogInformation("ProcessSecsGemServiceInfo 任务已取消");
+                    _commLogger.Info("ProcessSecsGemServiceInfo 任务已取消");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"ProcessSecsGemServiceInfo 任务异常: {ex.Message}");
+                    _commLogger.Error("ProcessSecsGemServiceInfo 任务异常", ex);
                 }
             }
         }
@@ -404,7 +406,7 @@ namespace PF.SecsGem.Service
             }
             catch (Exception ex)
             {
-                _logger.LogError($"处理SecsGem消息时发生错误: {ex.Message}");
+                _commLogger.Error("处理SecsGem消息时发生错误", ex);
             }
         }
 
@@ -430,7 +432,7 @@ namespace PF.SecsGem.Service
             else if (linkTest == 9) message.LinkNumber = 10;
             else
             {
-                _logger.LogWarning($"未知的LinkTest值: {linkTest}");
+                _commLogger.Warn($"未知的LinkTest值: {linkTest}");
                 return;
             }
 
@@ -448,9 +450,9 @@ namespace PF.SecsGem.Service
         /// <summary>
         /// 初始化实例
         /// </summary>
-        public Worker(ILogger<Worker> logger, IServiceScopeFactory scopeFactory)
+        public Worker(ILogService logService, IServiceScopeFactory scopeFactory)
         {
-            _logger = logger;
+            _commLogger = CategoryLoggerFactory.Communication(logService);
             _scopeFactory = scopeFactory;
         }
 
@@ -464,7 +466,7 @@ namespace PF.SecsGem.Service
                 _secsGemSystemParam = (await manger0.GetAllAsync()).Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
             }
 
-            _logger.LogInformation("SecsGem 后台工作线程已启动");
+            _commLogger.Info("SecsGem 后台工作线程已启动");
 
             try
             {
@@ -490,15 +492,15 @@ namespace PF.SecsGem.Service
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("SecsGem 后台工作线程收到停止信号");
+                _commLogger.Info("SecsGem 后台工作线程收到停止信号");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "SecsGem 后台工作线程执行时发生错误");
+                _commLogger.Error("SecsGem 后台工作线程执行时发生错误", ex);
             }
             finally
             {
-                _logger.LogInformation("SecsGem 后台工作线程已停止");
+                _commLogger.Info("SecsGem 后台工作线程已停止");
             }
         }
 
@@ -526,11 +528,11 @@ namespace PF.SecsGem.Service
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("WriteLog 任务已取消");
+                _commLogger.Info("WriteLog 任务已取消");
             }
             catch (Exception ex)
             {
-                _logger.LogError("WriteLog 任务错误" + ex.Message + ex.StackTrace);
+                _commLogger.Error("WriteLog 任务错误", ex);
             }
         }
 
@@ -563,7 +565,7 @@ namespace PF.SecsGem.Service
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError("WriteCustomLog 任务错误" + ex.Message + ex.StackTrace);
+                        _commLogger.Error("WriteCustomLog 任务错误", ex);
                     }
                 }
             });

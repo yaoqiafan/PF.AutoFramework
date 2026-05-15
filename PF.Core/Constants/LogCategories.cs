@@ -24,10 +24,8 @@ namespace PF.Core.Constants
         /// <summary>自定义日志分类</summary>
         public const string Custom = "Custom";
 
-
         /// <summary>硬件日志分类</summary>
         public const string HaraWare = "Hardware";
-
 
         /// <summary>配方日志分类</summary>
         public const string Recipe = "Recipe";

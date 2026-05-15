@@ -111,7 +111,8 @@
                         Content="异常复位"
                         Command="{Binding ConfirmCommand}"
                         FontSize="{DynamicResource FontSize.H1.Large}"
-                        Style="{StaticResource ButtonPrimary}" />
+                        Style="{StaticResource ButtonPrimary}"
+                        Visibility="{Binding ResetButtonVisibility}" />
                 </Grid>
             </Border>
 
