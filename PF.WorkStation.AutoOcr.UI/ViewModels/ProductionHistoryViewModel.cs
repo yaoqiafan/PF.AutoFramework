@@ -169,6 +169,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         public ObservableCollection<MachineDetectionDataWrapper> DataList { get; } = new ObservableCollection<MachineDetectionDataWrapper>();
 
+        private MachineDetectionDataWrapper _currentMachineDetection;
+        /// <summary>获取或设置工位1最新检测数据</summary>
+        public MachineDetectionDataWrapper CurrentMachineDetection
+        {
+            get => _currentMachineDetection;
+            set => SetProperty(ref _currentMachineDetection, value);
+        }
+
+
         // ══════════════════════════════════════════════════════════
         //  命令与构造函数
         // ══════════════════════════════════════════════════════════
