@@ -470,7 +470,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 //    if (OKcodes.Count == _station1ReciepParam.CodeCount)
                 //    {
-                        return Task.FromResult(MechResult<WaferInfo>.Success(new WaferInfo() { CustomerBatch  = "",WaferId=""}));
+                return Task.FromResult(MechResult<WaferInfo>.Success(new WaferInfo() { CustomerBatch = "", WaferId = "" }));
                 //    }
                 //    else
                 //    {
@@ -684,13 +684,26 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
 
         /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
-        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status,string Errormsg ="NONE")
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData)
         {
             var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
             var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
             if (slot == null) return;
             slot.Status = status;
-            slot.ErrorMsg = Errormsg;
+            slot.Time = detectionData.Time;
+            slot.InternalBatchId = detectionData.InternalBatchId;
+            slot.CustomerBatch = detectionData.CustomerBatch;
+            slot.WaferId = detectionData.WaferId;
+            slot.OcrText = detectionData.OcrText;
+            slot.Barcode1 = detectionData.Barcode1;
+            slot.Barcode2 = detectionData.Barcode2;
+            slot.Barcode3 = detectionData.Barcode3;
+            slot.IsMatch = detectionData.IsMatch;
+            slot.ErrorMessage = detectionData.ErrorMessage;
+            slot.ProductModel = detectionData.ProductModel;
+            slot.OperatorId = detectionData.OperatorId;
+            slot.RecipeName = detectionData.RecipeName;
+            slot.ImagePath = detectionData.ImagePath;
             Save(_filepath);
             RaiseDataChanged();
         }
@@ -811,7 +824,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     _logger?.Error($"{MechanismName} 序列化保存失败: {ex.Message}");
                 }
             }
-           
+
         }
 
         /// <summary>
@@ -991,11 +1004,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>当前槽位检测状态</summary>
         public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
-
-        /// <summary>
-        /// 异常原因
-        /// </summary>
-        public string ErrorMsg { get; set; } = "NONE";
     }
 
     #endregion
