@@ -17,6 +17,39 @@
             <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Standard}" />
         </Style>
 
+        <!--  槽位按钮样式：无系统 chrome，外观与 Border 一致，启用时光标变手型  -->
+        <Style x:Key="SlotButtonStyle" TargetType="Button">
+            <Setter Property="Cursor" Value="Arrow" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="SlotBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="True">
+                                <Setter Property="Cursor" Value="Hand" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsEnabled" Value="True" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="SlotBorder" Property="Opacity" Value="0.75" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!--  ButtonGroup 按钮模板：Tag 属性传入悬停字体颜色  -->
         <ControlTemplate x:Key="HoverButtonTemplate" TargetType="RadioButton">
             <Border
@@ -170,12 +203,14 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border
+                                                <Button
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="2"
+                                                    IsEnabled="{Binding IsClickable}"
+                                                    Style="{StaticResource SlotButtonStyle}"
+                                                    Command="{Binding DataContext.Station1ViewSlotDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
@@ -183,7 +218,7 @@
                                                         FontSize="8"
                                                         Foreground="#555555"
                                                         Text="{Binding DisplayIndex}" />
-                                                </Border>
+                                                </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -386,12 +421,14 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border
+                                                <Button
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="2"
+                                                    IsEnabled="{Binding IsClickable}"
+                                                    Style="{StaticResource SlotButtonStyle}"
+                                                    Command="{Binding DataContext.Station2ViewSlotDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
@@ -399,7 +436,7 @@
                                                         FontSize="8"
                                                         Foreground="#555555"
                                                         Text="{Binding DisplayIndex}" />
-                                                </Border>
+                                                </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

@@ -1010,6 +1010,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>当前槽位检测状态</summary>
         public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
 
+        /// <summary>检测结果已出（OK/NG），允许点击查看详情</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsClickable => Status == WaferSlotStatus.OK || Status == WaferSlotStatus.NG;
+
         /// <summary>
         /// 监测数据
         /// </summary>
