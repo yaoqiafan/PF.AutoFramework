@@ -1016,6 +1016,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private enum OcrMismatchOverlayState { Idle, AuthFirst, AuthSecond, ManualOcr }
 
         #endregion
+        /// <summary>
+        /// 使用旧的Viewmidel
+        /// </summary>
+        /// <param name="navigationContext"></param>
+        /// <returns></returns>
+        public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
         /// <summary>
         /// 重写基类方法，在 ViewModel 销毁时停止定时器
