@@ -1,4 +1,6 @@
 using Microsoft.Win32;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using PF.Core.Interfaces.Production;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
@@ -7,6 +9,7 @@ using Prism.Commands;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -189,6 +192,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// ClearFilters 命令
         /// </summary>
         public DelegateCommand ClearFiltersCommand { get; }
+
+        /// <summary>
+        /// 导出指令
+        /// </summary>
+        public DelegateCommand ExportLogsCommand { get; }
+
+
+
+
         /// <summary>
         /// ProductionHistoryViewModel 构造函数
         /// </summary>
@@ -198,7 +210,143 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _productionDataService = productionDataService;
             SearchCommand = new DelegateCommand(async () => await OnSearchAsync());
             ClearFiltersCommand = new DelegateCommand(OnClearFilters);
+
+            ExportLogsCommand = new DelegateCommand(ExportLogs);
         }
+
+        private void ExportLogs()
+        {
+
+            try
+            {
+                if (!Records.Any())
+                {
+                    MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
+                    return;
+                }
+                var saveDialog = new SaveFileDialog
+                {
+                    Filter = "Excel 文件 (*.xlsx)|*.xlsx",
+                    FileName = $"Log_Export_{DateTime.Now:yyyyMMdd_HHmmss}",
+                    DefaultExt = ".xlsx"
+                };
+                if (saveDialog.ShowDialog() == true)
+                {
+                    using (XSSFWorkbook wk = new XSSFWorkbook())
+                    {
+                        ISheet sheet = wk.CreateSheet("Data");
+                        sheet.CreateRow(0).CreateCell(0).SetCellValue("记录时间");
+                        sheet.GetRow(0).CreateCell(1).SetCellValue("内部批次号");
+                        sheet.GetRow(0).CreateCell(2).SetCellValue("客户批次");
+                        sheet.GetRow(0).CreateCell(3).SetCellValue("晶圆ID");
+                        sheet.GetRow(0).CreateCell(4).SetCellValue("产品型号");
+                        sheet.GetRow(0).CreateCell(5).SetCellValue("匹配结果");
+                        sheet.GetRow(0).CreateCell(6).SetCellValue("异常信息");
+                        sheet.GetRow(0).CreateCell(7).SetCellValue("OCR文本");
+                        sheet.GetRow(0).CreateCell(8).SetCellValue("条码1");
+                        sheet.GetRow(0).CreateCell(9).SetCellValue("条码2");
+                        sheet.GetRow(0).CreateCell(10).SetCellValue("条码3");
+                        sheet.GetRow(0).CreateCell(11).SetCellValue("操作员工号");
+                        sheet.GetRow(0).CreateCell(12).SetCellValue("配方名称");
+                        sheet.GetRow(0).CreateCell(13).SetCellValue("图片");
+                        sheet.GetRow(0).CreateCell(14).SetCellValue("超链接");
+                        for (int i = 0; i < Records?.Count; i++)
+                        {
+                            sheet.CreateRow(i + 1).CreateCell(0).SetCellValue(Records[i].Data.Time);
+                            sheet.GetRow(i + 1).CreateCell(1).SetCellValue(Records[i].Data.InternalBatchId);
+                            sheet.GetRow(i + 1).CreateCell(2).SetCellValue(Records[i].Data.CustomerBatch);
+                            sheet.GetRow(i + 1).CreateCell(3).SetCellValue(Records[i].Data.WaferId);
+                            sheet.GetRow(i + 1).CreateCell(4).SetCellValue(Records[i].Data.ProductModel);
+                            sheet.GetRow(i + 1).CreateCell(5).SetCellValue(Records[i].Data.IsMatch);
+                            sheet.GetRow(i + 1).CreateCell(6).SetCellValue(Records[i].Data.ErrorMessage);
+                            sheet.GetRow(i + 1).CreateCell(7).SetCellValue(Records[i].Data.OcrText);
+                            sheet.GetRow(i + 1).CreateCell(8).SetCellValue(Records[i].Data.Barcode1);
+                            sheet.GetRow(i + 1).CreateCell(9).SetCellValue(Records[i].Data.Barcode2);
+                            sheet.GetRow(i + 1).CreateCell(10).SetCellValue(Records[i].Data.Barcode3);
+                            sheet.GetRow(i + 1).CreateCell(11).SetCellValue(Records[i].Data.OperatorId);
+                            sheet.GetRow(i + 1).CreateCell(12).SetCellValue(Records[i].Data.RecipeName);
+                            WriteImageToExcel(Records[i].Data.ImagePath, wk, sheet, i + 1, 13);
+                            var cell = sheet.GetRow(i + 1).CreateCell(14);
+                            WritehyperlinkToExcel(Records[i].Data.ImagePath, wk, cell);
+                        }
+                        using (FileStream fs = new FileStream(saveDialog.FileName, FileMode.Create, FileAccess.Write))
+                        {
+                            wk.Write(fs);
+                        }
+                    }
+                    MessageService.ShowMessage($"导出成功！\n路径: {saveDialog.FileName}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+           
+        }
+
+
+        /// <summary>
+        /// 向指定表格单元格写入图片(需要添加   SkiaSharp  包)
+        /// </summary>
+        /// <param name="imgPath">图片路径</param>
+        /// <param name="workbook">工作薄</param>
+        /// <param name="sheet">工作表</param>
+        /// <param name="rowindex">行索引</param>
+        /// <param name="colindex">列索引</param>
+
+        private void WriteImageToExcel(string imgPath, IWorkbook workbook, ISheet sheet, int rowindex, int colindex)
+        {
+            try
+            {
+                if (!File.Exists(imgPath))
+                {
+                    return;
+                }
+                byte[] imgBytes = File.ReadAllBytes(imgPath);
+                int picIndex = workbook.AddPicture(imgBytes, NPOI.SS.UserModel.PictureType.PNG);
+                var drawing = sheet.CreateDrawingPatriarch();
+                IClientAnchor anchor = workbook.GetCreationHelper().CreateClientAnchor();
+                anchor.Col1 = colindex;
+                anchor.Row1 = rowindex;
+                anchor.Col2 = colindex + 1;
+                anchor.Row2 = rowindex + 1;
+                IPicture pic = drawing.CreatePicture(anchor, picIndex);
+
+            }
+            catch
+            {
+
+            }
+
+        }
+
+
+        /// <summary>
+        /// 向指定表格单元格写入超链接
+        /// </summary>
+        /// <param name="hyperlink">超链接路径</param>
+        /// <param name="workbook">工作薄</param>
+        /// <param name="cell">单元格</param>
+        private void WritehyperlinkToExcel(string hyperlink, IWorkbook workbook, NPOI.SS.UserModel.ICell cell)
+        {
+            try
+            {
+                var createHelper = workbook.GetCreationHelper();
+                cell.SetCellValue(hyperlink);
+                IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
+                // 建议使用 file:/// 协议，并处理空格
+                link2.Address = $"file:///{hyperlink}";
+                cell.Hyperlink = link2;
+            }
+            catch
+            {
+
+            }
+
+        }
+
+
 
         private void OnClearFilters()
         {
