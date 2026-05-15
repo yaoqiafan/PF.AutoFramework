@@ -383,7 +383,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                             var record = recordsSnapshot[i];
                             IRow dataRow = sheet.CreateRow(i + 1);
                             // ... (数据行填充代码与之前相同)
-                            dataRow.CreateCell(0).SetCellValue(record.Data.Time);
+                            dataRow.CreateCell(0).SetCellValue(record.Data.Time.ToString ());
                             dataRow.CreateCell(1).SetCellValue(record.Data.InternalBatchId);
                             dataRow.CreateCell(2).SetCellValue(record.Data.CustomerBatch);
                             dataRow.CreateCell(3).SetCellValue(record.Data.WaferId);
