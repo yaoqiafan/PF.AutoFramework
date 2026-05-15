@@ -155,6 +155,62 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             set => SetProperty(ref _station2UnloadMaskVisible, value);
         }
 
+        // ── OCR 比对异常遮罩 ─────────────────────────────────────────
+
+        private bool _station1OcrMismatchVisible;
+        /// <summary>工位1 OCR比对异常遮罩层是否可见</summary>
+        public bool Station1OcrMismatchVisible
+        {
+            get => _station1OcrMismatchVisible;
+            private set => SetProperty(ref _station1OcrMismatchVisible, value);
+        }
+
+        private bool _station2OcrMismatchVisible;
+        /// <summary>工位2 OCR比对异常遮罩层是否可见</summary>
+        public bool Station2OcrMismatchVisible
+        {
+            get => _station2OcrMismatchVisible;
+            private set => SetProperty(ref _station2OcrMismatchVisible, value);
+        }
+
+        private string _ocrMismatchOcrText = string.Empty;
+        /// <summary>当前比对失败的 OCR 文本（遮罩展示用）</summary>
+        public string OcrMismatchOcrText
+        {
+            get => _ocrMismatchOcrText;
+            private set => SetProperty(ref _ocrMismatchOcrText, value);
+        }
+
+        private string _ocrMismatchInternalBatchId = string.Empty;
+        /// <summary>当前比对失败所属的内部批次号</summary>
+        public string OcrMismatchInternalBatchId
+        {
+            get => _ocrMismatchInternalBatchId;
+            private set => SetProperty(ref _ocrMismatchInternalBatchId, value);
+        }
+
+        private string _manualOcrText = string.Empty;
+        /// <summary>操作员手动输入的 OCR 值（双向绑定）</summary>
+        public string ManualOcrText
+        {
+            get => _manualOcrText;
+            set
+            {
+                SetProperty(ref _manualOcrText, value);
+                OcrConfirmManualCommand?.RaiseCanExecuteChanged();
+            }
+        }
+
+        private OcrMismatchOverlayState _ocrMismatchState = OcrMismatchOverlayState.Idle;
+        /// <summary>遮罩显示初始选择面板（重试/手动输入）</summary>
+        public bool IsOcrMismatchIdle          => _ocrMismatchState == OcrMismatchOverlayState.Idle;
+        /// <summary>遮罩显示权限不足提示</summary>
+        public bool IsOcrMismatchManualDenied  => _ocrMismatchState == OcrMismatchOverlayState.ManualDenied;
+        /// <summary>遮罩显示手动输入面板</summary>
+        public bool IsOcrMismatchManualAllowed => _ocrMismatchState == OcrMismatchOverlayState.ManualAllowed;
+
+        private OcrMismatchPayload? _ocrMismatchPayload;
+
         // ── 安全门三态指示 ──────────────────────────────────────────
 
         private static readonly Brush _doorActiveBrush  = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // 绿
@@ -370,6 +426,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>工位2槽位详情查看命令（检测完毕后可点击）</summary>
         public DelegateCommand<WaferSlotInfo> Station2ViewSlotDetailCommand { get; }
 
+        /// <summary>OCR比对异常遮罩：重试（相机回检测位重拍）</summary>
+        public DelegateCommand OcrRetryCommand { get; }
+        /// <summary>OCR比对异常遮罩：进入手动输入流程</summary>
+        public DelegateCommand OcrStartManualCommand { get; }
+        /// <summary>OCR比对异常遮罩：确认手动输入（ManualOcrText 非空时可执行）</summary>
+        public DelegateCommand OcrConfirmManualCommand { get; }
+        /// <summary>OCR比对异常遮罩：返回初始选择面板</summary>
+        public DelegateCommand OcrBackCommand { get; }
+
         #endregion
 
         /// <summary>初始化 HomeViewModel</summary>
@@ -384,9 +449,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _sync = containerProvider.Resolve<IStationSyncService>();
             _hardwareInputMonitor = containerProvider.Resolve<IHardwareInputMonitor>();
 
-            // 订阅操作员下料请求事件：弹出确认弹窗，操作员确认后释放同步信号
+            // 订阅操作员下料请求事件：显示下料确认遮罩，操作员确认后释放同步信号
             _eventAggregator.GetEvent<OperatorUnloadRequestedEvent>()
                 .Subscribe(OnOperatorUnloadRequested, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
+
+            // 订阅 OCR 比对异常事件：显示比对异常遮罩，等待操作员决策后通过 TCS 回传结果给站线程
+            _eventAggregator.GetEvent<OcrMismatchRequestedEvent>()
+                .Subscribe(OnOcrMismatchRequested, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
             // 订阅屏蔽参数变更通知：显示横幅提示用户需重新初始化
             _eventAggregator.GetEvent<ReinitializeRequiredEvent>()
@@ -476,6 +545,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             Station1ViewSlotDetailCommand = new DelegateCommand<WaferSlotInfo>(ShowSlotDetail);
             Station2ViewSlotDetailCommand = new DelegateCommand<WaferSlotInfo>(ShowSlotDetail);
+
+            OcrRetryCommand         = new DelegateCommand(OnOcrRetry);
+            OcrStartManualCommand   = new DelegateCommand(OnOcrStartManual);
+            OcrConfirmManualCommand = new DelegateCommand(OnOcrConfirmManual, () => !string.IsNullOrWhiteSpace(_manualOcrText));
+            OcrBackCommand          = new DelegateCommand(() => SetOcrMismatchState(OcrMismatchOverlayState.Idle));
 
             // 订阅数据模块事件
             if (_dataModule != null)
@@ -758,6 +832,69 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Station2UnloadMaskVisible = false;
             _sync.Release(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
         }
+
+        #region OCR 比对异常遮罩处理
+
+        private void OnOcrMismatchRequested(OcrMismatchPayload payload)
+        {
+            _ocrMismatchPayload        = payload;
+            OcrMismatchOcrText         = payload.OcrText;
+            OcrMismatchInternalBatchId = payload.InternalBatchId;
+            ManualOcrText              = payload.OcrText;   // 预填当前失败文本，方便操作员修正
+            SetOcrMismatchState(OcrMismatchOverlayState.Idle);
+
+            if (payload.WorkSpaceName.Contains("工位1"))
+                Station1OcrMismatchVisible = true;
+            else
+                Station2OcrMismatchVisible = true;
+
+            // 站线程取消（停止/急停）时自动收起遮罩，防止孤立 UI
+            payload.StationToken.Register(() =>
+                Application.Current.Dispatcher.InvokeAsync(HideOcrMismatchOverlay));
+        }
+
+        private void OnOcrRetry()
+        {
+            _ocrMismatchPayload?.Tcs.TrySetResult(new OcrMismatchResult { Action = OcrMismatchAction.Retry });
+            HideOcrMismatchOverlay();
+        }
+
+        private void OnOcrStartManual()
+        {
+            SetOcrMismatchState(_userService.IsAuthorized(UserLevel.Engineer)
+                ? OcrMismatchOverlayState.ManualAllowed
+                : OcrMismatchOverlayState.ManualDenied);
+        }
+
+        private void OnOcrConfirmManual()
+        {
+            _ocrMismatchPayload?.Tcs.TrySetResult(new OcrMismatchResult
+            {
+                Action        = OcrMismatchAction.ManualInput,
+                ManualOcrText = ManualOcrText.Trim()
+            });
+            HideOcrMismatchOverlay();
+        }
+
+        private void HideOcrMismatchOverlay()
+        {
+            Station1OcrMismatchVisible = false;
+            Station2OcrMismatchVisible = false;
+            _ocrMismatchPayload        = null;
+            SetOcrMismatchState(OcrMismatchOverlayState.Idle);
+        }
+
+        private void SetOcrMismatchState(OcrMismatchOverlayState state)
+        {
+            _ocrMismatchState = state;
+            RaisePropertyChanged(nameof(IsOcrMismatchIdle));
+            RaisePropertyChanged(nameof(IsOcrMismatchManualDenied));
+            RaisePropertyChanged(nameof(IsOcrMismatchManualAllowed));
+        }
+
+        private enum OcrMismatchOverlayState { Idle, ManualDenied, ManualAllowed }
+
+        #endregion
 
         /// <summary>
         /// 重写基类方法，在 ViewModel 销毁时停止定时器

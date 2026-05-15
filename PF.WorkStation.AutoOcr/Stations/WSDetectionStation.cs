@@ -10,6 +10,7 @@ using PF.Infrastructure.Station.Basic;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
+using Prism.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -115,6 +116,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         private readonly WSDetectionModule? _detectionModule;
         private readonly WSDataModule? _dataModule;
         private readonly IStationSyncService _sync;
+        private readonly IEventAggregator _eventAggregator;
 
         /// <summary>
         /// 记录当前正在服务（抢占成功）的工位标识
@@ -131,6 +133,12 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         private MachineDetectionData? _cachedDetectionData;
 
+        // ── OCR 比对异常交互字段 ──
+        /// <summary>操作员手动输入的 OCR 覆盖文本；null 表示使用相机原始识别结果</summary>
+        private string? _manualOcrOverride;
+        /// <summary>NG 时首次存档的错误图路径；重试时清除</summary>
+        private string? _ngImagePath;
+
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)
@@ -138,13 +146,15 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 初始化检测工站
         /// </summary>
-        public WSDetectionStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger)
+        public WSDetectionStation(IContainerProvider containerProvider, IStationSyncService sync,
+            ILogService logger, IEventAggregator eventAggregator)
             // 接入新架构，将生命周期步序枚举托付给基类管理
             : base(nameof(E_WorkStation.OCR检测工站), logger, StationDetectionStep.等待工位1或工位2允许检测)
         {
-            _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
-            _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
-            _sync = sync;
+            _detectionModule  = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
+            _dataModule       = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
+            _sync             = sync;
+            _eventAggregator  = eventAggregator;
 
             // 订阅底层模组报警，将其上抛至工站级报警流水线
             if (_detectionModule != null)
@@ -176,6 +186,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     case StationDetectionStep.等待工位1或工位2允许检测:
                         _logger.Info($"[{StationName}] 恢复进入双工位信号抢占任务池...");
+                        break;
+                    case StationDetectionStep.数据比对:
+                        // 上次异常中断时可能残留手动覆盖状态，清除后以原始 OCR 重新比对
+                        _manualOcrOverride = null;
+                        _ngImagePath       = null;
+                        _logger.Info($"[{StationName}] 断点续跑：清除手动 OCR 覆盖状态，以原始识别结果重新比对。");
                         break;
                     default:
                         _logger.Info($"[{StationName}] 保持当前龙门动作节点: {_currentStep}");
@@ -487,19 +503,72 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case StationDetectionStep.数据比对:
                             CurrentStepDescription = "OCR数据与MES工单数据交叉比对...";
 
-                            // 请求数据中枢验证当前字符串是否在 MES 允许名单内
-                            var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, _cachedOcrResult.OcrText, token).ConfigureAwait(false);
-                            string path = string.Empty;
+                            // 优先使用操作员手动输入的文本，否则使用相机识别结果
+                            var ocrTextToCheck = _manualOcrOverride ?? _cachedOcrResult.OcrText;
+                            var kk = await _dataModule.CheckOcrTextAsync(_currentworkSpace, ocrTextToCheck, token).ConfigureAwait(false);
 
-                            // [图像存根]
                             if (!kk.IsSuccess)
                             {
-                                // 验证 NG：生成缺陷存档图
-                                path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, new WaferInfo() { CustomerBatch = $"Error_{DateTime.Now:HHmmss}", WaferId = $"ERR_{DateTime.Now:HHmmss}" }, token);
+                                // NG：首次失败时存档错误图，后续重试循环中复用该路径
+                                if (_ngImagePath == null)
+                                {
+                                    _ngImagePath = await _detectionModule.SaveImage(
+                                        _cachedOcrResult.ImagePath, _currentworkSpace,
+                                        new WaferInfo { CustomerBatch = $"Error_{DateTime.Now:HHmmss}", WaferId = $"ERR_{DateTime.Now:HHmmss}" },
+                                        token);
+                                }
+
+                                var internalBatchId = _currentworkSpace == E_WorkSpace.工位1
+                                    ? _dataModule.Station1MesDetectionData.InternalBatchId
+                                    : _dataModule.Station2MesDetectionData.InternalBatchId;
+
+                                var tcs = new TaskCompletionSource<OcrMismatchResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+                                _eventAggregator.GetEvent<OcrMismatchRequestedEvent>().Publish(new OcrMismatchPayload
+                                {
+                                    WorkSpaceName   = _currentworkSpace.ToString(),
+                                    OcrText         = ocrTextToCheck,
+                                    InternalBatchId = internalBatchId,
+                                    Tcs             = tcs,
+                                    StationToken    = token
+                                });
+
+                                _logger.Warn($"[{StationName}] OCR比对 NG（文本：[{ocrTextToCheck}]），等待操作员决策...");
+                                var decision = await tcs.Task.WaitAsync(token).ConfigureAwait(false);
+
+                                if (decision.Action == OcrMismatchAction.Retry)
+                                {
+                                    _logger.Info($"[{StationName}] 操作员选择重试，回到检测位置重新拍照。");
+                                    _manualOcrOverride = null;
+                                    _ngImagePath       = null;
+                                    _currentStep = _currentworkSpace == E_WorkSpace.工位1
+                                        ? StationDetectionStep.去工位1检测位置
+                                        : StationDetectionStep.去工位2检测位置;
+                                }
+                                else
+                                {
+                                    _logger.Info($"[{StationName}] 操作员手动输入 OCR：[{decision.ManualOcrText}]，下一轮重新比对。");
+                                    _manualOcrOverride = decision.ManualOcrText;
+                                    // _currentStep 保持 数据比对，下轮循环用 _manualOcrOverride 重新比对
+                                }
+                                break;
+                            }
+
+                            // ── 比对通过（原始或手动输入均走此路径）────────────────
+                            string path;
+                            if (_manualOcrOverride != null && _ngImagePath != null)
+                            {
+                                // 手动输入通过：尝试以原始相机图正式存档；失败时沿用错误存档路径
+                                try
+                                {
+                                    path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
+                                }
+                                catch
+                                {
+                                    path = _ngImagePath;
+                                }
                             }
                             else
                             {
-                                // 验证 OK：按批次/槽位号正规存档
                                 path = await _detectionModule.SaveImage(_cachedOcrResult.ImagePath, _currentworkSpace, kk.Data, token);
                             }
 
@@ -509,24 +578,26 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 : _dataModule.Station2ScanCodes;
 
                             // 装配用于写入数据库与推给 MES 的单片检测快照实体
-                            _cachedDetectionData = new MachineDetectionData()
+                            _cachedDetectionData = new MachineDetectionData
                             {
-                                CustomerBatch = kk.Data?.CustomerBatch ?? $"Error_{DateTime.Now:HHmmss}",
-                                WaferId = kk.Data?.WaferId ?? $"Error_{DateTime.Now:HHmmss}",
+                                CustomerBatch   = kk.Data?.CustomerBatch   ?? $"Error_{DateTime.Now:HHmmss}",
+                                WaferId         = kk.Data?.WaferId         ?? $"Error_{DateTime.Now:HHmmss}",
                                 InternalBatchId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.InternalBatchId : _dataModule.Station2MesDetectionData.InternalBatchId,
-                                Barcode1 = scanCodes.Count > 0 ? scanCodes[0] : "",
-                                Barcode2 = scanCodes.Count > 1 ? scanCodes[1] : "",
-                                Barcode3 = scanCodes.Count > 2 ? scanCodes[2] : "",
-                                OcrText = _cachedOcrResult.OcrText,
-                                IsMatch = kk.IsSuccess,
-                                ErrorMessage = kk.IsSuccess ? "NONE" : "OCR结果与MES工单不匹配",
-                                ProductModel = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
-                                OperatorId = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.OperatorId : _dataModule.Station2MesDetectionData.OperatorId,
-                                RecipeName = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.RecipeName : _dataModule.Station2MesDetectionData.RecipeName,
-                                ImagePath = path
+                                Barcode1        = scanCodes.Count > 0 ? scanCodes[0] : "",
+                                Barcode2        = scanCodes.Count > 1 ? scanCodes[1] : "",
+                                Barcode3        = scanCodes.Count > 2 ? scanCodes[2] : "",
+                                OcrText         = ocrTextToCheck,
+                                IsMatch         = true,
+                                ErrorMessage    = "NONE",
+                                ProductModel    = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.ProductModel : _dataModule.Station2MesDetectionData.ProductModel,
+                                OperatorId      = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.OperatorId : _dataModule.Station2MesDetectionData.OperatorId,
+                                RecipeName      = _currentworkSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData.RecipeName : _dataModule.Station2MesDetectionData.RecipeName,
+                                ImagePath       = path
                             };
 
-                            _currentStep = StationDetectionStep.写入检测数据;
+                            _manualOcrOverride = null;
+                            _ngImagePath       = null;
+                            _currentStep       = StationDetectionStep.写入检测数据;
                             break;
 
                         #endregion

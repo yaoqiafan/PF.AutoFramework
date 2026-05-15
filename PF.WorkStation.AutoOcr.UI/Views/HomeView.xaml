@@ -7,8 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:usercontrol="clr-namespace:PF.WorkStation.AutoOcr.UI.UserControls"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
+    d:DesignHeight="1080"
+    d:DesignWidth="1920"
     mc:Ignorable="d">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -325,6 +325,114 @@
                                 Style="{DynamicResource ButtonPrimary}" />
                         </StackPanel>
                     </Border>
+
+                    <!--  工位1 OCR比对异常遮罩层  -->
+                    <Border Background="#CC1A1A2E" Visibility="{Binding Station1OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Width="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="22"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="OCR 检测异常" />
+                            <TextBlock
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Center"
+                                FontSize="13"
+                                Foreground="#B0B0C0"
+                                Text="{Binding OcrMismatchOcrText, StringFormat=识别结果：{0}}"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="13"
+                                Foreground="#B0B0C0"
+                                Text="{Binding OcrMismatchInternalBatchId, StringFormat=内部批次：{0}}"
+                                TextAlignment="Center" />
+
+                            <!--  面板1：初始选择（Idle）  -->
+                            <StackPanel
+                                Margin="0,24,0,0"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                Visibility="{Binding IsOcrMismatchIdle, Converter={StaticResource BoolToVis}}">
+                                <Button
+                                    Width="140"
+                                    Height="44"
+                                    Margin="0,0,16,0"
+                                    Command="{Binding OcrRetryCommand}"
+                                    Content="重  试"
+                                    FontSize="15"
+                                    Style="{DynamicResource ButtonDefault}" />
+                                <Button
+                                    Width="140"
+                                    Height="44"
+                                    Command="{Binding OcrStartManualCommand}"
+                                    Content="手动输入"
+                                    FontSize="15"
+                                    Style="{DynamicResource ButtonPrimary}" />
+                            </StackPanel>
+
+                            <!--  面板2：权限不足（ManualDenied）  -->
+                            <StackPanel
+                                Margin="0,20,0,0"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding IsOcrMismatchManualDenied, Converter={StaticResource BoolToVis}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="14"
+                                    Foreground="#FF7043"
+                                    Text="当前用户权限不足（需工程师及以上）" />
+                                <Button
+                                    Width="120"
+                                    Height="40"
+                                    Margin="0,16,0,0"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding OcrBackCommand}"
+                                    Content="返  回"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </StackPanel>
+
+                            <!--  面板3：手动输入（ManualAllowed）  -->
+                            <StackPanel
+                                Margin="0,20,0,0"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding IsOcrMismatchManualAllowed, Converter={StaticResource BoolToVis}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="请输入正确的 OCR 值" />
+                                <TextBox
+                                    Width="320"
+                                    Height="36"
+                                    Margin="0,10,0,0"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="{Binding ManualOcrText, UpdateSourceTrigger=PropertyChanged}" />
+                                <StackPanel
+                                    Margin="0,14,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="130"
+                                        Height="40"
+                                        Margin="0,0,16,0"
+                                        Command="{Binding OcrConfirmManualCommand}"
+                                        Content="确认提交"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Width="100"
+                                        Height="40"
+                                        Command="{Binding OcrBackCommand}"
+                                        Content="返  回"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
                 <Grid Grid.Column="1" Margin="10">
@@ -542,6 +650,114 @@
                                 FontSize="16"
                                 FontWeight="Bold"
                                 Style="{DynamicResource ButtonPrimary}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--  工位2 OCR比对异常遮罩层  -->
+                    <Border Background="#CC1A1A2E" Visibility="{Binding Station2OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Width="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="22"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="OCR 检测异常" />
+                            <TextBlock
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Center"
+                                FontSize="13"
+                                Foreground="#B0B0C0"
+                                Text="{Binding OcrMismatchOcrText, StringFormat=识别结果：{0}}"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="13"
+                                Foreground="#B0B0C0"
+                                Text="{Binding OcrMismatchInternalBatchId, StringFormat=内部批次：{0}}"
+                                TextAlignment="Center" />
+
+                            <!--  面板1：初始选择（Idle）  -->
+                            <StackPanel
+                                Margin="0,24,0,0"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                Visibility="{Binding IsOcrMismatchIdle, Converter={StaticResource BoolToVis}}">
+                                <Button
+                                    Width="140"
+                                    Height="44"
+                                    Margin="0,0,16,0"
+                                    Command="{Binding OcrRetryCommand}"
+                                    Content="重  试"
+                                    FontSize="15"
+                                    Style="{DynamicResource ButtonDefault}" />
+                                <Button
+                                    Width="140"
+                                    Height="44"
+                                    Command="{Binding OcrStartManualCommand}"
+                                    Content="手动输入"
+                                    FontSize="15"
+                                    Style="{DynamicResource ButtonPrimary}" />
+                            </StackPanel>
+
+                            <!--  面板2：权限不足（ManualDenied）  -->
+                            <StackPanel
+                                Margin="0,20,0,0"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding IsOcrMismatchManualDenied, Converter={StaticResource BoolToVis}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="14"
+                                    Foreground="#FF7043"
+                                    Text="当前用户权限不足（需工程师及以上）" />
+                                <Button
+                                    Width="120"
+                                    Height="40"
+                                    Margin="0,16,0,0"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding OcrBackCommand}"
+                                    Content="返  回"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </StackPanel>
+
+                            <!--  面板3：手动输入（ManualAllowed）  -->
+                            <StackPanel
+                                Margin="0,20,0,0"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding IsOcrMismatchManualAllowed, Converter={StaticResource BoolToVis}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="请输入正确的 OCR 值" />
+                                <TextBox
+                                    Width="320"
+                                    Height="36"
+                                    Margin="0,10,0,0"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="{Binding ManualOcrText, UpdateSourceTrigger=PropertyChanged}" />
+                                <StackPanel
+                                    Margin="0,14,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="130"
+                                        Height="40"
+                                        Margin="0,0,16,0"
+                                        Command="{Binding OcrConfirmManualCommand}"
+                                        Content="确认提交"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Width="100"
+                                        Height="40"
+                                        Command="{Binding OcrBackCommand}"
+                                        Content="返  回"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </Grid>
