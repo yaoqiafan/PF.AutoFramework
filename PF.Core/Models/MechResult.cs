@@ -48,12 +48,12 @@ namespace PF.Core.Models
         public static MechResult<T> Success(T data) => new() { IsSuccess = true, Data = data };
 
         /// <summary>创建失败结果</summary>
-        public new static MechResult<T> Fail(string errorCode, string message) => new()
+        public new static MechResult<T> Fail(string errorCode, string message,T data =default) => new()
         {
             IsSuccess = false,
             ErrorCode = errorCode,
             ErrorMessage = message,
-            Data = default
+            Data = data 
         };
     }
 }

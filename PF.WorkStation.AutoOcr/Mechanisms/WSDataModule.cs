@@ -556,7 +556,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -569,12 +569,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else
                     {
-                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位1 OCR格式异常: {ocrtext}"));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位1 OCR格式异常: {ocrtext}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                     }
                 }
                 else if (station == E_WorkSpace.工位2)
@@ -595,7 +595,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
@@ -608,17 +608,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过"));
+                           
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过" ,new WaferInfo() { CustomerBatch = "Error_CustomerBatch" ,WaferId ="NONE"}));
                         }
                     }
                     else
                     {
-                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位2 OCR格式异常: {ocrtext}"));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位2 OCR格式异常: {ocrtext}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                     }
                 }
                 else
                 {
-                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"不支持的工位: {station}"));
+                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"不支持的工位: {station}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                 }
             }
             catch (OperationCanceledException) // 【新增】拦截抛出
@@ -627,7 +628,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
-                return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"OCR校验异常: {ex.Message}"));
+                return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"OCR校验异常: {ex.Message}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
             }
         }
 
