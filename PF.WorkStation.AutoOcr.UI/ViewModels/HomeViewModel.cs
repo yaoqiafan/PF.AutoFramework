@@ -764,6 +764,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                                 return;
                             }
                             Station1RecipeName = recipeName;
+                            _dataModule.Station1MesDetectionData.RecipeName = recipeName;
                         }
                     }
 
@@ -830,6 +831,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                                 return;
                             }
                             Station2RecipeName = recipeName;
+                            _dataModule.Station2MesDetectionData.RecipeName = recipeName;
                         }
                     }
 
