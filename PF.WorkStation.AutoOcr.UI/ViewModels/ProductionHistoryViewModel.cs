@@ -159,6 +159,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
 
+        private bool _isExporting;
+        /// <summary>
+        /// 获取或设置 IsExporting (专门用于控制导出过程的UI状态)
+        /// </summary>
+        public bool IsExporting { get => _isExporting; set => SetProperty(ref _isExporting, value); }
+
+        private int _exportProgress;
+        /// <summary>
+        /// 获取或设置 ExportProgress (导出进度百分比 0-100)
+        /// </summary>
+        public int ExportProgress { get => _exportProgress; set => SetProperty(ref _exportProgress, value); }
+
+
         // ══════════════════════════════════════════════════════════
         //  数据集合
         // ══════════════════════════════════════════════════════════
@@ -211,7 +224,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             SearchCommand = new DelegateCommand(async () => await OnSearchAsync());
             ClearFiltersCommand = new DelegateCommand(OnClearFilters);
 
-            ExportLogsCommand = new DelegateCommand(ExportLogs);
+            ExportLogsCommand = new DelegateCommand(async () => await ExportLogsAsync()).ObservesCanExecute(() => !IsBusy && !IsExporting);
         }
 
         private void ExportLogs()
@@ -284,6 +297,113 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         }
+
+       
+
+        private async Task ExportLogsAsync()
+        {
+            if (!Records.Any())
+            {
+                MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
+                return;
+            }
+
+            var saveDialog = new SaveFileDialog
+            {
+                Filter = "Excel 文件 (*.xlsx)|*.xlsx",
+                FileName = $"Log_Export_{DateTime.Now:yyyyMMdd_HHmmss}",
+                DefaultExt = ".xlsx"
+            };
+
+            if (saveDialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            // --- UI状态更新 ---
+            IsExporting = true;
+            ExportProgress = 0;
+            MessageService.ShowMessage("正在准备导出数据，请稍候...", "导出中");
+
+            var recordsSnapshot = new List<MachineDetectionDataWrapper>(Records);
+            string filePath = saveDialog.FileName;
+
+            // --- 进度报告器 ---
+            var progress = new Progress<int>(percent =>
+            {
+                ExportProgress = percent;
+            });
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    using (XSSFWorkbook wk = new XSSFWorkbook())
+                    {
+                        ISheet sheet = wk.CreateSheet("Data");
+                        IRow headerRow = sheet.CreateRow(0);
+                        // ... (表头创建代码与之前相同)
+                        headerRow.CreateCell(0).SetCellValue("记录时间");
+                        headerRow.CreateCell(1).SetCellValue("内部批次号");
+                        headerRow.CreateCell(2).SetCellValue("客户批次");
+                        headerRow.CreateCell(3).SetCellValue("晶圆ID");
+                        headerRow.CreateCell(4).SetCellValue("产品型号");
+                        headerRow.CreateCell(5).SetCellValue("匹配结果");
+                        headerRow.CreateCell(6).SetCellValue("异常信息");
+                        headerRow.CreateCell(7).SetCellValue("OCR文本");
+                        headerRow.CreateCell(8).SetCellValue("条码1");
+                        headerRow.CreateCell(9).SetCellValue("条码2");
+                        headerRow.CreateCell(10).SetCellValue("条码3");
+                        headerRow.CreateCell(11).SetCellValue("操作员工号");
+                        headerRow.CreateCell(12).SetCellValue("配方名称");
+                        headerRow.CreateCell(13).SetCellValue("图片");
+
+                        for (int i = 0; i < recordsSnapshot.Count; i++)
+                        {
+                            var record = recordsSnapshot[i];
+                            IRow dataRow = sheet.CreateRow(i + 1);
+                            // ... (数据行填充代码与之前相同)
+                            dataRow.CreateCell(0).SetCellValue(record.Data.Time);
+                            dataRow.CreateCell(1).SetCellValue(record.Data.InternalBatchId);
+                            dataRow.CreateCell(2).SetCellValue(record.Data.CustomerBatch);
+                            dataRow.CreateCell(3).SetCellValue(record.Data.WaferId);
+                            dataRow.CreateCell(4).SetCellValue(record.Data.ProductModel);
+                            dataRow.CreateCell(5).SetCellValue(record.Data.IsMatch);
+                            dataRow.CreateCell(6).SetCellValue(record.Data.ErrorMessage);
+                            dataRow.CreateCell(7).SetCellValue(record.Data.OcrText);
+                            dataRow.CreateCell(8).SetCellValue(record.Data.Barcode1);
+                            dataRow.CreateCell(9).SetCellValue(record.Data.Barcode2);
+                            dataRow.CreateCell(10).SetCellValue(record.Data.Barcode3);
+                            dataRow.CreateCell(11).SetCellValue(record.Data.OperatorId);
+                            dataRow.CreateCell(12).SetCellValue(record.Data.RecipeName);
+                            WriteImageToExcel(record.Data.ImagePath, wk, sheet, i + 1, 13);
+
+                            // --- 报告进度 ---
+                            var currentProgress = (int)((i + 1) * 100.0 / recordsSnapshot.Count);
+                            (progress as IProgress<int>).Report(currentProgress);
+                        }
+
+                        using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                        {
+                            wk.Write(fs);
+                        }
+                    }
+                });
+
+                MessageService.ShowMessage($"成功导出 {recordsSnapshot.Count} 条记录！\n路径: {filePath}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                // --- 恢复UI状态 ---
+                IsExporting = false;
+                ExportProgress = 0;
+            }
+        }
+
 
 
         /// <summary>
