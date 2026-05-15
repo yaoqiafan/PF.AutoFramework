@@ -56,6 +56,8 @@ using PF.Services.Logging;
 using PF.Services.Params;
 using PF.Services.Production;
 using PF.Services.Sync;
+using PF.Services.Timer;
+using PF.Core.Interfaces.Timer;
 using PF.Application.Shell.Services;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.TowerLight;
@@ -291,6 +293,9 @@ namespace PF.Application.Shell
             // ── 重初始化提醒：工位屏蔽参数变更 → ReinitializeRequiredEvent → HomeViewModel ──
             controller.ReinitializationRequired += (_, _) => ea.GetEvent<ReinitializeRequiredEvent>().Publish();
 
+            // 启动集中定时服务（在所有服务初始化完成后启动，确保订阅者已就绪）
+            Container.Resolve<IAppTimerService>().Start();
+
             base.OnInitialized();
         }
 
@@ -355,6 +360,9 @@ namespace PF.Application.Shell
 
             // 报警模块：独立数据库，字典 + 业务服务
             RegisterAlarmServices(containerRegistry);
+
+            // 集中定时服务
+            RegisterTimerService(containerRegistry);
         }
 
         /// <summary>
@@ -716,6 +724,21 @@ namespace PF.Application.Shell
             catch (Exception ex)
             {
                 _dbLogger.Error("报警服务注册失败", ex);
+                throw;
+            }
+        }
+
+        private void RegisterTimerService(IContainerRegistry containerRegistry)
+        {
+            try
+            {
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "timer_schedule.json");
+                containerRegistry.AddTimerService(filePath);
+                _dbLogger.Info("定时服务注册完成");
+            }
+            catch (Exception ex)
+            {
+                _dbLogger.Error("定时服务注册失败", ex);
                 throw;
             }
         }
