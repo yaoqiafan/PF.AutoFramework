@@ -709,6 +709,46 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #endregion
 
+        #region Layer Process Mode (层检测模式配置)
+
+        private volatile E_LayerProcessMode _station1LayerMode = E_LayerProcessMode.全做;
+        private volatile E_LayerProcessMode _station2LayerMode = E_LayerProcessMode.全做;
+        private volatile List<int> _station1SpecifiedLayers = new();
+        private volatile List<int> _station2SpecifiedLayers = new();
+
+        /// <summary>获取指定工位当前的层检测模式</summary>
+        public E_LayerProcessMode GetLayerMode(E_WorkSpace station) =>
+            station == E_WorkSpace.工位1 ? _station1LayerMode : _station2LayerMode;
+
+        /// <summary>获取指定工位的指定层索引列表（0-based 副本）</summary>
+        public List<int> GetSpecifiedLayers(E_WorkSpace station) =>
+            station == E_WorkSpace.工位1
+                ? new List<int>(_station1SpecifiedLayers)
+                : new List<int>(_station2SpecifiedLayers);
+
+        /// <summary>设置指定工位的层检测模式与指定层列表，并触发 UI 刷新和持久化</summary>
+        public MechResult SetLayerMode(E_WorkSpace station, E_LayerProcessMode mode, List<int>? specifiedLayers = null)
+        {
+            if (station == E_WorkSpace.工位1)
+            {
+                _station1LayerMode = mode;
+                _station1SpecifiedLayers = specifiedLayers ?? new List<int>();
+            }
+            else if (station == E_WorkSpace.工位2)
+            {
+                _station2LayerMode = mode;
+                _station2SpecifiedLayers = specifiedLayers ?? new List<int>();
+            }
+            else
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"不支持的工位: {station}");
+
+            RaiseDataChanged();
+            Save(_filepath);
+            return MechResult.Success();
+        }
+
+        #endregion
+
         #region Serialization & Persistence (序列化与数据持久化快照)
 
         /// <summary>
@@ -728,6 +768,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new ConcurrentDictionary<string, int>();
             public List<WaferSlotInfo> Station1SlotStates { get; set; } = new();
             public List<WaferSlotInfo> Station2SlotStates { get; set; } = new();
+            public E_LayerProcessMode Station1LayerMode { get; set; } = E_LayerProcessMode.全做;
+            public E_LayerProcessMode Station2LayerMode { get; set; } = E_LayerProcessMode.全做;
+            public List<int> Station1SpecifiedLayers { get; set; } = new();
+            public List<int> Station2SpecifiedLayers { get; set; } = new();
         }
 
 
@@ -755,6 +799,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         BatchQuantityMap = _batchQuantityMap,
                         Station1SlotStates = new List<WaferSlotInfo>(_station1SlotStates),
                         Station2SlotStates = new List<WaferSlotInfo>(_station2SlotStates),
+                        Station1LayerMode = _station1LayerMode,
+                        Station2LayerMode = _station2LayerMode,
+                        Station1SpecifiedLayers = new List<int>(_station1SpecifiedLayers),
+                        Station2SpecifiedLayers = new List<int>(_station2SpecifiedLayers),
                     };
 
                     var options = new JsonSerializerOptions { WriteIndented = true };
@@ -811,6 +859,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         ? tempModule.Station1SlotStates : CreateEmptySlots();
                     this._station2SlotStates = tempModule.Station2SlotStates?.Count > 0
                         ? tempModule.Station2SlotStates : CreateEmptySlots();
+                    this._station1LayerMode = tempModule.Station1LayerMode;
+                    this._station2LayerMode = tempModule.Station2LayerMode;
+                    this._station1SpecifiedLayers = tempModule.Station1SpecifiedLayers ?? new List<int>();
+                    this._station2SpecifiedLayers = tempModule.Station2SpecifiedLayers ?? new List<int>();
 
                     _logger?.Info($"{MechanismName} 历史数据加载成功");
 
@@ -951,50 +1003,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>当前槽位检测状态</summary>
         public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
-
-        /// <summary>触发检测的时间戳 (转换为 OADate 存储)</summary>
-        public double Time { get; set; } = DateTime.Now.ToOADate();
-
-        /// <summary>关联的内部批次号</summary>
-        public string InternalBatchId { get; set; } = "";
-
-        /// <summary>关联的客户批次号</summary>
-        public string CustomerBatch { get; set; } = "";
-
-        /// <summary>该片晶圆在料盒中的 ID 号 (如 "01", "25")</summary>
-        public string WaferId { get; set; } = "";
-
-        /// <summary>视觉相机读取到的原生 OCR 字符串</summary>
-        public string OcrText { get; set; } = "";
-
-        /// <summary>硬件扫码枪读取到的条码1</summary>
-        public string Barcode1 { get; set; } = "";
-
-        /// <summary>硬件扫码枪读取到的条码2 (预留多码扫码)</summary>
-        public string Barcode2 { get; set; } = "";
-
-        /// <summary>硬件扫码枪读取到的条码3 (预留多码扫码)</summary>
-        public string Barcode3 { get; set; } = "";
-
-        /// <summary>当前晶圆的数据与 MES 下发数据是否比对通过（OK/NG）</summary>
-        public bool IsMatch { get; set; }
-
-        /// <summary>若比对异常，记录的具体错误信息原因</summary>
-        public string ErrorMessage { get; set; } = "NONE";
-
-        /// <summary>检测产品型号溯源</summary>
-        public string ProductModel { get; set; } = "";
-
-        /// <summary>检测人工号溯源</summary>
-        public string OperatorId { get; set; } = "NONE";
-
-        /// <summary>配方名称溯源</summary>
-        public string RecipeName { get; set; } = "NONE";
-
-        /// <summary>不良排查使用的视觉留存原图路径</summary>
-        public string ImagePath { get; set; } = "NONE";
-
-
     }
 
     #endregion

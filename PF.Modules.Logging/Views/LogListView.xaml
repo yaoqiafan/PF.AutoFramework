@@ -9,7 +9,7 @@
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
-    d:DesignHeight="600"
+    d:DesignHeight="200"
     d:DesignWidth="900"
     mc:Ignorable="d">
 
@@ -348,20 +348,20 @@
 
                         <Border
                             HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch"
+                            VerticalAlignment="Center"
                             Visibility="{Binding LogEntriesView.IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel
-                                Margin="0,0,0,80"
+                                Margin="0,0,0,0"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
                                 <Path
-                                    Width="64"
-                                    Height="64"
-                                    Margin="0,0,0,16"
+                                    Width="50"
+                                    Height="50"
+                                    Margin="0,0,0,0"
                                     Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
                                     Fill="#F1F3F5"
                                     Stretch="Uniform" />
-                                <TextBlock
+                                <TextBlock Margin="0,12,0,0"
                                     HorizontalAlignment="Center"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     Foreground="#ADB5BD"
