@@ -365,6 +365,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>工位2下料确认命令（遮罩层确认按钮）</summary>
         public DelegateCommand Station2UnloadConfirmCommand { get; }
 
+        /// <summary>工位1槽位详情查看命令（检测完毕后可点击）</summary>
+        public DelegateCommand<WaferSlotInfo> Station1ViewSlotDetailCommand { get; }
+        /// <summary>工位2槽位详情查看命令（检测完毕后可点击）</summary>
+        public DelegateCommand<WaferSlotInfo> Station2ViewSlotDetailCommand { get; }
+
         #endregion
 
         /// <summary>初始化 HomeViewModel</summary>
@@ -468,6 +473,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Station2ChangeLotCommand = new DelegateCommand(Station2ShowChangeLotView);
             Station1UnloadConfirmCommand = new DelegateCommand(OnStation1UnloadConfirm);
             Station2UnloadConfirmCommand = new DelegateCommand(OnStation2UnloadConfirm);
+
+            Station1ViewSlotDetailCommand = new DelegateCommand<WaferSlotInfo>(ShowSlotDetail);
+            Station2ViewSlotDetailCommand = new DelegateCommand<WaferSlotInfo>(ShowSlotDetail);
 
             // 订阅数据模块事件
             if (_dataModule != null)
@@ -714,6 +722,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         #endregion
+
+        private void ShowSlotDetail(WaferSlotInfo slot)
+        {
+            if (slot?.DetectionData == null) return;
+            var param = new DialogParameters { { "SlotInfo", slot } };
+            DialogService.ShowDialog(nameof(WaferSlotDetailView), param, _ => { });
+        }
 
         /// <summary>
         /// 操作员下料请求处理：显示工位1遮罩层，操作员点击确认后释放同步信号

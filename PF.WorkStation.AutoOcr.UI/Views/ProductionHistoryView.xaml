@@ -180,10 +180,12 @@
                             GridLinesVisibility="Horizontal"
                             HeadersVisibility="All"
                             HorizontalGridLinesBrush="#E0E0E0"
+                            HorizontalScrollBarVisibility="Auto"
                             IsReadOnly="True"
                             ItemsSource="{Binding DataList}"
                             RowHeight="36"
-                            SelectionMode="Single">
+                            SelectionMode="Single"
+                            VerticalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
                                 <DataGridTextColumn
                                     Width="auto"

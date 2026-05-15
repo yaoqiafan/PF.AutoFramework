@@ -214,6 +214,7 @@ namespace PF.Modules.Identity.ViewModels
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            LoadUsersCommand.Execute();
         }
 
         private async Task DeleteAsync(UserInfo user)
