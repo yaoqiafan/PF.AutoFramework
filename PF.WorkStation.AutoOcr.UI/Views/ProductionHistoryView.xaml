@@ -188,11 +188,13 @@
                                 GridLinesVisibility="Horizontal"
                                 HeadersVisibility="All"
                                 HorizontalGridLinesBrush="#E0E0E0"
+                                HorizontalScrollBarVisibility="Auto"
                                 IsReadOnly="True"
                                 ItemsSource="{Binding DataList}"
                                 RowHeight="36"
                                 SelectedItem="{Binding CurrentMachineDetection}"
-                                SelectionMode="Single">
+                                SelectionMode="Single"
+                                VerticalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
                                         Width="auto"
@@ -300,17 +302,7 @@
                                 </DataGrid.Columns>
                             </DataGrid>
 
-                            <Grid Background="#66FFFFFF" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <pf:LoadingCircle Width="50" Height="50" />
-                                    <TextBlock
-                                        Margin="0,15,0,0"
-                                        FontSize="{DynamicResource FontSize.Body.Standard}"
-                                        FontWeight="SemiBold"
-                                        Foreground="#333"
-                                        Text="正在查询生产数据..." />
-                                </StackPanel>
-                            </Grid>
+
                         </Grid>
 
                         <Grid Grid.Column=" 2">
@@ -321,10 +313,23 @@
                                 Source="{Binding CurrentMachineDetection.Data.ImagePath}" />
 
                         </Grid>
+
+
+                        <Grid Grid.Column="0" Grid.ColumnSpan="3" Background="#66FFFFFF" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <pf:LoadingCircle Width="50" Height="50" />
+                                <TextBlock
+             Margin="0,15,0,0"
+             FontSize="{DynamicResource FontSize.Body.Standard}"
+             FontWeight="SemiBold"
+             Foreground="#333"
+             Text="正在查询生产数据..." />
+                            </StackPanel>
+                        </Grid>
                     </Grid>
 
 
-
+                   
                 </Grid>
 
                 <pf:Card.Footer>
