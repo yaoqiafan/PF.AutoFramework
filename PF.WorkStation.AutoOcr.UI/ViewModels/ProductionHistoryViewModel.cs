@@ -335,13 +335,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             try
             {
                 var createHelper = workbook.GetCreationHelper();
-                cell.SetCellValue("点击查看图片"); // 单元格显示文字，建议不要直接放长路径
+                // 单元格显示文字，建议不要直接放长路径
 
                 IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
 
                 // --- 关键优化部分 ---
                 // 1. 处理路径中的反斜杠
-                string formattedPath = hyperlink.Replace("\\", "/");
+                string formattedPath = hyperlink.Replace("\\", "/").Replace("/", @"\");
 
                 // 2. 使用 Uri 类自动处理编码和协议头，避免手动拼接出错
                 // 这种方式会自动处理空格、中文以及 file:/// 前缀
@@ -349,7 +349,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 link2.Address = uri.AbsoluteUri;
                 // ------------------
-
+                cell.SetCellValue(uri .AbsolutePath);
                 cell.Hyperlink = link2;
 
                 // 设置超链接样式（可选：蓝色字体加下划线）
