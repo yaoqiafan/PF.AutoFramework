@@ -58,8 +58,7 @@ namespace PF.Application.Shell.ViewModels
         private string _currentViewName = string.Empty;
 
         // 无操作自动降权计时器（60 秒无鼠标/键盘操作 → 重置为 Operator）
-        private readonly IdleMonitorService _idleMonitor =
-            new IdleMonitorService(TimeSpan.FromSeconds(600000));
+        private readonly IdleMonitorService _idleMonitor ;
         #endregion
 
         #region 公共集合
@@ -82,6 +81,7 @@ namespace PF.Application.Shell.ViewModels
             _commonSettings        = commonSettings;
             _alarmService          = alarmService;
             _masterController      = masterController;
+            _idleMonitor = new IdleMonitorService(TimeSpan.FromSeconds(_commonSettings.NoUseTime));
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };

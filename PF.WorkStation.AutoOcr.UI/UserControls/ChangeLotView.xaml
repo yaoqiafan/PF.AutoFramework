@@ -7,8 +7,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    d:DesignHeight="280"
-    Width="380"
+    d:DesignHeight="380"
+    MinWidth="380"
+    Width="auto"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -26,7 +27,10 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="15" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="25" />
+                <RowDefinition Height="10" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="15" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
@@ -94,9 +98,76 @@
                     Text="{Binding Recipe, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
             </Grid>
 
+            <!-- 检测模式 -->
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                    FontWeight="SemiBold"
+                    Text="检测模式:" />
+                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <RadioButton
+                        Margin="0,0,20,0"
+                        Content="全做"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        IsChecked="{Binding IsLayerModeAll, Mode=TwoWay}" />
+                    <RadioButton
+                        Content="指定层"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        IsChecked="{Binding IsLayerModeSpecified, Mode=TwoWay}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- 指定层选择面板（仅指定层模式下可见） -->
+            <Border
+                Grid.Row="7"
+                Margin="0,8,0,0"
+                Padding="8"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding IsSpecifiedLayerPanelVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        VerticalAlignment="Top"
+                        Margin="0,4,0,0"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        FontWeight="SemiBold"
+                        Text="选择层号:" />
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding SpecifiedLayerItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="7" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Width="auto"
+                                    Margin="2,3"
+                                    HorizontalAlignment="Center"
+                                    Content="{Binding DisplayIndex}"
+                                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                                    IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
             <!-- 按钮 -->
             <StackPanel
-                Grid.Row="6"
+                Grid.Row="9"
                 HorizontalAlignment="Right"
                 Orientation="Horizontal">
                 <Button

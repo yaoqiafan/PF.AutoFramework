@@ -315,6 +315,7 @@
 
                         <pf:Pagination
                             Grid.Column="0"
+                            Height="30"
                             HorizontalAlignment="Left"
                             IsJumpEnabled="True"
                             MaxPageCount="{Binding MaxPageCount}"

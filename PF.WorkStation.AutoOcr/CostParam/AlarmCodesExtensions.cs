@@ -295,6 +295,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmSlotMismatch = "PROC_WS1F_ALG_010";
 
+            /// <summary>指定层与实际寻层结果不匹配</summary>
+            [AlarmInfo("流程异常/算法", "工位1上下料-指定层与实际寻层结果不匹配", AlarmSeverity.Error,
+                "1. 核查料盒内实际物料层位;\n" +
+                "2. 确认切换批次时选择的指定层是否正确;\n" +
+                "3. 修正指定层设置后重新切换批次;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
+            public const string SpecifiedLayersMismatch = "PROC_WS1F_ALG_011";
+
             /// <summary>断点续跑：重启后实际物料层数与记忆不一致</summary>
             [AlarmInfo("断点续跑", "工位1上下料-重启后物料状态与记忆不一致", AlarmSeverity.Fatal,
                 "1. 人工核查料盒内物料数量是否与系统记忆一致;\n" +
@@ -579,6 +587,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 复位后重新执行寻层;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmSlotMismatch = "PROC_WS2F_ALG_010";
+
+            /// <summary>指定层与实际寻层结果不匹配</summary>
+            [AlarmInfo("流程异常/算法", "工位2上下料-指定层与实际寻层结果不匹配", AlarmSeverity.Error,
+                "1. 核查料盒内实际物料层位;\n" +
+                "2. 确认切换批次时选择的指定层是否正确;\n" +
+                "3. 修正指定层设置后重新切换批次;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
+            public const string SpecifiedLayersMismatch = "PROC_WS2F_ALG_011";
 
             /// <summary>断点续跑：重启后实际物料层数与记忆不一致</summary>
             [AlarmInfo("断点续跑", "工位2上下料-重启后物料状态与记忆不一致", AlarmSeverity.Fatal,

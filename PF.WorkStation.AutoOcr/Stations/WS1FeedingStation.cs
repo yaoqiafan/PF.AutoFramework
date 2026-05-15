@@ -171,6 +171,8 @@ namespace PF.WorkStation.AutoOcr.Stations
         寻层算法检测到重叠片 = 100052,
         /// <summary>寻层算法晶圆严重偏离标准槽位（可能未插到底）</summary>
         寻层算法晶圆偏离标准槽位 = 100053,
+        /// <summary>指定层与实际寻层层数不匹配</summary>
+        指定层与实际层不匹配 = 100054,
 
         // ── 系统级异常 (10009X) ──
         /// <summary>状态机指针漂移，进入未定义步序</summary>
@@ -875,18 +877,43 @@ namespace PF.WorkStation.AutoOcr.Stations
                             var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(_rawMappingData);
                             if (filterResult.IsSuccess)
                             {
-                                _layersToProcess = new List<int>(filterResult.Data.Keys.OrderBy(layerIndex => layerIndex));
+                                var allDetectedLayers = new List<int>(filterResult.Data.Keys.OrderBy(k => k));
+                                var layerMode = _dataModule.GetLayerMode(E_WorkSpace.工位1);
+
+                                if (layerMode == E_LayerProcessMode.指定层)
+                                {
+                                    var specifiedLayers = _dataModule.GetSpecifiedLayers(E_WorkSpace.工位1);
+                                    bool setsMatch = allDetectedLayers.Count == specifiedLayers.Count &&
+                                                     allDetectedLayers.All(k => specifiedLayers.Contains(k));
+                                    _logger.Info($"[{StationName}] 指定层模式 — 指定: [{string.Join(",", specifiedLayers.OrderBy(k => k).Select(k => k + 1))}]，" +
+                                                 $"实际: [{string.Join(",", allDetectedLayers.Select(k => k + 1))}]，" +
+                                                 $"匹配: {setsMatch}");
+                                    if (!setsMatch)
+                                    {
+                                        _logger.Error($"[{StationName}] 指定层与实际层不匹配，触发报警。");
+                                        RouteToError(Station1FeedingStep.指定层与实际层不匹配, Station1FeedingStep.等待按下工位1启动按钮);
+                                        break;
+                                    }
+                                    _layersToProcess = allDetectedLayers;
+                                }
+                                else
+                                {
+                                    _layersToProcess = allDetectedLayers;
+                                }
+
                                 _totalLayerCount = _layersToProcess.Count;
                                 _currentLayerIndex = 0;
 
                                 if (_layersToProcess.Count == 0)
                                 {
-                                    _logger.Warn($"[{StationName}] 过滤结果为空，料盒内未检测到有效晶圆！");
+                                    string reason = layerMode == E_LayerProcessMode.指定层
+                                        ? "指定层在料盒中均未检测到有效晶圆！" : "料盒内未检测到有效晶圆！";
+                                    _logger.Warn($"[{StationName}] 过滤结果为空，{reason}");
                                     RouteToError(Station1FeedingStep.寻层算法空值判定, Station1FeedingStep.等待按下工位1启动按钮);
                                 }
                                 else
                                 {
-                                    _logger.Info($"[{StationName}] 过滤完成，共识别 {_totalLayerCount} 片。");
+                                    _logger.Info($"[{StationName}] 过滤完成，共处理 {_totalLayerCount} 层。");
                                     MemoryParam.IsInProgress = true;
                                     MemoryParam.CurrentLayerIndex = 0;
                                     MemoryParam.LayersToProcess = new List<int>(_layersToProcess);
@@ -1141,6 +1168,11 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                         case Station1FeedingStep.寻层算法空值判定:
                             TriggerAlarm(AlarmCodesExtensions.WS1Feeding.AlgorithmZeroLayers, "算法判定为0层");
+                            _currentStep = _resumeStep;
+                            break;
+
+                        case Station1FeedingStep.指定层与实际层不匹配:
+                            TriggerAlarm(AlarmCodesExtensions.WS1Feeding.SpecifiedLayersMismatch, "指定层与实际寻层结果不匹配");
                             _currentStep = _resumeStep;
                             break;
 
