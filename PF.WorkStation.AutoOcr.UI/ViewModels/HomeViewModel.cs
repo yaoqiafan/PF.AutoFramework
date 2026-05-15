@@ -203,13 +203,56 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private OcrMismatchOverlayState _ocrMismatchState = OcrMismatchOverlayState.Idle;
         /// <summary>遮罩显示初始选择面板（重试/手动输入）</summary>
-        public bool IsOcrMismatchIdle          => _ocrMismatchState == OcrMismatchOverlayState.Idle;
-        /// <summary>遮罩显示权限不足提示</summary>
-        public bool IsOcrMismatchManualDenied  => _ocrMismatchState == OcrMismatchOverlayState.ManualDenied;
-        /// <summary>遮罩显示手动输入面板</summary>
-        public bool IsOcrMismatchManualAllowed => _ocrMismatchState == OcrMismatchOverlayState.ManualAllowed;
+        public bool IsOcrMismatchIdle       => _ocrMismatchState == OcrMismatchOverlayState.Idle;
+        /// <summary>遮罩显示操作员1身份验证面板</summary>
+        public bool IsOcrMismatchAuthFirst  => _ocrMismatchState == OcrMismatchOverlayState.AuthFirst;
+        /// <summary>遮罩显示操作员2身份验证面板</summary>
+        public bool IsOcrMismatchAuthSecond => _ocrMismatchState == OcrMismatchOverlayState.AuthSecond;
+        /// <summary>遮罩显示手动输入 OCR 面板（双重验证通过后）</summary>
+        public bool IsOcrMismatchManualOcr  => _ocrMismatchState == OcrMismatchOverlayState.ManualOcr;
 
         private OcrMismatchPayload? _ocrMismatchPayload;
+
+        // ── 双重身份验证字段 ─────────────────────────────────────────
+
+        private string _auth1Username = string.Empty;
+        public string Auth1Username
+        {
+            get => _auth1Username;
+            set => SetProperty(ref _auth1Username, value);
+        }
+
+        private string _auth2Username = string.Empty;
+        public string Auth2Username
+        {
+            get => _auth2Username;
+            set => SetProperty(ref _auth2Username, value);
+        }
+
+        private string _auth1DisplayName = string.Empty;
+        /// <summary>操作员1验证通过后的显示名称（显示在操作员2面板顶部）</summary>
+        public string Auth1DisplayName
+        {
+            get => _auth1DisplayName;
+            private set => SetProperty(ref _auth1DisplayName, value);
+        }
+
+        private string _authErrorMessage = string.Empty;
+        /// <summary>当前验证步骤的错误提示信息</summary>
+        public string AuthErrorMessage
+        {
+            get => _authErrorMessage;
+            private set => SetProperty(ref _authErrorMessage, value);
+        }
+
+        // 密码由 View 代码后台通过 SetAuth*Password 传入，不直接绑定（PasswordBox 限制）
+        private string _auth1Password = string.Empty;
+        private string _auth2Password = string.Empty;
+
+        /// <summary>由 HomeView 代码后台在 PasswordBox.PasswordChanged 事件中调用</summary>
+        public void SetAuth1Password(string password) => _auth1Password = password;
+        /// <summary>由 HomeView 代码后台在 PasswordBox.PasswordChanged 事件中调用</summary>
+        public void SetAuth2Password(string password) => _auth2Password = password;
 
         // ── 安全门三态指示 ──────────────────────────────────────────
 
@@ -434,6 +477,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public DelegateCommand OcrConfirmManualCommand { get; }
         /// <summary>OCR比对异常遮罩：返回初始选择面板</summary>
         public DelegateCommand OcrBackCommand { get; }
+        /// <summary>OCR比对异常遮罩：确认操作员1身份验证</summary>
+        public DelegateCommand OcrAuth1ConfirmCommand { get; }
+        /// <summary>OCR比对异常遮罩：确认操作员2身份验证</summary>
+        public DelegateCommand OcrAuth2ConfirmCommand { get; }
 
         #endregion
 
@@ -550,6 +597,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             OcrStartManualCommand   = new DelegateCommand(OnOcrStartManual);
             OcrConfirmManualCommand = new DelegateCommand(OnOcrConfirmManual, () => !string.IsNullOrWhiteSpace(_manualOcrText));
             OcrBackCommand          = new DelegateCommand(() => SetOcrMismatchState(OcrMismatchOverlayState.Idle));
+            OcrAuth1ConfirmCommand  = new DelegateCommand(async () => { try { await OnOcrAuth1ConfirmAsync(); } catch { } });
+            OcrAuth2ConfirmCommand  = new DelegateCommand(async () => { try { await OnOcrAuth2ConfirmAsync(); } catch { } });
 
             // 订阅数据模块事件
             if (_dataModule != null)
@@ -840,7 +889,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _ocrMismatchPayload        = payload;
             OcrMismatchOcrText         = payload.OcrText;
             OcrMismatchInternalBatchId = payload.InternalBatchId;
-            ManualOcrText              = payload.OcrText;   // 预填当前失败文本，方便操作员修正
+            ManualOcrText              = payload.OcrText;
             SetOcrMismatchState(OcrMismatchOverlayState.Idle);
 
             if (payload.WorkSpaceName.Contains("工位1"))
@@ -861,9 +910,67 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnOcrStartManual()
         {
-            SetOcrMismatchState(_userService.IsAuthorized(UserLevel.Engineer)
-                ? OcrMismatchOverlayState.ManualAllowed
-                : OcrMismatchOverlayState.ManualDenied);
+            Auth1Username    = string.Empty;
+            Auth2Username    = string.Empty;
+            Auth1DisplayName = string.Empty;
+            _auth1Password   = string.Empty;
+            _auth2Password   = string.Empty;
+            AuthErrorMessage = string.Empty;
+            SetOcrMismatchState(OcrMismatchOverlayState.AuthFirst);
+        }
+
+        private async Task OnOcrAuth1ConfirmAsync()
+        {
+            if (string.IsNullOrWhiteSpace(Auth1Username) || string.IsNullOrWhiteSpace(_auth1Password))
+            {
+                AuthErrorMessage = "请输入用户名和密码";
+                return;
+            }
+
+            var users = await _userService.GetUserListAsync();
+            if (!users.Any(u => u.UserName == Auth1Username))
+            {
+                AuthErrorMessage = $"用户 [{Auth1Username}] 不存在";
+                return;
+            }
+
+            if (!await VerifyWithMesAsync(Auth1Username, _auth1Password))
+            {
+                AuthErrorMessage = "MES 身份验证失败，请检查用户名和密码";
+                return;
+            }
+
+            Auth1DisplayName = Auth1Username;
+            Auth2Username    = string.Empty;
+            _auth2Password   = string.Empty;
+            AuthErrorMessage = string.Empty;
+            SetOcrMismatchState(OcrMismatchOverlayState.AuthSecond);
+        }
+
+        private async Task OnOcrAuth2ConfirmAsync()
+        {
+            if (string.IsNullOrWhiteSpace(Auth2Username) || string.IsNullOrWhiteSpace(_auth2Password))
+            {
+                AuthErrorMessage = "请输入用户名和密码";
+                return;
+            }
+
+            var users = await _userService.GetUserListAsync();
+            if (!users.Any(u => u.UserName == Auth2Username))
+            {
+                AuthErrorMessage = $"用户 [{Auth2Username}] 不存在";
+                return;
+            }
+
+            if (!await VerifyWithMesAsync(Auth2Username, _auth2Password))
+            {
+                AuthErrorMessage = "MES 身份验证失败，请检查用户名和密码";
+                return;
+            }
+
+            ManualOcrText    = OcrMismatchOcrText;
+            AuthErrorMessage = string.Empty;
+            SetOcrMismatchState(OcrMismatchOverlayState.ManualOcr);
         }
 
         private void OnOcrConfirmManual()
@@ -881,6 +988,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Station1OcrMismatchVisible = false;
             Station2OcrMismatchVisible = false;
             _ocrMismatchPayload        = null;
+            Auth1Username              = string.Empty;
+            Auth2Username              = string.Empty;
+            Auth1DisplayName           = string.Empty;
+            _auth1Password             = string.Empty;
+            _auth2Password             = string.Empty;
+            AuthErrorMessage           = string.Empty;
             SetOcrMismatchState(OcrMismatchOverlayState.Idle);
         }
 
@@ -888,11 +1001,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         {
             _ocrMismatchState = state;
             RaisePropertyChanged(nameof(IsOcrMismatchIdle));
-            RaisePropertyChanged(nameof(IsOcrMismatchManualDenied));
-            RaisePropertyChanged(nameof(IsOcrMismatchManualAllowed));
+            RaisePropertyChanged(nameof(IsOcrMismatchAuthFirst));
+            RaisePropertyChanged(nameof(IsOcrMismatchAuthSecond));
+            RaisePropertyChanged(nameof(IsOcrMismatchManualOcr));
         }
 
-        private enum OcrMismatchOverlayState { Idle, ManualDenied, ManualAllowed }
+        /// <summary>MES 身份验证（预留接口，暂时返回 true）</summary>
+        private Task<bool> VerifyWithMesAsync(string username, string password)
+        {
+            // TODO: 对接 MES 身份验证接口
+            return Task.FromResult(true);
+        }
+
+        private enum OcrMismatchOverlayState { Idle, AuthFirst, AuthSecond, ManualOcr }
 
         #endregion
 

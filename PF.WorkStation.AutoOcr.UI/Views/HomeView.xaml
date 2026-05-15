@@ -328,7 +328,7 @@
 
                     <!--  工位1 OCR比对异常遮罩层  -->
                     <Border Background="#CC1A1A2E" Visibility="{Binding Station1OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Width="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -373,38 +373,154 @@
                                     Style="{DynamicResource ButtonPrimary}" />
                             </StackPanel>
 
-                            <!--  面板2：权限不足（ManualDenied）  -->
+                            <!--  面板2：操作员1验证（AuthFirst）  -->
                             <StackPanel
                                 Margin="0,20,0,0"
-                                HorizontalAlignment="Center"
-                                Visibility="{Binding IsOcrMismatchManualDenied, Converter={StaticResource BoolToVis}}">
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsOcrMismatchAuthFirst, Converter={StaticResource BoolToVis}}">
                                 <TextBlock
                                     HorizontalAlignment="Center"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Foreground="White"
+                                    Text="操作员1 身份验证" />
+                                <TextBlock
+                                    Margin="0,12,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="用户名" />
+                                <TextBox
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
                                     FontSize="14"
+                                    Foreground="White"
+                                    Text="{Binding Auth1Username, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Margin="0,10,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="密码" />
+                                <PasswordBox
+                                    x:Name="WS1Auth1PasswordBox"
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    IsVisibleChanged="AuthPasswordBox_IsVisibleChanged"
+                                    PasswordChanged="WS1Auth1PasswordBox_PasswordChanged" />
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    FontSize="13"
                                     Foreground="#FF7043"
-                                    Text="当前用户权限不足（需工程师及以上）" />
-                                <Button
-                                    Width="120"
-                                    Height="40"
+                                    Text="{Binding AuthErrorMessage}"
+                                    TextWrapping="Wrap" />
+                                <StackPanel
                                     Margin="0,16,0,0"
                                     HorizontalAlignment="Center"
-                                    Command="{Binding OcrBackCommand}"
-                                    Content="返  回"
-                                    Style="{DynamicResource ButtonDefault}" />
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="130"
+                                        Height="40"
+                                        Margin="0,0,16,0"
+                                        Command="{Binding OcrAuth1ConfirmCommand}"
+                                        Content="确  认"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Width="100"
+                                        Height="40"
+                                        Command="{Binding OcrBackCommand}"
+                                        Content="返  回"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
                             </StackPanel>
 
-                            <!--  面板3：手动输入（ManualAllowed）  -->
+                            <!--  面板3：操作员2验证（AuthSecond）  -->
                             <StackPanel
                                 Margin="0,20,0,0"
-                                HorizontalAlignment="Center"
-                                Visibility="{Binding IsOcrMismatchManualAllowed, Converter={StaticResource BoolToVis}}">
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsOcrMismatchAuthSecond, Converter={StaticResource BoolToVis}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Foreground="White"
+                                    Text="操作员2 身份验证" />
+                                <Border
+                                    Margin="0,10,0,0"
+                                    Padding="10,6"
+                                    Background="#1E3A1E"
+                                    CornerRadius="4">
+                                    <TextBlock
+                                        FontSize="13"
+                                        Foreground="#66BB6A"
+                                        Text="{Binding Auth1DisplayName, StringFormat=操作员1 [{0}] 已验证 ✓}"
+                                        TextAlignment="Center" />
+                                </Border>
+                                <TextBlock
+                                    Margin="0,12,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="用户名" />
+                                <TextBox
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="{Binding Auth2Username, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Margin="0,10,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="密码" />
+                                <PasswordBox
+                                    x:Name="WS1Auth2PasswordBox"
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    IsVisibleChanged="AuthPasswordBox_IsVisibleChanged"
+                                    PasswordChanged="WS1Auth2PasswordBox_PasswordChanged" />
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    FontSize="13"
+                                    Foreground="#FF7043"
+                                    Text="{Binding AuthErrorMessage}"
+                                    TextWrapping="Wrap" />
+                                <StackPanel
+                                    Margin="0,16,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="130"
+                                        Height="40"
+                                        Margin="0,0,16,0"
+                                        Command="{Binding OcrAuth2ConfirmCommand}"
+                                        Content="确  认"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Width="100"
+                                        Height="40"
+                                        Command="{Binding OcrBackCommand}"
+                                        Content="返  回"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!--  面板4：手动输入OCR（ManualOcr）  -->
+                            <StackPanel
+                                Margin="0,20,0,0"
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsOcrMismatchManualOcr, Converter={StaticResource BoolToVis}}">
                                 <TextBlock
                                     HorizontalAlignment="Center"
                                     FontSize="14"
                                     Foreground="White"
                                     Text="请输入正确的 OCR 值" />
                                 <TextBox
-                                    Width="320"
                                     Height="36"
                                     Margin="0,10,0,0"
                                     Background="#2A2A4A"
@@ -655,7 +771,7 @@
 
                     <!--  工位2 OCR比对异常遮罩层  -->
                     <Border Background="#CC1A1A2E" Visibility="{Binding Station2OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Width="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -700,38 +816,154 @@
                                     Style="{DynamicResource ButtonPrimary}" />
                             </StackPanel>
 
-                            <!--  面板2：权限不足（ManualDenied）  -->
+                            <!--  面板2：操作员1验证（AuthFirst）  -->
                             <StackPanel
                                 Margin="0,20,0,0"
-                                HorizontalAlignment="Center"
-                                Visibility="{Binding IsOcrMismatchManualDenied, Converter={StaticResource BoolToVis}}">
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsOcrMismatchAuthFirst, Converter={StaticResource BoolToVis}}">
                                 <TextBlock
                                     HorizontalAlignment="Center"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Foreground="White"
+                                    Text="操作员1 身份验证" />
+                                <TextBlock
+                                    Margin="0,12,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="用户名" />
+                                <TextBox
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
                                     FontSize="14"
+                                    Foreground="White"
+                                    Text="{Binding Auth1Username, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Margin="0,10,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="密码" />
+                                <PasswordBox
+                                    x:Name="WS2Auth1PasswordBox"
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    IsVisibleChanged="AuthPasswordBox_IsVisibleChanged"
+                                    PasswordChanged="WS2Auth1PasswordBox_PasswordChanged" />
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    FontSize="13"
                                     Foreground="#FF7043"
-                                    Text="当前用户权限不足（需工程师及以上）" />
-                                <Button
-                                    Width="120"
-                                    Height="40"
+                                    Text="{Binding AuthErrorMessage}"
+                                    TextWrapping="Wrap" />
+                                <StackPanel
                                     Margin="0,16,0,0"
                                     HorizontalAlignment="Center"
-                                    Command="{Binding OcrBackCommand}"
-                                    Content="返  回"
-                                    Style="{DynamicResource ButtonDefault}" />
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="130"
+                                        Height="40"
+                                        Margin="0,0,16,0"
+                                        Command="{Binding OcrAuth1ConfirmCommand}"
+                                        Content="确  认"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Width="100"
+                                        Height="40"
+                                        Command="{Binding OcrBackCommand}"
+                                        Content="返  回"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
                             </StackPanel>
 
-                            <!--  面板3：手动输入（ManualAllowed）  -->
+                            <!--  面板3：操作员2验证（AuthSecond）  -->
                             <StackPanel
                                 Margin="0,20,0,0"
-                                HorizontalAlignment="Center"
-                                Visibility="{Binding IsOcrMismatchManualAllowed, Converter={StaticResource BoolToVis}}">
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsOcrMismatchAuthSecond, Converter={StaticResource BoolToVis}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Foreground="White"
+                                    Text="操作员2 身份验证" />
+                                <Border
+                                    Margin="0,10,0,0"
+                                    Padding="10,6"
+                                    Background="#1E3A1E"
+                                    CornerRadius="4">
+                                    <TextBlock
+                                        FontSize="13"
+                                        Foreground="#66BB6A"
+                                        Text="{Binding Auth1DisplayName, StringFormat=操作员1 [{0}] 已验证 ✓}"
+                                        TextAlignment="Center" />
+                                </Border>
+                                <TextBlock
+                                    Margin="0,12,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="用户名" />
+                                <TextBox
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="{Binding Auth2Username, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Margin="0,10,0,4"
+                                    FontSize="13"
+                                    Foreground="#B0B0C0"
+                                    Text="密码" />
+                                <PasswordBox
+                                    x:Name="WS2Auth2PasswordBox"
+                                    Height="36"
+                                    Background="#2A2A4A"
+                                    BorderBrush="#6666AA"
+                                    FontSize="14"
+                                    Foreground="White"
+                                    IsVisibleChanged="AuthPasswordBox_IsVisibleChanged"
+                                    PasswordChanged="WS2Auth2PasswordBox_PasswordChanged" />
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    FontSize="13"
+                                    Foreground="#FF7043"
+                                    Text="{Binding AuthErrorMessage}"
+                                    TextWrapping="Wrap" />
+                                <StackPanel
+                                    Margin="0,16,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="130"
+                                        Height="40"
+                                        Margin="0,0,16,0"
+                                        Command="{Binding OcrAuth2ConfirmCommand}"
+                                        Content="确  认"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Width="100"
+                                        Height="40"
+                                        Command="{Binding OcrBackCommand}"
+                                        Content="返  回"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!--  面板4：手动输入OCR（ManualOcr）  -->
+                            <StackPanel
+                                Margin="0,20,0,0"
+                                HorizontalAlignment="Stretch"
+                                Visibility="{Binding IsOcrMismatchManualOcr, Converter={StaticResource BoolToVis}}">
                                 <TextBlock
                                     HorizontalAlignment="Center"
                                     FontSize="14"
                                     Foreground="White"
                                     Text="请输入正确的 OCR 值" />
                                 <TextBox
-                                    Width="320"
                                     Height="36"
                                     Margin="0,10,0,0"
                                     Background="#2A2A4A"

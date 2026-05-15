@@ -1,38 +1,38 @@
 using PF.Core.Attributes;
 using PF.Core.Constants;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using PF.WorkStation.AutoOcr.UI.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace PF.WorkStation.AutoOcr.UI.Views
-{ 
-    /// <summary>
-   /// HomeView
-   /// </summary>
+{
     [ModuleNavigation(NavigationConstants.Views.HomeView, "运行",
         GroupName = "开始", Order = 2,
         Icon = "NailGeometry"
       )]
-
     public partial class HomeView : UserControl
     {
-        /// <summary>
-        /// HomeView 构造函数
-        /// </summary>
         public HomeView()
         {
             InitializeComponent();
+        }
+
+        private void WS1Auth1PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+            => (DataContext as HomeViewModel)?.SetAuth1Password(((PasswordBox)sender).Password);
+
+        private void WS1Auth2PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+            => (DataContext as HomeViewModel)?.SetAuth2Password(((PasswordBox)sender).Password);
+
+        private void WS2Auth1PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+            => (DataContext as HomeViewModel)?.SetAuth1Password(((PasswordBox)sender).Password);
+
+        private void WS2Auth2PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+            => (DataContext as HomeViewModel)?.SetAuth2Password(((PasswordBox)sender).Password);
+
+        private void AuthPasswordBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if ((bool)e.NewValue == false)
+                ((PasswordBox)sender).Clear();
         }
     }
 }
