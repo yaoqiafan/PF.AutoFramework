@@ -684,26 +684,19 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
 
         /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
-        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData)
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData= null)
         {
             var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
             var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
             if (slot == null) return;
             slot.Status = status;
-            slot.Time = detectionData.Time;
-            slot.InternalBatchId = detectionData.InternalBatchId;
-            slot.CustomerBatch = detectionData.CustomerBatch;
-            slot.WaferId = detectionData.WaferId;
-            slot.OcrText = detectionData.OcrText;
-            slot.Barcode1 = detectionData.Barcode1;
-            slot.Barcode2 = detectionData.Barcode2;
-            slot.Barcode3 = detectionData.Barcode3;
-            slot.IsMatch = detectionData.IsMatch;
-            slot.ErrorMessage = detectionData.ErrorMessage;
-            slot.ProductModel = detectionData.ProductModel;
-            slot.OperatorId = detectionData.OperatorId;
-            slot.RecipeName = detectionData.RecipeName;
-            slot.ImagePath = detectionData.ImagePath;
+            if (detectionData== null )
+            {
+                return;
+            }
+
+            slot.DetectionData = detectionData.Clone(); 
+       
             Save(_filepath);
             RaiseDataChanged();
         }
@@ -963,6 +956,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             return $"Time: {DateTime.FromOADate(Time):yyyy-MM-dd HH:mm:ss} \r\n OCR: {OcrText}";
         }
+
+        /// <summary>
+        /// 使用 JSON 序列化与反序列化实现深拷贝。
+        /// 不依赖任何接口，天然支持未来类中添加复杂引用类型属性。
+        /// </summary>
+        /// <returns>当前对象的完全独立新副本</returns>
+        public MachineDetectionData Clone()
+        {
+            // 序列化为 JSON 字符串，再反序列化回对象
+            string json = JsonSerializer.Serialize(this);
+            return JsonSerializer.Deserialize<MachineDetectionData>(json);
+        }
     }
 
     /// <summary>
@@ -1004,6 +1009,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>当前槽位检测状态</summary>
         public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
+
+        /// <summary>
+        /// 监测数据
+        /// </summary>
+        public MachineDetectionData DetectionData { get; set; } = null;
     }
 
     #endregion
