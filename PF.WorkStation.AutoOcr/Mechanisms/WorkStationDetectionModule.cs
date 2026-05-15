@@ -92,6 +92,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>获取相机实例</summary>
         public IIntelligentCamera Camera => _camera;
 
+        /// <inheritdoc/>
+        public override bool IsInSafePosition
+            => IsAxisAtPoint(_xAxis, nameof(XAxisPoint.待机位))
+            && IsAxisAtPoint(_yAxis, nameof(YAxisPoint.待机位))
+            && IsAxisAtPoint(_zAxis, nameof(ZAxisPoint.待机位));
+
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)

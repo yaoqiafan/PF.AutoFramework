@@ -1,6 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
@@ -17,18 +17,19 @@ using System.Windows.Threading;
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// Workstation1FeedingModelDebugViewModel
+    /// WS1FeedingModelDebugViewModel
     /// </summary>
-    public class Workstation1FeedingModelDebugViewModel : RegionViewModelBase
+    public class WS1FeedingModelDebugViewModel : RegionViewModelBase
     {
-        private readonly WorkStation1FeedingModule? _feedingModule;
+        private readonly WS1FeedingModel? _feedingModule;
+        private readonly WS1MaterialPullingModule? _materialPullingModule;
         private DispatcherTimer _monitorTimer;
 
         // 供 UI 绑定底层硬件状态
         /// <summary>
         /// 获取或设置 FeedingModule
         /// </summary>
-        public WorkStation1FeedingModule? FeedingModule => _feedingModule;
+        public WS1FeedingModel? FeedingModule => _feedingModule;
 
         private string _debugMessage = "就绪";
         /// <summary>
@@ -94,11 +95,53 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// </summary>
         public bool Is12InchInPlace { get => _is12InchInPlace; set => SetProperty(ref _is12InchInPlace, value); }
 
-        private bool _isGripperOpen;
+        private bool _isErrorLayer1;
         /// <summary>
-        /// 获取或设置 IsGripperOpen
+        /// 获取或设置 IsErrorLayer1 (错层检测1)
         /// </summary>
-        public bool IsGripperOpen { get => _isGripperOpen; set => SetProperty(ref _isGripperOpen, value); }
+        public bool IsErrorLayer1 { get => _isErrorLayer1; set => SetProperty(ref _isErrorLayer1, value); }
+
+        private bool _isErrorLayer2;
+        /// <summary>
+        /// 获取或设置 IsErrorLayer2 (错层检测2)
+        /// </summary>
+        public bool IsErrorLayer2 { get => _isErrorLayer2; set => SetProperty(ref _isErrorLayer2, value); }
+
+        private bool _isIronTabDetected;
+        /// <summary>
+        /// 获取或设置 IsIronTabDetected (铁环突片检测)
+        /// </summary>
+        public bool IsIronTabDetected { get => _isIronTabDetected; set => SetProperty(ref _isIronTabDetected, value); }
+
+        private bool _is8InchIronReverse;
+        /// <summary>
+        /// 获取或设置 Is8InchIronReverse (8寸铁环防反检测)
+        /// </summary>
+        public bool Is8InchIronReverse { get => _is8InchIronReverse; set => SetProperty(ref _is8InchIronReverse, value); }
+
+        private bool _is12InchIronReverse;
+        /// <summary>
+        /// 获取或设置 Is12InchIronReverse (12寸铁环防反检测)
+        /// </summary>
+        public bool Is12InchIronReverse { get => _is12InchIronReverse; set => SetProperty(ref _is12InchIronReverse, value); }
+
+        private bool _is8InchStopRod;
+        /// <summary>
+        /// 获取或设置 Is8InchStopRod (8寸料盒挡杆检测)
+        /// </summary>
+        public bool Is8InchStopRod { get => _is8InchStopRod; set => SetProperty(ref _is8InchStopRod, value); }
+
+        private bool _is12InchStopRod1;
+        /// <summary>
+        /// 获取或设置 Is12InchStopRod1 (12寸料盒挡杆检测1)
+        /// </summary>
+        public bool Is12InchStopRod1 { get => _is12InchStopRod1; set => SetProperty(ref _is12InchStopRod1, value); }
+
+        private bool _is12InchStopRod2;
+        /// <summary>
+        /// 获取或设置 Is12InchStopRod2 (12寸料盒挡杆检测2)
+        /// </summary>
+        public bool Is12InchStopRod2 { get => _is12InchStopRod2; set => SetProperty(ref _is12InchStopRod2, value); }
         #endregion
 
         #region 点位数据集合
@@ -176,22 +219,33 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// SearchLayer 命令
         /// </summary>
 
-        public DelegateCommand SearchLayerCommand { get; }
+        public DelegateCommand<double?> SearchLayerCommand { get; }
         /// <summary>
         /// GoToLayer 命令
         /// </summary>
         public DelegateCommand GoToLayerCommand { get; }
-        /// <summary>
-        /// WaitPullOut 命令
-        /// </summary>
 
-        public DelegateCommand WaitPullOutCommand { get; }
+        // 3. X轴快捷移动
         /// <summary>
-        /// WaitReturn 命令
+        /// MoveXToStandby 命令
         /// </summary>
-        public DelegateCommand WaitReturnCommand { get; }
+        public DelegateCommand MoveXToStandbyCommand { get; }
+        /// <summary>
+        /// MoveXToStopper 命令
+        /// </summary>
+        public DelegateCommand MoveXToStopperCommand { get; }
 
-        // 3. 点位保存
+        // 4. 凸片传感器
+        /// <summary>
+        /// SetThrustWasherOn 命令
+        /// </summary>
+        public DelegateCommand SetThrustWasherOnCommand { get; }
+        /// <summary>
+        /// SetThrustWasherOff 命令
+        /// </summary>
+        public DelegateCommand SetThrustWasherOffCommand { get; }
+
+        // 5. 点位保存
         /// <summary>
         /// SaveZAxisPoints 命令
         /// </summary>
@@ -202,13 +256,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         public DelegateCommand SaveXAxisPointsCommand { get; }
         #endregion
         /// <summary>
-        /// Workstation1FeedingModelDebugViewModel 构造函数
+        /// WS1FeedingModelDebugViewModel 构造函数
         /// </summary>
 
-        public Workstation1FeedingModelDebugViewModel(IContainerProvider containerProvider)
+        protected override IEnumerable<NavigationGuard> GetNavigationGuards(NavigationContext? context = null)
+        {
+            yield return new NavigationGuard(
+                _materialPullingModule?.IsInSafePosition == true,
+                "工位1拉料Y轴未在待机位置，无法进入上料模组调试界面");
+            yield return new NavigationGuard(
+                _feedingModule?.IsConvexDetectionEnabled == true,
+                "工位1凸片检测传感器未开启，无法进入上料模组调试界面");
+        }
+
+        public WS1FeedingModelDebugViewModel(IContainerProvider containerProvider)
         {
             // 依赖注入获取模组实例
-            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WorkStation1FeedingModule)) as WorkStation1FeedingModule;
+            _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS1FeedingModel)) as WS1FeedingModel;
+            _materialPullingModule = containerProvider.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)) as WS1MaterialPullingModule;
 
             // --- 绑定全局生命周期指令 ---
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));
@@ -224,8 +289,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             CanMoveXCommand = new DelegateCommand(async () => await ExecuteCheckAsync("X轴可动条件", () => _feedingModule?.CanMoveXAxesAsync()));
             CanPullOutCommand = new DelegateCommand(async () => await ExecuteCheckAsync("允许拉料条件", () => _feedingModule?.CanPullOutMaterialAsync()));
 
-            SearchLayerCommand = new DelegateCommand(async () => await ExecuteSearchLayerAsync());
+            SearchLayerCommand = new DelegateCommand<double?>(async (t) => await ExecuteSearchLayerAsync(t));
             GoToLayerCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.SwitchToLayerAsync(TargetLayer)));
+
+            MoveXToStandbyCommand = new DelegateCommand(async () => await ExecuteAsync(
+                async () => { if (_feedingModule?.XAxis != null) await _feedingModule.XAxis.MoveToPointAsync(WS1FeedingModel.XAxisPoint.待机位.ToString()); }));
+            MoveXToStopperCommand = new DelegateCommand(async () => await ExecuteAsync(
+                async () => { if (_feedingModule?.XAxis != null) await _feedingModule.XAxis.MoveToPointAsync(WS1FeedingModel.XAxisPoint.挡料位.ToString()); }));
+
+            SetThrustWasherOnCommand = new DelegateCommand(async () => await ExecuteCheckAsync("打开凸片检测", () => _feedingModule?.SetThrustWasherAsync(true)));
+            SetThrustWasherOffCommand = new DelegateCommand(async () => await ExecuteCheckAsync("关闭凸片检测", () => _feedingModule?.SetThrustWasherAsync(false)));
 
             SaveZAxisPointsCommand = new DelegateCommand(SaveZAxisPoints);
             SaveXAxisPointsCommand = new DelegateCommand(SaveXAxisPoints);
@@ -252,14 +325,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteCheckAsync(string actionName, Func<Task<bool>> action)
+        private async Task ExecuteCheckAsync(string actionName, Func<Task<MechResult>> action)
         {
             if (action == null) return;
             try
             {
                 DebugMessage = $"检查 {actionName} 中...";
-                bool result = await action.Invoke();
-                DebugMessage = $"结果: {actionName} = {(result ? "满足 (True)" : "不满足 (False)")}";
+                var result = await action.Invoke();
+                DebugMessage = result.IsSuccess
+                    ? $"结果: {actionName} = 满足 (True)"
+                    : $"结果: {actionName} = 不满足 (False) [{result.ErrorCode}] {result.ErrorMessage}";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -287,49 +362,74 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
         }
 
-        private async Task ExecuteSearchLayerAsync()
+        private async Task ExecuteSearchLayerAsync(double? runTimes)
         {
             if (_feedingModule == null) return;
+
+            // 将 double 转换为 int，并确保至少运行 1 次
+            int totalRuns = (int)Math.Max((double)1, (double)runTimes);
+
             try
             {
-                DebugMessage = "开始寻层扫描...";
-
-                // 1. 获取硬件原始锁存数据
-                var rawMap = await _feedingModule.SearchLayerAsync();
-
-                // 清空旧数据
-                RawMappingPoints1.Clear();
-                RawMappingPoints2.Clear();
-
-                // 将数据分别推入对应的集合
-                var keys = rawMap.Keys.ToList();
-                if (keys.Count > 0)
+                for (int i = 0; i < totalRuns; i++)
                 {
-                    int index1 = 1;
-                    foreach (var z in rawMap[keys[0]])
-                        RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
+                    int currentRun = i + 1;
+                    DebugMessage = $"开始第 {currentRun}/{totalRuns} 次寻层扫描...";
+
+                    var scanResult = await _feedingModule.SearchLayerAsync();
+                    if (!scanResult.IsSuccess)
+                    {
+                        DebugMessage = $"第 {currentRun} 次寻层扫描失败: {scanResult.ErrorMessage}";
+                        MessageService.ShowMessage(DebugMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return; // 失败则退出整个方法；如果想忽略错误继续下一次循环，请改为 continue;
+                    }
+
+                    var rawMap = scanResult.Data;
+                    RawMappingPoints1.Clear();
+                    RawMappingPoints2.Clear();
+
+                    var keys = rawMap.Keys.ToList();
+                    if (keys.Count > 0)
+                    {
+                        int index1 = 1;
+                        foreach (var z in rawMap[keys[0]])
+                            RawMappingPoints1.Add(new RawMappingItem { Index = index1++, ZPosition = z });
+                    }
+
+                    if (keys.Count > 1)
+                    {
+                        int index2 = 1;
+                        foreach (var z in rawMap[keys[1]])
+                            RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
+                    }
+
+                    DebugMessage = $"第 {currentRun}/{totalRuns} 次数据获取完成，正在进行算法过滤...";
+                    var filterResult = await _feedingModule.AnalyzeAndFilterMappingData(rawMap);
+                    if (!filterResult.IsSuccess)
+                    {
+                        DebugMessage = $"第 {currentRun} 次算法过滤失败: {filterResult.ErrorMessage}";
+                        MessageService.ShowMessage(DebugMessage, "警告或防呆拦截", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var filteredMap = filterResult.Data;
+                    FilteredMappingPoints.Clear();
+                    foreach (var kvp in filteredMap.OrderBy(k => k.Key))
+                    {
+                        FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
+                    }
+
+                    DebugMessage = $"第 {currentRun} 次寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
+
+                    // 如果有多次循环，建议加一个短暂的延迟，避免硬件指令发送过快导致冲突
+                    if (currentRun < totalRuns)
+                    {
+                        await Task.Delay(500); // 延时 500ms，可根据实际硬件要求调整或删除
+                    }
                 }
 
-                if (keys.Count > 1)
-                {
-                    int index2 = 1;
-                    foreach (var z in rawMap[keys[1]])
-                        RawMappingPoints2.Add(new RawMappingItem { Index = index2++, ZPosition = z });
-                }
-
-                // 2. 调用算法过滤并应用防呆验证
-                DebugMessage = "数据获取完成，正在进行算法过滤...";
-                var filteredMap =await   _feedingModule.AnalyzeAndFilterMappingData(rawMap);
-
-                // 刷新过滤后有效数据到 UI
-                FilteredMappingPoints.Clear();
-                foreach (var kvp in filteredMap.OrderBy(k => k.Key))
-                {
-                    // kvp.Key 是索引(0起)，界面展示 +1 转为常规的 1~25 层
-                    FilteredMappingPoints.Add(new FilteredMappingItem { LayerIndex = kvp.Key + 1, ActualZ = kvp.Value });
-                }
-
-                DebugMessage = $"寻层完成: 共识别到 {filteredMap.Count} 层有效晶圆";
+                // 所有循环顺利结束后，统一弹窗提示
+                DebugMessage = $"任务完成: 共计执行 {totalRuns} 次寻层均已成功。";
                 MessageService.ShowMessage(DebugMessage, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -427,11 +527,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 // 刷新 IO 状态
                 if (_feedingModule.IO != null)
                 {
-                    // 注意：这里的枚举需要确保你的工程中定义过 E_InPutName
                     IsBoxCommonInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左料盒公用到位检测) == true;
                     Is8InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸料盒到位检测) == true;
                     Is12InchInPlace = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒到位检测) == true;
-                    
+                    IsErrorLayer1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左错层公共检测) == true;
+                    IsErrorLayer2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左错层12寸检测) == true;
+                    IsIronTabDetected = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左铁环突片检测) == true;
+                    Is8InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸铁环防反检测) == true;
+                    Is12InchIronReverse = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸铁环防反检测) == true;
+                    Is8InchStopRod = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左8寸料盒挡杆检测) == true;
+                    Is12InchStopRod1 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测1) == true;
+                    Is12InchStopRod2 = _feedingModule.IO.ReadInput(E_InPutName.上晶圆左12寸料盒挡杆检测2) == true;
                 }
             };
             _monitorTimer.Start();

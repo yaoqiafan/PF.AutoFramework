@@ -92,6 +92,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>获取光源控制器实例</summary>
         public ILightController LightController => _lightController;
 
+        /// <inheritdoc/>
+        public override bool IsInSafePosition => IsAxisAtPoint(_yAxis, nameof(YAxisPoint.待机位置));
+
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)

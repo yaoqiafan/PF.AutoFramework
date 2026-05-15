@@ -23,17 +23,17 @@ using System.Windows.Threading;
 namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 {
     /// <summary>
-    /// WS1MaterialPullingModuleDebugViewModel
+    /// WS2MaterialPullingModuleDebugViewModel
     /// </summary>
-    public class WS1MaterialPullingModuleDebugViewModel : RegionViewModelBase
+    public class WS2MaterialPullingModuleDebugViewModel : RegionViewModelBase
     {
-        private readonly WS1MaterialPullingModule? _materialPullingModule;
+        private readonly WS2MaterialPullingModule? _materialPullingModule;
         private readonly WSDetectionModule? _detectionModule;
         /// <summary>
         /// 获取或设置 MaterialPullingModule
         /// </summary>
 
-        public WS1MaterialPullingModule? MaterialPullingModule => _materialPullingModule;
+        public WS2MaterialPullingModule? MaterialPullingModule => _materialPullingModule;
 
         private readonly IParamService _paramService;
 
@@ -198,7 +198,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
 
 
-
         private void UpdateLihtValue(int chanel, int vale)
         {
             if (_materialPullingModule == null) return;
@@ -324,7 +323,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         #endregion Command定义
         /// <summary>
-        /// WS1MaterialPullingModuleDebugViewModel 构造函数
+        /// WS2MaterialPullingModuleDebugViewModel 构造函数
         /// </summary>
 
 
@@ -332,14 +331,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         {
             yield return new NavigationGuard(
                 _detectionModule?.IsInSafePosition == true,
-                "检测模组各轴未在待机位置，无法进入工位1拉料模组调试界面");
+                "检测模组各轴未在待机位置，无法进入工位2拉料模组调试界面");
         }
 
-        public WS1MaterialPullingModuleDebugViewModel(IContainerProvider containerProvider, IParamService paramService)
+        public WS2MaterialPullingModuleDebugViewModel(IContainerProvider containerProvider, IParamService paramService)
         {
             _paramService = paramService;
 
-            _materialPullingModule = containerProvider.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)) as WS1MaterialPullingModule;
+            _materialPullingModule = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
             _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
 
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.InitializeAsync()));
@@ -494,7 +493,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             // 使用非泛型重载，避免 double 作为引用类型约束的泛型参数
             var info = await _paramService.SetParamAsync(
                 "System.Int32",
-                E_Params.WorkStation1LightBrightness.ToString(),
+                E_Params.WorkStation2LightBrightness.ToString(),
                 InfraredLightValue
             );
         }
@@ -513,7 +512,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "[调试] 关闭凸片检测...";
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, false);
 
                 DebugMessage = "[调试] 开始执行单步测试：拉料流程...";
                 await InternalTestPullOutAsync(cts.Token);
@@ -527,7 +526,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             finally
             {
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, true);
                 IsBusy = false;
             }
         }
@@ -543,7 +542,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "[调试] 关闭凸片检测...";
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, false);
 
                 DebugMessage = "[调试] 开始执行单步测试：推料流程...";
                 await InternalTestPushBackAsync(cts.Token);
@@ -557,7 +556,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             finally
             {
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, true);
                 IsBusy = false;
             }
         }
@@ -573,16 +572,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             try
             {
                 DebugMessage = "[调试] 关闭凸片检测...";
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, false);
 
                 DebugMessage = "[调试] 开始执行完整闭环测试...";
                 await InternalTestPullOutAsync(cts.Token);
 
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, true);
                 DebugMessage = "[调试] 模拟视觉检测中...";
                 await Task.Delay(1500, cts.Token);
 
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, false);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, false);
                 await InternalTestPushBackAsync(cts.Token);
 
                 DebugMessage = "[调试] 完整拉送料闭环测试完成。";
@@ -595,7 +594,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             }
             finally
             {
-                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆左铁环突片检测开关, true);
+                _materialPullingModule.IO?.WriteOutput(E_OutPutName.上晶圆右铁环突片检测开关, true);
                 IsBusy = false;
             }
         }
@@ -650,14 +649,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
                 if (_materialPullingModule.IO != null)
                 {
                     // 注意：这里的枚举需要确保你的工程中定义过 E_InPutName
-                    GipperOpen = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆夹爪左气缸张开) == true;
-                    GipperClose = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆夹爪左气缸闭合) == true;
-                    AdjustedOpen = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道左调宽气缸打开) == true;
-                    AdjustedClose = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道左调宽气缸缩回) == true;
-                    IsIronTested = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆夹爪左铁环有无检测) == true;
-                    Stackingdetection = _materialPullingModule.IO.ReadInput(E_InPutName.夹爪左叠料检测) == true;
-                    WafeInPlace1 = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道左晶圆在位检测1) == true;
-                    WafeInPlace2 = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道左晶圆在位检测2) == true;
+                    GipperOpen = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆夹爪右气缸张开) == true;
+                    GipperClose = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆夹爪右气缸闭合) == true;
+                    AdjustedOpen = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道右调宽气缸打开) == true;
+                    AdjustedClose = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道右调宽气缸缩回) == true;
+                    IsIronTested = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆夹爪右铁环有无检测) == true;
+                    Stackingdetection = _materialPullingModule.IO.ReadInput(E_InPutName.夹爪右叠料检测) == true;
+                    WafeInPlace1 = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道右晶圆在位检测1) == true;
+                    WafeInPlace2 = _materialPullingModule.IO.ReadInput(E_InPutName.晶圆轨道右晶圆在位检测2) == true;
                 }
             };
             _monitorTimer.Start();

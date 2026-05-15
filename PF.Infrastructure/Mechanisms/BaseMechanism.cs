@@ -182,6 +182,19 @@ namespace PF.Infrastructure.Mechanisms
         /// <summary>内部复位异步操作</summary>
         protected virtual Task<bool> InternalResetAsync(CancellationToken token) => Task.FromResult(true);
 
+        /// <summary>模组是否在安全位置（子类覆写，返回所有关键轴是否在待机点）</summary>
+        public virtual bool IsInSafePosition => false;
+
+        /// <summary>检查指定轴是否在目标点位（含容差），轴为 null 时返回 true</summary>
+        protected static bool IsAxisAtPoint(IAxis? axis, string pointName, double tolerance = 0.5)
+        {
+            if (axis == null) return true;
+            var pos = axis.CurrentPosition;
+            if (pos == null) return false;
+            var point = axis.PointTable.FirstOrDefault(p => p.Name == pointName);
+            return point != null && Math.Abs(pos.Value - point.TargetPosition) <= tolerance;
+        }
+
         /// <summary>检查机构是否就绪</summary>
         protected void CheckReady()
         {
