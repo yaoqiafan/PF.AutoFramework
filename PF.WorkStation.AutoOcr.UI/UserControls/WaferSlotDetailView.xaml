@@ -60,37 +60,65 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="34" />
-                    <RowDefinition Height="34" />
-                    <RowDefinition Height="34" />
-                    <RowDefinition Height="34" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="32" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!--  检测时间 / 客户批次  -->
+                <!--  行0：检测时间 / 客户批次  -->
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="检测时间：" FontWeight="SemiBold" />
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DetectionTime}" />
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="客户批次：" FontWeight="SemiBold" />
                 <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding CustomerBatch}" />
 
-                <!--  OCR 值 / 条码  -->
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="OCR 值：" FontWeight="SemiBold" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding OcrText}" />
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="条　码：" FontWeight="SemiBold" />
-                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Barcode1}" />
+                <!--  行1：内部批次 / 晶圆 ID  -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="内部批次：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding InternalBatchId}" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="晶圆 ID：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding WaferId}" />
 
-                <!--  操作员 / 配方名称  -->
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="操作员：" FontWeight="SemiBold" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OperatorId}" />
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="配方名称：" FontWeight="SemiBold" />
-                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding RecipeName}" />
+                <!--  行2：产品型号 / 操作员  -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="产品型号：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProductModel}" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="操作员：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding OperatorId}" />
 
-                <!--  匹配结果  -->
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="匹配结果：" FontWeight="SemiBold" />
+                <!--  行3：配方名称（单值横跨）  -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="配方名称：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding RecipeName}" />
+
+                <!--  行4：OCR 值（可能较长，自动换行）  -->
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="OCR 值：" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,6,0,6" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding OcrText}" TextWrapping="Wrap" Margin="0,6,0,6" />
+
+                <!--  行5：条码1 / 条码2（条码2无值时标签和值均隐藏）  -->
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="条　码1：" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Barcode1}" />
+                <TextBlock Grid.Row="5" Grid.Column="2" Text="条　码2：" FontWeight="SemiBold"
+                    Visibility="{Binding HasBarcode2, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Grid.Row="5" Grid.Column="3" Text="{Binding Barcode2}"
+                    Visibility="{Binding HasBarcode2, Converter={StaticResource BoolToVis}}" />
+
+                <!--  行6：条码3（无值时整行折叠）  -->
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="条　码3：" FontWeight="SemiBold" Margin="0,6,0,0"
+                    VerticalAlignment="Top"
+                    Visibility="{Binding HasBarcode3, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding Barcode3}" Margin="0,6,0,0"
+                    TextWrapping="Wrap"
+                    Visibility="{Binding HasBarcode3, Converter={StaticResource BoolToVis}}" />
+
+                <!--  行7：匹配结果  -->
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="匹配结果：" FontWeight="SemiBold" Margin="0,6,0,0" VerticalAlignment="Top" />
                 <Border
-                    Grid.Row="3"
+                    Grid.Row="7"
                     Grid.Column="1"
-                    Margin="0,6"
+                    Margin="0,8,0,6"
                     Padding="10,2"
                     HorizontalAlignment="Left"
                     CornerRadius="4">
@@ -120,20 +148,17 @@
                     </TextBlock>
                 </Border>
 
-                <!--  错误信息（仅 NG 时显示）  -->
+                <!--  行8：错误信息（NG 且有有效错误内容时显示）  -->
                 <TextBlock
-                    Grid.Row="4"
-                    Grid.Column="0"
-                    Margin="0,4,0,0"
+                    Grid.Row="8" Grid.Column="0"
+                    Margin="0,4,0,8"
+                    VerticalAlignment="Top"
                     Text="错误信息："
                     FontWeight="SemiBold"
-                    VerticalAlignment="Top"
                     Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
                 <TextBlock
-                    Grid.Row="4"
-                    Grid.Column="1"
-                    Grid.ColumnSpan="3"
-                    Margin="0,4,0,0"
+                    Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3"
+                    Margin="0,4,0,8"
                     Foreground="#C62828"
                     Text="{Binding ErrorMessage}"
                     TextWrapping="Wrap"
@@ -146,15 +171,25 @@
                 AnnotationContent="{Binding DetectionData}"
                 Source="{Binding ImagePath}" />
 
-            <!--  关闭按钮  -->
-            <Button
+            <!--  底部按钮行  -->
+            <StackPanel
                 Grid.Row="6"
-                Height="36"
-                MinWidth="90"
                 HorizontalAlignment="Right"
-                Command="{Binding CancelCommand}"
-                Content="关  闭"
-                Style="{DynamicResource ButtonDefault}" />
+                Orientation="Horizontal">
+                <Button
+                    Height="36"
+                    MinWidth="100"
+                    Margin="0,0,12,0"
+                    Click="OnExportScreenshot"
+                    Content="导出截图"
+                    Style="{DynamicResource ButtonDefault}" />
+                <Button
+                    Height="36"
+                    MinWidth="90"
+                    Command="{Binding CancelCommand}"
+                    Content="关  闭"
+                    Style="{DynamicResource ButtonDefault}" />
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>
