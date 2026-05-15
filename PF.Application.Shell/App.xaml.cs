@@ -7,6 +7,7 @@ using PF.Application.Shell.ViewModels;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
+using PF.Infrastructure.Logging;
 using PF.Core.Entities.Identity;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
@@ -55,8 +56,11 @@ using PF.Services.Logging;
 using PF.Services.Params;
 using PF.Services.Production;
 using PF.Services.Sync;
+using PF.Services.Timer;
+using PF.Core.Interfaces.Timer;
 using PF.Application.Shell.Services;
 using PF.Core.Interfaces.Alarm;
+using PF.Core.Interfaces.TowerLight;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Dialog.ViewModels;
@@ -68,6 +72,7 @@ using PF.Core.Models;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
 using PF.WorkStation.AutoOcr.CostParam;
+using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
@@ -95,7 +100,9 @@ namespace PF.Application.Shell
         private static bool IsNewInstance;
 
         private ILogService _logService;
-        private HostApplicationBuilder? builder;
+        private CategoryLogger _uiLogger;
+        private CategoryLogger _dbLogger;
+        private readonly HostApplicationBuilder? builder;
 
         #endregion
 
@@ -277,6 +284,24 @@ namespace PF.Application.Shell
                   ThreadOption.BackgroundThread,
                   keepSubscriberReferenceAlive: true);
 
+            // ── 三色灯：主控状态变更 → MachineStateChangedEvent → TowerLightManager ──
+            // 将原生 MasterStateChanged 事件桥接到 Prism EA，使 Manager 无需直接引用 IMasterController。
+            controller.MasterStateChanged += (_, state) => ea.GetEvent<MachineStateChangedEvent>().Publish(state);
+            // 激活 TowerLightManager（构造函数中自动订阅 EA，Singleton 首次 Resolve 即生效）
+            Container.Resolve<TowerLightManager>();
+
+            // ── 重初始化提醒：工位屏蔽参数变更 → ReinitializeRequiredEvent → HomeViewModel ──
+            controller.ReinitializationRequired += (_, _) => ea.GetEvent<ReinitializeRequiredEvent>().Publish();
+
+            // 启动集中定时服务（在所有服务初始化完成后启动，确保订阅者已就绪）
+            Container.Resolve<IAppTimerService>().Start();
+
+            // 注册每日磁盘使用量预警任务（08:00 执行，启动时补偿）
+            RegisterDiskWarningTask();
+
+            // 注册每日图片定期清理任务（08:00 执行，启动时补偿）
+            RegisterImageCleanupTask();
+
             base.OnInitialized();
         }
 
@@ -298,6 +323,8 @@ namespace PF.Application.Shell
             // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
             containerRegistry.AddLogging();
             _logService = containerRegistry.GetContainer().Resolve<ILogService>();
+            _uiLogger = CategoryLoggerFactory.UI(_logService);
+            _dbLogger = CategoryLoggerFactory.Database(_logService);
 
             // 参数数据库（AppParamDbContext 是应用层专属，保留在此）
             RegisterParamDbContext(containerRegistry);
@@ -339,6 +366,9 @@ namespace PF.Application.Shell
 
             // 报警模块：独立数据库，字典 + 业务服务
             RegisterAlarmServices(containerRegistry);
+
+            // 集中定时服务
+            RegisterTimerService(containerRegistry);
         }
 
         /// <summary>
@@ -387,21 +417,16 @@ namespace PF.Application.Shell
                 var dbContextOptions = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
                 container.RegisterInstance(dbContextOptions);
 
-                container.Register<Microsoft.EntityFrameworkCore.DbContext, AppParamDbContext>(
-                    made: Made.Of(() => new AppParamDbContext(
-                        Arg.Of<Microsoft.EntityFrameworkCore.DbContextOptions<AppParamDbContext>>())),
-                    reuse: Reuse.Scoped);
+                // 每次调用工厂方法都创建独立的 DbContext 实例，彻底解决并发场景下的线程安全问题
+                Func<Microsoft.EntityFrameworkCore.DbContext> dbContextFactory =
+                    () => new AppParamDbContext(dbContextOptions);
+                container.RegisterInstance<Func<Microsoft.EntityFrameworkCore.DbContext>>(dbContextFactory);
 
-                // 开放泛型仓储（DryIoc 专属 Setup/Reuse API，须在此处注册）
-                container.Register(typeof(IParamRepository<>), typeof(ParamRepository<>),
-                    setup: Setup.With(condition: r => r.ServiceType.IsGenericType),
-                    reuse: Reuse.ScopedOrSingleton);
-
-                _logService.Info("参数数据库上下文注册完成", "DependencyInjection");
+                _dbLogger.Info("参数数据库上下文注册完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("参数数据库上下文注册失败", exception: ex);
+                _dbLogger.Error("参数数据库上下文注册失败", ex);
                 throw;
             }
         }
@@ -426,11 +451,11 @@ namespace PF.Application.Shell
                 containerRegistry.RegisterInstance<DbContextOptions<ProductionDbContext>>(options);
                 containerRegistry.RegisterSingleton<IProductionDataService, ProductionDataService>();
 
-                _logService.Info("生产数据服务注册完成", "DependencyInjection");
+                _dbLogger.Info("生产数据服务注册完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("生产数据服务注册失败", exception: ex);
+                _dbLogger.Error("生产数据服务注册失败", ex);
                 throw;
             }
         }
@@ -439,7 +464,7 @@ namespace PF.Application.Shell
 
         #region 用户身份服务注册
 
-        private void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
+        private static void RegisterUserIdentityTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<IUserService, UserService>();
         }
@@ -474,7 +499,7 @@ namespace PF.Application.Shell
             }
             catch (Exception ex)
             {
-                _logService.Error("SecsGem据库上下文注册失败", exception: ex);
+                _dbLogger.Error("SecsGem据库上下文注册失败", ex);
                 throw;
             }
         }
@@ -507,10 +532,7 @@ namespace PF.Application.Shell
                     ? int.Parse(idx) : 0;
                 string axisparamstr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var axispa) ? axispa : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
                 var  axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
-                if (axisparam == null)
-                {
-                    axisparam = new AxisParam();
-                }
+                axisparam ??= new AxisParam();
                 return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, axisparam, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
 
@@ -577,104 +599,109 @@ namespace PF.Application.Shell
 
 
             container.RegisterMany(
-    new[] { typeof(WorkStation1FeedingModule), typeof(IMechanism) },
-    typeof(WorkStation1FeedingModule),
+    [typeof(WS1FeedingModel), typeof(IMechanism)],
+    typeof(WS1FeedingModel),
     reuse: DryIoc.Reuse.Singleton,
-    serviceKey: nameof(WorkStation1FeedingModule));
+    serviceKey: nameof(WS1FeedingModel));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationDetectionModule), typeof(IMechanism) },
-               typeof(WorkStationDetectionModule),
+               [typeof(WSDetectionModule), typeof(IMechanism)],
+               typeof(WSDetectionModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationDetectionModule));
+               serviceKey: nameof(WSDetectionModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStation1MaterialPullingModule), typeof(IMechanism) },
-               typeof(WorkStation1MaterialPullingModule),
+               [typeof(WS1MaterialPullingModule), typeof(IMechanism)],
+               typeof(WS1MaterialPullingModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStation1MaterialPullingModule));
+               serviceKey: nameof(WS1MaterialPullingModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationDataModule), typeof(IMechanism) },
-               typeof(WorkStationDataModule),
+               [typeof(WSDataModule), typeof(IMechanism)],
+               typeof(WSDataModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationDataModule));
+               serviceKey: nameof(WSDataModule));
 
 
             container.RegisterMany(
-               new[] { typeof(WorkStationSecsGemModule), typeof(IMechanism) },
-               typeof(WorkStationSecsGemModule),
+               [typeof(WSSecsGemModule), typeof(IMechanism)],
+               typeof(WSSecsGemModule),
                reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationSecsGemModule));
+               serviceKey: nameof(WSSecsGemModule));
 
             // ── 工位 2 机构层注册 ──
             container.RegisterMany(
-                new[] { typeof(WorkStation2FeedingModule), typeof(IMechanism) },
-                typeof(WorkStation2FeedingModule),
+                [typeof(WS2FeedingModel), typeof(IMechanism)],
+                typeof(WS2FeedingModel),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WorkStation2FeedingModule));
+                serviceKey: nameof(WS2FeedingModel));
 
             container.RegisterMany(
-                new[] { typeof(WorkStation2MaterialPullingModule), typeof(IMechanism) },
-                typeof(WorkStation2MaterialPullingModule),
+                [typeof(WS2MaterialPullingModule), typeof(IMechanism)],
+                typeof(WS2MaterialPullingModule),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WorkStation2MaterialPullingModule));
+                serviceKey: nameof(WS2MaterialPullingModule));
 
             // 工站层
             container.RegisterMany(
-                new[] { typeof(WorkStation1FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStation1FeedingStation<StationMemoryBaseParam>),
+                [typeof(WS1FeedingStation), typeof(IStation)],
+                typeof(WS1FeedingStation),
                 reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStation1FeedingStation<StationMemoryBaseParam>)
+               serviceKey: nameof(WS1FeedingStation)
                 );
 
 
             container.RegisterMany(
-                new[] { typeof(WorkStationDetectionStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStationDetectionStation<StationMemoryBaseParam>),
+                [typeof(WSDetectionStation<StationMemoryBaseParam>), typeof(IStation)],
+                typeof(WSDetectionStation<StationMemoryBaseParam>),
                 reuse: DryIoc.Reuse.Singleton,
-               serviceKey: nameof(WorkStationDetectionStation<StationMemoryBaseParam>)
+               serviceKey: nameof(WSDetectionStation<StationMemoryBaseParam>)
                 );
 
             container.RegisterMany(
-               new[] { typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-               typeof(WorkStation1MaterialPullingStation<StationMemoryBaseParam>),
+               [typeof(WS1MaterialPullingStation), typeof(IStation)],
+               typeof(WS1MaterialPullingStation),
                reuse: DryIoc.Reuse.Singleton);
 
             // ── 工位 2 工站层注册 ──
             container.RegisterMany(
-                new[] { typeof(WorkStation2FeedingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStation2FeedingStation<StationMemoryBaseParam>),
+                [typeof(WS2FeedingStation), typeof(IStation)],
+                typeof(WS2FeedingStation),
                 reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WorkStation2FeedingStation<StationMemoryBaseParam>));
+                serviceKey: nameof(WS2FeedingStation));
 
             container.RegisterMany(
-                new[] { typeof(WorkStation2MaterialPullingStation<StationMemoryBaseParam>), typeof(StationBase<StationMemoryBaseParam>) },
-                typeof(WorkStation2MaterialPullingStation<StationMemoryBaseParam>),
+                [typeof(WS2MaterialPullingStation), typeof(IStation)],
+                typeof(WS2MaterialPullingStation),
                 reuse: DryIoc.Reuse.Singleton);
 
             // 主控调度器
             containerRegistry.RegisterSingleton<IMasterController, AutoOCRMachineController>();
+
+            // ── 三色灯服务注册 ──
+            containerRegistry.RegisterSingleton<ITowerLightDoWriterConfig, TowerLightDoWriterConfig>();
+            containerRegistry.RegisterSingleton<ITowerLightDoWriter, TowerLightDoWriter>();
+            containerRegistry.RegisterSingleton<ITowerLightService, TowerLightService>();
+            containerRegistry.RegisterSingleton<TowerLightManager>();
         }
 
         #endregion
 
         #region 配方服务注册
 
-        private void RegisterRecipeRelated(IContainerRegistry containerRegistry)
+        private static void RegisterRecipeRelated(IContainerRegistry containerRegistry)
         {
             var container = containerRegistry.GetContainer();
 
             // 将 OCRRecipe 同时映射到 IRecipeService、IRecipeManger 接口及其自身类型，确保全局共享同一个配方字典实例
             container.RegisterMany(
-                new[]
-                {
+                [
                     typeof(IRecipeService<OCRRecipeParam>),
                     typeof(OCRRecipe<OCRRecipeParam>)
-                },
+                ],
                 typeof(OCRRecipe<OCRRecipeParam>),
                 reuse: DryIoc.Reuse.Singleton);
 
@@ -698,12 +725,224 @@ namespace PF.Application.Shell
 
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "AlarmHistory.db");
                 containerRegistry.AddAlarmServices(filePath);
-                _logService.Info("报警服务注册完成", "DependencyInjection");
+                _dbLogger.Info("报警服务注册完成");
             }
             catch (Exception ex)
             {
-                _logService.Error("报警服务注册失败", exception: ex);
+                _dbLogger.Error("报警服务注册失败", ex);
                 throw;
+            }
+        }
+
+        private void RegisterTimerService(IContainerRegistry containerRegistry)
+        {
+            try
+            {
+                var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "timer_schedule.json");
+                containerRegistry.AddTimerService(filePath);
+                _dbLogger.Info("定时服务注册完成");
+            }
+            catch (Exception ex)
+            {
+                _dbLogger.Error("定时服务注册失败", ex);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region 磁盘预警定时任务
+
+        private void RegisterDiskWarningTask()
+        {
+            var timer = Container.Resolve<IAppTimerService>();
+            timer.RegisterDailyAt(
+                key:             "DiskWarning_OCRImagePath",
+                timeOfDay:       new TimeSpan(8, 0, 0),
+                callback:        () => _ = CheckDiskUsageAsync(),
+                catchUpOnStart:  true);
+
+            _uiLogger.Info("[磁盘预警] 定时任务已注册（每日 08:00）");
+        }
+
+        private async Task CheckDiskUsageAsync()
+        {
+            try
+            {
+                var paramService = Container.Resolve<IParamService>();
+
+                var imagePath = await paramService.GetParamAsync<string>(
+                    E_Params.OCRCameraImageSavePath.ToString());
+                var threshold = await paramService.GetParamAsync<double>(
+                    E_Params.DiskWarningThreshold.ToString(), 80.0);
+
+                if (string.IsNullOrWhiteSpace(imagePath))
+                {
+                    _uiLogger.Warn("[磁盘预警] 图片保存路径参数为空，跳过检查");
+                    return;
+                }
+
+                // 兼容 "E//path"、"E:\\path"、"E:/path" 等多种路径格式
+                var normalized = imagePath.Replace("//", "\\").Replace("/", "\\");
+                var root = Path.GetPathRoot(normalized);
+                if (string.IsNullOrEmpty(root))
+                {
+                    _uiLogger.Warn($"[磁盘预警] 无法从路径 [{imagePath}] 解析驱动器，跳过检查");
+                    return;
+                }
+
+                var drive = new DriveInfo(root);
+                if (!drive.IsReady)
+                {
+                    _uiLogger.Warn($"[磁盘预警] 驱动器 {root} 未就绪，跳过检查");
+                    return;
+                }
+
+                double usedPercent = (1.0 - (double)drive.AvailableFreeSpace / drive.TotalSize) * 100.0;
+                double freeGb      = drive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
+                double totalGb     = drive.TotalSize          / (1024.0 * 1024 * 1024);
+
+                _uiLogger.Info($"[磁盘预警] 驱动器 {root}  使用率 {usedPercent:F1}%，" +
+                               $"剩余 {freeGb:F2} GB / 总计 {totalGb:F2} GB，阈值 {threshold}%");
+
+                if (usedPercent < threshold) return;
+
+                _uiLogger.Warn($"[磁盘预警] 触发预警：使用率 {usedPercent:F1}% ≥ 阈值 {threshold}%");
+
+                await this.Dispatcher.InvokeAsync(() =>
+                {
+                    Container.Resolve<IMessageService>().ShowMessage(
+                        $"图片保存路径所在驱动器：{root}\n" +
+                        $"当前使用率：{usedPercent:F1}%（预警阈值：{threshold}%）\n" +
+                        $"剩余空间：{freeGb:F2} GB / 总容量：{totalGb:F2} GB\n\n" +
+                        $"请及时清理磁盘，避免影响生产图片的正常存储！",
+                        "磁盘存储预警",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                });
+            }
+            catch (Exception ex)
+            {
+                _uiLogger.Error("[磁盘预警] 检查过程发生异常", ex);
+            }
+        }
+
+        #endregion
+
+        #region 图片定期清理任务
+
+        private void RegisterImageCleanupTask()
+        {
+            var timer = Container.Resolve<IAppTimerService>();
+            timer.RegisterDailyAt(
+                key:            "ImageCleanup_OCRImagePath",
+                timeOfDay:      new TimeSpan(8, 0, 0),
+                callback:       () => _ = CleanupOldImagesAsync(),
+                catchUpOnStart: true);
+
+            _uiLogger.Info("[图片清理] 定时任务已注册（每日 08:00）");
+        }
+
+        private async Task CleanupOldImagesAsync()
+        {
+            try
+            {
+                var paramService = Container.Resolve<IParamService>();
+
+                var rawPath = await paramService.GetParamAsync<string>(
+                    E_Params.OCRCameraImageSavePath.ToString());
+                var retentionMonths = await paramService.GetParamAsync<int>(
+                    E_Params.OCRCameraImageRetentionMonths.ToString(), 3);
+
+                if (retentionMonths <= 0)
+                {
+                    _uiLogger.Info("[图片清理] 存储时间参数为 0，自动清理已禁用，跳过");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(rawPath))
+                {
+                    _uiLogger.Warn("[图片清理] 图片保存路径参数为空，跳过");
+                    return;
+                }
+
+                // 兼容 "E//path"、"E:\\path"、"E:/path" 格式
+                var basePath = rawPath.Replace("//", "\\").Replace("/", "\\");
+                if (!Directory.Exists(basePath))
+                {
+                    _uiLogger.Info($"[图片清理] 路径不存在，跳过: {basePath}");
+                    return;
+                }
+
+                var cutoff = DateTime.Now.AddMonths(-retentionMonths);
+                _uiLogger.Info($"[图片清理] 开始扫描 {basePath}，保留近 {retentionMonths} 个月，截止日期: {cutoff:yyyy-MM-dd}");
+
+                int deleted = 0, skipped = 0;
+
+                // 文件 I/O 在线程池执行，避免阻塞定时器线程
+                await Task.Run(() =>
+                {
+                    foreach (var dir in Directory.EnumerateDirectories(basePath))
+                    {
+                        try
+                        {
+                            var info = new DirectoryInfo(dir);
+                            if (info.CreationTime >= cutoff)
+                                continue;
+
+                            _uiLogger.Info($"[图片清理] 准备删除: {dir}（创建于 {info.CreationTime:yyyy-MM-dd}）");
+
+                            if (TryDeleteDirectorySafe(dir))
+                                deleted++;
+                            else
+                                skipped++;
+                        }
+                        catch (Exception ex)
+                        {
+                            _uiLogger.Warn($"[图片清理] 处理目录异常: {dir} — {ex.Message}");
+                            skipped++;
+                        }
+                    }
+                });
+
+                _uiLogger.Info($"[图片清理] 完成，已删除: {deleted} 个目录，跳过: {skipped} 个目录");
+            }
+            catch (Exception ex)
+            {
+                _uiLogger.Error("[图片清理] 清理过程发生异常", ex);
+            }
+        }
+
+        /// <summary>
+        /// 尝试安全删除指定目录（含子目录和文件）。
+        /// 遇到文件锁或权限不足时记录警告并返回 false，不抛出异常。
+        /// </summary>
+        private bool TryDeleteDirectorySafe(string dirPath)
+        {
+            try
+            {
+                // 逐文件去除只读属性，防止只读标记阻止删除
+                foreach (var file in Directory.EnumerateFiles(dirPath, "*", SearchOption.AllDirectories))
+                {
+                    try { File.SetAttributes(file, FileAttributes.Normal); }
+                    catch { /* 属性清除失败时忽略，后续 Delete 若失败会被外层捕获 */ }
+                }
+
+                Directory.Delete(dirPath, recursive: true);
+                _uiLogger.Info($"[图片清理] 已删除: {dirPath}");
+                return true;
+            }
+            catch (IOException ex)
+            {
+                // 文件被其他进程占用（文件锁）
+                _uiLogger.Warn($"[图片清理] 文件被占用，跳过本次: {dirPath} — {ex.Message}");
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // 权限不足
+                _uiLogger.Warn($"[图片清理] 无访问权限，跳过: {dirPath} — {ex.Message}");
+                return false;
             }
         }
 
@@ -780,13 +1019,13 @@ namespace PF.Application.Shell
 
         private async Task<bool> InitializeMechanism()
         {
-            var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation1FeedingModule));
+            var workStation1FeedingModule = Container.Resolve<IMechanism>(nameof(WS1FeedingModel));
             if (!await workStation1FeedingModule.InitializeAsync())
             {
                 return false;
             }
            
-            var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation1MaterialPullingModule));
+            var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WS1MaterialPullingModule));
 
             if (!await workStation1MaterialPullingModule.InitializeAsync())
             {
@@ -794,32 +1033,32 @@ namespace PF.Application.Shell
             }
 
             // ── 工位 2 机构初始化 ──
-            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WorkStation2FeedingModule));
+            var workStation2FeedingModule = Container.Resolve<IMechanism>(nameof(WS2FeedingModel));
             if (!await workStation2FeedingModule.InitializeAsync())
             {
                 return false;
             }
 
-            var workStation2MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WorkStation2MaterialPullingModule));
+            var workStation2MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WS2MaterialPullingModule));
             if (!await workStation2MaterialPullingModule.InitializeAsync())
             {
                 return false;
             }
 
-            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WorkStationDetectionModule));
+            var workStation1DetectionModule = Container.Resolve<IMechanism>(nameof(WSDetectionModule));
             if (!await workStation1DetectionModule.InitializeAsync())
             {
                 return false;
             }
 
-            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WorkStationDataModule));
+            var workStationDataModule = Container.Resolve<IMechanism>(nameof(WSDataModule));
             if (!await workStationDataModule.InitializeAsync())
             {
                 return false;
             }
 
 
-            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WorkStationSecsGemModule));
+            var workStationSecsGemModule = Container.Resolve<IMechanism>(nameof(WSSecsGemModule));
             if (!await workStationSecsGemModule.InitializeAsync())
             {
                 return false;
@@ -833,13 +1072,13 @@ namespace PF.Application.Shell
 
 
 
-        private async Task<bool> LoadConfigurationAsync()
+        private static async Task<bool> LoadConfigurationAsync()
         {
             await Task.Delay(1000);
             return true;
         }
 
-        private void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
+        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
         {
             switch (msgType)
             {

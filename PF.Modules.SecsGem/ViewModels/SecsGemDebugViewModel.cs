@@ -55,7 +55,10 @@ namespace PF.Modules.SecsGem.ViewModels
             base.OnNavigatedTo(navigationContext);
 
             Connection.StartMonitoring();
+          
+            _manager.SecsGemClient.MessageReceived         -= OnMessageReceived;
             _manager.SecsGemClient.MessageReceived         += OnMessageReceived;
+            _manager.ParamsManager.FormulaValidateError    -= OnFormulaValidateError;
             _manager.ParamsManager.FormulaValidateError    += OnFormulaValidateError;
 
             _ = Task.Run(async () =>

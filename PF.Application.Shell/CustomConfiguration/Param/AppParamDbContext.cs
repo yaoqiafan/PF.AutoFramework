@@ -143,7 +143,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         }
 
         /// <summary>
-        /// 通用方法：确保参数存在，如果不存在则创建
+        /// 通用方法：确保参数存在（不存在则创建），同时删除不在默认集合中的参数
         /// </summary>
         private async Task EnsureParametersExistAsync<T>(
             DbSet<T> dbSet,
@@ -153,11 +153,26 @@ namespace PF.Application.Shell.CustomConfiguration.Param
             if (defaultParameters == null || !defaultParameters.Any())
                 return;
 
-            // 获取已存在的参数名称
-            var existingNames = await dbSet
-                .Where(p => defaultParameters.Keys.Contains(p.Name))
-                .Select(p => p.Name)
+            // 获取所有已存在的参数
+            var allExisting = await dbSet
                 .ToListAsync(cancellationToken);
+
+            // 找出需要删除的参数（数据库中存在但不在默认集合中）
+            var staleParameters = allExisting
+                .Where(p => !defaultParameters.ContainsKey(p.Name))
+                .ToList();
+
+            if (staleParameters.Any())
+            {
+                dbSet.RemoveRange(staleParameters);
+                await SaveChangesAsync(cancellationToken);
+            }
+
+            // 获取已存在的参数名称
+            var existingNames = allExisting
+                .Where(p => defaultParameters.ContainsKey(p.Name))
+                .Select(p => p.Name)
+                .ToList();
 
             // 找出不存在的参数
             var missingParameters = defaultParameters

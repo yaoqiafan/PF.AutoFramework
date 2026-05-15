@@ -1,4 +1,5 @@
 ﻿using PF.Core.Events;
+using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
@@ -18,6 +19,7 @@ namespace PF.Services.Hardware
         private readonly IPanelIoConfig _config;
         private readonly HardwareInputEventBus _eventBus;
         private readonly IHardwareManagerService _hardwareManager;
+        private readonly IParamService _paramService;
         private readonly ILogService _logger;
 
         private IIOController _ioCard;
@@ -40,11 +42,13 @@ namespace PF.Services.Hardware
             IPanelIoConfig config,
             HardwareInputEventBus eventBus,
             IHardwareManagerService hardwareManager,
+            IParamService paramService,
             ILogService logger)
         {
             _config = config;
             _eventBus = eventBus;
             _hardwareManager = hardwareManager;
+            _paramService = paramService;
             _logger = logger;
 
             _standardInputs = _config.MonitoredInputs
@@ -56,6 +60,11 @@ namespace PF.Services.Hardware
                 .Where(c => c.ScanGroup == InputScanGroup.Safety)
                 .Select(c => new InputScanState(c))
                 .ToList();
+
+            _paramService.ParamChanged += OnParamChanged;
+
+            // 构造时立即加载一次屏蔽状态，使 IsMuted 在 StartSafetyMonitoring 之前就已就绪
+            _ = LoadSafetyMuteStatesAsync();
         }
 
         /// <summary>
@@ -128,6 +137,11 @@ namespace PF.Services.Hardware
         // Safety (安全装置) 控制
         // ==========================================
 
+        /// <inheritdoc/>
+        public bool IsSafetyMonitoringRunning =>
+            _safetyCts != null && !_safetyCts.IsCancellationRequested &&
+            _safetyTask is { IsCompleted: false };
+
         /// <summary>
         /// StartSafetyMonitoring 监控器
         /// </summary>
@@ -141,11 +155,9 @@ namespace PF.Services.Hardware
 
             if (!TryInitializeIoCard()) return;
 
-            // 每次启动 Safety 时，重置 LastValue，防止启动瞬间由于状态不一致产生误触发
+            // 重置 LastValue 为静止态（NC=true 常闭导通，NO=false 常开断开），防止启动瞬间误触发
             foreach (var state in _safetyInputs)
-            {
-                state.LastValue = true; // 安全传感器(NC常闭)默认导通状态为 true
-            }
+                state.LastValue = !state.Config.NormallyOpen;
 
             _safetyCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
             var token = _safetyCts.Token;
@@ -228,6 +240,9 @@ namespace PF.Services.Hardware
 
         private async Task SafetyMonitorLoopAsync(CancellationToken token)
         {
+            // 启动时从参数服务同步一次屏蔽状态
+            await LoadSafetyMuteStatesAsync().ConfigureAwait(false);
+
             while (!token.IsCancellationRequested)
             {
                 if (_ioCard == null || !_ioCard.IsConnected)
@@ -252,21 +267,102 @@ namespace PF.Services.Hardware
             }
         }
 
+        /// <summary>
+        /// 从参数服务加载各安全门的屏蔽状态并写入 IsMuted。
+        /// </summary>
+        private async Task LoadSafetyMuteStatesAsync()
+        {
+            foreach (var state in _safetyInputs)
+            {
+                if (state.Config.MuteParamKey == null) continue;
+                try
+                {
+                    bool muted = await _paramService.GetParamAsync<bool>(state.Config.MuteParamKey, false)
+                        .ConfigureAwait(false);
+                    state.Config.IsMuted = muted;
+                    if (muted)
+                        _logger.Info($"【硬件输入监控】安全门 [{state.Config.Name}] 已屏蔽（调试模式）。");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"【硬件输入监控】读取 [{state.Config.Name}] 屏蔽参数失败：{ex.Message}");
+                }
+            }
+        }
+
+        private void OnParamChanged(object? sender, ParamChangedEventArgs e)
+        {
+            if (e.NewValue is not bool b) return;
+            foreach (var state in _safetyInputs)
+            {
+                if (state.Config.MuteParamKey == e.ParamName)
+                    state.Config.IsMuted = b;
+            }
+        }
+
+        /// <inheritdoc/>
+        public void SetSafetyDoorEnabled(string name, bool enabled)
+        {
+            var state = _safetyInputs.FirstOrDefault(s => s.Config.Name == name);
+            if (state == null)
+            {
+                _logger.Warn($"【硬件输入监控】未找到安全门 [{name}]，无法设置启用状态。");
+                return;
+            }
+            state.IsEnabled = enabled;
+            _logger.Info($"【硬件输入监控】安全门 [{name}] 已{(enabled ? "启用" : "停用")}。");
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot()
+        {
+            var result = new List<SafetyDoorState>(_safetyInputs.Count);
+            foreach (var state in _safetyInputs)
+            {
+                bool? signal = _ioCard?.ReadInput(state.Config.Port);
+                bool? isActive = signal.HasValue
+                    ? signal.Value == state.Config.NormallyOpen
+                    : null;
+
+                result.Add(new SafetyDoorState(
+                    name: state.Config.Name,
+                    isEnabled: state.IsEnabled,
+                    isMuted: state.Config.IsMuted,
+                    signalValue: signal,
+                    isActive: isActive));
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 处理单个输入点：同时支持常闭（NC）和常开（NO）接线方式。
+        /// <para>NC（NormallyOpen=false）：静止态信号=true，触发沿=下降沿（true→false）。</para>
+        /// <para>NO（NormallyOpen=true） ：静止态信号=false，触发沿=上升沿（false→true）。</para>
+        /// 触发条件统一为：上一次未处于激活态 且 本次进入激活态。
+        /// 激活态定义：当前值 == NormallyOpen（NC激活=false，NO激活=true）。
+        /// </summary>
         private async Task ProcessSingleInputAsync(InputScanState state, CancellationToken token)
         {
             bool? raw = _ioCard.ReadInput(state.Config.Port);
             if (raw == null) return;
 
             bool current = raw.Value;
+            bool no = state.Config.NormallyOpen;
 
-            if (!state.Config.IsMuted && state.LastValue && !current)
+            // 上一次是否处于激活态（激活 = 信号值等于 NormallyOpen）
+            bool wasActive = (state.LastValue == no);
+            // 当前是否处于激活态
+            bool isActive  = (current == no);
+
+            if (state.IsEnabled && !state.Config.IsMuted && !wasActive && isActive)
             {
                 if (state.Config.DebounceMs > 0)
                 {
                     await Task.Delay(state.Config.DebounceMs, token).ConfigureAwait(false);
 
                     bool? confirmed = _ioCard.ReadInput(state.Config.Port);
-                    if (confirmed == null || confirmed.Value)
+                    // 防抖后若已不再处于激活态，丢弃本次触发
+                    if (confirmed == null || confirmed.Value != no)
                     {
                         state.LastValue = current;
                         return;
@@ -274,7 +370,17 @@ namespace PF.Services.Hardware
                 }
 
                 _logger.Info($"【硬件输入】{state.Config.Name} 触发 → 类型：{state.Config.InputType}");
+                state.WasTriggeredWhileEnabled = true;
                 _eventBus.PublishInputEvent(state.Config.InputType);
+            }
+            else if (state.Config.ScanGroup == InputScanGroup.Safety
+                     && !state.Config.IsMuted
+                     && state.WasTriggeredWhileEnabled
+                     && wasActive && !isActive)
+            {
+                _logger.Info($"【硬件输入】{state.Config.Name} 恢复 → 类型：{state.Config.InputType}");
+                state.WasTriggeredWhileEnabled = false;
+                _eventBus.PublishRestoreEvent(state.Config.InputType);
             }
 
             state.LastValue = current;
@@ -284,11 +390,15 @@ namespace PF.Services.Hardware
         {
             public IHardwareInputConfig Config { get; }
             public bool LastValue { get; set; }
+            public bool IsEnabled { get; set; } = true;
+            // 仅当 IsEnabled=true 时发生的触发才允许后续恢复事件，防止禁用期间开关门产生误恢复
+            public bool WasTriggeredWhileEnabled { get; set; }
 
             public InputScanState(IHardwareInputConfig config)
             {
                 Config = config;
-                LastValue = config.ScanGroup == InputScanGroup.Safety;
+                // 初始化为静止态：NC 静止=true，NO 静止=false
+                LastValue = !config.NormallyOpen;
             }
         }
     }

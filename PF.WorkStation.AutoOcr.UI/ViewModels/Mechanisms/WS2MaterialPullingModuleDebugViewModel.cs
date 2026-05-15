@@ -28,7 +28,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
     public class WS2MaterialPullingModuleDebugViewModel : RegionViewModelBase
     {
         private readonly WS2MaterialPullingModule? _materialPullingModule;
-        private readonly WSDetectionModule? _detectionModule;
         /// <summary>
         /// 获取或设置 MaterialPullingModule
         /// </summary>
@@ -327,19 +326,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         /// </summary>
 
 
-        protected override IEnumerable<NavigationGuard> GetNavigationGuards(NavigationContext? context = null)
-        {
-            yield return new NavigationGuard(
-                _detectionModule?.IsInSafePosition == true,
-                "检测模组各轴未在待机位置，无法进入工位2拉料模组调试界面");
-        }
-
         public WS2MaterialPullingModuleDebugViewModel(IContainerProvider containerProvider, IParamService paramService)
         {
             _paramService = paramService;
 
             _materialPullingModule = containerProvider.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)) as WS2MaterialPullingModule;
-            _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
 
             InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.InitializeAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.ResetAsync()));

@@ -24,6 +24,7 @@ namespace PF.Modules.Logging.ViewModels
     public class LogListViewModel : ViewModelBase
     {
         private readonly ILogService _logService;
+        private readonly CategoryLogger _uiLogger;
         private readonly ICollectionView _logEntriesView;
         private string _searchText;
         private LogLevel? _selectedLogLevel;
@@ -37,6 +38,7 @@ namespace PF.Modules.Logging.ViewModels
         public LogListViewModel()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
+            _uiLogger = CategoryLoggerFactory.UI(_logService);
             // 初始化日志集合 - 从服务中加载现有日志
             // LogService 内部是 List，0 是最新的，这里我们直接加载
             if (_logService.LogEntries != null)
@@ -332,7 +334,7 @@ namespace PF.Modules.Logging.ViewModels
                 UpdateStatistics();
 
                 // 记录一条新日志
-                _logService.Info("日志已清空", "UI");
+                _uiLogger.Info("日志已清空");
             }
         }
 
@@ -362,7 +364,7 @@ namespace PF.Modules.Logging.ViewModels
                         ExportToText(saveDialog.FileName, logs);
                     }
 
-                    _logService.Info($"日志已导出到: {saveDialog.FileName}", "UI");
+                    _uiLogger.Info($"日志已导出到: {saveDialog.FileName}");
 
                     MessageService.ShowMessage(
                         $"日志已成功导出到：\n{saveDialog.FileName}",
@@ -373,7 +375,7 @@ namespace PF.Modules.Logging.ViewModels
             }
             catch (Exception ex)
             {
-                _logService.Error($"导出日志失败: {ex.Message}", "UI", ex);
+                _uiLogger.Error($"导出日志失败: {ex.Message}", ex);
                 MessageService.ShowMessage(
                     $"导出失败：{ex.Message}",
                     "错误",
@@ -451,7 +453,7 @@ namespace PF.Modules.Logging.ViewModels
             {
                 string logText = FormatLogForCopy(selectedEntry);
                 Clipboard.SetText(logText);
-                _logService.Info("日志内容已复制到剪贴板", "UI");
+                _uiLogger.Info("日志内容已复制到剪贴板");
             }
         }
 
@@ -460,7 +462,7 @@ namespace PF.Modules.Logging.ViewModels
             var logs = _logEntriesView.Cast<LogEntry>().ToList();
             var text = string.Join(Environment.NewLine, logs.Select(FormatLogForCopy));
             Clipboard.SetText(text);
-            _logService.Info($"已复制 {logs.Count} 条日志到剪贴板", "UI");
+            _uiLogger.Info($"已复制 {logs.Count} 条日志到剪贴板");
         }
 
         private string FormatLogForCopy(LogEntry entry)
@@ -477,7 +479,7 @@ namespace PF.Modules.Logging.ViewModels
         {
             _logEntriesView.Refresh();
             UpdateStatistics();
-            _logService.Info("日志列表已刷新", "UI");
+            _uiLogger.Info("日志列表已刷新");
         }
 
         private void ApplyDateFilter()

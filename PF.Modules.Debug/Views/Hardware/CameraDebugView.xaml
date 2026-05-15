@@ -163,6 +163,12 @@
                                 Command="{Binding ResetCommand}"
                                 Content="清除报警 (RESET)"
                                 Style="{DynamicResource ButtonWarning}" />
+                            <Button
+                                Height="36"
+                                Margin="0,5"
+                                Command="{Binding SimulateAlarmCommand}"
+                                Content="模拟报警测试"
+                                Style="{DynamicResource ButtonDanger}" />
                         </StackPanel>
                     </Border>
 

@@ -10,7 +10,7 @@
     mc:Ignorable="d">
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid>
-            <Image Source="/PF.UI.Resources;component/Images/PNG/11.png" />
+            <Image Source="/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png" />
         </Grid>
     </pf:TransitioningContentControl>
 </UserControl>

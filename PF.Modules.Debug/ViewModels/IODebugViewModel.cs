@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Infrastructure.Hardware;
@@ -28,6 +29,10 @@ namespace PF.Modules.Debug.ViewModels
             ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(System.Threading.CancellationToken.None); });
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(System.Threading.CancellationToken.None); });
+            SimulateAlarmCommand = new DelegateCommand(() =>
+            {
+                _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.IoModuleError, "调试页面手动模拟IO模块报警");
+            });
 
             // 工控常用的 IO 刷新率通常在 50ms - 100ms
             _pollingTimer = new DispatcherTimer
@@ -97,6 +102,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand DisconnectCommand { get; private set; }
         /// <summary>复位命令</summary>
         public DelegateCommand ResetCommand { get; private set; }
+        /// <summary>模拟硬件报警命令</summary>
+        public DelegateCommand SimulateAlarmCommand { get; private set; }
 
         #endregion
 

@@ -7,7 +7,7 @@ namespace PF.Modules.Debug.Views
     /// <summary>
     /// 工站调试主视图（容器），左侧集成主控状态与可点击工站列表，右侧动态加载子工站调试面板。
     /// </summary>
-    [ModuleNavigation(NavigationConstants.Views.StationDebugView, "工站调试", GroupName = "系统调试", Icon = "DebugIcon", GroupOrder = 5, Order = 3)]
+    [ModuleNavigation(NavigationConstants.Views.StationDebugView, "流程工站调试", GroupName = "系统调试", Icon = "DebugIcon", GroupOrder = 5, Order = 3)]
     public partial class StationDebugView : UserControl
     {
         /// <summary>初始化工站调试视图</summary>

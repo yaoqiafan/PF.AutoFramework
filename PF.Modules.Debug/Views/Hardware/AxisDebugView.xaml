@@ -188,61 +188,70 @@
                         BorderBrush="#E2E8F0"
                         BorderThickness="1"
                         CornerRadius="6">
-                        <StackPanel>
-                            <TextBlock
-                                Margin="0,0,0,10"
-                                FontSize="{DynamicResource FontSize.Body.Standard}"
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="设备启停" />
-                            <UniformGrid Margin="0,0,0,5" Columns="2">
-                                <Button
-                                    Height="36"
-                                    Margin="0,0,5,5"
-                                    Command="{Binding ConnectCommand}"
-                                    Content="连接硬件"
-                                    Style="{DynamicResource ButtonDefault}" />
-                                <Button
-                                    Height="36"
-                                    Margin="5,0,0,5"
-                                    Command="{Binding DisconnectCommand}"
-                                    Content="断开连接"
-                                    Style="{DynamicResource ButtonDefault}" />
-                                <Button
-                                    Height="36"
-                                    Margin="0,5,5,0"
-                                    Command="{Binding EnableCommand}"
-                                    Content="伺服使能 (ON)"
-                                    Style="{DynamicResource ButtonPrimary}" />
-                                <Button
-                                    Height="36"
-                                    Margin="5,5,0,0"
-                                    Command="{Binding DisableCommand}"
-                                    Content="断开使能 (OFF)"
-                                    Style="{DynamicResource ButtonWarning}" />
-                            </UniformGrid>
+                        <ScrollViewer>
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,10"
+                                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#475569"
+                                    Text="设备启停" />
+                                <UniformGrid Margin="0,0,0,5" Columns="2">
+                                    <Button
+                                        Height="36"
+                                        Margin="0,0,5,5"
+                                        Command="{Binding ConnectCommand}"
+                                        Content="连接硬件"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                    <Button
+                                        Height="36"
+                                        Margin="5,0,0,5"
+                                        Command="{Binding DisconnectCommand}"
+                                        Content="断开连接"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                    <Button
+                                        Height="36"
+                                        Margin="0,5,5,0"
+                                        Command="{Binding EnableCommand}"
+                                        Content="伺服使能 (ON)"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Height="36"
+                                        Margin="5,5,0,0"
+                                        Command="{Binding DisableCommand}"
+                                        Content="断开使能 (OFF)"
+                                        Style="{DynamicResource ButtonWarning}" />
+                                </UniformGrid>
 
-                            <Button
-                                Height="40"
-                                Margin="0,5"
-                                Command="{Binding HomeCommand}"
-                                Content="执行回零 (HOME)"
-                                Style="{DynamicResource ButtonSuccess}" />
-                            <Button
-                                Height="45"
-                                Margin="0,5"
-                                Command="{Binding StopCommand}"
-                                Content="急 停 (E-STOP)"
-                                FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                FontWeight="Bold"
-                                Style="{DynamicResource ButtonDanger}" />
-                            <Button
-                                Height="36"
-                                Margin="0,5"
-                                Command="{Binding ResetCommand}"
-                                Content="报警复位 (RESET)"
-                                Style="{DynamicResource ButtonDefault}" />
-                        </StackPanel>
+                                <Button
+                                    Height="40"
+                                    Margin="0,5"
+                                    Command="{Binding HomeCommand}"
+                                    Content="执行回零 (HOME)"
+                                    Style="{DynamicResource ButtonSuccess}" />
+                                <Button
+                                    Height="45"
+                                    Margin="0,5"
+                                    Command="{Binding StopCommand}"
+                                    Content="急 停 (E-STOP)"
+                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                    FontWeight="Bold"
+                                    Style="{DynamicResource ButtonDanger}" />
+                                <Button
+                                    Height="36"
+                                    Margin="0,5"
+                                    Command="{Binding ResetCommand}"
+                                    Content="报警复位 (RESET)"
+                                    Style="{DynamicResource ButtonDefault}" />
+                                <Button
+                                    Height="36"
+                                    Margin="0,5"
+                                    Command="{Binding SimulateAlarmCommand}"
+                                    Content="模拟硬件报警"
+                                    Style="{DynamicResource ButtonDanger}" />
+                            </StackPanel>
+                        </ScrollViewer>
+
                     </Border>
                 </Grid>
 
@@ -514,7 +523,7 @@
                                     Margin="0,0,10,0"
                                     Padding="15,0"
                                     Command="{Binding AddPointCommand}"
-                                    Content="新增当前位置"
+                                    Content="获取当前位置"
                                     Style="{DynamicResource ButtonSuccess}" />
                                 <Button
                                     Height="32"

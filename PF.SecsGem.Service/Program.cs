@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using PF.Core.Constants;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.SecsGem.DataBase;
+using PF.Services.Logging;
 
 namespace PF.SecsGem.Service;
 
@@ -37,6 +39,7 @@ public class Program
             })
             .ConfigureServices((hostContext, services) =>
             {
+                services.AddSingleton<ILogService>(LogService.Instance);
                 ConfigureDatabase(services);
                 // ע��Worker��Ϊ��̨����
                 services.AddHostedService<Worker>();

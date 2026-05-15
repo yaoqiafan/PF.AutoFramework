@@ -34,10 +34,21 @@ namespace PF.Core.Interfaces.Device.Hardware
         InputScanGroup ScanGroup { get; }
 
         /// <summary>
-        /// 是否屏蔽此输入点的扫描。
+        /// 是否屏蔽此输入点的扫描（运行时可修改）。
         /// true = 屏蔽（跳过事件发布）；false = 正常扫描（默认值）。
         /// </summary>
-        bool IsMuted { get; }
+        bool IsMuted { get; set; }
+
+        /// <summary>
+        /// 接线方式。false = 常闭 NC（默认，断开触发）；true = 常开 NO（闭合触发）。
+        /// </summary>
+        bool NormallyOpen { get; }
+
+        /// <summary>
+        /// 运行时屏蔽参数键名，对应 IParamService 中的 SystemConfigParam 键。
+        /// 为 null 时不进行动态屏蔽状态加载。
+        /// </summary>
+        string? MuteParamKey { get; }
     }
 
     /// <summary>
@@ -69,6 +80,23 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 停止所有监控线程
         /// </summary>
         void StopAll();
+
+        /// <summary>
+        /// 设置指定安全门的启用状态（运行时业务控制，与 IsMuted 屏蔽参数独立）。
+        /// </summary>
+        /// <param name="name">安全门名称，对应 IHardwareInputConfig.Name。</param>
+        /// <param name="enabled">true = 启用（默认），false = 不启用。</param>
+        void SetSafetyDoorEnabled(string name, bool enabled);
+
+        /// <summary>
+        /// Safety 扫描线程当前是否正在运行。
+        /// </summary>
+        bool IsSafetyMonitoringRunning { get; }
+
+        /// <summary>
+        /// 获取所有安全门的当前状态快照。
+        /// </summary>
+        IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot();
     }
 
 

@@ -28,10 +28,7 @@ namespace PF.Services.Logging
     {
         #region 常量
         private const int MAX_MEMORY_LOG_ENTRIES = 1000; // 内存中保留的最大日志数
-        private const int MAX_MEMORY_CHAT_ENTRIES = 200;
         private const string DEFAULT_CATEGORY = "Default";
-        private const string UI_CATEGORY = "UI";
-        private const string CHAT_CATEGORY = "Chat";
         private const string SYSTEM_CATEGORY = "System";
 
         // 历史日志查询正则
@@ -67,7 +64,6 @@ namespace PF.Services.Logging
 
         // 内存缓存 (替代原来的 ObservableCollection)
         private readonly List<LogEntry> _memoryLogEntries = new List<LogEntry>();
-        private readonly List<ChatInfoModel> _memoryChatEntries = new List<ChatInfoModel>();
         private readonly object _memoryLock = new object();
 
         // 生产者-消费者队列 (用于文件写入)
@@ -76,8 +72,8 @@ namespace PF.Services.Logging
         private Task _processingTask;
 
         // 定时器
-        private readonly Timer _cleanupTimer;
-        private readonly Timer _flushTimer;
+        private readonly System.Threading.Timer _cleanupTimer;
+        private readonly System.Threading.Timer _flushTimer;
         #endregion
 
         #region 公共属性
@@ -98,20 +94,6 @@ namespace PF.Services.Logging
         }
 
         /// <summary>
-        /// ChatEntries
-        /// </summary>
-        public IEnumerable<ChatInfoModel> ChatEntries
-        {
-            get
-            {
-                lock (_memoryLock)
-                {
-                    return _memoryChatEntries.ToList();
-                }
-            }
-        }
-
-        /// <summary>
         /// OnLogAdded
         /// </summary>
         public event Action<LogEntry> OnLogAdded;
@@ -119,9 +101,9 @@ namespace PF.Services.Logging
 
         #region 构造函数
         /// <summary>
-        /// LogService 服务
+        /// LogService 服务。优先从本地 log_config.json 加载配置，文件不存在时使用默认配置。
         /// </summary>
-        public LogService() : this(new LogConfiguration().ConfigureDefaultCategories()) { }
+        public LogService() : this(LogConfiguration.LoadOrDefault(LogConfiguration.GetDefaultFilePath())) { }
 
         /// <summary>
         /// LogService 服务
@@ -141,13 +123,13 @@ namespace PF.Services.Logging
             StartProcessingTask();
 
             // 初始化定时器
-            _cleanupTimer = new Timer(
+            _cleanupTimer = new System.Threading.Timer(
                 CleanupOldLogs,
                 null,
                 TimeSpan.FromHours(1),
                 TimeSpan.FromDays(1));
 
-            _flushTimer = new Timer(
+            _flushTimer = new System.Threading.Timer(
                 FlushLogs,
                 null,
                 TimeSpan.FromSeconds(30),
@@ -275,20 +257,26 @@ namespace PF.Services.Logging
                 var logFilePath = Path.Combine(categoryPath, logFileName);
                 var logger = LogManager.GetLogger(category);
 
-                var fileAppender = new FileAppender
+                var appender = new RollingFileAppender
                 {
                     File = logFilePath,
                     AppendToFile = true,
+                    StaticLogFileName = true,
+                    PreserveLogFileNameExtension = true,
                     Layout = new PatternLayout("%date [%thread] %-5level [%logger] - %message%newline"),
-                    Threshold = ConvertToLog4NetLevel(config.MinLevel),
-                    Encoding = Encoding.UTF8
+                    Threshold = Level.Debug,
+                    Encoding = Encoding.UTF8,
+                    RollingStyle = RollingFileAppender.RollingMode.Size,
+                    MaximumFileSize = $"{config.MaxFileSizeMB}MB",
+                    MaxSizeRollBackups = config.MaxBackups,
+                    CountDirection = 1
                 };
 
-                fileAppender.ActivateOptions();
+                appender.ActivateOptions();
 
                 var loggerImpl = (Logger)logger.Logger;
-                loggerImpl.AddAppender(fileAppender);
-                loggerImpl.Level = ConvertToLog4NetLevel(config.MinLevel);
+                loggerImpl.AddAppender(appender);
+                loggerImpl.Level = Level.Debug;
 
                 lock (_loggersLock)
                 {
@@ -368,6 +356,7 @@ namespace PF.Services.Logging
                 _log4netConfigured = false;
                 InitializeLog4Net();
             }
+            _configuration.Save(LogConfiguration.GetDefaultFilePath());
         }
 
         /// <summary>
@@ -419,36 +408,6 @@ namespace PF.Services.Logging
         /// <summary>
         /// 初始化实例
         /// </summary>
-        public void ShowUiMessage(string message, LogLevel level = LogLevel.Info)
-        {
-            Log(level, message, UI_CATEGORY);
-        }
-
-        /// <summary>
-        /// 初始化实例
-        /// </summary>
-        public void ShowChatMessage(ChatInfoModel chatInfoModel)
-        {
-            if (chatInfoModel == null)
-                return;
-
-            // 1. 记录到常规日志 (可选，作为Info)
-            Info($"Chat from {chatInfoModel.SenderId}: {chatInfoModel.Message}", CHAT_CATEGORY);
-
-            // 2. 添加到聊天内存缓存
-            lock (_memoryLock)
-            {
-                _memoryChatEntries.Add(chatInfoModel);
-                while (_memoryChatEntries.Count > MAX_MEMORY_CHAT_ENTRIES)
-                {
-                    _memoryChatEntries.RemoveAt(0);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 初始化实例
-        /// </summary>
         public void Debug(string message, string category = null, Exception exception = null) => Log(LogLevel.Debug, message, category, exception);
         /// <summary>
         /// 初始化实例
@@ -484,6 +443,7 @@ namespace PF.Services.Logging
                 _log4netConfigured = false;
                 InitializeLog4Net();
             }
+            _configuration.Save(LogConfiguration.GetDefaultFilePath());
         }
 
         /// <summary>
@@ -497,6 +457,7 @@ namespace PF.Services.Logging
                 _log4netConfigured = false;
                 InitializeLog4Net();
             }
+            _configuration.Save(LogConfiguration.GetDefaultFilePath());
         }
 
         /// <summary>
@@ -987,10 +948,14 @@ namespace PF.Services.Logging
 
         private void ProcessLogEntry(LogEntry entry)
         {
-            // 1. 记录到文件 (log4net)
+            // 1. 记录到文件 (log4net) —— 全量落盘，不受 UI 显示级别限制
             RecordToLog4Net(entry);
 
-            // 2. 添加到内存缓存 (仅最近N条)
+            // 2. UI 可见性判断：仅满足分类 MinLevel 的日志进入内存缓存和事件通知
+            if (!ShouldShowInUI(entry.Level, entry.Category))
+                return;
+
+            // 3. 添加到内存缓存 (仅最近N条)
             lock (_memoryLock)
             {
                 _memoryLogEntries.Insert(0, entry);
@@ -1000,7 +965,7 @@ namespace PF.Services.Logging
                 }
             }
 
-            // 3. 触发事件 (通知 ViewModel)
+            // 4. 触发事件 (通知 ViewModel)
             OnLogAdded?.Invoke(entry);
         }
 
@@ -1009,7 +974,19 @@ namespace PF.Services.Logging
             ProcessLogEntry(entry);
         }
 
+        /// <summary>
+        /// 判断日志是否应该进入处理队列（Debug 及以上全量放行，确保文件后台记录）。
+        /// UI 显示过滤在 <see cref="ShouldShowInUI"/> 中单独控制。
+        /// </summary>
         private bool ShouldLog(LogLevel level, string category)
+        {
+            return level >= LogLevel.Debug;
+        }
+
+        /// <summary>
+        /// 判断日志是否应在 UI 界面显示（内存缓存 + 事件通知）。
+        /// </summary>
+        private bool ShouldShowInUI(LogLevel level, string category)
         {
             if (level < _configuration.MinimumLevel) return false;
             category = category ?? DEFAULT_CATEGORY;
@@ -1099,7 +1076,6 @@ namespace PF.Services.Logging
             lock (_memoryLock)
             {
                 _memoryLogEntries.Clear();
-                _memoryChatEntries.Clear();
             }
         }
 
@@ -1184,7 +1160,7 @@ namespace PF.Services.Logging
                 {
                     if (_service == null)
                     {
-                        _service = new LogService(configuration ?? new LogConfiguration().ConfigureDefaultCategories());
+                        _service = new LogService(configuration ?? LogConfiguration.LoadOrDefault(LogConfiguration.GetDefaultFilePath()));
                     }
                     else if (configuration != null)
                     {

@@ -47,13 +47,12 @@ namespace PF.Workstation.AutoOcr.CostParam
         /// <summary>预留2</summary>
         [Browsable(false)]
         预留2 = 3,
-        /// <summary>上晶圆右错层检测1</summary>
-        上晶圆右错层检测1 = 4,
-        /// <summary>上晶圆右错层检测2</summary>
-        上晶圆右错层检测2 = 5,
-        /// <summary>预留3</summary>
-        [Browsable(false)]
-        预留3 = 6,
+        /// <summary>上晶圆右错层公共检测</summary>
+        上晶圆右错层公共检测 = 4,
+        /// <summary>上晶圆右错层12寸检测</summary>
+        上晶圆右错层8寸检测 = 5,
+        /// <summary>上晶圆右错层8寸检测</summary>
+        上晶圆右错层12寸检测 = 6,
         /// <summary>预留4</summary>
         [Browsable(false)]
         预留4 = 7,
@@ -92,8 +91,8 @@ namespace PF.Workstation.AutoOcr.CostParam
 
 
 
-        /// <summary>上晶圆右铁环铁环突片检测</summary>
-        上晶圆右铁环铁环突片检测 = 20,
+        /// <summary>上晶圆右铁环突片检测</summary>
+        上晶圆右铁环突片检测 = 20,
         /// <summary>上晶圆右8寸铁环防反检测</summary>
         上晶圆右8寸铁环防反检测 = 21,
         /// <summary>上晶圆右12寸铁环防反检测</summary>
@@ -171,6 +170,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         /// <summary>晶圆轨道右晶圆在位检测2</summary>
         晶圆轨道右晶圆在位检测2 = 55,
         /// <summary>电磁门锁1_2信号</summary>
+          [Browsable(false)]
         电磁门锁1_2信号 = 56,
         /// <summary>电磁门锁3_4信号</summary>
         电磁门锁3_4信号 = 57,
@@ -183,11 +183,11 @@ namespace PF.Workstation.AutoOcr.CostParam
         /// <summary>上晶圆右启动按钮</summary>
         上晶圆右启动按钮 = 61,
         /// <summary>预留13</summary>
-        [Browsable(false)]
-        预留13 = 62,
+       
+        工位1门锁 = 62,
         /// <summary>预留14</summary>
-        [Browsable(false)]
-        预留14 = 63,
+       
+        工位2门锁 = 63,
         /// <summary>预留15</summary>
         [Browsable(false)]
         预留15 = 64,
@@ -446,8 +446,20 @@ namespace PF.Workstation.AutoOcr.CostParam
         工位2上下料工站,
         /// <summary>工位2拉料工站</summary>
         工位2拉料工站,
+
     }
 
+
+    /// <summary>
+    /// 层检测模式枚举
+    /// </summary>
+    public enum E_LayerProcessMode
+    {
+        /// <summary>全做（处理所有寻层算法识别到的有效层）</summary>
+        全做 = 0,
+        /// <summary>指定层（仅处理操作员在切换批次时选定的层）</summary>
+        指定层 = 1
+    }
 
     /// <summary>
     /// 物料检测状态枚举
@@ -511,35 +523,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue(15)]
         LayerPitch_12,
 
-        /// <summary>8寸晶圆扫描正偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("8寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningPositiveOffset_8,
-
-        /// <summary>12寸晶圆扫描正偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("12寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningPositiveOffset_12,
-
-        /// <summary>8寸晶圆扫描负偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("8寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningNegativeOffset_8,
-
-        /// <summary>12寸晶圆扫描负偏移</summary>
-        [Category("上下料模组参数")]
-        [Description("12寸晶圆扫描正偏移")]
-        [DefaultValue(0.0)]
-        WaferScanningNegativeOffset_12,
-
-        /// <summary>扫层速度</summary>
-        [Category("上下料模组参数")]
-        [Description("扫层速度")]
-        [DefaultValue(1)]
-        ZScanSpeed,
+      
         #endregion
 
 
@@ -597,9 +581,97 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue("E//OCRImagePath")]
         OCRCameraImageSavePath,
 
+        /// <summary>磁盘预警阈值</summary>
+        [Category("OCR相机参数")]
+        [Description("磁盘预警阈值(%)")]
+        [DefaultValue(80.0)]
+        DiskWarningThreshold,
+
+        /// <summary>相机图片存储时间</summary>
+        [Category("OCR相机参数")]
+        [Description("相机图片存储时间(月)，超出时间的图片文件夹将被自动清理")]
+        [DefaultValue(3)]
+        OCRCameraImageRetentionMonths,
+
+        /// <summary>相机存图等待超时（毫秒）</summary>
+        [Category("OCR相机参数")]
+        [Description("触发拍照后等待相机将图片写入磁盘的最大超时时间（毫秒）")]
+        [DefaultValue(5000)]
+        OCRCameraImageWaitTimeout,
+
+        /// <summary>工位X方向间距_8寸</summary>
+        [Category("OCR相机参数")]
+        [Description("工位X方向间距_8寸")]
+        [DefaultValue(645.0)]
+        OCRStationDistance_8,
+
+
+        /// <summary>工位X方向间距_12寸</summary>
+        [Category("OCR相机参数")]
+        [Description("工位X方向间距_12寸")]
+        [DefaultValue(540.0)]
+        OCRStationDistance_12,
+
         #endregion OCR相机参数
 
 
+        #region 安全门参数
+
+
+        /// <summary>屏蔽安全门1检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门1检测")]
+        [DefaultValue(false)]
+        SafeDoor_1_Muted,
+        /// <summary>屏蔽安全门2检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门2检测")]
+        [DefaultValue(false)]
+        SafeDoor_2_Muted,
+
+        /// <summary>屏蔽安全门3-4检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门3-4检测")]
+        [DefaultValue(false)]
+        SafeDoor_3_4_Muted,
+
+        /// <summary>屏蔽安全门5-6检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门5-6检测")]
+        [DefaultValue(false)]
+        SafeDoor_5_6_Muted,
+
+        /// <summary>屏蔽安全门7-8检测（调试用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽安全门7-8检测")]
+        [DefaultValue(false)]
+        SafeDoor_7_8_Muted,
+
+        #endregion
+
+        #region 三色灯参数
+
+        /// <summary>全局蜂鸣器屏蔽（调试模式静音用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("全局蜂鸣器屏蔽")]
+        [DefaultValue(false)]
+        BuzzerMuted,
+
+        /// <summary>屏蔽工位1（调试用，跳过硬件动作与启动按钮，流程空转）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽工位1：初始化跳过硬件，流程空转不阻塞")]
+        [DefaultValue(false)]
+        WorkStation1_Muted,
+
+        /// <summary>屏蔽工位2（调试用，跳过硬件动作与启动按钮，流程空转）</summary>
+        [Category("屏蔽参数")]
+        [Description("屏蔽工位2：初始化跳过硬件，流程空转不阻塞")]
+        [DefaultValue(false)]
+        WorkStation2_Muted,
+
+        #endregion
+
+        
     }
 
 

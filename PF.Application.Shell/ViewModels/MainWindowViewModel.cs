@@ -8,8 +8,10 @@ using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Identity;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.Station;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
@@ -44,18 +46,19 @@ namespace PF.Application.Shell.ViewModels
         private readonly INavigationMenuService _navigationMenuService;
         private readonly IAlarmService _alarmService;
         private readonly IMasterController _masterController;
+        private IHardwareManagerService _hardwareManagerService;
+        private ISecsGemManager _secsGemManager;
         private ILogService _logService;
         private CommonSettings _commonSettings;
 
-        private CategoryLogger _dbLogger;
-        private CategoryLogger _systemLogger;
-        private CategoryLogger _custom;
         private CancellationTokenSource _cts;
         private Task _runningTask;
 
+        // 记录用户当前所在视图，用于机台状态变化时判断是否需要强制离页
+        private string _currentViewName = string.Empty;
+
         // 无操作自动降权计时器（60 秒无鼠标/键盘操作 → 重置为 Operator）
-        private readonly IdleMonitorService _idleMonitor =
-            new IdleMonitorService(TimeSpan.FromSeconds(600000));
+        private readonly IdleMonitorService _idleMonitor ;
         #endregion
 
         #region 公共集合
@@ -78,6 +81,7 @@ namespace PF.Application.Shell.ViewModels
             _commonSettings        = commonSettings;
             _alarmService          = alarmService;
             _masterController      = masterController;
+            _idleMonitor = new IdleMonitorService(TimeSpan.FromSeconds(_commonSettings.NoUseTime));
 
             _userService.CurrentUserChanged += OnUserChanged;
             CurrentUser = _userService.CurrentUser ?? new UserInfo { Root = UserLevel.Null, AccessibleViews = new List<string>() };
@@ -186,10 +190,14 @@ namespace PF.Application.Shell.ViewModels
             //        break;
             //}
 
-            // 2. Error 及以上级别弹出报警详情对话框
-            if (record.Severity >= AlarmSeverity.Error)
+            // 2. Warning 及以上级别弹出报警详情对话框；Warning 级别不显示异常复位按钮（纯通知）
+            if (record.Severity >= AlarmSeverity.Warning)
             {
-                var param = new DialogParameters { { "Data", record } };
+                var param = new DialogParameters
+                {
+                    { "Data", record },
+                    { "ShowResetButton", record.Severity >= AlarmSeverity.Error }
+                };
                 DialogService.Show(nameof(AlarmDetailCardView), param, null, nameof(PFAlarmBaseWindow));
             }
         }
@@ -274,8 +282,8 @@ namespace PF.Application.Shell.ViewModels
                     string viewName = navItem.ViewName;
                     string category = NavigationConstantMapper.GetCategory(viewName);
 
-                    // ── 页面权限拦截（唯一检查点）────────────────────────────────
-                    if ( !_userService.HasPagePermission(viewName))
+                    // ── 页面权限拦截 ──────────────────────────────────────────────
+                    if (!_userService.HasPagePermission(viewName))
                     {
                         _logService?.Warn($"用户 [{CurrentUser?.UserName}] 尝试访问无权限页面: {viewName}", "Security");
                         var displayName = PermissionHelper.GetViewDisplayName(viewName);
@@ -289,8 +297,25 @@ namespace PF.Application.Shell.ViewModels
                     }
                     // ── 权限拦截结束 ─────────────────────────────────────────────
 
+                    // ── 机台状态拦截（Running/Initializing/Resetting 期间锁定参数与调试页面，超级用户豁免）──
+                    if (DefaultPermissions.IsProtectedView(viewName)
+                        && IsMachineLocked(_machineState)
+                        && CurrentUser?.Root < UserLevel.SuperUser)
+                    {
+                        _logService?.Warn($"用户 [{CurrentUser?.UserName}] 在设备{MachineStateText}期间尝试访问受保护页面: {viewName}", "Security");
+                        MessageService.ShowMessage(
+                            $"设备{MachineStateText}期间，参数与调试页面已锁定，请停止设备后重试。",
+                            "操作受限",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Warning);
+                        SelectedMenuItem = null;
+                        return;
+                    }
+                    // ── 机台状态拦截结束 ──────────────────────────────────────────
+
                     if (IsParameterView(viewName))
                     {
+                        _currentViewName = viewName;
                         var parameters = new NavigationParameters();
                         parameters.Add("TargetParamType", viewName);
                         RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.ParameterView, NavigationComplete, parameters);
@@ -300,6 +325,7 @@ namespace PF.Application.Shell.ViewModels
                     switch (category)
                     {
                         case nameof(NavigationConstants.Views):
+                            _currentViewName = viewName;
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                             break;
 
@@ -309,12 +335,13 @@ namespace PF.Application.Shell.ViewModels
                             break;
                     }
 
-                    if (category==null)
+                    if (category == null)
                     {
                         bool isRegistered = _containerProvider.IsRegistered<object>(viewName);
 
                         if (isRegistered)
                         {
+                            _currentViewName = viewName;
                             RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, viewName, NavigationComplete);
                         }
                     }
@@ -337,6 +364,33 @@ namespace PF.Application.Shell.ViewModels
             {
                 _logService?.Error($"导航失败: {result.Exception.Message}", "System", result.Exception);
             }
+        }
+
+        /// <summary>
+        /// 机台进入锁定状态（Running/Initializing/Resetting）时触发：
+        /// 若当前用户（非超级用户）正处于受保护页面，则强制跳回首页并给出提示。
+        /// </summary>
+        private void OnMachineLockedStateEntered()
+        {
+            if (CurrentUser?.Root >= UserLevel.SuperUser) return;
+            if (!DefaultPermissions.IsProtectedView(_currentViewName)) return;
+
+            // 立即清除，防止状态快速切换时重复触发
+            _currentViewName = NavigationConstants.Views.HomeView;
+
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                RegionManager.RequestNavigate(
+                    NavigationConstants.Regions.SoftwareViewRegion,
+                    NavigationConstants.Views.HomeView,
+                    _ => { });
+                SelectedMenuItem = null;
+                MessageService.ShowMessage(
+                    $"设备已{MachineStateText}，已自动退出参数与调试页面。",
+                    "操作受限",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }));
         }
         #endregion
 
@@ -408,11 +462,19 @@ namespace PF.Application.Shell.ViewModels
             get => _machineState;
             set
             {
-                SetProperty(ref _machineState, value);
-                RaisePropertyChanged(nameof(MachineStateBrush));
-                RaisePropertyChanged(nameof(MachineStateText));
+                var previous = _machineState;
+                if (SetProperty(ref _machineState, value))
+                {
+                    RaisePropertyChanged(nameof(MachineStateBrush));
+                    RaisePropertyChanged(nameof(MachineStateText));
+                    if (!IsMachineLocked(previous) && IsMachineLocked(value))
+                        OnMachineLockedStateEntered();
+                }
             }
         }
+
+        private static bool IsMachineLocked(MachineState state) =>
+            state == MachineState.Running || state == MachineState.Initializing || state == MachineState.Resetting;
 
         /// <summary>获取设备状态颜色画刷</summary>
         public Brush MachineStateBrush => _machineState switch
@@ -440,6 +502,38 @@ namespace PF.Application.Shell.ViewModels
             MachineState.Resetting => "复位中",
             _ => "未知"
         };
+
+        private bool _scanner1Connected;
+        /// <summary>工位1扫码枪连接状态</summary>
+        public bool Scanner1Connected
+        {
+            get => _scanner1Connected;
+            set => SetProperty(ref _scanner1Connected, value);
+        }
+
+        private bool _scanner2Connected;
+        /// <summary>工位2扫码枪连接状态</summary>
+        public bool Scanner2Connected
+        {
+            get => _scanner2Connected;
+            set => SetProperty(ref _scanner2Connected, value);
+        }
+
+        private bool _cameraConnected;
+        /// <summary>智能相机连接状态</summary>
+        public bool CameraConnected
+        {
+            get => _cameraConnected;
+            set => SetProperty(ref _cameraConnected, value);
+        }
+
+        private bool _secGemConnected;
+        /// <summary>SecGem服务连接状态</summary>
+        public bool SecGemConnected
+        {
+            get => _secGemConnected;
+            set => SetProperty(ref _secGemConnected, value);
+        }
         #endregion
 
         #region 命令属性
@@ -461,9 +555,8 @@ namespace PF.Application.Shell.ViewModels
         private async void OnLoading()
         {
             _logService = ServiceProvider.GetRequiredService<ILogService>();
-            _dbLogger = CategoryLoggerFactory.Database(_logService);
-            _systemLogger = CategoryLoggerFactory.System(_logService);
-            _custom = CategoryLoggerFactory.Custom(_logService);
+            _hardwareManagerService = ServiceProvider.GetService<IHardwareManagerService>();
+            _secsGemManager = ServiceProvider.GetService<ISecsGemManager>();
 
             RefreshMenu();
 
@@ -516,11 +609,33 @@ namespace PF.Application.Shell.ViewModels
                 {
                     SysTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     MachineState = _masterController.CurrentState;
+                    PollDeviceStatuses();
                     await Task.Delay(500, ct);
                 }
             }
             catch (OperationCanceledException) { }
             catch (Exception) { }
+        }
+
+        private void PollDeviceStatuses()
+        {
+            if (_hardwareManagerService != null)
+            {
+                var scanners = _hardwareManagerService.ActiveDevices
+                    .Where(d => d.Category == HardwareCategory.Scanner)
+                    .ToList();
+                Scanner1Connected = scanners.Count > 0 && scanners[0].IsConnected;
+                Scanner2Connected = scanners.Count > 1 && scanners[1].IsConnected;
+
+                var camera = _hardwareManagerService.ActiveDevices
+                    .FirstOrDefault(d => d.Category == HardwareCategory.Camera);
+                CameraConnected = camera?.IsConnected ?? false;
+            }
+
+            if (_secsGemManager != null)
+            {
+                SecGemConnected = _secsGemManager.IsConnected;
+            }
         }
         #endregion
     }

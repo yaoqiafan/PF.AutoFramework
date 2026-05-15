@@ -21,6 +21,7 @@ namespace PF.Infrastructure.Hardware
         private bool _isConnected;
         private bool _hasAlarm;
         private bool _isDisposed;
+        private volatile bool _suppressHealthMonitoring = false;
 
         // 健康监控后台任务
         private CancellationTokenSource? _healthMonitorCts;
@@ -115,6 +116,15 @@ namespace PF.Infrastructure.Hardware
         /// 硬件报警自动清除事件
         /// </summary>
         public event EventHandler HardwareAlarmAutoCleared;
+
+        /// <summary>
+        /// 暂停健康监控报警上报（由模组在初始化期间设置，防止瞬态信号级联中断初始化流程）
+        /// </summary>
+        public bool SuppressHealthMonitoring
+        {
+            get => _suppressHealthMonitoring;
+            set => _suppressHealthMonitoring = value;
+        }
 
         /// <summary>
         /// 硬件专用日志记录器
@@ -350,7 +360,7 @@ namespace PF.Infrastructure.Hardware
                 {
                     await Task.Delay(intervalMs, token).ConfigureAwait(false);
 
-                    if (!token.IsCancellationRequested && IsConnected)
+                    if (!token.IsCancellationRequested && IsConnected && !_suppressHealthMonitoring)
                         await InternalCheckHealthAsync(token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
@@ -413,6 +423,18 @@ namespace PF.Infrastructure.Hardware
                 ErrorMessage      = message,
                 InternalException = internalException
             });
+        }
+
+        /// <summary>
+        /// 外部触发模拟硬件报警（供调试页面使用）。
+        /// 无论是否处于模拟模式，均可调用，用于验证完整的报警级联链路：
+        /// Device → Mechanism → Station → MasterController。
+        /// </summary>
+        /// <param name="errorCode">报警码</param>
+        /// <param name="message">报警描述</param>
+        public void SimulateAlarm(string errorCode, string message)
+        {
+            RaiseAlarm(errorCode, message);
         }
 
         #endregion

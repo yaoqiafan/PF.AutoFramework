@@ -1,4 +1,5 @@
-﻿using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
+﻿using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
@@ -125,6 +126,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand TriggerCommand { get; private set; }
         /// <summary>切换程序命令</summary>
         public DelegateCommand ChangeJobCommand { get; private set; }
+        /// <summary>模拟硬件报警命令</summary>
+        public DelegateCommand SimulateAlarmCommand { get; private set; }
 
         private void InitializeCommands()
         {
@@ -161,6 +164,11 @@ namespace PF.Modules.Debug.ViewModels
                 {
                     ResultText = $"切换程序失败: {ex.Message}";
                 }
+            });
+
+            SimulateAlarmCommand = new DelegateCommand(() =>
+            {
+                _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.CameraTimeout, "调试页面手动模拟相机报警");
             });
         }
 
