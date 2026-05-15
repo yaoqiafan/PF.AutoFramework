@@ -330,20 +330,41 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <param name="cell">单元格</param>
         private void WritehyperlinkToExcel(string hyperlink, IWorkbook workbook, NPOI.SS.UserModel.ICell cell)
         {
+            if (string.IsNullOrEmpty(hyperlink)) return;
+
             try
             {
                 var createHelper = workbook.GetCreationHelper();
-                cell.SetCellValue(hyperlink);
+                cell.SetCellValue("点击查看图片"); // 单元格显示文字，建议不要直接放长路径
+
                 IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
-                // 建议使用 file:/// 协议，并处理空格
-                link2.Address = $"file:///{hyperlink}";
+
+                // --- 关键优化部分 ---
+                // 1. 处理路径中的反斜杠
+                string formattedPath = hyperlink.Replace("\\", "/");
+
+                // 2. 使用 Uri 类自动处理编码和协议头，避免手动拼接出错
+                // 这种方式会自动处理空格、中文以及 file:/// 前缀
+                Uri uri = new Uri(formattedPath, UriKind.Absolute);
+
+                link2.Address = uri.AbsoluteUri;
+                // ------------------
+
                 cell.Hyperlink = link2;
+
+                // 设置超链接样式（可选：蓝色字体加下划线）
+                ICellStyle linkStyle = workbook.CreateCellStyle();
+                IFont font = workbook.CreateFont();
+                font.Underline = FontUnderlineType.Single;
+                font.Color = IndexedColors.Blue.Index;
+                linkStyle.SetFont(font);
+                cell.CellStyle = linkStyle;
             }
-            catch
+            catch (Exception ex)
             {
-
+                // 建议至少记录日志，方便排查是否为路径格式无法转换
+                Console.WriteLine("Hyperlink Error: " + ex.Message);
             }
-
         }
 
 
