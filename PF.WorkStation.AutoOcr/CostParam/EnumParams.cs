@@ -671,7 +671,30 @@ namespace PF.Workstation.AutoOcr.CostParam
 
         #endregion
 
-        
+        #region 流程参数
+        [Category("流程参数")]
+        [Description("屏蔽工位1手动OCR输入")]
+        [DefaultValue(false)]
+        DisableManulInput_WS1,
+
+        [Category("流程参数")]
+        [Description("屏蔽工位2手动OCR输入")]
+        [DefaultValue(false)]
+        DisableManulInput_WS2,
+
+        [Category("流程参数")]
+        [Description("屏蔽工位1OCR校验")]
+        [DefaultValue(false)]
+        DisableOCRCheck_WS1,
+
+        [Category("流程参数")]
+        [Description("屏蔽工位2OCR校验")]
+        [DefaultValue(false)]
+        DisableOCRCheck_WS2,
+
+        #endregion
+
+
     }
 
 
