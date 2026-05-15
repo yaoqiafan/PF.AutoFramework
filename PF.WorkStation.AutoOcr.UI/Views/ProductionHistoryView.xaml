@@ -315,27 +315,33 @@
                         </Grid>
 
 
-                        <Grid Grid.Column="0" Grid.ColumnSpan="3" Background="#66FFFFFF" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid
+                            Grid.Column="0"
+                            Grid.ColumnSpan="3"
+                            Background="#66FFFFFF"
+                            Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <pf:LoadingCircle Width="50" Height="50" />
                                 <TextBlock
-             Margin="0,15,0,0"
-             FontSize="{DynamicResource FontSize.Body.Standard}"
-             FontWeight="SemiBold"
-             Foreground="#333"
-             Text="正在查询生产数据..." />
+                                    Margin="0,15,0,0"
+                                    FontSize="{DynamicResource FontSize.Body.Standard}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#333"
+                                    Text="正在查询生产数据..." />
                             </StackPanel>
                         </Grid>
                     </Grid>
 
 
-                   
+
                 </Grid>
 
                 <pf:Card.Footer>
                     <Grid Margin="10,5">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width=" Auto " />
+                            <ColumnDefinition Width=" 15 " />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
@@ -353,8 +359,14 @@
                             </pf:Interaction.Triggers>
                         </pf:Pagination>
 
-                        <StackPanel
+                        <Button
                             Grid.Column="1"
+                            Command="{Binding ExportLogsCommand}"
+                            Content="📤 导出当前结果"
+                            ToolTip="将当前筛选出的日志导出为 xlsx" />
+
+                        <StackPanel
+                            Grid.Column="3"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
