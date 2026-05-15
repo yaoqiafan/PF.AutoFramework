@@ -282,7 +282,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 MessageService.ShowMessage($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
-           
+
         }
 
 
@@ -334,28 +334,24 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             try
             {
+
+                // 1. 路径清洗：统一格式
+                // 将 E:// 替换为 E:/，并将所有反斜杠 \ 统一为正斜杠 /
+                string cleanedPath = hyperlink.Replace("://", ":/").Replace("\\", "/");
+
+                // 2. 构造标准的 file:/// 协议路径
+                // 必须确保是 file:/// 开头，Excel 才能识别为本地文件
+                if (!cleanedPath.StartsWith("file:///"))
+                {
+                    cleanedPath = "file:///" + cleanedPath.TrimStart('/');
+                }
                 var createHelper = workbook.GetCreationHelper();
                 // 单元格显示文字，建议不要直接放长路径
-
                 IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
-
-                // --- 关键优化部分 ---
-                // 1. 处理路径中的反斜杠
-                string formattedPath = hyperlink.Replace("\\", "/");
-
-                // 2. 使用 Uri 类自动处理编码和协议头，避免手动拼接出错
-                // 这种方式会自动处理空格、中文以及 file:/// 前缀
-                // 2. 检查并补充 file:/// 协议头（Uri 类需要识别它是本地文件流）
-                if (!formattedPath.StartsWith("file:///"))
-                {
-                    // 如果路径是 "E:/...", 补齐后变成 "file:///E:/..."
-                    formattedPath = "file:///" + formattedPath;
-                }
-                Uri uri = new Uri(formattedPath, UriKind.Absolute);
-
+                Uri uri = new Uri(cleanedPath, UriKind.Absolute);
                 link2.Address = uri.AbsoluteUri;
                 // ------------------
-                cell.SetCellValue(uri .AbsolutePath);
+                cell.SetCellValue(uri.AbsolutePath);
                 cell.Hyperlink = link2;
 
                 // 设置超链接样式（可选：蓝色字体加下划线）
@@ -372,6 +368,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 Console.WriteLine("Hyperlink Error: " + ex.Message);
             }
         }
+
+
+      
 
 
 
