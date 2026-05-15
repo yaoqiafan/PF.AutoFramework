@@ -317,7 +317,7 @@
                             <usercontrol:ZoomableImageViewer
                                 Grid.Column="0"
                                 Margin="5"
-                                AnnotationContent="{Binding CurrentMachineDetection.Data.OcrText}"
+                                AnnotationContent="{Binding CurrentMachineDetection.Data}"
                                 Source="{Binding CurrentMachineDetection.Data.ImagePath}" />
 
                         </Grid>
