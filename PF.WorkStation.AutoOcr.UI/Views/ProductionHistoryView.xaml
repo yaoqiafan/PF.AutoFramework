@@ -191,7 +191,7 @@
                                 IsReadOnly="True"
                                 ItemsSource="{Binding DataList}"
                                 RowHeight="36"
-                                SelectedItem="{Binding CurrentMachineDetection}"
+                                SelectedItem="{Binding CurrentMachineDetection.Data}"
                                 SelectionMode="Single">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
