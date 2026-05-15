@@ -564,12 +564,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void Station1ShowChangeLotView()
         {
-            DialogService.ShowDialog(nameof(ChangeLotView), new DialogParameters(), OnDialogCallbackStation1);
+            var initParams = new DialogParameters
+            {
+                { "InitialLayerMode",       _dataModule?.GetLayerMode(E_WorkSpace.工位1) ?? E_LayerProcessMode.全做 },
+                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位1) ?? new System.Collections.Generic.List<int>() }
+            };
+            DialogService.ShowDialog(nameof(ChangeLotView), initParams, OnDialogCallbackStation1);
         }
 
         private void Station2ShowChangeLotView()
         {
-            DialogService.ShowDialog(nameof(ChangeLotView), new DialogParameters(), OnDialogCallbackStation2);
+            var initParams = new DialogParameters
+            {
+                { "InitialLayerMode",       _dataModule?.GetLayerMode(E_WorkSpace.工位2) ?? E_LayerProcessMode.全做 },
+                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位2) ?? new System.Collections.Generic.List<int>() }
+            };
+            DialogService.ShowDialog(nameof(ChangeLotView), initParams, OnDialogCallbackStation2);
         }
 
         private async void OnDialogCallbackStation1(IDialogResult result)
@@ -598,6 +608,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         MessageService.ShowMessage($"工位1切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
+
+                    var layerMode1 = param.ContainsKey("LayerMode")
+                        ? param.GetValue<E_LayerProcessMode>("LayerMode") : E_LayerProcessMode.全做;
+                    var specifiedLayers1 = param.ContainsKey("SpecifiedLayers")
+                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : new System.Collections.Generic.List<int>();
+                    _dataModule?.SetLayerMode(E_WorkSpace.工位1, layerMode1, specifiedLayers1);
 
                     if (_userService.IsAuthorized(UserLevel.SuperUser)
                         && param.ContainsKey("Recipe"))
@@ -658,6 +674,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         MessageService.ShowMessage($"工位2切换批次失败 ", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
+
+                    var layerMode2 = param.ContainsKey("LayerMode")
+                        ? param.GetValue<E_LayerProcessMode>("LayerMode") : E_LayerProcessMode.全做;
+                    var specifiedLayers2 = param.ContainsKey("SpecifiedLayers")
+                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : new System.Collections.Generic.List<int>();
+                    _dataModule?.SetLayerMode(E_WorkSpace.工位2, layerMode2, specifiedLayers2);
 
                     if (_userService.IsAuthorized(UserLevel.SuperUser)
                         && param.ContainsKey("Recipe"))
