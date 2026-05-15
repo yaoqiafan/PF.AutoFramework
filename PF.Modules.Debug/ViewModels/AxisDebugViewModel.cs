@@ -4,6 +4,7 @@ using PF.Core.Entities.Identity;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Infrastructure.Hardware;
+using PF.Infrastructure.Hardware.Motor.Basic;
 using PF.Modules.Debug.Dialogs;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
@@ -49,6 +50,19 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         #region 【Prism 导航生命周期】
+
+        protected override IEnumerable<NavigationGuard> GetNavigationGuards(NavigationContext? context = null)
+        {
+            var axis = context?.Parameters.ContainsKey("Device") == true
+                ? context.Parameters.GetValue<IAxis>("Device")
+                : null;
+            if (axis == null) yield break;
+            var axisDevice = axis as BaseAxisDevice;
+            if (axisDevice == null) yield break;
+            yield return new NavigationGuard(
+                axisDevice.IsInSafePosition,
+                $"轴 [{axisDevice.DeviceName}] 未在安全位置，无法进入调试界面");
+        }
 
         /// <summary>导航进入时加载轴设备数据</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
