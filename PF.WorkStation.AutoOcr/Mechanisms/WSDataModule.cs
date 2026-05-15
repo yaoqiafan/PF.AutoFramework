@@ -683,12 +683,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
 
         /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
-        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status)
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status,string Errormsg ="NONE")
         {
             var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
             var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
             if (slot == null) return;
             slot.Status = status;
+            slot.ErrorMsg = Errormsg;
             Save(_filepath);
             RaiseDataChanged();
         }
@@ -989,6 +990,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>当前槽位检测状态</summary>
         public WaferSlotStatus Status { get; set; } = WaferSlotStatus.Empty;
+
+        /// <summary>
+        /// 异常原因
+        /// </summary>
+        public string ErrorMsg { get; set; } = "NONE";
     }
 
     #endregion
