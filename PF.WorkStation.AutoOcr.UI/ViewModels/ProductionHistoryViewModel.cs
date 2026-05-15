@@ -157,13 +157,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>
         /// 获取或设置 IsBusy
         /// </summary>
-        public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
+        public bool IsBusy
+        {
+            get => _isBusy; set
+            {
+                SetProperty(ref _isBusy, value);
+                RaisePropertyChanged(nameof(CanExecuteActions));// 当 _isBusy 变化时，通知复合属性也变化
+            }
+        }
 
         private bool _isExporting;
         /// <summary>
         /// 获取或设置 IsExporting (专门用于控制导出过程的UI状态)
         /// </summary>
-        public bool IsExporting { get => _isExporting; set => SetProperty(ref _isExporting, value); }
+        public bool IsExporting
+        {
+            get => _isExporting; set
+            {
+                SetProperty(ref _isExporting, value);
+                RaisePropertyChanged(nameof(CanExecuteActions));// 当 IsExporting 变化时，通知复合属性也变化
+            }
+        }
 
         private int _exportProgress;
         /// <summary>
@@ -224,7 +238,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             SearchCommand = new DelegateCommand(async () => await OnSearchAsync());
             ClearFiltersCommand = new DelegateCommand(OnClearFilters);
 
-            ExportLogsCommand = new DelegateCommand(async () => await ExportLogsAsync()).ObservesCanExecute(() => !IsBusy && !IsExporting);
+            ExportLogsCommand = new DelegateCommand(async () => await ExportLogsAsync())
+                 .ObservesProperty(() => CanExecuteActions);
         }
 
         private void ExportLogs()
@@ -298,7 +313,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         }
 
-       
+
+        /// <summary>
+        /// 一个复合属性，用于确定主要操作（如搜索、导出）是否可执行。
+        /// </summary>
+        public bool CanExecuteActions => !IsBusy && !IsExporting;
+
 
         private async Task ExportLogsAsync()
         {
@@ -472,10 +492,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 string file = "file:///" + fileinfo.FullName;
                 // 单元格显示文字，建议不要直接放长路径
                 IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
-              
-                link2.Address = "file:///"+ fileinfo.FullName;
+
+                link2.Address = "file:///" + fileinfo.FullName;
                 // ------------------
-                cell.SetCellValue(file );
+                cell.SetCellValue(file);
                 cell.Hyperlink = link2;
 
                 // 设置超链接样式（可选：蓝色字体加下划线）
@@ -494,7 +514,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
 
-      
+
 
 
 
