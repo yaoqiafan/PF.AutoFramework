@@ -341,10 +341,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 // --- 关键优化部分 ---
                 // 1. 处理路径中的反斜杠
-                string formattedPath = hyperlink.Replace("\\", "/").Replace("/", @"\");
+                string formattedPath = hyperlink.Replace("\\", "/");
 
                 // 2. 使用 Uri 类自动处理编码和协议头，避免手动拼接出错
                 // 这种方式会自动处理空格、中文以及 file:/// 前缀
+                // 2. 检查并补充 file:/// 协议头（Uri 类需要识别它是本地文件流）
+                if (!formattedPath.StartsWith("file:///"))
+                {
+                    // 如果路径是 "E:/...", 补齐后变成 "file:///E:/..."
+                    formattedPath = "file:///" + formattedPath;
+                }
                 Uri uri = new Uri(formattedPath, UriKind.Absolute);
 
                 link2.Address = uri.AbsoluteUri;
