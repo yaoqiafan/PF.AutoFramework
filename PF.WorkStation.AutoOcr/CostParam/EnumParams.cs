@@ -451,6 +451,17 @@ namespace PF.Workstation.AutoOcr.CostParam
 
 
     /// <summary>
+    /// 层检测模式枚举
+    /// </summary>
+    public enum E_LayerProcessMode
+    {
+        /// <summary>全做（处理所有寻层算法识别到的有效层）</summary>
+        全做 = 0,
+        /// <summary>指定层（仅处理操作员在切换批次时选定的层）</summary>
+        指定层 = 1
+    }
+
+    /// <summary>
     /// 物料检测状态枚举
     /// </summary>
     public enum E_DetectionStatus

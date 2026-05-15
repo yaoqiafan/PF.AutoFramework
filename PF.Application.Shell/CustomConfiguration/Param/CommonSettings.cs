@@ -173,6 +173,14 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         public ConfettiEffectType SuperuserAnimationType { get; set; } = ConfettiEffectType.Stars;
 
 
+        /// <summary>
+        /// 超级用户登录动画类型
+        /// </summary>
+        [CategoryAttribute("C.配置参数")]
+        [DisplayNameAttribute("1.无使用权限降级时间")]
+        [BrowsableAttribute(true)]
+        public double NoUseTime { get; set; } = 60.0;
+
         // ==========================================
         // 2. 文件存取逻辑区
         // ==========================================

@@ -210,7 +210,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 {
                     StartTime = this.StartTime,
                     EndTime = this.EndTime,
-                    MaxCount = 5000
+                    MaxCount = 50000
                 };
 
                 var results = await _productionDataService.QueryAsync(dbFilter);
