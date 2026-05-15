@@ -72,8 +72,8 @@ namespace PF.Services.Logging
         private Task _processingTask;
 
         // 定时器
-        private readonly Timer _cleanupTimer;
-        private readonly Timer _flushTimer;
+        private readonly System.Threading.Timer _cleanupTimer;
+        private readonly System.Threading.Timer _flushTimer;
         #endregion
 
         #region 公共属性
@@ -123,13 +123,13 @@ namespace PF.Services.Logging
             StartProcessingTask();
 
             // 初始化定时器
-            _cleanupTimer = new Timer(
+            _cleanupTimer = new System.Threading.Timer(
                 CleanupOldLogs,
                 null,
                 TimeSpan.FromHours(1),
                 TimeSpan.FromDays(1));
 
-            _flushTimer = new Timer(
+            _flushTimer = new System.Threading.Timer(
                 FlushLogs,
                 null,
                 TimeSpan.FromSeconds(30),
