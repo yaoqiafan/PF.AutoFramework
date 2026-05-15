@@ -273,6 +273,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _station1ScanCodes = codes ?? new List<string>();
             else if (station == E_WorkSpace.工位2)
                 _station2ScanCodes = codes ?? new List<string>();
+            RaiseDataChanged();
         }
 
         /// <summary>
