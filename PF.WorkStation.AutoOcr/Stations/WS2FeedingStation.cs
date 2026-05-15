@@ -880,8 +880,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 if (layerMode == E_LayerProcessMode.指定层)
                                 {
                                     var specifiedLayers = _dataModule.GetSpecifiedLayers(E_WorkSpace.工位2);
-                                    bool setsMatch = allDetectedLayers.Count == specifiedLayers.Count &&
-                                                     allDetectedLayers.All(k => specifiedLayers.Contains(k));
+                                    bool setsMatch = allDetectedLayers.Count >= specifiedLayers.Count &&
+                                                     specifiedLayers.All(k => allDetectedLayers.Contains(k));
                                     _logger.Info($"[{StationName}] 指定层模式 — 指定: [{string.Join(",", specifiedLayers.OrderBy(k => k).Select(k => k + 1))}]，" +
                                                  $"实际: [{string.Join(",", allDetectedLayers.Select(k => k + 1))}]，" +
                                                  $"匹配: {setsMatch}");
@@ -891,7 +891,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                         RouteToError(Station2FeedingStep.指定层与实际层不匹配, Station2FeedingStep.等待按下工位2启动按钮);
                                         break;
                                     }
-                                    _layersToProcess = allDetectedLayers;
+                                    _layersToProcess = specifiedLayers;
                                 }
                                 else
                                 {
