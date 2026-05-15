@@ -191,7 +191,7 @@
                                 IsReadOnly="True"
                                 ItemsSource="{Binding DataList}"
                                 RowHeight="36"
-                                SelectedItem="{Binding CurrentMachineDetection.Data}"
+                                SelectedItem="{Binding CurrentMachineDetection}"
                                 SelectionMode="Single">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
@@ -317,8 +317,8 @@
                             <usercontrol:ZoomableImageViewer
                                 Grid.Column="0"
                                 Margin="5"
-                                AnnotationContent="{Binding CurrentMachineDetection}"
-                                Source="{Binding CurrentMachineDetection.ImagePath}" />
+                                AnnotationContent="{Binding CurrentMachineDetection.Data.OcrText}"
+                                Source="{Binding CurrentMachineDetection.Data.ImagePath}" />
 
                         </Grid>
                     </Grid>
