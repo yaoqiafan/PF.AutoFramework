@@ -249,7 +249,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         sheet.GetRow(0).CreateCell(11).SetCellValue("操作员工号");
                         sheet.GetRow(0).CreateCell(12).SetCellValue("配方名称");
                         sheet.GetRow(0).CreateCell(13).SetCellValue("图片");
-                        sheet.GetRow(0).CreateCell(14).SetCellValue("超链接");
+                        //sheet.GetRow(0).CreateCell(14).SetCellValue("超链接");
                         for (int i = 0; i < Records?.Count; i++)
                         {
                             sheet.CreateRow(i + 1).CreateCell(0).SetCellValue(Records[i].Data.Time);
@@ -266,8 +266,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                             sheet.GetRow(i + 1).CreateCell(11).SetCellValue(Records[i].Data.OperatorId);
                             sheet.GetRow(i + 1).CreateCell(12).SetCellValue(Records[i].Data.RecipeName);
                             WriteImageToExcel(Records[i].Data.ImagePath, wk, sheet, i + 1, 13);
-                            var cell = sheet.GetRow(i + 1).CreateCell(14);
-                            WritehyperlinkToExcel(Records[i].Data.ImagePath, wk, cell);
+                            //var cell = sheet.GetRow(i + 1).CreateCell(14);
+                            //WritehyperlinkToExcel(Records[i].Data.ImagePath, wk, cell);
                         }
                         using (FileStream fs = new FileStream(saveDialog.FileName, FileMode.Create, FileAccess.Write))
                         {
@@ -337,21 +337,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 // 1. 路径清洗：统一格式
                 // 将 E:// 替换为 E:/，并将所有反斜杠 \ 统一为正斜杠 /
-                string cleanedPath = hyperlink.Replace("://", ":/").Replace("\\", "/");
+                //string cleanedPath = hyperlink.Replace("://", ":/").Replace("\\", "/");
+
+                FileInfo fileinfo = new FileInfo(hyperlink);
+
 
                 // 2. 构造标准的 file:/// 协议路径
-                // 必须确保是 file:/// 开头，Excel 才能识别为本地文件
-                if (!cleanedPath.StartsWith("file:///"))
-                {
-                    cleanedPath = "file:///" + cleanedPath.TrimStart('/');
-                }
+                //// 必须确保是 file:/// 开头，Excel 才能识别为本地文件
+                //if (!cleanedPath.StartsWith("file:///"))
+                //{
+                //    cleanedPath = "file:///" + cleanedPath.TrimStart('/');
+                //}
                 var createHelper = workbook.GetCreationHelper();
+                string file = "file:///" + fileinfo.FullName;
                 // 单元格显示文字，建议不要直接放长路径
                 IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
-                Uri uri = new Uri(cleanedPath, UriKind.Absolute);
-                link2.Address = uri.AbsoluteUri;
+              
+                link2.Address = "file:///"+ fileinfo.FullName;
                 // ------------------
-                cell.SetCellValue(uri.AbsolutePath);
+                cell.SetCellValue(file );
                 cell.Hyperlink = link2;
 
                 // 设置超链接样式（可选：蓝色字体加下划线）

@@ -441,7 +441,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 将相机吐出的原始图像，根据 MES 批次和晶圆槽号进行结构化归档保存。
         /// 方便未来根据 "批次号+槽位" 快速查找良率缺陷图。
         /// </summary>
-        public async Task<string> SaveImage(string Originalpath, E_WorkSpace workSpace, WaferInfo info, CancellationToken token = default)
+        public async Task<string> SaveImage(string Originalpath, E_WorkSpace workSpace, WaferInfo info,bool IsOk =true , CancellationToken token = default)
         {
             try
             {
@@ -451,8 +451,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var flag = workSpace == E_WorkSpace.工位1 ? _dataModule.Station1MesDetectionData : _dataModule.Station2MesDetectionData;
                 string baseSaveDir = await ParamService.GetParamAsync<string>(E_Params.OCRCameraImageSavePath.ToString());
 
+                string result = IsOk ? "OK" : "NG";
                 // 结构化存储路径：基路径 / 内部批次号 / 客户批次号 / 晶圆ID号 / 时间戳.jpg
-                string path = $"{baseSaveDir}\\{flag.InternalBatchId}\\{info.CustomerBatch}\\{info.WaferId}\\{DateTime.Now:yyyyMMddHHmmss}.jpg";
+                string path = $"{baseSaveDir}\\{flag.InternalBatchId}\\{result}\\{info.CustomerBatch}\\{info.WaferId}\\{DateTime.Now:yyyyMMddHHmmss}.jpg";
 
                 FileInfo fileInfo = new FileInfo(path);
                 if (!Directory.Exists(fileInfo.DirectoryName))
