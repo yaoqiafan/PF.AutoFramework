@@ -54,12 +54,6 @@ namespace PF.Core.Interfaces.SecsGem.Communication
         Task<SecsGemMessage> WaitForReplyAsync(string systemBytesHex, int timeoutMs = 5000);
 
         /// <summary>
-        /// 记录 SECS/GEM 交互的底层调试日志（通常用于记录 HSMS 原始字节流或关键链路状态变迁）。
-        /// </summary>
-        /// <param name="strData">要记录的日志字符串内容。</param>
-        void WriteSecsGemLog(string strData);
-
-        /// <summary>
         /// 当底层成功接收并解析出一条完整的 SECS/GEM 消息时触发的事件。
         /// 上层服务（如 ISecsGemManager）可通过订阅此事件来分发和处理进来的指令。
         /// </summary>
