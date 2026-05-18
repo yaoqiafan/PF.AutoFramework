@@ -216,6 +216,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         // ── 双重身份验证字段 ─────────────────────────────────────────
 
         private string _auth1Username = string.Empty;
+        /// <summary>操作员1在双重身份验证面板中输入的工号。</summary>
         public string Auth1Username
         {
             get => _auth1Username;
@@ -223,6 +224,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private string _auth2Username = string.Empty;
+        /// <summary>操作员2在双重身份验证面板中输入的工号。</summary>
         public string Auth2Username
         {
             get => _auth2Username;
@@ -513,16 +515,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             StationMemoryItems = new ObservableCollection<WorkstationMemoryGroup>
             {
-                new WorkstationMemoryGroup("工位一", new[]
-                {
+                new("工位一",
+                [
                     E_WorkStation.工位1上下料工站.ToString(),
                     E_WorkStation.工位1拉料工站.ToString()
-                }),
-                new WorkstationMemoryGroup("工位二", new[]
-                {
+                ]),
+                new ("工位二",
+                [
                     E_WorkStation.工位2上下料工站.ToString(),
                     E_WorkStation.工位2拉料工站.ToString()
-                }),
+                ]),
             };
             foreach (var item in StationMemoryItems)
                 item.PropertyChanged += OnStationMemoryItemChanged;
@@ -609,7 +611,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     catch { }
                 };
             }
-            RefreshAllAsync();
+            _ = RefreshAllAsync();
 
             // 状态轮询定时器
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
@@ -1011,6 +1013,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>MES 身份验证（预留接口，暂时返回 true）</summary>
         private Task<bool> VerifyWithMesAsync(string username, string password)
         {
+            if (string.IsNullOrEmpty(username)) { }
+            if (string.IsNullOrEmpty(password)) { }
             // TODO: 对接 MES 身份验证接口
             return Task.FromResult(true);
         }
@@ -1046,15 +1050,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     }
 
     /// <summary>工位复合清除记忆选项：选中时同步清除该工位下所有子工站的记忆。</summary>
-    public class WorkstationMemoryGroup : INotifyPropertyChanged
+    /// <remarks>Initializes a new instance.</remarks>
+    public class WorkstationMemoryGroup(string displayName, string[] stationNames) : INotifyPropertyChanged
     {
         private bool _isChecked;
 
         /// <summary>界面显示名称（如"工位一"）</summary>
-        public string DisplayName { get; }
+        public string DisplayName { get; } = displayName;
 
         /// <summary>需要清除记忆的工站名称列表（对应 StationBase.StationName）</summary>
-        public string[] StationNames { get; }
+        public string[] StationNames { get; } = stationNames;
 
         /// <summary>是否勾选清除</summary>
         public bool IsChecked
@@ -1068,12 +1073,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
+        /// <inheritdoc/>
         public event PropertyChangedEventHandler? PropertyChanged;
-
-        public WorkstationMemoryGroup(string displayName, string[] stationNames)
-        {
-            DisplayName = displayName;
-            StationNames = stationNames;
-        }
     }
 }

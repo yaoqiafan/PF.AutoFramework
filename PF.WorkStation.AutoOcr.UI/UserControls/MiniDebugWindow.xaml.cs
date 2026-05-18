@@ -6,10 +6,13 @@ using System.Windows.Media;
 
 namespace PF.WorkStation.AutoOcr.UI.UserControls
 {
+    /// <summary>Interaction logic for MiniDebugWindow.xaml</summary>
     public partial class MiniDebugWindow : Window
     {
+        /// <summary>窗口关闭时执行的回调，用于恢复主窗口可见性。</summary>
         public Action? OnClosed { get; set; }
 
+        /// <summary>Initializes a new instance.</summary>
         public MiniDebugWindow()
         {
             InitializeComponent();

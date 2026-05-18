@@ -9,7 +9,19 @@
       "PowerShell(\\(Get-Content \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\README.md\" | Measure-Object -Line\\).Lines)",
       "Bash(Get-ChildItem -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\" -Recurse -Directory)",
       "Bash(Select-Object FullName)",
-      "PowerShell(head *)"
+      "PowerShell(head *)",
+      "Bash(Remove-Item \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Setup.iss\" -Force)",
+      "Bash(Remove-Item \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\build-installer.bat\" -Force)",
+      "Bash(Write-Output \"Deleted root-level Setup.iss and build-installer.bat\")",
+      "Bash(curl -fsSL \"https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseSimplified.isl\" -o \"D:/VSprojects/Work/PF/PF.AutoFramework/Installer/Languages/ChineseSimplified.isl\")",
+      "Bash(dotnet build *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -oE \"\\\\\\\\\\\\\\\\[A-Za-z.]+\\\\\\\\.cs\")",
+      "Bash(grep -oE \"[A-Za-z.]+\\\\\\\\.\\(cs|csproj\\)\")",
+      "Bash(grep -oE \"[A-Za-z.\\\\\\\\]+\\\\.cs\\\\\\([0-9]+\")",
+      "Bash(grep -v \"//\\\\|\\\\.csproj\\\\|obj\\\\\\\\\")",
+      "Bash(grep -v \"//\")",
+      "Bash(grep -v \"//.*new List\")"
     ]
   }
 }

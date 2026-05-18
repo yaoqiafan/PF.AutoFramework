@@ -1370,6 +1370,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         /// <param name="open">true=关闭凸片检测（调试期屏蔽），false=打开（恢复正常）。
         /// ⚠️ 命名与含义反向：参数 open=true 实际是"屏蔽/关闭"检测，建议后续重构改名。</param>
+        /// <param name="token">用于取消异步操作的令牌。</param>
         private async Task<MechResult> FeedingSetThrustWasherAsync(bool open, CancellationToken token)
         {
             if (CurrentStation == E_WorkSpace.工位1)

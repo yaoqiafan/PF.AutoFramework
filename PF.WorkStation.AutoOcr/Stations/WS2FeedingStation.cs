@@ -250,9 +250,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 构造
         /// </summary>
-        /// <param name="containerProvider"></param>
-        /// <param name="sync"></param>
-        /// <param name="logger"></param>
+        /// <param name="containerProvider">DI 容器，用于延迟解析机构与服务依赖。</param>
+        /// <param name="sync">跨工站信号量同步服务。</param>
+        /// <param name="logger">日志服务。</param>
+        /// <param name="towerLight">三色灯控制服务，用于指示工站运行状态。</param>
+        /// <param name="eventAggregator">Prism 事件聚合器，用于发布/订阅跨模块事件。</param>
         public WS2FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger,
             ITowerLightService towerLight, IEventAggregator eventAggregator)
             // 调用带 TStep 泛型的基类构造函数，并传入初始步序

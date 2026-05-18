@@ -250,9 +250,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 构造
         /// </summary>
-        /// <param name="containerProvider"></param>
-        /// <param name="sync"></param>
-        /// <param name="logger"></param>
+        /// <param name="containerProvider">DI 容器，用于延迟解析机构与服务依赖。</param>
+        /// <param name="sync">跨工站信号量同步服务。</param>
+        /// <param name="logger">日志服务。</param>
+        /// <param name="towerLight">三色灯控制服务，用于指示工站运行状态。</param>
+        /// <param name="eventAggregator">Prism 事件聚合器，用于发布/订阅跨模块事件。</param>
         public WS1FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger,
             ITowerLightService towerLight, IEventAggregator eventAggregator)
             // 调用带 TStep 泛型的基类构造函数，并传入初始步序
@@ -351,7 +353,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 try
                 {
                     _cachedRecipe = _dataModule.Station1ReciepParam;
-                    if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize))
+                    if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token))
                     {
                         throw new Exception("物料状态切换失败");
                     }
@@ -556,7 +558,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// </summary>
         private void RestoreStateFromMemory()
         {
-            _layersToProcess = new List<int>(MemoryParam.LayersToProcess);
+            _layersToProcess = [.. MemoryParam.LayersToProcess];
             _currentLayerIndex = MemoryParam.CurrentLayerIndex;
             _totalLayerCount = MemoryParam.TotalLayerCount;
             _detectedWaferSize = MemoryParam.DetectedWaferSize;
@@ -717,7 +719,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 等待批次切换期间允许操作员开门操作，禁用安全门检测
                             _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
 
-                            await Task.Delay(500);
+                            await Task.Delay(500, token);
                             // 阻塞等待外部信号触发
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1启动按钮按下), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
 
@@ -916,7 +918,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                     _logger.Info($"[{StationName}] 过滤完成，共处理 {_totalLayerCount} 层。");
                                     MemoryParam.IsInProgress = true;
                                     MemoryParam.CurrentLayerIndex = 0;
-                                    MemoryParam.LayersToProcess = new List<int>(_layersToProcess);
+                                    MemoryParam.LayersToProcess = [.. _layersToProcess];
                                     MemoryParam.TotalLayerCount = _totalLayerCount;
                                     MemoryParam.DetectedWaferSize = _detectedWaferSize;
                                     MemoryParam.PersistedStep = (int)Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
@@ -994,7 +996,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                             if (await _feedingModule.SetThrustWasherAsync(true, token))
                             {
-                                await Task.Delay(500);
+                                await Task.Delay(500, token);
                                 // 等待拉料工站反馈 Y 轴已拉出至安全位
                                 await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
@@ -1017,7 +1019,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "阻塞等待物料回退完成...";
                             if (await _feedingModule.SetThrustWasherAsync(true, token))
                             {
-                                await Task.Delay(500);
+                                await Task.Delay(500, token);
                                 // 等待拉料工站反馈 Y 轴已拉出至安全位
                                 // 等待拉料工站反馈 Y 轴已完全退回
                                 await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);

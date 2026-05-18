@@ -60,10 +60,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>工位2人工下料完成</summary>
         工位2人工下料完成,
         /***********复位完成标志*********/
+        /// <summary>检测模组已完成复位动作</summary>
         检测模组复位完成,
-
+        /// <summary>工位1推拉模组已完成复位动作</summary>
         工位1拉料复位完成,
-
+        /// <summary>工位2推拉模组已完成复位动作</summary>
         工位2拉料复位完成,
 
     }
@@ -100,7 +101,9 @@ namespace PF.WorkStation.AutoOcr.Stations
             E_Params.WorkStation2_Muted.ToString(),
         };
 
+        /// <inheritdoc/>
         public override bool IsReinitializationRequired => _isReinitializationRequired;
+        /// <inheritdoc/>
         public override event EventHandler? ReinitializationRequired;
 
         #endregion

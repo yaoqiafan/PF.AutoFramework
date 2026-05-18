@@ -252,6 +252,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
         private string CamProgramBackUpFilePath => $"{Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments))}\\KEYENCE\\VS";
 
+        /// <inheritdoc/>
         public override string CurProgrammer => _curProgrammer;
 
 

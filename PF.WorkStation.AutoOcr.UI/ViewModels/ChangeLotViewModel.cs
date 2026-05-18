@@ -22,6 +22,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #region 参数
 
         private string _userid = "";
+        /// <summary>当前操作员工号，由操作员在对话框中填写。</summary>
         public string UserId
         {
             get => _userid;
@@ -29,6 +30,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private string _lotid = "";
+        /// <summary>本批次工单号，由操作员在对话框中填写。</summary>
         public string LotId
         {
             get => _lotid;
@@ -91,6 +93,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 构造函数
 
+        /// <summary>Initializes a new instance.</summary>
         public ChangeLotViewModel(IUserService userService, IRecipeService<OCRRecipeParam> recipeService)
         {
             _userService = userService;
@@ -106,6 +109,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region Dialog 生命周期
 
+        /// <inheritdoc/>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             if (parameters.TryGetValue("InitialLayerMode", out E_LayerProcessMode mode))
@@ -116,6 +120,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     item.IsSelected = layers.Contains(item.LayerIndex);
         }
 
+        /// <inheritdoc/>
         public override void OnDialogClosed()
         {
         }
@@ -155,6 +160,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public int DisplayIndex => LayerIndex + 1;
 
         private bool _isSelected;
+        /// <summary>该层是否被勾选纳入本批处理。</summary>
         public bool IsSelected
         {
             get => _isSelected;
@@ -166,6 +172,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
+        /// <inheritdoc/>
         public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

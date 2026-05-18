@@ -44,6 +44,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
         /// </summary>
         public abstract int TimeOutMs { get; }
 
+        /// <summary>当前相机已加载的程式名称。</summary>
         public abstract string CurProgrammer { get; }
 
         /// <summary>

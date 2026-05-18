@@ -431,7 +431,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #region Safety Interlocks (安全互锁守卫)
 
-        /**********判断轨道上是否有晶圆************/
+        /// <summary>检测工位2轨道上是否存在晶圆。</summary>
         public async Task<bool> IsTrackProExist(CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口取消检查
