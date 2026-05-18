@@ -47,8 +47,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 5. 扫码校验：调用 <see cref="CodeScanTigger(CancellationToken)"/> 触发光源与扫码枪验证载具信息。
     /// 6. 送回晶圆：调用 <see cref="FeedingMaterialToBox(CancellationToken)"/>，同样带有并发防呆监控，防止推入时撞片。
     /// </remarks>
+    /// <remarks>
+    /// 初始化工位1推拉晶圆模组
+    /// </remarks>
     [MechanismUI("工位1推拉晶圆模组", "WorkStation1MaterialPullingModuleDebugView", 2)]
-    public class WS1MaterialPullingModule : BaseMechanism
+    public class WS1MaterialPullingModule(
+        IHardwareManagerService hardwareManagerService,
+        IParamService paramService,
+        IContainerProvider provider,
+        ILogService logger) : BaseMechanism(E_Mechanisms.工位1推拉晶圆模组.ToString(), hardwareManagerService, paramService, logger)
     {
         #region Enums (轴点枚举定义)
 
@@ -81,7 +88,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         // ── 业务状态模块 ──
         private WSDataModule? _dataModule; // 数据处理中心，用于校验扫码结果的合法性
-        private IContainerProvider Provider;        // DI 容器，用于手动解析依赖
+        private readonly IContainerProvider Provider = provider;        // DI 容器，用于手动解析依赖
 
         /// <summary>
         /// 当前生产的晶圆尺寸，影响气动变轨与夹爪的尺寸切换逻辑
@@ -99,21 +106,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public ILightController LightController => _lightController;
 
         #endregion
-
         #region Constructor & Lifecycle (构造与生命周期)
-
-        /// <summary>
-        /// 初始化工位1推拉晶圆模组
-        /// </summary>
-        public WS1MaterialPullingModule(
-            IHardwareManagerService hardwareManagerService,
-            IParamService paramService,
-            IContainerProvider provider,
-            ILogService logger)
-            : base(E_Mechanisms.工位1推拉晶圆模组.ToString(), hardwareManagerService, paramService, logger)
-        {
-            Provider = provider;
-        }
 
         /// <summary>
         /// 模组初始化核心逻辑：延迟解析硬件 → 注册报警聚合 → 建立通讯并使能
@@ -166,7 +159,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             token.ThrowIfCancellationRequested(); // 【新增】连接完成后检查
 
             // ④ 伺服上电使能
-            if (!await _yAxis.EnableAsync()) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
+            if (!await _yAxis.EnableAsync(token)) { _logger.Error($"[{MechanismName}] Y轴使能失败"); return false; }
 
             // ⑤ 获取数据校验模块
             _dataModule = Provider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
@@ -203,7 +196,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             CheckReady();
             _logger.Info($"[{MechanismName}] 初始化晶圆拉料流程...");
 
-            if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.待机位置)) }, token: token))
+            if (await MoveMultiAxesToPointsAsync([(_yAxis, nameof(YAxisPoint.待机位置))], token: token))
             {
                 token.ThrowIfCancellationRequested(); // 【新增】运动完毕检查
                 _logger.Info($"[{MechanismName}] 所有轴已到达待机位置，初始化拉料流程完成。");
@@ -385,7 +378,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         public async Task<bool?> CheckGipperIsExist(CancellationToken token = default)
         {
-
+            token.ThrowIfCancellationRequested(); // 【新增】入口检查
             bool? res2 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
             if (!res2.HasValue)
             {
@@ -412,7 +405,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左闭合, false)) return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperOpenCylinderFailed, $"操作输出信号 {E_OutPutName.夹爪气缸左闭合} 失败");
                 if (!_io.WriteOutput((int)E_OutPutName.夹爪气缸左张开, true)) return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperOpenCylinderFailed, $"操作输出信号 {E_OutPutName.夹爪气缸左张开} 失败");
-                await Task.Delay(1000);
+                await Task.Delay(1000, token);
                 while (true)
                 {
                     linktoken.ThrowIfCancellationRequested(); // 【新增】循环内取消嗅探
@@ -500,6 +493,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <returns></returns>
         public async Task <MechResult > DetermineCurLayyerIsExits(CancellationToken token =default )
         {
+            token.ThrowIfCancellationRequested(); // 【新增】入口检查
             bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
             if (!res1.HasValue)
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.GripperCloseNoRing, "铁环检测传感器读取失败");
@@ -549,7 +543,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 CheckReady();
                 _logger.Info($"[{MechanismName}] Y 轴移动到待机位 (无检测)");
 
-                if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.待机位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
+                if (await MoveMultiAxesToPointsAsync([(_yAxis, nameof(YAxisPoint.待机位置))], await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     return MechResult.Success();
                 }
@@ -619,7 +613,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 CheckReady();
                 _logger.Info($"[{MechanismName}] 移动到待机位并执行余料防呆检查");
 
-                if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.待机位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
+                if (await MoveMultiAxesToPointsAsync([(_yAxis, nameof(YAxisPoint.待机位置))], await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
                     if (!res1.HasValue) return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.MoveInitialResidualMaterial, $"获取输入信号 {E_InPutName.晶圆夹爪左铁环有无检测} 失败");
@@ -654,7 +648,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 CheckReady();
                 _logger.Info($"[{MechanismName}] 卸料后退回取出安全位...");
 
-                if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.取出安全位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
+                if (await MoveMultiAxesToPointsAsync([(_yAxis, nameof(YAxisPoint.取出安全位置))], await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     bool? res1 = _io.ReadInput((int)E_InPutName.晶圆夹爪左铁环有无检测);
                     if (!res1.HasValue) return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PutOverMaterialStuck, $"获取输入信号 {E_InPutName.晶圆夹爪左铁环有无检测} 失败");
@@ -690,7 +684,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 var openResult = await OpenWafeGipper(token);
                 if (!openResult.IsSuccess) return openResult;
 
-                if (await MoveMultiAxesToPointsAsync(new[] { (_yAxis, nameof(YAxisPoint.晶圆取料位置)) }, await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
+                if (await MoveMultiAxesToPointsAsync([(_yAxis, nameof(YAxisPoint.晶圆取料位置))], await ParamService.GetParamAsync<int>(E_Params.AxisMoveTimeout.ToString()), token: token))
                 {
                     return MechResult.Success();
                 }
@@ -768,7 +762,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 if (finishedTask.IsFaulted)
                 {
-                    await _yAxis.StopAsync();
+                    await _yAxis.StopAsync(token);
                     _logger.Warn(finishedTask.Exception?.InnerException?.Message ?? "状态检测任务发生未知异常");
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, "状态检测任务发生异常");
                 }
@@ -776,12 +770,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 // 正常完成的防呆判定
                 if (finishedTask == taskA)
                 {
-                    await _yAxis.StopAsync();
+                    await _yAxis.StopAsync(token);
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutJamAlarm, "拉出过程中触发【卡料报警】，已紧急停止");
                 }
                 if (finishedTask == taskB)
                 {
-                    await _yAxis.StopAsync();
+                    await _yAxis.StopAsync(token);
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutDropAlarm, "拉出过程中触发【丢料报警】，已紧急停止");
                 }
 
@@ -790,7 +784,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (OperationCanceledException)
             {
-                await _yAxis.StopAsync();
+                await _yAxis.StopAsync(token);
 
                 // 【精简点 2】统一异常路由：判断取消源头
                 if (timeoutcts.IsCancellationRequested)
@@ -804,7 +798,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
-                await _yAxis.StopAsync();
+                await _yAxis.StopAsync(token);
                 _logger.Warn(ex.Message);
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PullOutTriggerFailed, ex.Message);
             }
@@ -864,19 +858,19 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 if (finishedTask.IsFaulted)
                 {
-                    await _yAxis.StopAsync();
+                    await _yAxis.StopAsync(token);
                     _logger.Warn(finishedTask.Exception?.InnerException?.Message ?? "状态检测任务发生未知异常");
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PushBackTriggerFailed, "状态检测任务发生异常");
                 }
 
                 if (finishedTask == taskA)
                 {
-                    await _yAxis.StopAsync();
+                    await _yAxis.StopAsync(token);
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PushBackJamAlarm, "送回过程中触发【卡料报警】，已紧急刹停");
                 }
                 if (finishedTask == taskB)
                 {
-                    await _yAxis.StopAsync();
+                    await _yAxis.StopAsync(token);
                     return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PushBackDropAlarm, "送回过程中触发【丢料报警】，已紧急刹停");
                 }
 
@@ -884,7 +878,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (OperationCanceledException)
             {
-                await _yAxis.StopAsync();
+                await _yAxis.StopAsync(token);
 
                 // 【精简点 2】统一路由
                 if (timeoutcts.IsCancellationRequested)
@@ -897,7 +891,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
-                await _yAxis.StopAsync();
+                await _yAxis.StopAsync(token);
                 _logger.Warn(ex.Message);
                 return MechResult.Fail(AlarmCodesExtensions.WS1Pulling.PushBackTriggerFailed, ex.Message);
             }
@@ -927,16 +921,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     }
                     else
                     {
-                        var flag = await _dataModule.CheckCodeAsync(E_WorkSpace.工位1, str.Split('&').ToList(), token);
+                        var flag = await _dataModule.CheckCodeAsync(E_WorkSpace.工位1, [.. str.Split('&')], token);
                         if (flag.IsSuccess)
                         {
                             _logger.Info($"[{MechanismName}] 扫码结果校验通过: {str}");
-                            return MechResult<List<string>>.Success(str.Split('&').ToList());
+                            return MechResult<List<string>>.Success([.. str.Split('&')]);
                         }
                         else
                         {
                             _logger.Warn($"[{MechanismName}] 扫码内容校验不合法 (拦截): {str}");
-                            if (i == 2) return MechResult<List<string>>.Success(str.Split('&').ToList());
+                            if (i == 2) return MechResult<List<string>>.Success([.. str.Split('&')]);
                         }
                     }
                 }

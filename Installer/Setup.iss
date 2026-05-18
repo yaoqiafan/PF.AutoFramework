@@ -166,6 +166,10 @@ Source: "publish\SecsGemService\*"; \
   DestDir: "{app}\SecsGemService"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 
+Source: "..\DLL\*"; \
+  DestDir: "{app}"; \
+  Flags: ignoreversion
+
 [Icons]
 Name: "{group}\{#AppName}";           Filename: "{app}\{#AppExeName}"
 Name: "{group}\卸载 {#AppName}";       Filename: "{uninstallexe}"

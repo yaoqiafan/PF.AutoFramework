@@ -588,7 +588,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 【核心校验】每一轮步序流转前，强制校验取消状态，确保流程即时停止
                     token.ThrowIfCancellationRequested();
-                    await Task.Delay(250);
+                    await Task.Delay(250, token);
                     if (await _paramService.GetParamAsync<bool>(E_Params.WorkStation2_Muted.ToString(), false))
                     {
                         await Task.Delay(1000, token);

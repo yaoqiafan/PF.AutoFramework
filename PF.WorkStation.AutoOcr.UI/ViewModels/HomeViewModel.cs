@@ -368,7 +368,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 数据集合
 
-        private ObservableCollection<WaferSlotInfo> _station1SlotStatesDisplay = new();
+        private ObservableCollection<WaferSlotInfo> _station1SlotStatesDisplay = [];
         /// <summary>工位1晶圆盒槽位状态（倒序：索引12在顶，索引0在底）</summary>
         public ObservableCollection<WaferSlotInfo> Station1SlotStatesDisplay
         {
@@ -376,7 +376,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             private set => SetProperty(ref _station1SlotStatesDisplay, value);
         }
 
-        private ObservableCollection<WaferSlotInfo> _station2SlotStatesDisplay = new();
+        private ObservableCollection<WaferSlotInfo> _station2SlotStatesDisplay = [];
         /// <summary>工位2晶圆盒槽位状态（倒序：索引12在顶，索引0在底）</summary>
         public ObservableCollection<WaferSlotInfo> Station2SlotStatesDisplay
         {
@@ -513,8 +513,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             // 同步控制器当前重初始化标记（应用启动时可能已有残留状态）
             NeedsReinitialize = _controller.IsReinitializationRequired;
 
-            StationMemoryItems = new ObservableCollection<WorkstationMemoryGroup>
-            {
+            StationMemoryItems =
+            [
                 new("工位一",
                 [
                     E_WorkStation.工位1上下料工站.ToString(),
@@ -525,7 +525,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     E_WorkStation.工位2上下料工站.ToString(),
                     E_WorkStation.工位2拉料工站.ToString()
                 ]),
-            };
+            ];
             foreach (var item in StationMemoryItems)
                 item.PropertyChanged += OnStationMemoryItemChanged;
 
@@ -700,7 +700,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var initParams = new DialogParameters
             {
                 { "InitialLayerMode",       _dataModule?.GetLayerMode(E_WorkSpace.工位1) ?? E_LayerProcessMode.全做 },
-                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位1) ?? new System.Collections.Generic.List<int>() }
+                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位1) ?? [] }
             };
             DialogService.ShowDialog(nameof(ChangeLotView), initParams, OnDialogCallbackStation1);
         }
@@ -710,7 +710,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var initParams = new DialogParameters
             {
                 { "InitialLayerMode",       _dataModule?.GetLayerMode(E_WorkSpace.工位2) ?? E_LayerProcessMode.全做 },
-                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位2) ?? new System.Collections.Generic.List<int>() }
+                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位2) ?? [] }
             };
             DialogService.ShowDialog(nameof(ChangeLotView), initParams, OnDialogCallbackStation2);
         }
@@ -745,7 +745,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     var layerMode1 = param.ContainsKey("LayerMode")
                         ? param.GetValue<E_LayerProcessMode>("LayerMode") : E_LayerProcessMode.全做;
                     var specifiedLayers1 = param.ContainsKey("SpecifiedLayers")
-                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : new System.Collections.Generic.List<int>();
+                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : [];
                     _dataModule?.SetLayerMode(E_WorkSpace.工位1, layerMode1, specifiedLayers1);
 
                     if (_userService.IsAuthorized(UserLevel.SuperUser)
@@ -812,7 +812,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     var layerMode2 = param.ContainsKey("LayerMode")
                         ? param.GetValue<E_LayerProcessMode>("LayerMode") : E_LayerProcessMode.全做;
                     var specifiedLayers2 = param.ContainsKey("SpecifiedLayers")
-                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : new System.Collections.Generic.List<int>();
+                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : [];
                     _dataModule?.SetLayerMode(E_WorkSpace.工位2, layerMode2, specifiedLayers2);
 
                     if (_userService.IsAuthorized(UserLevel.SuperUser)
@@ -1011,7 +1011,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>MES 身份验证（预留接口，暂时返回 true）</summary>
-        private Task<bool> VerifyWithMesAsync(string username, string password)
+        private static Task<bool> VerifyWithMesAsync(string username, string password)
         {
             if (string.IsNullOrEmpty(username)) { }
             if (string.IsNullOrEmpty(password)) { }
