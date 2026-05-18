@@ -201,7 +201,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 待处理的层索引集合，记录还需要进行上下料作业的层。
         /// </summary>
-        public List<int> LayersToProcess { get; set; } = new();
+        public List<int> LayersToProcess { get; set; } = [];
 
         /// <summary>
         /// 当前料盒/花篮（Cassette/Magazine）的总层数。
@@ -239,9 +239,9 @@ namespace PF.WorkStation.AutoOcr.Stations
         // ── 跨步序流转的缓存字段 ──
         private OCRRecipeParam? _cachedRecipe;
         private E_WafeSize _detectedWaferSize;
-        private Dictionary<int, List<double>> _rawMappingData = new();
+        private Dictionary<int, List<double>> _rawMappingData = [];
         private int _totalLayerCount;
-        private List<int> _layersToProcess = new();
+        private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
 
         #endregion
@@ -299,8 +299,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.Z轴扫描寻层:
                     case Station1FeedingStep.算法过滤层数:
                         _logger.Info($"[{StationName}] 重新初始化寻层状态");
-                        _rawMappingData = new();
-                        _layersToProcess = new();
+                        _rawMappingData = [];
+                        _layersToProcess = [];
                         _currentLayerIndex = 0;
                         break;
 
@@ -562,7 +562,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             _currentLayerIndex = MemoryParam.CurrentLayerIndex;
             _totalLayerCount = MemoryParam.TotalLayerCount;
             _detectedWaferSize = MemoryParam.DetectedWaferSize;
-            _rawMappingData = new(); // 扫描数据已用于验证，此处清空
+            _rawMappingData = []; // 扫描数据已用于验证，此处清空
         }
 
         /// <summary>
@@ -1065,7 +1065,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_结束;
                             MemoryParam.IsInProgress = false;
                             MemoryParam.CurrentLayerIndex = 0;
-                            MemoryParam.LayersToProcess = new();
+                            MemoryParam.LayersToProcess = [];
                             MemoryParam.TotalLayerCount = 0;
                             MemoryParam.PersistedStep = (int)Station1FeedingStep.等待按下工位1启动按钮;
                             FlushMemory();
@@ -1137,7 +1137,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station1FeedingStep.生产完毕:
                             CurrentStepDescription = "本批次生产完毕，清理缓存数据...";
                             _cachedRecipe = null;
-                            _layersToProcess = new();
+                            _layersToProcess = [];
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
 

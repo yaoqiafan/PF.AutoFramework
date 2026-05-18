@@ -14,10 +14,13 @@ namespace PF.Infrastructure.Mechanisms
     /// <summary>
     /// 模组基类，封装硬件设备管理、报警聚合、运动控制等通用逻辑
     /// </summary>
-    public abstract class BaseMechanism : IMechanism, IDisposable
+    /// <remarks>
+    /// 构造模组
+    /// </remarks>
+    public abstract class BaseMechanism(string name, IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger) : IMechanism, IDisposable
     {
         /// <summary>日志记录器</summary>
-        protected readonly ILogService _logger;
+        protected readonly ILogService _logger = logger;
 
         /// <summary>
         /// 硬件分类日志记录器（自动包装 <see cref="_logger"/> 为 Hardware 分类）。
@@ -26,16 +29,16 @@ namespace PF.Infrastructure.Mechanisms
         protected CategoryLogger HardwareLogger =>
             _hardwareLogger ??= CategoryLoggerFactory.Hardware(_logger);
         private CategoryLogger _hardwareLogger;
-        private readonly List<IHardwareDevice> _internalHardwares = new List<IHardwareDevice>();
+        private readonly List<IHardwareDevice> _internalHardwares = [];
         /// <summary>获取硬件管理服务</summary>
-        protected IHardwareManagerService HardwareManagerService { get; }
+        protected IHardwareManagerService HardwareManagerService { get; } = hardwareManagerService;
 
         /// <summary>获取参数服务</summary>
-        protected IParamService ParamService { get; }
+        protected IParamService ParamService { get; } = paramService;
         /// <summary>
         /// 模组名称
         /// </summary>
-        public string MechanismName { get; }
+        public string MechanismName { get; } = name;
         /// <summary>
         /// 是否已初始化
         /// </summary>
@@ -63,18 +66,6 @@ namespace PF.Infrastructure.Mechanisms
         /// 模组报警自动清除事件
         /// </summary>
         public event EventHandler AlarmAutoCleared;
-
-        // 构造函数：删除了 IEventAggregator
-        /// <summary>
-        /// 构造模组
-        /// </summary>
-        protected BaseMechanism(string name, IHardwareManagerService hardwareManagerService, IParamService paramService, ILogService logger)
-        {
-            MechanismName = name;
-            _logger = logger;
-            HardwareManagerService = hardwareManagerService;
-            ParamService = paramService;
-        }
 
         /// <summary>
         /// 拦截底层硬件自恢复事件：当所有内部硬件均清警后，清除模组报警并向上传递清警信号。
@@ -281,7 +272,7 @@ namespace PF.Infrastructure.Mechanisms
             ArgumentNullException.ThrowIfNull(axis);
 
             // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
-            if ((axis as IHardwareDevice)?.IsSimulated == true)
+            if (axis is IHardwareDevice { IsSimulated: true })
                 return true;
 
             var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
@@ -402,7 +393,7 @@ namespace PF.Infrastructure.Mechanisms
             if (axis == null) return false;
 
             // 模拟模式：MoveXxxAsync 内部已做 Task.Delay，直接视为完成
-            if ((axis as IHardwareDevice)?.IsSimulated == true)
+            if (axis is IHardwareDevice { IsSimulated: true })
                 return true;
             var axisName = (axis as IHardwareDevice)?.DeviceName ?? "未知轴";
 
@@ -581,13 +572,13 @@ namespace PF.Infrastructure.Mechanisms
         /// <summary>
         /// 校验并补齐指定轴的点位
         /// </summary>
-        public void EnsurePointsExist<TEnum>(IAxis axis) where TEnum : struct, Enum
+        public static  void EnsurePointsExist<TEnum>(IAxis axis) where TEnum : struct, Enum
         {
             bool isModified = false;
 
             // 1. 将当前轴已有的点位名称提取成 HashSet，查询速度 O(1)
             // 假设你的 AxisPoint 实体类中包含了 Name 属性 (通常点表都会有名字)
-            HashSet<string> existingPointNames = new HashSet<string>(axis.PointTable.Select(p => p.Name));
+            HashSet<string> existingPointNames = [.. axis.PointTable.Select(p => p.Name)];
             int index = 0;
             // 2. 遍历枚举中的所有定义
             foreach (TEnum enumValue in Enum.GetValues(typeof(TEnum)))
@@ -598,7 +589,7 @@ namespace PF.Infrastructure.Mechanisms
                 if (!existingPointNames.Contains(expectedPointName))
                 {
 
-                    AxisPoint newPoint = new AxisPoint
+                    AxisPoint newPoint = new()
                     {
                         Name = expectedPointName,
                         SortOrder = index++,
