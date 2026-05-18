@@ -40,6 +40,8 @@ namespace PF.Core.Interfaces.Timer
         /// 每天在指定时刻执行一次。
         /// </summary>
         /// <param name="key">调度唯一标识，用于持久化末次执行时间，建议格式：daily_HH:mm_描述。同一 key 跨重启可恢复状态。</param>
+        /// <param name="timeOfDay">每天触发的时刻（相对于当天零点的偏移量）。</param>
+        /// <param name="callback">到达指定时刻时执行的回调方法。</param>
         /// <param name="catchUpOnStart">
         /// true：启动时若发现当天该时刻已过且未执行，立即补跑一次。<br/>
         /// false：错过则等待下一天，不补跑。
@@ -50,6 +52,9 @@ namespace PF.Core.Interfaces.Timer
         /// 每周在指定星期+时刻执行一次。
         /// </summary>
         /// <param name="key">调度唯一标识，建议格式：weekly_星期_HH:mm_描述。</param>
+        /// <param name="dayOfWeek">每周触发的星期几。</param>
+        /// <param name="timeOfDay">触发当天的具体时刻（相对于零点的偏移量）。</param>
+        /// <param name="callback">到达指定时刻时执行的回调方法。</param>
         /// <param name="catchUpOnStart">true：启动时若本周应执行时刻已过且未执行，立即补跑一次。</param>
         IDisposable RegisterWeeklyAt(string key, DayOfWeek dayOfWeek, TimeSpan timeOfDay, Action callback, bool catchUpOnStart = false);
 
@@ -57,10 +62,15 @@ namespace PF.Core.Interfaces.Timer
         /// 每月在指定日+时刻执行一次。若当月不存在该日（如 2 月 31 日），则跳过该月。
         /// </summary>
         /// <param name="key">调度唯一标识，建议格式：monthly_DD_HH:mm_描述。</param>
+        /// <param name="dayOfMonth">每月触发的日（1-31），若当月不存在则跳过。</param>
+        /// <param name="timeOfDay">触发当天的具体时刻（相对于零点的偏移量）。</param>
+        /// <param name="callback">到达指定时刻时执行的回调方法。</param>
         /// <param name="catchUpOnStart">true：启动时若本月应执行时刻已过且未执行，立即补跑一次。</param>
         IDisposable RegisterMonthlyAt(string key, int dayOfMonth, TimeSpan timeOfDay, Action callback, bool catchUpOnStart = false);
 
+        /// <summary>启动定时服务，开始计时与调度。</summary>
         void Start();
+        /// <summary>停止定时服务，暂停所有计时与调度。</summary>
         void Stop();
     }
 }

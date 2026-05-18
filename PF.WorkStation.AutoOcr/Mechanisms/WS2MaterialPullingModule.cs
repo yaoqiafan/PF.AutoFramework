@@ -42,7 +42,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// 1. 轨道与夹爪预处理：调用 <see cref="ChangeWafeSizeControl(E_WafeSize, CancellationToken)"/> 自动切换当前气缸与轨道的宽窄尺寸。
     /// 2. 取料前置定位：调用 <see cref="InitialMoveFeeding(CancellationToken)"/> 张开夹爪并深入料盒。
     /// 3. 执行夹取：调用 <see cref="CloseWafeGipper(CancellationToken)"/> 闭合气缸夹紧铁环。
-    /// 4. 并发拉出与检测：调用核心方法 <see cref="MoveDetection(CancellationToken)"/>。该步骤会在 Y 轴退出的同时，
+    /// 4. 并发拉出与检测：调用核心方法 <see cref="MoveDetection(E_WafeSize, CancellationToken)"/>。该步骤会在 Y 轴退出的同时，
     ///    开启高频后台线程监控夹爪传感器。一旦发现"阻力过大(卡料)"或"铁环丢失(丢料)"，Y 轴将瞬间刹停。
     /// 5. 扫码校验：调用 <see cref="CodeScanTigger(CancellationToken)"/> 触发光源与扫码枪验证载具信息。
     /// 6. 送回晶圆：调用 <see cref="FeedingMaterialToBox(CancellationToken)"/>，同样带有并发防呆监控，防止推入时撞片。
@@ -809,7 +809,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>
         /// 核心动作：将检测完成的晶圆推回料盒位。
-        /// <para>采用与 <see cref="MoveDetection(CancellationToken)"/> 相同的并发硬件防呆模型。</para>
+        /// <para>采用与 <see cref="MoveDetection(E_WafeSize, CancellationToken)"/> 相同的并发硬件防呆模型。</para>
         /// </summary>
         public async Task<MechResult> FeedingMaterialToBox(CancellationToken token)
         {

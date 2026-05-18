@@ -245,14 +245,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 RootNode = new SecsGemNodeMessage()
                 {
                     DataType = DataType.LIST,
-                    Length = 2
+                    Length = 2,
+                    SubNode =
+                    {
+                        new SecsGemNodeMessage(DataType.ASCII, "T-E243-0010"),
+                        new SecsGemNodeMessage(DataType.ASCII, "V1.0.1")
+                    }
                 }
             };
-
-            SecsGemNodeMessage node1 = new SecsGemNodeMessage(DataType.ASCII, "T-E243-0010");
-            SecsGemNodeMessage node2 = new SecsGemNodeMessage(DataType.ASCII, "V1.0.1");
-            send.RootNode.SubNode.Add(node1);
-            send.RootNode.SubNode.Add(node2);
             send.IsIncoming = false;
 
             _secsGemlog.Info($"发送 SecsGem 消息: {send}");
