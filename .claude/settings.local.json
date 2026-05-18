@@ -21,7 +21,8 @@
       "Bash(grep -oE \"[A-Za-z.\\\\\\\\]+\\\\.cs\\\\\\([0-9]+\")",
       "Bash(grep -v \"//\\\\|\\\\.csproj\\\\|obj\\\\\\\\\")",
       "Bash(grep -v \"//\")",
-      "Bash(grep -v \"//.*new List\")"
+      "Bash(grep -v \"//.*new List\")",
+      "Bash(xargs grep -l \"ParseSecsBytes\\\\|ParseMessage\")"
     ]
   }
 }

@@ -146,10 +146,13 @@ namespace PF.Services.Logging
                     Directory.CreateDirectory(basePath);
                 }
 
-                // 为每个分类创建子目录
+                // 为每个分类创建子目录（优先使用 BasePathOverride）
                 foreach (var category in _configuration.GetFileLogCategories())
                 {
-                    var categoryPath = Path.Combine(basePath, category);
+                    var cfg = _configuration.GetCategoryConfig(category);
+                    var categoryPath = !string.IsNullOrEmpty(cfg.BasePathOverride)
+                        ? GetAbsolutePath(cfg.BasePathOverride)
+                        : Path.Combine(basePath, category);
                     if (!Directory.Exists(categoryPath))
                     {
                         Directory.CreateDirectory(categoryPath);
@@ -235,8 +238,9 @@ namespace PF.Services.Logging
                     return;
                 }
 
-                var basePath = GetAbsolutePath(_configuration.BasePath);
-                var categoryPath = Path.Combine(basePath, category);
+                var categoryPath = !string.IsNullOrEmpty(config.BasePathOverride)
+                    ? GetAbsolutePath(config.BasePathOverride)
+                    : Path.Combine(GetAbsolutePath(_configuration.BasePath), category);
 
                 if (!Directory.Exists(categoryPath))
                 {

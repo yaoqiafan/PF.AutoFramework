@@ -38,7 +38,10 @@ namespace PF.Services.Logging
 
                 foreach (var category in config.GetFileLogCategories())
                 {
-                    var dir = Path.Combine(config.BasePath, category);
+                    var cfg = config.GetCategoryConfig(category);
+                    var dir = !string.IsNullOrEmpty(cfg.BasePathOverride)
+                        ? cfg.BasePathOverride
+                        : Path.Combine(config.BasePath, category);
                     if (!Directory.Exists(dir))
                         Directory.CreateDirectory(dir);
                 }
