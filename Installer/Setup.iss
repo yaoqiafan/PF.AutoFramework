@@ -11,7 +11,7 @@
 #endif
 
 #define AppName           "PF AutoFramework"
-#define AppPublisher      "JuLi Intelligence"
+#define AppPublisher      "PowerFocus"
 #define AppExeName        "PF.Application.Shell.exe"
 #define ServiceExe        "PF.SecsGem.Service.exe"
 #define ServiceName       "SecsGemService"
