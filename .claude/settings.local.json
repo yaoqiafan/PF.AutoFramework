@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(grep -E \"\\\\.\\(bat|cmd|ps1|sh\\)$\")",
+      "Bash(grep -E \"\\\\.\\(cs|xaml\\)$\")",
+      "PowerShell(\\(Get-Content \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\README.md\" | Measure-Object -Line\\).Lines)",
+      "Bash(Get-ChildItem -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(head *)"
+    ]
+  }
+}
