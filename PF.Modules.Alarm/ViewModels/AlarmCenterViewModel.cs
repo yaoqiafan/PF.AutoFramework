@@ -2,9 +2,11 @@ using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
+using PF.UI.Shared.Data;
 using Prism.Commands;
 using Prism.Navigation.Regions;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,27 +25,119 @@ namespace PF.Modules.Alarm.ViewModels
 
         // ── 集合 ────────────────────────────────────────────────────────────
 
-        /// <summary>获取或设置当前活跃报警列表</summary>
-        public ObservableCollection<AlarmRecord> ActiveAlarms     { get; } = new();
-        /// <summary>获取或设置历史报警列表</summary>
+        /// <summary>当前活跃报警列表</summary>
+        public ObservableCollection<AlarmRecord> ActiveAlarms { get; } = new();
+
+        // 历史查询三层结构：全量缓存 → 当前页显示
+        private List<AlarmRecord> _allHistoricalAlarms = new();
+
+        /// <summary>当前页历史报警（DataGrid 数据源）</summary>
         public ObservableCollection<AlarmRecord> HistoricalAlarms { get; } = new();
 
-        // ── 过滤条件 ─────────────────────────────────────────────────────────
+        // ── 历史查询过滤条件 ──────────────────────────────────────────────────
 
-        private int _queryYear = DateTime.Now.Year;
-        /// <summary>获取或设置查询年份</summary>
-        public int QueryYear
+        private DateTime _startDate = new DateTime(DateTime.Now.Year, 1, 1);
+        public DateTime StartDate
         {
-            get => _queryYear;
-            set => SetProperty(ref _queryYear, value);
+            get => _startDate;
+            set => SetProperty(ref _startDate, value);
         }
 
-        private string? _queryCategory;
-        /// <summary>获取或设置查询类别</summary>
-        public string? QueryCategory
+        private DateTime _endDate = DateTime.Now.Date.AddDays(1).AddSeconds(-1);
+        public DateTime EndDate
         {
-            get => _queryCategory;
-            set => SetProperty(ref _queryCategory, value);
+            get => _endDate;
+            set => SetProperty(ref _endDate, value);
+        }
+
+        /// <summary>等级下拉选项（全部 + 四个枚举值）</summary>
+        public ObservableCollection<string> SeverityOptions { get; } =
+            new() { "全部", "信息", "警告", "错误", "致命" };
+
+        private string _selectedSeverity = "全部";
+        public string SelectedSeverity
+        {
+            get => _selectedSeverity;
+            set => SetProperty(ref _selectedSeverity, value);
+        }
+
+        /// <summary>分类下拉选项（查询后从结果中提取）</summary>
+        public ObservableCollection<string> AvailableCategories { get; } = new() { "全部" };
+
+        private string _selectedCategory = "全部";
+        public string SelectedCategory
+        {
+            get => _selectedCategory;
+            set => SetProperty(ref _selectedCategory, value);
+        }
+
+        /// <summary>来源下拉选项（查询后从结果中提取）</summary>
+        public ObservableCollection<string> AvailableSources { get; } = new() { "全部" };
+
+        private string _selectedSource = "全部";
+        public string SelectedSource
+        {
+            get => _selectedSource;
+            set => SetProperty(ref _selectedSource, value);
+        }
+
+        private string? _queryErrorCode;
+        public string? QueryErrorCode
+        {
+            get => _queryErrorCode;
+            set => SetProperty(ref _queryErrorCode, value);
+        }
+
+        private string? _queryDescription;
+        public string? QueryDescription
+        {
+            get => _queryDescription;
+            set => SetProperty(ref _queryDescription, value);
+        }
+
+        // ── 分页 ─────────────────────────────────────────────────────────────
+
+        private int _historyPageSize = 50;
+        public int HistoryPageSize
+        {
+            get => _historyPageSize;
+            set
+            {
+                if (SetProperty(ref _historyPageSize, value))
+                    RecalculateHistoryPagination();
+            }
+        }
+
+        private int _historyPageIndex = 1;
+        public int HistoryPageIndex
+        {
+            get => _historyPageIndex;
+            set => SetProperty(ref _historyPageIndex, value);
+        }
+
+        private int _historyMaxPageCount = 1;
+        public int HistoryMaxPageCount
+        {
+            get => _historyMaxPageCount;
+            set => SetProperty(ref _historyMaxPageCount, value);
+        }
+
+        public DelegateCommand<FunctionEventArgs<int>> HistoryPageUpdatedCmd { get; }
+
+        // ── 状态 ─────────────────────────────────────────────────────────────
+
+        private bool _isQuerying;
+        public bool IsQuerying
+        {
+            get => _isQuerying;
+            set => SetProperty(ref _isQuerying, value);
+        }
+
+        private string _historyStatusMessage = "";
+        public string HistoryStatusMessage
+        {
+            get => _historyStatusMessage;
+            set => SetProperty(ref _historyStatusMessage, value);
         }
 
         // ── 选中的报警（联动 SOP 看板） ─────────────────────────────────────
@@ -74,16 +168,20 @@ namespace PF.Modules.Alarm.ViewModels
         // ── 命令 ─────────────────────────────────────────────────────────────
 
         /// <summary>清除所有报警命令</summary>
-        public DelegateCommand ClearAllCommand      { get; }
+        public DelegateCommand ClearAllCommand            { get; }
         /// <summary>查询历史报警命令</summary>
-        public DelegateCommand QueryHistoryCommand  { get; }
+        public DelegateCommand QueryHistoryCommand        { get; }
+        /// <summary>清除历史查询筛选条件命令</summary>
+        public DelegateCommand ClearHistoryFiltersCommand { get; }
         /// <summary>清除选中报警命令</summary>
-        public DelegateCommand ClearSelectedCommand { get; }
+        public DelegateCommand ClearSelectedCommand       { get; }
+        /// <summary>从卡片内直接清除单条报警（CommandParameter 传入 AlarmRecord）</summary>
+        public DelegateCommand<AlarmRecord> ClearSingleAlarmCommand { get; }
         /// <summary>
         /// 系统复位命令：发布 SystemResetRequestedEvent，由 Shell 桥接到 IMasterController.RequestSystemResetAsync()。
         /// 与"确认/清除"的区别：本命令触发全线硬件复位+状态机跳转，不仅仅是清除报警记录。
         /// </summary>
-        public DelegateCommand SystemResetCommand   { get; }
+        public DelegateCommand SystemResetCommand         { get; }
 
         // ── 构造 ─────────────────────────────────────────────────────────────
 
@@ -92,38 +190,34 @@ namespace PF.Modules.Alarm.ViewModels
         {
             _alarmService = alarmService;
 
-            ClearAllCommand      = new DelegateCommand(OnClearAll);
-            QueryHistoryCommand  = new DelegateCommand(async () => await OnQueryHistoryAsync());
-            ClearSelectedCommand = new DelegateCommand(OnClearSelected, CanClearSelected);
-            SystemResetCommand   = new DelegateCommand(OnSystemReset);
+            ClearAllCommand            = new DelegateCommand(OnClearAll);
+            QueryHistoryCommand        = new DelegateCommand(async () => await OnQueryHistoryAsync(), () => !IsQuerying);
+            ClearHistoryFiltersCommand = new DelegateCommand(OnClearHistoryFilters);
+            ClearSelectedCommand       = new DelegateCommand(OnClearSelected, CanClearSelected);
+            ClearSingleAlarmCommand    = new DelegateCommand<AlarmRecord>(r => { if (r != null) _alarmService.ClearAlarm(r.Source, r.ErrorCode); });
+            SystemResetCommand         = new DelegateCommand(OnSystemReset);
+            HistoryPageUpdatedCmd      = new DelegateCommand<FunctionEventArgs<int>>(OnHistoryPageUpdated);
 
-            // 通过 EventAggregator 订阅（ThreadOption.UIThread 确保回调在 UI 线程执行，无需手动 Dispatcher）
             EventAggregator.GetEvent<AlarmTriggeredEvent>()
                 .Subscribe(OnAlarmTriggered, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
             EventAggregator.GetEvent<AlarmClearedEvent>()
                 .Subscribe(OnAlarmCleared, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
-            // 加载当前活跃报警快照（初始同步）
             foreach (var record in _alarmService.ActiveAlarms)
                 ActiveAlarms.Add(record);
         }
 
         // ── 导航生命周期 ──────────────────────────────────────────────────────
 
-        /// <summary>
-        /// 复用同一实例以保持事件订阅和集合状态（否则每次导航都会创建新 ViewModel）。
-        /// </summary>
         public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
         // ── EventAggregator 回调（已在 UI 线程） ──────────────────────────────
 
         private void OnAlarmTriggered(AlarmRecord record)
         {
-            // 按复合键 (Source, ErrorCode) 匹配，避免同站不同故障互相覆盖
             var existing = ActiveAlarms.FirstOrDefault(
                 r => r.Source == record.Source && r.ErrorCode == record.ErrorCode);
             if (existing != null) ActiveAlarms.Remove(existing);
-
             ActiveAlarms.Insert(0, record);
         }
 
@@ -139,13 +233,11 @@ namespace PF.Modules.Alarm.ViewModels
         private void OnClearAll()
         {
             _alarmService.ClearAllActiveAlarms();
-            // ActiveAlarms 集合通过 AlarmClearedEvent 回调自动逐条清空
         }
 
         private void OnClearSelected()
         {
             if (_selectedAlarm == null) return;
-            // 使用精确重载，只清除选中的单条报警
             _alarmService.ClearAlarm(_selectedAlarm.Source, _selectedAlarm.ErrorCode);
         }
 
@@ -153,22 +245,123 @@ namespace PF.Modules.Alarm.ViewModels
 
         private void OnSystemReset()
         {
-            // 发布 SystemResetRequestedEvent，Shell 在 BackgroundThread 上订阅并调用 IMasterController.RequestSystemResetAsync()
             EventAggregator.GetEvent<SystemResetRequestedEvent>().Publish();
+        }
+
+        private void OnClearHistoryFilters()
+        {
+            StartDate        = new DateTime(DateTime.Now.Year, 1, 1);
+            EndDate          = DateTime.Now.Date.AddDays(1).AddSeconds(-1);
+            SelectedSeverity = "全部";
+            SelectedCategory = "全部";
+            SelectedSource   = "全部";
+            QueryErrorCode   = null;
+            QueryDescription = null;
         }
 
         private async Task OnQueryHistoryAsync()
         {
-            var results = await _alarmService.QueryHistoricalAlarmsAsync(
-                year:        QueryYear,
-                category:    QueryCategory,
-                minSeverity: null,
-                pageSize:    200,
-                page:        0);
+            IsQuerying = true;
+            QueryHistoryCommand.RaiseCanExecuteChanged();
+            HistoryStatusMessage = "查询中...";
+
+            try
+            {
+                AlarmSeverity? severity = SelectedSeverity switch
+                {
+                    "信息" => AlarmSeverity.Information,
+                    "警告" => AlarmSeverity.Warning,
+                    "错误" => AlarmSeverity.Error,
+                    "致命" => AlarmSeverity.Fatal,
+                    _     => null
+                };
+
+                string? category    = SelectedCategory == "全部" ? null : SelectedCategory;
+                string? source      = SelectedSource   == "全部" ? null : SelectedSource;
+                string? errorCode   = string.IsNullOrWhiteSpace(QueryErrorCode)   ? null : QueryErrorCode;
+                string? description = string.IsNullOrWhiteSpace(QueryDescription) ? null : QueryDescription;
+
+                var results = await _alarmService.QueryHistoricalAlarmsAsync(
+                    startTime:          StartDate,
+                    endTime:            EndDate,
+                    severity:           severity,
+                    category:           category,
+                    source:             source,
+                    errorCode:          errorCode,
+                    descriptionKeyword: description,
+                    pageSize:           5000,
+                    page:               0);
+
+                _allHistoricalAlarms = results.ToList();
+                RefreshFilterDropdowns(results);
+                RecalculateHistoryPagination();
+            }
+            finally
+            {
+                IsQuerying = false;
+                QueryHistoryCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        // ── 分页方法 ──────────────────────────────────────────────────────────
+
+        private void OnHistoryPageUpdated(FunctionEventArgs<int> e)
+        {
+            HistoryPageIndex = e.Info;
+            ApplyHistoryPage(e.Info);
+            UpdateHistoryStatusMessage();
+        }
+
+        private void RecalculateHistoryPagination()
+        {
+            int total = _allHistoricalAlarms.Count;
+            HistoryMaxPageCount = Math.Max(1, (int)Math.Ceiling((double)total / HistoryPageSize));
+            HistoryPageIndex    = 1;
+            ApplyHistoryPage(1);
+            UpdateHistoryStatusMessage();
+        }
+
+        private void ApplyHistoryPage(int pageIndex)
+        {
+            var page = _allHistoricalAlarms
+                .Skip((pageIndex - 1) * HistoryPageSize)
+                .Take(HistoryPageSize);
 
             HistoricalAlarms.Clear();
-            foreach (var r in results)
+            foreach (var r in page)
                 HistoricalAlarms.Add(r);
+        }
+
+        private void UpdateHistoryStatusMessage()
+        {
+            int total = _allHistoricalAlarms.Count;
+            if (total == 0)
+            {
+                HistoryStatusMessage = "无记录";
+                return;
+            }
+            int start = (_historyPageIndex - 1) * _historyPageSize + 1;
+            int end   = Math.Min(_historyPageIndex * _historyPageSize, total);
+            HistoryStatusMessage = $"共 {total} 条，显示第 {start}–{end} 条";
+        }
+
+        private void RefreshFilterDropdowns(IReadOnlyList<AlarmRecord> results)
+        {
+            var currentCategory = SelectedCategory;
+            var currentSource   = SelectedSource;
+
+            AvailableCategories.Clear();
+            AvailableCategories.Add("全部");
+            foreach (var cat in results.Select(r => r.Category).Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c))
+                AvailableCategories.Add(cat!);
+
+            AvailableSources.Clear();
+            AvailableSources.Add("全部");
+            foreach (var src in results.Select(r => r.Source).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s))
+                AvailableSources.Add(src!);
+
+            SelectedCategory = AvailableCategories.Contains(currentCategory) ? currentCategory : "全部";
+            SelectedSource   = AvailableSources.Contains(currentSource)      ? currentSource   : "全部";
         }
 
         // ── 清理 ─────────────────────────────────────────────────────────────
@@ -176,7 +369,6 @@ namespace PF.Modules.Alarm.ViewModels
         /// <summary>销毁 ViewModel 并取消事件订阅</summary>
         public override void Destroy()
         {
-            // 显式取消订阅，防止僵尸订阅残留
             EventAggregator.GetEvent<AlarmTriggeredEvent>().Unsubscribe(OnAlarmTriggered);
             EventAggregator.GetEvent<AlarmClearedEvent>().Unsubscribe(OnAlarmCleared);
             base.Destroy();

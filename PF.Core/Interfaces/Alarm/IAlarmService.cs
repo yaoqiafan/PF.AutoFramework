@@ -56,18 +56,28 @@ namespace PF.Core.Interfaces.Alarm
         // ── 历史查询 ───────────────────────────────────────────────────────
 
         /// <summary>
-        /// 分页查询历史报警记录（自动跨年路由到对应分表）。
+        /// 查询历史报警记录（自动路由到年度分表，内存层多条件过滤）。
         /// </summary>
         /// <param name="year">查询年份，0 = 当前年</param>
-        /// <param name="category">按分类过滤，null = 不过滤</param>
-        /// <param name="minSeverity">最低严重程度过滤，null = 不过滤</param>
-        /// <param name="pageSize">每页条数</param>
-        /// <param name="page">页码（从 0 开始）</param>
+        /// <param name="startTime">触发时间下限，null = 不过滤</param>
+        /// <param name="endTime">触发时间上限，null = 不过滤</param>
+        /// <param name="category">精确分类，null = 不过滤</param>
+        /// <param name="severity">精确等级，null = 不过滤</param>
+        /// <param name="source">精确来源，null = 不过滤</param>
+        /// <param name="errorCode">代码包含匹配，null = 不过滤</param>
+        /// <param name="descriptionKeyword">描述模糊匹配，null = 不过滤</param>
+        /// <param name="pageSize">DB 层预取上限</param>
+        /// <param name="page">DB 层分页页码（从 0 开始）</param>
         Task<IReadOnlyList<AlarmRecord>> QueryHistoricalAlarmsAsync(
             int year = 0,
+            DateTime? startTime = null,
+            DateTime? endTime = null,
             string? category = null,
-            AlarmSeverity? minSeverity = null,
-            int pageSize = 100,
+            AlarmSeverity? severity = null,
+            string? source = null,
+            string? errorCode = null,
+            string? descriptionKeyword = null,
+            int pageSize = 5000,
             int page = 0);
     }
 }

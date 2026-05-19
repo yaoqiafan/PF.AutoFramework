@@ -76,6 +76,13 @@ namespace PF.Modules.Debug.ViewModels
                     // 加载该轴的点表数据
                     PointTable = new ObservableCollection<AxisPoint>(_axis.PointTable);
                     _pollingTimer.Start();
+
+                    // 初始化默认的运动参数
+                    AbsVelocity = _axis.Param.Vel;
+                    RelVelocity = _axis.Param.Vel;
+                    JogVelocity = _axis.Param.Vel;
+                    RelativeDistance = 1000.0;
+
                 }
             }
         }

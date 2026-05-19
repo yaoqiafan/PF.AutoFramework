@@ -27,7 +27,7 @@ namespace PF.WorkStation.AutoOcr.UI
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
 
 
-            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
+            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.HomeView);
 
             DefaultPermissions.RegisterViews(Core.Enums.UserLevel.Administrator, nameof(OcrRecipeManageView));
 

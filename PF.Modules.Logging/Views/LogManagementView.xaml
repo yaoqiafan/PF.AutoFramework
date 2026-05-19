@@ -5,6 +5,7 @@
     xmlns:local="clr-namespace:PF.Modules.Logging.Converter"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
@@ -37,7 +38,6 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Border
@@ -136,7 +136,7 @@
                         GridLinesVisibility="Horizontal"
                         HeadersVisibility="Column"
                         IsReadOnly="True"
-                        ItemsSource="{Binding LogsView}"
+                        ItemsSource="{Binding DataList}"
                         RowHeight="NaN">
                         <DataGrid.RowStyle>
                             <Style BasedOn="{StaticResource DataGridRowStyle}" TargetType="DataGridRow">
@@ -201,18 +201,70 @@
                         </StackPanel>
                     </Grid>
 
-                    <Border
-                        Grid.Row="3"
-                        Margin="0,10,0,0"
-                        Padding="8,4"
-                        CornerRadius="4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="ℹ️ " />
-                            <TextBlock Foreground="#666" Text="{Binding QueryStatusMessage}" />
-                        </StackPanel>
-                    </Border>
                 </Grid>
+
+            <pf:Card.Footer>
+                    <Grid Margin="10,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="15" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  分页控件  -->
+                        <pf:Pagination
+                            Grid.Column="0"
+                            Height="30"
+                            HorizontalAlignment="Left"
+                            IsJumpEnabled="True"
+                            MaxPageCount="{Binding MaxPageCount}"
+                            PageIndex="{Binding PageIndex}">
+                            <pf:Interaction.Triggers>
+                                <pf:EventTrigger EventName="PageUpdated">
+                                    <pf:EventToCommand Command="{Binding PageUpdatedCmd}" PassEventArgsToCommand="True" />
+                                </pf:EventTrigger>
+                            </pf:Interaction.Triggers>
+                        </pf:Pagination>
+
+                        <!--  状态信息  -->
+                        <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Foreground="#666"
+                            Text="{Binding QueryStatusMessage}" />
+
+                        <!--  每页条数  -->
+                        <StackPanel
+                            Grid.Column="3"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                Text="每页显示：" />
+                            <ComboBox
+                                Width="70"
+                                Height="30"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                SelectedValue="{Binding PageSize}">
+                                <sys:Int32>20</sys:Int32>
+                                <sys:Int32>50</sys:Int32>
+                                <sys:Int32>100</sys:Int32>
+                                <sys:Int32>200</sys:Int32>
+                            </ComboBox>
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Text="条" />
+                        </StackPanel>
+                    </Grid>
+                </pf:Card.Footer>
+
             </pf:Card>
+
         </Grid>
     </pf:TransitioningContentControl>
 </UserControl>

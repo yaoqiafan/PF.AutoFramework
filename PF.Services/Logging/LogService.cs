@@ -549,8 +549,8 @@ namespace PF.Services.Logging
                 else
                     results = results.OrderBy(log => log.Timestamp).ToList();
 
-                if (results.Count > queryParams.MaxResults)
-                    results = results.Take(queryParams.MaxResults).ToList();
+                if (queryParams.MaxResults.HasValue && results.Count > queryParams.MaxResults.Value)
+                    results = results.Take(queryParams.MaxResults.Value).ToList();
             }
             catch (Exception ex)
             {

@@ -165,6 +165,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _axisX = hardwareManager.GetDevice(E_AxisName.视觉X轴.ToString()) as IAxis;
             _axisY = hardwareManager.GetDevice(E_AxisName.视觉Y轴.ToString()) as IAxis;
             _axisZ = hardwareManager.GetDevice(E_AxisName.视觉Z轴.ToString()) as IAxis;
+            XAxisJogVelocity = _axisX.Param.Vel;
+            YAxisJogVelocity = _axisY.Param.Vel;
+            ZAxisJogVelocity = _axisZ.Param.Vel;
+
+
             _axisStopperX1 = hardwareManager.GetDevice(E_AxisName.工位1挡料X轴.ToString()) as IAxis;
             _axisStopperX2 = hardwareManager.GetDevice(E_AxisName.工位2挡料X轴.ToString()) as IAxis;
 

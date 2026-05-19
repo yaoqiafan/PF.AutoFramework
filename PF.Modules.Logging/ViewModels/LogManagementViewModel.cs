@@ -1,19 +1,18 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using PF.Infrastructure.Logging;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Core.Entities.Logging;
 using PF.Core.Interfaces.Logging;
+using PF.UI.Shared.Data;
 using Prism.Commands;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Data;
 using PF.UI.Infrastructure.Dialog.Basic;
 
 namespace PF.Modules.Logging.ViewModels
@@ -23,46 +22,102 @@ namespace PF.Modules.Logging.ViewModels
     {
         private readonly ILogService _logService;
         private readonly CategoryLogger _uiLogger;
-        private readonly ObservableCollection<LogEntry> _rawLogsSource; // 原始数据源
+
+        /// <summary>全量原始数据缓存（从磁盘加载后不再变动）</summary>
+        private List<LogEntry> _allLogs = new();
+
+        /// <summary>经过筛选后的数据（分页的数据来源）</summary>
+        private List<LogEntry> _filteredLogs = new();
 
         /// <summary>初始化日志管理 ViewModel</summary>
         public LogManagementViewModel(ILogService logService, IMessageService messageService)
         {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _uiLogger = CategoryLoggerFactory.UI(_logService);
+
             ExportLogsCommand = new DelegateCommand(ExportLogs);
             QueryHistoryCommand = new DelegateCommand(async () => await QueryHistory());
 
-            // 初始化集合
-            _rawLogsSource = new ObservableCollection<LogEntry>();
-            // 使用 CollectionViewSource 包装原始数据，实现过滤而不删除数据
-            LogsView = CollectionViewSource.GetDefaultView(_rawLogsSource);
-            LogsView.Filter = OnFilterLogs;
-
-            // 初始化筛选列表
             FilterLevels = new ObservableCollection<string> { "全部" };
             foreach (var level in Enum.GetNames(typeof(Core.Enums.LogLevel)))
-            {
                 FilterLevels.Add(level);
-            }
             SelectedFilterLevel = "全部";
 
             FilterCategories = new ObservableCollection<string> { "全部" };
             SelectedFilterCategory = "全部";
 
-            // 默认日期
             StartDate = DateTime.Today;
             EndDate = DateTime.Today;
         }
 
-        #region 属性
+        #region 数据集合
 
-        // 对外暴露的视图，UI绑定这个
-        /// <summary>获取日志集合视图</summary>
-        public ICollectionView LogsView { get; }
+        /// <summary>当前页显示的日志列表（绑定到 DataGrid）</summary>
+        public ObservableCollection<LogEntry> DataList { get; } = new();
+
+        #endregion
+
+        #region 分页属性
+
+        private int _pageSize = 50;
+        /// <summary>每页显示条数</summary>
+        public int PageSize
+        {
+            get => _pageSize;
+            set
+            {
+                int safe = value < 1 ? 1 : value;
+                if (SetProperty(ref _pageSize, safe))
+                    RecalculatePagination();
+            }
+        }
+
+        private int _pageIndex = 1;
+        /// <summary>当前页码</summary>
+        public int PageIndex
+        {
+            get => _pageIndex;
+            set => SetProperty(ref _pageIndex, value);
+        }
+
+        private int _maxPageCount = 1;
+        /// <summary>总页数</summary>
+        public int MaxPageCount
+        {
+            get => _maxPageCount;
+            set => SetProperty(ref _maxPageCount, value);
+        }
+
+        /// <summary>翻页命令</summary>
+        public DelegateCommand<FunctionEventArgs<int>> PageUpdatedCmd => new(PageUpdated);
+
+        private void RecalculatePagination()
+        {
+            int pages = (int)Math.Ceiling(_filteredLogs.Count / (double)PageSize);
+            MaxPageCount = pages > 0 ? pages : 1;
+            PageUpdated(new FunctionEventArgs<int>(1));
+        }
+
+        private void PageUpdated(FunctionEventArgs<int> info)
+        {
+            int target = info.Info;
+            if (target < 1) target = 1;
+            if (target > MaxPageCount) target = MaxPageCount;
+
+            PageIndex = target;
+            DataList.Clear();
+            foreach (var item in _filteredLogs.Skip((PageIndex - 1) * PageSize).Take(PageSize))
+                DataList.Add(item);
+
+            UpdateStatusMessage();
+        }
+
+        #endregion
+
+        #region 查询/筛选属性
 
         private DateTime _startDate;
-        /// <summary>获取或设置开始日期</summary>
+        /// <summary>开始日期</summary>
         public DateTime StartDate
         {
             get => _startDate;
@@ -70,7 +125,7 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private DateTime _endDate;
-        /// <summary>获取或设置结束日期</summary>
+        /// <summary>结束日期</summary>
         public DateTime EndDate
         {
             get => _endDate;
@@ -78,53 +133,53 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private string _queryKeyword;
-        /// <summary>获取或设置查询关键词</summary>
+        /// <summary>关键词搜索</summary>
         public string QueryKeyword
         {
             get => _queryKeyword;
             set
             {
                 if (SetProperty(ref _queryKeyword, value))
-                    LogsView.Refresh(); // 关键词改变时刷新视图
+                    ApplyFilterAndPaginate();
             }
         }
 
-        // --- 筛选属性 ---
-
-        /// <summary>获取日志级别过滤选项</summary>
+        /// <summary>日志级别过滤选项</summary>
         public ObservableCollection<string> FilterLevels { get; }
 
         private string _selectedFilterLevel;
-        /// <summary>获取或设置选中的过滤级别</summary>
+        /// <summary>选中的过滤级别</summary>
         public string SelectedFilterLevel
         {
             get => _selectedFilterLevel;
             set
             {
                 if (SetProperty(ref _selectedFilterLevel, value))
-                    LogsView.Refresh();
+                    ApplyFilterAndPaginate();
             }
         }
 
-        /// <summary>获取分类过滤选项</summary>
+        /// <summary>分类过滤选项</summary>
         public ObservableCollection<string> FilterCategories { get; }
 
         private string _selectedFilterCategory;
-        /// <summary>获取或设置选中的过滤分类</summary>
+        /// <summary>选中的过滤分类</summary>
         public string SelectedFilterCategory
         {
             get => _selectedFilterCategory;
             set
             {
                 if (SetProperty(ref _selectedFilterCategory, value))
-                    LogsView.Refresh();
+                    ApplyFilterAndPaginate();
             }
         }
 
-        // --- 状态属性 ---
+        #endregion
+
+        #region 状态属性
 
         private bool _isQuerying;
-        /// <summary>获取或设置是否正在查询</summary>
+        /// <summary>是否正在从磁盘读取</summary>
         public bool IsQuerying
         {
             get => _isQuerying;
@@ -132,7 +187,7 @@ namespace PF.Modules.Logging.ViewModels
         }
 
         private string _queryStatusMessage;
-        /// <summary>获取或设置查询状态消息</summary>
+        /// <summary>底部状态栏文字</summary>
         public string QueryStatusMessage
         {
             get => _queryStatusMessage;
@@ -143,12 +198,8 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 命令
 
-        /// <summary>清空日志命令</summary>
-        public DelegateCommand ClearLogsCommand { get; }
         /// <summary>导出日志命令</summary>
         public DelegateCommand ExportLogsCommand { get; }
-        /// <summary>刷新命令</summary>
-        public DelegateCommand RefreshCommand { get; }
         /// <summary>查询历史日志命令</summary>
         public DelegateCommand QueryHistoryCommand { get; }
 
@@ -156,20 +207,20 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 方法
 
-        // 核心过滤逻辑
-        private bool OnFilterLogs(object item)
+        private void ApplyFilterAndPaginate()
         {
-            if (item is not LogEntry entry) return false;
+            _filteredLogs = _allLogs.Where(OnFilterLog).ToList();
+            RecalculatePagination();
+        }
 
-            // 1. 等级过滤
+        private bool OnFilterLog(LogEntry entry)
+        {
             if (SelectedFilterLevel != "全部" && entry.Level.ToString() != SelectedFilterLevel)
                 return false;
 
-            // 2. 分类过滤
             if (SelectedFilterCategory != "全部" && entry.Category != SelectedFilterCategory)
                 return false;
 
-            // 3. 内存中二次关键词搜索 (可选，如果希望在结果中再搜)
             if (!string.IsNullOrEmpty(QueryKeyword))
             {
                 bool msgMatch = entry.Message?.Contains(QueryKeyword, StringComparison.OrdinalIgnoreCase) ?? false;
@@ -180,14 +231,31 @@ namespace PF.Modules.Logging.ViewModels
             return true;
         }
 
+        private void UpdateStatusMessage()
+        {
+            if (_allLogs.Count == 0)
+            {
+                QueryStatusMessage = "暂无数据，请先点击「从磁盘读取」";
+                return;
+            }
+
+            string filterHint = _filteredLogs.Count < _allLogs.Count
+                ? $"已筛选 {_filteredLogs.Count} / 共 {_allLogs.Count} 条"
+                : $"共 {_allLogs.Count} 条";
+
+            QueryStatusMessage = $"{filterHint}，第 {PageIndex} / {MaxPageCount} 页";
+        }
+
         private async Task QueryHistory()
         {
             if (IsQuerying) return;
 
             IsQuerying = true;
-            QueryStatusMessage = "正在查询历史文件...";
-            _rawLogsSource.Clear(); // 清空旧数据
-            FilterCategories.Clear(); // 重置分类
+            QueryStatusMessage = "正在扫描文件...";
+            _allLogs.Clear();
+            _filteredLogs.Clear();
+            DataList.Clear();
+            FilterCategories.Clear();
             FilterCategories.Add("全部");
             SelectedFilterCategory = "全部";
 
@@ -197,10 +265,8 @@ namespace PF.Modules.Logging.ViewModels
                 {
                     StartTime = StartDate.Date,
                     EndTime = EndDate.Date.AddDays(1).AddTicks(-1),
-                    // 注意：这里 Keyword 传 null，把所有数据先查回来，然后在内存里筛选
-                    // 这样用户在界面上切换“只看Error”时不需要重新读盘
-                    Keyword = null,
-                    MaxResults = 10000,
+                    Keyword = null,     // 全量取回，内存二次筛选
+                    MaxResults = null,  // 无上限
                     OrderByDescending = true
                 };
 
@@ -208,23 +274,16 @@ namespace PF.Modules.Logging.ViewModels
 
                 if (results != null && results.Any())
                 {
-                    // 1. 填充数据
-                    foreach (var item in results)
-                    {
-                        _rawLogsSource.Add(item);
-                    }
+                    _allLogs = results;
 
-                    // 2. 动态提取分类
                     var categories = results.Select(x => x.Category)
                                             .Where(c => !string.IsNullOrEmpty(c))
                                             .Distinct()
                                             .OrderBy(c => c);
                     foreach (var cat in categories)
-                    {
                         FilterCategories.Add(cat);
-                    }
 
-                    QueryStatusMessage = $"查询完成，加载 {results.Count} 条记录";
+                    ApplyFilterAndPaginate();
                 }
                 else
                 {
@@ -239,16 +298,12 @@ namespace PF.Modules.Logging.ViewModels
             finally
             {
                 IsQuerying = false;
-                LogsView.Refresh(); // 触发一次视图更新
             }
         }
 
         private void ExportLogs()
         {
-            // 获取当前视图中显示的日志（即筛选后的结果）
-            var visibleLogs = LogsView.Cast<LogEntry>().ToList();
-
-            if (!visibleLogs.Any())
+            if (!_filteredLogs.Any())
             {
                 MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
                 return;
@@ -266,20 +321,18 @@ namespace PF.Modules.Logging.ViewModels
                 try
                 {
                     var sb = new StringBuilder();
-                    // CSV Header
                     sb.AppendLine("时间,等级,分类,内容");
 
-                    foreach (var log in visibleLogs)
+                    foreach (var log in _filteredLogs)
                     {
-                        // 处理内容中的换行和逗号，避免CSV格式错乱
                         string safeMsg = log.Message?.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ");
                         sb.AppendLine($"{log.Timestamp:yyyy-MM-dd HH:mm:ss.fff},{log.Level},{log.Category},\"{safeMsg}\"");
                     }
 
                     File.WriteAllText(saveDialog.FileName, sb.ToString(), Encoding.UTF8);
-
-                    _uiLogger.Info($"用户导出了 {visibleLogs.Count} 条日志到 {saveDialog.FileName}");
-                    MessageService.ShowMessage($"导出成功！\n路径: {saveDialog.FileName}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _uiLogger.Info($"用户导出了 {_filteredLogs.Count} 条日志到 {saveDialog.FileName}");
+                    MessageService.ShowMessage($"导出成功！共 {_filteredLogs.Count} 条\n路径: {saveDialog.FileName}",
+                        "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
@@ -287,7 +340,6 @@ namespace PF.Modules.Logging.ViewModels
                 }
             }
         }
-
 
         #endregion
     }
