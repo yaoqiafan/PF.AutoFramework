@@ -1,139 +1,218 @@
-<UserControl x:Class="PF.Modules.Logging.Views.LogManagementView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
-             xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-             xmlns:local="clr-namespace:PF.Modules.Logging.Converter"
-             prism:ViewModelLocator.AutoWireViewModel="True">
+<UserControl
+    x:Class="PF.Modules.Logging.Views.LogManagementView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.Modules.Logging.Converter"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
         <local:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
-    
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
 
-        <TextBlock Text="日志归档管理" FontSize="{DynamicResource FontSize.H1.Large}" FontWeight="Light" Margin="0,0,0,20"/>
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        
+            <TextBlock
+                Margin="0,0,0,20"
+                FontSize="{DynamicResource FontSize.H1.Large}"
+                FontWeight="Light"
+                Text="日志归档管理" />
 
-        <pf:Card Grid.Row="1" Header="磁盘历史日志查询" VerticalAlignment="Stretch">
-            <Grid Margin="10">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#EEE" Padding="0,0,0,10" Margin="0,0,0,10">
-                    <WrapPanel Orientation="Horizontal">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center">
-                            <TextBlock Text="时间范围：" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold"/>
-                            <DatePicker SelectedDate="{Binding StartDate}" Width="120"/>
-                            <TextBlock Text=" - " VerticalAlignment="Center" Margin="5,0"/>
-                            <DatePicker SelectedDate="{Binding EndDate}" Width="120"/>
+
+            <pf:Card
+                Grid.Row="1"
+                VerticalAlignment="Stretch"
+                Header="磁盘历史日志查询">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        Grid.Row="0"
+                        Margin="0,0,0,10"
+                        Padding="0,0,0,10"
+                        BorderBrush="#EEE"
+                        BorderThickness="0,0,0,1">
+                        <WrapPanel Orientation="Horizontal">
+                            <StackPanel
+                                Margin="0,0,20,0"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                                <TextBlock
+                                    Margin="0,0,5,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="Bold"
+                                    Text="时间范围：" />
+                                <DatePicker Width="120" SelectedDate="{Binding StartDate}" />
+                                <TextBlock
+                                    Margin="5,0"
+                                    VerticalAlignment="Center"
+                                    Text=" - " />
+                                <DatePicker Width="120" SelectedDate="{Binding EndDate}" />
+                            </StackPanel>
+
+                            <Button
+                                Height="30"
+                                Padding="20,0"
+                                Command="{Binding QueryHistoryCommand}"
+                                Content="🔍 从磁盘读取"
+                                IsEnabled="{Binding IsQuerying, Converter={StaticResource Boolean2BooleanReConverter}}"
+                                Style="{StaticResource ButtonPrimary}" />
+                        </WrapPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="0"
+                            Margin="0,0,15,0"
+                            Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Center"
+                                Text="等级：" />
+                            <ComboBox
+                                Width="100"
+                                ItemsSource="{Binding FilterLevels}"
+                                SelectedItem="{Binding SelectedFilterLevel}" />
                         </StackPanel>
 
-                        <Button Command="{Binding QueryHistoryCommand}" 
-                                Content="🔍 从磁盘读取" 
-                                IsEnabled="{Binding IsQuerying, Converter={StaticResource Boolean2BooleanReConverter}}"
-                                Style="{StaticResource ButtonPrimary}" 
-                                Height="30" Padding="20,0"/>
-                    </WrapPanel>
-                </Border>
+                        <StackPanel
+                            Grid.Column="1"
+                            Margin="0,0,15,0"
+                            Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Center"
+                                Text="分类：" />
+                            <ComboBox
+                                Width="150"
+                                ItemsSource="{Binding FilterCategories}"
+                                SelectedItem="{Binding SelectedFilterCategory}" />
+                        </StackPanel>
 
-                <Grid Grid.Row="1" Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,5,0"
+                                VerticalAlignment="Center"
+                                Text="筛选：" />
+                            <pf:SearchBar
+                                Width="250"
+                                pf:InfoElement.Placeholder="在结果中搜索内容..."
+                                Text="{Binding QueryKeyword, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,15,0">
-                        <TextBlock Text="等级：" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <ComboBox ItemsSource="{Binding FilterLevels}" 
-                                  SelectedItem="{Binding SelectedFilterLevel}"
-                                  Width="100"/>
-                    </StackPanel>
+                        <Button
+                            Grid.Column="3"
+                            Command="{Binding ExportLogsCommand}"
+                            Content="📤 导出当前结果"
+                            ToolTip="将当前筛选出的日志导出为 CSV" />
+                    </Grid>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,15,0">
-                        <TextBlock Text="分类：" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <ComboBox ItemsSource="{Binding FilterCategories}" 
-                                  SelectedItem="{Binding SelectedFilterCategory}"
-                                  Width="150"/>
-                    </StackPanel>
+                    <DataGrid
+                        Grid.Row="2"
+                        AutoGenerateColumns="False"
+                        BorderThickness="1"
+                        EnableRowVirtualization="True"
+                        GridLinesVisibility="Horizontal"
+                        HeadersVisibility="Column"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding LogsView}"
+                        RowHeight="NaN">
+                        <DataGrid.RowStyle>
+                            <Style BasedOn="{StaticResource DataGridRowStyle}" TargetType="DataGridRow">
+                                <Setter Property="MinHeight" Value="36" />
+                                <Setter Property="SnapsToDevicePixels" Value="True" />
+                                <Setter Property="Height" Value="Auto" />
+                            </Style>
+                        </DataGrid.RowStyle>
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <TextBlock Text="筛选：" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <pf:SearchBar Text="{Binding QueryKeyword, UpdateSourceTrigger=PropertyChanged}" 
-                                      Width="250" 
-                                      pf:InfoElement.Placeholder="在结果中搜索内容..." />
-                    </StackPanel>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn
+                                Width="170"
+                                Binding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}"
+                                Header="时间" />
 
-                    <Button Grid.Column="3" 
-                            Command="{Binding ExportLogsCommand}" 
-                            Content="📤 导出当前结果" 
-                            ToolTip="将当前筛选出的日志导出为 CSV"/>
+                            <DataGridTemplateColumn Width="80" Header="等级">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Padding="5,2"
+                                            HorizontalAlignment="Left"
+                                            Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}"
+                                            CornerRadius="4">
+                                            <TextBlock
+                                                FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                                FontWeight="SemiBold"
+                                                Foreground="Black"
+                                                Text="{Binding Level}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn
+                                Width="120"
+                                Binding="{Binding Category}"
+                                FontWeight="Medium"
+                                Header="分类" />
+
+                            <DataGridTemplateColumn Width="*" Header="消息内容">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock
+                                            Padding="5"
+                                            Text="{Binding Message}"
+                                            TextWrapping="Wrap"
+                                            ToolTip="{Binding Message}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid Grid.Row="2" Visibility="{Binding IsQuerying, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <pf:LoadingCircle Width="50" Height="50" />
+                            <TextBlock
+                                Margin="0,15,0,0"
+                                FontSize="{DynamicResource FontSize.Body.Standard}"
+                                Foreground="#666"
+                                Text="正在扫描文件..." />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border
+                        Grid.Row="3"
+                        Margin="0,10,0,0"
+                        Padding="8,4"
+                        CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="ℹ️ " />
+                            <TextBlock Foreground="#666" Text="{Binding QueryStatusMessage}" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
-
-                <DataGrid Grid.Row="2" 
-                          ItemsSource="{Binding LogsView}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          HeadersVisibility="Column"
-                          GridLinesVisibility="Horizontal"
-                           
-                          BorderThickness="1"
-                           >
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="时间" Binding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Width="170"/>
-
-                        <DataGridTemplateColumn Header="等级" Width="80">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Background="{Binding Level, Converter={StaticResource LogLevelToBrushConverter}}" 
-                                            CornerRadius="4" Padding="5,2" HorizontalAlignment="Left">
-                                        <TextBlock Text="{Binding Level}" Foreground="Black" FontSize="{DynamicResource FontSize.Caption.Mini}" FontWeight="SemiBold"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-
-                        <DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="120" FontWeight="Medium"/>
-
-                        <DataGridTemplateColumn Header="消息内容" Width="*">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Padding="5" ToolTip="{Binding Message}"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-
-                <Grid Grid.Row="2" Visibility="{Binding IsQuerying, Converter={StaticResource BooleanToVisibilityConverter}}" >
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <pf:LoadingCircle Width="50" Height="50"/>
-                        <TextBlock Text="正在扫描文件..." Margin="0,15,0,0" Foreground="#666" FontSize="{DynamicResource FontSize.Body.Standard}"/>
-                    </StackPanel>
-                </Grid>
-
-                <Border Grid.Row="3" Margin="0,10,0,0" Padding="8,4"   CornerRadius="4">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="ℹ️ "/>
-                        <TextBlock Text="{Binding QueryStatusMessage}" Foreground="#666"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </pf:Card>
-    </Grid>
+            </pf:Card>
+        </Grid>
     </pf:TransitioningContentControl>
 </UserControl>

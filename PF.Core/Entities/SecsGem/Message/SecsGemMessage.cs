@@ -59,7 +59,7 @@ namespace PF.Core.Entities.SecsGem.Message
         /// </summary>
         public override string ToString()
         {
-            return this.ToVisualLog(true);
+            return this.ToVisualLog(this.IsIncoming);
         }
 
 

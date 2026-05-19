@@ -3,17 +3,17 @@ using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication.TCP;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.Command;
 using PF.Core.Interfaces.SecsGem.Communication;
 using PF.Core.Interfaces.SecsGem.Params;
 using PF.Infrastructure.Communication.TCP;
+using PF.Infrastructure.Logging;
 using PF.Infrastructure.SecsGem.Tools;
 using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -50,9 +50,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
         /// </summary>
         public ConcurrentDictionary<string, SecsGemMessage> ReplyMessageInfo { get; } = new ConcurrentDictionary<string, SecsGemMessage>();
 
-        // 日志路径
-        private readonly string _logPathName = @"D:\SWLog\PC\MESLog";
-        private static readonly object _logLock = new object();
+        private readonly CategoryLogger _secsGemLogger;
 
         /// <summary>
         /// SecsGem连接状态
@@ -62,12 +60,13 @@ namespace PF.Infrastructure.SecsGem.Incentive
         /// <summary>
         /// 构造内部客户端
         /// </summary>
-        public InternalClient(IParams @params, ICommandManager commandManager, SecsGemMessageProcessor secsGemMessageProcessor)
+        public InternalClient(IParams @params, ICommandManager commandManager, SecsGemMessageProcessor secsGemMessageProcessor, ILogService logService)
         {
             _client = new TCPClient();
             _paramConfig = @params;
             _commandManager = commandManager;
             _secsGemMessageProcessor = secsGemMessageProcessor;
+            _secsGemLogger = CategoryLoggerFactory.SecsGem(logService);
         }
 
         /// <summary>
@@ -103,7 +102,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"客户端初始化失败: {ex.Message}");
+                _secsGemLogger.Debug($"客户端初始化失败: {ex.Message}");
                 return false;
             }
         }
@@ -135,7 +134,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"启动客户端失败: {ex.Message}");
+                _secsGemLogger.Debug($"启动客户端失败: {ex.Message}");
                 return false;
             }
         }
@@ -160,7 +159,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"关闭客户端时出错: {ex.Message}");
+                _secsGemLogger.Debug($"关闭客户端时出错: {ex.Message}");
             }
             finally
             {
@@ -171,18 +170,18 @@ namespace PF.Infrastructure.SecsGem.Incentive
         #region 事件处理
         private void Client_Connected(object? sender, ClientConnectedEventArgs e)
         {
-            WriteSecsGemLog($"客户端 {e.ClientId} 已连接到服务器 {e.ServerAddress}");
+            _secsGemLogger.Debug($"客户端 {e.ClientId} 已连接到服务器 {e.ServerAddress}");
         }
 
         private void Client_Disconnected(object? sender, ClientDisconnectedEventArgs e)
         {
-            WriteSecsGemLog($"客户端 {e.ClientId} 断开连接: {e.Reason}");
+            _secsGemLogger.Debug($"客户端 {e.ClientId} 断开连接: {e.Reason}");
             _status = false;
         }
 
         private void Client_ErrorOccurred(object? sender, ErrorOccurredEventArgs e)
         {
-            WriteSecsGemLog($"客户端发生错误: {e.ErrorMessage}");
+            _secsGemLogger.Debug($"客户端发生错误: {e.ErrorMessage}");
         }
 
         private void Client_DataReceived(object? sender, DataReceivedEventArgs e)
@@ -198,7 +197,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 {
                     if (data1.Length < 15) // 最小长度检查（10字节头部 + 4字节长度）
                     {
-                        WriteSecsGemLog($"收到数据长度不足: {data1.Length}字节");
+                        _secsGemLogger.Debug($"收到数据长度不足: {data1.Length}字节");
                         return;
                     }
 
@@ -211,7 +210,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
 
                     if (totalLength != data.Length - 4)
                     {
-                        WriteSecsGemLog($"数据长度不匹配: 头部={totalLength}, 实际={data.Length}");
+                        _secsGemLogger.Debug($"数据长度不匹配: 头部={totalLength}, 实际={data.Length}");
                         return;
                     }
 
@@ -223,18 +222,18 @@ namespace PF.Infrastructure.SecsGem.Incentive
                     byte stream = headerBytes[2];
                     byte function = headerBytes[3];
 
-                    WriteSecsGemLog($"收到消息: S{stream}F{function}, 长度: {totalLength}字节");
+                    _secsGemLogger.Debug($"收到消息: S{stream}F{function}, 长度: {totalLength}字节");
 
                     // 回复消息（Function为偶数）
                     if (function % 2 == 0)
                     {
-                        WriteSecsGemLog($"收到回复消息: {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(data)}");
+                        _secsGemLogger.Debug($"收到回复消息: {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(data)}");
                         _receiveReplyInfo.Writer.TryWrite(data);
                     }
                     // 主动消息（Function为奇数）
                     else
                     {
-                        WriteSecsGemLog($"收到主动消息: {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(data)}");
+                        _secsGemLogger.Debug($"收到主动消息: {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(data)}");
                         _receiveProactiveInfo.Writer.TryWrite(data);
                     }
                 }
@@ -246,7 +245,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 {
                     if (data1.Length < 2)
                     {
-                        WriteSecsGemLog($"收到数据长度不足: {data1.Length}字节");
+                        _secsGemLogger.Debug($"收到数据长度不足: {data1.Length}字节");
                         return;
                     }
                     _status = data1[1] == (byte)SecsStatus.Connected;
@@ -254,7 +253,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"处理接收数据时出错: {ex.Message}");
+                _secsGemLogger.Debug($"处理接收数据时出错: {ex.Message}");
             }
         }
         #endregion
@@ -286,7 +285,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"处理主动消息时出错: {ex.Message}");
+                _secsGemLogger.Debug($"处理主动消息时出错: {ex.Message}");
             }
         }
 
@@ -317,7 +316,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"处理回复消息时出错: {ex.Message}");
+                _secsGemLogger.Debug($"处理回复消息时出错: {ex.Message}");
             }
         }
 
@@ -356,7 +355,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 bool success = await _client.SendAsync(sendbytes);
                 if (success)
                 {
-                    WriteSecsGemLog($"发送SECS/GEM消息: S{msg.Stream}F{msg.Function}, 长度: {bytes.Length}字节   {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(sendbytes)}");
+                    _secsGemLogger.Debug($"发送SECS/GEM消息: S{msg.Stream}F{msg.Function}, 长度: {bytes.Length}字节   {SecsGemMessageTools.ByteArrayToHexStringWithSeparator(sendbytes)}");
 
                     // 如果是主动消息（Function为奇数），添加到回复消息缓存等待回复
                     if (msg.Function % 2 == 1)
@@ -367,12 +366,12 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 }
                 else
                 {
-                    WriteSecsGemLog($"发送SECS/GEM消息失败: S{msg.Stream}F{msg.Function}");
+                    _secsGemLogger.Debug($"发送SECS/GEM消息失败: S{msg.Stream}F{msg.Function}");
                 }
             }
             catch (Exception ex)
             {
-                WriteSecsGemLog($"发送消息时出错: {ex.Message}");
+                _secsGemLogger.Debug($"发送消息时出错: {ex.Message}");
                 throw;
             }
         }
@@ -398,51 +397,6 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
 
             throw new TimeoutException($"等待回复超时 ({timeoutMs}ms), SystemBytes: {systemBytesHex}");
-        }
-        #endregion
-
-        #region 日志记录
-        /// <summary>
-        /// 记录SECS/GEM交互日志
-        /// </summary>
-        public void WriteSecsGemLog(string strData)
-        {
-            Task.Run(() =>
-            {
-                lock (_logLock)
-                {
-                    try
-                    {
-                        StringBuilder strFile = new StringBuilder();
-                        strFile.AppendFormat("{0}\\{1}\\{2}\\{3}\\",
-                            _logPathName,
-                            "SecsGem",
-                            DateTime.Now.Year.ToString(),
-                            DateTime.Now.Month.ToString());
-
-                        if (!Directory.Exists(strFile.ToString()))
-                        {
-                            Directory.CreateDirectory(strFile.ToString());
-                        }
-
-                        strFile.Append(DateTime.Now.ToString("yyyy-MM-dd") + ".log");
-
-                        using (StreamWriter swAppend = File.AppendText(strFile.ToString()))
-                        {
-                            StringBuilder str = new StringBuilder();
-                            str.AppendFormat("[{0}][{1}]    [{2}]",
-                                DateTime.Now,
-                                DateTime.Now.Millisecond.ToString("d4"),
-                                strData);
-                            swAppend.WriteLine(str.ToString());
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"写入日志失败: {ex.Message}");
-                    }
-                }
-            });
         }
         #endregion
 

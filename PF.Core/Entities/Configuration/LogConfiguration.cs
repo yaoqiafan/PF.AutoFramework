@@ -110,7 +110,15 @@ namespace PF.Core.Entities.Configuration
                     var json = File.ReadAllText(filePath, Encoding.UTF8);
                     var config = JsonSerializer.Deserialize<LogConfiguration>(json, _jsonOptions);
                     if (config != null && config.Categories.Count > 0)
+                    {
+                        // 补全旧 JSON 中缺失的 BasePathOverride（升级兼容）
+                        if (config.Categories.TryGetValue(LogCategories.SecsGem, out var secsGemCfg)
+                            && string.IsNullOrEmpty(secsGemCfg.BasePathOverride))
+                        {
+                            secsGemCfg.BasePathOverride = "D://PF_Logs/SecsGem/Main";
+                        }
                         return config;
+                    }
                 }
                 else
                 {
@@ -188,7 +196,8 @@ namespace PF.Core.Entities.Configuration
 
             AddCategory(LogCategories.Recipe, LogLevel.Debug, LogCategories.Recipe);
 
-            AddCategory(LogCategories.SecsGem, LogLevel.Debug, LogCategories.SecsGem);
+            AddCategory(LogCategories.SecsGem, LogLevel.Debug, LogCategories.SecsGem,
+                basePathOverride: "D://PF_Logs/SecsGem/Main");
 
             return this;
         }
@@ -197,13 +206,14 @@ namespace PF.Core.Entities.Configuration
         /// 添加或更新分类配置
         /// </summary>
         public LogConfiguration AddCategory(string category, LogLevel minLevel = LogLevel.Info,
-            string? fileNamePrefix = null, bool enableFileLog = true)
+            string? fileNamePrefix = null, bool enableFileLog = true, string? basePathOverride = null)
         {
             Categories[category] = new CategoryConfig
             {
                 MinLevel = minLevel,
                 EnableFileLog = enableFileLog,
-                FileNamePrefix = fileNamePrefix ?? category
+                FileNamePrefix = fileNamePrefix ?? category,
+                BasePathOverride = basePathOverride
             };
             return this;
         }
