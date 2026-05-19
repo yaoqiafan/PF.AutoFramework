@@ -104,10 +104,6 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
             try
             {
                 if (IsSimulated) { return ""; }
-
-
-
-
                 string TiggerStr = $"PR\r\n";
                 TiggerRec = string.Empty;
                 TiggerRec = string.Empty;
@@ -118,7 +114,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 {
                     throw new Exception($"基恩士智能相机接收切换程式指令返回内容不匹配");
                 }
-                return TiggerRec.Split(',')[2].Trim ();
+                return TiggerRec.Split(',')[2].Trim();
 
             }
             catch (Exception ex)
@@ -144,6 +140,9 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                     throw new Exception("输入的程式名称错误");
                 }
                 string id = ProgramNumber.ToString().Split('_')[0];
+
+                _curProgrammer = await GetProgramID(token);
+
                 if (int.TryParse(id, out int flag1) && int.TryParse(_curProgrammer, out int flag2))
                 {
                     if (flag1 == flag2)
@@ -151,9 +150,6 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                         return true;
                     }
                 }
-
-
-
                 return await ChangeProgramID(id, token);
 
             }
@@ -174,8 +170,16 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 if (IsSimulated) { return "当前设备模拟模式中，触发测试！"; }
 
 
+                string TiggerStr = "RUN\r\n";
+                TiggerRec = string.Empty;
+                var rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
+                TiggerRec = Encoding.ASCII.GetString(rec);
+                if (!TiggerRec.Contains(TiggerStr))
+                {
+                    throw new Exception($"基恩士智能相机接收切换运行模式指令返回内容不匹配");
+                }
                 //string TiggerStr = "TRG\r\n";
-                string TiggerStr = "TRG\r\n";
+                TiggerStr = "TRG\r\n";
                 TiggerRec = await GetResult(TiggerStr, TimeOutMs, 1000);
                 return TiggerRec;
 
