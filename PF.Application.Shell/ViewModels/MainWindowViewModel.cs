@@ -217,7 +217,7 @@ namespace PF.Application.Shell.ViewModels
                     MenuItems.Add(item);
                 }
             });
-            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
+            //RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
         }
 
         /// <summary>

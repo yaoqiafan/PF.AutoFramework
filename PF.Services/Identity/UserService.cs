@@ -209,6 +209,7 @@ namespace PF.Services.Identity
             {
                 var paramInfos = await _paramService.GetParamsByCategoryAsync<UserLoginParam>();
 
+                var parsed = new List<UserInfo>();
                 foreach (var info in paramInfos)
                 {
                     if (string.IsNullOrWhiteSpace(info.ToString())) continue;
@@ -217,12 +218,14 @@ namespace PF.Services.Identity
                         var user = JsonSerializer.Deserialize<UserInfo>(info.Value.ToString());
                         // 过滤内置账号，不在 UI 列表中显示
                         if (user != null && !_builtInNames.Contains(user.UserName))
-                        {
-                            users.Add(user);
-                        }
+                            parsed.Add(user);
                     }
                     catch { /* 忽略解析失败的脏数据 */ }
                 }
+
+                // 按权限等级降序排列（高权限在前），等级相同时按用户名升序
+                foreach (var u in parsed.OrderByDescending(u => (int)u.Root).ThenBy(u => u.UserName))
+                    users.Add(u);
             }
             catch (Exception ex)
             {

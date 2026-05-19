@@ -145,27 +145,32 @@ namespace PF.Services.Alarm
         /// <inheritdoc/>
         public async Task<IReadOnlyList<AlarmRecord>> QueryHistoricalAlarmsAsync(
             int year = 0,
+            DateTime? startTime = null,
+            DateTime? endTime = null,
             string? category = null,
-            AlarmSeverity? minSeverity = null,
-            int pageSize = 100,
+            AlarmSeverity? severity = null,
+            string? source = null,
+            string? errorCode = null,
+            string? descriptionKeyword = null,
+            int pageSize = 5000,
             int page = 0)
         {
-            var targetYear = year > 0 ? year : DateTime.Now.Year;
+            var targetYear = year > 0 ? year : (startTime?.Year ?? DateTime.Now.Year);
 
             try
             {
                 await using var ctx = new AlarmDbContext(_dbOptions, targetYear);
                 await EnsureYearTableAsync(ctx);
 
-                var records = await ctx.AlarmRecords
+                var entities = await ctx.AlarmRecords
                     .AsNoTracking()
                     .OrderByDescending(r => r.TriggerTime)
                     .Skip(page * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // 联查字典，在内存过滤（避免 EF Core 表达式转换复杂度）
-                return records
+                // 联查字典并在内存层应用所有过滤条件
+                return entities
                     .Select(entity =>
                     {
                         var info = _dictionary.GetAlarmInfo(entity.ErrorCode);
@@ -184,8 +189,13 @@ namespace PF.Services.Alarm
                             Solution    = info.Solution
                         };
                     })
-                    .Where(r => category    == null || r.Category == category)
-                    .Where(r => minSeverity == null || r.Severity >= minSeverity)
+                    .Where(r => startTime          == null || r.TriggerTime >= startTime)
+                    .Where(r => endTime            == null || r.TriggerTime <= endTime)
+                    .Where(r => category           == null || r.Category == category)
+                    .Where(r => severity           == null || r.Severity == severity)
+                    .Where(r => source             == null || r.Source == source)
+                    .Where(r => errorCode          == null || (r.ErrorCode?.Contains(errorCode, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .Where(r => descriptionKeyword == null || (r.Message?.Contains(descriptionKeyword, StringComparison.OrdinalIgnoreCase) ?? false))
                     .ToList()
                     .AsReadOnly();
             }

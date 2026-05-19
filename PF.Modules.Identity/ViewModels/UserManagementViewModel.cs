@@ -88,6 +88,9 @@ namespace PF.Modules.Identity.ViewModels
         /// <summary>删除指定用户（带二次确认弹窗）</summary>
         public DelegateCommand<UserInfo> DeleteCommand { get; }
 
+        /// <summary>从 CoverView 展开面板直接保存指定用户（CommandParameter 传入 UserInfo）</summary>
+        public DelegateCommand<UserInfo> SaveUserCommand { get; }
+
         // ── 构造函数 ──────────────────────────────────────────────────────────
 
         /// <summary>初始化用户管理 ViewModel</summary>
@@ -108,6 +111,9 @@ namespace PF.Modules.Identity.ViewModels
             DeleteCommand    = new DelegateCommand<UserInfo>(
                 async user => await DeleteAsync(user),
                 user => user != null);
+            SaveUserCommand  = new DelegateCommand<UserInfo>(
+                async user => await SaveUserDirectAsync(user),
+                user => user != null);
         }
 
         // ── Prism 导航生命周期 ────────────────────────────────────────────────
@@ -122,6 +128,15 @@ namespace PF.Modules.Identity.ViewModels
         }
 
         // ── CRUD 实现 ─────────────────────────────────────────────────────────
+
+        private async Task SaveUserDirectAsync(UserInfo user)
+        {
+            if (user == null) return;
+            // 保存前根据当前 Root 重新计算可访问视图
+            user.AccessibleViews = PermissionHelper.GetDefaultAccessibleViews(user.Root);
+            SelectedUser = user;
+            await SaveAsync();
+        }
 
         private async Task LoadUsersAsync()
         {
