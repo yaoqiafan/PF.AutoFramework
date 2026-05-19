@@ -252,6 +252,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
                     return;
                 }
+                if (Records.Count > 100)
+                {
+                    MessageService.ShowMessage("当前列表中有超过100条数据，只有前一百条会导出图片。", "提示");
+                }
+
+                var Records1 = Records.OrderBy(x => x.RecordTime).ToList();
                 var saveDialog = new SaveFileDialog
                 {
                     Filter = "Excel 文件 (*.xlsx)|*.xlsx",
@@ -280,20 +286,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         //sheet.GetRow(0).CreateCell(14).SetCellValue("超链接");
                         for (int i = 0; i < Records?.Count; i++)
                         {
-                            sheet.CreateRow(i + 1).CreateCell(0).SetCellValue(Records[i].Data.Time);
-                            sheet.GetRow(i + 1).CreateCell(1).SetCellValue(Records[i].Data.InternalBatchId);
-                            sheet.GetRow(i + 1).CreateCell(2).SetCellValue(Records[i].Data.CustomerBatch);
-                            sheet.GetRow(i + 1).CreateCell(3).SetCellValue(Records[i].Data.WaferId);
-                            sheet.GetRow(i + 1).CreateCell(4).SetCellValue(Records[i].Data.ProductModel);
-                            sheet.GetRow(i + 1).CreateCell(5).SetCellValue(Records[i].Data.IsMatch);
-                            sheet.GetRow(i + 1).CreateCell(6).SetCellValue(Records[i].Data.ErrorMessage);
-                            sheet.GetRow(i + 1).CreateCell(7).SetCellValue(Records[i].Data.OcrText);
-                            sheet.GetRow(i + 1).CreateCell(8).SetCellValue(Records[i].Data.Barcode1);
-                            sheet.GetRow(i + 1).CreateCell(9).SetCellValue(Records[i].Data.Barcode2);
-                            sheet.GetRow(i + 1).CreateCell(10).SetCellValue(Records[i].Data.Barcode3);
-                            sheet.GetRow(i + 1).CreateCell(11).SetCellValue(Records[i].Data.OperatorId);
-                            sheet.GetRow(i + 1).CreateCell(12).SetCellValue(Records[i].Data.RecipeName);
-                            WriteImageToExcel(Records[i].Data.ImagePath, wk, sheet, i + 1, 13);
+                            sheet.CreateRow(i + 1).CreateCell(0).SetCellValue(Records1[i].Data.Time);
+                            sheet.GetRow(i + 1).CreateCell(1).SetCellValue(Records1[i].Data.InternalBatchId);
+                            sheet.GetRow(i + 1).CreateCell(2).SetCellValue(Records1[i].Data.CustomerBatch);
+                            sheet.GetRow(i + 1).CreateCell(3).SetCellValue(Records1[i].Data.WaferId);
+                            sheet.GetRow(i + 1).CreateCell(4).SetCellValue(Records1[i].Data.ProductModel);
+                            sheet.GetRow(i + 1).CreateCell(5).SetCellValue(Records1[i].Data.IsMatch);
+                            sheet.GetRow(i + 1).CreateCell(6).SetCellValue(Records1[i].Data.ErrorMessage);
+                            sheet.GetRow(i + 1).CreateCell(7).SetCellValue(Records1[i].Data.OcrText);
+                            sheet.GetRow(i + 1).CreateCell(8).SetCellValue(Records1[i].Data.Barcode1);
+                            sheet.GetRow(i + 1).CreateCell(9).SetCellValue(Records1[i].Data.Barcode2);
+                            sheet.GetRow(i + 1).CreateCell(10).SetCellValue(Records1[i].Data.Barcode3);
+                            sheet.GetRow(i + 1).CreateCell(11).SetCellValue(Records1[i].Data.OperatorId);
+                            sheet.GetRow(i + 1).CreateCell(12).SetCellValue(Records1[i].Data.RecipeName);
+                            if (i <= 100)
+                            {
+                                WriteImageToExcel(Records1[i].Data.ImagePath, wk, sheet, i + 1, 13);
+                            }
                             //var cell = sheet.GetRow(i + 1).CreateCell(14);
                             //WritehyperlinkToExcel(Records[i].Data.ImagePath, wk, cell);
                         }
@@ -383,7 +392,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                             var record = recordsSnapshot[i];
                             IRow dataRow = sheet.CreateRow(i + 1);
                             // ... (数据行填充代码与之前相同)
-                            dataRow.CreateCell(0).SetCellValue(record.Data.Time.ToString ());
+                            dataRow.CreateCell(0).SetCellValue(record.Data.Time.ToString());
                             dataRow.CreateCell(1).SetCellValue(record.Data.InternalBatchId);
                             dataRow.CreateCell(2).SetCellValue(record.Data.CustomerBatch);
                             dataRow.CreateCell(3).SetCellValue(record.Data.WaferId);
