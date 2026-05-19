@@ -9,7 +9,7 @@
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     d:DesignHeight="760"
     d:DesignWidth="1100"
-    Background="Transparent"
+    Background="{DynamicResource BackgroundBrush}"
     FontSize="{DynamicResource FontSize.H2.Title}"
     mc:Ignorable="d">
 
@@ -17,7 +17,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
 
-    <Grid Margin="5" >
+    <Grid Margin="5"  >
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
             <RowDefinition Height="*" />

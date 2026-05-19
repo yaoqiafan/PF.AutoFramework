@@ -1,54 +1,50 @@
 ﻿<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:system="clr-namespace:System;assembly=mscorlib"
-    xmlns:local="clr-namespace:PF.UI.Resources">
-
-    <Color x:Key="LightPrimaryColor">#E6F0FA</Color>
-    <Color x:Key="PrimaryColor">#005FB8</Color>
-    <Color x:Key="DarkPrimaryColor">#004578</Color>
-    <Color x:Key="DeepDarkPrimaryColor">#002142</Color>
-
-    <Color x:Key="LightDangerColor">#FDF3F4</Color>
-    <Color x:Key="DangerColor">#D13438</Color>
-    <Color x:Key="DarkDangerColor">#A4262C</Color>
-
-    <Color x:Key="LightWarningColor">#FFF8F0</Color>
-    <Color x:Key="WarningColor">#D83B01</Color>
-    <Color x:Key="DarkWarningColor">#A80000</Color>
-
-    <Color x:Key="LightInfoColor">#F3F9FD</Color>
+    xmlns:local="clr-namespace:PF.UI.Resources"
+    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <!-- 品牌主色：保持不变，确保品牌一致性 -->
+    <Color x:Key="LightPrimaryColor">#3BD9B6</Color>
+    <Color x:Key="PrimaryColor">#02AD8B</Color>
+    <Color x:Key="DarkPrimaryColor">#01856A</Color>
+    <Color x:Key="DeepDarkPrimaryColor">#E6F7F2</Color>
+    <!-- 状态色：Light 改为浅色背景（用于亮色主题下的容器底色），主色和 Dark 保持饱和度 -->
+    <Color x:Key="LightDangerColor">#FDECEE</Color>
+    <Color x:Key="DangerColor">#E81123</Color>
+    <Color x:Key="DarkDangerColor">#A80000</Color>
+    <Color x:Key="LightWarningColor">#FFF8E0</Color>
+    <Color x:Key="WarningColor">#FFB900</Color>
+    <Color x:Key="DarkWarningColor">#CC9400</Color>
+    <Color x:Key="LightInfoColor">#E5F1FB</Color>
     <Color x:Key="InfoColor">#0078D4</Color>
     <Color x:Key="DarkInfoColor">#005A9E</Color>
-
-    <Color x:Key="LightSuccessColor">#F1FAF5</Color>
-    <Color x:Key="SuccessColor">#107C41</Color>
-    <Color x:Key="DarkSuccessColor">#0B5A2F</Color>
-
-    <Color x:Key="PrimaryTextColor">#242424</Color>
-    <Color x:Key="SecondaryTextColor">#605E5C</Color>
-    <Color x:Key="ThirdlyTextColor">#A19F9D</Color>
+    <Color x:Key="LightSuccessColor">#E3F4EA</Color>
+    <Color x:Key="SuccessColor">#10893E</Color>
+    <Color x:Key="DarkSuccessColor">#0A5C29</Color>
+    <!-- 文字色：反转 -->
+    <Color x:Key="PrimaryTextColor">#0A0A0A</Color>
+    <Color x:Key="SecondaryTextColor">#3D3D3D</Color>
+    <Color x:Key="ThirdlyTextColor">#888888</Color>
     <Color x:Key="ReverseTextColor">#FFFFFF</Color>
-    <Color x:Key="TextIconColor">#323130</Color>
-
-    <Color x:Key="BorderColor">#E1DFDD</Color>
-    <Color x:Key="SecondaryBorderColor">#EDEBE9</Color>
-
-    <Color x:Key="BackgroundColor">#F3F4F6</Color>
-    <Color x:Key="RegionColor">#FFFFFF</Color>
-    <Color x:Key="SecondaryRegionColor">#F8F9FA</Color>
-    <Color x:Key="ThirdlyRegionColor">#EAECEF</Color>
-    <Color x:Key="TitleColor">#242424</Color>
-    <Color x:Key="SecondaryTitleColor">#005FB8</Color>
-
-    <Color x:Key="DefaultColor">#FFFFFF</Color>
-    <Color x:Key="DarkDefaultColor">#F3F2F1</Color>
-
-    <Color x:Key="AccentColor">#005FB8</Color>
-    <Color x:Key="DarkAccentColor">#004578</Color>
-
-    <Color x:Key="DarkMaskColor">#4D000000</Color>
-    <Color x:Key="DarkOpacityColor">#1A000000</Color>
-    <system:UInt32 x:Key="BlurGradientValue">0x99FFFFFF</system:UInt32>
-
+    <Color x:Key="TextIconColor">#0A0A0A</Color>
+    <!-- 边框：使用更浅的灰阶 -->
+    <Color x:Key="BorderColor">#D0D0D0</Color>
+    <Color x:Key="SecondaryBorderColor">#E8E8E8</Color>
+    <!-- 背景层级：白色基底，向浅灰递进 -->
+    <Color x:Key="BackgroundColor">#FFFFFF</Color>
+    <Color x:Key="RegionColor">#F7F7F7</Color>
+    <Color x:Key="SecondaryRegionColor">#F0F0F0</Color>
+    <Color x:Key="ThirdlyRegionColor">#E5E5E5</Color>
+    <!-- 标题：主标题用深色，副标题保持品牌色 -->
+    <Color x:Key="TitleColor">#0A0A0A</Color>
+    <Color x:Key="SecondaryTitleColor">#02AD8B</Color>
+    <!-- 默认/Accent：Default 变浅，Accent 保持品牌色 -->
+    <Color x:Key="DefaultColor">#E0E0E0</Color>
+    <Color x:Key="DarkDefaultColor">#F0F0F0</Color>
+    <Color x:Key="AccentColor">#02AD8B</Color>
+    <Color x:Key="DarkAccentColor">#01856A</Color>
+    <!-- 遮罩：黑色半透明（亮色主题下叠加遮罩仍用黑色才有视觉压暗效果） -->
+    <Color x:Key="DarkMaskColor">#80000000</Color>
+    <Color x:Key="DarkOpacityColor">#33000000</Color>
+    <system:UInt32 x:Key="BlurGradientValue">0xCCFFFFFF</system:UInt32>
 </ResourceDictionary>
