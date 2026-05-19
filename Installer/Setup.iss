@@ -33,26 +33,32 @@ DefaultDirName={autopf}\{#AppPublisher}\PFAutoFramework
 DefaultGroupName={#AppPublisher}\{#AppName}
 DisableProgramGroupPage=yes
 
-; Language selection dialog before wizard
-ShowLanguageDialog=yes
+; Auto-detect language from system locale; override with /LANG=english on command line
+ShowLanguageDialog=no
+LanguageDetectionMethod=locale
 
 OutputDir=Output
 OutputBaseFilename=PFAutoFramework_Setup_{#AppVersion}
 SetupIconFile=..\PF.Application.Shell\-pfico.ico
+UninstallDisplayIcon=..\PF.Application.Shell\-pfico.ico
 
-; Modern style + dark left-panel background (closest to dark theme without custom images)
+; Compression
 Compression=lzma2/ultra64
 SolidCompression=yes
-WizardStyle=modern
+
+; Wizard appearance — dark theme (IS 6.6.0+: append "dark"/"dynamic" to WizardStyle)
+WizardStyle=modern dark
 WizardResizable=yes
-WizardImageBackColor=$00222222
+WizardImageFile=Assets\wizard_banner.png
+WizardImageBackColor=$002E1B13
+WizardBackImageFile=Assets\wizard_bg.png
+WizardBackImageOpacity=220
 
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
 
 Uninstallable=yes
 UninstallDisplayName={#AppName} {#AppVersion}
-UninstallDisplayIcon={app}\{#AppExeName}
 
 ; =============================================================================
 ; Chinese Simplified first = default selection in language dialog
