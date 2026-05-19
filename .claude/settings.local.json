@@ -22,7 +22,12 @@
       "Bash(grep -v \"//\\\\|\\\\.csproj\\\\|obj\\\\\\\\\")",
       "Bash(grep -v \"//\")",
       "Bash(grep -v \"//.*new List\")",
-      "Bash(xargs grep -l \"ParseSecsBytes\\\\|ParseMessage\")"
+      "Bash(xargs grep -l \"ParseSecsBytes\\\\|ParseMessage\")",
+      "PowerShell(Get-ChildItem \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\PF.Application.Shell\\\\\" | Where-Object { $_.Name -match \"\\\\.\\(ico|bmp|png|jpg\\)$\" } | Select-Object FullName)",
+      "WebFetch(domain:jrsoftware.org)",
+      "WebSearch",
+      "PowerShell(Get-ChildItem \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Installer\\\\Assets\\\\\" | Select-Object Name, @{N='Size\\(KB\\)';E={[math]::Round\\($_.Length/1KB,1\\)}})",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
