@@ -6,8 +6,8 @@ using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Infrastructure.Communication.TCP;
 using PF.Infrastructure.Logging;
-using PF.SecsGem.DataBase.Entities.System;
 using PF.Infrastructure.SecsGem.Tools;
+using PF.SecsGem.DataBase.Entities.System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
@@ -23,6 +23,8 @@ namespace PF.SecsGem.Service
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly CategoryLogger _commLogger;
+        private readonly string _protocolLogPath;
+        private readonly SecsGemMessageProcessor _processor;
 
         #region Parames
         private SecsGemSystemParam? _secsGemSystemParam;
@@ -452,8 +454,10 @@ namespace PF.SecsGem.Service
         /// </summary>
         public Worker(ILogService logService, IServiceScopeFactory scopeFactory)
         {
-            _commLogger = CategoryLoggerFactory.Communication(logService);
-            _scopeFactory = scopeFactory;
+            _commLogger      = CategoryLoggerFactory.Communication(logService);
+            _scopeFactory    = scopeFactory;
+            _protocolLogPath = Path.Combine(logService.GetConfiguration().BasePath, "Protocol");
+            _processor       = new SecsGemMessageProcessor(logService);
         }
 
         /// <summary>执行后台任务</summary>
@@ -538,37 +542,35 @@ namespace PF.SecsGem.Service
 
         private static readonly object locker = new object();
 
-        private string logpath = $"D:\\SWLog\\SecsGemService";
         private void WriteCustomLog((string, byte[]) info)
         {
-            Task.Factory.StartNew(() =>
+            lock (locker)
             {
-                lock (locker)
+                try
                 {
-                    try
-                    {
-                        StringBuilder strFile = new StringBuilder();
-                        strFile.AppendFormat("{0}\\{1}\\{2}\\", logpath, DateTime.Now.Year.ToString(), DateTime.Now.Month.ToString());
-                        if (!Directory.Exists(strFile.ToString()))
-                        {
-                            Directory.CreateDirectory(strFile.ToString());
-                        }
-                        strFile.Append(DateTime.Now.ToString("yyyy-MM-dd") + ".log");
-                        string SecsGem = ByteArrayToHexStringWithSeparator(info.Item2);
+                    if (!Directory.Exists(_protocolLogPath))
+                        Directory.CreateDirectory(_protocolLogPath);
 
-                        using (StreamWriter swAppend = File.AppendText(strFile.ToString()))
-                        {
-                            StringBuilder str = new StringBuilder();
-                            str.AppendFormat("[{0}] [{1}]   [{2}]", DateTime.Now, info.Item1, SecsGem);
-                            swAppend.WriteLine(str.ToString());
-                        }
-                    }
-                    catch (Exception ex)
+                    string logFile = Path.Combine(_protocolLogPath,
+                        $"Protocol_{DateTime.Now:yyyy-MM-dd}.log");
+                    string hexStr  = ByteArrayToHexStringWithSeparator(info.Item2);
+                    bool isIncoming = info.Item1 == "接收主机";
+
+                    using var sw = File.AppendText(logFile);
+                    sw.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss,fff}] [{info.Item1}] [{hexStr}]");
+
+                    var msg = _processor.ParseSecsBytes(info.Item2);
+                    if (msg != null)
                     {
-                        _commLogger.Error("WriteCustomLog 任务错误", ex);
+                        msg.IsIncoming = isIncoming;
+                        sw.Write(msg.ToString());
                     }
                 }
-            });
+                catch (Exception ex)
+                {
+                    _commLogger.Error("WriteCustomLog 写入失败", ex);
+                }
+            }
         }
 
         /// <summary>

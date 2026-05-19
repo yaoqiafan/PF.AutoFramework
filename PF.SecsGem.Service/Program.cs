@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PF.Core.Constants;
+using PF.Core.Entities.Configuration;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.SecsGem.DataBase;
@@ -39,7 +40,7 @@ public class Program
             })
             .ConfigureServices((hostContext, services) =>
             {
-                services.AddSingleton<ILogService>(LogService.Instance);
+                services.AddSingleton<ILogService>(_ => CreateServiceLogService());
                 ConfigureDatabase(services);
                 // ע��Worker��Ϊ��̨����
                 services.AddHostedService<Worker>();
@@ -62,6 +63,24 @@ public class Program
                 logging.AddConsole();
             });
 
+
+    private static ILogService CreateServiceLogService()
+    {
+        var config = new LogConfiguration
+        {
+            BasePath               = "D://PF_Logs/SecsGem/Service",
+            HistoricalLogPath      = "D://PF_Logs/SecsGem/Service",
+            EnableConsoleLogging   = true,
+            EnableFileLogging      = true,
+            EnableUiLogging        = false,
+            MinimumLevel           = PF.Core.Enums.LogLevel.Debug,
+            AutoDeleteLogs         = true,
+            AutoDeleteIntervalDays = 30,
+            SplitByHour            = false
+        };
+        config.AddCategory(LogCategories.Communication, PF.Core.Enums.LogLevel.Debug, LogCategories.Communication);
+        return new LogService(config);
+    }
 
     private static void ConfigureDatabase(IServiceCollection services)
     {

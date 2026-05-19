@@ -10,7 +10,6 @@ namespace PF.Core.Entities.Configuration
     /// <summary>
     /// 日志分类配置
     /// </summary>
-    // 在CategoryConfig类中添加
     public class CategoryConfig
     {
         /// <summary>
@@ -42,6 +41,11 @@ namespace PF.Core.Entities.Configuration
         /// 文件滚动方式
         /// </summary>
         public RollingMode RollingMode { get; set; } = RollingMode.Date;
+
+        /// <summary>
+        /// 独立根目录。设置后完全覆盖全局 BasePath + 分类子文件夹拼接逻辑。
+        /// </summary>
+        public string? BasePathOverride { get; set; }
     }
 
     /// <summary>
