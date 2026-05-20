@@ -25,7 +25,7 @@ namespace PF.Modules.Identity.Views
         public LoginView(IContainerExtension containerExtension)
         {
             InitializeComponent();
-            this.DataContext = containerExtension.Resolve<LoginViewModel>();
+            //this.DataContext = containerExtension.Resolve<LoginViewModel>();
         }
     }
 }

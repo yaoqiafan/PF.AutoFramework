@@ -20,8 +20,8 @@ namespace PF.Modules.Identity
         /// <summary>注册身份模块的视图和服务</summary>
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterSingleton<LoginViewModel>();
-            containerRegistry.RegisterForNavigation<LoginView>(NavigationConstants.Dialogs.LoginView);
+            //containerRegistry.RegisterSingleton<LoginViewModel>();
+            containerRegistry.RegisterForNavigation<LoginView, LoginViewModel>(NavigationConstants.Dialogs.LoginView);
             containerRegistry.RegisterForNavigation<PagePermissionView, PagePermissionViewModel>(NavigationConstants.Views.PagePermissionView);
             containerRegistry.RegisterForNavigation<UserManagementView, UserManagementViewModel>(NavigationConstants.Views.UserManagementView);
         }
