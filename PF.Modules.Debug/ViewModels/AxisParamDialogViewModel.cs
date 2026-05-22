@@ -22,6 +22,7 @@ namespace PF.Modules.Debug.ViewModels
 
             CancelCommand = new DelegateCommand(() =>
             {
+                LogService.Info($"[轴参数] 用户[{CurrentUserName}] 取消修改轴参数", "操作日志");
                 RequestClose.Invoke(new DialogResult()
                 {
                     Result = ButtonResult.Cancel,
@@ -56,11 +57,15 @@ namespace PF.Modules.Debug.ViewModels
             if (ParamInstence == null)
                 return;
 
-            // 创建对话框参数，用于传递回调数据
+            LogService.Info(
+                $"[轴参数] 用户[{CurrentUserName}] 确认修改轴参数 | " +
+                $"速度:{ParamInstence.Vel} 加速度:{ParamInstence.Acc} 减速度:{ParamInstence.Dec} " +
+                $"定位精度:{ParamInstence.PositioningAccuracy} 回零速度:{ParamInstence.HomeVel}",
+                "操作日志");
+
             DialogParameters paras = new DialogParameters();
             paras.Add("CallBackParamItem", ParamInstence.ToModel());
 
-            // 触发对话框关闭请求，返回确认结果和参数
             RequestClose.Invoke(new DialogResult()
             {
                 Result = ButtonResult.Yes,

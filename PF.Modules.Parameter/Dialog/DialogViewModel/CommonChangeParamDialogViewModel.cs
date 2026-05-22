@@ -17,8 +17,9 @@ namespace PF.Modules.Parameter.Dialog.DialogViewModel
 
             ConfirmCommand = new DelegateCommand(ONParamConfirmed);
 
-            CancelCommand = new DelegateCommand(() => 
+            CancelCommand = new DelegateCommand(() =>
             {
+                LogService.Info($"[参数修改] 用户[{CurrentUserName}] 取消修改参数「{SelectedParameter?.Name}」", "操作日志");
                 RequestClose.Invoke(new DialogResult()
                 {
                     Result = ButtonResult.Cancel,
@@ -91,35 +92,36 @@ namespace PF.Modules.Parameter.Dialog.DialogViewModel
             if (ValueInstance == null)
                 return;
 
+            string oldValue = SelectedParameter?.JsonValue ?? string.Empty;
+
             try
             {
-                // 从视图提取数据
                 var data = ViewFactory.ExtractDataFromView(ValueInstance);
 
                 if (data != null)
                 {
-                    // 序列化为 JSON
-                   var JsonResult = JsonSerializer.Serialize(data);
+                    var JsonResult = JsonSerializer.Serialize(data);
 
-                    // 更新原始参数
                     if (SelectedParameter != null)
                     {
                         SelectedParameter.JsonValue = JsonResult;
                     }
 
+                    LogService.Info(
+                        $"[参数修改] 用户[{CurrentUserName}] 确认修改参数「{SelectedParameter?.Name}」 | " +
+                        $"类型：{SelectedParameter?.TypeFullName} | 旧值：{oldValue} | 新值：{JsonResult}",
+                        "操作日志");
                 }
             }
             catch (Exception ex)
             {
+                LogService.Error($"[参数修改] 用户[{CurrentUserName}] 修改参数「{SelectedParameter?.Name}」失败", "操作日志", ex);
                 System.Diagnostics.Debug.WriteLine($"保存修改失败: {ex.Message}");
             }
 
-
-            // 创建对话框参数，用于传递回调数据
             DialogParameters paras = new DialogParameters();
             paras.Add("CallBackParamItem", SelectedParameter);
 
-            // 触发对话框关闭请求，返回确认结果和参数
             RequestClose.Invoke(new DialogResult()
             {
                 Result = ButtonResult.Yes,

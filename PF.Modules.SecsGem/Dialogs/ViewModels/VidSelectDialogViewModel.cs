@@ -63,6 +63,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
         private void ExecuteConfirm()
         {
             if (SelectedVidItem == null) return;
+            LogService.Info($"[VID选择] 用户[{CurrentUserName}] 选择VID | {SelectedVidItem.DisplayText}", "操作日志");
             var p = new DialogParameters();
             p.Add("SelectedVid", SelectedVidItem.Entity);
             RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters=p });
@@ -70,6 +71,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
 
         private void ExecuteCancel()
         {
+            LogService.Info($"[VID选择] 用户[{CurrentUserName}] 取消选择VID", "操作日志");
             RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
         }
 

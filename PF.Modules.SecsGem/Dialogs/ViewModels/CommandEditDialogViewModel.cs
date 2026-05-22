@@ -101,6 +101,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
                 return;
             }
 
+            LogService.Info($"[SECS命令] 用户[{CurrentUserName}] 新建命令 | S{_stream}F{_function} 名称：{_commandName}", "操作日志");
             var p = new DialogParameters();
             p.Add("Stream",      _stream);
             p.Add("Function",    _function);
@@ -110,6 +111,7 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
 
         private void ExecuteCancel()
         {
+            LogService.Info($"[SECS命令] 用户[{CurrentUserName}] 取消新建命令", "操作日志");
             RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
         }
     }

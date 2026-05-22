@@ -39,14 +39,18 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         public InputDialogViewModel()
         {
             OkCommand = new DelegateCommand(ExecuteOk);
-            CancelCommand = new DelegateCommand(() => RequestClose.Invoke(new DialogResult(ButtonResult.Cancel)));
+            CancelCommand = new DelegateCommand(() =>
+            {
+                LogService.Info($"[输入弹窗] 用户[{CurrentUserName}] 取消输入 | 标题：{Title}", "操作日志");
+                RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
+            });
         }
 
         private void ExecuteOk()
         {
-            // 将用户输入的结果通过参数返回
+            LogService.Info($"[输入弹窗] 用户[{CurrentUserName}] 确认输入 | 标题：{Title} | 内容：{InputText}", "操作日志");
             var parameters = new DialogParameters { { "InputText", InputText } };
-            RequestClose.Invoke(new DialogResult(ButtonResult.OK) {  Parameters= parameters });
+            RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters = parameters });
         }
 
         /// <summary>
