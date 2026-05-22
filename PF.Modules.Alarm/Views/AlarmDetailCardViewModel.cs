@@ -20,6 +20,10 @@ namespace PF.Modules.Alarm.Views
 
             ConfirmCommand = new DelegateCommand(() =>
             {
+                LogService.Info(
+                    $"[报警处理] 用户[{CurrentUserName}] 触发系统复位 | " +
+                    $"报警：{Alarm?.Message} | 代码：{Alarm?.ErrorCode} | 来源：{Alarm?.Source}",
+                    "操作日志");
                 _resetToken?.Dispose();
                 _resetToken = null;
                 EventAggregator.GetEvent<SystemResetRequestedEvent>().Publish();
@@ -27,7 +31,12 @@ namespace PF.Modules.Alarm.Views
             });
 
             CancelCommand = new DelegateCommand(() =>
-                RequestClose.Invoke(new DialogResult { Result = ButtonResult.Cancel }));
+            {
+                LogService.Info(
+                    $"[报警处理] 用户[{CurrentUserName}] 查看报警详情后关闭（未复位） | 报警：{Alarm?.Message}",
+                    "操作日志");
+                RequestClose.Invoke(new DialogResult { Result = ButtonResult.Cancel });
+            });
         }
 
         private AlarmRecord _AlarmRecord;

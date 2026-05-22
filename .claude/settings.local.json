@@ -27,7 +27,16 @@
       "WebFetch(domain:jrsoftware.org)",
       "WebSearch",
       "PowerShell(Get-ChildItem \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Installer\\\\Assets\\\\\" | Select-Object Name, @{N='Size\\(KB\\)';E={[math]::Round\\($_.Length/1KB,1\\)}})",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(Select-Object -First 20 FullName)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\" -Recurse -Directory | Select-Object -First 30 FullName | ForEach-Object { $_ })",
+      "Bash(xargs grep -l \"IsVisible\\\\|Visibility\\\\|ShowDialog\")",
+      "Bash(xargs grep -l \"Background.*Black\\\\|Opacity\\\\|Foreground.*#\")",
+      "Bash(grep -E \"\\\\.\\(xaml|cs\\)$\")",
+      "Bash(xargs grep -l \"xmlns:pf.*Window\\\\|<pf:Window\\\\|<Window\")",
+      "Bash(xargs grep -l \"class.*Window\\\\|class.*Dialog\\\\|ShowDialog\\\\|IsVisible\\\\|IsOpen\")",
+      "Bash(xargs grep -l \"<Window\\\\|<Popup\\\\|<UserControl\")",
+      "Bash(xargs grep -l \"IsVisible\\\\|Visibility.*Binding\\\\|ShowDialog\")"
     ]
   }
 }

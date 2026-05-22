@@ -27,23 +27,22 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
             Message = parameters.GetValue<string>("Message") ?? "请稍候，正在处理中...";
             Title = parameters.GetValue<string>("Title") ?? "请稍候";
 
-            // 核心机制：获取外部传入的后台任务
+            LogService.Info($"[等待弹窗] 用户[{CurrentUserName}] 触发等待任务 | 标题：{Title} | 内容：{Message}", "操作日志");
+
             var workAction = parameters.GetValue<Func<Task>>("WorkAction");
             if (workAction != null)
             {
                 try
                 {
-                    // 执行外部的耗时任务
                     await workAction();
+                    LogService.Info($"[等待弹窗] 等待任务完成 | 标题：{Title}", "操作日志");
                 }
                 catch (Exception ex)
                 {
-                    // 处理异常（可选：调用系统错误提示）
-                    // ILogService.Error(ex);
+                    LogService.Error($"[等待弹窗] 等待任务异常 | 标题：{Title}", "操作日志", ex);
                 }
                 finally
                 {
-                    // 任务执行完毕后，自己关闭自己！
                     RequestClose.Invoke(new DialogResult(ButtonResult.OK));
                 }
             }

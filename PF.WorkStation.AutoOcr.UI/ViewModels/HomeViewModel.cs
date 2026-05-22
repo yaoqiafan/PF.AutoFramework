@@ -3,6 +3,7 @@ using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
@@ -32,6 +33,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         private readonly WSDataModule? _dataModule;
         private readonly IUserService _userService;
+        private readonly ILogService _logService;
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IMasterController _controller;
         private readonly DispatcherTimer _pollTimer;
@@ -487,10 +489,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion
 
         /// <summary>初始化 HomeViewModel</summary>
-        public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller,IParamService paramService )
+        public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller, IParamService paramService, ILogService logService)
         {
             _paramService = paramService;
             _controller = controller;
+            _logService = logService;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _userService = userService;
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
@@ -873,6 +876,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         private void OnStation1UnloadConfirm()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info($"[人工判定] 用户[{user}] 确认工位1人工下料完成 | 批次：{Station1InternalBatches}", "操作日志");
             Station1UnloadMaskVisible = false;
             _sync.Release(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
         }
@@ -882,6 +887,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         private void OnStation2UnloadConfirm()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info($"[人工判定] 用户[{user}] 确认工位2人工下料完成 | 批次：{Station2InternalBatches}", "操作日志");
             Station2UnloadMaskVisible = false;
             _sync.Release(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
         }
@@ -908,12 +915,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnOcrRetry()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info(
+                $"[人工判定] 用户[{user}] 选择重试OCR拍照 | " +
+                $"批次：{OcrMismatchInternalBatchId} | 原OCR值：{OcrMismatchOcrText}",
+                "操作日志");
             _ocrMismatchPayload?.Tcs.TrySetResult(new OcrMismatchResult { Action = OcrMismatchAction.Retry });
             HideOcrMismatchOverlay();
         }
 
         private void OnOcrStartManual()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info(
+                $"[人工判定] 用户[{user}] 选择手动输入OCR | " +
+                $"批次：{OcrMismatchInternalBatchId} | 原OCR值：{OcrMismatchOcrText}",
+                "操作日志");
             Auth1Username    = string.Empty;
             Auth2Username    = string.Empty;
             Auth1DisplayName = string.Empty;
@@ -935,15 +952,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (!users.Any(u => u.UserName == Auth1Username))
             {
                 AuthErrorMessage = $"用户 [{Auth1Username}] 不存在";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员1验证失败 | 用户[{Auth1Username}]不存在 | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
             if (!await VerifyWithMesAsync(Auth1Username, _auth1Password))
             {
                 AuthErrorMessage = "MES 身份验证失败，请检查用户名和密码";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员1验证失败 | 用户[{Auth1Username}] MES认证不通过 | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
+            _logService.Info($"[人工判定] OCR双重认证-操作员1验证通过 | 用户[{Auth1Username}] | 批次：{OcrMismatchInternalBatchId}", "操作日志");
             Auth1DisplayName = Auth1Username;
             Auth2Username    = string.Empty;
             _auth2Password   = string.Empty;
@@ -963,15 +983,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (!users.Any(u => u.UserName == Auth2Username))
             {
                 AuthErrorMessage = $"用户 [{Auth2Username}] 不存在";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员2验证失败 | 用户[{Auth2Username}]不存在 | 操作员1：{Auth1DisplayName} | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
             if (!await VerifyWithMesAsync(Auth2Username, _auth2Password))
             {
                 AuthErrorMessage = "MES 身份验证失败，请检查用户名和密码";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员2验证失败 | 用户[{Auth2Username}] MES认证不通过 | 操作员1：{Auth1DisplayName} | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
+            _logService.Info($"[人工判定] OCR双重认证-操作员2验证通过 | 操作员1：{Auth1DisplayName} 操作员2：{Auth2Username} | 批次：{OcrMismatchInternalBatchId}，进入手动输入", "操作日志");
             ManualOcrText    = OcrMismatchOcrText;
             AuthErrorMessage = string.Empty;
             SetOcrMismatchState(OcrMismatchOverlayState.ManualOcr);
@@ -979,10 +1002,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnOcrConfirmManual()
         {
+            string manualText = ManualOcrText.Trim();
+            _logService.Info(
+                $"[人工判定] OCR手动输入确认 | 操作员1：{Auth1DisplayName} 操作员2：{Auth2Username} | " +
+                $"批次：{OcrMismatchInternalBatchId} | 原OCR值：{OcrMismatchOcrText} | 手动录入值：{manualText}",
+                "操作日志");
             _ocrMismatchPayload?.Tcs.TrySetResult(new OcrMismatchResult
             {
                 Action        = OcrMismatchAction.ManualInput,
-                ManualOcrText = ManualOcrText.Trim()
+                ManualOcrText = manualText
             });
             HideOcrMismatchOverlay();
         }
