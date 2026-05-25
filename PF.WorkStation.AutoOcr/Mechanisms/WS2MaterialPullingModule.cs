@@ -519,9 +519,18 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             try
             {
                 token.ThrowIfCancellationRequested(); // 【新增】入口检查
-                // 预留硬件检测叠片逻辑
-                return true;
+                                                      // 预留硬件检测叠片逻辑
+
+                bool? res1 = _io.ReadInput((int)E_InPutName.夹爪左叠料检测);
+                if (!res1.HasValue) return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected, $"获取输入信号 {E_InPutName.夹爪左叠料检测} 失败");
+
+                if (res1.Value)
+                {
+                    return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected, "检查到叠料，请人工确认是否叠料");
+                }
+                return MechResult.Success();
             }
+               
             catch (OperationCanceledException) // 【新增】拦截抛出
             {
                 throw;
