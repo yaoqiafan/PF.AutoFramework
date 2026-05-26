@@ -1,17 +1,21 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    通用安装包构建引擎。
+    Universal installer build engine.
 
 .DESCRIPTION
-    由 build-installer.bat 调用，所有配置通过环境变量传入，无需直接修改本文件。
-    执行流程：
-      1. 读取 & 解析版本号
-      2. 定位 / 安装 Inno Setup 6
-      3. dotnet publish 主程序
-      4. dotnet publish 各 Windows 服务（按 SERVICE_COUNT 循环）
-      5. 生成 _build\ 目录下的四个 ISS 片段文件
-      6. 调用 ISCC 编译安装包
+    Called by build-installer.bat. Configuration is read from installer.conf
+    (KEY=VALUE format, # comments supported). Do NOT modify this file per project.
+
+    Steps:
+      0. Read installer.conf into process environment variables
+      1. Validate configuration
+      2. Parse version number
+      3. Locate / install Inno Setup 6
+      4. dotnet publish main app
+      5. dotnet publish each Windows service (looped via SERVICE_COUNT)
+      6. Generate four ISS fragment files in _build\
+      7. Run ISCC to compile the installer
 #>
 
 [CmdletBinding()]
@@ -20,66 +24,170 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# $PSScriptRoot 在通过 -File 调用时始终是脚本所在目录
 $scriptDir = $PSScriptRoot
 if (-not $scriptDir) {
     $scriptDir = Split-Path $MyInvocation.MyCommand.Path -Parent
 }
 
-# 工具函数：打印红色错误并退出（退出码 1）
 function Fail([string]$msg) {
     Write-Host ""
-    Write-Host "[错误] $msg" -ForegroundColor Red
+    Write-Host "[ERROR] $msg" -ForegroundColor Red
     exit 1
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. 读取配置（环境变量由 build-installer.bat 的 set 命令传入）
+# 0. Read installer.conf -> set as process environment variables
+# ─────────────────────────────────────────────────────────────────────────────
+$configFile = Join-Path $scriptDir 'installer.conf'
+if (-not (Test-Path $configFile)) {
+    Write-Host ""
+    Write-Host "[ERROR] installer.conf not found in: $scriptDir" -ForegroundColor Red
+    Write-Host "        Copy installer.conf from another project and edit the CONFIG values." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+Write-Host "[Config] Reading installer.conf..."
+$lineNum = 0
+foreach ($line in (Get-Content $configFile -Encoding UTF8)) {
+    $lineNum++
+    $trimmed = $line.Trim()
+    if ($trimmed -eq '' -or $trimmed.StartsWith('#')) { continue }   # blank / comment
+    $eqIdx = $trimmed.IndexOf('=')
+    if ($eqIdx -le 0) {
+        Write-Host "         [WARN] Line $lineNum ignored (no '='): $trimmed" -ForegroundColor Yellow
+        continue
+    }
+    $key   = $trimmed.Substring(0, $eqIdx).Trim()
+    $value = $trimmed.Substring($eqIdx + 1).Trim()
+    [System.Environment]::SetEnvironmentVariable($key, $value, 'Process')
+}
+Write-Host "[Config] Loaded OK  ($configFile)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. Read configuration from environment variables (populated above)
 # ─────────────────────────────────────────────────────────────────────────────
 $appName          = $env:APP_NAME
 $appPublisher     = $env:APP_PUBLISHER
 $appPublisherUrl  = if ($env:APP_PUBLISHER_URL) { $env:APP_PUBLISHER_URL } else { '' }
 $appId            = $env:APP_ID
-$appDotNetMajor   = [int]$env:APP_DOTNET_VERSION
-$appIconRel       = $env:APP_ICON          # 保持相对路径，直接写入 _config.iss
+$appDotNetMajorRaw = $env:APP_DOTNET_VERSION
+$appIconRel       = $env:APP_ICON          # kept as relative path, written as-is into _config.iss
 $mainExe          = $env:MAIN_EXE
 $mainCsprojRel    = $env:MAIN_CSPROJ
-$versionSource    = ($env:VERSION_SOURCE).ToLower()
-$versionPropsFile = Join-Path $scriptDir $env:VERSION_PROPS_FILE
+$versionSource    = if ($env:VERSION_SOURCE) { ($env:VERSION_SOURCE).ToLower() } else { '' }
+$versionPropsFileRel = $env:VERSION_PROPS_FILE
 $versionValue     = $env:VERSION_VALUE
 $buildRid         = $env:BUILD_RID
-$buildSC          = ($env:BUILD_SELF_CONTAINED).ToLower()
-$serviceCount     = [int]$env:SERVICE_COUNT
-
-$mainCsproj = Join-Path $scriptDir $mainCsprojRel
+$buildSC          = if ($env:BUILD_SELF_CONTAINED) { ($env:BUILD_SELF_CONTAINED).ToLower() } else { '' }
+$serviceCountRaw  = $env:SERVICE_COUNT
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. 解析版本号
+# 1b. Validate all configuration (moved here from bat for reliability)
+# ─────────────────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "[CHECK] Validating configuration..."
+
+if (-not $appName)    { Fail "APP_NAME is empty" }
+if (-not $appPublisher) { Fail "APP_PUBLISHER is empty" }
+if (-not $appId)      { Fail "APP_ID is empty" }
+if (-not $mainExe)    { Fail "MAIN_EXE is empty" }
+if (-not $buildRid)   { Fail "BUILD_RID is empty" }
+
+# GUID format
+try   { [System.Guid]::Parse($appId) | Out-Null }
+catch { Fail "APP_ID is not a valid GUID: '$appId'`nExpected: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`nGenerate: [guid]::NewGuid() in PowerShell" }
+
+# APP_DOTNET_VERSION must be a positive integer
+$appDotNetMajor = 0
+if (-not [int]::TryParse($appDotNetMajorRaw, [ref]$appDotNetMajor) -or $appDotNetMajor -le 0) {
+    Fail "APP_DOTNET_VERSION must be a positive integer (current: '$appDotNetMajorRaw')"
+}
+
+# APP_ICON file must exist
+$appIconAbs = Join-Path $scriptDir $appIconRel
+if (-not (Test-Path $appIconAbs)) { Fail "Icon file not found: $appIconRel" }
+
+# MAIN_CSPROJ must exist
+$mainCsproj = Join-Path $scriptDir $mainCsprojRel
+if (-not (Test-Path $mainCsproj)) { Fail "Main project file not found: $mainCsprojRel" }
+
+# VERSION_SOURCE enum
+if ($versionSource -notin @('auto','manual')) {
+    Fail "VERSION_SOURCE must be 'auto' or 'manual' (current: '$versionSource')"
+}
+if ($versionSource -eq 'auto') {
+    $versionPropsFile = Join-Path $scriptDir $versionPropsFileRel
+    if (-not (Test-Path $versionPropsFile)) { Fail "Version props file not found: $versionPropsFileRel" }
+} else {
+    if (-not $versionValue) { Fail "VERSION_VALUE cannot be empty when VERSION_SOURCE=manual" }
+}
+
+# BUILD_SELF_CONTAINED enum
+if ($buildSC -notin @('true','false')) {
+    Fail "BUILD_SELF_CONTAINED must be 'true' or 'false' (current: '$buildSC')"
+}
+
+# SERVICE_COUNT non-negative integer
+$serviceCount = 0
+if (-not [int]::TryParse($serviceCountRaw, [ref]$serviceCount) -or $serviceCount -lt 0) {
+    Fail "SERVICE_COUNT must be a non-negative integer (current: '$serviceCountRaw')"
+}
+
+# Validate each service
+for ($i = 1; $i -le $serviceCount; $i++) {
+    $sCsprojRel = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_CSPROJ")
+    $sExe    = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_EXE")
+    $sSubdir = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_SUBDIR")
+    $sName   = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_NAME")
+    $sDName  = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_DISPLAY_NAME")
+    $sDesc   = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_DESCRIPTION")
+    $sSFRaw  = [System.Environment]::GetEnvironmentVariable("SERVICE${i}_SINGLE_FILE")
+
+    if (-not $sCsprojRel) { Fail "SERVICE${i}_CSPROJ is empty" }
+    $sCsproj = Join-Path $scriptDir $sCsprojRel
+    if (-not (Test-Path $sCsproj))  { Fail "Service $i project not found: $sCsprojRel" }
+    if (-not $sExe)    { Fail "SERVICE${i}_EXE is empty" }
+    if (-not $sSubdir) { Fail "SERVICE${i}_SUBDIR is empty" }
+    if (-not $sName)   { Fail "SERVICE${i}_NAME is empty" }
+    if ($sName -match '\s') { Fail "SERVICE${i}_NAME must not contain spaces (current: '$sName')" }
+    if (-not $sDName)  { Fail "SERVICE${i}_DISPLAY_NAME is empty" }
+    if (-not $sDesc)   { Fail "SERVICE${i}_DESCRIPTION is empty" }
+    $sSF = if ($sSFRaw) { $sSFRaw.ToLower() } else { '' }
+    if ($sSF -notin @('true','false')) {
+        Fail "SERVICE${i}_SINGLE_FILE must be 'true' or 'false' (current: '$sSFRaw')"
+    }
+}
+
+Write-Host "[CHECK] All configuration OK"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. Resolve version number
 # ─────────────────────────────────────────────────────────────────────────────
 if ($versionSource -eq 'auto') {
     if (-not (Test-Path $versionPropsFile)) {
-        Fail "找不到 props 文件：$versionPropsFile"
+        Fail "Props file not found: $versionPropsFile"
     }
     $raw = Get-Content -Raw $versionPropsFile
     $m   = [regex]::Match($raw, '<Version>([^<]+)</Version>')
     if (-not $m.Success) {
-        Fail "在 $(Split-Path $versionPropsFile -Leaf) 中找不到 <Version> 标签"
+        Fail "<Version> tag not found in $(Split-Path $versionPropsFile -Leaf)"
     }
     $version = $m.Groups[1].Value.Trim()
-    Write-Host "[版本] 从 props 文件读取: $version"
+    Write-Host "[Version] Read from props file: $version"
 }
 else {
     $version = $versionValue.Trim()
-    if (-not $version) { Fail 'VERSION_SOURCE=manual 时 VERSION_VALUE 不能为空' }
-    Write-Host "[版本] 手动指定: $version"
+    if (-not $version) { Fail 'VERSION_VALUE cannot be empty when VERSION_SOURCE=manual' }
+    Write-Host "[Version] Manual: $version"
 }
 
-# VersionInfoVersion 需要四段数字（如 1.2.3.0）
+# VersionInfoVersion requires four numeric segments (e.g. 1.2.3.0)
 $vParts = @($version -split '\.') + @('0', '0', '0', '0')
 $v4 = "$($vParts[0]).$($vParts[1]).$($vParts[2]).$($vParts[3])"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. 定位 / 安装 Inno Setup 6
+# 3. Locate / install Inno Setup 6
 # ─────────────────────────────────────────────────────────────────────────────
 function Find-ISCC {
     $candidates = @(
@@ -98,56 +206,61 @@ function Find-ISCC {
 $iscc = Find-ISCC
 if (-not $iscc) {
     Write-Host ""
-    Write-Host "[提示] 未找到 Inno Setup 6，尝试安装..."
+    Write-Host "[INFO] Inno Setup 6 not found, attempting installation..."
     $bundled = Join-Path $scriptDir 'innosetup-6.7.1.exe'
     if (Test-Path $bundled) {
-        Write-Host "      使用随包安装程序: $bundled"
+        Write-Host "       Using bundled installer: $bundled"
         Start-Process -FilePath $bundled -ArgumentList '/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES' -Wait
     }
     else {
-        Write-Host "      随包文件不存在，尝试 winget..."
+        Write-Host "       Bundled installer not found, trying winget..."
         & winget install --id JRSoftware.InnoSetup -e -s winget --silent
     }
     $iscc = Find-ISCC
     if (-not $iscc) {
-        Fail 'Inno Setup 安装后仍找不到 ISCC.exe，请重启命令行后重试'
+        Fail 'ISCC.exe still not found after installation. Please restart your terminal and retry.'
     }
 }
 Write-Host "[ISCC] $iscc"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. 构建摘要
+# 4. Clean previous build artifacts (publish\, Output\, _build\)
 # ─────────────────────────────────────────────────────────────────────────────
-Write-Host ""
-Write-Host "================================================================"
-Write-Host "  软件名称 : $appName"
-Write-Host "  发布者   : $appPublisher"
-Write-Host "  版本号   : $version  (VersionInfo: $v4)"
-Write-Host "  主程序   : $mainExe"
-Write-Host "  RID      : $buildRid  SelfContained=$buildSC"
-Write-Host "  服务数量 : $serviceCount"
-Write-Host "================================================================"
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. 清理旧产物
-# ─────────────────────────────────────────────────────────────────────────────
-Write-Host ""
-Write-Host "[1/5] 清理旧产物..."
 $publishDir = Join-Path $scriptDir 'publish'
 $outputDir  = Join-Path $scriptDir 'Output'
 $buildDir   = Join-Path $scriptDir '_build'
 
+Write-Host ""
+Write-Host "[Clean] Removing previous build artifacts..."
 foreach ($d in @($publishDir, $outputDir, $buildDir)) {
-    if (Test-Path $d) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $d) {
+        $label = (Resolve-Path $d -ErrorAction SilentlyContinue)
+        if (-not $label) { $label = $d }
+        Remove-Item $d -Recurse -Force
+        Write-Host "        Deleted  $label"
+    }
     New-Item $d -ItemType Directory -Force | Out-Null
 }
-Write-Host "       publish\  Output\  _build\ 已重置"
+Write-Host "[Clean] Done"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6. Publish 主程序
+# 5. Build summary
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[2/5] 发布主程序 $(Split-Path $mainCsproj -Leaf)..."
+Write-Host "================================================================"
+Write-Host "  App name   : $appName"
+Write-Host "  Publisher  : $appPublisher"
+Write-Host "  Version    : $version  (VersionInfo: $v4)"
+Write-Host "  Main exe   : $mainExe"
+Write-Host "  RID        : $buildRid  SelfContained=$buildSC"
+Write-Host "  Services   : $serviceCount"
+Write-Host "================================================================"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Publish main app
+# ─────────────────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "[1/4] Publishing main app: $(Split-Path $mainCsproj -Leaf)..."
 $shellOut = Join-Path $publishDir 'Shell'
 
 $mainArgs = @(
@@ -161,11 +274,11 @@ $mainArgs = @(
     '--nologo', '-v', 'quiet'
 )
 & dotnet @mainArgs
-if ($LASTEXITCODE -ne 0) { Fail "主程序 publish 失败，退出码 $LASTEXITCODE" }
-Write-Host "       → publish\Shell\"
+if ($LASTEXITCODE -ne 0) { Fail "Main app publish failed (exit code $LASTEXITCODE)" }
+Write-Host "       -> publish\Shell\"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7. Publish 各 Windows 服务
+# 7. Publish Windows services
 # ─────────────────────────────────────────────────────────────────────────────
 $serviceInfos = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -180,7 +293,7 @@ for ($i = 1; $i -le $serviceCount; $i++) {
     $sSF        = ([System.Environment]::GetEnvironmentVariable("SERVICE${i}_SINGLE_FILE")).ToLower()
 
     Write-Host ""
-    Write-Host "[3.$i/5] 发布服务 $sName ($(Split-Path $sCsproj -Leaf))..."
+    Write-Host "[2.$i/4] Publishing service $sName ($(Split-Path $sCsproj -Leaf))..."
     $svcOut = Join-Path $publishDir $sSubdir
 
     $svcArgs = @(
@@ -196,8 +309,8 @@ for ($i = 1; $i -le $serviceCount; $i++) {
     if ($sSF -eq 'true') { $svcArgs += '-p:PublishSingleFile=true' }
 
     & dotnet @svcArgs
-    if ($LASTEXITCODE -ne 0) { Fail "服务 $sName publish 失败，退出码 $LASTEXITCODE" }
-    Write-Host "       → publish\$sSubdir\"
+    if ($LASTEXITCODE -ne 0) { Fail "Service $sName publish failed (exit code $LASTEXITCODE)" }
+    Write-Host "       -> publish\$sSubdir\"
 
     $serviceInfos.Add([PSCustomObject]@{
         Exe         = $sExe
@@ -209,21 +322,21 @@ for ($i = 1; $i -le $serviceCount; $i++) {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 8. 生成 Inno Setup 片段文件（写入 _build\ 目录）
+# 8. Generate Inno Setup fragment files into _build\
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[4/5] 生成 Inno Setup 配置片段..."
+Write-Host "[3/4] Generating Inno Setup config fragments..."
 
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-$dq        = [char]34   # 双引号字符，用于在 Pascal 字符串字面量中嵌入 "
+$dq        = [char]34   # double-quote character, for embedding " inside Pascal string literals
 
-# 去除软件名中文件名非法字符，用作输出文件名前缀
+# Sanitize app name for use in output filename
 $safeName = $appName -replace '[\\/:*?"<>|]', '' -replace '\s+', '_'
 
 # ── 8a. _config.iss ──────────────────────────────────────────────────────────
-#    定义所有 #define，供 Setup.iss 通过 {#Name} 引用
+# Defines all preprocessor symbols; Setup.iss references them via {#SymbolName}
 $cfg = [System.Text.StringBuilder]::new()
-[void]$cfg.AppendLine('; 自动生成，请勿手动编辑（由 Build-Installer.ps1 生成）')
+[void]$cfg.AppendLine('; Auto-generated -- do not edit manually (generated by Build-Installer.ps1)')
 [void]$cfg.AppendLine("#define AppName         `"$appName`"")
 [void]$cfg.AppendLine("#define AppPublisher    `"$appPublisher`"")
 [void]$cfg.AppendLine("#define AppPublisherURL `"$appPublisherUrl`"")
@@ -237,18 +350,18 @@ $cfg = [System.Text.StringBuilder]::new()
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_config.iss'), $cfg.ToString(), $utf8NoBom)
 
 # ── 8b. _svc_files.iss ───────────────────────────────────────────────────────
-#    [Files] 节的服务文件条目（内嵌到 Setup.iss 的 [Files] 节）
+# [Files] section entries for service binaries; included inside Setup.iss [Files]
 $svcFiles = [System.Text.StringBuilder]::new()
-[void]$svcFiles.AppendLine('; 自动生成 — 服务文件列表')
+[void]$svcFiles.AppendLine('; Auto-generated -- service file entries')
 foreach ($svc in $serviceInfos) {
     [void]$svcFiles.AppendLine("Source: `"publish\$($svc.Subdir)\*`"; DestDir: `"{app}\$($svc.Subdir)`"; Flags: ignoreversion recursesubdirs createallsubdirs")
 }
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_svc_files.iss'), $svcFiles.ToString(), $utf8NoBom)
 
 # ── 8c. _svc_uninstall.iss ───────────────────────────────────────────────────
-#    [UninstallRun] 节的服务停止/删除命令（内嵌到 Setup.iss 的 [UninstallRun] 节）
+# [UninstallRun] entries to stop and delete services on uninstall
 $svcUninst = [System.Text.StringBuilder]::new()
-[void]$svcUninst.AppendLine('; 自动生成 — 服务卸载命令')
+[void]$svcUninst.AppendLine('; Auto-generated -- service uninstall commands')
 foreach ($svc in $serviceInfos) {
     [void]$svcUninst.AppendLine("Filename: `"{sys}\sc.exe`"; Parameters: `"stop $($svc.Name)`";   Flags: runhidden; RunOnceId: `"SvcStop_$($svc.Name)`"")
     [void]$svcUninst.AppendLine("Filename: `"{sys}\sc.exe`"; Parameters: `"delete $($svc.Name)`"; Flags: runhidden; RunOnceId: `"SvcDel_$($svc.Name)`"")
@@ -256,20 +369,20 @@ foreach ($svc in $serviceInfos) {
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_svc_uninstall.iss'), $svcUninst.ToString(), $utf8NoBom)
 
 # ── 8d. _svc_code.iss ────────────────────────────────────────────────────────
-#    [Code] 节的 Pascal 过程（内嵌到 Setup.iss 的 [Code] 节）
-#    无论是否有服务，始终定义 StopAllServices / InstallAllServices 两个过程
-#    供 Setup.iss 中的 CurStepChanged 调用
+# Pascal procedures included into Setup.iss [Code] section.
+# Always defines StopAllServices() and InstallAllServices() so that
+# CurStepChanged in Setup.iss can call them unconditionally.
 $svcCode = [System.Text.StringBuilder]::new()
-[void]$svcCode.AppendLine('; 自动生成 — 服务管理 Pascal 代码')
+[void]$svcCode.AppendLine('// Auto-generated -- service management Pascal code')
 [void]$svcCode.AppendLine('')
 
 if ($serviceInfos.Count -eq 0) {
-    # 无服务：提供空实现，保持 CurStepChanged 可正常调用
+    # No services: provide empty stubs so CurStepChanged compiles
     [void]$svcCode.AppendLine('procedure StopAllServices(); begin end;')
     [void]$svcCode.AppendLine('procedure InstallAllServices(); begin end;')
 }
 else {
-    # StopAllServices：安装前停止所有服务
+    # StopAllServices: called before file copy to allow overwriting locked binaries
     [void]$svcCode.AppendLine('procedure StopAllServices();')
     [void]$svcCode.AppendLine('var')
     [void]$svcCode.AppendLine('  ResultCode: Integer;')
@@ -281,28 +394,28 @@ else {
     [void]$svcCode.AppendLine('end;')
     [void]$svcCode.AppendLine('')
 
-    # InstallAllServices：安装后注册并启动所有服务
+    # InstallAllServices: called after files are in place
     [void]$svcCode.AppendLine('procedure InstallAllServices();')
     [void]$svcCode.AppendLine('var')
     [void]$svcCode.AppendLine('  ResultCode: Integer;')
     [void]$svcCode.AppendLine('  BinPath: String;')
     [void]$svcCode.AppendLine('begin')
     foreach ($svc in $serviceInfos) {
-        [void]$svcCode.AppendLine("  { === $($svc.Name) === }")
-        # BinPath 含双引号（供 sc.exe 解析含空格的路径）
+        [void]$svcCode.AppendLine("  { Service: $($svc.Name) }")
+        # BinPath includes double-quotes so sc.exe handles paths with spaces
         [void]$svcCode.AppendLine("  BinPath := ExpandConstant('${dq}{app}\$($svc.Subdir)\$($svc.Exe)${dq}');")
-        # 先删除旧服务注册（升级场景）
+        # Delete any previous registration (upgrade scenario)
         [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\sc.exe'), 'delete $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
         [void]$svcCode.AppendLine('  Sleep(500);')
-        # 注册新服务
+        # Register service
         [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\sc.exe'),")
         [void]$svcCode.AppendLine("    'create $($svc.Name) binPath= ' + BinPath + ' start= auto DisplayName= ${dq}$($svc.DisplayName)${dq}',")
         [void]$svcCode.AppendLine("    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
         [void]$svcCode.AppendLine('  if ResultCode = 0 then')
         [void]$svcCode.AppendLine('  begin')
-        # 写服务描述
+        # Set description
         [void]$svcCode.AppendLine("    Exec(ExpandConstant('{sys}\sc.exe'), 'description $($svc.Name) ${dq}$($svc.Description)${dq}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
-        # 启动服务
+        # Start service
         [void]$svcCode.AppendLine("    Exec(ExpandConstant('{sys}\sc.exe'), 'start $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
         [void]$svcCode.AppendLine('  end;')
     }
@@ -311,24 +424,30 @@ else {
 
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_svc_code.iss'), $svcCode.ToString(), $utf8NoBom)
 
-Write-Host "       → _build\_config.iss"
-Write-Host "       → _build\_svc_files.iss"
-Write-Host "       → _build\_svc_uninstall.iss"
-Write-Host "       → _build\_svc_code.iss"
+Write-Host "       -> _build\_config.iss"
+Write-Host "       -> _build\_svc_files.iss"
+Write-Host "       -> _build\_svc_uninstall.iss"
+Write-Host "       -> _build\_svc_code.iss"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 9. 编译 Inno Setup 安装包
+# 9. Compile installer with ISCC
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[5/5] 编译安装包..."
+Write-Host "[4/4] Compiling installer..."
 $issFile = Join-Path $scriptDir 'Setup.iss'
 & $iscc /Q $issFile
-if ($LASTEXITCODE -ne 0) { Fail "Inno Setup 编译失败，退出码 $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) { Fail "Inno Setup compilation failed (exit code $LASTEXITCODE)" }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Clean up _build\ (intermediate fragments, no longer needed)
+# ─────────────────────────────────────────────────────────────────────────────
+Remove-Item $buildDir -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "[Clean] _build\ removed"
 
 $outExe = Join-Path $outputDir "${safeName}_Setup_${version}.exe"
 Write-Host ""
 Write-Host "================================================================"
-Write-Host "  构建完成！"
-Write-Host "  安装包: $outExe"
+Write-Host "  Build complete!"
+Write-Host "  Installer: $outExe"
 Write-Host "================================================================"
 exit 0

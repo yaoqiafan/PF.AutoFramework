@@ -1,9 +1,16 @@
 <Solution>
   <Folder Name="/00.GlobalConfiguration(公共包文件管理)/">
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
     <File Path="Common.Desktop.props" />
     <File Path="Common.props" />
     <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
     <File Path="Directory.Packages.props" />
+    <File Path="nuget.config" />
+    <File Path="publish-only.bat" />
+    <File Path="push-only.bat" />
+    <File Path="README.md" />
   </Folder>
   <Folder Name="/01.Foundation (基础层)/">
     <Project Path="PF.Core/PF.Core.csproj" Id="70a66b73-fddb-4dd6-b879-ed06e0997f35" />
