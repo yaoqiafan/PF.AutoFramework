@@ -337,8 +337,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             // 仅初始化报警复位时重置全局信号量；运行期报警复位保留信号量以支持断点续跑
             if (MasterCameFromInitAlarm)
             {
-                _logger.Info("【主控】初始化报警复位，重置 global 作用域信号量...");
-                _sync.ResetScope("global");
+                _logger.Info("【主控】初始化报警复位，重置 \"复位\" 作用域信号量...");
+                _sync.ResetScope("复位");
             }
             else
             {
