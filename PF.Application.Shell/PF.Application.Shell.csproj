@@ -56,4 +56,36 @@
 	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 	  </ProjectReference>
 	</ItemGroup>
+
+  <!--
+    dotnet publish 时将所有 Prism 模块 DLL 复制到发布输出目录的 Modules\ 子目录。
+    · dotnet build  → 由 Directory.Build.targets 的 CopyModuleToOutputFolder 处理
+    · dotnet publish → 由本 target 处理（$(PublishDir) 由 MSBuild 自动设置）
+    模块项目作为 ReferenceOutputAssembly=false 的 ProjectReference，
+    其 DLL 位于各自的 bin\$(Configuration)\net8.0-windows\ 目录，
+    在 Shell publish 流程中已完成构建，路径可靠。
+  -->
+  <Target Name="CopyModulesToPublishDir" AfterTargets="Publish">
+    <PropertyGroup>
+      <_ModulesPublishDir>$(PublishDir)Modules\</_ModulesPublishDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(_ModulesPublishDir)" />
+    <ItemGroup>
+      <_ModuleDll Include="
+        $(MSBuildProjectDirectory)\..\PF.Modules.Alarm\bin\$(Configuration)\net8.0-windows\PF.Modules.Alarm.dll;
+        $(MSBuildProjectDirectory)\..\PF.Modules.Debug\bin\$(Configuration)\net8.0-windows\PF.Modules.Debug.dll;
+        $(MSBuildProjectDirectory)\..\PF.Modules.Identity\bin\$(Configuration)\net8.0-windows\PF.Modules.Identity.dll;
+        $(MSBuildProjectDirectory)\..\PF.Modules.Logging\bin\$(Configuration)\net8.0-windows\PF.Modules.Logging.dll;
+        $(MSBuildProjectDirectory)\..\PF.Modules.Parameter\bin\$(Configuration)\net8.0-windows\PF.Modules.Parameter.dll;
+        $(MSBuildProjectDirectory)\..\PF.Modules.ProductionRecord\bin\$(Configuration)\net8.0-windows\PF.Modules.Production.dll;
+        $(MSBuildProjectDirectory)\..\PF.Modules.SecsGem\bin\$(Configuration)\net8.0-windows\PF.Modules.SecsGem.dll;
+        $(MSBuildProjectDirectory)\..\PF.WorkStation.AutoOcr.UI\bin\$(Configuration)\net8.0-windows\PF.WorkStation.AutoOcr.UI.dll
+      " />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ModuleDll)"
+          DestinationFolder="$(_ModulesPublishDir)"
+          SkipUnchangedFiles="true" />
+    <Message Text="[CopyModulesToPublishDir] 已复制 @(_ModuleDll->Count()) 个模块 DLL 到 $(_ModulesPublishDir)" Importance="High" />
+  </Target>
+
 </Project>

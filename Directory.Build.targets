@@ -7,13 +7,21 @@
         </PropertyGroup>
     构建后该模块的 DLL（及 PDB）将被自动复制到 Shell 输出目录下的 Modules\ 子文件夹，
     供 DirectoryModuleCatalog 在运行时发现并加载。
+
+    注意：
+    · 使用 $(MSBuildThisFileDirectory) 而非 $(SolutionDir)。
+      当通过 dotnet publish xxx.csproj 直接发布时，$(SolutionDir) 会被解析为模块自身的
+      项目目录，导致路径错误；$(MSBuildThisFileDirectory) 始终指向本文件所在目录（解决方案根）。
+    · 本 target 仅处理 dotnet build 产生的 bin\ 输出。
+      dotnet publish 产生的发布目录由 Shell 项目内的 CopyModulesToPublishDir target 负责。
   -->
   <Target Name="CopyModuleToOutputFolder"
           AfterTargets="Build"
           Condition="'$(IsModuleProject)' == 'true'">
 
     <PropertyGroup>
-      <_ShellModulesDir>$(SolutionDir)PF.Application.Shell\bin\$(Configuration)\net8.0-windows\Modules\</_ShellModulesDir>
+      <!-- MSBuildThisFileDirectory = 解决方案根目录（含尾部斜杠），始终正确 -->
+      <_ShellModulesDir>$(MSBuildThisFileDirectory)PF.Application.Shell\bin\$(Configuration)\net8.0-windows\Modules\</_ShellModulesDir>
     </PropertyGroup>
 
     <MakeDir Directories="$(_ShellModulesDir)" Condition="!Exists('$(_ShellModulesDir)')" />
