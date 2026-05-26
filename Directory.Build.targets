@@ -1,0 +1,33 @@
+<Project>
+  <!--
+    Prism 模块构建后复制逻辑。
+    在需要动态加载的模块项目 .csproj 中添加：
+        <PropertyGroup>
+            <IsModuleProject>true</IsModuleProject>
+        </PropertyGroup>
+    构建后该模块的 DLL（及 PDB）将被自动复制到 Shell 输出目录下的 Modules\ 子文件夹，
+    供 DirectoryModuleCatalog 在运行时发现并加载。
+  -->
+  <Target Name="CopyModuleToOutputFolder"
+          AfterTargets="Build"
+          Condition="'$(IsModuleProject)' == 'true'">
+
+    <PropertyGroup>
+      <_ShellModulesDir>$(SolutionDir)PF.Application.Shell\bin\$(Configuration)\net8.0-windows\Modules\</_ShellModulesDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_ShellModulesDir)" Condition="!Exists('$(_ShellModulesDir)')" />
+
+    <!-- 复制模块主体 DLL -->
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(_ShellModulesDir)"
+          SkipUnchangedFiles="true" />
+
+    <!-- 复制 PDB（调试符号，可选） -->
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
+          DestinationFolder="$(_ShellModulesDir)"
+          Condition="Exists('$(TargetDir)$(TargetName).pdb')"
+          SkipUnchangedFiles="true" />
+
+  </Target>
+</Project>

@@ -10,6 +10,7 @@
   </ItemGroup>
 
 	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
 		<Description>异常处理展示模块：报警触发、活跃报警看板、历史查询、SOP排故面板</Description>
 	</PropertyGroup>
 </Project>

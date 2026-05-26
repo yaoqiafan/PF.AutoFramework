@@ -9,6 +9,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
 		<Description>生产数据模块：历史数据浏览、条件查询、Excel/CSV 导出</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

@@ -11,6 +11,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
 		<Description>参数管理模块：硬件与系统参数的可视化编辑与验证</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

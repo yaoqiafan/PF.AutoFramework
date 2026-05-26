@@ -15,17 +15,45 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting" />
 	</ItemGroup>
 	<ItemGroup>
+	  <!-- 业务层：Shell 的 RegisterTypes 在编译期直接使用这些类型，保持完整引用 -->
 	  <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
-	  <ProjectReference Include="..\PF.Modules.ProductionRecord\PF.Modules.Production.csproj" />
-	  <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj" />
-	  <ProjectReference Include="..\PF.Modules.Debug\PF.Modules.Debug.csproj" />
-	  <ProjectReference Include="..\PF.Modules.Identity\PF.Modules.Identity.csproj" />
-	  <ProjectReference Include="..\PF.Modules.Alarm\PF.Modules.Alarm.csproj" />
-	  <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj" />
-	  <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj" />
 	  <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
-	  <ProjectReference Include="..\PF.WorkStation.AutoOcr.UI\PF.WorkStation.AutoOcr.UI.csproj" />
 	  <ProjectReference Include="..\PF.WorkStation.AutoOcr\PF.Workstation.AutoOcr.csproj" />
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+	  <!-- 工具库（非 Prism 模块）：原经由 PF.Modules.Parameter 传递，模块解耦后必须直接引用 -->
+	  <ProjectReference Include="..\PF.CommonTools\PF.CommonTools.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <!--
+	    Prism 模块：ReferenceOutputAssembly=false
+	    · MSBuild 仍维护构建顺序（模块先于 Shell 构建）
+	    · C# 编译器不可见模块类型（编译期解耦）
+	    · 模块 DLL 由 Directory.Build.targets 复制到 bin\Modules\ 子目录
+	    · Shell 在运行时通过 DirectoryModuleCatalog 动态加载
+	  -->
+	  <ProjectReference Include="..\PF.Modules.Alarm\PF.Modules.Alarm.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.Debug\PF.Modules.Debug.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.Identity\PF.Modules.Identity.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.ProductionRecord\PF.Modules.Production.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
+	  <ProjectReference Include="..\PF.WorkStation.AutoOcr.UI\PF.WorkStation.AutoOcr.UI.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
 	</ItemGroup>
 </Project>

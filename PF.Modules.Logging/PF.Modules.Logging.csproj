@@ -11,6 +11,7 @@
   </ItemGroup>
 
 	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
 		<Description>日志查看模块：实时日志展示、分类过滤</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
