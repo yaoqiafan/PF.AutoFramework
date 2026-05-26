@@ -15,7 +15,8 @@ using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.Station;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
-using PF.Modules.Alarm.Dialogs;
+// PF.Modules.Alarm.Dialogs — module is loaded at runtime via DirectoryModuleCatalog;
+// view/window names referenced below are plain string literals to avoid compile-time coupling.
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
@@ -198,7 +199,7 @@ namespace PF.Application.Shell.ViewModels
                     { "Data", record },
                     { "ShowResetButton", record.Severity >= AlarmSeverity.Error }
                 };
-                DialogService.Show(nameof(AlarmDetailCardView), param, null, nameof(PFAlarmBaseWindow));
+                DialogService.Show("AlarmDetailCardView", param, null, "PFAlarmBaseWindow");
             }
         }
 
