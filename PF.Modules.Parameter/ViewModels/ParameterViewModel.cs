@@ -70,6 +70,30 @@ namespace PF.Modules.Parameter.ViewModels
             }
         }
 
+        #region Navigation Guard
+
+        /// <summary>
+        /// 离开导航前询问用户是否丢弃未保存的修改。
+        /// </summary>
+        public override void ConfirmNavigationRequest(NavigationContext navigationContext, Action<bool> continuationCallback)
+        {
+            if (HasUnsavedChanges)
+            {
+                MessageService.ShowMessage(
+                    "当前有未保存的参数修改，离开后将丢失更改。\n确认要离开吗？",
+                    "未保存的修改",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning,
+                    result => continuationCallback(result == ButtonResult.Yes));
+            }
+            else
+            {
+                continuationCallback(true);
+            }
+        }
+
+        #endregion
+
         #region Navigation
 
         /// <summary>
@@ -239,6 +263,17 @@ namespace PF.Modules.Parameter.ViewModels
             set => SetProperty(ref _modifiedCount, value);
         }
 
+        private bool _hasUnsavedChanges;
+        /// <summary>
+        /// 获取当前页面是否存在未保存到数据库的参数修改。
+        /// 用于离开导航时弹窗提醒。
+        /// </summary>
+        public bool HasUnsavedChanges
+        {
+            get => _hasUnsavedChanges;
+            private set => SetProperty(ref _hasUnsavedChanges, value);
+        }
+
         #endregion
 
         #region Commands
@@ -261,6 +296,18 @@ namespace PF.Modules.Parameter.ViewModels
         #endregion
 
         #region Initialization & Logic
+
+        // ── 脏标志订阅管理 ────────────────────────────────────────────
+
+        private void SubscribeParam(ParamItemViewModel p)
+            => p.PropertyChanged += OnParamItemPropertyChanged;
+
+        private void UnsubscribeParam(ParamItemViewModel p)
+            => p.PropertyChanged -= OnParamItemPropertyChanged;
+
+        /// <summary>任意参数项的属性发生变更时，标记页面为"有未保存修改"。</summary>
+        private void OnParamItemPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+            => HasUnsavedChanges = true;
 
         private void InitializeCommands()
         {
@@ -372,6 +419,10 @@ namespace PF.Modules.Parameter.ViewModels
             {
                 if (SelectedParamType == null) return;
 
+                // 取消订阅旧条目，防止 Clear 后残留引用；同步清脏标志
+                foreach (var p in Parameters)
+                    UnsubscribeParam(p);
+
                 IsLoading = true;
                 StatusMessage = "正在加载参数...";
                 Parameters.Clear();
@@ -386,7 +437,7 @@ namespace PF.Modules.Parameter.ViewModels
 
                 foreach (var paramInfo in paramInfos)
                 {
-                    Parameters.Add(new ParamItemViewModel
+                    var item = new ParamItemViewModel
                     {
                         Id = paramInfo.Id,
                         Name = paramInfo.Name,
@@ -397,12 +448,15 @@ namespace PF.Modules.Parameter.ViewModels
                         // 【修复1：删除异常】这里必须使用 FullName，否则底层反射确定仓储实体时会找不到正确的表
                         ParamType = SelectedParamType.TypeInstence.FullName,
                         JsonValue = paramInfo.Value?.ToString() ?? ""
-                    });
+                    };
+                    SubscribeParam(item); // 订阅，以便后续直接编辑时能感知脏状态
+                    Parameters.Add(item);
                 }
 
                 UpdateCounts();
                 StatusMessage = $"已加载 {Parameters.Count} 个参数";
                 ModifiedCount = 0;
+                HasUnsavedChanges = false; // 加载完成 = 数据与数据库同步
             }
             catch (Exception ex)
             {
@@ -481,6 +535,7 @@ namespace PF.Modules.Parameter.ViewModels
         {
             if (result.Result == ButtonResult.Yes)
             {
+                HasUnsavedChanges = true; // 弹窗确认修改 = 有未保存内容
                 try
                 {
                     var paramItem = result.Parameters.GetValue<ParamItemViewModel>("CallBackParamItem");
@@ -644,11 +699,13 @@ namespace PF.Modules.Parameter.ViewModels
                 ParamType = SelectedParamType.TypeInstence.FullName,
             };
 
+            SubscribeParam(newParam); // 新增条目立即监听属性变更
             Parameters.Add(newParam);
             SelectedParameter = newParam;
 
             UpdateCounts();
             ModifiedCount++;
+            HasUnsavedChanges = true; // 新增 = 有未保存内容
             StatusMessage = "已添加新参数（未保存）";
         }
 
@@ -756,6 +813,10 @@ namespace PF.Modules.Parameter.ViewModels
         /// </summary>
         public void Cleanup()
         {
+            // 取消所有参数条目的 PropertyChanged 订阅，防止内存泄漏
+            foreach (var p in Parameters)
+                UnsubscribeParam(p);
+
             if (_paramService != null)
             {
                 _paramService.ParamChanged -= OnParamChanged;

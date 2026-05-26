@@ -33,6 +33,41 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private readonly IHardwareManagerService _hardwareManagerService;
         private readonly IIntelligentCamera _camera;
 
+        // ── 脏标志追踪（逐实体，保证多程式分别编辑时状态正确）───────────
+        private readonly HashSet<OcrRecipeParamEntity> _dirtyEntities = new();
+
+        private bool _hasUnsavedChanges;
+        /// <summary>获取当前页面是否存在未保存到磁盘的程式修改。</summary>
+        public bool HasUnsavedChanges
+        {
+            get => _hasUnsavedChanges;
+            private set => SetProperty(ref _hasUnsavedChanges, value);
+        }
+
+        private void SubscribeEntity(OcrRecipeParamEntity entity)
+            => entity.PropertyChanged += OnEntityPropertyChanged;
+
+        private void UnsubscribeEntity(OcrRecipeParamEntity entity)
+            => entity.PropertyChanged -= OnEntityPropertyChanged;
+
+        private void MarkDirty(OcrRecipeParamEntity entity)
+        {
+            _dirtyEntities.Add(entity);
+            HasUnsavedChanges = true;
+        }
+
+        private void MarkClean(OcrRecipeParamEntity entity)
+        {
+            _dirtyEntities.Remove(entity);
+            HasUnsavedChanges = _dirtyEntities.Any();
+        }
+
+        private void OnEntityPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (sender is OcrRecipeParamEntity entity)
+                MarkDirty(entity);
+        }
+
         // 通过 Prism 容器注入接口
         /// <summary>
         /// OcrRecipeManageViewModel 构造函数
@@ -120,6 +155,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private async void ExecuteLoadRecipes()
         {
+            // 取消订阅旧条目，重置脏标志
+            foreach (var e in Parameters)
+                UnsubscribeEntity(e);
+            _dirtyEntities.Clear();
+            HasUnsavedChanges = false;
+
             Parameters.Clear();
 
             // 调用接口：获取所有配方
@@ -129,7 +170,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 foreach (var recipe in recipes)
                 {
-                    Parameters.Add(MapToEntity(recipe));
+                    var entity = MapToEntity(recipe);
+                    SubscribeEntity(entity); // 订阅，以便后续直接编辑时感知脏状态
+                    Parameters.Add(entity);
                 }
                 SelectedParameter = Parameters.FirstOrDefault();
             }
@@ -146,6 +189,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 CameraPrograms = _camera?.CameraProgram ?? new List<string>()
             };
 
+            SubscribeEntity(newEntity);
+            MarkDirty(newEntity); // 新建 = 未保存到磁盘
             Parameters.Add(newEntity);
             SelectedParameter = newEntity;
         }
@@ -174,6 +219,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 if (isSuccess)
                 {
+                    MarkClean(SelectedParameter); // 已持久化，标记为干净
                     MessageService.ShowMessage($"配方 [{SelectedParameter.RecipeName}] 已成功保存到本地！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
@@ -199,18 +245,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var result = await MessageService.ShowMessageAsync($"确定要彻底删除配方 [{SelectedParameter.RecipeName}] 吗？\n该操作将删除本地文件。", "警告", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result == ButtonResult.Yes)
             {
+                var entityToDelete = SelectedParameter; // 提前保存引用，防止后续 SelectedParameter 被更改
                 // 调用接口：删除指定配方
-                bool isSuccess = await _recipeService.RecipeDeleteAsync(SelectedParameter.RecipeName);
+                bool isSuccess = await _recipeService.RecipeDeleteAsync(entityToDelete.RecipeName);
 
                 if (isSuccess)
                 {
-                    Parameters.Remove(SelectedParameter);
+                    UnsubscribeEntity(entityToDelete);
+                    MarkClean(entityToDelete); // 从脏集合中移除，更新 HasUnsavedChanges
+                    Parameters.Remove(entityToDelete);
                     SelectedParameter = Parameters.FirstOrDefault();
                 }
                 else
                 {
                     // 未落盘的临时数据直接移除
-                    Parameters.Remove(SelectedParameter);
+                    UnsubscribeEntity(entityToDelete);
+                    MarkClean(entityToDelete);
+                    Parameters.Remove(entityToDelete);
                     SelectedParameter = Parameters.FirstOrDefault();
                 }
             }
@@ -300,7 +351,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var cloneparam = await _recipeService.CopyRecipeAsync(name, paramToSave);
 
             var newEntity = MapToEntity(cloneparam);
-
+            SubscribeEntity(newEntity); // 克隆已落盘，仅订阅以便后续编辑感知脏状态
             Parameters.Add(newEntity);
         }
 
@@ -340,6 +391,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         var index = Parameters.IndexOf(SelectedParameter);
                         if (index >= 0)
                         {
+                            // 旧实体：取消订阅 + 从脏集合移除
+                            var oldEntity = Parameters[index];
+                            UnsubscribeEntity(oldEntity);
+                            MarkClean(oldEntity);
+
+                            // 新实体：订阅 + 标记为脏（调试视图返回的值尚未保存到磁盘）
+                            SubscribeEntity(updatedEntity);
+                            MarkDirty(updatedEntity);
+
                             Parameters[index] = updatedEntity;
                             SelectedParameter = updatedEntity;
                         }
@@ -352,6 +412,28 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
+
+        #endregion
+
+        #region Navigation Guard
+
+        /// <summary>离开导航前询问用户是否丢弃未保存的程式修改。</summary>
+        public override void ConfirmNavigationRequest(NavigationContext navigationContext, Action<bool> continuationCallback)
+        {
+            if (HasUnsavedChanges)
+            {
+                MessageService.ShowMessage(
+                    "当前有未保存的程式修改，离开后将丢失更改。\n确认要离开吗？",
+                    "未保存的修改",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning,
+                    result => continuationCallback(result == ButtonResult.Yes));
+            }
+            else
+            {
+                continuationCallback(true);
+            }
+        }
 
         #endregion
 
