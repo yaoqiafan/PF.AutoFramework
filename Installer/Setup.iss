@@ -1,52 +1,51 @@
 #pragma codepage 65001
 ; =============================================================================
-; PF.AutoFramework - Inno Setup Script
-; Working dir: Installer\ (all relative paths based here)
-; Input:  Installer\publish\Shell\  and  Installer\publish\SecsGemService\
-; Output: Installer\Output\PFAutoFramework_Setup_x.x.x.exe
+; 通用 Inno Setup 安装脚本模板
+;
+; 正常情况下本文件无需修改。
+; 所有项目相关配置由 Build-Installer.ps1 生成到 _build\ 目录中：
+;   _build\_config.iss      — #define 宏（AppName/AppId/AppVersion/…）
+;   _build\_svc_files.iss   — [Files] 节的服务文件条目
+;   _build\_svc_uninstall.iss — [UninstallRun] 节的服务卸载命令
+;   _build\_svc_code.iss    — [Code] 节的服务管理 Pascal 过程
+;
+; 构建方式：运行 build-installer.bat
 ; =============================================================================
 
-#ifndef AppVersion
-  #define AppVersion "1.0.0"
-#endif
+; 载入自动生成的配置（所有 #define 均在此文件中定义）
+#include "_build\_config.iss"
 
-#define AppName           "PF AutoFramework"
-#define AppPublisher      "PowerFocus"
-#define AppExeName        "PF.Application.Shell.exe"
-#define ServiceExe        "PF.SecsGem.Service.exe"
-#define ServiceName       "SecsGemService"
-#define ServiceDisplayName "PF SECS/GEM 通信服务"
-
+; =============================================================================
 [Setup]
-AppId={{A3F2C1D8-7B4E-4F9A-B2E6-8D3C5F1A9E7B}
+; AppId 使用双花括号转义：{{ → {  最终结果为 {GUID}
+AppId={{{#AppId}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} v{#AppVersion}
 AppPublisher={#AppPublisher}
-AppPublisherURL=https://gitee.com/juli-intelligence/PF.AutoFramework
-VersionInfoVersion={#AppVersion}.0
+AppPublisherURL={#AppPublisherURL}
+VersionInfoVersion={#VersionInfo4}
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName} Installer v{#AppVersion}
 VersionInfoCopyright=Copyright (C) 2025 {#AppPublisher}
 
-DefaultDirName={autopf}\{#AppPublisher}\PFAutoFramework
+DefaultDirName={autopf}\{#AppPublisher}\{#AppName}
 DefaultGroupName={#AppPublisher}\{#AppName}
 DisableProgramGroupPage=yes
 
-; Auto-detect language from system locale; override with /LANG=english on command line
+; 自动按系统区域设置选择语言，命令行可用 /LANG=english 覆盖
 ShowLanguageDialog=no
 LanguageDetectionMethod=locale
 
 OutputDir=Output
-OutputBaseFilename=PFAutoFramework_Setup_{#AppVersion}
-SetupIconFile=..\PF.Application.Shell\-pfico.ico
-UninstallDisplayIcon=..\PF.Application.Shell\-pfico.ico
+OutputBaseFilename={#OutputBaseName}
+SetupIconFile={#SetupIconPath}
+UninstallDisplayIcon={#SetupIconPath}
 
-; Compression
 Compression=lzma2/ultra64
 SolidCompression=yes
 
-; Wizard appearance — dark theme (IS 6.6.0+: append "dark"/"dynamic" to WizardStyle)
+; 安装向导外观（Inno Setup 6.6+ 支持 dark 主题）
 WizardStyle=modern dark
 WizardResizable=yes
 WizardImageFile=Assets\wizard_banner.png
@@ -61,36 +60,72 @@ Uninstallable=yes
 UninstallDisplayName={#AppName} {#AppVersion}
 
 ; =============================================================================
-; Chinese Simplified first = default selection in language dialog
-; =============================================================================
 [Languages]
+; 简体中文排在第一位 = 语言对话框的默认选项
 Name: "chs";     MessagesFile: "Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 ; =============================================================================
+[Files]
+; 主程序（publish\Shell\ 下所有文件，含 Modules\ 子目录）
+Source: "publish\Shell\*"; \
+  DestDir: "{app}"; \
+  Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Windows 服务文件（无服务时此文件为空，有服务时每行一个 Source 条目）
+#include "_build\_svc_files.iss"
+
+; =============================================================================
+[Icons]
+Name: "{group}\{#AppName}";       Filename: "{app}\{#AppExeName}"
+Name: "{group}\卸载 {#AppName}";   Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+
+; =============================================================================
+[UninstallRun]
+; 服务停止/删除命令（无服务时此文件为空）
+#include "_build\_svc_uninstall.iss"
+
+; =============================================================================
+[Registry]
+Root: HKLM; \
+  Subkey: "SOFTWARE\{#AppPublisher}\{#AppName}"; \
+  ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; \
+  Flags: uninsdeletekey
+
+Root: HKLM; \
+  Subkey: "SOFTWARE\{#AppPublisher}\{#AppName}"; \
+  ValueType: string; ValueName: "Version"; ValueData: "{#AppVersion}"
+
+; =============================================================================
 [Code]
 
-function IsDotNet8Installed(): Boolean;
+{ ─── .NET 运行时检测 ──────────────────────────────────────────────────────── }
+
+function IsDotNetInstalled(): Boolean;
 var
   i: Integer;
   KeyPath: String;
   SubKeys: TArrayOfString;
   FindRec: TFindRec;
+  VerPrefix: String;
 begin
-  Result := False;
+  Result   := False;
+  VerPrefix := IntToStr({#DotNetMajorVer}) + '.';
 
-  // Method 1: registry (written by the standalone runtime installer)
+  { 方法一：注册表（由 .NET 独立运行时安装程序写入） }
   KeyPath := 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App';
   if RegGetSubkeyNames(HKLM, KeyPath, SubKeys) then
     for i := 0 to GetArrayLength(SubKeys) - 1 do
-      if Pos('8.', SubKeys[i]) = 1 then
+      if Pos(VerPrefix, SubKeys[i]) = 1 then
       begin
         Result := True;
         Exit;
       end;
 
-  // Method 2: file system (covers SDK installations where registry may differ)
-  if FindFirst(ExpandConstant('{pf}') + '\dotnet\shared\Microsoft.WindowsDesktop.App\8.*', FindRec) then
+  { 方法二：文件系统（覆盖 SDK 安装场景） }
+  if FindFirst(ExpandConstant('{pf}') + '\dotnet\shared\Microsoft.WindowsDesktop.App\' +
+               IntToStr({#DotNetMajorVer}) + '.*', FindRec) then
   begin
     FindClose(FindRec);
     Result := True;
@@ -100,97 +135,40 @@ end;
 function InitializeSetup(): Boolean;
 var
   MsgResult: Integer;
-  Msg: String;
+  Msg, VerStr: String;
 begin
   Result := True;
-  if not IsDotNet8Installed() then
+  VerStr := IntToStr({#DotNetMajorVer});
+
+  if not IsDotNetInstalled() then
   begin
     if ActiveLanguage = 'chs' then
-      Msg := '未检测到 .NET 8 Desktop Runtime。' + #13#10#13#10 +
-             '本程序需要 .NET 8 Desktop Runtime，请访问以下地址下载安装后重试：' + #13#10 +
-             'https://dotnet.microsoft.com/download/dotnet/8.0' + #13#10#13#10 +
-             '若已确认安装，点击"是"继续；否则点击"否"退出。'
+      Msg := '未检测到 .NET ' + VerStr + ' Desktop Runtime。' + #13#10#13#10 +
+             '本程序需要 .NET ' + VerStr + ' Desktop Runtime，请访问以下地址下载安装后重试：' + #13#10 +
+             'https://dotnet.microsoft.com/download/dotnet/' + VerStr + #13#10#13#10 +
+             '若已确认安装，点击「是」继续；否则点击「否」退出。'
     else
-      Msg := '.NET 8 Desktop Runtime was not detected.' + #13#10#13#10 +
-             'This application requires .NET 8 Desktop Runtime:' + #13#10 +
-             'https://dotnet.microsoft.com/download/dotnet/8.0' + #13#10#13#10 +
+      Msg := '.NET ' + VerStr + ' Desktop Runtime was not detected.' + #13#10#13#10 +
+             'This application requires .NET ' + VerStr + ' Desktop Runtime:' + #13#10 +
+             'https://dotnet.microsoft.com/download/dotnet/' + VerStr + #13#10#13#10 +
              'Click Yes to continue anyway, or No to exit.';
+
     MsgResult := MsgBox(Msg, mbConfirmation, MB_YESNO);
     Result := (MsgResult = IDYES);
   end;
 end;
 
-procedure StopSecsGemService();
-var
-  ResultCode: Integer;
-begin
-  Exec(ExpandConstant('{sys}\sc.exe'), 'stop {#ServiceName}',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(2000);
-end;
+{ ─── 服务管理过程（由 _svc_code.iss 生成，StopAllServices / InstallAllServices）── }
+{ 无服务时生成空实现；有服务时生成完整的停止和安装逻辑                               }
 
-procedure InstallSecsGemService();
-var
-  ResultCode: Integer;
-  BinPath: String;
-begin
-  BinPath := ExpandConstant('"{app}\SecsGemService\{#ServiceExe}"');
+#include "_build\_svc_code.iss"
 
-  Exec(ExpandConstant('{sys}\sc.exe'), 'delete {#ServiceName}',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(500);
-
-  Exec(ExpandConstant('{sys}\sc.exe'),
-    'create {#ServiceName} binPath= ' + BinPath +
-    ' start= auto DisplayName= "{#ServiceDisplayName}"',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
-  if ResultCode = 0 then
-  begin
-    Exec(ExpandConstant('{sys}\sc.exe'),
-      'description {#ServiceName} "PF.AutoFramework SECS/GEM 协议转发代理服务"',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Exec(ExpandConstant('{sys}\sc.exe'), 'start {#ServiceName}',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  end;
-end;
+{ ─── 安装步骤钩子 ──────────────────────────────────────────────────────────── }
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   case CurStep of
-    ssInstall:     StopSecsGemService();
-    ssPostInstall: InstallSecsGemService();
+    ssInstall:     StopAllServices();     { 覆盖安装前先停服务 }
+    ssPostInstall: InstallAllServices();  { 文件落地后注册并启动服务 }
   end;
 end;
-
-[Files]
-Source: "publish\Shell\*"; \
-  DestDir: "{app}"; \
-  Flags: ignoreversion recursesubdirs createallsubdirs
-
-Source: "publish\SecsGemService\*"; \
-  DestDir: "{app}\SecsGemService"; \
-  Flags: ignoreversion recursesubdirs createallsubdirs
-
-Source: "..\DLL\*"; \
-  DestDir: "{app}"; \
-  Flags: ignoreversion
-
-[Icons]
-Name: "{group}\{#AppName}";           Filename: "{app}\{#AppExeName}"
-Name: "{group}\卸载 {#AppName}";       Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}";     Filename: "{app}\{#AppExeName}"
-
-[UninstallRun]
-Filename: "{sys}\sc.exe"; Parameters: "stop {#ServiceName}";   Flags: runhidden; RunOnceId: "SvcStop"
-Filename: "{sys}\sc.exe"; Parameters: "delete {#ServiceName}"; Flags: runhidden; RunOnceId: "SvcDel"
-
-[Registry]
-Root: HKLM; \
-  Subkey: "SOFTWARE\{#AppPublisher}\PFAutoFramework"; \
-  ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; \
-  Flags: uninsdeletekey
-
-Root: HKLM; \
-  Subkey: "SOFTWARE\{#AppPublisher}\PFAutoFramework"; \
-  ValueType: string; ValueName: "Version"; ValueData: "{#AppVersion}"

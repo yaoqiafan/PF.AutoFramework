@@ -12,6 +12,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
 		<Description>SECS/GEM 通信模块：报文监控与发送 UI</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
