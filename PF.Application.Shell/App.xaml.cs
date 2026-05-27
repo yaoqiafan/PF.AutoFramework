@@ -37,17 +37,6 @@ using PF.Infrastructure.SecsGem.Param;
 using PF.Infrastructure.SecsGem.Tools;
 using PF.Infrastructure.Station;
 using PF.Infrastructure.Station.Basic;
-using PF.Modules.Debug;
-using PF.Modules.Identity;
-using PF.Modules.Logging;
-using PF.Modules.Parameter;
-using PF.Modules.Parameter.Dialog.Base;
-using PF.Modules.Parameter.Dialog.Mappers;
-using PF.Modules.Parameter.Dialog.Mappers.Hardware;
-using PF.Modules.Parameter.ViewModels.Models;
-using PF.Modules.Parameter.ViewModels.Models.Hardware;
-using PF.Modules.Production;
-using PF.Modules.SecsGem;
 using PF.SecsGem.DataBase;
 using PF.Services.Alarm;
 using PF.Services.Hardware;
@@ -92,6 +81,29 @@ namespace PF.Application.Shell
     /// </summary>
     public partial class App : PrismApplication
     {
+        /// <summary>
+        /// 在任何实例构造之前注册程序集解析回退。
+        /// 模块 DLL 位于 Modules\ 子目录，其依赖（PF.UI.Infrastructure 等）在父目录，
+        /// .NET 8 不会自动向上查找，此处兜底保证依赖可被找到。
+        /// 优先返回已加载的程序集，防止同一 DLL 从两个路径加载导致类型标识不一致。
+        /// </summary>
+        static App()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += static (_, args) =>
+            {
+                var shortName = new AssemblyName(args.Name).Name;
+
+                // 1. 已加载则直接返回，保证类型标识全局唯一
+                var already = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == shortName);
+                if (already != null) return already;
+
+                // 2. 回退到主目录查找
+                var path = Path.Combine(AppContext.BaseDirectory, shortName + ".dll");
+                return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+            };
+        }
+
         #region 私有字段
 
         // 定义全局唯一的互斥体名称（建议使用公司/程序唯一标识，避免冲突）
@@ -318,7 +330,6 @@ namespace PF.Application.Shell
             }
 
             containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
-            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(NavigationConstants.Views.CommonParamView);
 
 
             // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
@@ -342,19 +353,12 @@ namespace PF.Application.Shell
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
 
+            // CommonParamView / BaseParamsViewModel 依赖 Shell 专属的 CommonSettings，
+            // 必须留在 Shell 注册，不可迁移到 ParameterModule。
+            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(
+                NavigationConstants.Views.CommonParamView);
 
             RegisterUserIdentityTypes(containerRegistry);
-
-            ViewFactory.PreloadAssemblies();
-            ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
-
-            // 注册硬件配置参数视图（按 ImplementationClassName 路由）
-            ViewFactory.RegisterHardwareConfigType<LTDMCMotionCardParamView,          LTDMCMotionCardParamViewMapper>         ("LTDMCMotionCard");
-            ViewFactory.RegisterHardwareConfigType<EtherCatAxisParamView,             EtherCatAxisParamViewMapper>            ("EtherCatAxis");
-            ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
-            ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
-            ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
-            ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightControoller");
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
@@ -373,20 +377,13 @@ namespace PF.Application.Shell
         }
 
         /// <summary>
-        /// 配置模块目录，注册所有功能模块
+        /// 创建模块目录：扫描 Modules\ 子目录，自动发现并加载所有实现了 IModule 的程序集。
+        /// 模块 DLL 由各模块项目构建后通过 Directory.Build.targets 复制到该目录。
         /// </summary>
-        protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
+        protected override IModuleCatalog CreateModuleCatalog()
         {
-            base.ConfigureModuleCatalog(moduleCatalog);
-            moduleCatalog.AddModule<PF.Modules.Alarm.AlarmModule>();
-            moduleCatalog.AddModule<LoggingModule>();
-            moduleCatalog.AddModule<ParameterModule>();
-            moduleCatalog.AddModule<IdentityModule>();
-            moduleCatalog.AddModule<DebugModule>();
-            //moduleCatalog.AddModule<UIModule>();
-            moduleCatalog.AddModule<PF.WorkStation.AutoOcr.UI.AutoOcrUIModule>();
-            moduleCatalog.AddModule<SecsGemModule>();
-            moduleCatalog.AddModule<ProductionRecordModule>();
+            var modulesPath = Path.Combine(AppContext.BaseDirectory, "Modules");
+            return new DirectoryModuleCatalog { ModulePath = modulesPath };
         }
 
         #endregion

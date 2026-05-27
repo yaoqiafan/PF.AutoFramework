@@ -6,7 +6,7 @@
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
-    xmlns:userConverter="clr-namespace:PF.Modules.Identity.Converter;assembly=PF.Modules.Identity" 
+    xmlns:userConverter="clr-namespace:PF.UI.Infrastructure.Converters;assembly=PF.UI.Infrastructure"
     xmlns:shellConverter="clr-namespace:PF.Application.Shell.Converters"
     Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     UIIcon="/PF.UI.Resources;component/Images/PNG/聚力LOGOico.png"

@@ -10,6 +10,9 @@
 	<ItemGroup>
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
+	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
+	</PropertyGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.WorkStation.AutoOcr\PF.WorkStation.AutoOcr.csproj" />
