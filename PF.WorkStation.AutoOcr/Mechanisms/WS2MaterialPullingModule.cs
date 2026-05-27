@@ -521,8 +521,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 token.ThrowIfCancellationRequested(); // 【新增】入口检查
                                                       // 预留硬件检测叠片逻辑
 
-                bool? res1 = _io.ReadInput((int)E_InPutName.夹爪左叠料检测);
-                if (!res1.HasValue) return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected, $"获取输入信号 {E_InPutName.夹爪左叠料检测} 失败");
+                bool? res1 = _io.ReadInput((int)E_InPutName.夹爪右叠料检测);
+                if (!res1.HasValue) return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected, $"获取输入信号 {E_InPutName.夹爪右叠料检测} 失败");
 
                 if (res1.Value)
                 {
