@@ -16,12 +16,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 {
     /// <summary>
     /// 未完成批次管理弹窗 ViewModel。
-    /// 展示当前工位所有未达到期望片数的批次，并提供删除、设置为当前批次、数据存储、导出操作。
+    /// 展示当前工位所有未达到期望片数的批次，并提供删除、数据存储、导出操作（仅显示，不允许切换当前批次）。
     /// </summary>
     public class PendingBatchManagerViewModel : PFDialogViewModelBase
     {
         private readonly WSDataModule? _dataModule;
-        private E_WorkSpace _station;
 
         public ObservableCollection<PendingBatchItemViewModel> Batches { get; } = [];
 
@@ -36,9 +35,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         public override void OnDialogOpened(IDialogParameters parameters)
         {
-            _station = parameters.ContainsKey("Station")
-                ? parameters.GetValue<E_WorkSpace>("Station")
-                : E_WorkSpace.工位1;
             Refresh();
         }
 
@@ -47,29 +43,27 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Batches.Clear();
             if (_dataModule == null) return;
 
-            var currentBatchId = _station == E_WorkSpace.工位1
-                ? _dataModule.Station1MesDetectionData.InternalBatchId
-                : _dataModule.Station2MesDetectionData.InternalBatchId;
+            // 两工位当前活跃批次 ID，用于标记"使用中"行
+            var ws1ActiveId = _dataModule.Station1MesDetectionData.InternalBatchId;
+            var ws2ActiveId = _dataModule.Station2MesDetectionData.InternalBatchId;
 
-            foreach (var info in _dataModule.GetPendingBatches(_station))
+            foreach (var info in _dataModule.GetAllPendingBatches())
             {
-                bool isCurrent = !string.IsNullOrEmpty(currentBatchId)
-                              && info.BatchId == currentBatchId;
-                var item = new PendingBatchItemViewModel(info, _dataModule, _station, isCurrent);
+                bool isCurrent = (!string.IsNullOrEmpty(ws1ActiveId) && info.BatchId == ws1ActiveId)
+                              || (!string.IsNullOrEmpty(ws2ActiveId) && info.BatchId == ws2ActiveId);
+                var item = new PendingBatchItemViewModel(info, _dataModule, isCurrent);
                 item.Deleted += (_, _) => Refresh();
-                item.RestoredAsCurrent += (_, _) => { Refresh(); RequestClose.Invoke(ButtonResult.OK); };
                 Batches.Add(item);
             }
         }
     }
 
     /// <summary>
-    /// 单条未完成批次行 ViewModel，包含 4 个操作命令。
+    /// 单条未完成批次行 ViewModel，包含删除、数据存储、导出 3 个操作命令。
     /// </summary>
     public class PendingBatchItemViewModel : ViewModelBase
     {
         private readonly WSDataModule _dataModule;
-        private readonly E_WorkSpace _station;
         public PendingBatchInfo Info { get; }
 
         public string BatchId        => Info.BatchId;
@@ -77,25 +71,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         public int    TotalCount     => Info.TotalCount;
         public int    CompletedCount => Info.CompletedCount;
 
-        /// <summary>该批次是否为当前工位正在使用的活跃批次，为 true 时禁止所有操作</summary>
+        /// <summary>该批次是否为当前工位正在使用的活跃批次</summary>
         public bool IsCurrentBatch { get; }
 
         /// <summary>是否允许操作：非当前活跃批次 + Engineer 及以上权限</summary>
         public bool CanOperate => !IsCurrentBatch && UserService.IsAuthorized(UserLevel.Engineer);
 
         public event EventHandler? Deleted;
-        public event EventHandler? RestoredAsCurrent;
 
-        public DelegateCommand DeleteCommand          { get; }
-        public DelegateCommand SetAsCurrentCommand    { get; }
-        public DelegateCommand SaveToDbCommand        { get; }
-        public DelegateCommand ExportCommand          { get; }
+        public DelegateCommand DeleteCommand   { get; }
+        public DelegateCommand SaveToDbCommand { get; }
+        public DelegateCommand ExportCommand   { get; }
 
-        public PendingBatchItemViewModel(PendingBatchInfo info, WSDataModule dataModule, E_WorkSpace station, bool isCurrentBatch)
+        public PendingBatchItemViewModel(PendingBatchInfo info, WSDataModule dataModule, bool isCurrentBatch)
         {
             Info           = info;
             _dataModule    = dataModule;
-            _station       = station;
             IsCurrentBatch = isCurrentBatch;
 
             DeleteCommand = new DelegateCommand(async () =>
@@ -109,19 +100,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     MessageService.ShowMessage($"删除失败：{result.ErrorMessage}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 else
                     Deleted?.Invoke(this, EventArgs.Empty);
-            });
-
-            SetAsCurrentCommand = new DelegateCommand(async () =>
-            {
-                var r = await MessageService.ShowMessageAsync(
-                    $"将批次 {BatchId} 设置为工位 {(int)_station} 的当前批次？\n当前工位的检测数据将被此批次覆盖。",
-                    "确认", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-                if (r != ButtonResult.OK) return;
-                var result = _dataModule.RestoreBatchAsCurrent(_station, BatchId);
-                if (!result.IsSuccess)
-                    MessageService.ShowMessage($"恢复失败：{result.ErrorMessage}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                else
-                    RestoredAsCurrent?.Invoke(this, EventArgs.Empty);
             });
 
             SaveToDbCommand = new DelegateCommand(async () =>

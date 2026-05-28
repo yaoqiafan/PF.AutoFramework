@@ -93,14 +93,6 @@
                                         Margin="0,0,6,0"
                                         Padding="8,4"
                                         IsEnabled="{Binding CanOperate}"
-                                        Command="{Binding SetAsCurrentCommand}"
-                                        Content="设为当前批次"
-                                        FontSize="{DynamicResource FontSize.Body.Standard}"
-                                        Style="{DynamicResource ButtonPrimary}" />
-                                    <Button
-                                        Margin="0,0,6,0"
-                                        Padding="8,4"
-                                        IsEnabled="{Binding CanOperate}"
                                         Command="{Binding SaveToDbCommand}"
                                         Content="数据存储"
                                         FontSize="{DynamicResource FontSize.Body.Standard}"

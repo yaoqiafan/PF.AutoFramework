@@ -756,7 +756,28 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Pending Batch Management (未完成批次管理)
 
         /// <summary>
-        /// 获取指定工位的所有未完成批次（已收集片数 < 期望总数）。
+        /// 获取所有工位的所有未完成批次（已收集片数 &lt; 期望总数）。
+        /// </summary>
+        public IReadOnlyList<PendingBatchInfo> GetAllPendingBatches()
+        {
+            var result = new List<PendingBatchInfo>();
+            foreach (var kvp in _machineDataByBatch.ToList())
+            {
+                _batchQuantityMap.TryGetValue(kvp.Key, out var total);
+                _batchRecipeMap.TryGetValue(kvp.Key, out var recipe);
+                result.Add(new PendingBatchInfo
+                {
+                    BatchId        = kvp.Key,
+                    RecipeName     = recipe ?? string.Empty,
+                    TotalCount     = total,
+                    CompletedCount = kvp.Value.Count
+                });
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取指定工位的所有未完成批次（已收集片数 &lt; 期望总数）。
         /// </summary>
         public IReadOnlyList<PendingBatchInfo> GetPendingBatches(E_WorkSpace station)
         {
@@ -793,40 +814,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             return MechResult.Success();
         }
 
-        /// <summary>
-        /// 将指定未完成批次恢复为该工位的当前活动批次，同时还原已采集的检测列表。
-        /// </summary>
-        public MechResult RestoreBatchAsCurrent(E_WorkSpace station, string batchId)
-        {
-            if (!_machineDataByBatch.TryGetValue(batchId, out var batchData))
-                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
-
-            _batchQuantityMap.TryGetValue(batchId, out var quantity);
-            _batchRecipeMap.TryGetValue(batchId, out var recipe);
-
-            var mesParam = new MesDetectionParam
-            {
-                InternalBatchId = batchId,
-                RecipeName      = recipe ?? string.Empty,
-                Quantity        = quantity,
-                DetectionStatus = E_DetectionStatus.检测中
-            };
-
-            if (station == E_WorkSpace.工位1)
-            {
-                _station1MesDetectionData = mesParam;
-                lock (_detectionDataLock) { _sation1MachineDetectionData = [.. batchData]; }
-            }
-            else
-            {
-                _station2MesDetectionData = mesParam;
-                lock (_detectionDataLock) { _sation2MachineDetectionData = [.. batchData]; }
-            }
-
-            Save(_filepath);
-            RaiseDataChanged();
-            return MechResult.Success();
-        }
 
         /// <summary>
         /// 强制将未完成批次数据落盘到生产数据库（即使片数未达到期望总数）。
