@@ -51,6 +51,7 @@ namespace PF.WorkStation.AutoOcr.UI
 
            containerRegistry.RegisterForNavigation<ChangeLotView , ChangeLotViewModel>(nameof(ChangeLotView));
            containerRegistry.RegisterForNavigation<WaferSlotDetailView, WaferSlotDetailViewModel>(nameof(WaferSlotDetailView));
+           containerRegistry.RegisterForNavigation<PendingBatchManagerView, PendingBatchManagerViewModel>(nameof(PendingBatchManagerView));
 
             containerRegistry.RegisterForNavigation<ProductionHistoryView, ProductionHistoryViewModel>(
              NavigationConstants.Views.ProductionHistoryView);

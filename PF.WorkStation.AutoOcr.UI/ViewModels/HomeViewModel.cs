@@ -457,11 +457,33 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>触发全线复位的命令</summary>
         public DelegateCommand ResetCommand { get; }
 
-        /// <summary>工位1切换批次命令</summary>
+        /// <summary>工位1切换批次命令（Running 时禁用，SuperUser 除外）</summary>
         public DelegateCommand Station1ChangeLotCommand { get; }
 
-        /// <summary>工位2切换批次命令</summary>
+        /// <summary>工位2切换批次命令（Running 时禁用，SuperUser 除外）</summary>
         public DelegateCommand Station2ChangeLotCommand { get; }
+
+        /// <summary>工位1未完成批次管理命令</summary>
+        public DelegateCommand Station1ManagePendingCommand { get; }
+
+        /// <summary>工位2未完成批次管理命令</summary>
+        public DelegateCommand Station2ManagePendingCommand { get; }
+
+        private bool _station1HasPendingBatches;
+        /// <summary>工位1是否存在未完成批次（驱动"未完成批次管理"按钮的可见性）</summary>
+        public bool Station1HasPendingBatches
+        {
+            get => _station1HasPendingBatches;
+            private set => SetProperty(ref _station1HasPendingBatches, value);
+        }
+
+        private bool _station2HasPendingBatches;
+        /// <summary>工位2是否存在未完成批次</summary>
+        public bool Station2HasPendingBatches
+        {
+            get => _station2HasPendingBatches;
+            private set => SetProperty(ref _station2HasPendingBatches, value);
+        }
 
         /// <summary>工位1下料确认命令（遮罩层确认按钮）</summary>
         public DelegateCommand Station1UnloadConfirmCommand { get; }
@@ -509,9 +531,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _eventAggregator.GetEvent<OcrMismatchRequestedEvent>()
                 .Subscribe(OnOcrMismatchRequested, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
-            // 订阅屏蔽参数变更通知：显示横幅提示用户需重新初始化
+            // 订阅屏蔽参数变更通知：显示横幅提示用户需重新初始化，并立即刷新工位屏蔽状态
             _eventAggregator.GetEvent<ReinitializeRequiredEvent>()
-                .Subscribe(() => NeedsReinitialize = true, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
+                .Subscribe(async () => { NeedsReinitialize = true; await RefreshAllAsync(); }, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
             // 同步控制器当前重初始化标记（应用启动时可能已有残留状态）
             NeedsReinitialize = _controller.IsReinitializationRequired;
@@ -561,7 +583,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         }
                         await _controller.InitializeAllAsync();
                         if (_controller.CurrentState == MachineState.Idle)
+                        {
                             NeedsReinitialize = false;
+                            await RefreshAllAsync();
+                        }
                     }
                     catch { }
                 },
@@ -590,8 +615,19 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                    || _controller.CurrentState == MachineState.RunAlarm);
 
             // 工位操作命令
-            Station1ChangeLotCommand = new DelegateCommand(Station1ShowChangeLotView);
-            Station2ChangeLotCommand = new DelegateCommand(Station2ShowChangeLotView);
+            Station1ChangeLotCommand = new DelegateCommand(
+                Station1ShowChangeLotView,
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
+            Station2ChangeLotCommand = new DelegateCommand(
+                Station2ShowChangeLotView,
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
+
+            Station1ManagePendingCommand = new DelegateCommand(
+                () => ShowPendingBatchManager(E_WorkSpace.工位1),
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
+            Station2ManagePendingCommand = new DelegateCommand(
+                () => ShowPendingBatchManager(E_WorkSpace.工位2),
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
             Station1UnloadConfirmCommand = new DelegateCommand(OnStation1UnloadConfirm);
             Station2UnloadConfirmCommand = new DelegateCommand(OnStation2UnloadConfirm);
 
@@ -644,6 +680,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             PauseCommand.RaiseCanExecuteChanged();
             StopCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
+            Station1ChangeLotCommand.RaiseCanExecuteChanged();
+            Station2ChangeLotCommand.RaiseCanExecuteChanged();
+            Station1ManagePendingCommand.RaiseCanExecuteChanged();
+            Station2ManagePendingCommand.RaiseCanExecuteChanged();
+
+            if (_dataModule != null)
+            {
+                Station1HasPendingBatches = _dataModule.GetPendingBatches(E_WorkSpace.工位1).Count > 0;
+                Station2HasPendingBatches = _dataModule.GetPendingBatches(E_WorkSpace.工位2).Count > 0;
+            }
 
             if (_hardwareInputMonitor != null)
             {
@@ -697,6 +743,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         #region 切换批次
+
+        private void ShowPendingBatchManager(E_WorkSpace station)
+        {
+            var p = new DialogParameters { { "Station", station } };
+            DialogService.ShowDialog(nameof(PendingBatchManagerView));
+        }
 
         private void Station1ShowChangeLotView()
         {
