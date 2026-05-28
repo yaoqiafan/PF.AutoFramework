@@ -463,26 +463,23 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>工位2切换批次命令（Running 时禁用，SuperUser 除外）</summary>
         public DelegateCommand Station2ChangeLotCommand { get; }
 
-        /// <summary>工位1未完成批次管理命令</summary>
-        public DelegateCommand Station1ManagePendingCommand { get; }
+        /// <summary>未完成批次管理命令（两工位共用）</summary>
+        public DelegateCommand ManagePendingCommand { get; }
 
-        /// <summary>工位2未完成批次管理命令</summary>
-        public DelegateCommand Station2ManagePendingCommand { get; }
-
-        private bool _station1HasPendingBatches;
-        /// <summary>工位1是否存在未完成批次（驱动"未完成批次管理"按钮的可见性）</summary>
-        public bool Station1HasPendingBatches
+        private bool _hasPendingBatches;
+        /// <summary>是否存在未完成批次，驱动 Badge 显示</summary>
+        public bool HasPendingBatches
         {
-            get => _station1HasPendingBatches;
-            private set => SetProperty(ref _station1HasPendingBatches, value);
+            get => _hasPendingBatches;
+            private set => SetProperty(ref _hasPendingBatches, value);
         }
 
-        private bool _station2HasPendingBatches;
-        /// <summary>工位2是否存在未完成批次</summary>
-        public bool Station2HasPendingBatches
+        private int _pendingBatchCount;
+        /// <summary>未完成批次总数，驱动 Badge 数值</summary>
+        public int PendingBatchCount
         {
-            get => _station2HasPendingBatches;
-            private set => SetProperty(ref _station2HasPendingBatches, value);
+            get => _pendingBatchCount;
+            private set => SetProperty(ref _pendingBatchCount, value);
         }
 
         /// <summary>工位1下料确认命令（遮罩层确认按钮）</summary>
@@ -622,11 +619,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 Station2ShowChangeLotView,
                 () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
 
-            Station1ManagePendingCommand = new DelegateCommand(
-                () => ShowPendingBatchManager(E_WorkSpace.工位1),
-                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
-            Station2ManagePendingCommand = new DelegateCommand(
-                () => ShowPendingBatchManager(E_WorkSpace.工位2),
+            ManagePendingCommand = new DelegateCommand(
+                ShowPendingBatchManager,
                 () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
             Station1UnloadConfirmCommand = new DelegateCommand(OnStation1UnloadConfirm);
             Station2UnloadConfirmCommand = new DelegateCommand(OnStation2UnloadConfirm);
@@ -682,13 +676,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             ResetCommand.RaiseCanExecuteChanged();
             Station1ChangeLotCommand.RaiseCanExecuteChanged();
             Station2ChangeLotCommand.RaiseCanExecuteChanged();
-            Station1ManagePendingCommand.RaiseCanExecuteChanged();
-            Station2ManagePendingCommand.RaiseCanExecuteChanged();
+            ManagePendingCommand.RaiseCanExecuteChanged();
 
             if (_dataModule != null)
             {
-                Station1HasPendingBatches = _dataModule.GetPendingBatches(E_WorkSpace.工位1).Count > 0;
-                Station2HasPendingBatches = _dataModule.GetPendingBatches(E_WorkSpace.工位2).Count > 0;
+                var count = _dataModule.GetAllPendingBatches().Count;
+                PendingBatchCount = count;
+                HasPendingBatches  = count > 0;
             }
 
             if (_hardwareInputMonitor != null)
@@ -744,9 +738,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 切换批次
 
-        private void ShowPendingBatchManager(E_WorkSpace station)
+        private void ShowPendingBatchManager()
         {
-            var p = new DialogParameters { { "Station", station } };
             DialogService.ShowDialog(nameof(PendingBatchManagerView));
         }
 

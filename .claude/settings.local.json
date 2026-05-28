@@ -47,7 +47,8 @@
       "PowerShell(Get-ChildItem -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\PF.Modules.Parameter\\\\Views\" -Recurse -File | Select-Object FullName | ForEach-Object { $_.FullName })",
       "PowerShell(Get-ChildItem -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\PF.Modules.Parameter\\\\ViewModels\" -Recurse -File | Select-Object FullName | ForEach-Object { $_.FullName })",
       "Bash(Test-Path *)",
-      "PowerShell(cmd /c \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Installer\\\\build-installer.bat\")"
+      "PowerShell(cmd /c \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Installer\\\\build-installer.bat\")",
+      "Bash(xargs grep -l \"Badge\")"
     ]
   }
 }
