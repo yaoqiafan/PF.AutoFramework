@@ -171,13 +171,7 @@
                                     Margin="0,0,0,0"
                                     HorizontalAlignment="Right"
                                     Orientation="Horizontal">
-                                    <Button
-                                        Margin="0,0,8,0"
-                                        Command="{Binding Station1ManagePendingCommand}"
-                                        Content="批次管理"
-                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                        Style="{DynamicResource ButtonDefault}"
-                                        Visibility="{Binding Station1HasPendingBatches, Converter={StaticResource BoolToVis}}" />
+
                                     <Button
                                         Command="{Binding Station1ChangeLotCommand}"
                                         Content="切换批次"
@@ -217,10 +211,10 @@
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    IsEnabled="{Binding IsClickable}"
-                                                    Style="{StaticResource SlotButtonStyle}"
                                                     Command="{Binding DataContext.Station1ViewSlotDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
+                                                    IsEnabled="{Binding IsClickable}"
+                                                    Style="{StaticResource SlotButtonStyle}"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
@@ -338,7 +332,10 @@
 
                     <!--  工位1 OCR比对异常遮罩层  -->
                     <Border Background="#CC1A1A2E" Visibility="{Binding Station1OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel
+                            Width="420"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -624,13 +621,6 @@
                                     HorizontalAlignment="Right"
                                     Orientation="Horizontal">
                                     <Button
-                                        Margin="0,0,8,0"
-                                        Command="{Binding Station2ManagePendingCommand}"
-                                        Content="批次管理"
-                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                        Style="{DynamicResource ButtonDefault}"
-                                        Visibility="{Binding Station2HasPendingBatches, Converter={StaticResource BoolToVis}}" />
-                                    <Button
                                         Command="{Binding Station2ChangeLotCommand}"
                                         Content="切换批次"
                                         FontSize="{DynamicResource FontSize.H3.Subtitle}"
@@ -669,10 +659,10 @@
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    IsEnabled="{Binding IsClickable}"
-                                                    Style="{StaticResource SlotButtonStyle}"
                                                     Command="{Binding DataContext.Station2ViewSlotDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
+                                                    IsEnabled="{Binding IsClickable}"
+                                                    Style="{StaticResource SlotButtonStyle}"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
@@ -791,7 +781,10 @@
 
                     <!--  工位2 OCR比对异常遮罩层  -->
                     <Border Background="#CC1A1A2E" Visibility="{Binding Station2OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel
+                            Width="420"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -1028,6 +1021,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <StackPanel
@@ -1150,6 +1144,22 @@
                                     Tag="{StaticResource DangerBrush}"
                                     Template="{StaticResource HoverButtonTemplate}" />
                             </pf:ButtonGroup>
+                        </Grid>
+
+                        <Grid Grid.Row="5">
+                            <pf:Badge
+                                Value="{Binding PendingBatchCount}"
+                                Status="Text"
+                                ShowBadge="{Binding HasPendingBatches}"
+                                Style="{DynamicResource BadgeDanger}">
+                                <Button
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding ManagePendingCommand}"
+                                    Content="批次管理"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </pf:Badge>
                         </Grid>
 
                     </Grid>
