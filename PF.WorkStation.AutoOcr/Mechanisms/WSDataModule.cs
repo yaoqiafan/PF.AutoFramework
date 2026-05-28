@@ -285,12 +285,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<MechResult> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口检查
-
+            foreach (var item in _machineDataByBatch)
+            {
+                if ((DateTime.Now - item.Value.Select(x => DateTime.FromOADate(x.Time)).Max()).TotalDays > await paramService.GetParamAsync<double>(nameof(E_Params.DetectionDataCacheTime)))
+                {
+                    for (int i = 0; i < item.Value?.Count; i++)
+                    {
+                        await _productionDataService.RecordAsync<MachineDetectionData>(item.Value[i]);
+                    }
+                    DeletePendingBatch(item.Key);
+                }
+            }
             if (Station == E_WorkSpace.工位1)
             {
                 _station1MesDetectionData = Data;
-                Save(_filepath);
-                lock (_detectionDataLock) { _sation1MachineDetectionData.Clear(); }
+
+                lock (_detectionDataLock)
+                {
+                    _sation1MachineDetectionData.Clear();
+
+                    Save(_filepath);
+                }
             }
             else if (Station == E_WorkSpace.工位2)
             {
@@ -447,7 +462,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="codes">扫码枪提取出的原始条码列表</param>
         /// <param name="token">异步取消令牌</param>
         /// <returns>Item1: 是否合法通过；Item2: 过滤后的合规条码列表；Item3: 匹配出的具体晶圆实体</returns>
-        public  Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        public Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口检查
             //WaferInfo info = null;
@@ -694,19 +709,19 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
 
         /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
-        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData= null)
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData = null)
         {
             var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
             var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
             if (slot == null) return;
             slot.Status = status;
-            if (detectionData== null )
+            if (detectionData == null)
             {
                 return;
             }
 
-            slot.DetectionData = detectionData.Clone(); 
-       
+            slot.DetectionData = detectionData.Clone();
+
             Save(_filepath);
             RaiseDataChanged();
         }
@@ -769,9 +784,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 _batchRecipeMap.TryGetValue(kvp.Key, out var recipe);
                 result.Add(new PendingBatchInfo
                 {
-                    BatchId     = kvp.Key,
-                    RecipeName  = recipe ?? string.Empty,
-                    TotalCount  = total,
+                    BatchId = kvp.Key,
+                    RecipeName = recipe ?? string.Empty,
+                    TotalCount = total,
                     CompletedCount = kvp.Value.Count
                 });
             }
@@ -807,8 +822,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             var mesParam = new MesDetectionParam
             {
                 InternalBatchId = batchId,
-                RecipeName      = recipe ?? string.Empty,
-                Quantity        = quantity,
+                RecipeName = recipe ?? string.Empty,
+                Quantity = quantity,
                 DetectionStatus = E_DetectionStatus.检测中
             };
 
@@ -1157,9 +1172,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// <summary>未完成批次的摘要信息，供管理弹窗展示</summary>
     public class PendingBatchInfo
     {
-        public string BatchId        { get; set; } = string.Empty;
-        public string RecipeName     { get; set; } = string.Empty;
-        public int    TotalCount     { get; set; }
-        public int    CompletedCount { get; set; }
+        public string BatchId { get; set; } = string.Empty;
+        public string RecipeName { get; set; } = string.Empty;
+        public int TotalCount { get; set; }
+        public int CompletedCount { get; set; }
     }
 }
