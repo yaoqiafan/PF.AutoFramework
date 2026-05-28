@@ -52,7 +52,7 @@ namespace PF.UI.Infrastructure.PrismBase
         /// <summary>
         /// 初始化实例
         /// </summary>
-        public virtual bool CanCloseDialog()
+        public virtual  bool CanCloseDialog()
         {
             return true;
         }

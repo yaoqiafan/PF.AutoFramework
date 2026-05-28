@@ -1,0 +1,144 @@
+<UserControl
+    x:Class="PF.WorkStation.AutoOcr.UI.UserControls.PendingBatchManagerView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    MinWidth="700"
+    Width="auto"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Border
+        Padding="20"
+        Background="{DynamicResource RegionColorBrush}">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="*" MinHeight="120" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏 -->
+            <TextBlock
+                Grid.Row="0"
+                FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                FontWeight="SemiBold"
+                Text="未完成批次列表" />
+
+            <!-- 数据表格 -->
+            <DataGrid FontSize="{DynamicResource FontSize.H2.Title}"
+                Grid.Row="2"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False"
+                GridLinesVisibility="Horizontal"
+                HeadersVisibility="Column"
+                IsReadOnly="True"
+                ItemsSource="{Binding Batches}"
+                SelectionMode="Single">
+
+                <DataGrid.Columns>
+                    <!-- 内批号 -->
+                    <DataGridTextColumn
+                        Width="auto"
+                        Binding="{Binding BatchId}"
+                        Header="内批号" />
+
+                    <!-- 程式名称 -->
+                    <DataGridTextColumn
+                        Width="auto"
+                        Binding="{Binding RecipeName}"
+                        Header="程式名称" />
+
+                    <!-- 批次总数 -->
+                    <DataGridTextColumn
+                        Width="auto"
+                        Binding="{Binding TotalCount}"
+                        Header="批次总数" />
+
+                    <!-- 已完成 -->
+                    <DataGridTextColumn
+                        Width="auto"
+                        Binding="{Binding CompletedCount}"
+                        Header="已完成" />
+
+                    <!-- 操作列：当前活跃批次显示"使用中"标签；权限不足或活跃批次时按钮禁用 -->
+                    <DataGridTemplateColumn Width="auto" Header="操作">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="4,2" Orientation="Horizontal">
+                                    <!-- 当前批次标签（IsCurrentBatch=true 时显示） -->
+                                    <Border
+                                        Margin="0,0,8,0"
+                                        Padding="6,2"
+                                        Background="#FFF3CD"
+                                        BorderBrush="#FFC107"
+                                        BorderThickness="1"
+                                        CornerRadius="3"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsCurrentBatch, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock
+                                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                                            Foreground="#856404"
+                                            Text="▶ 使用中" />
+                                    </Border>
+
+                                    <Button
+                                        Margin="0,0,6,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding CanOperate}"
+                                        Command="{Binding SetAsCurrentCommand}"
+                                        Content="设为当前批次"
+                                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Margin="0,0,6,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding CanOperate}"
+                                        Command="{Binding SaveToDbCommand}"
+                                        Content="数据存储"
+                                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                    <Button
+                                        Margin="0,0,6,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding CanOperate}"
+                                        Command="{Binding ExportCommand}"
+                                        Content="导出数据"
+                                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                    <Button
+                                        Padding="8,4"
+                                        IsEnabled="{Binding CanOperate}"
+                                        Command="{Binding DeleteCommand}"
+                                        Content="删除"
+                                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                                        Style="{DynamicResource ButtonDanger}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- 关闭按钮 -->
+            <StackPanel
+                Grid.Row="4"
+                HorizontalAlignment="Right"
+                Orientation="Horizontal">
+                <Button
+                    Height="36"
+                    MinWidth="90"
+                    Command="{Binding CloseCommand}"
+                    Content="关闭"
+                    Style="{DynamicResource ButtonDefault}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

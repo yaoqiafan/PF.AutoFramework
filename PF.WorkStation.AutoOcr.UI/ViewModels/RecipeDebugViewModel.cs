@@ -211,6 +211,26 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>
+        /// 关闭守卫：调试步骤已开始但未全部完成时弹出确认提示，由用户决定是否关闭。
+        /// ShowMessageAsync 内部通过 Dispatcher.Invoke 同步阻塞完成，Task 在返回前已是 completed 状态，
+        /// 此处 GetAwaiter().GetResult() 不会产生死锁。
+        /// </summary>
+        public override bool CanCloseDialog()
+        {
+            if (CurrentDebugStep > -1 && CurrentDebugStep < 6)
+            {
+                var result = MessageService.ShowMessageAsync(
+                    $"调试步骤尚未全部完成（当前进度：第 {CurrentDebugStep} 步 / 共 6 步）。\n" +
+                    "直接关闭可能导致设备处于中间状态，建议先执行完剩余步骤。\n\n确认关闭？",
+                    "调试步骤未完成",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Warning).GetAwaiter().GetResult();
+                return result == ButtonResult.OK;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// 对话框关闭回调。停止 UI 轮询定时器并取消所有未完成的运动任务，防止后台任务泄漏到主程序生命周期。
         /// </summary>
         public override void OnDialogClosed()
@@ -418,7 +438,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 模组调试步骤属性
 
-        private int _currentDebugStep;
+        private int _currentDebugStep = -1;
         /// <summary>
         /// 当前已完成的调试步骤编号（0~6）。
         /// 仅当 CurrentDebugStep >= N-1 时第 N 步才可执行（严格顺序门控）。
@@ -720,7 +740,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             Step6PushMaterialCommand = new DelegateCommand(async () => await ExecuteDebugStep6Async(), () => !IsBusy && CurrentDebugStep >= 5);
             ResetDebugStepsCommand = new DelegateCommand(() =>
             {
-                CurrentDebugStep = 0;
+                CurrentDebugStep = -1;
                 _step0Done = false;
                 RaisePropertyChanged(nameof(Step0Brush));
                 Step1SwitchProductionCommand.RaiseCanExecuteChanged();
@@ -1027,6 +1047,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                 RaisePropertyChanged(nameof(Step0Brush));
                 Step1SwitchProductionCommand.RaiseCanExecuteChanged();
                 DebugStepMessage = "Step0 完成：挡料X轴已到达待机位，可继续后续步骤";
+                CurrentDebugStep = 0;
             }
             catch (Exception ex)
             {
@@ -1184,7 +1205,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>
-        /// Step1：切换生产状态（按晶圆尺寸 8/12 寸切换上料模组配置，包括压脚、料盒规格、检测窗口等）。
+        /// Step1：切换生产状态（上料模组 + 拉料模组同步切换，包括压脚/料盒规格/轨道宽度/夹爪气缸）。
         /// </summary>
         private async Task ExecuteDebugStep1Async()
         {
@@ -1193,11 +1214,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             try
             {
                 var size = _currentRecipe?.WafeSize ?? E_WafeSize._8寸;
-                DebugStepMessage = $"正在切换生产状态（{size}）...";
-                var result = await FeedingSwitchProductionStateAsync(cts.Token);
-                if (!result.IsSuccess) throw new Exception(result.ErrorMessage);
+                DebugStepMessage = $"正在切换上料模组生产状态（{size}）...";
+                var feedResult = await FeedingSwitchProductionStateAsync(cts.Token);
+                if (!feedResult.IsSuccess) throw new Exception($"上料模组切换失败：{feedResult.ErrorMessage}");
+
+                DebugStepMessage = $"正在切换拉料模组轨道/夹爪尺寸（{size}）...";
+                var pullResult = await PullingSwitchWafeSizeAsync(cts.Token);
+                if (!pullResult.IsSuccess) throw new Exception($"拉料模组尺寸切换失败：{pullResult.ErrorMessage}");
+
                 CurrentDebugStep = 1;
-                DebugStepMessage = $"第1步完成：已切换为 {size} 生产状态，可执行第2步";
+                DebugStepMessage = $"第1步完成：上料模组与拉料模组已切换为 {size} 生产状态，可执行第2步";
             }
             catch (Exception ex)
             {
@@ -1354,6 +1380,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
             if (_ws2FeedingModule == null) throw new InvalidOperationException("工位2上料模组未就绪");
             return await _ws2FeedingModule.SwitchProductionStateAsync(size, token);
+        }
+
+        /// <summary>
+        /// 按当前工位调用拉料模组的"切换晶圆尺寸"接口（轨道调宽气缸 + 夹爪X轴气缸）。
+        /// Step1 必须在上料模组切换之后调用此方法，否则轨道宽度不变、夹爪无动作。
+        /// </summary>
+        private async Task<MechResult> PullingSwitchWafeSizeAsync(CancellationToken token)
+        {
+            var size = _currentRecipe?.WafeSize ?? E_WafeSize._8寸;
+            if (CurrentStation == E_WorkSpace.工位1)
+            {
+                if (_ws1Module == null) throw new InvalidOperationException("工位1拉料模组未就绪");
+                return await _ws1Module.ChangeWafeSizeControl(size, token);
+            }
+            if (_ws2Module == null) throw new InvalidOperationException("工位2拉料模组未就绪");
+            return await _ws2Module.ChangeWafeSizeControl(size, token);
         }
 
         /// <summary>

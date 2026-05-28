@@ -219,6 +219,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         [JsonInclude]
         private ConcurrentDictionary<string, int> _batchQuantityMap = new();
 
+        /// <summary>批次归属工位映射表 (Key: InternalBatchId, Value: 工位)</summary>
+        [JsonInclude]
+        private ConcurrentDictionary<string, E_WorkSpace> _batchStationMap = new();
+
+        /// <summary>批次配方名称映射表 (Key: InternalBatchId, Value: RecipeName)</summary>
+        [JsonInclude]
+        private ConcurrentDictionary<string, string> _batchRecipeMap = new();
+
         // P7 修复：检测数据列表的读写加 lock 保护，防止并发 Add/Remove/Clear/枚举 导致
         // InvalidOperationException 或内部状态损坏
         private readonly object _detectionDataLock = new();
@@ -369,6 +377,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             _batchQuantityMap.TryAdd(data.InternalBatchId,
                 station == E_WorkSpace.工位1 ? _station1MesDetectionData.Quantity : _station2MesDetectionData.Quantity);
 
+            // 记录批次归属工位和配方名（TryAdd：首次写入后不再覆盖，保证不因中途切配方而丢失归属）
+            _batchStationMap.TryAdd(data.InternalBatchId, station);
+            _batchRecipeMap.TryAdd(data.InternalBatchId,
+                station == E_WorkSpace.工位1 ? _station1MesDetectionData.RecipeName : _station2MesDetectionData.RecipeName);
+
             // 触发批次完工判定
             await CheckBatchCompletionAsync();
         }
@@ -413,8 +426,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                             }
                             _logger?.Info($"批次 {kvp.Key} 本地数据库记录完成！");
 
-                            // 同步清理目标计数字典
+                            // 同步清理目标计数字典和归属字典
                             _batchQuantityMap.TryRemove(kvp.Key, out _);
+                            _batchStationMap.TryRemove(kvp.Key, out _);
+                            _batchRecipeMap.TryRemove(kvp.Key, out _);
                         }
                     }
                 }
@@ -738,6 +753,125 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         #endregion
 
+        #region Pending Batch Management (未完成批次管理)
+
+        /// <summary>
+        /// 获取指定工位的所有未完成批次（已收集片数 < 期望总数）。
+        /// </summary>
+        public IReadOnlyList<PendingBatchInfo> GetPendingBatches(E_WorkSpace station)
+        {
+            var result = new List<PendingBatchInfo>();
+            foreach (var kvp in _machineDataByBatch.ToList())
+            {
+                if (!_batchStationMap.TryGetValue(kvp.Key, out var batchStation) || batchStation != station)
+                    continue;
+                _batchQuantityMap.TryGetValue(kvp.Key, out var total);
+                _batchRecipeMap.TryGetValue(kvp.Key, out var recipe);
+                result.Add(new PendingBatchInfo
+                {
+                    BatchId     = kvp.Key,
+                    RecipeName  = recipe ?? string.Empty,
+                    TotalCount  = total,
+                    CompletedCount = kvp.Value.Count
+                });
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 从内存和持久化文件中彻底删除指定未完成批次。
+        /// </summary>
+        public MechResult DeletePendingBatch(string batchId)
+        {
+            if (!_machineDataByBatch.TryRemove(batchId, out _))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+            _batchQuantityMap.TryRemove(batchId, out _);
+            _batchStationMap.TryRemove(batchId, out _);
+            _batchRecipeMap.TryRemove(batchId, out _);
+            Save(_filepath);
+            RaiseDataChanged();
+            return MechResult.Success();
+        }
+
+        /// <summary>
+        /// 将指定未完成批次恢复为该工位的当前活动批次，同时还原已采集的检测列表。
+        /// </summary>
+        public MechResult RestoreBatchAsCurrent(E_WorkSpace station, string batchId)
+        {
+            if (!_machineDataByBatch.TryGetValue(batchId, out var batchData))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+
+            _batchQuantityMap.TryGetValue(batchId, out var quantity);
+            _batchRecipeMap.TryGetValue(batchId, out var recipe);
+
+            var mesParam = new MesDetectionParam
+            {
+                InternalBatchId = batchId,
+                RecipeName      = recipe ?? string.Empty,
+                Quantity        = quantity,
+                DetectionStatus = E_DetectionStatus.检测中
+            };
+
+            if (station == E_WorkSpace.工位1)
+            {
+                _station1MesDetectionData = mesParam;
+                lock (_detectionDataLock) { _sation1MachineDetectionData = [.. batchData]; }
+            }
+            else
+            {
+                _station2MesDetectionData = mesParam;
+                lock (_detectionDataLock) { _sation2MachineDetectionData = [.. batchData]; }
+            }
+
+            Save(_filepath);
+            RaiseDataChanged();
+            return MechResult.Success();
+        }
+
+        /// <summary>
+        /// 强制将未完成批次数据落盘到生产数据库（即使片数未达到期望总数）。
+        /// </summary>
+        public async Task<MechResult> ForceCommitBatchAsync(string batchId)
+        {
+            if (!_machineDataByBatch.TryGetValue(batchId, out var batchData))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+            try
+            {
+                foreach (var item in batchData.ToList())
+                    await _productionDataService.RecordAsync<MachineDetectionData>(item);
+                _logger?.Info($"[{MechanismName}] 批次 {batchId} 强制落盘完成，共 {batchData.Count} 条记录");
+                return MechResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.DataPersistenceFailed, $"落盘失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 将指定批次数据导出为 CSV 文件。
+        /// </summary>
+        public MechResult ExportBatchToCsv(string batchId, string filePath)
+        {
+            if (!_machineDataByBatch.TryGetValue(batchId, out var batchData))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+            try
+            {
+                var lines = new List<string> { "时间,内批号,客批号,晶圆ID,OCR文本,条码1,条码2,是否匹配" };
+                foreach (var d in batchData)
+                    lines.Add($"{DateTime.FromOADate(d.Time):yyyy-MM-dd HH:mm:ss},{d.InternalBatchId},{d.CustomerBatch},{d.WaferId},{d.OcrText},{d.Barcode1},{d.Barcode2},{d.IsMatch}");
+                System.IO.File.WriteAllLines(filePath, lines, System.Text.Encoding.UTF8);
+                _logger?.Info($"[{MechanismName}] 批次 {batchId} 已导出至: {filePath}");
+                return MechResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.DataPersistenceFailed, $"导出失败: {ex.Message}");
+            }
+        }
+
+        #endregion
+
         #region Serialization & Persistence (序列化与数据持久化快照)
 
         /// <summary>
@@ -755,6 +889,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = [];
             public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch { get; set; } = new();
             public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new();
+            public ConcurrentDictionary<string, E_WorkSpace> BatchStationMap { get; set; } = new();
+            public ConcurrentDictionary<string, string> BatchRecipeMap { get; set; } = new();
             public List<WaferSlotInfo> Station1SlotStates { get; set; } = [];
             public List<WaferSlotInfo> Station2SlotStates { get; set; } = [];
             public E_LayerProcessMode Station1LayerMode { get; set; } = E_LayerProcessMode.全做;
@@ -787,6 +923,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         Sation2MachineDetectionData = _sation2MachineDetectionData,
                         MachineDataByBatch = _machineDataByBatch,
                         BatchQuantityMap = _batchQuantityMap,
+                        BatchStationMap = _batchStationMap,
+                        BatchRecipeMap = _batchRecipeMap,
                         Station1SlotStates = [.. _station1SlotStates],
                         Station2SlotStates = [.. _station2SlotStates],
                         Station1LayerMode = _station1LayerMode,
@@ -841,6 +979,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     this._sation2MachineDetectionData = tempModule.Sation2MachineDetectionData;
                     this._machineDataByBatch = tempModule.MachineDataByBatch;
                     this._batchQuantityMap = tempModule.BatchQuantityMap;
+                    this._batchStationMap = tempModule.BatchStationMap ?? new();
+                    this._batchRecipeMap = tempModule.BatchRecipeMap ?? new();
                     this._station1SlotStates = tempModule.Station1SlotStates?.Count > 0
                         ? tempModule.Station1SlotStates : CreateEmptySlots();
                     this._station2SlotStates = tempModule.Station2SlotStates?.Count > 0
@@ -1013,4 +1153,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     }
 
     #endregion
+
+    /// <summary>未完成批次的摘要信息，供管理弹窗展示</summary>
+    public class PendingBatchInfo
+    {
+        public string BatchId        { get; set; } = string.Empty;
+        public string RecipeName     { get; set; } = string.Empty;
+        public int    TotalCount     { get; set; }
+        public int    CompletedCount { get; set; }
+    }
 }

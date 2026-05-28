@@ -166,14 +166,24 @@
                                     Text=" 程式名称:" />
                                 <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
-                                <Button
+                                <StackPanel
                                     Grid.Column="6"
-                                    Margin="0,0,50,0"
+                                    Margin="0,0,0,0"
                                     HorizontalAlignment="Right"
-                                    Command="{Binding Station1ChangeLotCommand}"
-                                    Content="切换批次"
-                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                    Style="{DynamicResource ButtonPrimary}" />
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Margin="0,0,8,0"
+                                        Command="{Binding Station1ManagePendingCommand}"
+                                        Content="批次管理"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Style="{DynamicResource ButtonDefault}"
+                                        Visibility="{Binding Station1HasPendingBatches, Converter={StaticResource BoolToVis}}" />
+                                    <Button
+                                        Command="{Binding Station1ChangeLotCommand}"
+                                        Content="切换批次"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                </StackPanel>
                             </Grid>
 
                             <Grid Grid.Row="1">
@@ -608,14 +618,24 @@
                                     Text=" 程式名称:" />
                                 <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
-                                <Button
+                                <StackPanel
                                     Grid.Column="6"
-                                    Margin="0,0,50,0"
+                                    Margin="0,0,0,0"
                                     HorizontalAlignment="Right"
-                                    Command="{Binding Station2ChangeLotCommand}"
-                                    Content="切换批次"
-                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                    Style="{DynamicResource ButtonPrimary}" />
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Margin="0,0,8,0"
+                                        Command="{Binding Station2ManagePendingCommand}"
+                                        Content="批次管理"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Style="{DynamicResource ButtonDefault}"
+                                        Visibility="{Binding Station2HasPendingBatches, Converter={StaticResource BoolToVis}}" />
+                                    <Button
+                                        Command="{Binding Station2ChangeLotCommand}"
+                                        Content="切换批次"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                </StackPanel>
                             </Grid>
 
                             <Grid Grid.Row="1">
