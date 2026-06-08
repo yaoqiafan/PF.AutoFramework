@@ -8,12 +8,14 @@ using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using SwWindow = System.Windows.Window;
 
 namespace PF.Application.Shell.Views
 {
@@ -26,8 +28,9 @@ namespace PF.Application.Shell.Views
         private readonly CommonSettings _commonSettings;
         private readonly IEventAggregator _eventAggregator;
         private readonly IEnumerable<IMechanism> _mechanismslist;
+        private bool _isAnimating;
+       
 
-      
         /// <summary>
         /// 初始化实例
         /// </summary>
@@ -55,6 +58,7 @@ namespace PF.Application.Shell.Views
                 };
             }
 
+            ThemeIcon.Kind = _commonSettings.Skin == SkinType.Dark ? PackIconKind.WeatherSunny : PackIconKind.WeatherNight;
 
         }
 
@@ -172,25 +176,6 @@ namespace PF.Application.Shell.Views
                 return path;
             }
         }
-
-        private void ButtonSkins_OnClick(object sender, RoutedEventArgs e)
-        {
-            Button button = e.OriginalSource as Button;
-            if (e.OriginalSource is Button)
-            {
-                PopupConfig.IsOpen = false;
-                if (button.Tag.Equals(_commonSettings.Skin.ToString()))
-                {
-                    return;
-                }
-
-                _commonSettings.Skin = (SkinType)Enum.Parse(typeof(SkinType), button.Tag.ToString());
-                ((App)System.Windows.Application.Current).UpdateSkin(button.Tag.ToString());
-                _commonSettings.Save();
-            }
-        }
-
-        private void ButtonConfig_OnClick(object sender, RoutedEventArgs e) => PopupConfig.IsOpen = true;
 
         private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -513,5 +498,84 @@ namespace PF.Application.Shell.Views
         }
         #endregion
 
+        // ─── 主题切换 ─────────────────────────────────────────────────────
+
+        private void ToggleThemeBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isAnimating) return;
+            _isAnimating = true;
+
+            var win = GetWindow(this);
+            var w = (int)Math.Max(win.ActualWidth, 1);
+            var h = (int)Math.Max(win.ActualHeight, 1);
+
+            // 1. 快照整个窗口（旧主题）
+            var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(win);
+
+            // 2. 计算圆心（从主题按钮位置扩散）
+            var btnPos = ThemeBtn.TransformToAncestor(win).Transform(new Point(0, 0));
+            var cx = btnPos.X + ThemeBtn.ActualWidth / 2;
+            var cy = btnPos.Y + ThemeBtn.ActualHeight / 2;
+
+            // 3. 创建独立透明窗口作为覆盖层（不受主窗口资源更新影响）
+            var overlayImg = new Image
+            {
+                Source = rtb,
+                Width = w,
+                Height = h,
+                Stretch = Stretch.None
+            };
+            var fullRect = new RectangleGeometry(new Rect(0, 0, w, h));
+            var hole = new EllipseGeometry { Center = new Point(cx, cy), RadiusX = 0, RadiusY = 0 };
+            overlayImg.Clip = new CombinedGeometry(GeometryCombineMode.Exclude, fullRect, hole);
+
+            var overlayWin = new SwWindow
+            {
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = Brushes.Transparent,
+                Topmost = true,
+                ShowInTaskbar = false,
+                ResizeMode = ResizeMode.NoResize,
+                Width = w,
+                Height = h,
+                Left = win.Left,
+                Top = win.Top,
+                Content = overlayImg,
+                Focusable = false
+            };
+            overlayWin.Show();
+
+            // 4. 切换主题（覆盖层已完全遮蔽主窗口，用户看不到切换过程）
+           
+            var name = _commonSettings.Skin== SkinType.Dark ? SkinType.Default.ToString() : SkinType.Dark.ToString();
+            _commonSettings.Skin = (SkinType)Enum.Parse(typeof(SkinType), name);
+            ((App)System.Windows.Application.Current).UpdateSkin(name);
+            _commonSettings.Save();
+            ThemeIcon.Kind = _commonSettings.Skin == SkinType.Dark ? PackIconKind.WeatherSunny : PackIconKind.WeatherNight;
+
+            // 5. 与渲染管线同步，每帧更新椭圆半径
+            var maxR = Math.Sqrt(w * w + h * h) + 20;
+            var sw = Stopwatch.StartNew();
+            const int durationMs = 600;
+
+            EventHandler renderHandler = null!;
+            renderHandler = (_, _) =>
+            {
+                var t = Math.Min(sw.ElapsedMilliseconds / (double)durationMs, 1.0);
+                double eased = t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
+                hole.RadiusX = maxR * eased;
+                hole.RadiusY = maxR * eased;
+
+                if (t >= 1.0)
+                {
+                    CompositionTarget.Rendering -= renderHandler;
+                    overlayWin.Close();
+                    _isAnimating = false;
+                }
+            };
+            CompositionTarget.Rendering += renderHandler;
+        }
     }
 }

@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     MinWidth="700"
     Width="auto"
-    mc:Ignorable="d">
+    mc:Ignorable="d" Background="{DynamicResource BackgroundBrush}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>

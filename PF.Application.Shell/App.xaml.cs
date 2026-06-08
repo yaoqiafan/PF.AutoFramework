@@ -283,7 +283,7 @@ namespace PF.Application.Shell
             // BaseMasterController 不依赖 Prism，通过 RegisterHardwareResetHandler 委托桥接，
             // 保持 PF.Infrastructure 对 Prism 的零依赖。
             var controller = Container.Resolve<IMasterController>();
-            var ea         = Container.Resolve<IEventAggregator>();
+            var ea = Container.Resolve<IEventAggregator>();
             ea.GetEvent<HardwareResetRequestedEvent>()
               .Subscribe(
                   req => (controller as BaseMasterController)?.OnHardwareResetRequested(req),
@@ -530,7 +530,7 @@ namespace PF.Application.Shell
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
                 string axisparamstr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var axispa) ? axispa : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
-                var  axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
+                var axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
                 axisparam ??= new AxisParam();
                 return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, axisparam, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
@@ -563,8 +563,8 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("CTS_LightControoller", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("COM", out var COM);
-               
-                return new Infrastructure.Hardware.LightController .CTS.CTSLightController (COM ,  cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+
+                return new Infrastructure.Hardware.LightController.CTS.CTSLightController(COM, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
 
@@ -756,10 +756,10 @@ namespace PF.Application.Shell
         {
             var timer = Container.Resolve<IAppTimerService>();
             timer.RegisterDailyAt(
-                key:             "DiskWarning_OCRImagePath",
-                timeOfDay:       new TimeSpan(8, 0, 0),
-                callback:        () => _ = CheckDiskUsageAsync(),
-                catchUpOnStart:  true);
+                key: "DiskWarning_OCRImagePath",
+                timeOfDay: new TimeSpan(8, 0, 0),
+                callback: () => _ = CheckDiskUsageAsync(),
+                catchUpOnStart: true);
 
             _uiLogger.Info("[磁盘预警] 定时任务已注册（每日 08:00）");
         }
@@ -798,8 +798,8 @@ namespace PF.Application.Shell
                 }
 
                 double usedPercent = (1.0 - (double)drive.AvailableFreeSpace / drive.TotalSize) * 100.0;
-                double freeGb      = drive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
-                double totalGb     = drive.TotalSize          / (1024.0 * 1024 * 1024);
+                double freeGb = drive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
+                double totalGb = drive.TotalSize / (1024.0 * 1024 * 1024);
 
                 _uiLogger.Info($"[磁盘预警] 驱动器 {root}  使用率 {usedPercent:F1}%，" +
                                $"剩余 {freeGb:F2} GB / 总计 {totalGb:F2} GB，阈值 {threshold}%");
@@ -834,9 +834,9 @@ namespace PF.Application.Shell
         {
             var timer = Container.Resolve<IAppTimerService>();
             timer.RegisterDailyAt(
-                key:            "ImageCleanup_OCRImagePath",
-                timeOfDay:      new TimeSpan(8, 0, 0),
-                callback:       () => _ = CleanupOldImagesAsync(),
+                key: "ImageCleanup_OCRImagePath",
+                timeOfDay: new TimeSpan(8, 0, 0),
+                callback: () => _ = CleanupOldImagesAsync(),
                 catchUpOnStart: true);
 
             _uiLogger.Info("[图片清理] 定时任务已注册（每日 08:00）");
@@ -1023,7 +1023,7 @@ namespace PF.Application.Shell
             {
                 return false;
             }
-           
+
             var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WS1MaterialPullingModule));
 
             if (!await workStation1MaterialPullingModule.InitializeAsync())
@@ -1091,7 +1091,7 @@ namespace PF.Application.Shell
             splash?.UpdateMessage(status, Enum.Parse<MsgType>(msgType));
         }
 
-        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType =  MsgType.Info)
+        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
         {
             switch (msgType)
             {
@@ -1114,12 +1114,7 @@ namespace PF.Application.Shell
         /// </summary>
         private void ApplyConfiguration(SkinType skinType)
         {
-            var commonparam = Container.Resolve<CommonSettings>();
-            if (commonparam.Skin != skinType)
-            {
-                UpdateSkin(skinType.ToString());
-            }
-
+            UpdateSkin(skinType.ToString());
             ConfigHelper.Instance.SetWindowDefaultStyle();
             ConfigHelper.Instance.SetNavigationWindowDefaultStyle();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;

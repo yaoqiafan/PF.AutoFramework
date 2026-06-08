@@ -230,66 +230,29 @@
                 Color="{DynamicResource PrimaryBrush}" />
 
 
-            <Button
-                Height="30"
-                Name="ButtonConfig"
-                Grid.Column="6"
-                VerticalAlignment="Top"
-                pf:IconElement.Geometry="{StaticResource SettingIcon}"
-                BorderBrush="Transparent"
-                Click="ButtonConfig_OnClick"
-                IsEnabled="True">
-                <Button.ToolTip>
-                    <ToolTip>参数设置</ToolTip>
-                </Button.ToolTip>
+           
+
+            <!-- 主题切换按钮（涟漪按钮 + 扩散全屏）-->
+            <Button x:Name="ThemeBtn"
+          Height="30"
+                     Grid.Column="6"
+         VerticalAlignment="Top"
+       
+         Background="Transparent"
+         BorderThickness="0"
+         Cursor="Hand"
+         Click="ToggleThemeBtn_Click"
+         ToolTip="切换深色/浅色主题">
+                <pf:Ripple pf:RippleAssist.IsCentered="True"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center">
+                    <pf:PackIcon x:Name="ThemeIcon"
+                      Kind="WeatherNight"
+                      Width="20" Height="20"
+                      Foreground="{DynamicResource PrimaryTextBrush}" />
+                </pf:Ripple>
             </Button>
-            <Popup
-                Name="PopupConfig"
-                Grid.Column="1"
-                AllowsTransparency="True"
-                Placement="Center"
-                PlacementTarget="{Binding ElementName=ButtonConfig}"
-                StaysOpen="False"
-                VerticalOffset="50">
-                <Border
-                    Margin="16"
-                    Background="{DynamicResource SecondaryRegionBrush}"
-                    CornerRadius="4"
-                    Effect="{StaticResource EffectShadow2}">
-                    <StackPanel Orientation="Horizontal">
-                        <StackPanel Margin="10,10,10,10" Button.Click="ButtonSkins_OnClick">
-                            <Button Style="{StaticResource ButtonCustom}" Tag="Default">
-                                <Border
-                                    Width="32"
-                                    Height="21"
-                                    Background="White"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="2" />
-                            </Button>
-                            <Button
-                                Margin="0,10,0,0"
-                                Style="{StaticResource ButtonCustom}"
-                                Tag="Dark">
-                                <Border
-                                    Width="32"
-                                    Height="21"
-                                    Background="Black"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="2" />
-                            </Button>
 
-
-                        </StackPanel>
-                        <pf:Divider
-                            Margin="0,20"
-                            LineStrokeDashArray="2,2"
-                            LineStrokeThickness="1"
-                            Orientation="Vertical" />
-                    </StackPanel>
-                </Border>
-            </Popup>
         </Grid>
     </pf:Window.NonClientAreaContent>
     <Grid>
@@ -445,6 +408,14 @@
             </StatusBarItem>
 
         </StatusBar>
+
+
+        <!-- 主题切换全屏覆盖层（扩散涟漪揭示）-->
+        <Rectangle x:Name="ThemeOverlay"
+            Grid.RowSpan="2"
+            Visibility="Collapsed"
+            IsHitTestVisible="False"
+            Panel.ZIndex="100" />
     </Grid>
 
 
