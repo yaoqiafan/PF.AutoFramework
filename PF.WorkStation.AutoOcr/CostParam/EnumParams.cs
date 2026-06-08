@@ -701,6 +701,15 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue(false)]
         DisableOCRCheck_WS2,
 
+
+        /// <summary>
+        /// 检测数据缓存时间
+        /// </summary>
+        [Category("流程参数")]
+        [Description("检测数据缓存时间")]
+        [DefaultValue(3.0)]
+        DetectionDataCacheTime,
+
         #endregion
 
 
