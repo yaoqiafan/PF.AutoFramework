@@ -17,10 +17,7 @@
     <Project Path="PF.Infrastructure/PF.Infrastructure.csproj" Id="6e222cb2-93b2-4f49-86db-cb55748986dd" />
   </Folder>
   <Folder Name="/02.UI (UI 组件层)/">
-    <Project Path="PF.UI.Controls/PF.UI.Controls.csproj" Id="4c6c2036-2c0b-4942-8e68-b98681bbb924" />
     <Project Path="PF.UI.Infrastructure/PF.UI.Infrastructure.csproj" Id="c8569ae9-5c28-441c-94f7-956ba84d9517" />
-    <Project Path="PF.UI.Resources/PF.UI.Resources.csproj" Id="c4402f06-7589-400a-a676-154b76014f58" />
-    <Project Path="PF.UI.Shared/PF.UI.Shared.csproj" />
   </Folder>
   <Folder Name="/03.Data(数据定义层)/">
     <Project Path="PF.Data/PF.Data.csproj" Id="0e161110-d202-4afd-b9af-fd62a290fb69" />

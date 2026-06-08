@@ -1,0 +1,1367 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>PF.UI.Controls</name>
+    </assembly>
+    <members>
+        <member name="F:PF.UI.Controls.InfoElement.PlaceholderProperty">
+            <summary>
+                占位符
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.InfoElement.NecessaryProperty">
+            <summary>
+                是否必填
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.InfoElement.SymbolProperty">
+            <summary>
+                标记
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.InfoElement.ContentHeightProperty">
+            <summary>
+                内容高度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.InfoElement.MinContentHeightProperty">
+            <summary>
+                最小内容高度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.InfoElement.MaxContentHeightProperty">
+            <summary>
+                最大内容高度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.InfoElement.RegexPatternProperty">
+            <summary>
+                正则表达式
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.StatusSwitchElement.CheckedElementProperty">
+            <summary>
+                选中时展示的元素
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.StatusSwitchElement.HideUncheckedElementProperty">
+            <summary>
+                是否隐藏元素
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.SingleOpenHelper.CreateControl``1">
+            <summary>
+                根据指定的类型创建实例
+            </summary>
+            <typeparam name="T"></typeparam>
+            <returns></returns>
+        </member>
+        <member name="T:PF.UI.Controls.RegularItemsControl">
+            <summary>
+                规则ItemsControl
+            </summary>
+            <remarks>
+                该类的每一项都具有相同的大小和外边距
+            </remarks>
+        </member>
+        <member name="T:PF.UI.Controls.SimpleItemsControl">
+            <summary>
+                ItemsControl的轻量级版本
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.ToggleBlock">
+            <summary>
+                切换块
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.ContextMenuButton">
+            <summary>
+                带上下文菜单的按钮
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.ContextMenuToggleButton">
+            <summary>
+                带上下文菜单的切换按钮
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.CoverFlow">
+            <summary>
+                封面流
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow.MaxShowCountHalf">
+            <summary>
+                最大显示数量的一半
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow.PageIndexProperty">
+            <summary>
+                页码
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow.LoopProperty">
+            <summary>
+                是否循环
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._contentDic">
+            <summary>
+                存储所有的内容
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._itemShowDic">
+            <summary>
+                当前在显示范围内的项
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._camera">
+            <summary>
+                相机
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._viewport3D">
+            <summary>
+                3d画布
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._visualParent">
+            <summary>
+                项容器
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._firstShowIndex">
+            <summary>
+                显示范围内第一个项的编号
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.CoverFlow._lastShowIndex">
+            <summary>
+                显示范围内最后一个项的编号
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.CoverFlow.PageIndex">
+            <summary>
+                页码
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.CoverFlow.Loop">
+            <summary>
+                是否循环
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlow.AddRange(System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+                批量添加资源
+            </summary>
+            <param name="contentList"></param>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlow.Add(System.String)">
+            <summary>
+                添加一项资源
+            </summary>
+            <param name="uriString"></param>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlow.Add(System.Uri)">
+            <summary>
+                添加一项资源
+            </summary>
+            <param name="uri"></param>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlow.Remove(System.Int32)">
+            <summary>
+                删除指定位置的项
+            </summary>
+            <param name="pos"></param>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlow.UpdateIndex(System.Int32)">
+            <summary>
+                更新项的位置
+            </summary>
+            <param name="newIndex"></param>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlow.UpdateShowRange">
+            <summary>
+                更新显示范围
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlowItem.CreateMeshGeometry(System.Windows.Media.Media3D.Point3D,System.Windows.Media.Media3D.Point3D,System.Windows.Media.Media3D.Point3D,System.Windows.Media.Media3D.Point3D)">
+            <summary>
+                创建网格形状
+            </summary>
+            <param name="p0"></param>
+            <param name="p1"></param>
+            <param name="p2"></param>
+            <param name="p3"></param>
+            <returns></returns>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlowItem.CreateItemGeometry">
+            <summary>
+                创建内容形状
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlowItem.Move(System.Int32)">
+            <summary>
+                移动
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.CoverFlowItem.HitTest(System.Windows.Media.Media3D.MeshGeometry3D)">
+            <summary>
+                命中测试
+            </summary>
+            <param name="mesh"></param>
+            <returns></returns>
+        </member>
+        <member name="M:PF.UI.Controls.CoverView.UpdateCoverViewContent(System.Boolean)">
+            <summary>
+                更新内容视图
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.CoverView.UpdateCoverViewContentPosition">
+            <summary>
+                更新内容视图位置
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.CoverView.GenerateIndex">
+            <summary>
+                生成序号
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.Growl">
+            <summary>
+                消息提醒
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Growl._tickCount">
+            <summary>
+                计数
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Growl._timerClose">
+            <summary>
+                关闭计时器
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.Growl.GrowlPanel">
+            <summary>
+                消息容器
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.StartTimer">
+            <summary>
+                开始计时器
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.SetGrowlPanel(System.Windows.Controls.Panel)">
+            <summary>
+                消息容器
+            </summary>
+            <param name="panel"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Show(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                显示信息
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Success(System.String,System.String)">
+            <summary>
+                成功
+            </summary>
+            <param name="message"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Success(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                成功
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.SuccessGlobal(System.String)">
+            <summary>
+                成功
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.SuccessGlobal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                成功
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Info(System.String,System.String)">
+            <summary>
+                消息
+            </summary>
+            <param name="message"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Info(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                消息
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.InfoGlobal(System.String)">
+            <summary>
+                消息
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.InfoGlobal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                消息
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Warning(System.String,System.String)">
+            <summary>
+                警告
+            </summary>
+            <param name="message"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Warning(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                警告
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.WarningGlobal(System.String)">
+            <summary>
+                警告
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.WarningGlobal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                警告
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Error(System.String,System.String)">
+            <summary>
+                错误
+            </summary>
+            <param name="message"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Error(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                错误
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.ErrorGlobal(System.String)">
+            <summary>
+                错误
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.ErrorGlobal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                错误
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Fatal(System.String,System.String)">
+            <summary>
+                严重
+            </summary>
+            <param name="message"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Fatal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                严重
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.FatalGlobal(System.String)">
+            <summary>
+                严重
+            </summary>
+            <param name="message"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.FatalGlobal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                严重
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Ask(System.String,System.Func{System.Boolean,System.Boolean},System.String)">
+            <summary>
+                询问
+            </summary>
+            <param name="message"></param>
+            <param name="actionBeforeClose"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Ask(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                询问
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.AskGlobal(System.String,System.Func{System.Boolean,System.Boolean})">
+            <summary>
+                询问
+            </summary>
+            <param name="message"></param>
+            <param name="actionBeforeClose"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.AskGlobal(PF.UI.Shared.Data.GrowlInfo)">
+            <summary>
+                询问
+            </summary>
+            <param name="growlInfo"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Close(System.Boolean)">
+            <summary>
+                关闭
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Clear(System.String)">
+            <summary>
+                清除
+            </summary>
+            <param name="token"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.Clear(System.Windows.Controls.Panel)">
+            <summary>
+                清除
+            </summary>
+            <param name="panel"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Growl.ClearGlobal">
+            <summary>
+                清除
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ComboBox.SearchFunc">
+            <summary>
+                数据搜索委托
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ComboBox.AutoCompleteProperty">
+            <summary>
+                是否自动完成输入
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ComboBox.AutoComplete">
+            <summary>
+                是否自动完成输入
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ComboBox.SearchTextProperty">
+            <summary>
+                搜索文本
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ComboBox.SearchText">
+            <summary>
+                搜索文本
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.ComboBox.UpdateSearchItems(System.String)">
+            <summary>
+                更新搜索的项目
+            </summary>
+            <param name="key"></param>
+        </member>
+        <member name="T:PF.UI.Controls.DateTimePicker">
+            <summary>
+                时间日期选择器
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.DateTimePicker.SetTextInternal(System.String)">
+            <summary>
+            Sets the local Text property without breaking bindings
+            </summary>
+            <param name="value"></param>
+        </member>
+        <member name="T:PF.UI.Controls.NumericUpDown">
+            <summary>
+                数值选择控件
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.ValueChangedEvent">
+            <summary>
+                值改变事件
+            </summary>
+        </member>
+        <member name="E:PF.UI.Controls.NumericUpDown.ValueChanged">
+            <summary>
+                值改变事件
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.ValueProperty">
+            <summary>
+                当前值
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.Value">
+            <summary>
+                当前值
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.MaximumProperty">
+            <summary>
+                最大值
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.Maximum">
+            <summary>
+                最大值
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.MinimumProperty">
+            <summary>
+                最小值
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.Minimum">
+            <summary>
+                最小值
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.IncrementProperty">
+            <summary>
+                指示每单击一下按钮时增加或减少的数量
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.Increment">
+            <summary>
+                指示每单击一下按钮时增加或减少的数量
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.DecimalPlacesProperty">
+            <summary>
+                指示要显示的小数位数
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.DecimalPlaces">
+            <summary>
+                指示要显示的小数位数
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.ValueFormatProperty">
+            <summary>
+                指示要显示的数字的格式
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.ValueFormat">
+            <summary>
+                指示要显示的数字的格式，这将会覆盖 <see cref="P:PF.UI.Controls.NumericUpDown.DecimalPlaces"/> 属性
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.ShowUpDownButtonProperty">
+            <summary>
+                是否显示上下调值按钮
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.ShowUpDownButton">
+            <summary>
+                是否显示上下调值按钮
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.NumericUpDown.IsReadOnlyProperty">
+            <summary>
+                标识 IsReadOnly 依赖属性。
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.NumericUpDown.IsReadOnly">
+            <summary>
+                获取或设置一个值，该值指示NumericUpDown是否只读。
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.PasswordBox.PasswordCharProperty">
+            <summary>
+                掩码字符
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.PinBox.PasswordCharProperty">
+            <summary>
+                掩码字符
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.SearchBar.IsRealTimeProperty">
+            <summary>
+                是否实时搜索
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.SearchBar.IsRealTime">
+            <summary>
+                是否实时搜索
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.SearchComboBox.SearchFunc">
+            <summary>
+                自定义搜索委托，接受当前项集合和关键词，返回匹配的项
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.TimePicker">
+            <summary>
+                时间选择器
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.TimePicker.SetTextInternal(System.String)">
+            <summary>
+            Sets the local Text property without breaking bindings
+            </summary>
+            <param name="value"></param>
+        </member>
+        <member name="T:PF.UI.Controls.Badge">
+            <summary>
+                标记
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Notification._tickCount">
+            <summary>
+                计数
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Notification._timerClose">
+            <summary>
+                关闭计时器
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.Notification.StartTimer">
+            <summary>
+                开始计时器
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.Pagination">
+            <summary>
+                页码
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Pagination.PageUpdatedEvent">
+            <summary>
+                页面更新事件
+            </summary>
+        </member>
+        <member name="E:PF.UI.Controls.Pagination.PageUpdated">
+            <summary>
+                页面更新事件
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Pagination.MaxPageCountProperty">
+            <summary>
+                最大页数
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.Pagination.MaxPageCount">
+            <summary>
+                最大页数
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Pagination.DataCountPerPageProperty">
+            <summary>
+                每页的数据量
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.Pagination.DataCountPerPage">
+            <summary>
+                每页的数据量
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Pagination.PageIndexProperty">
+            <summary>
+                当前页
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.Pagination.PageIndex">
+            <summary>
+                当前页
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.Pagination.MaxPageIntervalProperty">
+            <summary>
+                表示当前选中的按钮距离左右两个方向按钮的最大间隔（4表示间隔4个按钮，如果超过则用省略号表示）
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.Pagination.MaxPageInterval">
+            <summary>
+                表示当前选中的按钮距离左右两个方向按钮的最大间隔（4表示间隔4个按钮，如果超过则用省略号表示）
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.Pagination.Update">
+            <summary>
+                更新
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ScrollViewer.CanMouseWheelProperty">
+            <summary>
+                是否响应鼠标滚轮操作
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ScrollViewer.CanMouseWheel">
+            <summary>
+                是否响应鼠标滚轮操作
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ScrollViewer.IsInertiaEnabledProperty">
+            <summary>
+                是否支持惯性
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ScrollViewer.IsInertiaEnabled">
+            <summary>
+                是否支持惯性
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ScrollViewer.IsPenetratingProperty">
+            <summary>
+                控件是否可以穿透点击
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ScrollViewer.IsPenetrating">
+            <summary>
+                控件是否可以穿透点击
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ScrollViewer.CurrentVerticalOffsetProperty">
+            <summary>
+                当前垂直滚动偏移
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ScrollViewer.CurrentVerticalOffset">
+            <summary>
+                当前垂直滚动偏移
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.ScrollViewer.CurrentHorizontalOffsetProperty">
+            <summary>
+                当前水平滚动偏移
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ScrollViewer.CurrentHorizontalOffset">
+            <summary>
+                当前水平滚动偏移
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.SimplePanel">
+            <summary>
+                用以代替Grid
+            </summary>
+            <remarks>
+                当不需要Grid的行、列分隔等功能时建议用此轻量级类代替
+            </remarks>
+        </member>
+        <member name="T:PF.UI.Controls.WaveProgressBar">
+            <summary>
+                波浪进度条
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.PreviewSlider.PreviewContentProperty">
+            <summary>
+                预览内容
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.PreviewSlider.PreviewContent">
+            <summary>
+                预览内容
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.PreviewSlider.PreviewPositionChangedEvent">
+            <summary>
+                值改变事件
+            </summary>
+        </member>
+        <member name="E:PF.UI.Controls.PreviewSlider.PreviewPositionChanged">
+            <summary>
+                值改变事件
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.StepBar.StepChangedEvent">
+            <summary>
+                步骤改变事件
+            </summary>
+        </member>
+        <member name="E:PF.UI.Controls.StepBar.StepChanged">
+            <summary>
+                步骤改变事件
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.StepBarItem">
+            <summary>
+                步骤条单元项
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.StepBarItem.IndexProperty">
+            <summary>
+                步骤编号
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.StepBarItem.Index">
+            <summary>
+                步骤编号
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.StepBarItem.StatusProperty">
+            <summary>
+                步骤状态
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.StepBarItem.Status">
+            <summary>
+                步骤状态
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.IsInternalAction">
+            <summary>
+                是否为内部操作
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.IsAnimationEnabledProperty">
+            <summary>
+                是否启用动画
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.IsAnimationEnabled">
+            <summary>
+                是否启用动画
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.IsDraggableProperty">
+            <summary>
+                是否可以拖动
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.IsDraggable">
+            <summary>
+                是否可以拖动
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.ShowCloseButtonProperty">
+            <summary>
+                是否显示关闭按钮
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.ShowCloseButton">
+            <summary>
+                是否显示关闭按钮
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.ShowContextMenuProperty">
+            <summary>
+                是否显示上下文菜单
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.ShowContextMenu">
+            <summary>
+                是否显示上下文菜单
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.IsTabFillEnabledProperty">
+            <summary>
+                是否将标签填充
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.IsTabFillEnabled">
+            <summary>
+                是否将标签填充
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.TabItemWidthProperty">
+            <summary>
+                标签宽度
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.TabItemWidth">
+            <summary>
+                标签宽度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.TabItemHeightProperty">
+            <summary>
+                标签高度
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.TabItemHeight">
+            <summary>
+                标签高度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.IsScrollableProperty">
+            <summary>
+                是否可以滚动
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.IsScrollable">
+            <summary>
+                是否可以滚动
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.ShowOverflowButtonProperty">
+            <summary>
+                是否显示溢出按钮
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.ShowOverflowButton">
+            <summary>
+                是否显示溢出按钮
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl.ShowScrollButtonProperty">
+            <summary>
+                是否显示滚动按钮
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabControl.ShowScrollButton">
+            <summary>
+                是否显示滚动按钮
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabControl._itemShowCount">
+            <summary>
+                可见的标签数量
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem.AnimationSpeed">
+            <summary>
+                动画速度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem.ItemIsDragging">
+            <summary>
+                选项卡是否处于拖动状态
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._isWaiting">
+            <summary>
+                选项卡是否等待被拖动
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._dragPoint">
+            <summary>
+                拖动中的选项卡坐标
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._mouseDownIndex">
+            <summary>
+                鼠标按下时选项卡位置
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._mouseDownOffsetX">
+            <summary>
+                鼠标按下时选项卡横向偏移
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._mouseDownPoint">
+            <summary>
+                鼠标按下时的坐标
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._maxMoveRight">
+            <summary>
+                右侧可移动的最大值
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._maxMoveLeft">
+            <summary>
+                左侧可移动的最大值
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabItem.ItemWidth">
+            <summary>
+                选项卡宽度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem.WaitLength">
+            <summary>
+                选项卡拖动等待距离（在鼠标移动了超过20个像素无关单位后，选项卡才开始被拖动）
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._isDragging">
+            <summary>
+                选项卡是否处于拖动状态
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._isDragged">
+            <summary>
+                选项卡是否已经被拖动
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabItem.TargetOffsetX">
+            <summary>
+                目标横向位移
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._currentIndex">
+            <summary>
+                当前编号
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem._scrollHorizontalOffset">
+            <summary>
+                标签容器横向滚动距离
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabItem.TabPanel">
+            <summary>
+                标签容器
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabItem.CurrentIndex">
+            <summary>
+                当前编号
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem.ShowCloseButtonProperty">
+            <summary>
+                是否显示关闭按钮
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabItem.ShowCloseButton">
+            <summary>
+                是否显示关闭按钮
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabItem.ShowContextMenuProperty">
+            <summary>
+                是否显示上下文菜单
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabItem.ShowContextMenu">
+            <summary>
+                是否显示上下文菜单
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.TabItem.UpdateItemOffsetX(System.Int32)">
+            <summary>
+                更新选项卡横向偏移
+            </summary>
+            <param name="oldIndex"></param>
+        </member>
+        <member name="M:PF.UI.Controls.TabItem.CreateAnimation(System.Double,System.Double,System.Int32)">
+            <summary>
+                创建动画
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.TabItem.CalLocationIndex(System.Double)">
+            <summary>
+                计算选项卡当前合适的位置编号
+            </summary>
+            <param name="left"></param>
+            <returns></returns>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.CanUpdate">
+            <summary>
+                是否可以更新
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.ItemDic">
+            <summary>
+                选项卡字典
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.FluidMoveDurationProperty">
+            <summary>
+                流式行为持续时间
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabPanel.FluidMoveDuration">
+            <summary>
+                流式行为持续时间
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.IsTabFillEnabledProperty">
+            <summary>
+                是否将标签填充
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabPanel.IsTabFillEnabled">
+            <summary>
+                是否将标签填充
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.TabItemWidthProperty">
+            <summary>
+                标签宽度
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabPanel.TabItemWidth">
+            <summary>
+                标签宽度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.TabItemHeightProperty">
+            <summary>
+                标签高度
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.TabPanel.TabItemHeight">
+            <summary>
+                标签高度
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel.ForceUpdate">
+            <summary>
+                是否可以强制更新
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.TabPanel._isLoaded">
+            <summary>
+                是否已经加载
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.HighlightTextBlock.SourceText">
+            <summary>
+            Replace the original property Text for binding text.
+            </summary>
+            <remarks>
+            Don't use the <see cref="P:System.Windows.Controls.TextBlock.Text"/> property!
+            Because the <see cref="P:System.Windows.Controls.TextBlock.Text"/> has some unique behaviors
+            that is not needed at <see cref="T:PF.UI.Controls.HighlightTextBlock"/> at <see cref="T:System.Windows.Controls.TextBlock"/>,
+            which will cause some unexpected issue. 
+            </remarks>
+        </member>
+        <member name="P:PF.UI.Controls.HighlightTextBlock.QueriesText">
+            <summary>
+            Gets or sets the text that need to be highlighted.
+            It can be an array of text separated by spaces.
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.HighlightTextBlock.HighlightBrush">
+            <summary>
+            Gets or sets the <see cref="T:System.Windows.Media.Brush"/> of the background of the highlight text.
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.Clock.Update(System.DateTime)">
+            <summary>
+                更新
+            </summary>
+            <param name="time"></param>
+        </member>
+        <member name="M:PF.UI.Controls.Clock.GetDisplayTime">
+            <summary>
+                获取显示时间
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:PF.UI.Controls.ListClock.Update(System.DateTime)">
+            <summary>
+                更新
+            </summary>
+            <param name="time"></param>
+        </member>
+        <member name="T:PF.UI.Controls.SpeTextBlock">
+            <summary>
+                作为刻度使用的文字块
+            </summary>
+        </member>
+        <member name="F:PF.UI.Controls.SpeTextBlock._time">
+            <summary>
+                时间
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.SpeTextBlock.Time">
+            <summary>
+                时间
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.SpeTextBlock.TimeFormat">
+            <summary>
+                时间格式
+            </summary>
+        </member>
+        <member name="M:PF.UI.Controls.SpeTextBlock.MoveX(System.Double)">
+            <summary>
+                横向移动
+            </summary>
+            <param name="offsetX"></param>
+        </member>
+        <member name="T:PF.UI.Controls.PopupWindow">
+            <summary>
+                弹出窗口
+            </summary>
+        </member>
+        <member name="T:PF.UI.Controls.ControlCommands">
+            <summary>
+                控件库使用的所有命令（为了统一，不使用wpf自带的命令）
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Search">
+            <summary>
+                搜索
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Clear">
+            <summary>
+                清除
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Switch">
+            <summary>
+                切换
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.RotateRight">
+            <summary>
+                右转
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.RotateLeft">
+            <summary>
+                左转
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Reduce">
+            <summary>
+                小
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Enlarge">
+            <summary>
+                大
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Restore">
+            <summary>
+                还原
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Open">
+            <summary>
+                打开
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Save">
+            <summary>
+                保存
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Selected">
+            <summary>
+                选中
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Close">
+            <summary>
+                关闭
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Cancel">
+            <summary>
+                取消
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Confirm">
+            <summary>
+                确定
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Yes">
+            <summary>
+                是
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.No">
+            <summary>
+                否
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.CloseAll">
+            <summary>
+                关闭所有
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.CloseOther">
+            <summary>
+                关闭其他
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Prev">
+            <summary>
+                上一个
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Next">
+            <summary>
+                下一个
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Jump">
+            <summary>
+                跳转
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Am">
+            <summary>
+                上午
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Pm">
+            <summary>
+                下午
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.Sure">
+            <summary>
+                确认
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.HourChange">
+            <summary>
+                小时改变
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.MinuteChange">
+            <summary>
+                分钟改变
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.SecondChange">
+            <summary>
+                秒改变
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.MouseMove">
+            <summary>
+                鼠标移动
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.OpenLink">
+            <summary>
+                打开链接
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.ShutdownApp">
+            <summary>
+                关闭程序
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.PushMainWindow2Top">
+            <summary>
+                前置主窗口
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.CloseWindow">
+            <summary>
+                关闭窗口
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.StartScreenshot">
+            <summary>
+                开始截图
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.SortByCategory">
+            <summary>
+                按照类别排序
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.SortByName">
+            <summary>
+                按照名称排序
+            </summary>
+        </member>
+        <member name="P:PF.UI.Controls.ControlCommands.More">
+            <summary>
+                更多
+            </summary>
+        </member>
+    </members>
+</doc>

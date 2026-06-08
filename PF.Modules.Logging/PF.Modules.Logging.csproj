@@ -9,6 +9,17 @@
     <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
     <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="PF.UI.Controls">
+      <HintPath>..\DLL\PF.UI.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="PF.UI.Resources">
+      <HintPath>..\DLL\PF.UI.Resources.dll</HintPath>
+    </Reference>
+    <Reference Include="PF.UI.Shared">
+      <HintPath>..\DLL\PF.UI.Shared.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>

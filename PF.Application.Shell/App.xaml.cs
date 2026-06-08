@@ -73,6 +73,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using PF.UI.Shared.Data;
+using MsgType = PF.UI.Shared.Data.MsgType;
 
 namespace PF.Application.Shell
 {
@@ -974,7 +975,7 @@ namespace PF.Application.Shell
                 await Task.Delay(500);
                 var hwManager = Container.Resolve<IHardwareManagerService>();
                 var hwProgress = new Progress<SplashProgressPayload>(payload =>
-                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType));
+                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString()));
                 await hwManager.LoadAndInitializeAsync(hwProgress);
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
@@ -1076,7 +1077,21 @@ namespace PF.Application.Shell
             return true;
         }
 
-        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
+        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", string msgType = "Info")
+        {
+            switch (msgType)
+            {
+                case "Success": logService?.Success(status, category); break;
+                case "Info": logService?.Info(status, category); break;
+                case "Fatal": logService?.Fatal(status, category); break;
+                case "Warning": logService?.Warn(status, category); break;
+                case "Error": logService?.Error(status, category); break;
+                default: logService?.Info(status, category); break;
+            }
+            splash?.UpdateMessage(status, Enum.Parse<MsgType>(msgType));
+        }
+
+        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType =  MsgType.Info)
         {
             switch (msgType)
             {

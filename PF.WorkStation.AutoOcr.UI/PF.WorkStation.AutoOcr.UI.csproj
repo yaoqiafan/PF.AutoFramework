@@ -18,6 +18,17 @@
 	  <ProjectReference Include="..\PF.WorkStation.AutoOcr\PF.WorkStation.AutoOcr.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+	  <Reference Include="PF.UI.Controls">
+	    <HintPath>..\DLL\PF.UI.Controls.dll</HintPath>
+	  </Reference>
+	  <Reference Include="PF.UI.Resources">
+	    <HintPath>..\DLL\PF.UI.Resources.dll</HintPath>
+	  </Reference>
+	  <Reference Include="PF.UI.Shared">
+	    <HintPath>..\DLL\PF.UI.Shared.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
 	  <Resource Include="ModelImages\上晶圆-成品.png" />
 	  <Resource Include="ModelImages\夹爪-成品.png" />
 	  <Resource Include="ModelImages\整机-成品.png" />
