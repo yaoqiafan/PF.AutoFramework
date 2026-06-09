@@ -186,11 +186,13 @@
                                     <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
 
-                                <usercontrol:ZoomableImageViewer
+                                <pf:ImageViewer
                                     Grid.Column="0"
                                     Margin="5"
-                                    AnnotationContent="{Binding Station1CurrentMachineDetection}"
-                                    Source="{Binding Station1CurrentMachineDetection.ImagePath}" />
+                                    pf:TipElement.Content="{Binding Station1CurrentMachineDetection}"
+                                    pf:TipElement.Placement="LeftTop"
+                                    pf:TipElement.Visibility="Visible"
+                                    Uri="{Binding Station1CurrentMachineDetection.ImagePath}" />
 
                                 <!--  工位1晶圆盒槽位可视化：第1层在底部，第13层在顶部  -->
                                 <Border
@@ -634,11 +636,13 @@
                                     <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
 
-                                <usercontrol:ZoomableImageViewer
+                                <pf:ImageViewer
                                     Grid.Column="0"
                                     Margin="5"
-                                    AnnotationContent="{Binding Station2CurrentMachineDetection}"
-                                    Source="{Binding Station2CurrentMachineDetection.ImagePath}" />
+                                    pf:TipElement.Content="{Binding Station2CurrentMachineDetection}"
+                                    pf:TipElement.Placement="LeftTop"
+                                    pf:TipElement.Visibility="Visible"
+                                    Uri="{Binding Station2CurrentMachineDetection.ImagePath}" />
 
                                 <!--  工位2晶圆盒槽位可视化：第1层在底部，第13层在顶部  -->
                                 <Border
@@ -1148,10 +1152,10 @@
 
                         <Grid Grid.Row="5">
                             <pf:Badge
-                                Value="{Binding PendingBatchCount}"
-                                Status="Text"
                                 ShowBadge="{Binding HasPendingBatches}"
-                                Style="{DynamicResource BadgeDanger}">
+                                Status="Text"
+                                Style="{DynamicResource BadgeDanger}"
+                                Value="{Binding PendingBatchCount}">
                                 <Button
                                     MinHeight="80"
                                     HorizontalAlignment="Stretch"
