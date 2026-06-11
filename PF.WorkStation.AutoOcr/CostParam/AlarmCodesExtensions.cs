@@ -311,6 +311,22 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 确认状态后手动复位重启;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ResumeConsistencyFailed = "PROC_WS1F_RSM_001";
+
+            /// <summary>初始化异常（非预期故障统一归口）</summary>
+            [AlarmInfo("流程异常/初始化", "工位1上下料-初始化异常", AlarmSeverity.Error,
+                "1. 查看日志中具体异常信息;\n" +
+                "2. 排查对应硬件或配置项;\n" +
+                "3. 排除故障后复位重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
+            public const string InitException = "PROC_WS1F_INIT_001";
+
+            /// <summary>断点续跑异常（非预期故障统一归口）</summary>
+            [AlarmInfo("断点续跑", "工位1上下料-断点续跑异常", AlarmSeverity.Error,
+                "1. 查看日志中具体异常信息;\n" +
+                "2. 排查对应硬件或状态异常;\n" +
+                "3. 排除故障后复位重新运行;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
+            public const string ResumeException = "PROC_WS1F_RSM_002";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -604,6 +620,22 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 确认状态后手动复位重启;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ResumeConsistencyFailed = "PROC_WS2F_RSM_001";
+
+            /// <summary>初始化异常（非预期故障统一归口）</summary>
+            [AlarmInfo("流程异常/初始化", "工位2上下料-初始化异常", AlarmSeverity.Error,
+                "1. 查看日志中具体异常信息;\n" +
+                "2. 排查对应硬件或配置项;\n" +
+                "3. 排除故障后复位重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
+            public const string InitException = "PROC_WS2F_INIT_001";
+
+            /// <summary>断点续跑异常（非预期故障统一归口）</summary>
+            [AlarmInfo("断点续跑", "工位2上下料-断点续跑异常", AlarmSeverity.Error,
+                "1. 查看日志中具体异常信息;\n" +
+                "2. 排查对应硬件或状态异常;\n" +
+                "3. 排除故障后复位重新运行;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
+            public const string ResumeException = "PROC_WS2F_RSM_002";
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -1395,6 +1427,43 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "4. 复位后重新运行;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string CameraCaptureFailed = "PROC_DET_CAM_004";
+
+            // ── 初始化流程 ──
+
+            /// <summary>初始化Z轴回零失败</summary>
+            [AlarmInfo("流程异常/初始化", "OCR检测-初始化Z轴回零失败", AlarmSeverity.Error,
+                "1. 检查Z轴伺服是否报警;\n" +
+                "2. 手动点动Z轴确认运动正常;\n" +
+                "3. 确认Z轴原点传感器信号;\n" +
+                "4. 复位后重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
+            public const string InitHomeZFailed = "PROC_DET_MOT_009";
+
+            /// <summary>初始化X轴回零失败</summary>
+            [AlarmInfo("流程异常/初始化", "OCR检测-初始化X轴回零失败", AlarmSeverity.Error,
+                "1. 检查X轴伺服是否报警;\n" +
+                "2. 手动点动X轴确认运动正常;\n" +
+                "3. 确认X轴原点传感器信号;\n" +
+                "4. 复位后重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
+            public const string InitHomeXFailed = "PROC_DET_MOT_010";
+
+            /// <summary>初始化Y轴回零失败</summary>
+            [AlarmInfo("流程异常/初始化", "OCR检测-初始化Y轴回零失败", AlarmSeverity.Error,
+                "1. 检查Y轴伺服是否报警;\n" +
+                "2. 手动点动Y轴确认运动正常;\n" +
+                "3. 确认Y轴原点传感器信号;\n" +
+                "4. 复位后重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
+            public const string InitHomeYFailed = "PROC_DET_MOT_011";
+
+            /// <summary>初始化异常（非预期故障统一归口）</summary>
+            [AlarmInfo("流程异常/初始化", "OCR检测-初始化异常", AlarmSeverity.Error,
+                "1. 查看日志中具体异常信息;\n" +
+                "2. 根据异常详情排查对应硬件或配置;\n" +
+                "3. 复位后重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
+            public const string InitException = "PROC_DET_INIT_001";
         }
 
         // ─────────────────────────────────────────────────────────────────────

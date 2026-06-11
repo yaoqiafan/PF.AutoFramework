@@ -22,8 +22,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         private readonly WSDataModule? _dataModule;
 
+        /// <summary>未完成批次条目集合</summary>
         public ObservableCollection<PendingBatchItemViewModel> Batches { get; } = [];
 
+        /// <summary>初始化未完成批次管理 ViewModel</summary>
         public PendingBatchManagerViewModel(IContainerProvider containerProvider)
         {
             Title = "未完成批次管理";
@@ -31,8 +33,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             CloseCommand = new DelegateCommand(() => RequestClose.Invoke(ButtonResult.Cancel));
         }
 
+        /// <summary>关闭弹窗命令</summary>
         public DelegateCommand CloseCommand { get; }
 
+        /// <summary>弹窗打开时刷新批次列表</summary>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             Refresh();
@@ -64,11 +68,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     public class PendingBatchItemViewModel : ViewModelBase
     {
         private readonly WSDataModule _dataModule;
+        /// <summary>批次摘要信息</summary>
         public PendingBatchInfo Info { get; }
 
+        /// <summary>批次标识</summary>
         public string BatchId        => Info.BatchId;
+        /// <summary>配方名称</summary>
         public string RecipeName     => Info.RecipeName;
+        /// <summary>批次物料总数</summary>
         public int    TotalCount     => Info.TotalCount;
+        /// <summary>已完成数量</summary>
         public int    CompletedCount => Info.CompletedCount;
 
         /// <summary>该批次是否为当前工位正在使用的活跃批次</summary>
@@ -77,12 +86,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>是否允许操作：非当前活跃批次 + Engineer 及以上权限</summary>
         public bool CanOperate => !IsCurrentBatch && UserService.IsAuthorized(UserLevel.Engineer);
 
+        /// <summary>批次被删除时触发</summary>
         public event EventHandler? Deleted;
 
+        /// <summary>删除批次命令</summary>
         public DelegateCommand DeleteCommand   { get; }
+        /// <summary>强制落盘命令</summary>
         public DelegateCommand SaveToDbCommand { get; }
+        /// <summary>导出 CSV 命令</summary>
         public DelegateCommand ExportCommand   { get; }
 
+        /// <summary>初始化单个未完成批次行 ViewModel</summary>
         public PendingBatchItemViewModel(PendingBatchInfo info, WSDataModule dataModule, bool isCurrentBatch)
         {
             Info           = info;

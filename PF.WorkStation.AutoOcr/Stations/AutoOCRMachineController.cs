@@ -264,6 +264,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 else if (newState == Core.Enums.MachineState.Uninitialized)
                 {
                     _hardwareInputMonitor.StopSafetyMonitoring();
+                    // 重置安全门启用状态，下次 StartSafetyMonitoring 时重新从参数加载屏蔽状态
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
                 }
             }
             catch (Exception ex)

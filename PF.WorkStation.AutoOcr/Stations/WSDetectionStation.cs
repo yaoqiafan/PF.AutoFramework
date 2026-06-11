@@ -228,21 +228,21 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (!await _detectionModule.WaitHomeDoneAsync(_detectionModule.ZAxis, token: token))
                 {
                     _logger.Error($"[{StationName}] 初始化失败，Z轴回零失败。");
-                    Fire(MachineTrigger.Error);
+                    TriggerAlarm(AlarmCodesExtensions.Detection.InitHomeZFailed, "初始化失败，Z轴回零失败");
                     return;
                 }
 
                 if (!await _detectionModule.WaitHomeDoneAsync(_detectionModule.XAxis, token: token))
                 {
                     _logger.Error($"[{StationName}] 初始化失败，X轴回零失败。");
-                    Fire(MachineTrigger.Error);
+                    TriggerAlarm(AlarmCodesExtensions.Detection.InitHomeXFailed, "初始化失败，X轴回零失败");
                     return;
                 }
 
                 if (!await _detectionModule.WaitHomeDoneAsync(_detectionModule.YAxis, token: token))
                 {
                     _logger.Error($"[{StationName}] 初始化失败，Y轴回零失败。");
-                    Fire(MachineTrigger.Error);
+                    TriggerAlarm(AlarmCodesExtensions.Detection.InitHomeYFailed, "初始化失败，Y轴回零失败");
                     return;
                 }
 
@@ -251,7 +251,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                 if (!initMoveResult.IsSuccess)
                 {
                     _logger.Error($"[{StationName}] 初始化失败，模组移动至待机避让位失败。");
-                    Fire(MachineTrigger.Error);
+                    TriggerAlarm(AlarmCodesExtensions.Detection.MoveInitialFailed, "初始化失败，模组移动至待机避让位失败");
+                    return;
                 }
                 else
                 {
@@ -262,9 +263,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                     Fire(MachineTrigger.InitializeDone); // Initializing → Idle
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Fire(MachineTrigger.Error); // Initializing → Alarm
+                TriggerAlarm(AlarmCodesExtensions.Detection.InitException, $"初始化异常: {ex.Message}");
                 throw;
             }
 
@@ -316,6 +317,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 await _detectionModule.StopAsync().ConfigureAwait(false);
         }
 
+        /// <summary>物理暂停回调：仅软暂停（保留伺服使能），安全门关闭后可立即 Start 恢复</summary>
+        protected override Task OnPhysicalPauseAsync() => Task.CompletedTask;
+
         /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
         {
@@ -342,7 +346,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 【核心校验】每一轮步序流转前，强行校验取消状态，确保流程即时响应停止请求
                     token.ThrowIfCancellationRequested();
-                    await Task.Delay(250);
+                    await Task.Delay(250, token);
                     switch (_currentStep)
                     {
                         // ══════════════════════════════════════════════════════════

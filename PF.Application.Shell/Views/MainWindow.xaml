@@ -340,6 +340,23 @@
             </StatusBarItem>
 
             <Separator />
+            <StatusBarItem Cursor="Hand"
+                           ToolTip="点击查看报警详情">
+                <StatusBarItem.InputBindings>
+                    <MouseBinding Gesture="LeftClick"
+                                  Command="{Binding NavigateToAlarmCenterCmd}" />
+                </StatusBarItem.InputBindings>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="报警状态：" />
+                    <Ellipse Width="8" Height="8" Margin="0,0,4,0"
+                             Fill="{Binding AlarmStatusBrush}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{Binding AlarmStatusBrush}"
+                               Text="{Binding AlarmStatusText}" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <Separator />
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="当前权限：" />

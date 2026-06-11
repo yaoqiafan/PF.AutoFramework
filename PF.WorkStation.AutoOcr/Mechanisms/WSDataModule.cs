@@ -42,16 +42,26 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// - 跨线程 UI 更新：通过触发 <see cref="DataChanged"/> 事件，通知外部 ViewModel 刷新界面绑定。
     /// </remarks>
     [MechanismUI("数据模块", "WorkStationDataModuleDebugView", 6)]
-    public class WSDataModule(
-        IHardwareManagerService hardwareManagerService,
-        IParamService paramService,
-        IProductionDataService productionDataService,
-        ILogService logger)
-        : BaseMechanism("数据模块", hardwareManagerService, paramService, logger)
+    public class WSDataModule : BaseMechanism
     {
         #region Fields & Properties (依赖服务与核心事件)
 
-        private readonly IProductionDataService _productionDataService = productionDataService;
+        private readonly IProductionDataService _productionDataService;
+        private readonly IParamService _paramService;
+
+        /// <summary>
+        /// 初始化数据模块
+        /// </summary>
+        public WSDataModule(
+            IHardwareManagerService hardwareManagerService,
+            IParamService paramService,
+            IProductionDataService productionDataService,
+            ILogService logger)
+            : base("数据模块", hardwareManagerService, paramService, logger)
+        {
+            _productionDataService = productionDataService;
+            _paramService = paramService;
+        }
 
         /// <summary>
         /// 本地数据快照的存储路径
@@ -287,7 +297,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             token.ThrowIfCancellationRequested(); // 【新增】入口检查
             foreach (var item in _machineDataByBatch)
             {
-                if ((DateTime.Now - item.Value.Select(x => DateTime.FromOADate(x.Time)).Max()).TotalDays > await paramService.GetParamAsync<double>(nameof(E_Params.DetectionDataCacheTime)))
+                if ((DateTime.Now - item.Value.Select(x => DateTime.FromOADate(x.Time)).Max()).TotalDays > await _paramService.GetParamAsync<double>(nameof(E_Params.DetectionDataCacheTime)))
                 {
                     for (int i = 0; i < item.Value?.Count; i++)
                     {
@@ -462,7 +472,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="codes">扫码枪提取出的原始条码列表</param>
         /// <param name="token">异步取消令牌</param>
         /// <returns>Item1: 是否合法通过；Item2: 过滤后的合规条码列表；Item3: 匹配出的具体晶圆实体</returns>
-        public Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        public static Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口检查
             //WaferInfo info = null;
@@ -1159,9 +1169,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     /// <summary>未完成批次的摘要信息，供管理弹窗展示</summary>
     public class PendingBatchInfo
     {
+        /// <summary>批次标识</summary>
         public string BatchId { get; set; } = string.Empty;
+        /// <summary>配方名称</summary>
         public string RecipeName { get; set; } = string.Empty;
+        /// <summary>批次物料总数</summary>
         public int TotalCount { get; set; }
+        /// <summary>已完成数量</summary>
         public int CompletedCount { get; set; }
     }
 }

@@ -579,6 +579,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 await _pullingModule.StopAsync().ConfigureAwait(false);
         }
 
+        /// <summary>物理暂停回调：仅软暂停（保留伺服使能），安全门关闭后可立即 Start 恢复</summary>
+        protected override Task OnPhysicalPauseAsync() => Task.CompletedTask;
+
         /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
         {
@@ -808,7 +811,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 RouteToError(Station2PullingStep.扫码失败, Station2PullingStep.等待允许送料);
                                 break;
                             }
-                            var checkResult = await _dataModule.CheckCodeAsync(E_WorkSpace.工位2, scanResult.Data, token);
+                            var checkResult = await WSDataModule.CheckCodeAsync(E_WorkSpace.工位2, scanResult.Data, token);
                             if (!checkResult.IsSuccess)
                             {
                                 _logger.Warn($"[{StationName}] 条码校验不通过: {checkResult.ErrorMessage}");

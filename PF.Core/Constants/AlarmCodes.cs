@@ -280,6 +280,15 @@ namespace PF.Core.Constants
                 "5. 确认门锁信号正常后重新操作;",
                 "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen2 = "HW_SAFE_001_2";
+
+            /// <summary>安全监控IO连续读取失败，安全门检测可能已失效</summary>
+            [AlarmInfo("安全防护", "安全监控IO连续读取失败，安全门检测可能已失效", AlarmSeverity.Fatal,
+                "1. 立即检查 IO 模块连接状态;\n" +
+                "2. 检查运动控制卡通讯是否正常;\n" +
+                "3. 若无法恢复请立即停止设备;\n" +
+                "4. 联系维护人员检查硬件;",
+                "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
+            public const string MonitorFailure = "HW_SAFE_002";
         }
     }
 

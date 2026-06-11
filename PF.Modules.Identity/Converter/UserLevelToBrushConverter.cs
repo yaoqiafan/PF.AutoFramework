@@ -10,6 +10,7 @@ namespace PF.Modules.Identity.Converter
     [ValueConversion(typeof(UserLevel), typeof(SolidColorBrush))]
     public class UserLevelToBrushConverter : IValueConverter
     {
+        /// <summary>UserLevel → 品牌色 SolidColorBrush</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is UserLevel level)
@@ -26,6 +27,7 @@ namespace PF.Modules.Identity.Converter
             return Brushes.Gray;
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotSupportedException();
     }

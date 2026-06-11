@@ -320,7 +320,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 _logger.Error($"[{StationName}] 执行断点续跑时发生异常: {ex.Message}");
                 _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
-                Fire(MachineTrigger.Error);
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeException, $"断点续跑异常: {ex.Message}");
                 throw;
             }
         }
@@ -386,7 +386,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 catch (Exception ex)
                 {
                     _logger.Error($"[{StationName}] 初始化异常: {ex.Message}");
-                    Fire(MachineTrigger.Error);
+                    TriggerAlarm(AlarmCodesExtensions.WS1Feeding.InitException, $"初始化异常: {ex.Message}");
                     throw;
                 }
 
@@ -417,9 +417,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 _logger.Warn($"[{StationName}] 初始化已被外部强行取消。");
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
-                Fire(MachineTrigger.Error);
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.InitException, $"初始化异常: {ex.Message}");
                 throw;
             }
         }
@@ -663,6 +663,10 @@ namespace PF.WorkStation.AutoOcr.Stations
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }
+
+        /// <summary>物理暂停回调：仅软暂停（保留伺服使能），安全门关闭后可立即 Start 恢复</summary>
+        protected override Task OnPhysicalPauseAsync() => Task.CompletedTask;
+
         /// <summary>
         /// 获取模组列表
         /// </summary>

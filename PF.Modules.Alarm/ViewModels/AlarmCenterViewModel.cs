@@ -37,6 +37,7 @@ namespace PF.Modules.Alarm.ViewModels
         // ── 历史查询过滤条件 ──────────────────────────────────────────────────
 
         private DateTime _startDate = new DateTime(DateTime.Now.Year, 1, 1);
+        /// <summary>历史查询起始日期</summary>
         public DateTime StartDate
         {
             get => _startDate;
@@ -44,6 +45,7 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private DateTime _endDate = DateTime.Now.Date.AddDays(1).AddSeconds(-1);
+        /// <summary>历史查询截止日期</summary>
         public DateTime EndDate
         {
             get => _endDate;
@@ -55,6 +57,7 @@ namespace PF.Modules.Alarm.ViewModels
             new() { "全部", "信息", "警告", "错误", "致命" };
 
         private string _selectedSeverity = "全部";
+        /// <summary>选中的报警严重级别过滤条件</summary>
         public string SelectedSeverity
         {
             get => _selectedSeverity;
@@ -65,6 +68,7 @@ namespace PF.Modules.Alarm.ViewModels
         public ObservableCollection<string> AvailableCategories { get; } = new() { "全部" };
 
         private string _selectedCategory = "全部";
+        /// <summary>选中的报警分类过滤条件</summary>
         public string SelectedCategory
         {
             get => _selectedCategory;
@@ -75,6 +79,7 @@ namespace PF.Modules.Alarm.ViewModels
         public ObservableCollection<string> AvailableSources { get; } = new() { "全部" };
 
         private string _selectedSource = "全部";
+        /// <summary>选中的报警来源过滤条件</summary>
         public string SelectedSource
         {
             get => _selectedSource;
@@ -82,6 +87,7 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private string? _queryErrorCode;
+        /// <summary>报警代码模糊查询关键字</summary>
         public string? QueryErrorCode
         {
             get => _queryErrorCode;
@@ -89,6 +95,7 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private string? _queryDescription;
+        /// <summary>报警描述模糊查询关键字</summary>
         public string? QueryDescription
         {
             get => _queryDescription;
@@ -98,6 +105,7 @@ namespace PF.Modules.Alarm.ViewModels
         // ── 分页 ─────────────────────────────────────────────────────────────
 
         private int _historyPageSize = 50;
+        /// <summary>历史查询每页条数</summary>
         public int HistoryPageSize
         {
             get => _historyPageSize;
@@ -109,6 +117,7 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private int _historyPageIndex = 1;
+        /// <summary>历史查询当前页码</summary>
         public int HistoryPageIndex
         {
             get => _historyPageIndex;
@@ -116,17 +125,20 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private int _historyMaxPageCount = 1;
+        /// <summary>历史查询最大页数</summary>
         public int HistoryMaxPageCount
         {
             get => _historyMaxPageCount;
             set => SetProperty(ref _historyMaxPageCount, value);
         }
 
+        /// <summary>历史分页更新命令</summary>
         public DelegateCommand<FunctionEventArgs<int>> HistoryPageUpdatedCmd { get; }
 
         // ── 状态 ─────────────────────────────────────────────────────────────
 
         private bool _isQuerying;
+        /// <summary>是否正在执行历史查询</summary>
         public bool IsQuerying
         {
             get => _isQuerying;
@@ -134,6 +146,7 @@ namespace PF.Modules.Alarm.ViewModels
         }
 
         private string _historyStatusMessage = "";
+        /// <summary>历史查询状态提示文本</summary>
         public string HistoryStatusMessage
         {
             get => _historyStatusMessage;
@@ -209,6 +222,7 @@ namespace PF.Modules.Alarm.ViewModels
 
         // ── 导航生命周期 ──────────────────────────────────────────────────────
 
+        /// <summary>允许重复导航至本视图</summary>
         public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
         // ── EventAggregator 回调（已在 UI 线程） ──────────────────────────────

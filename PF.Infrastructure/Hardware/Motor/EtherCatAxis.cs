@@ -102,14 +102,14 @@ namespace PF.Infrastructure.Hardware.Motor
             }
         }
 
-        /// <summary>
-        /// 内部健康检查实现
-        /// </summary>
         // 限位类报警自动消除的防抖计数 + 当前报警是否为限位类
         // （限位退出后可自动消；伺服 ALM 锁存型不可自动消，需清错/复位）
         private int _limitHealthyStreak;
         private bool _currentAlarmIsLimit;
 
+        /// <summary>
+        /// 内部健康检查实现
+        /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (ParentCard == null || IsSimulated) return Task.CompletedTask;

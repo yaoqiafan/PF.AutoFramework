@@ -19,6 +19,7 @@ namespace PF.Services.Alarm
         private readonly DbContextOptions<AlarmDbContext> _dbOptions;
         private readonly ILogService? _logger;
         private readonly ConcurrentDictionary<string, AlarmInfo> _dictionary = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, byte> _unknownCodes = new(StringComparer.OrdinalIgnoreCase);
         private bool _initialized;
 
         public AlarmDictionaryService(DbContextOptions<AlarmDbContext> dbOptions, ILogService? logger = null)
@@ -41,6 +42,24 @@ namespace PF.Services.Alarm
             _initialized = true;
             _logger?.Info($"报警字典初始化完成：代码内置 {codeCount} 条，数据库扩展/覆盖 {dbCount} 条，" +
                           $"总计 {_dictionary.Count} 条", "AlarmDictionary");
+
+            // 按严重级别与分类汇总统计，便于运维快速核对报警字典规模
+            var fatal = _dictionary.Values.Count(i => i.Severity == AlarmSeverity.Fatal);
+            var error = _dictionary.Values.Count(i => i.Severity == AlarmSeverity.Error);
+            var warn  = _dictionary.Values.Count(i => i.Severity == AlarmSeverity.Warning);
+            var info  = _dictionary.Values.Count(i => i.Severity == AlarmSeverity.Information);
+            var fromCode = _dictionary.Values.Count(v => !v.IsFromDatabase);
+            var fromDb   = _dictionary.Values.Count(v => v.IsFromDatabase);
+            var categories = _dictionary.Values
+                .Select(v => v.Category)
+                .Where(c => !string.IsNullOrEmpty(c))
+                .Distinct()
+                .OrderBy(c => c);
+            _logger?.Info(
+                $"报警字典统计 — 致命:{fatal}  错误:{error}  警告:{warn}  信息:{info}  " +
+                $"代码内置:{fromCode}  数据库覆盖:{fromDb}  " +
+                $"分类({categories.Count()}): [{string.Join(", ", categories)}]",
+                "AlarmDictionary");
         }
 
         /// <inheritdoc/>
@@ -48,6 +67,14 @@ namespace PF.Services.Alarm
         {
             if (_dictionary.TryGetValue(errorCode, out var info))
                 return info;
+
+            // 每个未知代码仅 Warn 一次，避免高并发下刷屏
+            if (_unknownCodes.TryAdd(errorCode, 0))
+            {
+                _logger?.Warn(
+                    $"发现未定义报警代码 [{errorCode}]，建议将其添加至 AlarmCodes 常量或 AlarmDefinitions 数据库。",
+                    "AlarmDictionary");
+            }
 
             // 兜底：未定义代码返回通用条目，确保故障不被吞噬
             return new AlarmInfo
@@ -142,6 +169,17 @@ namespace PF.Services.Alarm
                 foreach (var def in definitions)
                 {
                     if (string.IsNullOrEmpty(def.ErrorCode)) continue;
+
+                    // 数据库覆盖代码内置时记录，便于审计严重级别或 SOP 的手动调整
+                    if (_dictionary.ContainsKey(def.ErrorCode))
+                    {
+                        var old = _dictionary[def.ErrorCode];
+                        _logger?.Info(
+                            $"报警字典覆盖 [{def.ErrorCode}]: " +
+                            $"Severity [{old.Severity}]→[{def.Severity}], " +
+                            $"Category [{old.Category}]→[{def.Category}]",
+                            "AlarmDictionary");
+                    }
 
                     _dictionary[def.ErrorCode] = new AlarmInfo
                     {

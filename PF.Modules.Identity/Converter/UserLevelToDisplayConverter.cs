@@ -13,6 +13,7 @@ namespace PF.Modules.Identity.Converter
     /// </summary>
     public class UserLevelToDisplayConverter : IValueConverter
     {
+        /// <summary>UserLevel → 显示文本/图标</summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is not UserLevel level) return "未知";
@@ -33,6 +34,7 @@ namespace PF.Modules.Identity.Converter
             };
         }
 
+        /// <summary>不支持反向转换</summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotSupportedException();
     }
