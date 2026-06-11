@@ -234,9 +234,10 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
         {
             if (!IsSimulated)
             {
-                if (tiggerclient.Status != ClientStatus.Connected && !HasAlarm)
-                    RaiseAlarm(AlarmCodes.Hardware.CameraHeartbeatTimeout,
-                        $"相机[{DeviceName}]触发端口 TCP 连接中断（{IPAdress}:{TiggerPort}）");
+                // 连接类报警：触发端口断连→报警，重连→防抖后自动消除
+                bool faulted = tiggerclient.Status != ClientStatus.Connected;
+                UpdateAutoClearableHealth(faulted, AlarmCodes.Hardware.CameraHeartbeatTimeout,
+                    $"相机[{DeviceName}]触发端口 TCP 连接中断（{IPAdress}:{TiggerPort}）");
             }
             return Task.CompletedTask;
         }

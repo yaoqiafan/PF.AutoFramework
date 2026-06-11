@@ -252,9 +252,10 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
             {
                 bool trigOk = tiggerclient.Status == ClientStatus.Connected;
                 bool userOk = true;
-                if ((!trigOk || !userOk) && !HasAlarm)
-                    RaiseAlarm(AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
-                        $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");
+                // 连接类报警：TCP 断连→报警，重连→防抖后自动消除
+                bool faulted = !trigOk || !userOk;
+                UpdateAutoClearableHealth(faulted, AlarmCodes.Hardware.BarcodeScannerHeartbeatTimeout,
+                    $"扫码枪[{DeviceName}]TCP 连接中断（触发端口={trigOk}, 用户端口={userOk}）");
             }
 
             return Task.CompletedTask;

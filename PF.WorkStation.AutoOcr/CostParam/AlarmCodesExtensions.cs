@@ -622,6 +622,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string RecipeNull = "PROC_WS1P_DATA_001";
 
+            /// <summary>初始化校验失败（物料状态/尺寸校验等无专属硬件动作码的初始化失败统一归口）</summary>
+            [AlarmInfo("流程异常/初始化", "工位1拉料-初始化校验失败", AlarmSeverity.Error,
+                "1. 根据报警描述核对夹爪物料状态与配方尺寸是否一致;\n" +
+                "2. 确认轨道/夹爪上无残留或异常物料;\n" +
+                "3. 排除后复位重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
+            public const string InitCheckFailed = "PROC_WS1P_INIT_001";
+
             /// <summary>调整流道尺寸失败</summary>
             [AlarmInfo("流程异常/运动", "工位1拉料-调整流道尺寸失败", AlarmSeverity.Error,
                 "1. 检查流道宽度调整电机是否报警;\n" +
@@ -934,6 +942,14 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 重新下发配方后复位;",
                 "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string RecipeNull = "PROC_WS2P_DATA_001";
+
+            /// <summary>初始化校验失败（物料状态/尺寸校验等无专属硬件动作码的初始化失败统一归口）</summary>
+            [AlarmInfo("流程异常/初始化", "工位2拉料-初始化校验失败", AlarmSeverity.Error,
+                "1. 根据报警描述核对夹爪物料状态与配方尺寸是否一致;\n" +
+                "2. 确认轨道/夹爪上无残留或异常物料;\n" +
+                "3. 排除后复位重新初始化;",
+                "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
+            public const string InitCheckFailed = "PROC_WS2P_INIT_001";
 
             /// <summary>调整流道尺寸失败</summary>
             [AlarmInfo("流程异常/运动", "工位2拉料-调整流道尺寸失败", AlarmSeverity.Error,

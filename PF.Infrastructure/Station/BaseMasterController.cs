@@ -151,13 +151,6 @@ namespace PF.Infrastructure.Station
         protected bool MasterCameFromInitAlarm => _masterCameFromInitAlarm;
 
         /// <summary>
-        /// 同一报警周期内已上报的报警键集合（格式："工站名:错误码:硬件名"）。
-        /// ConcurrentDictionary 作为线程安全的 HashSet 使用（Value 固定为 0），
-        /// 进入 Resetting 状态时自动清空，为下次报警重新计数。
-        /// </summary>
-        private readonly ConcurrentDictionary<string, byte> _reportedAlarmKeys = new();
-
-        /// <summary>
         /// 全线初始化的取消令牌源，由 <see cref="InitializeAllAsync"/> 创建并通过
         /// <see cref="Interlocked.Exchange"/> 原子替换；任一子工站初始化失败时，
         /// <see cref="OnSubStationStateChanged"/> 调用 Cancel 中断其余子站的并行初始化。
@@ -306,8 +299,6 @@ namespace PF.Infrastructure.Station
                 .Permit(MachineTrigger.Reset, MachineState.Resetting);
 
             _globalMachine.Configure(MachineState.Resetting)
-                // 进入复位时清空报警去重字典，为本次复位后可能触发的新报警重新计数
-                .OnEntry(() => _reportedAlarmKeys.Clear())
                 .Permit(MachineTrigger.ResetDone, MachineState.Idle)
                 .Permit(MachineTrigger.ResetDoneUninitialized, MachineState.Uninitialized)
                 // 复位过程中再次出错：动态路由回原始报警状态
@@ -540,16 +531,17 @@ namespace PF.Infrastructure.Station
             if (e.ErrorCode == AlarmCodes.System.CascadeAlarm) return;
 
             var source = (sender as IStation)?.StationName ?? "未知工站";
-            var dedupKey = $"{source}:{e.ErrorCode}:{e.HardwareName ?? string.Empty}";
 
-            // TryAdd 返回 true 说明是此周期内首次上报，执行日志和 AlarmService 写入
-            if (_reportedAlarmKeys.TryAdd(dedupKey, 0))
+            // 以 AlarmService 的活跃报警字典为唯一去重源：TriggerAlarm 幂等，
+            // 首次触发返回 true。删除主控本地 _reportedAlarmKeys，避免两层去重生命周期
+            // 不一致（本地仅复位时清、活跃字典随清警即清）导致"报警残留、再次触发弹不出"。
+            bool isFirst = _alarmService?.TriggerAlarm(source, e.ErrorCode, e.RuntimeMessage) ?? true;
+            if (isFirst)
             {
                 _logger.Fatal($"【报警】{source} | {e.ErrorCode}" +
                     (e.HardwareName != null ? $" | 硬件:{e.HardwareName}" : string.Empty) +
                     (e.RuntimeMessage != null ? $" | {e.RuntimeMessage}" : string.Empty));
 
-                _alarmService?.TriggerAlarm(source, e.ErrorCode, e.RuntimeMessage);
                 try { MasterAlarmTriggered?.Invoke(this, e); }
                 catch (Exception ex) { _logger.Error($"【主控】MasterAlarmTriggered 订阅者异常: {ex.Message}"); }
             }

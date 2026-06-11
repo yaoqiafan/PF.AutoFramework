@@ -219,6 +219,16 @@ namespace PF.Core.Constants
             /// </summary>
             public const string CascadeAlarm = "SYS_CASCADE_INTERNAL";
 
+            /// <summary>
+            /// 报警触发时上游未提供错误码的兜底占位码。
+            /// 出现即表示某调用方触发报警时未传 errorCode，已降级处理以防报警被静默吞没。
+            /// </summary>
+            [AlarmInfo("系统异常", "报警触发时未提供错误码（已兜底）", AlarmSeverity.Error,
+                "1. 此报警表示某处触发报警时未携带错误码，已被框架兜底;\n" +
+                "2. 记录复现步骤并联系开发人员排查触发点;\n" +
+                "3. 复位后即可恢复;")]
+            public const string UndefinedAlarm = "SYS_UNDEFINED_001";
+
             /// <summary>调试页面手动触发报警</summary>
             [AlarmInfo("调试测试", "调试页面手动触发的模拟报警", AlarmSeverity.Warning,
                 "此为调试测试报警，复位后即可恢复;")]

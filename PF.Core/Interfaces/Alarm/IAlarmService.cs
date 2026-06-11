@@ -35,14 +35,16 @@ namespace PF.Core.Interfaces.Alarm
         /// </summary>
         /// <param name="source">来源标识，建议使用机构名或工站名</param>
         /// <param name="errorCode">报警代码，必须引用 <c>AlarmCodes.*</c> 常量</param>
-        void TriggerAlarm(string source, string errorCode);
+        /// <returns><c>true</c> 表示本次为首次触发（已记录）；<c>false</c> 表示复合键已存在被幂等跳过。</returns>
+        bool TriggerAlarm(string source, string errorCode);
 
         /// <summary>
         /// 触发报警（携带运行时消息）。
         /// <paramref name="runtimeMessage"/> 非空时覆盖活跃报警的 Message 字段（如 "X轴位置偏差 3.5mm"），
         /// 历史查询仍回落到字典静态描述（运行时消息不持久化）。
         /// </summary>
-        void TriggerAlarm(string source, string errorCode, string? runtimeMessage);
+        /// <returns><c>true</c> 表示本次为首次触发（已记录）；<c>false</c> 表示复合键已存在被幂等跳过。</returns>
+        bool TriggerAlarm(string source, string errorCode, string? runtimeMessage);
 
         /// <summary>清除指定来源的所有活跃报警</summary>
         void ClearAlarm(string source);

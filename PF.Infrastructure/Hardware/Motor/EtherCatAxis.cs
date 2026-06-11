@@ -105,21 +105,57 @@ namespace PF.Infrastructure.Hardware.Motor
         /// <summary>
         /// 内部健康检查实现
         /// </summary>
+        // 限位类报警自动消除的防抖计数 + 当前报警是否为限位类
+        // （限位退出后可自动消；伺服 ALM 锁存型不可自动消，需清错/复位）
+        private int _limitHealthyStreak;
+        private bool _currentAlarmIsLimit;
+
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
-            if (ParentCard == null) return Task.CompletedTask;
+            if (ParentCard == null || IsSimulated) return Task.CompletedTask;
 
-            if (IsSimulated )
-            {
-                return Task.CompletedTask;
-            }
             var ios = ParentCard.GetMotionIOStatus(AxisIndex);
-            if (ios.ALM && !HasAlarm )
-                RaiseAlarm(AlarmCodes.Hardware.ServoError,
-                    $"轴[{AxisIndex}]-{DeviceName}伺服驱动器报警（ALM 信号有效）");
-            else if ((ios.PEL || ios.MEL) && !HasAlarm && !ios.Homing)
-                RaiseAlarm(AlarmCodes.Hardware.AxisLimitError,
-                    $"轴[{AxisIndex}]-{DeviceName}限位保护触发（PEL={ios.PEL}, MEL={ios.MEL}）");
+
+            if (ios.ALM)
+            {
+                // 伺服 ALM：锁存型故障，仅触发、不自动消（需清错/复位）
+                if (!HasAlarm)
+                {
+                    RaiseAlarm(AlarmCodes.Hardware.ServoError,
+                        $"轴[{AxisIndex}]-{DeviceName}伺服驱动器报警（ALM 信号有效）");
+                    _currentAlarmIsLimit = false;
+                }
+                _limitHealthyStreak = 0;
+            }
+            else if ((ios.PEL || ios.MEL) && !ios.Homing)
+            {
+                // 限位保护：状态型故障，退出限位后可自动消
+                if (!HasAlarm)
+                {
+                    RaiseAlarm(AlarmCodes.Hardware.AxisLimitError,
+                        $"轴[{AxisIndex}]-{DeviceName}限位保护触发（PEL={ios.PEL}, MEL={ios.MEL}）");
+                    _currentAlarmIsLimit = true;
+                }
+                _limitHealthyStreak = 0;
+            }
+            else
+            {
+                // 所有状态型信号干净：仅当当前报警为限位类时，连续 N 次正常后自动撤销；
+                // 伺服 ALM 类（_currentAlarmIsLimit=false）不在此自动消，保持等待复位。
+                if (HasAlarm && _currentAlarmIsLimit)
+                {
+                    if (++_limitHealthyStreak >= AutoClearHealthyThreshold)
+                    {
+                        _limitHealthyStreak = 0;
+                        _currentAlarmIsLimit = false;
+                        ClearAlarm();
+                    }
+                }
+                else
+                {
+                    _limitHealthyStreak = 0;
+                }
+            }
             return Task.CompletedTask;
         }
     }
