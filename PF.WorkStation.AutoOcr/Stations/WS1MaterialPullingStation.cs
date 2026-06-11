@@ -588,7 +588,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         }
 
         /// <summary>物理暂停回调：仅软暂停（保留伺服使能），安全门关闭后可立即 Start 恢复</summary>
-        protected override Task OnPhysicalPauseAsync() => Task.CompletedTask;
+        protected override async Task OnPhysicalPauseAsync()
+        {
+            if (_pullingModule != null)
+                await _pullingModule.StopAsync().ConfigureAwait(false);
+        }
 
         /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
