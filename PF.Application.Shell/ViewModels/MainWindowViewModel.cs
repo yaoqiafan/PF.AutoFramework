@@ -15,8 +15,6 @@ using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.Station;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
-// PF.Modules.Alarm.Dialogs — module is loaded at runtime via DirectoryModuleCatalog;
-// view/window names referenced below are plain string literals to avoid compile-time coupling.
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
