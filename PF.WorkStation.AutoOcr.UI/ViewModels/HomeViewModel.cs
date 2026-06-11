@@ -355,7 +355,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>有清除记忆权限</summary>
-        public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Administrator);
+        public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Engineer);
 
         private void OnStationMemoryItemChanged(object? sender, PropertyChangedEventArgs e)
         {
