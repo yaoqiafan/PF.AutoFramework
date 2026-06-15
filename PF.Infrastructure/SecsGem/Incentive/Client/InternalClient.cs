@@ -37,6 +37,16 @@ namespace PF.Infrastructure.SecsGem.Incentive
         /// </summary>
         public event EventHandler<SecsMessageReceivedEventArgs> MessageReceived;
 
+        /// <summary>
+        /// 接收到SecsdGem主机连接时触发
+        /// </summary>
+        public event EventHandler SecsGemHostConnected;
+
+        /// <summary>
+        /// 接收到SecsdGem主机断开连接时触发
+        /// </summary>
+        public event EventHandler SecsGemHostDisconnected;
+
         // 状态管理
         private bool _status = false;
 
@@ -249,6 +259,17 @@ namespace PF.Infrastructure.SecsGem.Incentive
                         return;
                     }
                     _status = data1[1] == (byte)SecsStatus.Connected;
+                    if ( _status )
+                    {
+                        SecsGemHostConnected?.Invoke(this, EventArgs.Empty);
+                    }
+                    else
+                    {
+                        SecsGemHostDisconnected?.Invoke(this, EventArgs.Empty);
+                    }
+
+
+
                 }
             }
             catch (Exception ex)
@@ -361,7 +382,7 @@ namespace PF.Infrastructure.SecsGem.Incentive
                     if (msg.Function % 2 == 1)
                     {
                         var systemBytesStr = SecsGemMessageTools.ByteArrayToHexStringWithSeparator(msg.SystemBytes.ToArray());
-                        //ReplyMessageInfo.TryAdd(systemBytesStr, msg);
+                        ReplyMessageInfo.TryAdd(systemBytesStr, msg);
                     }
                 }
                 else

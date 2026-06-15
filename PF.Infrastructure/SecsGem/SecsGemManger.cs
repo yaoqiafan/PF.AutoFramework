@@ -162,16 +162,16 @@ namespace PF.Infrastructure.SecsGem
         /// <summary>
         /// 发送消息并等待回复
         /// </summary>
-        public async Task<bool> WaitSendMessageAsync(SecsGemMessage message, string systemBytesHex)
+        public async Task<(bool, SecsGemMessage)> WaitSendMessageAsync(SecsGemMessage message, string systemBytesHex)
         {
             if (!IsConnected)
             {
-                return false;
+                return (false, null);
             }
 
             if (message == null)
             {
-                return false;
+                return (false, null);
             }
 
             try
@@ -179,12 +179,19 @@ namespace PF.Infrastructure.SecsGem
                 await _secsGemClient.SendMessage(message);
 
                 var rec = await _secsGemClient.WaitForReplyAsync(systemBytesHex);
-                return rec != null;
+                if (rec != null)
+                {
+                    return (true, rec);
+                }
+                else
+                {
+                    return (false, null);
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"WaitSendMessageAsync failed: {ex.Message}");
-                return false;
+                return (false, null);
             }
         }
 

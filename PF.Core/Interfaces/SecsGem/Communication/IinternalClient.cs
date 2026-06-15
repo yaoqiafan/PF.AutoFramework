@@ -58,5 +58,17 @@ namespace PF.Core.Interfaces.SecsGem.Communication
         /// 上层服务（如 ISecsGemManager）可通过订阅此事件来分发和处理进来的指令。
         /// </summary>
         event EventHandler<SecsMessageReceivedEventArgs> MessageReceived;
+
+
+
+        /// <summary>
+        /// 接收到SecsdGem主机连接时触发
+        /// </summary>
+        event EventHandler SecsGemHostConnected;
+
+        /// <summary>
+        /// 接收到SecsdGem主机断开连接时触发
+        /// </summary>
+        event EventHandler SecsGemHostDisconnected;
     }
 }

@@ -44,7 +44,7 @@ namespace PF.Core.Interfaces.SecsGem
         /// <param name="message">要发送的 SECS/GEM 消息实例。</param>
         /// <param name="systemBytesHex">系统字节（SystemBytes）的十六进制字符串，用于匹配发送消息与接收到的响应消息。</param>
         /// <returns>返回一个表示异步操作的任务。如果成功收到对应响应，结果为 <c>true</c>；若超时或失败，结果为 <c>false</c>。</returns>
-        Task<bool> WaitSendMessageAsync(SecsGemMessage message, string systemBytesHex);
+        Task<(bool, SecsGemMessage)> WaitSendMessageAsync(SecsGemMessage message, string systemBytesHex);
 
         /// <summary>
         /// 获取一个值，指示当前是否已成功建立 SECS/GEM 连接。
@@ -75,6 +75,9 @@ namespace PF.Core.Interfaces.SecsGem
         /// 当接收到来自远端的 SECS/GEM 消息时触发的事件。
         /// </summary>
         event EventHandler<SecsMessageReceivedEventArgs> MessageReceived;
+
+
+       
     }
 
     /// <summary>
