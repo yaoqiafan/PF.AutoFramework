@@ -1,89 +1,130 @@
 @echo off
-:: 1. 环境初始化：解决中文乱码与路径跳转问题 
-chcp 65001 >nul
-pushd "%~dp0"
-color 0A
+set "_SELF=%~f0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$m='__PS__';$c=[IO.File]::ReadAllText($env:_SELF);& ([ScriptBlock]::Create($c.Substring($c.LastIndexOf($m)+$m.Length)))"
+exit /b %errorlevel%
 
-:: ==========================================
-:: 核心配置区 (已同步至 8081 独立站点) 
-:: ==========================================
-set SOURCE_NAME=BaGet_8081
-:: 务必确保此地址在浏览器中可访问
-set SOURCE_URL=http://101.43.39.163:8081/v3/index.json
-set API_KEY=Gll1243411723
-set NUPKG_DIR=%~dp0nupkg
-set CONFIG_FILE=%~dp0nuget.config
+__PS__
+$API_KEY    = "PowerFocus20240930"
+$PUSH_URL   = "https://nuget.powerfocus.com.cn/api/v2/package"
+$SCRIPT_DIR = Split-Path $env:_SELF
+$NUPKG_DIR  = Join-Path $SCRIPT_DIR "nupkg"
 
-echo ========================================================
-echo    PF.AutoFramework 远程推送专用工具 (8081 稳定带缓冲版)
-echo ========================================================
+# --- nuget.config auto-create ---
+$nugetConfig = Join-Path $SCRIPT_DIR "nuget.config"
+if (-not (Test-Path $nugetConfig)) {
+    $xml = @'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+    <add key="PowerFocus_NuGet" value="https://nuget.powerfocus.com.cn/v3/index.json" />
+  </packageSources>
+  <packageRestore>
+    <add key="enabled" value="True" />
+    <add key="automatic" value="False" />
+  </packageRestore>
+</configuration>
+'@
+    [IO.File]::WriteAllText($nugetConfig, $xml, [Text.Encoding]::UTF8)
+    Write-Host "[Config] nuget.config not found - created at: $nugetConfig" -ForegroundColor Yellow
+} else {
+    Write-Host "[Config] nuget.config OK" -ForegroundColor DarkGray
+}
 
-:: ==========================================
-:: 阶段 0：环境自检与配置校准 
-:: ==========================================
-if not exist "%NUPKG_DIR%\*.nupkg" (
-    color 0C
-    echo [错误] 未在 %NUPKG_DIR% 发现任何 .nupkg 文件！
-    echo 请确认打包文件已存放至 nupkg 文件夹。
-    pause
-    exit /b 1
-)
+function Format-Size($b) {
+    if ($b -ge 1MB) { return "{0:F2} MB  ({1:F0} KB)" -f ($b/1MB),($b/1KB) }
+    return "{0:F1} KB" -f ($b/1KB)
+}
+function Format-Speed($bps) {
+    if ($bps -ge 1MB) { return "{0:F2} MB/s  ({1:F0} KB/s)" -f ($bps/1MB),($bps/1KB) }
+    return "{0:F0} KB/s" -f ($bps/1KB)
+}
 
-echo [0/1] 正在生成临时 NuGet 配置文件... 
-echo ^<?xml version="1.0" encoding="utf-8"?^> > "%CONFIG_FILE%"
-echo ^<configuration^> >> "%CONFIG_FILE%"
-echo   ^<packageSources^> >> "%CONFIG_FILE%"
-echo     ^<add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" /^> >> "%CONFIG_FILE%"
-echo     ^<add key="%SOURCE_NAME%" value="%SOURCE_URL%" allowInsecureConnections="true" /^> >> "%CONFIG_FILE%"
-echo   ^</packageSources^> >> "%CONFIG_FILE%"
-echo   ^<packageRestore^> >> "%CONFIG_FILE%"
-echo     ^<add key="enabled" value="True" /^> >> "%CONFIG_FILE%"
-echo     ^<add key="automatic" value="False" /^> >> "%CONFIG_FILE%"
-echo   ^</packageRestore^> >> "%CONFIG_FILE%"
-echo ^</configuration^> >> "%CONFIG_FILE%"
-echo [OK] 配置文件已就绪。 
+Write-Host "========================================================"
+Write-Host "  PF.AutoFramework NuGet Push Tool  (PowerFocus)"
+Write-Host "========================================================"
+Write-Host ""
 
-:: ==========================================
-:: 阶段 1：远程推送到私服 (核心推送逻辑) 
-:: ==========================================
-echo.
-echo [1/1] 开始推送到私服节点... 
-echo 目标地址: %SOURCE_URL%
-echo --------------------------------------------------------
+$vpnOk = [bool](Test-Connection -ComputerName "10.0.0.1" -Count 1 -Quiet -ErrorAction SilentlyContinue)
+$resolveArg = if ($vpnOk) { '--resolve "nuget.powerfocus.com.cn:443:10.0.0.1"' } else { "" }
+if ($vpnOk) {
+    Write-Host "[VPN]    WireGuard connected  - routing via internal tunnel" -ForegroundColor Green
+} else {
+    Write-Host "[Direct] VPN not connected    - routing via public internet" -ForegroundColor Yellow
+}
 
-:: 【关键补丁】强制 .NET 客户端使用旧版 HTTP 处理器，解决连接不稳定的 EOF 错误 
-set DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER=0
+$packages = @(Get-ChildItem -Path $NUPKG_DIR -Filter "*.nupkg" -ErrorAction SilentlyContinue)
+if ($packages.Count -eq 0) {
+    Write-Host "[ERROR] No .nupkg files found in: $NUPKG_DIR" -ForegroundColor Red
+    Read-Host "Press Enter to exit"; exit 1
+}
+Write-Host "Target   : $PUSH_URL"
+Write-Host "Packages : $($packages.Count) file(s)"
+Write-Host "Mode     : $(if ($packages.Count -gt 1) { 'Parallel' } else { 'Single' })"
+Write-Host "--------------------------------------------------------"
 
-for %%f in ("%NUPKG_DIR%\*.nupkg") do (
-    echo [正在上传] %%~nxf 
-    
-    :: 【修复 1】: 使用 %%~ff 引用绝对路径，彻底消灭“找不到驱动器”报错
-    :: 使用 --skip-duplicate 允许跳过已存在的包，支持断点续传
-    dotnet nuget push "%%~ff" ^
-        -k %API_KEY% ^
-        -s %SOURCE_NAME% ^
-        --configfile "%CONFIG_FILE%" ^
-        --skip-duplicate
-        
-    :: 【修复 2】: 强制缓冲 1 秒，防止服务器 SQLite 数据库并发死锁报错 500
-    echo [缓冲] 给服务器 SQLite 数据库 1 秒钟写入时间...
-    timeout /t 1 /nobreak >nul
-)
+$totalSize = ($packages | Measure-Object -Property Length -Sum).Sum
 
-echo.
-color 0B
-echo ========================================================
-echo    任务执行完毕！ 
-echo    PF.AutoFramework 的组件已尝试同步至 8081 私服。 
-echo ========================================================
-popd
-pause
-exit /b 0
+$jobs = foreach ($pkg in $packages) {
+    $startTime = [datetime]::UtcNow
 
-:ERROR_EXIT
-color 0C
-echo.
-echo [致命错误] 流程中断，请检查网络连接或 API Key。 
-popd
-pause
-exit /b 1
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName               = "curl.exe"
+    $psi.Arguments              = "$resolveArg -X PUT `"$PUSH_URL`" -H `"X-NuGet-ApiKey: $API_KEY`" -F `"package=@$($pkg.FullName)`" -w `"\n%{http_code}`""
+    $psi.UseShellExecute        = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError  = $true
+
+    Write-Host "[Start] $($pkg.Name)  [$(Format-Size $pkg.Length)]" -ForegroundColor Cyan
+    $proc = [System.Diagnostics.Process]::Start($psi)
+
+    [pscustomobject]@{
+        Name      = $pkg.Name
+        Length    = $pkg.Length
+        Process   = $proc
+        StartTime = $startTime
+    }
+}
+
+$spinner = '|','/','-','\'
+$i = 0
+while ($jobs | Where-Object { -not $_.Process.HasExited }) {
+    $done    = ($jobs | Where-Object { $_.Process.HasExited }).Count
+    $running = $jobs.Count - $done
+    Write-Host "`r$($spinner[$i % 4])  Uploading... ($done/$($jobs.Count) done, $running in progress)   " -NoNewline
+    $i++
+    Start-Sleep -Milliseconds 200
+}
+Write-Host "`r  All uploads finished.                                  "
+Write-Host ""
+
+$successCnt = 0
+$totalTime  = 0.0
+
+foreach ($j in $jobs) {
+    $stdout  = $j.Process.StandardOutput.ReadToEnd()
+    $elapsed = ([datetime]::UtcNow - $j.StartTime).TotalSeconds
+    $lines   = $stdout.Trim().Split("`n")
+    $status  = $lines[-1].Trim()
+    $col     = if ($status -match "^2") { "Green" } elseif ($status -eq "409") { "Yellow" } else { "Red" }
+
+    Write-Host "  $($j.Name)" -ForegroundColor Cyan
+    Write-Host "    Status : $status" -ForegroundColor $col
+    Write-Host "    Size   : $(Format-Size $j.Length)"
+    Write-Host "    Speed  : $(Format-Speed ($j.Length / [Math]::Max($elapsed, 0.001)))"
+    Write-Host "    Time   : $("{0:F2}" -f $elapsed) s"
+    Write-Host ""
+
+    if ($status -match "^2") { $successCnt++ }
+    $totalTime = [Math]::Max($totalTime, $elapsed)
+}
+
+$wallSpeed = if ($totalTime -gt 0) { $totalSize / $totalTime } else { 0 }
+Write-Host "========================================================"
+Write-Host "  Summary"
+Write-Host ("  Success    : {0} / {1} packages" -f $successCnt, $jobs.Count)
+Write-Host "  Total size : $(Format-Size $totalSize)"
+Write-Host "  Wall time  : $("{0:F2}" -f $totalTime) s"
+Write-Host "  Throughput : $(Format-Speed $wallSpeed)  (all packages combined)"
+Write-Host "========================================================"
+Read-Host "Press Enter to exit"
