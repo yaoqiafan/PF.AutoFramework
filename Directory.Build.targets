@@ -15,6 +15,33 @@
     · 本 target 仅处理 dotnet build 产生的 bin\ 输出。
       dotnet publish 产生的发布目录由 Shell 项目内的 CopyModulesToPublishDir target 负责。
   -->
+  <!--
+    PackageIcon 在 .targets（csproj 之后求值）中设置，确保 IsPackable 已由 .csproj 赋值为 true。
+    在 .props 中设置因求值顺序问题（props → csproj → targets）会导致条件永远为 false。
+  -->
+  <!--
+    PackageIcon / PackageReadmeFile 在 .targets（csproj 之后求值）中设置，
+    确保 IsPackable 已由 .csproj 赋值为 true，避免 .props 的求值顺序问题。
+  -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <PackageIcon>nuget-icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!--
+    打包时将解决方案根目录的共享资源（图标 + 自述文件）嵌入 nupkg。
+    顶层 ItemGroup 确保 Pack 任务能在正确阶段读到这些 Item。
+  -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true' AND Exists('$(MSBuildThisFileDirectory)nuget-icon.png')">
+    <None Include="$(MSBuildThisFileDirectory)nuget-icon.png"
+          Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true' AND Exists('$(MSBuildProjectDirectory)\README.md')">
+    <None Include="$(MSBuildProjectDirectory)\README.md"
+          Pack="true" PackagePath="\README.md" />
+  </ItemGroup>
+
   <Target Name="CopyModuleToOutputFolder"
           AfterTargets="Build"
           Condition="'$(IsModuleProject)' == 'true'">

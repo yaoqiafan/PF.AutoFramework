@@ -66,6 +66,7 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
 using Prism.Ioc;
+using Prism.Modularity;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -378,13 +379,32 @@ namespace PF.Application.Shell
         }
 
         /// <summary>
-        /// 创建模块目录：扫描 Modules\ 子目录，自动发现并加载所有实现了 IModule 的程序集。
-        /// 模块 DLL 由各模块项目构建后通过 Directory.Build.targets 复制到该目录。
+        /// 创建模块目录：扫描 Modules\ 子目录动态加载插件模块。
+        /// DirectoryModuleCatalog 同时支持 ConfigureModuleCatalog 中通过 AddModule&lt;T&gt;() 追加直接引用模块。
         /// </summary>
         protected override IModuleCatalog CreateModuleCatalog()
         {
             var modulesPath = Path.Combine(AppContext.BaseDirectory, "Modules");
             return new DirectoryModuleCatalog { ModulePath = modulesPath };
+        }
+
+        /// <summary>
+        /// 调试入口：调试特定模块时在此处添加对应 AddModule 调用（三步配合，详见 CLAUDE.md）。
+        /// 生产模式下保持空，所有模块均由 DirectoryModuleCatalog 目录扫描加载。
+        /// </summary>
+        protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
+        {
+            // 调试示例（三步配合使用）：
+            // ① 目标模块 .csproj 注释 <IsModuleProject>true</IsModuleProject>
+            // ② Shell.csproj 将该模块改为普通 ProjectReference 或 PackageReference
+            // ③ 取消此处对应行的注释
+            // moduleCatalog.AddModule<AlarmModule>();
+            // moduleCatalog.AddModule<LoggingModule>();
+            // moduleCatalog.AddModule<IdentityModule>();
+            // moduleCatalog.AddModule<ParameterModule>();
+            // moduleCatalog.AddModule<DebugModule>();
+            // moduleCatalog.AddModule<ProductionRecordModule>();
+            // moduleCatalog.AddModule<SecsGemModule>();
         }
 
         #endregion

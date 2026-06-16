@@ -21,6 +21,10 @@
 
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
+		<IsPackable>true</IsPackable>
+		<Version>1.0.1</Version>
+		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
 		<Description>异常处理展示模块：报警触发、活跃报警看板、历史查询、SOP排故面板</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>
 </Project>

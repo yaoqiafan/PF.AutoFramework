@@ -1,7 +1,6 @@
 <Project>
   <PropertyGroup>
-    <!-- ===== 统一版本与作者信息 ===== -->
-    <Version>1.0.0</Version>
+    <!-- ===== 统一作者信息（版本号在各项目 .csproj 中独立声明） ===== -->
     <Authors>Ethen.Ge</Authors>
     <Company>聚力智能</Company>
     <Copyright>Copyright © 2025 聚力智能</Copyright>
