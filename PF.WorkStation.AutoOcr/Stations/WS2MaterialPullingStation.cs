@@ -332,13 +332,13 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (!res.HasValue)
                     {
                         _logger.Error($"[{StationName}] 初始化失败，判断夹爪的物料状态异常");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitCheckFailed, "初始化失败，判断夹爪的物料状态异常");
                         return;
                     }
                     if (res.Value)
                     {
                         _logger.Error($"[{StationName}] 初始化失败，记忆中夹爪的状态为有料，实际检测为无料，检查轨道物料状态");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitCheckFailed, "初始化失败，记忆中夹爪状态为有料、实际检测为无料，请检查轨道物料状态");
                         return;
                     }
 
@@ -346,26 +346,31 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (!result.IsSuccess)
                     {
                         _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(
+                            string.IsNullOrEmpty(result.ErrorCode)
+                                ? AlarmCodesExtensions.WS2Pulling.GripperCloseFailed
+                                : result.ErrorCode,
+                            "初始化失败，关闭夹爪失败");
+                        return;
                     }
                     if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitCheckFailed, "初始化失败，当前轨道尺寸与物料尺寸不匹配");
                         return;
                     }
 
                     if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitPullingFailed, "初始化失败，Y轴回零异常");
                         return;
                     }
 
                     if (!await _pullingModule.MoveDetection(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.MoveInitialFailed, "初始化失败，Y轴移动到待机位异常");
                         return;
                     }
                 }
@@ -376,26 +381,31 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (!result.IsSuccess)
                     {
                         _logger.Error($"[{StationName}] 初始化失败，关闭夹爪失败");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(
+                            string.IsNullOrEmpty(result.ErrorCode)
+                                ? AlarmCodesExtensions.WS2Pulling.GripperCloseFailed
+                                : result.ErrorCode,
+                            "初始化失败，关闭夹爪失败");
+                        return;
                     }
                     if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitCheckFailed, "初始化失败，当前轨道尺寸与物料尺寸不匹配");
                         return;
                     }
 
                     if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitPullingFailed, "初始化失败，Y轴回零异常");
                         return;
                     }
 
                     if (!await _pullingModule.MoveDetection(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.MoveInitialFailed, "初始化失败，Y轴移动到待机位异常");
                         return;
                     }
                 }
@@ -406,38 +416,47 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (!result.IsSuccess)
                     {
                         _logger.Error($"[{StationName}] 初始化失败，打开夹爪失败");
-                        Fire(MachineTrigger.Error);
+                        // 修复：必须用具体错误码触发报警。原先只 Fire(Error) 未设错误码，
+                        // 会被 EnterAlarmCommon 兜底成 CascadeAlarm，进而被主控当级联噪音滤掉而不弹窗。
+                        // 同时补 return，避免失败后继续执行后续初始化步骤。
+                        TriggerAlarm(
+                            string.IsNullOrEmpty(result.ErrorCode)
+                                ? AlarmCodesExtensions.WS2Pulling.GripperOpenFailed
+                                : result.ErrorCode,
+                            "初始化失败，打开夹爪失败");
+                        return;
                     }
                     if (!await _pullingModule.CheckWafeSizeControl(_cachedRecipe.WafeSize, token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，当前轨道尺寸与物料尺寸不匹配，请检查");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitCheckFailed, "初始化失败，当前轨道尺寸与物料尺寸不匹配");
                         return;
                     }
 
                     if (!await _pullingModule.WaitHomeDoneAsync(_pullingModule.YAxis, token: token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴回零异常。");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitPullingFailed, "初始化失败，Y轴回零异常");
                         return;
                     }
 
                     if (!await _pullingModule.MoveInitialNoScan(token))
                     {
                         _logger.Error($"[{StationName}] 初始化失败，Y轴移动到待机位异常。");
-                        Fire(MachineTrigger.Error);
+                        TriggerAlarm(AlarmCodesExtensions.WS2Pulling.MoveInitialNoScanFailed, "初始化失败，Y轴移动到待机位异常");
                         return;
                     }
                 }
-
-
-
-
-
             }
-            catch
+            catch (OperationCanceledException)
             {
                 Fire(MachineTrigger.Error);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{StationName}] 初始化异常：{ex.Message}");
+                TriggerAlarm(AlarmCodesExtensions.WS2Pulling.InitCheckFailed, $"初始化异常：{ex.Message}");
                 throw;
             }
 
@@ -560,6 +579,12 @@ namespace PF.WorkStation.AutoOcr.Stations
                 await _pullingModule.StopAsync().ConfigureAwait(false);
         }
 
+        /// <summary>物理暂停回调：仅软暂停（保留伺服使能），安全门关闭后可立即 Start 恢复</summary>
+        protected override async Task OnPhysicalPauseAsync()
+        {
+            if (_pullingModule != null)
+                await _pullingModule.StopAsync().ConfigureAwait(false);
+        }
         /// <summary>获取关联模组列表</summary>
         protected override IEnumerable<PF.Infrastructure.Mechanisms.BaseMechanism> GetMechanisms()
         {
@@ -588,7 +613,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 {
                     // 【核心校验】每一轮步序流转前，强制校验取消状态，确保流程即时停止
                     token.ThrowIfCancellationRequested();
-                    await Task.Delay(250);
+                    await Task.Delay(250, token);
                     if (await _paramService.GetParamAsync<bool>(E_Params.WorkStation2_Muted.ToString(), false))
                     {
                         await Task.Delay(1000, token);
@@ -789,7 +814,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 RouteToError(Station2PullingStep.扫码失败, Station2PullingStep.等待允许送料);
                                 break;
                             }
-                            var checkResult = await _dataModule.CheckCodeAsync(E_WorkSpace.工位2, scanResult.Data, token);
+                            var checkResult = await WSDataModule.CheckCodeAsync(E_WorkSpace.工位2, scanResult.Data, token);
                             if (!checkResult.IsSuccess)
                             {
                                 _logger.Warn($"[{StationName}] 条码校验不通过: {checkResult.ErrorMessage}");

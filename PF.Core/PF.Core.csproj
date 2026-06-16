@@ -3,6 +3,8 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
+		<Version>1.0.1</Version>
+		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
 		<Description>PF.AutoFramework 核心契约层：接口、枚举、特性，无任何外部依赖</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

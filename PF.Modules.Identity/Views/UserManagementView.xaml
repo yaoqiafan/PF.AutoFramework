@@ -13,112 +13,235 @@
         <local:BindingProxy x:Key="Proxy" Data="{Binding}" />
         <conv:SystemUserToBoolConverter x:Key="SystemUserToBoolConverter" />
         <conv:ListToStringConverter x:Key="ListToStringConverter" />
+        <conv:UserLevelToBrushConverter x:Key="UserLevelToBrushConverter" />
+        <conv:UserLevelToDisplayConverter x:Key="UserLevelToDisplayConverter" />
     </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
-        <Border
-            BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="1"
-            CornerRadius="5">
-            <Grid Margin="12">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  页面标题 + 操作栏  -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="320" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <DockPanel Grid.Column="0" Margin="0,0,12,0">
-                    <StackPanel
-                        Margin="0,0,0,10"
-                        DockPanel.Dock="Top"
-                        Orientation="Horizontal">
-                        <Button
-                            Margin="0,0,8,0"
-                            Command="{Binding LoadUsersCommand}"
-                            Content="刷新" />
-                        <Button
-                            Command="{Binding AddCommand}"
-                            Content="新增用户"
-                            Style="{StaticResource ButtonPrimary}" />
-                    </StackPanel>
-
-                    <DataGrid  ColumnWidth="*"
-                        AutoGenerateColumns="False"
-                        BorderThickness="1"
-                        IsReadOnly="True"
-                        ItemsSource="{Binding Users}"
-                        SelectedItem="{Binding SelectedUser}"
-                        SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn
-                                 Width="*"
-                                Binding="{Binding UserName}"
-                                Header="账户名称" />
-                            <DataGridTextColumn
-                                Width="*"
-                                Binding="{Binding Root}"
-                                Header="用户等级" />
-                            <DataGridTextColumn
-                                Width="*"
-                                Binding="{Binding  Password}"
-                                Header="密码" />
-                           
-                            <DataGridTemplateColumn Width="80" Header="操作">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button
-                                            Command="{Binding Data.DeleteCommand, Source={StaticResource Proxy}}"
-                                            CommandParameter="{Binding}"
-                                            Content="删除"
-                                            IsEnabled="{Binding UserName, Converter={StaticResource SystemUserToBoolConverter}}"
-                                            Style="{StaticResource ButtonDashedDanger}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </DockPanel>
-
-                <Border
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="{DynamicResource FontSize.H1.Large}"
+                    FontWeight="Light"
+                    Text="用户管理" />
+                <StackPanel
                     Grid.Column="1"
-                    BorderBrush="#DDD"
-                    BorderThickness="1"
-                    CornerRadius="4">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="15" DataContext="{Binding SelectedUser}">
-                            <TextBlock
-                                Margin="0,0,0,15"
-                                FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                FontWeight="Bold"
-                                Text="用户信息编辑" />
-
-                            <TextBlock Margin="0,0,0,5" Text="用户名:" />
-                            <TextBox Margin="0,0,0,15" Text="{Binding UserName}" />
-
-                            <TextBlock Margin="0,0,0,5" Text="密码:" />
-                            <TextBox Margin="0,0,0,15" Text="{Binding Password}" />
-
-                            <TextBlock Margin="0,0,0,5" Text="权限等级:" />
-                            <ComboBox
-                                Margin="0,0,0,15"
-                                ItemsSource="{Binding Data.UserLevels, Source={StaticResource Proxy}}"
-                                SelectedItem="{Binding Data.EditingUserRoot, Source={StaticResource Proxy}, Mode=TwoWay}" />
-
-                            <TextBlock Margin="0,0,0,5" Text="可访问页面:" />
-                            <TextBox IsReadOnly="True"
-                                Margin="0,0,0,15"
-                                Text="{Binding AccessibleViews, Converter={StaticResource ListToStringConverter}}"
-                                TextWrapping="Wrap"
-                                ToolTip="例如: ParameterView, LogView, HistoryView" />
-
-                            <Button
-                                Height="35"
-                                Command="{Binding Data.SaveCommand, Source={StaticResource Proxy}}"
-                                Content="保存更改"
-                                Style="{StaticResource ButtonPrimary}" />
-                        </StackPanel>
-                    </ScrollViewer>
-                </Border>
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <Button
+                        Margin="0,0,8,0"
+                        Command="{Binding LoadUsersCommand}"
+                        Content="刷新" />
+                    <Button
+                        Command="{Binding AddCommand}"
+                        Content="＋ 新增用户"
+                        Style="{StaticResource ButtonPrimary}" />
+                </StackPanel>
             </Grid>
-        </Border>
+
+            <!--  CoverView 用户卡片列表  -->
+            <ScrollViewer
+                Grid.Row="1"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <pf:CoverView
+                    ItemContentHeight="240"
+                    ItemContentHeightFixed="True"
+                    ItemHeight="210"
+                    ItemsSource="{Binding Users}"
+                    ItemWidth="180">
+
+                    <!--  ══════ 卡片封面（ItemHeaderTemplate）══════  -->
+                    <pf:CoverView.ItemHeaderTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="6"
+                                Background="{DynamicResource RegionBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Cursor="Hand">
+                                <Border.Effect>
+                                    <DropShadowEffect
+                                        BlurRadius="10"
+                                        Opacity="0.08"
+                                        ShadowDepth="2"
+                                        Color="#000000" />
+                                </Border.Effect>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="1" />
+                                        <RowDefinition Height="36" />
+                                    </Grid.RowDefinitions>
+
+                                    <!--  头像圆形（颜色 + 图标随等级变化）  -->
+                                    <Grid Grid.Row="0" Margin="0,18,0,10">
+                                        <Ellipse
+                                            Width="72"
+                                            Height="72"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding Root, Converter={StaticResource UserLevelToBrushConverter}}" />
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            FontSize="30"
+                                            Foreground="White"
+                                            Text="{Binding Root, Converter={StaticResource UserLevelToDisplayConverter}, ConverterParameter=icon}" />
+                                    </Grid>
+
+                                    <!--  用户名  -->
+                                    <TextBlock
+                                        Grid.Row="1"
+                                        Margin="10,0,10,6"
+                                        HorizontalAlignment="Center"
+                                        FontSize="14"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding UserName}"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <!--  等级徽章  -->
+                                    <Border
+                                        Grid.Row="2"
+                                        Margin="0,0,0,10"
+                                        Padding="12,3"
+                                        HorizontalAlignment="Center"
+                                        Background="{Binding Root, Converter={StaticResource UserLevelToBrushConverter}}"
+                                        CornerRadius="10">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="Medium"
+                                            Foreground="White"
+                                            Text="{Binding Root, Converter={StaticResource UserLevelToDisplayConverter}}" />
+                                    </Border>
+
+                                    <!--  分隔线  -->
+                                    <Rectangle
+                                        Grid.Row="3"
+                                        Margin="12,0"
+                                        Fill="{DynamicResource BorderBrush}" />
+
+                                    <!--  底部提示文字  -->
+                                    <TextBlock
+                                        Grid.Row="4"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="11"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        Text="点击展开编辑" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </pf:CoverView.ItemHeaderTemplate>
+
+                    <!--  ══════ 展开编辑面板（ItemTemplate）══════  -->
+                    <pf:CoverView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="20,14,20,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="10" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!--  用户名  -->
+                                <TextBlock
+                                    Grid.Row="0" Grid.Column="0"
+                                    Margin="0,0,0,4"
+                                    FontWeight="Medium"
+                                    Text="用户名" />
+                                <TextBox
+                                    Grid.Row="1" Grid.Column="0"
+                                    Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <!--  密码  -->
+                                <TextBlock
+                                    Grid.Row="0" Grid.Column="2"
+                                    Margin="0,0,0,4"
+                                    FontWeight="Medium"
+                                    Text="密码" />
+                                <TextBox
+                                    Grid.Row="1" Grid.Column="2"
+                                    Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <!--  权限等级  -->
+                                <TextBlock
+                                    Grid.Row="3" Grid.Column="0"
+                                    Margin="0,0,0,4"
+                                    FontWeight="Medium"
+                                    Text="权限等级" />
+                                <ComboBox Height="{DynamicResource DefaultControlHeight}"
+                                    Grid.Row="4" Grid.Column="0"
+                                    ItemsSource="{Binding Data.UserLevels, Source={StaticResource Proxy}}"
+                                    SelectedItem="{Binding Root, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Converter={StaticResource UserLevelToDisplayConverter}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+
+                                <!--  可访问页面  -->
+                                <TextBlock
+                                    Grid.Row="3" Grid.Column="2"
+                                    Margin="0,0,0,4"
+                                    FontWeight="Medium"
+                                    Text="可访问页面（保存后自动更新）" />
+                                <TextBlock
+                                    Grid.Row="4" Grid.Column="2"
+                                    MaxHeight="52"
+                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                    Text="{Binding AccessibleViews, Converter={StaticResource ListToStringConverter}}"
+                                    TextWrapping="Wrap" />
+
+                                <!--  操作按钮（保存 + 删除），独立底部行  -->
+                                <StackPanel
+                                    Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3"
+                                    HorizontalAlignment="Right"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Margin="0,0,8,0"
+                                        Command="{Binding Data.SaveUserCommand, Source={StaticResource Proxy}}"
+                                        CommandParameter="{Binding}"
+                                        Content="💾 保存"
+                                        Style="{StaticResource ButtonPrimary}" />
+                                    <Button
+                                        Command="{Binding Data.DeleteCommand, Source={StaticResource Proxy}}"
+                                        CommandParameter="{Binding}"
+                                        Content="🗑 删除"
+                                        IsEnabled="{Binding UserName, Converter={StaticResource SystemUserToBoolConverter}}"
+                                        Style="{StaticResource ButtonDashedDanger}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </pf:CoverView.ItemTemplate>
+
+                </pf:CoverView>
+            </ScrollViewer>
+        </Grid>
     </pf:TransitioningContentControl>
 </UserControl>

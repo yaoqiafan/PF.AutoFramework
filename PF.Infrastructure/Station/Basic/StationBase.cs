@@ -683,11 +683,40 @@ namespace PF.Infrastructure.Station.Basic
         public void TriggerAlarm()
         {
             var state = CurrentState;
-            if (state == MachineState.InitAlarm || state == MachineState.RunAlarm) return;
+            if (state == MachineState.InitAlarm || state == MachineState.RunAlarm)
+            {
+                // 工站已处于报警态：不再驱动状态机变迁（避免重复 Fire 与级联噪音），
+                // 但带具体错误码的真实并发故障仍需上报，否则第二个真实故障在系统中完全不可见
+                // （主控收不到、活跃列表没有、界面看不到）。此处直接派发已写入的报警快照。
+                DispatchConcurrentAlarm();
+                return;
+            }
 
             _alarmInterrupted = true;
             try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
             Fire(MachineTrigger.Error);
+        }
+
+        /// <summary>
+        /// 工站已在报警态时，派发"并发真实报警"（带具体错误码）到上层，使其进入活跃报警列表。
+        /// 无具体码的级联触发（<c>_pendingAlarm</c> 为 null）不派发，从而抑制级联噪音、保留首发根因。
+        /// 与 <see cref="EnterAlarmCommon"/> 的区别：本方法不伴随状态机变迁，仅做上报；
+        /// 重复的相同 (Source, ErrorCode) 由 AlarmService 的活跃报警字典幂等去重，不会重复弹窗。
+        /// </summary>
+        private void DispatchConcurrentAlarm()
+        {
+            var pending = Interlocked.Exchange(ref _pendingAlarm, null);
+            if (pending == null) return;  // 级联/无码报警，不重复上报，抑制噪音
+
+            var handler = StationAlarmTriggered;
+            if (handler == null) return;
+
+            var context = pending.Context;
+            _ = Task.Run(() =>
+            {
+                try { handler.Invoke(this, context); }
+                catch (Exception ex) { _logger?.Error($"[{StationName}] StationAlarmTriggered(并发报警) 订阅者异常: {ex.Message}"); }
+            });
         }
 
         /// <summary>

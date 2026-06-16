@@ -3,6 +3,7 @@ using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Identity;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
@@ -32,6 +33,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         private readonly WSDataModule? _dataModule;
         private readonly IUserService _userService;
+        private readonly ILogService _logService;
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
         private readonly IMasterController _controller;
         private readonly DispatcherTimer _pollTimer;
@@ -216,6 +218,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         // ── 双重身份验证字段 ─────────────────────────────────────────
 
         private string _auth1Username = string.Empty;
+        /// <summary>操作员1在双重身份验证面板中输入的工号。</summary>
         public string Auth1Username
         {
             get => _auth1Username;
@@ -223,6 +226,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         private string _auth2Username = string.Empty;
+        /// <summary>操作员2在双重身份验证面板中输入的工号。</summary>
         public string Auth2Username
         {
             get => _auth2Username;
@@ -351,7 +355,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>有清除记忆权限</summary>
-        public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Administrator);
+        public bool HasClearMemoryPermission => _userService.IsAuthorized(UserLevel.Engineer);
 
         private void OnStationMemoryItemChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -366,7 +370,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 数据集合
 
-        private ObservableCollection<WaferSlotInfo> _station1SlotStatesDisplay = new();
+        private ObservableCollection<WaferSlotInfo> _station1SlotStatesDisplay = [];
         /// <summary>工位1晶圆盒槽位状态（倒序：索引12在顶，索引0在底）</summary>
         public ObservableCollection<WaferSlotInfo> Station1SlotStatesDisplay
         {
@@ -374,7 +378,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             private set => SetProperty(ref _station1SlotStatesDisplay, value);
         }
 
-        private ObservableCollection<WaferSlotInfo> _station2SlotStatesDisplay = new();
+        private ObservableCollection<WaferSlotInfo> _station2SlotStatesDisplay = [];
         /// <summary>工位2晶圆盒槽位状态（倒序：索引12在顶，索引0在底）</summary>
         public ObservableCollection<WaferSlotInfo> Station2SlotStatesDisplay
         {
@@ -453,11 +457,30 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>触发全线复位的命令</summary>
         public DelegateCommand ResetCommand { get; }
 
-        /// <summary>工位1切换批次命令</summary>
+        /// <summary>工位1切换批次命令（Running 时禁用，SuperUser 除外）</summary>
         public DelegateCommand Station1ChangeLotCommand { get; }
 
-        /// <summary>工位2切换批次命令</summary>
+        /// <summary>工位2切换批次命令（Running 时禁用，SuperUser 除外）</summary>
         public DelegateCommand Station2ChangeLotCommand { get; }
+
+        /// <summary>未完成批次管理命令（两工位共用）</summary>
+        public DelegateCommand ManagePendingCommand { get; }
+
+        private bool _hasPendingBatches;
+        /// <summary>是否存在未完成批次，驱动 Badge 显示</summary>
+        public bool HasPendingBatches
+        {
+            get => _hasPendingBatches;
+            private set => SetProperty(ref _hasPendingBatches, value);
+        }
+
+        private int _pendingBatchCount;
+        /// <summary>未完成批次总数，驱动 Badge 数值</summary>
+        public int PendingBatchCount
+        {
+            get => _pendingBatchCount;
+            private set => SetProperty(ref _pendingBatchCount, value);
+        }
 
         /// <summary>工位1下料确认命令（遮罩层确认按钮）</summary>
         public DelegateCommand Station1UnloadConfirmCommand { get; }
@@ -485,10 +508,11 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         #endregion
 
         /// <summary>初始化 HomeViewModel</summary>
-        public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller,IParamService paramService )
+        public HomeViewModel(IContainerProvider containerProvider, IUserService userService, IMasterController controller, IParamService paramService, ILogService logService)
         {
             _paramService = paramService;
             _controller = controller;
+            _logService = logService;
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
             _userService = userService;
             _recipeService = containerProvider.Resolve<IRecipeService<OCRRecipeParam>>();
@@ -504,26 +528,26 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             _eventAggregator.GetEvent<OcrMismatchRequestedEvent>()
                 .Subscribe(OnOcrMismatchRequested, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
-            // 订阅屏蔽参数变更通知：显示横幅提示用户需重新初始化
+            // 订阅屏蔽参数变更通知：显示横幅提示用户需重新初始化，并立即刷新工位屏蔽状态
             _eventAggregator.GetEvent<ReinitializeRequiredEvent>()
-                .Subscribe(() => NeedsReinitialize = true, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
+                .Subscribe(async () => { NeedsReinitialize = true; await RefreshAllAsync(); }, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
             // 同步控制器当前重初始化标记（应用启动时可能已有残留状态）
             NeedsReinitialize = _controller.IsReinitializationRequired;
 
-            StationMemoryItems = new ObservableCollection<WorkstationMemoryGroup>
-            {
-                new WorkstationMemoryGroup("工位一", new[]
-                {
+            StationMemoryItems =
+            [
+                new("工位一",
+                [
                     E_WorkStation.工位1上下料工站.ToString(),
                     E_WorkStation.工位1拉料工站.ToString()
-                }),
-                new WorkstationMemoryGroup("工位二", new[]
-                {
+                ]),
+                new ("工位二",
+                [
                     E_WorkStation.工位2上下料工站.ToString(),
                     E_WorkStation.工位2拉料工站.ToString()
-                }),
-            };
+                ]),
+            ];
             foreach (var item in StationMemoryItems)
                 item.PropertyChanged += OnStationMemoryItemChanged;
 
@@ -556,7 +580,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         }
                         await _controller.InitializeAllAsync();
                         if (_controller.CurrentState == MachineState.Idle)
+                        {
                             NeedsReinitialize = false;
+                            await RefreshAllAsync();
+                        }
                     }
                     catch { }
                 },
@@ -585,8 +612,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                    || _controller.CurrentState == MachineState.RunAlarm);
 
             // 工位操作命令
-            Station1ChangeLotCommand = new DelegateCommand(Station1ShowChangeLotView);
-            Station2ChangeLotCommand = new DelegateCommand(Station2ShowChangeLotView);
+            Station1ChangeLotCommand = new DelegateCommand(
+                Station1ShowChangeLotView,
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
+            Station2ChangeLotCommand = new DelegateCommand(
+                Station2ShowChangeLotView,
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
+
+            ManagePendingCommand = new DelegateCommand(
+                ShowPendingBatchManager,
+                () => _controller.CurrentState != MachineState.Running || _userService.IsAuthorized(UserLevel.SuperUser));
             Station1UnloadConfirmCommand = new DelegateCommand(OnStation1UnloadConfirm);
             Station2UnloadConfirmCommand = new DelegateCommand(OnStation2UnloadConfirm);
 
@@ -609,7 +644,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     catch { }
                 };
             }
-            RefreshAllAsync();
+            _ = RefreshAllAsync();
 
             // 状态轮询定时器
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
@@ -639,6 +674,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             PauseCommand.RaiseCanExecuteChanged();
             StopCommand.RaiseCanExecuteChanged();
             ResetCommand.RaiseCanExecuteChanged();
+            Station1ChangeLotCommand.RaiseCanExecuteChanged();
+            Station2ChangeLotCommand.RaiseCanExecuteChanged();
+            ManagePendingCommand.RaiseCanExecuteChanged();
+
+            if (_dataModule != null)
+            {
+                var count = _dataModule.GetAllPendingBatches().Count;
+                PendingBatchCount = count;
+                HasPendingBatches  = count > 0;
+            }
 
             if (_hardwareInputMonitor != null)
             {
@@ -693,12 +738,17 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         #region 切换批次
 
+        private void ShowPendingBatchManager()
+        {
+            DialogService.ShowDialog(nameof(PendingBatchManagerView));
+        }
+
         private void Station1ShowChangeLotView()
         {
             var initParams = new DialogParameters
             {
                 { "InitialLayerMode",       _dataModule?.GetLayerMode(E_WorkSpace.工位1) ?? E_LayerProcessMode.全做 },
-                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位1) ?? new System.Collections.Generic.List<int>() }
+                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位1) ?? [] }
             };
             DialogService.ShowDialog(nameof(ChangeLotView), initParams, OnDialogCallbackStation1);
         }
@@ -708,7 +758,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             var initParams = new DialogParameters
             {
                 { "InitialLayerMode",       _dataModule?.GetLayerMode(E_WorkSpace.工位2) ?? E_LayerProcessMode.全做 },
-                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位2) ?? new System.Collections.Generic.List<int>() }
+                { "InitialSpecifiedLayers", _dataModule?.GetSpecifiedLayers(E_WorkSpace.工位2) ?? [] }
             };
             DialogService.ShowDialog(nameof(ChangeLotView), initParams, OnDialogCallbackStation2);
         }
@@ -743,7 +793,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     var layerMode1 = param.ContainsKey("LayerMode")
                         ? param.GetValue<E_LayerProcessMode>("LayerMode") : E_LayerProcessMode.全做;
                     var specifiedLayers1 = param.ContainsKey("SpecifiedLayers")
-                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : new System.Collections.Generic.List<int>();
+                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : [];
                     _dataModule?.SetLayerMode(E_WorkSpace.工位1, layerMode1, specifiedLayers1);
 
                     if (_userService.IsAuthorized(UserLevel.SuperUser)
@@ -764,6 +814,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                                 return;
                             }
                             Station1RecipeName = recipeName;
+                            _dataModule.Station1MesDetectionData.RecipeName = recipeName;
                         }
                     }
 
@@ -809,7 +860,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     var layerMode2 = param.ContainsKey("LayerMode")
                         ? param.GetValue<E_LayerProcessMode>("LayerMode") : E_LayerProcessMode.全做;
                     var specifiedLayers2 = param.ContainsKey("SpecifiedLayers")
-                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : new System.Collections.Generic.List<int>();
+                        ? param.GetValue<System.Collections.Generic.List<int>>("SpecifiedLayers") : [];
                     _dataModule?.SetLayerMode(E_WorkSpace.工位2, layerMode2, specifiedLayers2);
 
                     if (_userService.IsAuthorized(UserLevel.SuperUser)
@@ -830,6 +881,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                                 return;
                             }
                             Station2RecipeName = recipeName;
+                            _dataModule.Station2MesDetectionData.RecipeName = recipeName;
                         }
                     }
 
@@ -869,6 +921,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         private void OnStation1UnloadConfirm()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info($"[人工判定] 用户[{user}] 确认工位1人工下料完成 | 批次：{Station1InternalBatches}", "操作日志");
             Station1UnloadMaskVisible = false;
             _sync.Release(nameof(WorkstationSignals.工位1人工下料完成), scope: E_WorkStation.工位1上下料工站.ToString());
         }
@@ -878,6 +932,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// </summary>
         private void OnStation2UnloadConfirm()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info($"[人工判定] 用户[{user}] 确认工位2人工下料完成 | 批次：{Station2InternalBatches}", "操作日志");
             Station2UnloadMaskVisible = false;
             _sync.Release(nameof(WorkstationSignals.工位2人工下料完成), scope: E_WorkStation.工位2上下料工站.ToString());
         }
@@ -904,12 +960,22 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnOcrRetry()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info(
+                $"[人工判定] 用户[{user}] 选择重试OCR拍照 | " +
+                $"批次：{OcrMismatchInternalBatchId} | 原OCR值：{OcrMismatchOcrText}",
+                "操作日志");
             _ocrMismatchPayload?.Tcs.TrySetResult(new OcrMismatchResult { Action = OcrMismatchAction.Retry });
             HideOcrMismatchOverlay();
         }
 
         private void OnOcrStartManual()
         {
+            string user = _userService.CurrentUser?.UserName ?? "未知用户";
+            _logService.Info(
+                $"[人工判定] 用户[{user}] 选择手动输入OCR | " +
+                $"批次：{OcrMismatchInternalBatchId} | 原OCR值：{OcrMismatchOcrText}",
+                "操作日志");
             Auth1Username    = string.Empty;
             Auth2Username    = string.Empty;
             Auth1DisplayName = string.Empty;
@@ -931,15 +997,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (!users.Any(u => u.UserName == Auth1Username))
             {
                 AuthErrorMessage = $"用户 [{Auth1Username}] 不存在";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员1验证失败 | 用户[{Auth1Username}]不存在 | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
             if (!await VerifyWithMesAsync(Auth1Username, _auth1Password))
             {
                 AuthErrorMessage = "MES 身份验证失败，请检查用户名和密码";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员1验证失败 | 用户[{Auth1Username}] MES认证不通过 | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
+            _logService.Info($"[人工判定] OCR双重认证-操作员1验证通过 | 用户[{Auth1Username}] | 批次：{OcrMismatchInternalBatchId}", "操作日志");
             Auth1DisplayName = Auth1Username;
             Auth2Username    = string.Empty;
             _auth2Password   = string.Empty;
@@ -959,15 +1028,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             if (!users.Any(u => u.UserName == Auth2Username))
             {
                 AuthErrorMessage = $"用户 [{Auth2Username}] 不存在";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员2验证失败 | 用户[{Auth2Username}]不存在 | 操作员1：{Auth1DisplayName} | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
             if (!await VerifyWithMesAsync(Auth2Username, _auth2Password))
             {
                 AuthErrorMessage = "MES 身份验证失败，请检查用户名和密码";
+                _logService.Warn($"[人工判定] OCR双重认证-操作员2验证失败 | 用户[{Auth2Username}] MES认证不通过 | 操作员1：{Auth1DisplayName} | 批次：{OcrMismatchInternalBatchId}", "操作日志");
                 return;
             }
 
+            _logService.Info($"[人工判定] OCR双重认证-操作员2验证通过 | 操作员1：{Auth1DisplayName} 操作员2：{Auth2Username} | 批次：{OcrMismatchInternalBatchId}，进入手动输入", "操作日志");
             ManualOcrText    = OcrMismatchOcrText;
             AuthErrorMessage = string.Empty;
             SetOcrMismatchState(OcrMismatchOverlayState.ManualOcr);
@@ -975,10 +1047,15 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         private void OnOcrConfirmManual()
         {
+            string manualText = ManualOcrText.Trim();
+            _logService.Info(
+                $"[人工判定] OCR手动输入确认 | 操作员1：{Auth1DisplayName} 操作员2：{Auth2Username} | " +
+                $"批次：{OcrMismatchInternalBatchId} | 原OCR值：{OcrMismatchOcrText} | 手动录入值：{manualText}",
+                "操作日志");
             _ocrMismatchPayload?.Tcs.TrySetResult(new OcrMismatchResult
             {
                 Action        = OcrMismatchAction.ManualInput,
-                ManualOcrText = ManualOcrText.Trim()
+                ManualOcrText = manualText
             });
             HideOcrMismatchOverlay();
         }
@@ -1007,8 +1084,10 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
         /// <summary>MES 身份验证（预留接口，暂时返回 true）</summary>
-        private Task<bool> VerifyWithMesAsync(string username, string password)
+        private static Task<bool> VerifyWithMesAsync(string username, string password)
         {
+            if (string.IsNullOrEmpty(username)) { }
+            if (string.IsNullOrEmpty(password)) { }
             // TODO: 对接 MES 身份验证接口
             return Task.FromResult(true);
         }
@@ -1016,6 +1095,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         private enum OcrMismatchOverlayState { Idle, AuthFirst, AuthSecond, ManualOcr }
 
         #endregion
+        /// <summary>
+        /// 使用旧的Viewmidel
+        /// </summary>
+        /// <param name="navigationContext"></param>
+        /// <returns></returns>
+        public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
         /// <summary>
         /// 重写基类方法，在 ViewModel 销毁时停止定时器
@@ -1038,15 +1123,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     }
 
     /// <summary>工位复合清除记忆选项：选中时同步清除该工位下所有子工站的记忆。</summary>
-    public class WorkstationMemoryGroup : INotifyPropertyChanged
+    /// <remarks>Initializes a new instance.</remarks>
+    public class WorkstationMemoryGroup(string displayName, string[] stationNames) : INotifyPropertyChanged
     {
         private bool _isChecked;
 
         /// <summary>界面显示名称（如"工位一"）</summary>
-        public string DisplayName { get; }
+        public string DisplayName { get; } = displayName;
 
         /// <summary>需要清除记忆的工站名称列表（对应 StationBase.StationName）</summary>
-        public string[] StationNames { get; }
+        public string[] StationNames { get; } = stationNames;
 
         /// <summary>是否勾选清除</summary>
         public bool IsChecked
@@ -1060,12 +1146,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             }
         }
 
+        /// <inheritdoc/>
         public event PropertyChangedEventHandler? PropertyChanged;
-
-        public WorkstationMemoryGroup(string displayName, string[] stationNames)
-        {
-            DisplayName = displayName;
-            StationNames = stationNames;
-        }
     }
 }

@@ -60,10 +60,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>工位2人工下料完成</summary>
         工位2人工下料完成,
         /***********复位完成标志*********/
+        /// <summary>检测模组已完成复位动作</summary>
         检测模组复位完成,
-
+        /// <summary>工位1推拉模组已完成复位动作</summary>
         工位1拉料复位完成,
-
+        /// <summary>工位2推拉模组已完成复位动作</summary>
         工位2拉料复位完成,
 
     }
@@ -100,7 +101,9 @@ namespace PF.WorkStation.AutoOcr.Stations
             E_Params.WorkStation2_Muted.ToString(),
         };
 
+        /// <inheritdoc/>
         public override bool IsReinitializationRequired => _isReinitializationRequired;
+        /// <inheritdoc/>
         public override event EventHandler? ReinitializationRequired;
 
         #endregion
@@ -261,6 +264,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 else if (newState == Core.Enums.MachineState.Uninitialized)
                 {
                     _hardwareInputMonitor.StopSafetyMonitoring();
+                    // 重置安全门启用状态，下次 StartSafetyMonitoring 时重新从参数加载屏蔽状态
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
+                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
                 }
             }
             catch (Exception ex)
@@ -334,8 +340,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             // 仅初始化报警复位时重置全局信号量；运行期报警复位保留信号量以支持断点续跑
             if (MasterCameFromInitAlarm)
             {
-                _logger.Info("【主控】初始化报警复位，重置 global 作用域信号量...");
-                _sync.ResetScope("global");
+                _logger.Info("【主控】初始化报警复位，重置 \"复位\" 作用域信号量...");
+                _sync.ResetScope("复位");
             }
             else
             {

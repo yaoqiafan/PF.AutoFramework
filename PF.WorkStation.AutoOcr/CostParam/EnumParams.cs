@@ -615,7 +615,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         #endregion OCR相机参数
 
 
-        #region 安全门参数
+        #region 屏蔽参数
 
 
         /// <summary>屏蔽安全门1检测（调试用，正式生产必须关闭）</summary>
@@ -647,16 +647,6 @@ namespace PF.Workstation.AutoOcr.CostParam
         [DefaultValue(false)]
         SafeDoor_7_8_Muted,
 
-        #endregion
-
-        #region 三色灯参数
-
-        /// <summary>全局蜂鸣器屏蔽（调试模式静音用，正式生产必须关闭）</summary>
-        [Category("屏蔽参数")]
-        [Description("全局蜂鸣器屏蔽")]
-        [DefaultValue(false)]
-        BuzzerMuted,
-
         /// <summary>屏蔽工位1（调试用，跳过硬件动作与启动按钮，流程空转）</summary>
         [Category("屏蔽参数")]
         [Description("屏蔽工位1：初始化跳过硬件，流程空转不阻塞")]
@@ -671,7 +661,58 @@ namespace PF.Workstation.AutoOcr.CostParam
 
         #endregion
 
-        
+        #region 三色灯参数
+
+        /// <summary>全局蜂鸣器屏蔽（调试模式静音用，正式生产必须关闭）</summary>
+        [Category("屏蔽参数")]
+        [Description("全局蜂鸣器屏蔽")]
+        [DefaultValue(false)]
+        BuzzerMuted,
+
+        #endregion
+
+        #region 流程参数
+        /// <summary>
+        /// 屏蔽工位1手动OCR输入
+        /// </summary>
+        [Category("流程参数")]
+        [Description("屏蔽工位1手动OCR输入")]
+        [DefaultValue(false)]
+        DisableManulInput_WS1,
+        /// <summary>
+        /// 屏蔽工位2手动OCR输入
+        /// </summary>
+        [Category("流程参数")]
+        [Description("屏蔽工位2手动OCR输入")]
+        [DefaultValue(false)]
+        DisableManulInput_WS2,
+        /// <summary>
+        /// 屏蔽工位1OCR校验
+        /// </summary>
+        [Category("流程参数")]
+        [Description("屏蔽工位1OCR校验")]
+        [DefaultValue(false)]
+        DisableOCRCheck_WS1,
+        /// <summary>
+        /// 屏蔽工位2OCR校验
+        /// </summary>
+        [Category("流程参数")]
+        [Description("屏蔽工位2OCR校验")]
+        [DefaultValue(false)]
+        DisableOCRCheck_WS2,
+
+
+        /// <summary>
+        /// 检测数据缓存时间
+        /// </summary>
+        [Category("流程参数")]
+        [Description("检测数据缓存时间")]
+        [DefaultValue(3.0)]
+        DetectionDataCacheTime,
+
+        #endregion
+
+
     }
 
 

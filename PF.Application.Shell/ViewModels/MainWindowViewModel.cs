@@ -15,7 +15,6 @@ using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.Station;
 using PF.Core.Models;
 using PF.Infrastructure.Logging;
-using PF.Modules.Alarm.Dialogs;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
@@ -91,6 +90,8 @@ namespace PF.Application.Shell.ViewModels
             // ── 全局报警事件订阅（通过 EventAggregator，ThreadOption.UIThread 免去手动 Dispatcher）──
             EventAggregator.GetEvent<AlarmTriggeredEvent>()
                 .Subscribe(OnGlobalAlarmTriggered, ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
+            EventAggregator.GetEvent<AlarmClearedEvent>()
+                .Subscribe(_ => RefreshAlarmStatus(), ThreadOption.UIThread, keepSubscriberReferenceAlive: true);
 
             LoadCommand = new DelegateCommand(OnLoading);
             SwitchItemCmd = new DelegateCommand<FunctionEventArgs<object>>(OnNavigated);
@@ -100,6 +101,13 @@ namespace PF.Application.Shell.ViewModels
                 {
                     Expand = result;
                 }
+            });
+
+            NavigateToAlarmCenterCmd = new DelegateCommand(() =>
+            {
+                RegionManager.RequestNavigate(
+                    NavigationConstants.Regions.SoftwareViewRegion,
+                    NavigationConstants.Views.AlarmCenterView);
             });
         }
         #endregion
@@ -190,6 +198,8 @@ namespace PF.Application.Shell.ViewModels
             //        break;
             //}
 
+           
+
             // 2. Warning 及以上级别弹出报警详情对话框；Warning 级别不显示异常复位按钮（纯通知）
             if (record.Severity >= AlarmSeverity.Warning)
             {
@@ -198,11 +208,32 @@ namespace PF.Application.Shell.ViewModels
                     { "Data", record },
                     { "ShowResetButton", record.Severity >= AlarmSeverity.Error }
                 };
-                DialogService.Show(nameof(AlarmDetailCardView), param, null, nameof(PFAlarmBaseWindow));
+                DialogService.Show("AlarmDetailCardView", param, null, "PFAlarmBaseWindow");
             }
+
+            // 3. 刷新状态栏报警指示器
+            RefreshAlarmStatus();
         }
 
         #endregion
+
+        /// <summary>
+        /// 从 AlarmService 快照同步报警指示器状态
+        /// </summary>
+        private void RefreshAlarmStatus()
+        {
+            var active = _alarmService.ActiveAlarms;
+            ActiveAlarmCount = active.Count;
+            if (active.Count == 0)
+            {
+                HighestAlarmSeverity = null;
+            }
+            else
+            {
+                // Severity enum: Fatal=3 > Error=2 > Warning=1 > Information=0
+                HighestAlarmSeverity = active.Max(r => r.Severity);
+            }
+        }
 
         #region 菜单刷新
         private void RefreshMenu()
@@ -217,7 +248,7 @@ namespace PF.Application.Shell.ViewModels
                     MenuItems.Add(item);
                 }
             });
-            RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
+            //RegionManager.RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView, NavigationComplete);
         }
 
         /// <summary>
@@ -503,6 +534,51 @@ namespace PF.Application.Shell.ViewModels
             _ => "未知"
         };
 
+        private int _activeAlarmCount;
+        /// <summary>活跃报警计数</summary>
+        public int ActiveAlarmCount
+        {
+            get => _activeAlarmCount;
+            set
+            {
+                if (SetProperty(ref _activeAlarmCount, value))
+                {
+                    RaisePropertyChanged(nameof(HasActiveAlarms));
+                    RaisePropertyChanged(nameof(AlarmStatusText));
+                }
+            }
+        }
+
+        /// <summary>是否有活跃报警</summary>
+        public bool HasActiveAlarms => ActiveAlarmCount > 0;
+
+        private AlarmSeverity? _highestAlarmSeverity;
+        /// <summary>当前最高报警严重级别</summary>
+        public AlarmSeverity? HighestAlarmSeverity
+        {
+            get => _highestAlarmSeverity;
+            set
+            {
+                if (SetProperty(ref _highestAlarmSeverity, value))
+                {
+                    RaisePropertyChanged(nameof(AlarmStatusBrush));
+                }
+            }
+        }
+
+        /// <summary>报警状态颜色画刷</summary>
+        public Brush AlarmStatusBrush => _highestAlarmSeverity switch
+        {
+            AlarmSeverity.Fatal       => new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)), // 致命红
+            AlarmSeverity.Error       => new SolidColorBrush(Color.FromRgb(0xff, 0x8f, 0x00)), // 错误橙
+            AlarmSeverity.Warning     => new SolidColorBrush(Color.FromRgb(0xe9, 0xaf, 0x20)), // 警告琥珀
+            AlarmSeverity.Information => new SolidColorBrush(Color.FromRgb(0x00, 0xbc, 0xd4)), // 信息青
+            _                         => new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75))  // 无报警灰
+        };
+
+        /// <summary>报警状态文本</summary>
+        public string AlarmStatusText => HasActiveAlarms ? $"报警 {ActiveAlarmCount}" : "正常";
+
         private bool _scanner1Connected;
         /// <summary>工位1扫码枪连接状态</summary>
         public bool Scanner1Connected
@@ -549,6 +625,10 @@ namespace PF.Application.Shell.ViewModels
         /// ChangeExpandCmd
         /// </summary>
         public ICommand ChangeExpandCmd { get; set; }
+        /// <summary>
+        /// NavigateToAlarmCenterCmd
+        /// </summary>
+        public ICommand NavigateToAlarmCenterCmd { get; set; }
         #endregion
 
         #region 加载初始化

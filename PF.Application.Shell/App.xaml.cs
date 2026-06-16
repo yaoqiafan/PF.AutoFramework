@@ -37,17 +37,6 @@ using PF.Infrastructure.SecsGem.Param;
 using PF.Infrastructure.SecsGem.Tools;
 using PF.Infrastructure.Station;
 using PF.Infrastructure.Station.Basic;
-using PF.Modules.Debug;
-using PF.Modules.Identity;
-using PF.Modules.Logging;
-using PF.Modules.Parameter;
-using PF.Modules.Parameter.Dialog.Base;
-using PF.Modules.Parameter.Dialog.Mappers;
-using PF.Modules.Parameter.Dialog.Mappers.Hardware;
-using PF.Modules.Parameter.ViewModels.Models;
-using PF.Modules.Parameter.ViewModels.Models.Hardware;
-using PF.Modules.Production;
-using PF.Modules.SecsGem;
 using PF.SecsGem.DataBase;
 using PF.Services.Alarm;
 using PF.Services.Hardware;
@@ -77,6 +66,7 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
 using Prism.Ioc;
+using Prism.Modularity;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -84,6 +74,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using PF.UI.Shared.Data;
+using MsgType = PF.UI.Shared.Data.MsgType;
 
 namespace PF.Application.Shell
 {
@@ -92,6 +83,29 @@ namespace PF.Application.Shell
     /// </summary>
     public partial class App : PrismApplication
     {
+        /// <summary>
+        /// 在任何实例构造之前注册程序集解析回退。
+        /// 模块 DLL 位于 Modules\ 子目录，其依赖（PF.UI.Infrastructure 等）在父目录，
+        /// .NET 8 不会自动向上查找，此处兜底保证依赖可被找到。
+        /// 优先返回已加载的程序集，防止同一 DLL 从两个路径加载导致类型标识不一致。
+        /// </summary>
+        static App()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += static (_, args) =>
+            {
+                var shortName = new AssemblyName(args.Name).Name;
+
+                // 1. 已加载则直接返回，保证类型标识全局唯一
+                var already = AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == shortName);
+                if (already != null) return already;
+
+                // 2. 回退到主目录查找
+                var path = Path.Combine(AppContext.BaseDirectory, shortName + ".dll");
+                return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+            };
+        }
+
         #region 私有字段
 
         // 定义全局唯一的互斥体名称（建议使用公司/程序唯一标识，避免冲突）
@@ -263,13 +277,14 @@ namespace PF.Application.Shell
             // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
             // 使用默认的超级管理员账号进行静默登录
-            authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
+            //authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
+            authService.ResetToOperator();
 
             // ── 软硬联动：将 Prism EA 硬件复位事件路由到主控 ─────────────────────────
             // BaseMasterController 不依赖 Prism，通过 RegisterHardwareResetHandler 委托桥接，
             // 保持 PF.Infrastructure 对 Prism 的零依赖。
             var controller = Container.Resolve<IMasterController>();
-            var ea         = Container.Resolve<IEventAggregator>();
+            var ea = Container.Resolve<IEventAggregator>();
             ea.GetEvent<HardwareResetRequestedEvent>()
               .Subscribe(
                   req => (controller as BaseMasterController)?.OnHardwareResetRequested(req),
@@ -317,7 +332,6 @@ namespace PF.Application.Shell
             }
 
             containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
-            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(NavigationConstants.Views.CommonParamView);
 
 
             // 日志服务（配置和注册逻辑委托到 LoggingServiceExtensions）
@@ -341,19 +355,12 @@ namespace PF.Application.Shell
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
 
+            // CommonParamView / BaseParamsViewModel 依赖 Shell 专属的 CommonSettings，
+            // 必须留在 Shell 注册，不可迁移到 ParameterModule。
+            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(
+                NavigationConstants.Views.CommonParamView);
 
             RegisterUserIdentityTypes(containerRegistry);
-
-            ViewFactory.PreloadAssemblies();
-            ViewFactory.RegisterCustomType<UserInfo, UserParamView, UserParamViewMapper>();
-
-            // 注册硬件配置参数视图（按 ImplementationClassName 路由）
-            ViewFactory.RegisterHardwareConfigType<LTDMCMotionCardParamView,          LTDMCMotionCardParamViewMapper>         ("LTDMCMotionCard");
-            ViewFactory.RegisterHardwareConfigType<EtherCatAxisParamView,             EtherCatAxisParamViewMapper>            ("EtherCatAxis");
-            ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
-            ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
-            ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
-            ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightControoller");
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");
@@ -372,20 +379,32 @@ namespace PF.Application.Shell
         }
 
         /// <summary>
-        /// 配置模块目录，注册所有功能模块
+        /// 创建模块目录：扫描 Modules\ 子目录动态加载插件模块。
+        /// DirectoryModuleCatalog 同时支持 ConfigureModuleCatalog 中通过 AddModule&lt;T&gt;() 追加直接引用模块。
+        /// </summary>
+        protected override IModuleCatalog CreateModuleCatalog()
+        {
+            var modulesPath = Path.Combine(AppContext.BaseDirectory, "Modules");
+            return new DirectoryModuleCatalog { ModulePath = modulesPath };
+        }
+
+        /// <summary>
+        /// 调试入口：调试特定模块时在此处添加对应 AddModule 调用（三步配合，详见 CLAUDE.md）。
+        /// 生产模式下保持空，所有模块均由 DirectoryModuleCatalog 目录扫描加载。
         /// </summary>
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
-            base.ConfigureModuleCatalog(moduleCatalog);
-            moduleCatalog.AddModule<PF.Modules.Alarm.AlarmModule>();
-            moduleCatalog.AddModule<LoggingModule>();
-            moduleCatalog.AddModule<ParameterModule>();
-            moduleCatalog.AddModule<IdentityModule>();
-            moduleCatalog.AddModule<DebugModule>();
-            //moduleCatalog.AddModule<UIModule>();
-            moduleCatalog.AddModule<PF.WorkStation.AutoOcr.UI.AutoOcrUIModule>();
-            moduleCatalog.AddModule<SecsGemModule>();
-            moduleCatalog.AddModule<ProductionRecordModule>();
+            // 调试示例（三步配合使用）：
+            // ① 目标模块 .csproj 注释 <IsModuleProject>true</IsModuleProject>
+            // ② Shell.csproj 将该模块改为普通 ProjectReference 或 PackageReference
+            // ③ 取消此处对应行的注释
+            // moduleCatalog.AddModule<AlarmModule>();
+            // moduleCatalog.AddModule<LoggingModule>();
+            // moduleCatalog.AddModule<IdentityModule>();
+            // moduleCatalog.AddModule<ParameterModule>();
+            // moduleCatalog.AddModule<DebugModule>();
+            // moduleCatalog.AddModule<ProductionRecordModule>();
+            // moduleCatalog.AddModule<SecsGemModule>();
         }
 
 
@@ -532,7 +551,7 @@ namespace PF.Application.Shell
                 int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
                     ? int.Parse(idx) : 0;
                 string axisparamstr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var axispa) ? axispa : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
-                var  axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
+                var axisparam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisparamstr);
                 axisparam ??= new AxisParam();
                 return new Infrastructure.Hardware.Motor.EtherCatAxis(cfg.DeviceId, axisIndex, axisparam, cfg.DeviceName, cfg.IsSimulated, _logService, dataDirectory);
             });
@@ -565,8 +584,8 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("CTS_LightControoller", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("COM", out var COM);
-               
-                return new Infrastructure.Hardware.LightController .CTS.CTSLightController (COM ,  cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+
+                return new Infrastructure.Hardware.LightController.CTS.CTSLightController(COM, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
 
@@ -758,10 +777,10 @@ namespace PF.Application.Shell
         {
             var timer = Container.Resolve<IAppTimerService>();
             timer.RegisterDailyAt(
-                key:             "DiskWarning_OCRImagePath",
-                timeOfDay:       new TimeSpan(8, 0, 0),
-                callback:        () => _ = CheckDiskUsageAsync(),
-                catchUpOnStart:  true);
+                key: "DiskWarning_OCRImagePath",
+                timeOfDay: new TimeSpan(8, 0, 0),
+                callback: () => _ = CheckDiskUsageAsync(),
+                catchUpOnStart: true);
 
             _uiLogger.Info("[磁盘预警] 定时任务已注册（每日 08:00）");
         }
@@ -800,8 +819,8 @@ namespace PF.Application.Shell
                 }
 
                 double usedPercent = (1.0 - (double)drive.AvailableFreeSpace / drive.TotalSize) * 100.0;
-                double freeGb      = drive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
-                double totalGb     = drive.TotalSize          / (1024.0 * 1024 * 1024);
+                double freeGb = drive.AvailableFreeSpace / (1024.0 * 1024 * 1024);
+                double totalGb = drive.TotalSize / (1024.0 * 1024 * 1024);
 
                 _uiLogger.Info($"[磁盘预警] 驱动器 {root}  使用率 {usedPercent:F1}%，" +
                                $"剩余 {freeGb:F2} GB / 总计 {totalGb:F2} GB，阈值 {threshold}%");
@@ -836,9 +855,9 @@ namespace PF.Application.Shell
         {
             var timer = Container.Resolve<IAppTimerService>();
             timer.RegisterDailyAt(
-                key:            "ImageCleanup_OCRImagePath",
-                timeOfDay:      new TimeSpan(8, 0, 0),
-                callback:       () => _ = CleanupOldImagesAsync(),
+                key: "ImageCleanup_OCRImagePath",
+                timeOfDay: new TimeSpan(8, 0, 0),
+                callback: () => _ = CleanupOldImagesAsync(),
                 catchUpOnStart: true);
 
             _uiLogger.Info("[图片清理] 定时任务已注册（每日 08:00）");
@@ -977,7 +996,7 @@ namespace PF.Application.Shell
                 await Task.Delay(500);
                 var hwManager = Container.Resolve<IHardwareManagerService>();
                 var hwProgress = new Progress<SplashProgressPayload>(payload =>
-                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType));
+                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString()));
                 await hwManager.LoadAndInitializeAsync(hwProgress);
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
@@ -1025,7 +1044,7 @@ namespace PF.Application.Shell
             {
                 return false;
             }
-           
+
             var workStation1MaterialPullingModule = Container.Resolve<IMechanism>(nameof(WS1MaterialPullingModule));
 
             if (!await workStation1MaterialPullingModule.InitializeAsync())
@@ -1079,6 +1098,20 @@ namespace PF.Application.Shell
             return true;
         }
 
+        private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", string msgType = "Info")
+        {
+            switch (msgType)
+            {
+                case "Success": logService?.Success(status, category); break;
+                case "Info": logService?.Info(status, category); break;
+                case "Fatal": logService?.Fatal(status, category); break;
+                case "Warning": logService?.Warn(status, category); break;
+                case "Error": logService?.Error(status, category); break;
+                default: logService?.Info(status, category); break;
+            }
+            splash?.UpdateMessage(status, Enum.Parse<MsgType>(msgType));
+        }
+
         private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", MsgType msgType = MsgType.Info)
         {
             switch (msgType)
@@ -1102,12 +1135,7 @@ namespace PF.Application.Shell
         /// </summary>
         private void ApplyConfiguration(SkinType skinType)
         {
-            var commonparam = Container.Resolve<CommonSettings>();
-            if (commonparam.Skin != skinType)
-            {
-                UpdateSkin(skinType.ToString());
-            }
-
+            UpdateSkin(skinType.ToString());
             ConfigHelper.Instance.SetWindowDefaultStyle();
             ConfigHelper.Instance.SetNavigationWindowDefaultStyle();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;

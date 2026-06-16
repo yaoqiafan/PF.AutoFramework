@@ -176,17 +176,23 @@ namespace PF.Modules.SecsGem.Dialogs.ViewModels
                 return;
             }
 
+            string nodeDesc = _isVariableNode
+                ? $"变量节点 VID:{_variableCode} [{_variableDescription}]"
+                : $"固定值节点 值:{_value}";
+            LogService.Info($"[SECS节点] 用户[{CurrentUserName}] 添加节点 | 类型:{_selectedDataType} | {nodeDesc}", "操作日志");
+
             var p = new DialogParameters();
-            p.Add("DataType",           _selectedDataType);
-            p.Add("IsVariableNode",     _isVariableNode);
-            p.Add("VariableCode",       _variableCode);
+            p.Add("DataType",            _selectedDataType);
+            p.Add("IsVariableNode",      _isVariableNode);
+            p.Add("VariableCode",        _variableCode);
             p.Add("VariableDescription", _variableDescription);
-            p.Add("Value",              _value);
+            p.Add("Value",               _value);
             RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters=p });
         }
 
         private void ExecuteCancel()
         {
+            LogService.Info($"[SECS节点] 用户[{CurrentUserName}] 取消添加节点", "操作日志");
             RequestClose.Invoke(new DialogResult(ButtonResult.Cancel));
         }
     }

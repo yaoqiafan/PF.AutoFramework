@@ -105,7 +105,7 @@ PF.AutoFramework.slnx
 | **Excel** | NPOI | 2.7.5 |
 | **JSON** | System.Text.Json | 内置 |
 | **Windows 服务** | Microsoft.Extensions.Hosting.WindowsServices | 10.0.2 |
-| **服务控制** | System.ServiceProcess.ServiceController | 8.0.0 |
+| **服务控制** | System.ServiceProcess.ServiceController | 10.0.2 |
 | **XAML 编译** | XAMLTools.MSBuild | — |
 
 ---
@@ -135,7 +135,7 @@ PF.AutoFramework.slnx
   - 事件：`AlarmTriggered` / `AlarmAutoCleared`
 - `IStation` — 工站统一接口（状态机、步序、启停控制）
 - `IMasterController` — 全局主控接口（`InitializeAllAsync` / `StartAllAsync` / `StopAllAsync` / `PauseAll` / `ResumeAllAsync` / `ResetAllAsync` / `SetMode` / `RequestSystemResetAsync`）
-- `ISecsGemManger` — SECS/GEM 协议管理接口（消息发送/接收/状态管理）
+- `ISecsGemManager` — SECS/GEM 协议管理接口（消息发送/接收/状态管理）
 - `IParamService` — 泛型参数读写接口（JSON 序列化、变更事件、批量操作）
 - `ILogService` — 统一日志接口（Info/Warn/Error/Debug/Success，内存缓冲区，历史查询，分类管理）
 - `IUserService` — 用户认证与权限接口
@@ -213,8 +213,8 @@ PF.AutoFramework.slnx
 **BaseMotionCard**：板卡基类，21 个抽象成员（4 个属性 + 17 个方法），由厂商子类调用具体 SDK。具体板卡实现还需满足 `BaseDevice` 的 3 个抽象方法，共 **24 个**需实现的抽象成员。
 
 **BaseMechanism**：聚合多硬件，自动订阅硬件 `AlarmTriggered` 事件，支持延迟注册设备。构造函数签名为 `(string name, IHardwareManagerService, IParamService, ILogService)`。内置丰富的工具方法：
-- `WaitAxisMoveDoneAsync(IAxis, int, CancellationToken)` — 以 50ms 轮询等待轴运动完成（`MoveDone && !Moving`），默认 30s 超时，支持取消
-- `WaitHomeDoneAsync(IAxis, int, CancellationToken)` — 以 10ms 轮询等待回零完成，默认 30s 超时
+- `WaitAxisMoveDoneAsync(IAxis, int, double?, CancellationToken)` — 以 50ms 轮询等待轴运动完成（`MoveDone && !Moving`），默认 30s 超时；可选 `pose` 参数在到位后校验定位精度，偏差超限自动触发报警
+- `WaitHomeDoneAsync(IAxis, int, CancellationToken)` — 调用 `axis.HomeAsync()` 后以 10ms 轮询等待 `HomeDone && !Homing`，默认 30s 超时
 - `MoveAbsAndWaitAsync(...)` — 绝对运动 + 等待组合
 - `MoveRelAndWaitAsync(...)` — 相对运动 + 等待组合
 - `MoveToPointAndWaitAsync(IAxis, string, int, CancellationToken)` — 点表运动 + 等待
@@ -259,7 +259,7 @@ PF.AutoFramework.slnx
 - `WS1MaterialPullingStation` — 工位一出料/拉料工站（40 步序：取料 → 条码扫描 → 送检 → 回料）
 - `WS2MaterialPullingStation` — 工位二出料/拉料工站（与工位一对称，40 步序）
 
-**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调三站联动
+**主控**：`AutoOCRMachineController` — 继承 `BaseMasterController`，协调五站七模组联动
 
 **配方**：`OCRRecipe<OCRRecipeParam>` — 单例配方管理，`OCRRecipeParam` 存储 OCR 检测参数
 
@@ -768,6 +768,8 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 
 ### 4.2 创建工站类
 
+> **继承契约**：子类**必须**实现 `ProcessNormalLoopAsync` 和 `ProcessDryRunLoopAsync`；初始化和复位动作分别重写 `OnInitializeAsync` 和 `OnResetAsync` 钩子（**不要**重写 `ExecuteInitializeAsync` / `ExecuteResetAsync`，也**不要**在钩子内手动调用 `Fire`，基类自动管理状态机）。
+
 ```csharp
 // PF.Workstation.YourProject/Stations/YourStation.cs
 using PF.Core.Attributes;
@@ -788,99 +790,93 @@ public class YourStation : StationBase<StationMemoryBaseParam>
     }
     private Step _currentStep = Step.WaitMaterial;
 
-    // 步序切换时赋值 CurrentStepDescription，UI 通过绑定自动刷新
-    // 例：CurrentStepDescription = "等待来料...";
-
     public YourStation(YourMechanism mechanism, IStationSyncService sync, ILogService logger)
         : base("你的工站", logger)
     {
         _mechanism = mechanism;
         _sync = sync;
-        _mechanism.AlarmTriggered += (s, e) => TriggerAlarm();
+        // 级联报警：机构报警 → 工站跟随，携带具体错误码
+        _mechanism.AlarmTriggered += (s, e) => TriggerAlarm(e.ErrorCode);
     }
 
-    public override async Task ExecuteInitializeAsync(CancellationToken token)
+    // ① 初始化钩子：只写硬件动作，不调用 Fire；基类自动触发 InitializeDone / Error
+    protected override async Task OnInitializeAsync(CancellationToken token)
     {
-        Fire(MachineTrigger.Initialize);
-        try
-        {
-            if (!await _mechanism.InitializeAsync(token))
-                throw new Exception($"[{StationName}] 机构初始化失败！");
-            Fire(MachineTrigger.InitializeDone);
-        }
-        catch
-        {
-            Fire(MachineTrigger.Error);
-            throw;
-        }
+        if (!await _mechanism.InitializeAsync(token))
+            throw new Exception($"[{StationName}] 机构初始化失败！");
     }
 
+    // ② 正常生产大循环（必须实现）
+    //    暂停由 CancellationToken 取消实现：Pause 时 token 被取消，Resume 时重新启动新 Task
     protected override async Task ProcessNormalLoopAsync(CancellationToken token)
-    {
-        if (CurrentMode == OperationMode.Normal)
-            await ProcessNormalAsync(token);
-        else
-            await ProcessDryRunAsync(token);
-    }
-
-    private async Task ProcessNormalAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
             switch (_currentStep)
             {
                 case Step.WaitMaterial:
-                    _pauseEvent.Wait(token);
-                    await WaitForMaterialAsync(token);
+                    CurrentStepDescription = "等待来料信号...";
+                    await WaitSyncAsync(_sync, "ProductReady", token: token);
                     _currentStep = Step.Pick;
                     break;
 
                 case Step.Pick:
-                    _pauseEvent.Wait(token);
+                    CurrentStepDescription = "正在取料...";
                     await _mechanism.PickAsync(token);
                     _currentStep = Step.Process;
                     break;
 
                 case Step.Process:
-                    _pauseEvent.Wait(token);
-                    await _sync.WaitAsync("SlotEmpty", token);
+                    CurrentStepDescription = "等待检测槽空闲...";
+                    await WaitSyncAsync(_sync, "SlotEmpty", token: token);
                     _currentStep = Step.Place;
                     break;
 
                 case Step.Place:
+                    CurrentStepDescription = "正在放料...";
                     await _mechanism.PlaceAsync(token);
                     _sync.Release("ProductReady");
                     _currentStep = Step.NotifyDownstream;
                     break;
 
                 case Step.NotifyDownstream:
-                    await Task.Delay(50, token);
+                    await WaitAsync(50, token);
                     _currentStep = Step.WaitMaterial;
                     break;
             }
         }
     }
 
-    private async Task ProcessDryRunLoopAsync(CancellationToken token)
+    // ③ 空跑大循环（必须实现）：跳过跨工站同步，只验证机构动作
+    protected override async Task ProcessDryRunLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            _pauseEvent.Wait(token);
+            CurrentStepDescription = "空跑：取料...";
             await _mechanism.PickAsync(token);
-            await Task.Delay(100, token);
+            await WaitAsync(100, token);
+            CurrentStepDescription = "空跑：放料...";
             await _mechanism.PlaceAsync(token);
-            await Task.Delay(100, token);
+            await WaitAsync(100, token);
         }
     }
 
-    public override async Task ExecuteResetAsync(CancellationToken token)
+    // ④ 返回本工站所有机构（框架在 Running 进入时自动注入 PauseCheckAsync 委托）
+    protected override IEnumerable<BaseMechanism> GetMechanisms() => [_mechanism];
+
+    // ⑤ 复位钩子：只写物理复位动作，不调用 Fire 和 ResetAlarm；基类自动路由到 Idle 或 Uninitialized
+    protected override async Task OnResetAsync(CancellationToken token)
     {
         await _mechanism.ResetAsync(token);
         await _mechanism.InitializeAsync(token);
-
-        // 智能步序恢复
+        // 智能步序恢复：断点续跑
         _currentStep = _currentStep >= Step.Place ? Step.WaitMaterial : Step.Pick;
-        ResetAlarm();
+    }
+
+    // ⑥ 物理急停钩子（可选）：Stop 命令或异常退出时执行危险源切断
+    protected override async Task OnPhysicalStopAsync()
+    {
+        await _mechanism.StopAsync();
     }
 }
 ```
@@ -889,14 +885,102 @@ public class YourStation : StationBase<StationMemoryBaseParam>
 
 ```csharp
 var container = containerRegistry.GetContainer();
-container.RegisterMany(
-    new[] { typeof(YourStation), typeof(StationBase<StationMemoryBaseParam>) },
-    typeof(YourStation),
-    reuse: DryIoc.Reuse.Singleton);
+container.Register<IStation, YourStation>(
+    reuse: DryIoc.Reuse.Singleton,
+    serviceKey: nameof(YourStation));
 ```
 
 > **并发安全说明**：`StationBase<T>` 内置 `SemaphoreSlim(1,1)` 状态锁，所有 `Fire()` 调用均线程安全。
-> 触发 `Running` 状态入口（`Start` / `Resume`）必须通过 `await FireAsync(...)` 异步触发，以正确等待 `CancelAndAwaitOldTaskAsync` 中旧任务的彻底终止，避免旧任务残留并发访问硬件。
+> 触发 `Running` 状态入口（`Start` / `Resume`）必须通过 `await FireAsync(...)` 异步触发，确保旧任务彻底退出（`CancelAndAwaitOldTaskAsync`）后才启动新任务，避免幽灵线程并发访问硬件。
+
+---
+
+## 4.4 StationBase 内置辅助方法
+
+子类可直接调用以下 `protected` 辅助方法，无需手动创建 `CancellationTokenSource` 或封装超时逻辑：
+
+```csharp
+// 等待指定毫秒（可被 Stop/Pause 打断）
+await WaitAsync(200, token);
+
+// 轮询等待条件成立（默认 5s 超时，20ms 轮询间隔）
+bool ok = await WaitConditionAsync(() => _sensor.ReadInput(0) == true, timeoutMs: 3000, token: token);
+
+// 等待 IO 信号（按端口索引）
+bool ok = await WaitIOAsync(_vacuumIO, 0, targetState: true, timeoutMs: 2000, token);
+
+// 等待 IO 信号（按枚举，类型安全）
+bool ok = await WaitIOAsync<IOSignal>(_vacuumIO, IOSignal.真空反馈, targetState: true, timeoutMs: 2000, token);
+
+// 等待跨工站同步信号（默认 30s 超时）
+bool ok = await WaitSyncAsync(_sync, "SlotEmpty", timeoutMs: 30_000, token);
+
+// 主动持久化记忆参数（关键节点调用，防崩溃数据丢失）
+FlushMemory();
+```
+
+| 方法 | 超时行为 | 取消行为 |
+|------|---------|---------|
+| `WaitAsync` | 无超时 | 取消时抛出 `OperationCanceledException`（正常退出） |
+| `WaitConditionAsync` | 超时返回 `false`，记录日志 | 取消时向上抛 `OperationCanceledException` |
+| `WaitIOAsync` | 超时返回 `false`，记录错误日志 | 取消时向上抛 |
+| `WaitSyncAsync` | 超时返回 `false`，记录错误日志 | 取消时向上抛 |
+
+> **工站异常处理原则**：等待方法返回 `false` 时，调用 `RaiseAlarm(errorCode)` 上报，框架自动打断循环并驱动状态机进入 `RunAlarm`。
+
+---
+
+## 4.5 StationBase\<TMemory, TStep\> 双泛型变体
+
+当工站步序复杂（需要断点续跑）时，继承带步骤枚举的变体：
+
+```csharp
+public class YourStation : StationBase<YourMemoryParam, Step>
+{
+    // 构造时传入初始步骤
+    public YourStation(ILogService logger)
+        : base("你的工站", logger, Step.WaitMaterial) { }
+
+    // 内置字段：_currentStep、_resumeStep、_cachedErrorCode
+    // 内置方法：RouteToError(errorStep, resumeStep, errorCode?)
+    // 内置属性：CameFromInitAlarm（复位时判断来源）
+
+    protected override async Task ProcessNormalLoopAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            switch (_currentStep)
+            {
+                case Step.Pick:
+                    CurrentStepDescription = "正在取料...";
+                    if (!await _mechanism.PickAsync(token))
+                    {
+                        RouteToError(Step.SafeStop, resumeStep: Step.Pick, "ERR_PICK_FAIL");
+                        RaiseAlarm("ERR_PICK_FAIL");
+                        return;
+                    }
+                    _currentStep = Step.Place;
+                    break;
+                // ...
+            }
+        }
+    }
+
+    protected override async Task OnResetAsync(CancellationToken token)
+    {
+        await _mechanism.ResetAsync(token);
+        // 复位后从 _resumeStep（RouteToError 中记录）续跑
+        _currentStep = _resumeStep;
+    }
+}
+
+// 记忆参数类：继承 StationMemoryBaseParam，添加需跨电重启保留的字段
+public class YourMemoryParam : StationMemoryBaseParam
+{
+    public int LastCompletedLotLayer { get; set; }
+    public string LastBatchId { get; set; } = string.Empty;
+}
+```
 
 ---
 
@@ -1203,9 +1287,12 @@ BaseMechanism（机构）      ← 聚合多硬件，业务动作
     └── RegisterHardwareDevice() → 报警聚合
 
 StationBase<T>（工站）     ← 步序状态机 + 后台线程 + 泛型内存持久化
-    ├── ProcessNormalLoopAsync  ← 正常生产循环
-    ├── ProcessDryRunLoopAsync  ← 空跑循环
-    └── ExecuteResetAsync ← 智能恢复（断点续跑）
+    ├── ProcessNormalLoopAsync   ← 正常生产循环（必须实现）
+    ├── ProcessDryRunLoopAsync   ← 空跑循环（必须实现）
+    ├── OnInitializeAsync        ← 初始化钩子，由基类 ExecuteInitializeAsync 驱动
+    ├── OnResetAsync             ← 复位钩子，由基类 ExecuteResetAsync 驱动
+    ├── GetMechanisms            ← 返回机构列表（框架注入 PauseCheckAsync 委托）
+    └── FlushMemory()            ← 主动将记忆参数持久化到磁盘（关键节点调用）
 ```
 
 ### 9.2 代理模式
@@ -1285,12 +1372,12 @@ Dispatcher.InvokeAsync(() => { Status = "更新状态"; });
 <TextBlock Text="{Binding Station.CurrentStepDescription}" />
 ```
 
-在工站类的 `ProcessLoopAsync` 中每次步序切换时赋值：
+在工站类的 `ProcessNormalLoopAsync` 中每次步序切换时赋值：
 
 ```csharp
 case Step.WaitMaterial:
     CurrentStepDescription = "等待来料...";
-    await WaitForMaterialAsync(token);
+    await WaitSyncAsync(_sync, "ProductReady", token: token);
     _currentStep = Step.Pick;
     break;
 
@@ -1328,6 +1415,10 @@ await _hwManager.ReloadAllAsync();
 | 点表丢失 | 未调用 EnsurePointsExist | 在 `InternalInitializeAsync` 末尾调用 `EnsurePointsExist<TEnum>(axis)` |
 | 仿真模式切换未生效 | 仅改配置未重载 | 切换后需调用 `ReloadAllAsync()` |
 | 工站抽象方法找不到 | 接口名已更新 | `ProcessLoopAsync` → `ProcessNormalLoopAsync` / `ProcessDryRunLoopAsync` |
+| 重写了 `ExecuteInitializeAsync` 手动调 `Fire` | 应重写钩子不是入口 | 改为重写 `OnInitializeAsync` / `OnResetAsync`，基类自动管理状态机 |
+| 复位后状态机不前进 | 在 `OnResetAsync` 里手动调了 `ResetAlarm()` / `Fire` | `OnResetAsync` 内只做硬件动作，基类自动触发 `ResetDone` / `ResetDoneUninitialized` |
+| 暂停后循环无法被打断 | 使用了不存在的 `_pauseEvent.Wait(token)` | 暂停是 CancellationToken 取消式，循环用 `while (!token.IsCancellationRequested)` 即可 |
+| `GetMechanisms` 返回 `IMechanism[]` 编译报错 | 实际返回类型是 `IEnumerable<BaseMechanism>` | 改为 `IEnumerable<BaseMechanism>` 并返回具体机构实例 |
 | StationSyncService.Reset 不存在 | API 已更新 | 使用 `ResetSingleSignal` / `ResetScope` / `ResetAll` |
 
 ---

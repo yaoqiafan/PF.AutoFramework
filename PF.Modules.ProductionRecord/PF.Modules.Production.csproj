@@ -7,9 +7,23 @@
 		<ProjectReference Include="..\PF.Core\PF.Core.csproj" />
 		<ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="PF.UI.Controls">
+	    <HintPath>..\DLL\PF.UI.Controls.dll</HintPath>
+	  </Reference>
+	  <Reference Include="PF.UI.Resources">
+	    <HintPath>..\DLL\PF.UI.Resources.dll</HintPath>
+	  </Reference>
+	  <Reference Include="PF.UI.Shared">
+	    <HintPath>..\DLL\PF.UI.Shared.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
 
 	<PropertyGroup>
+		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
+		<Version>1.0.1</Version>
+		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
 		<Description>生产数据模块：历史数据浏览、条件查询、Excel/CSV 导出</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

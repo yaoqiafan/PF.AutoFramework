@@ -1,0 +1,68 @@
+<Project>
+  <!--
+    Prism 模块构建后复制逻辑。
+    在需要动态加载的模块项目 .csproj 中添加：
+        <PropertyGroup>
+            <IsModuleProject>true</IsModuleProject>
+        </PropertyGroup>
+    构建后该模块的 DLL（及 PDB）将被自动复制到 Shell 输出目录下的 Modules\ 子文件夹，
+    供 DirectoryModuleCatalog 在运行时发现并加载。
+
+    注意：
+    · 使用 $(MSBuildThisFileDirectory) 而非 $(SolutionDir)。
+      当通过 dotnet publish xxx.csproj 直接发布时，$(SolutionDir) 会被解析为模块自身的
+      项目目录，导致路径错误；$(MSBuildThisFileDirectory) 始终指向本文件所在目录（解决方案根）。
+    · 本 target 仅处理 dotnet build 产生的 bin\ 输出。
+      dotnet publish 产生的发布目录由 Shell 项目内的 CopyModulesToPublishDir target 负责。
+  -->
+  <!--
+    PackageIcon 在 .targets（csproj 之后求值）中设置，确保 IsPackable 已由 .csproj 赋值为 true。
+    在 .props 中设置因求值顺序问题（props → csproj → targets）会导致条件永远为 false。
+  -->
+  <!--
+    PackageIcon / PackageReadmeFile 在 .targets（csproj 之后求值）中设置，
+    确保 IsPackable 已由 .csproj 赋值为 true，避免 .props 的求值顺序问题。
+  -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <PackageIcon>nuget-icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!--
+    打包时将解决方案根目录的共享资源（图标 + 自述文件）嵌入 nupkg。
+    顶层 ItemGroup 确保 Pack 任务能在正确阶段读到这些 Item。
+  -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true' AND Exists('$(MSBuildThisFileDirectory)nuget-icon.png')">
+    <None Include="$(MSBuildThisFileDirectory)nuget-icon.png"
+          Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true' AND Exists('$(MSBuildProjectDirectory)\README.md')">
+    <None Include="$(MSBuildProjectDirectory)\README.md"
+          Pack="true" PackagePath="\README.md" />
+  </ItemGroup>
+
+  <Target Name="CopyModuleToOutputFolder"
+          AfterTargets="Build"
+          Condition="'$(IsModuleProject)' == 'true'">
+
+    <PropertyGroup>
+      <!-- MSBuildThisFileDirectory = 解决方案根目录（含尾部斜杠），始终正确 -->
+      <_ShellModulesDir>$(MSBuildThisFileDirectory)PF.Application.Shell\bin\$(Configuration)\net8.0-windows\Modules\</_ShellModulesDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_ShellModulesDir)" Condition="!Exists('$(_ShellModulesDir)')" />
+
+    <!-- 复制模块主体 DLL -->
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(_ShellModulesDir)"
+          SkipUnchangedFiles="true" />
+
+    <!-- 复制 PDB（调试符号，可选） -->
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
+          DestinationFolder="$(_ShellModulesDir)"
+          Condition="Exists('$(TargetDir)$(TargetName).pdb')"
+          SkipUnchangedFiles="true" />
+
+  </Target>
+</Project>

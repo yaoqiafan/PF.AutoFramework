@@ -22,8 +22,8 @@ namespace PF.Core.Entities.Logging
         public string[]? Categories { get; set; }
         /// <summary>关键词过滤</summary>
         public string? Keyword { get; set; }
-        /// <summary>最大返回数量</summary>
-        public int MaxResults { get; set; } = 10000;
+        /// <summary>最大返回数量，null 表示不限制</summary>
+        public int? MaxResults { get; set; } = null;
         /// <summary>是否按降序排列</summary>
         public bool OrderByDescending { get; set; } = true;
 

@@ -3,10 +3,12 @@ using System.Windows.Controls;
 
 namespace PF.WorkStation.AutoOcr.UI.UserControls
 {
+    /// <summary>Interaction logic for RecipeDebugView.xaml</summary>
     public partial class RecipeDebugView : UserControl
     {
         private MiniDebugWindow? _miniWindow;
 
+        /// <summary>Initializes a new instance.</summary>
         public RecipeDebugView()
         {
             InitializeComponent();

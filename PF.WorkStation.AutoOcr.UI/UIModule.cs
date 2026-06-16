@@ -27,7 +27,7 @@ namespace PF.WorkStation.AutoOcr.UI
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
 
 
-            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.MainView);
+            containerProvider.Resolve<IRegionManager>().RequestNavigate(NavigationConstants.Regions.SoftwareViewRegion, NavigationConstants.Views.HomeView);
 
             DefaultPermissions.RegisterViews(Core.Enums.UserLevel.Administrator, nameof(OcrRecipeManageView));
 
@@ -51,6 +51,7 @@ namespace PF.WorkStation.AutoOcr.UI
 
            containerRegistry.RegisterForNavigation<ChangeLotView , ChangeLotViewModel>(nameof(ChangeLotView));
            containerRegistry.RegisterForNavigation<WaferSlotDetailView, WaferSlotDetailViewModel>(nameof(WaferSlotDetailView));
+           containerRegistry.RegisterForNavigation<PendingBatchManagerView, PendingBatchManagerViewModel>(nameof(PendingBatchManagerView));
 
             containerRegistry.RegisterForNavigation<ProductionHistoryView, ProductionHistoryViewModel>(
              NavigationConstants.Views.ProductionHistoryView);

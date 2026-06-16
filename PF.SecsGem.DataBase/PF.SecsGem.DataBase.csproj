@@ -13,6 +13,8 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
+    <Version>1.0.1</Version>
+    <PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
     <Description>SECS/GEM 协议专用数据库层：EF Core 实体、DbContext、Repository</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
   </PropertyGroup>

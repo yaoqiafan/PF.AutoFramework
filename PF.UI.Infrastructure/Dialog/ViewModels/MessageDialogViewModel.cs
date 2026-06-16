@@ -101,6 +101,14 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
         private void ExecuteCloseDialog(string parameter)
         {
             ButtonResult result = ButtonResult.None;
+            string actionText = parameter?.ToLower() switch
+            {
+                "ok"     => "确定",
+                "cancel" => "取消",
+                "yes"    => "是",
+                "no"     => "否",
+                _        => parameter ?? "未知"
+            };
             switch (parameter?.ToLower())
             {
                 case "ok": result = ButtonResult.OK; break;
@@ -108,6 +116,7 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
                 case "yes": result = ButtonResult.Yes; break;
                 case "no": result = ButtonResult.No; break;
             }
+            LogService.Info($"[消息弹窗] 用户[{CurrentUserName}] 点击「{actionText}」 | 标题：{Title} | 内容：{Message}", "操作日志");
             RequestClose.Invoke(new DialogResult(result));
         }
 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Logging;
@@ -47,6 +48,9 @@ namespace PF.Services.Alarm
         private readonly Task _persistWorker;
         private bool _disposed;
 
+        // 持久化队列因满而丢弃的作业计数（仅用于诊断，正常应恒为 0；非 0 即表示数据库持续阻塞）
+        private long _droppedPersistCount;
+
         public AlarmService(
             IAlarmDictionaryService dictionary,
             DbContextOptions<AlarmDbContext> dbOptions,
@@ -72,19 +76,22 @@ namespace PF.Services.Alarm
         public event EventHandler<AlarmRecord>? AlarmCleared;
 
         /// <inheritdoc/>
-        public void TriggerAlarm(string source, string errorCode)
+        public bool TriggerAlarm(string source, string errorCode)
             => TriggerAlarm(source, errorCode, runtimeMessage: null);
 
         /// <inheritdoc/>
-        public void TriggerAlarm(string source, string errorCode, string? runtimeMessage)
+        public bool TriggerAlarm(string source, string errorCode, string? runtimeMessage)
         {
-            if (string.IsNullOrWhiteSpace(source))    throw new ArgumentNullException(nameof(source));
-            if (string.IsNullOrWhiteSpace(errorCode)) throw new ArgumentNullException(nameof(errorCode));
+            // 兜底降级：来源/错误码缺失时不再抛异常。抛异常会中断上游报警级联
+            // （OnSubStationAlarm 抛出后不再 Fire(Error)，导致主控漏进报警态），
+            // 改用占位值确保报警仍被记录、不被静默吞没。
+            if (string.IsNullOrWhiteSpace(source))    source    = "未知来源";
+            if (string.IsNullOrWhiteSpace(errorCode)) errorCode = AlarmCodes.System.UndefinedAlarm;
 
             var key = (source, errorCode);
 
-            // 幂等：相同复合键已存在则跳过，不重复落盘
-            if (_activeMap.ContainsKey(key)) return;
+            // 幂等：相同复合键已存在则跳过，返回 false 表示非首次触发（唯一去重源）
+            if (_activeMap.ContainsKey(key)) return false;
 
             var now  = DateTime.Now;
             var info = _dictionary.GetAlarmInfo(errorCode); // 兜底自动处理未知代码
@@ -104,13 +111,14 @@ namespace PF.Services.Alarm
             var state = new ActiveAlarmState { Record = record };
 
             // TryAdd 保证并发安全：若另一线程抢先插入相同 key 则跳过
-            if (!_activeMap.TryAdd(key, state)) return;
+            if (!_activeMap.TryAdd(key, state)) return false;
 
-            _persistChannel.Writer.TryWrite(new PersistJob.Insert(record));
+            EnqueuePersist(new PersistJob.Insert(record));
 
             _logger?.Warn($"[报警触发] [{info.Severity}] [{errorCode}] {source}: {info.Message}", "AlarmService");
             AlarmTriggered?.Invoke(this, record);
             _publisher?.PublishAlarmTriggered(record);
+            return true;
         }
 
         /// <inheritdoc/>
@@ -145,27 +153,32 @@ namespace PF.Services.Alarm
         /// <inheritdoc/>
         public async Task<IReadOnlyList<AlarmRecord>> QueryHistoricalAlarmsAsync(
             int year = 0,
+            DateTime? startTime = null,
+            DateTime? endTime = null,
             string? category = null,
-            AlarmSeverity? minSeverity = null,
-            int pageSize = 100,
+            AlarmSeverity? severity = null,
+            string? source = null,
+            string? errorCode = null,
+            string? descriptionKeyword = null,
+            int pageSize = 5000,
             int page = 0)
         {
-            var targetYear = year > 0 ? year : DateTime.Now.Year;
+            var targetYear = year > 0 ? year : (startTime?.Year ?? DateTime.Now.Year);
 
             try
             {
                 await using var ctx = new AlarmDbContext(_dbOptions, targetYear);
                 await EnsureYearTableAsync(ctx);
 
-                var records = await ctx.AlarmRecords
+                var entities = await ctx.AlarmRecords
                     .AsNoTracking()
                     .OrderByDescending(r => r.TriggerTime)
                     .Skip(page * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // 联查字典，在内存过滤（避免 EF Core 表达式转换复杂度）
-                return records
+                // 联查字典并在内存层应用所有过滤条件
+                return entities
                     .Select(entity =>
                     {
                         var info = _dictionary.GetAlarmInfo(entity.ErrorCode);
@@ -184,8 +197,13 @@ namespace PF.Services.Alarm
                             Solution    = info.Solution
                         };
                     })
-                    .Where(r => category    == null || r.Category == category)
-                    .Where(r => minSeverity == null || r.Severity >= minSeverity)
+                    .Where(r => startTime          == null || r.TriggerTime >= startTime)
+                    .Where(r => endTime            == null || r.TriggerTime <= endTime)
+                    .Where(r => category           == null || r.Category == category)
+                    .Where(r => severity           == null || r.Severity == severity)
+                    .Where(r => source             == null || r.Source == source)
+                    .Where(r => errorCode          == null || (r.ErrorCode?.Contains(errorCode, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .Where(r => descriptionKeyword == null || (r.Message?.Contains(descriptionKeyword, StringComparison.OrdinalIgnoreCase) ?? false))
                     .ToList()
                     .AsReadOnly();
             }
@@ -205,7 +223,7 @@ namespace PF.Services.Alarm
             state.Record.ClearTime = clearTime;
             state.Record.IsActive  = false;
 
-            _persistChannel.Writer.TryWrite(new PersistJob.UpdateClear(state.Record));
+            EnqueuePersist(new PersistJob.UpdateClear(state.Record));
 
             _logger?.Info($"[报警清除] [{key.ErrorCode}] {key.Source}", "AlarmService");
             AlarmCleared?.Invoke(this, state.Record);
@@ -218,22 +236,59 @@ namespace PF.Services.Alarm
         }
 
         /// <summary>
+        /// 将持久化作业写入队列；队列满（数据库持续阻塞）时不静默丢弃，
+        /// 而是升级为 Fatal 日志并累加丢弃计数，使关键报警信息的丢失对运维可见。
+        /// </summary>
+        private void EnqueuePersist(PersistJob job)
+        {
+            if (_persistChannel.Writer.TryWrite(job)) return;
+
+            var dropped = Interlocked.Increment(ref _droppedPersistCount);
+            SafeLog(logger => logger.Fatal(
+                $"[AlarmService] 持久化队列已满，报警落盘作业被丢弃（累计 {dropped} 条）。" +
+                "数据库可能持续阻塞，请立即检查。", "AlarmService", null));
+        }
+
+        /// <summary>
+        /// 安全日志：吞掉日志组件自身可能抛出的异常（如关机时 LogService 已释放），
+        /// 防止持久化 worker 因记日志失败而意外退出。
+        /// </summary>
+        private void SafeLog(Action<ILogService> log)
+        {
+            try { if (_logger != null) log(_logger); } catch { /* 日志失败不得影响主流程 */ }
+        }
+
+        /// <summary>
         /// 串行消费持久化队列。单读取者保证：Insert 落盘后 ID 回写再处理 UpdateClear，无竞态。
+        /// 外层 while 重启外壳：即使 ReadAllAsync 枚举器或日志组件意外抛出，
+        /// worker 也会重启而非永久退出（否则此后所有报警都会被静默丢弃）。
         /// </summary>
         private async Task RunPersistWorkerAsync()
         {
-            await foreach (var job in _persistChannel.Reader.ReadAllAsync())
+            while (!_disposed)
             {
                 try
                 {
-                    if (job is PersistJob.Insert ins)
-                        await PersistInsertAsync(ins.Record);
-                    else if (job is PersistJob.UpdateClear upd)
-                        await PersistUpdateClearAsync(upd.Record);
+                    await foreach (var job in _persistChannel.Reader.ReadAllAsync())
+                    {
+                        try
+                        {
+                            if (job is PersistJob.Insert ins)
+                                await PersistInsertAsync(ins.Record);
+                            else if (job is PersistJob.UpdateClear upd)
+                                await PersistUpdateClearAsync(upd.Record);
+                        }
+                        catch (Exception ex)
+                        {
+                            SafeLog(logger => logger.Error("持久化队列工作项失败", "AlarmService", ex));
+                        }
+                    }
+                    // ReadAllAsync 正常结束 = 通道已 Complete（Dispose 流程），退出 worker
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error("持久化队列工作项失败", "AlarmService", ex);
+                    SafeLog(logger => logger.Error("持久化 worker 异常，准备重启", "AlarmService", ex));
                 }
             }
         }
@@ -269,12 +324,29 @@ namespace PF.Services.Alarm
         /// <summary>更新已有记录的清除时间</summary>
         private async Task PersistUpdateClearAsync(AlarmRecord record)
         {
-            if (record.Id == 0) return; // Insert 尚未落盘（极短时间内被清除），跳过
-
             try
             {
                 var year = record.TriggerTime.Year;
                 await using var ctx = new AlarmDbContext(_dbOptions, year);
+
+                // Id==0 说明此前 Insert 落盘失败（异常被吞，主键未回写）。
+                // 单读者串行保证 Insert 作业必先于本 UpdateClear 处理，故 Id==0 只可能是 Insert 失败。
+                // 此时库中无对应行可更新，降级为补插一条已闭合的完整记录，
+                // 保证报警的触发+清除信息进入历史，不因 Insert 失败而彻底丢失。
+                if (record.Id == 0)
+                {
+                    await EnsureYearTableAsync(ctx);
+                    ctx.AlarmRecords.Add(new AlarmRecordEntity
+                    {
+                        ErrorCode   = record.ErrorCode,
+                        Source      = record.Source,
+                        TriggerTime = record.TriggerTime,
+                        ClearTime   = record.ClearTime,
+                        IsActive    = false
+                    });
+                    await ctx.SaveChangesAsync();
+                    return;
+                }
 
                 var entity = await ctx.AlarmRecords.FindAsync(record.Id);
                 if (entity == null) return;

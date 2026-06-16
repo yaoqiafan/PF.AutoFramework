@@ -37,18 +37,21 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         // ── 槽位基础 ─────────────────────────────────────────────────
 
+        /// <summary>1-based 层号，显示在详情弹窗标题中。</summary>
         public int DisplayIndex
         {
             get => _displayIndex;
             private set => SetProperty(ref _displayIndex, value);
         }
 
+        /// <summary>检测状态文本（OK 或 NG）。</summary>
         public string StatusText
         {
             get => _statusText;
             private set => SetProperty(ref _statusText, value);
         }
 
+        /// <summary>状态对应的颜色画刷，OK=绿，NG=红。</summary>
         public Brush StatusBrush
         {
             get => _statusBrush;
@@ -57,42 +60,49 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         // ── 时间 / 批次 / 溯源 ──────────────────────────────────────
 
+        /// <summary>检测完成的时间戳，格式 yyyy-MM-dd HH:mm:ss。</summary>
         public string DetectionTime
         {
             get => _detectionTime;
             private set => SetProperty(ref _detectionTime, value);
         }
 
+        /// <summary>系统内部批号，用于与生产数据库记录关联。</summary>
         public string InternalBatchId
         {
             get => _internalBatchId;
             private set => SetProperty(ref _internalBatchId, value);
         }
 
+        /// <summary>客户提供的批次号。</summary>
         public string CustomerBatch
         {
             get => _customerBatch;
             private set => SetProperty(ref _customerBatch, value);
         }
 
+        /// <summary>晶圆片 ID。</summary>
         public string WaferId
         {
             get => _waferId;
             private set => SetProperty(ref _waferId, value);
         }
 
+        /// <summary>产品型号。</summary>
         public string ProductModel
         {
             get => _productModel;
             private set => SetProperty(ref _productModel, value);
         }
 
+        /// <summary>执行本次检测的操作员工号。</summary>
         public string OperatorId
         {
             get => _operatorId;
             private set => SetProperty(ref _operatorId, value);
         }
 
+        /// <summary>本次检测使用的配方名称。</summary>
         public string RecipeName
         {
             get => _recipeName;
@@ -101,36 +111,42 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         // ── 检测结果 ─────────────────────────────────────────────────
 
+        /// <summary>OCR 识别到的文本内容。</summary>
         public string OcrText
         {
             get => _ocrText;
             private set => SetProperty(ref _ocrText, value);
         }
 
+        /// <summary>条码枪读取的第一个条码值。</summary>
         public string Barcode1
         {
             get => _barcode1;
             private set => SetProperty(ref _barcode1, value);
         }
 
+        /// <summary>条码枪读取的第二个条码值（可选）。</summary>
         public string Barcode2
         {
             get => _barcode2;
             private set => SetProperty(ref _barcode2, value);
         }
 
+        /// <summary>条码枪读取的第三个条码值（可选）。</summary>
         public string Barcode3
         {
             get => _barcode3;
             private set => SetProperty(ref _barcode3, value);
         }
 
+        /// <summary>OCR 文本与批次预期信息是否一致。</summary>
         public bool IsMatch
         {
             get => _isMatch;
             private set => SetProperty(ref _isMatch, value);
         }
 
+        /// <summary>检测不匹配时的错误说明文本。</summary>
         public string ErrorMessage
         {
             get => _errorMessage;
@@ -162,12 +178,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         // ── 图片 ─────────────────────────────────────────────────────
 
+        /// <summary>本次检测抓取的原始图像文件路径。</summary>
         public string ImagePath
         {
             get => _imagePath;
             private set => SetProperty(ref _imagePath, value);
         }
 
+        /// <summary>完整的检测数据记录，供 UI 扩展展示使用。</summary>
         public MachineDetectionData DetectionData
         {
             get => _detectionData;
@@ -176,11 +194,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
         // ── 构造 / 对话框生命周期 ─────────────────────────────────────
 
+        /// <summary>Initializes a new instance.</summary>
         public WaferSlotDetailViewModel()
         {
             CancelCommand = new DelegateCommand(() => RequestClose.Invoke(ButtonResult.Cancel));
         }
 
+        /// <inheritdoc/>
         public override void OnDialogOpened(IDialogParameters parameters)
         {
             if (!parameters.TryGetValue("SlotInfo", out WaferSlotInfo slot)) return;

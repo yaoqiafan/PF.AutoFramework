@@ -423,8 +423,8 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 if (WaitReply && msg.WBit)
                 {
                     string sysHex =SecsGemMessageTools.ByteArrayToHexStringWithSeparator(msg.SystemBytes.ToArray());
-                    bool sent = await _manager.WaitSendMessageAsync(msg, sysHex);
-                    if (!sent) _log.Append(null, "等待回复超时", isSystem: true);
+                    var  sent = await _manager.WaitSendMessageAsync(msg, sysHex);
+                    if (!sent.Item1 ) _log.Append(null, "等待回复超时", isSystem: true);
                 }
                 else
                 {

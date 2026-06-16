@@ -16,7 +16,17 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
-	  <ProjectReference Include="..\PF.UI.Resources\PF.UI.Resources.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="PF.UI.Controls">
+	    <HintPath>..\DLL\PF.UI.Controls.dll</HintPath>
+	  </Reference>
+	  <Reference Include="PF.UI.Resources">
+	    <HintPath>..\DLL\PF.UI.Resources.dll</HintPath>
+	  </Reference>
+	  <Reference Include="PF.UI.Shared">
+	    <HintPath>..\DLL\PF.UI.Shared.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 	<ItemGroup>
 	  <Resource Include="HardwareImage\IO模块.png" />
@@ -30,6 +40,8 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
+		<Version>1.0.1</Version>
+		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
 		<Description>UI 基础设施：ViewModelBase、导航服务、对话框服务</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

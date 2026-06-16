@@ -47,6 +47,21 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Fields & Properties (依赖服务与核心事件)
 
         private readonly IProductionDataService _productionDataService;
+        private readonly IParamService _paramService;
+
+        /// <summary>
+        /// 初始化数据模块
+        /// </summary>
+        public WSDataModule(
+            IHardwareManagerService hardwareManagerService,
+            IParamService paramService,
+            IProductionDataService productionDataService,
+            ILogService logger)
+            : base("数据模块", hardwareManagerService, paramService, logger)
+        {
+            _productionDataService = productionDataService;
+            _paramService = paramService;
+        }
 
         /// <summary>
         /// 本地数据快照的存储路径
@@ -69,19 +84,6 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #endregion
 
         #region Constructor & Lifecycle (构造与生命周期)
-
-        /// <summary>
-        /// 初始化数据中枢模块
-        /// </summary>
-        public WSDataModule(
-            IHardwareManagerService hardwareManagerService,
-            IParamService paramService,
-            IProductionDataService productionDataService,
-            ILogService logger)
-            : base("数据模块", hardwareManagerService, paramService, logger)
-        {
-            _productionDataService = productionDataService;
-        }
 
         /// <summary>
         /// 模块初始化：自动加载本地缓存的 Json 数据快照
@@ -108,6 +110,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             base.Dispose();
             Save(_filepath);
+            GC.SuppressFinalize(this);
         }
 
         #endregion
@@ -129,14 +132,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
                 // TODO: 替换为实际的 HTTP/WebAPI/TCP 客户端调用逻辑。当前为 Mock 数据生成。
                 // 注意：将来替换为 HttpClient 时，务必将 token 传入 GetAsync/PostAsync 方法中。
-                MesDetectionParam param = new MesDetectionParam();
-                param.InternalBatchId = LotID;
-                param.OperatorId = UserID;
-                param.ProductModel = "PF-Work";
-                param.Quantity = 25; // 标准料盒通常为 25 片
-                param.DetectionStatus = E_DetectionStatus.待检测;
-                param.CustomerWafers = new List<WaferInfo>();
-                param.RecipeName = "TestRecipe";
+                MesDetectionParam param = new()
+                {
+                    InternalBatchId = LotID,
+                    OperatorId = UserID,
+                    ProductModel = "PF-Work",
+                    Quantity = 25, // 标准料盒通常为 25 片
+                    DetectionStatus = E_DetectionStatus.待检测,
+                    CustomerWafers = [],
+                    RecipeName = "TestRecipe"
+                };
 
                 for (int i = 1; i <= 25; i++)
                 {
@@ -164,13 +169,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         #region Station Recipe Parameters (工位配方缓存)
 
         [JsonInclude]
-        private volatile OCRRecipeParam _station1ReciepParam = new OCRRecipeParam();
+        private volatile OCRRecipeParam _station1ReciepParam = new();
 
         /// <summary>工位1工艺配方参数 (如：截取规则、比对长度等)</summary>
         public OCRRecipeParam Station1ReciepParam => _station1ReciepParam;
 
         [JsonInclude]
-        private volatile OCRRecipeParam _station2ReciepParam = new OCRRecipeParam();
+        private volatile OCRRecipeParam _station2ReciepParam = new();
 
         /// <summary>工位2工艺配方参数</summary>
         public OCRRecipeParam Station2ReciepParam => _station2ReciepParam;
@@ -206,13 +211,13 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         // P7 修复：MES 数据字段加 volatile，保证跨线程赋值的可见性
         // （工站线程写入、检测线程读取、UI 线程绑定均能及时看到最新引用）
         [JsonInclude]
-        private volatile MesDetectionParam _station1MesDetectionData = new MesDetectionParam();
+        private volatile MesDetectionParam _station1MesDetectionData = new();
 
         /// <summary>工位1当前正在执行的 MES 批次详情</summary>
         public MesDetectionParam Station1MesDetectionData => _station1MesDetectionData;
 
         [JsonInclude]
-        private volatile MesDetectionParam _station2MesDetectionData = new MesDetectionParam();
+        private volatile MesDetectionParam _station2MesDetectionData = new();
 
         /// <summary>工位2当前正在执行的 MES 批次详情</summary>
         public MesDetectionParam Station2MesDetectionData => _station2MesDetectionData;
@@ -222,28 +227,36 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 用于辅助判断当前批次是否已经扫描/检测完毕。
         /// </summary>
         [JsonInclude]
-        private ConcurrentDictionary<string, int> _batchQuantityMap = new ConcurrentDictionary<string, int>();
+        private ConcurrentDictionary<string, int> _batchQuantityMap = new();
+
+        /// <summary>批次归属工位映射表 (Key: InternalBatchId, Value: 工位)</summary>
+        [JsonInclude]
+        private ConcurrentDictionary<string, E_WorkSpace> _batchStationMap = new();
+
+        /// <summary>批次配方名称映射表 (Key: InternalBatchId, Value: RecipeName)</summary>
+        [JsonInclude]
+        private ConcurrentDictionary<string, string> _batchRecipeMap = new();
 
         // P7 修复：检测数据列表的读写加 lock 保护，防止并发 Add/Remove/Clear/枚举 导致
         // InvalidOperationException 或内部状态损坏
-        private readonly object _detectionDataLock = new object();
+        private readonly object _detectionDataLock = new();
 
         [JsonInclude]
-        private List<MachineDetectionData> _sation1MachineDetectionData = new List<MachineDetectionData>();
+        private List<MachineDetectionData> _sation1MachineDetectionData = [];
 
         /// <summary>工位1机台实时产生的单片检测结果列表 (注: 拼写保留原代码 Sation 以防破坏 UI 绑定)</summary>
         public List<MachineDetectionData> Sation1MachineDetectionData
         {
-            get { lock (_detectionDataLock) return new List<MachineDetectionData>(_sation1MachineDetectionData); }
+            get { lock (_detectionDataLock) return [.. _sation1MachineDetectionData]; }
         }
 
         [JsonInclude]
-        private List<MachineDetectionData> _sation2MachineDetectionData = new List<MachineDetectionData>();
+        private List<MachineDetectionData> _sation2MachineDetectionData = [];
 
         /// <summary>工位2机台实时产生的单片检测结果列表</summary>
         public List<MachineDetectionData> Sation2MachineDetectionData
         {
-            get { lock (_detectionDataLock) return new List<MachineDetectionData>(_sation2MachineDetectionData); }
+            get { lock (_detectionDataLock) return [.. _sation2MachineDetectionData]; }
         }
 
         /// <summary>
@@ -251,14 +264,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// 采用 <see cref="ConcurrentDictionary{TKey, TValue}"/> 确保多工位并行写入的线程安全。
         /// </summary>
         [JsonInclude]
-        private ConcurrentDictionary<string, List<MachineDetectionData>> _machineDataByBatch = new ConcurrentDictionary<string, List<MachineDetectionData>>();
+        private ConcurrentDictionary<string, List<MachineDetectionData>> _machineDataByBatch = new();
 
         /// <summary>获取按批次归档的检测数据字典</summary>
         public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch => _machineDataByBatch;
 
         // 每片晶圆由拉料工站扫码后暂存，供检测工站组装 MachineDetectionData 时填充 Barcode 字段
-        private volatile List<string> _station1ScanCodes = new List<string>();
-        private volatile List<string> _station2ScanCodes = new List<string>();
+        private volatile List<string> _station1ScanCodes = [];
+        private volatile List<string> _station2ScanCodes = [];
 
         /// <summary>工位1最近一次扫码枪读取到的原始条码列表</summary>
         public List<string> Station1ScanCodes => _station1ScanCodes;
@@ -270,9 +283,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public void SetStationScanCodes(E_WorkSpace station, List<string> codes)
         {
             if (station == E_WorkSpace.工位1)
-                _station1ScanCodes = codes ?? new List<string>();
+                _station1ScanCodes = codes ?? [];
             else if (station == E_WorkSpace.工位2)
-                _station2ScanCodes = codes ?? new List<string>();
+                _station2ScanCodes = codes ?? [];
             RaiseDataChanged();
         }
 
@@ -282,12 +295,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public async Task<MechResult> UpdateStationMesInfoAsync(E_WorkSpace Station, MesDetectionParam Data, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); // 【新增】入口检查
-
+            foreach (var item in _machineDataByBatch)
+            {
+                if ((DateTime.Now - item.Value.Select(x => DateTime.FromOADate(x.Time)).Max()).TotalDays > await _paramService.GetParamAsync<double>(nameof(E_Params.DetectionDataCacheTime)))
+                {
+                    for (int i = 0; i < item.Value?.Count; i++)
+                    {
+                        await _productionDataService.RecordAsync<MachineDetectionData>(item.Value[i]);
+                    }
+                    DeletePendingBatch(item.Key);
+                }
+            }
             if (Station == E_WorkSpace.工位1)
             {
                 _station1MesDetectionData = Data;
-                Save(_filepath);
-                lock (_detectionDataLock) { _sation1MachineDetectionData.Clear(); }
+
+                lock (_detectionDataLock)
+                {
+                    _sation1MachineDetectionData.Clear();
+
+                    Save(_filepath);
+                }
             }
             else if (Station == E_WorkSpace.工位2)
             {
@@ -363,7 +391,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             _machineDataByBatch.AddOrUpdate(
                data.InternalBatchId,
-               _ => new List<MachineDetectionData> { data },
+               _ => [data],
                (_, list) =>
                {
                    list.Add(data);
@@ -373,6 +401,11 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             // 如果该批次的期望晶圆总数尚未记录，则以当前工位的 MES 目标数量为准进行登记
             _batchQuantityMap.TryAdd(data.InternalBatchId,
                 station == E_WorkSpace.工位1 ? _station1MesDetectionData.Quantity : _station2MesDetectionData.Quantity);
+
+            // 记录批次归属工位和配方名（TryAdd：首次写入后不再覆盖，保证不因中途切配方而丢失归属）
+            _batchStationMap.TryAdd(data.InternalBatchId, station);
+            _batchRecipeMap.TryAdd(data.InternalBatchId,
+                station == E_WorkSpace.工位1 ? _station1MesDetectionData.RecipeName : _station2MesDetectionData.RecipeName);
 
             // 触发批次完工判定
             await CheckBatchCompletionAsync();
@@ -404,7 +437,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                                 _logger?.Error($"{MechanismName} 上报批次 {kvp.Key} 失败: {ex.Message}");
                             }
 
-                            List<MachineDetectionData> recorddata = new List<MachineDetectionData>();
+                            List<MachineDetectionData> recorddata = [];
 
                             // 从内存字典中移除已完工的批次数据，释放资源
                             _machineDataByBatch.TryRemove(kvp.Key, out recorddata);
@@ -418,8 +451,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                             }
                             _logger?.Info($"批次 {kvp.Key} 本地数据库记录完成！");
 
-                            // 同步清理目标计数字典
+                            // 同步清理目标计数字典和归属字典
                             _batchQuantityMap.TryRemove(kvp.Key, out _);
+                            _batchStationMap.TryRemove(kvp.Key, out _);
+                            _batchRecipeMap.TryRemove(kvp.Key, out _);
                         }
                     }
                 }
@@ -437,9 +472,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <param name="codes">扫码枪提取出的原始条码列表</param>
         /// <param name="token">异步取消令牌</param>
         /// <returns>Item1: 是否合法通过；Item2: 过滤后的合规条码列表；Item3: 匹配出的具体晶圆实体</returns>
-        public Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
+        public static Task<MechResult<WaferInfo>> CheckCodeAsync(E_WorkSpace station, List<string> codes, CancellationToken token = default)
         {
-            WaferInfo info = null;
+            token.ThrowIfCancellationRequested(); // 【新增】入口检查
+            //WaferInfo info = null;
             try
             {
                 //token.ThrowIfCancellationRequested(); // 【新增】入口检查防空跑
@@ -542,83 +578,83 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     var kk = _station1MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
                     {
-                        CustomerBatch = x.CustomerBatch.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength),
+                        CustomerBatch = x.CustomerBatch[_station1ReciepParam.GuestStartIndex..(_station1ReciepParam.GuestStartIndex + _station1ReciepParam.GuestLength)],
                         WaferId = x.WaferId
                     }).ToList();
 
                     if (ocrtext.Split('-') is { Length: 3 } parts)
                     {
-                        string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
-                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
+                        string ocr = ocrtext[_station1ReciepParam.GuestStartIndex..(_station1ReciepParam.GuestStartIndex + _station1ReciepParam.GuestLength)];
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1][..2]))
                         {
-                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1][..2]).FirstOrDefault();
                             return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
                     {
-                        string ocr = ocrtext.Substring(_station1ReciepParam.GuestStartIndex, _station1ReciepParam.GuestLength);
-                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
+                        string ocr = ocrtext[_station1ReciepParam.GuestStartIndex..(_station1ReciepParam.GuestStartIndex + _station1ReciepParam.GuestLength)];
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1][..2]))
                         {
-                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)).FirstOrDefault();
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1][..2]).FirstOrDefault();
                             return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位1 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else
                     {
-                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位1 OCR格式异常: {ocrtext}"));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位1 OCR格式异常: {ocrtext}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                     }
                 }
                 else if (station == E_WorkSpace.工位2)
                 {
                     var kk = _station2MesDetectionData.CustomerWafers.Select(x => new WaferInfo()
                     {
-                        CustomerBatch = x.CustomerBatch.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength),
+                        CustomerBatch = x.CustomerBatch[_station2ReciepParam.GuestStartIndex..(_station2ReciepParam.GuestStartIndex + _station2ReciepParam.GuestLength)],
                         WaferId = x.WaferId
                     }).ToList();
 
                     if (ocrtext.Split('-') is { Length: 3 } parts)
                     {
-                        string ocr = ocrtext.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
-                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)))
+                        string ocr = ocrtext[_station2ReciepParam.GuestStartIndex..(_station2ReciepParam.GuestStartIndex + _station2ReciepParam.GuestLength)];
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts[1][..2]))
                         {
-                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1].Substring(0, 2)).FirstOrDefault();
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts[1][..2]).FirstOrDefault();
                             return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else if (ocrtext.Split('-') is { Length: 2 } parts1)
                     {
-                        string ocr = ocrtext.Substring(_station2ReciepParam.GuestStartIndex, _station2ReciepParam.GuestLength);
-                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)))
+                        string ocr = ocrtext[_station2ReciepParam.GuestStartIndex..(_station2ReciepParam.GuestStartIndex + _station2ReciepParam.GuestLength)];
+                        if (kk.Any(x => x.CustomerBatch == ocr && x.WaferId == parts1[1][..2]))
                         {
-                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1].Substring(0, 2)).FirstOrDefault();
+                            info = kk.Where(x => x.CustomerBatch == ocr && x.WaferId == parts1[1][..2]).FirstOrDefault();
                             return Task.FromResult(MechResult<WaferInfo>.Success(info));
                         }
                         else
                         {
-                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过"));
+                            return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, "工位2 OCR校验不通过", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                         }
                     }
                     else
                     {
-                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位2 OCR格式异常: {ocrtext}"));
+                        return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"工位2 OCR格式异常: {ocrtext}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                     }
                 }
                 else
                 {
-                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"不支持的工位: {station}"));
+                    return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"不支持的工位: {station}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
                 }
             }
             catch (OperationCanceledException) // 【新增】拦截抛出
@@ -627,7 +663,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             catch (Exception ex)
             {
-                return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"OCR校验异常: {ex.Message}"));
+                return Task.FromResult(MechResult<WaferInfo>.Fail(AlarmCodesExtensions.DataModule.OcrValidationFailed, $"OCR校验异常: {ex.Message}", new WaferInfo() { CustomerBatch = "Error_CustomerBatch", WaferId = "NONE" }));
             }
         }
 
@@ -643,9 +679,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         private volatile int _station2InspectingSlot = -1;
 
         private static List<WaferSlotInfo> CreateEmptySlots() =>
-            Enumerable.Range(0, CassetteSlotCount)
-                      .Select(i => new WaferSlotInfo { SlotIndex = i })
-                      .ToList();
+            [.. Enumerable.Range(0, CassetteSlotCount)
+                          .Select(i => new WaferSlotInfo { SlotIndex = i })];
 
         /// <summary>工位1晶圆盒槽位状态（0-12，共13层）</summary>
         public IReadOnlyList<WaferSlotInfo> Station1SlotStates => _station1SlotStates;
@@ -684,19 +719,19 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             station == E_WorkSpace.工位1 ? _station1InspectingSlot : _station2InspectingSlot;
 
         /// <summary>更新指定槽位状态（Inspecting/OK/NG）。slotIndex0Based 为 0-based 物理层索引。</summary>
-        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData= null)
+        public void UpdateSlotStatus(E_WorkSpace station, int slotIndex0Based, WaferSlotStatus status, MachineDetectionData detectionData = null)
         {
             var list = station == E_WorkSpace.工位1 ? _station1SlotStates : _station2SlotStates;
             var slot = list.FirstOrDefault(s => s.SlotIndex == slotIndex0Based);
             if (slot == null) return;
             slot.Status = status;
-            if (detectionData== null )
+            if (detectionData == null)
             {
                 return;
             }
 
-            slot.DetectionData = detectionData.Clone(); 
-       
+            slot.DetectionData = detectionData.Clone();
+
             Save(_filepath);
             RaiseDataChanged();
         }
@@ -707,8 +742,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         private volatile E_LayerProcessMode _station1LayerMode = E_LayerProcessMode.全做;
         private volatile E_LayerProcessMode _station2LayerMode = E_LayerProcessMode.全做;
-        private volatile List<int> _station1SpecifiedLayers = new();
-        private volatile List<int> _station2SpecifiedLayers = new();
+        private volatile List<int> _station1SpecifiedLayers = [];
+        private volatile List<int> _station2SpecifiedLayers = [];
 
         /// <summary>获取指定工位当前的层检测模式</summary>
         public E_LayerProcessMode GetLayerMode(E_WorkSpace station) =>
@@ -717,8 +752,8 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>获取指定工位的指定层索引列表（0-based 副本）</summary>
         public List<int> GetSpecifiedLayers(E_WorkSpace station) =>
             station == E_WorkSpace.工位1
-                ? new List<int>(_station1SpecifiedLayers)
-                : new List<int>(_station2SpecifiedLayers);
+                ? [.. _station1SpecifiedLayers]
+                : [.. _station2SpecifiedLayers];
 
         /// <summary>设置指定工位的层检测模式与指定层列表，并触发 UI 刷新和持久化</summary>
         public MechResult SetLayerMode(E_WorkSpace station, E_LayerProcessMode mode, List<int>? specifiedLayers = null)
@@ -726,12 +761,12 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             if (station == E_WorkSpace.工位1)
             {
                 _station1LayerMode = mode;
-                _station1SpecifiedLayers = specifiedLayers ?? new List<int>();
+                _station1SpecifiedLayers = specifiedLayers ?? [];
             }
             else if (station == E_WorkSpace.工位2)
             {
                 _station2LayerMode = mode;
-                _station2SpecifiedLayers = specifiedLayers ?? new List<int>();
+                _station2SpecifiedLayers = specifiedLayers ?? [];
             }
             else
                 return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"不支持的工位: {station}");
@@ -739,6 +774,112 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             RaiseDataChanged();
             Save(_filepath);
             return MechResult.Success();
+        }
+
+        #endregion
+
+        #region Pending Batch Management (未完成批次管理)
+
+        /// <summary>
+        /// 获取所有工位的所有未完成批次（已收集片数 &lt; 期望总数）。
+        /// </summary>
+        public IReadOnlyList<PendingBatchInfo> GetAllPendingBatches()
+        {
+            var result = new List<PendingBatchInfo>();
+            foreach (var kvp in _machineDataByBatch.ToList())
+            {
+                _batchQuantityMap.TryGetValue(kvp.Key, out var total);
+                _batchRecipeMap.TryGetValue(kvp.Key, out var recipe);
+                result.Add(new PendingBatchInfo
+                {
+                    BatchId        = kvp.Key,
+                    RecipeName     = recipe ?? string.Empty,
+                    TotalCount     = total,
+                    CompletedCount = kvp.Value.Count
+                });
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 获取指定工位的所有未完成批次（已收集片数 &lt; 期望总数）。
+        /// </summary>
+        public IReadOnlyList<PendingBatchInfo> GetPendingBatches(E_WorkSpace station)
+        {
+            var result = new List<PendingBatchInfo>();
+            foreach (var kvp in _machineDataByBatch.ToList())
+            {
+                if (!_batchStationMap.TryGetValue(kvp.Key, out var batchStation) || batchStation != station)
+                    continue;
+                _batchQuantityMap.TryGetValue(kvp.Key, out var total);
+                _batchRecipeMap.TryGetValue(kvp.Key, out var recipe);
+                result.Add(new PendingBatchInfo
+                {
+                    BatchId = kvp.Key,
+                    RecipeName = recipe ?? string.Empty,
+                    TotalCount = total,
+                    CompletedCount = kvp.Value.Count
+                });
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 从内存和持久化文件中彻底删除指定未完成批次。
+        /// </summary>
+        public MechResult DeletePendingBatch(string batchId)
+        {
+            if (!_machineDataByBatch.TryRemove(batchId, out _))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+            _batchQuantityMap.TryRemove(batchId, out _);
+            _batchStationMap.TryRemove(batchId, out _);
+            _batchRecipeMap.TryRemove(batchId, out _);
+            Save(_filepath);
+            RaiseDataChanged();
+            return MechResult.Success();
+        }
+
+
+        /// <summary>
+        /// 强制将未完成批次数据落盘到生产数据库（即使片数未达到期望总数）。
+        /// </summary>
+        public async Task<MechResult> ForceCommitBatchAsync(string batchId)
+        {
+            if (!_machineDataByBatch.TryGetValue(batchId, out var batchData))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+            try
+            {
+                foreach (var item in batchData.ToList())
+                    await _productionDataService.RecordAsync<MachineDetectionData>(item);
+                _logger?.Info($"[{MechanismName}] 批次 {batchId} 强制落盘完成，共 {batchData.Count} 条记录");
+                return MechResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.DataPersistenceFailed, $"落盘失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 将指定批次数据导出为 CSV 文件。
+        /// </summary>
+        public MechResult ExportBatchToCsv(string batchId, string filePath)
+        {
+            if (!_machineDataByBatch.TryGetValue(batchId, out var batchData))
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.RecipeUpdateFailed, $"批次 {batchId} 不存在");
+            try
+            {
+                var lines = new List<string> { "时间,内批号,客批号,晶圆ID,OCR文本,条码1,条码2,是否匹配" };
+                foreach (var d in batchData)
+                    lines.Add($"{DateTime.FromOADate(d.Time):yyyy-MM-dd HH:mm:ss},{d.InternalBatchId},{d.CustomerBatch},{d.WaferId},{d.OcrText},{d.Barcode1},{d.Barcode2},{d.IsMatch}");
+                System.IO.File.WriteAllLines(filePath, lines, System.Text.Encoding.UTF8);
+                _logger?.Info($"[{MechanismName}] 批次 {batchId} 已导出至: {filePath}");
+                return MechResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return MechResult.Fail(AlarmCodesExtensions.DataModule.DataPersistenceFailed, $"导出失败: {ex.Message}");
+            }
         }
 
         #endregion
@@ -752,24 +893,27 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// </summary>
         private class WorkStationDataModuleSnapshot
         {
-            public OCRRecipeParam Station1ReciepParam { get; set; } = new OCRRecipeParam();
-            public OCRRecipeParam Station2ReciepParam { get; set; } = new OCRRecipeParam();
-            public MesDetectionParam Station1MesDetectionData { get; set; } = new MesDetectionParam();
-            public MesDetectionParam Station2MesDetectionData { get; set; } = new MesDetectionParam();
-            public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } = new List<MachineDetectionData>();
-            public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = new List<MachineDetectionData>();
-            public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch { get; set; } = new ConcurrentDictionary<string, List<MachineDetectionData>>();
-            public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new ConcurrentDictionary<string, int>();
-            public List<WaferSlotInfo> Station1SlotStates { get; set; } = new();
-            public List<WaferSlotInfo> Station2SlotStates { get; set; } = new();
+            public OCRRecipeParam Station1ReciepParam { get; set; } = new();
+            public OCRRecipeParam Station2ReciepParam { get; set; } = new();
+            public MesDetectionParam Station1MesDetectionData { get; set; } = new();
+            public MesDetectionParam Station2MesDetectionData { get; set; } = new();
+            public List<MachineDetectionData> Sation1MachineDetectionData { get; set; } = [];
+            public List<MachineDetectionData> Sation2MachineDetectionData { get; set; } = [];
+            public ConcurrentDictionary<string, List<MachineDetectionData>> MachineDataByBatch { get; set; } = new();
+            public ConcurrentDictionary<string, int> BatchQuantityMap { get; set; } = new();
+            public ConcurrentDictionary<string, E_WorkSpace> BatchStationMap { get; set; } = new();
+            public ConcurrentDictionary<string, string> BatchRecipeMap { get; set; } = new();
+            public List<WaferSlotInfo> Station1SlotStates { get; set; } = [];
+            public List<WaferSlotInfo> Station2SlotStates { get; set; } = [];
             public E_LayerProcessMode Station1LayerMode { get; set; } = E_LayerProcessMode.全做;
             public E_LayerProcessMode Station2LayerMode { get; set; } = E_LayerProcessMode.全做;
-            public List<int> Station1SpecifiedLayers { get; set; } = new();
-            public List<int> Station2SpecifiedLayers { get; set; } = new();
+            public List<int> Station1SpecifiedLayers { get; set; } = [];
+            public List<int> Station2SpecifiedLayers { get; set; } = [];
         }
 
 
-        private static readonly object savelocker = new object();
+        private static readonly object savelocker = new();
+        private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
         /// <summary>
         /// 序列化并保存当前内存数据到本地 Json 文件
@@ -791,15 +935,15 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         Sation2MachineDetectionData = _sation2MachineDetectionData,
                         MachineDataByBatch = _machineDataByBatch,
                         BatchQuantityMap = _batchQuantityMap,
-                        Station1SlotStates = new List<WaferSlotInfo>(_station1SlotStates),
-                        Station2SlotStates = new List<WaferSlotInfo>(_station2SlotStates),
+                        BatchStationMap = _batchStationMap,
+                        BatchRecipeMap = _batchRecipeMap,
+                        Station1SlotStates = [.. _station1SlotStates],
+                        Station2SlotStates = [.. _station2SlotStates],
                         Station1LayerMode = _station1LayerMode,
                         Station2LayerMode = _station2LayerMode,
-                        Station1SpecifiedLayers = new List<int>(_station1SpecifiedLayers),
-                        Station2SpecifiedLayers = new List<int>(_station2SpecifiedLayers),
+                        Station1SpecifiedLayers = [.. _station1SpecifiedLayers],
+                        Station2SpecifiedLayers = [.. _station2SpecifiedLayers],
                     };
-
-                    var options = new JsonSerializerOptions { WriteIndented = true };
 
                     var fileInfo = new FileInfo(filePath);
                     var folderPath = fileInfo.DirectoryName;
@@ -808,7 +952,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                         Directory.CreateDirectory(folderPath);
                     }
 
-                    string json = JsonSerializer.Serialize(snapshot, options);
+                    string json = JsonSerializer.Serialize(snapshot, _jsonOptions);
                     System.IO.File.WriteAllText(filePath, json);
                     _logger?.Info($"{this.MechanismName} 数据已成功保存至: {filePath}");
                 }
@@ -835,9 +979,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             try
             {
                 var json = System.IO.File.ReadAllText(filePath);
-                var options = new JsonSerializerOptions();
-
-                var tempModule = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, options);
+                var tempModule = JsonSerializer.Deserialize<WorkStationDataModuleSnapshot>(json, _jsonOptions);
                 if (tempModule != null)
                 {
                     // 手动将解析出的数据字段，同步赋值给当前已经过 DI (依赖注入) 实例化的单例对象中
@@ -849,14 +991,16 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     this._sation2MachineDetectionData = tempModule.Sation2MachineDetectionData;
                     this._machineDataByBatch = tempModule.MachineDataByBatch;
                     this._batchQuantityMap = tempModule.BatchQuantityMap;
+                    this._batchStationMap = tempModule.BatchStationMap ?? new();
+                    this._batchRecipeMap = tempModule.BatchRecipeMap ?? new();
                     this._station1SlotStates = tempModule.Station1SlotStates?.Count > 0
                         ? tempModule.Station1SlotStates : CreateEmptySlots();
                     this._station2SlotStates = tempModule.Station2SlotStates?.Count > 0
                         ? tempModule.Station2SlotStates : CreateEmptySlots();
                     this._station1LayerMode = tempModule.Station1LayerMode;
                     this._station2LayerMode = tempModule.Station2LayerMode;
-                    this._station1SpecifiedLayers = tempModule.Station1SpecifiedLayers ?? new List<int>();
-                    this._station2SpecifiedLayers = tempModule.Station2SpecifiedLayers ?? new List<int>();
+                    this._station1SpecifiedLayers = tempModule.Station1SpecifiedLayers ?? [];
+                    this._station2SpecifiedLayers = tempModule.Station2SpecifiedLayers ?? [];
 
                     _logger?.Info($"{MechanismName} 历史数据加载成功");
 
@@ -889,7 +1033,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         public string ProductModel { get; set; } = "";
 
         /// <summary>该批次下包含的所有晶圆客批与槽号刻号信息集合</summary>
-        public List<WaferInfo> CustomerWafers { get; set; } = new List<WaferInfo>();
+        public List<WaferInfo> CustomerWafers { get; set; } = [];
 
         /// <summary>当前批次期望的产品总个数 (如：25)</summary>
         public int Quantity { get; set; } = 0;
@@ -1021,4 +1165,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
     }
 
     #endregion
+
+    /// <summary>未完成批次的摘要信息，供管理弹窗展示</summary>
+    public class PendingBatchInfo
+    {
+        /// <summary>批次标识</summary>
+        public string BatchId { get; set; } = string.Empty;
+        /// <summary>配方名称</summary>
+        public string RecipeName { get; set; } = string.Empty;
+        /// <summary>批次物料总数</summary>
+        public int TotalCount { get; set; }
+        /// <summary>已完成数量</summary>
+        public int CompletedCount { get; set; }
+    }
 }

@@ -157,7 +157,34 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>
         /// 获取或设置 IsBusy
         /// </summary>
-        public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
+        public bool IsBusy
+        {
+            get => _isBusy; set
+            {
+                SetProperty(ref _isBusy, value);
+                RaisePropertyChanged(nameof(CanExecuteActions));// 当 _isBusy 变化时，通知复合属性也变化
+            }
+        }
+
+        private bool _isExporting;
+        /// <summary>
+        /// 获取或设置 IsExporting (专门用于控制导出过程的UI状态)
+        /// </summary>
+        public bool IsExporting
+        {
+            get => _isExporting; set
+            {
+                SetProperty(ref _isExporting, value);
+                RaisePropertyChanged(nameof(CanExecuteActions));// 当 IsExporting 变化时，通知复合属性也变化
+            }
+        }
+
+        private int _exportProgress;
+        /// <summary>
+        /// 获取或设置 ExportProgress (导出进度百分比 0-100)
+        /// </summary>
+        public int ExportProgress { get => _exportProgress; set => SetProperty(ref _exportProgress, value); }
+
 
         // ══════════════════════════════════════════════════════════
         //  数据集合
@@ -211,7 +238,8 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             SearchCommand = new DelegateCommand(async () => await OnSearchAsync());
             ClearFiltersCommand = new DelegateCommand(OnClearFilters);
 
-            ExportLogsCommand = new DelegateCommand(ExportLogs);
+            ExportLogsCommand = new DelegateCommand(async () => await ExportLogsAsync())
+                 .ObservesProperty(() => CanExecuteActions);
         }
 
         private void ExportLogs()
@@ -224,6 +252,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                     MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
                     return;
                 }
+                if (Records.Count > 100)
+                {
+                    MessageService.ShowMessage("当前列表中有超过100条数据，只有前一百条会导出图片。", "提示");
+                }
+
+                var Records1 = Records.OrderBy(x => x.RecordTime).ToList();
                 var saveDialog = new SaveFileDialog
                 {
                     Filter = "Excel 文件 (*.xlsx)|*.xlsx",
@@ -249,25 +283,28 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                         sheet.GetRow(0).CreateCell(11).SetCellValue("操作员工号");
                         sheet.GetRow(0).CreateCell(12).SetCellValue("配方名称");
                         sheet.GetRow(0).CreateCell(13).SetCellValue("图片");
-                        sheet.GetRow(0).CreateCell(14).SetCellValue("超链接");
+                        //sheet.GetRow(0).CreateCell(14).SetCellValue("超链接");
                         for (int i = 0; i < Records?.Count; i++)
                         {
-                            sheet.CreateRow(i + 1).CreateCell(0).SetCellValue(Records[i].Data.Time);
-                            sheet.GetRow(i + 1).CreateCell(1).SetCellValue(Records[i].Data.InternalBatchId);
-                            sheet.GetRow(i + 1).CreateCell(2).SetCellValue(Records[i].Data.CustomerBatch);
-                            sheet.GetRow(i + 1).CreateCell(3).SetCellValue(Records[i].Data.WaferId);
-                            sheet.GetRow(i + 1).CreateCell(4).SetCellValue(Records[i].Data.ProductModel);
-                            sheet.GetRow(i + 1).CreateCell(5).SetCellValue(Records[i].Data.IsMatch);
-                            sheet.GetRow(i + 1).CreateCell(6).SetCellValue(Records[i].Data.ErrorMessage);
-                            sheet.GetRow(i + 1).CreateCell(7).SetCellValue(Records[i].Data.OcrText);
-                            sheet.GetRow(i + 1).CreateCell(8).SetCellValue(Records[i].Data.Barcode1);
-                            sheet.GetRow(i + 1).CreateCell(9).SetCellValue(Records[i].Data.Barcode2);
-                            sheet.GetRow(i + 1).CreateCell(10).SetCellValue(Records[i].Data.Barcode3);
-                            sheet.GetRow(i + 1).CreateCell(11).SetCellValue(Records[i].Data.OperatorId);
-                            sheet.GetRow(i + 1).CreateCell(12).SetCellValue(Records[i].Data.RecipeName);
-                            WriteImageToExcel(Records[i].Data.ImagePath, wk, sheet, i + 1, 13);
-                            var cell = sheet.GetRow(i + 1).CreateCell(14);
-                            WritehyperlinkToExcel(Records[i].Data.ImagePath, wk, cell);
+                            sheet.CreateRow(i + 1).CreateCell(0).SetCellValue(Records1[i].Data.Time);
+                            sheet.GetRow(i + 1).CreateCell(1).SetCellValue(Records1[i].Data.InternalBatchId);
+                            sheet.GetRow(i + 1).CreateCell(2).SetCellValue(Records1[i].Data.CustomerBatch);
+                            sheet.GetRow(i + 1).CreateCell(3).SetCellValue(Records1[i].Data.WaferId);
+                            sheet.GetRow(i + 1).CreateCell(4).SetCellValue(Records1[i].Data.ProductModel);
+                            sheet.GetRow(i + 1).CreateCell(5).SetCellValue(Records1[i].Data.IsMatch);
+                            sheet.GetRow(i + 1).CreateCell(6).SetCellValue(Records1[i].Data.ErrorMessage);
+                            sheet.GetRow(i + 1).CreateCell(7).SetCellValue(Records1[i].Data.OcrText);
+                            sheet.GetRow(i + 1).CreateCell(8).SetCellValue(Records1[i].Data.Barcode1);
+                            sheet.GetRow(i + 1).CreateCell(9).SetCellValue(Records1[i].Data.Barcode2);
+                            sheet.GetRow(i + 1).CreateCell(10).SetCellValue(Records1[i].Data.Barcode3);
+                            sheet.GetRow(i + 1).CreateCell(11).SetCellValue(Records1[i].Data.OperatorId);
+                            sheet.GetRow(i + 1).CreateCell(12).SetCellValue(Records1[i].Data.RecipeName);
+                            if (i <= 100)
+                            {
+                                WriteImageToExcel(Records1[i].Data.ImagePath, wk, sheet, i + 1, 13);
+                            }
+                            //var cell = sheet.GetRow(i + 1).CreateCell(14);
+                            //WritehyperlinkToExcel(Records[i].Data.ImagePath, wk, cell);
                         }
                         using (FileStream fs = new FileStream(saveDialog.FileName, FileMode.Create, FileAccess.Write))
                         {
@@ -284,6 +321,118 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
 
         }
+
+
+        /// <summary>
+        /// 一个复合属性，用于确定主要操作（如搜索、导出）是否可执行。
+        /// </summary>
+        public bool CanExecuteActions => !IsBusy && !IsExporting;
+
+
+        private async Task ExportLogsAsync()
+        {
+            if (!Records.Any())
+            {
+                MessageService.ShowMessage("当前列表中没有数据可供导出。", "提示");
+                return;
+            }
+
+            var saveDialog = new SaveFileDialog
+            {
+                Filter = "Excel 文件 (*.xlsx)|*.xlsx",
+                FileName = $"Log_Export_{DateTime.Now:yyyyMMdd_HHmmss}",
+                DefaultExt = ".xlsx"
+            };
+
+            if (saveDialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            // --- UI状态更新 ---
+            IsExporting = true;
+            ExportProgress = 0;
+            MessageService.ShowMessage("正在准备导出数据，请稍候...", "导出中");
+
+            var recordsSnapshot = new List<MachineDetectionDataWrapper>(Records);
+            string filePath = saveDialog.FileName;
+
+            // --- 进度报告器 ---
+            var progress = new Progress<int>(percent =>
+            {
+                ExportProgress = percent;
+            });
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    using (XSSFWorkbook wk = new XSSFWorkbook())
+                    {
+                        ISheet sheet = wk.CreateSheet("Data");
+                        IRow headerRow = sheet.CreateRow(0);
+                        // ... (表头创建代码与之前相同)
+                        headerRow.CreateCell(0).SetCellValue("记录时间");
+                        headerRow.CreateCell(1).SetCellValue("内部批次号");
+                        headerRow.CreateCell(2).SetCellValue("客户批次");
+                        headerRow.CreateCell(3).SetCellValue("晶圆ID");
+                        headerRow.CreateCell(4).SetCellValue("产品型号");
+                        headerRow.CreateCell(5).SetCellValue("匹配结果");
+                        headerRow.CreateCell(6).SetCellValue("异常信息");
+                        headerRow.CreateCell(7).SetCellValue("OCR文本");
+                        headerRow.CreateCell(8).SetCellValue("条码1");
+                        headerRow.CreateCell(9).SetCellValue("条码2");
+                        headerRow.CreateCell(10).SetCellValue("条码3");
+                        headerRow.CreateCell(11).SetCellValue("操作员工号");
+                        headerRow.CreateCell(12).SetCellValue("配方名称");
+                        headerRow.CreateCell(13).SetCellValue("图片");
+
+                        for (int i = 0; i < recordsSnapshot.Count; i++)
+                        {
+                            var record = recordsSnapshot[i];
+                            IRow dataRow = sheet.CreateRow(i + 1);
+                            // ... (数据行填充代码与之前相同)
+                            dataRow.CreateCell(0).SetCellValue(record.Data.Time.ToString());
+                            dataRow.CreateCell(1).SetCellValue(record.Data.InternalBatchId);
+                            dataRow.CreateCell(2).SetCellValue(record.Data.CustomerBatch);
+                            dataRow.CreateCell(3).SetCellValue(record.Data.WaferId);
+                            dataRow.CreateCell(4).SetCellValue(record.Data.ProductModel);
+                            dataRow.CreateCell(5).SetCellValue(record.Data.IsMatch);
+                            dataRow.CreateCell(6).SetCellValue(record.Data.ErrorMessage);
+                            dataRow.CreateCell(7).SetCellValue(record.Data.OcrText);
+                            dataRow.CreateCell(8).SetCellValue(record.Data.Barcode1);
+                            dataRow.CreateCell(9).SetCellValue(record.Data.Barcode2);
+                            dataRow.CreateCell(10).SetCellValue(record.Data.Barcode3);
+                            dataRow.CreateCell(11).SetCellValue(record.Data.OperatorId);
+                            dataRow.CreateCell(12).SetCellValue(record.Data.RecipeName);
+                            WriteImageToExcel(record.Data.ImagePath, wk, sheet, i + 1, 13);
+
+                            // --- 报告进度 ---
+                            var currentProgress = (int)((i + 1) * 100.0 / recordsSnapshot.Count);
+                            (progress as IProgress<int>).Report(currentProgress);
+                        }
+
+                        using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                        {
+                            wk.Write(fs);
+                        }
+                    }
+                });
+
+                MessageService.ShowMessage($"成功导出 {recordsSnapshot.Count} 条记录！\n路径: {filePath}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                // --- 恢复UI状态 ---
+                IsExporting = false;
+                ExportProgress = 0;
+            }
+        }
+
 
 
         /// <summary>
@@ -337,21 +486,25 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
                 // 1. 路径清洗：统一格式
                 // 将 E:// 替换为 E:/，并将所有反斜杠 \ 统一为正斜杠 /
-                string cleanedPath = hyperlink.Replace("://", ":/").Replace("\\", "/");
+                //string cleanedPath = hyperlink.Replace("://", ":/").Replace("\\", "/");
+
+                FileInfo fileinfo = new FileInfo(hyperlink);
+
 
                 // 2. 构造标准的 file:/// 协议路径
-                // 必须确保是 file:/// 开头，Excel 才能识别为本地文件
-                if (!cleanedPath.StartsWith("file:///"))
-                {
-                    cleanedPath = "file:///" + cleanedPath.TrimStart('/');
-                }
+                //// 必须确保是 file:/// 开头，Excel 才能识别为本地文件
+                //if (!cleanedPath.StartsWith("file:///"))
+                //{
+                //    cleanedPath = "file:///" + cleanedPath.TrimStart('/');
+                //}
                 var createHelper = workbook.GetCreationHelper();
+                string file = "file:///" + fileinfo.FullName;
                 // 单元格显示文字，建议不要直接放长路径
                 IHyperlink link2 = createHelper.CreateHyperlink(HyperlinkType.File);
-                Uri uri = new Uri(cleanedPath, UriKind.Absolute);
-                link2.Address = uri.AbsoluteUri;
+
+                link2.Address = "file:///" + fileinfo.FullName;
                 // ------------------
-                cell.SetCellValue(uri.AbsolutePath);
+                cell.SetCellValue(file);
                 cell.Hyperlink = link2;
 
                 // 设置超链接样式（可选：蓝色字体加下划线）
@@ -370,7 +523,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         }
 
 
-      
+
 
 
 

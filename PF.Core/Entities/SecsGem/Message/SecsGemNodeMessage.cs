@@ -185,6 +185,7 @@ namespace PF.Core.Entities.SecsGem.Message
                         // �����short��ת��Ϊlong
                         byte[] i8 = BitConverter.GetBytes((long)shortVal);
                         DataType = DataType.I8;
+                        Array.Reverse(i8);
                         Data = i8;
                         Length = 8;
                         TypedValue = (long)shortVal;
@@ -217,6 +218,7 @@ namespace PF.Core.Entities.SecsGem.Message
                     {
                         byte[] i2 = BitConverter.GetBytes(iI2);
                         DataType = DataType.I2;  // ������Ӧ����I2������U2
+                        Array.Reverse(i2 );
                         Data = i2;
                         Length = 2;
                         TypedValue = iI2;
@@ -224,10 +226,12 @@ namespace PF.Core.Entities.SecsGem.Message
                     break;
 
                 case DataType.I4:
-                    if (_value is int ii4)
+                    var aa=_value.GetType();
+                    if (_value is Int64 ii4)
                     {
                         byte[] i4 = BitConverter.GetBytes(ii4);
                         DataType = DataType.I4;
+                        Array.Reverse(i4 );
                         Data = i4;
                         Length = 4;
                         TypedValue = ii4;  // ������Ӧ����intֵ���������ֽ�����
@@ -261,6 +265,7 @@ namespace PF.Core.Entities.SecsGem.Message
                     {
                         byte[] u8 = BitConverter.GetBytes(uU8);
                         DataType = DataType.U8;
+                        Array.Reverse(u8);
                         Data = u8;
                         Length = 8;
                         TypedValue = uU8;
@@ -291,7 +296,8 @@ namespace PF.Core.Entities.SecsGem.Message
                 case DataType.U2:
                     byte[] u2 = BitConverter.GetBytes(Convert.ToUInt16(_value));
                     DataType = DataType.U2;
-                    Data = u2;
+                    Array.Reverse(u2);
+                    Data = u2; 
                     Length = 2;
                     TypedValue = Convert.ToUInt16(_value);
 
@@ -302,6 +308,7 @@ namespace PF.Core.Entities.SecsGem.Message
                     {
                         byte[] u4 = BitConverter.GetBytes(uU4);
                         DataType = DataType.U4;
+                        Array.Reverse(u4);
                         Data = u4;
                         Length = 4;
                         TypedValue = uU4;

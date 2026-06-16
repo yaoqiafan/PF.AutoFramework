@@ -1,4 +1,6 @@
-﻿using PF.Core.Events;
+﻿using PF.Core.Constants;
+using PF.Core.Events;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
@@ -21,6 +23,7 @@ namespace PF.Services.Hardware
         private readonly IHardwareManagerService _hardwareManager;
         private readonly IParamService _paramService;
         private readonly ILogService _logger;
+        private readonly IAlarmService _alarmService;
 
         private IIOController _ioCard;
 
@@ -35,6 +38,11 @@ namespace PF.Services.Hardware
         private CancellationTokenSource _safetyCts;
         private Task _safetyTask;
 
+        // 连续读取失败自警计数器 + 阈值
+        private int _consecutiveSafetyReadFails;
+        private int _consecutiveStandardReadFails;
+        private const int MonitorFailThreshold = 5;
+
         /// <summary>
         /// HardwareInputMonitor 监控器
         /// </summary>
@@ -43,13 +51,15 @@ namespace PF.Services.Hardware
             HardwareInputEventBus eventBus,
             IHardwareManagerService hardwareManager,
             IParamService paramService,
-            ILogService logger)
+            ILogService logger,
+            IAlarmService alarmService)
         {
             _config = config;
             _eventBus = eventBus;
             _hardwareManager = hardwareManager;
             _paramService = paramService;
             _logger = logger;
+            _alarmService = alarmService;
 
             _standardInputs = _config.MonitoredInputs
                 .Where(c => c.ScanGroup == InputScanGroup.Standard)
@@ -188,6 +198,10 @@ namespace PF.Services.Hardware
                 _safetyCts = null;
                 _safetyTask = null;
             }
+
+            // 重置所有安全门触发标志，防止跨生命周期状态泄漏
+            foreach (var state in _safetyInputs)
+                state.WasTriggeredWhileEnabled = false;
         }
 
         // ==========================================
@@ -227,12 +241,21 @@ namespace PF.Services.Hardware
                     foreach (var state in _standardInputs)
                         await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
 
+                    // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
+                    int prev = Interlocked.Exchange(ref _consecutiveStandardReadFails, 0);
+                    if (prev >= MonitorFailThreshold)
+                        _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+
                     await Task.Delay(30, token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
                 {
                     _logger.Error($"【硬件输入监控/Standard】扫描异常：{ex.Message}");
+                    int fails = Interlocked.Increment(ref _consecutiveStandardReadFails);
+                    if (fails == MonitorFailThreshold)
+                        _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
+                            $"Standard 监控 IO 连续读取失败 {fails} 次，操作面板检测可能已失效");
                     await Task.Delay(1000, token).ConfigureAwait(false);
                 }
             }
@@ -256,12 +279,21 @@ namespace PF.Services.Hardware
                     foreach (var state in _safetyInputs)
                         await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
 
+                    // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
+                    int prev = Interlocked.Exchange(ref _consecutiveSafetyReadFails, 0);
+                    if (prev >= MonitorFailThreshold)
+                        _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+
                     await Task.Delay(10, token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
                 {
                     _logger.Error($"【硬件输入监控/Safety】扫描异常：{ex.Message}");
+                    int fails = Interlocked.Increment(ref _consecutiveSafetyReadFails);
+                    if (fails == MonitorFailThreshold)
+                        _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
+                            $"Safety 监控 IO 连续读取失败 {fails} 次，安全门检测可能已失效");
                     await Task.Delay(1000, token).ConfigureAwait(false);
                 }
             }

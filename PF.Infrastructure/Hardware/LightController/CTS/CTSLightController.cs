@@ -148,9 +148,10 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         {
             if (!IsSimulated)
             {
-                if (controllerHandle <= 0 && !HasAlarm)
-                    RaiseAlarm(AlarmCodes.Hardware.LightControllerError,
-                        $"康视达光源控制器句柄无效，串口[{ComName}]通讯中断");
+                // 连接类报警：串口句柄失效→报警，恢复→防抖后自动消除
+                bool faulted = controllerHandle <= 0;
+                UpdateAutoClearableHealth(faulted, AlarmCodes.Hardware.LightControllerError,
+                    $"康视达光源控制器句柄无效，串口[{ComName}]通讯中断");
             }
                 
             return Task.CompletedTask;

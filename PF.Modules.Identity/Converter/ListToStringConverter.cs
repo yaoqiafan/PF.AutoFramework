@@ -14,7 +14,7 @@ namespace PF.Modules.Identity.Converter
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is IEnumerable<string> list)
-                return"\n"+ string.Join("，\n\n", list.Select(PermissionHelper.GetViewDisplayName))+"\n";
+                return  string.Join("，", list.Select(PermissionHelper.GetViewDisplayName));
 
             return string.Empty;
         }

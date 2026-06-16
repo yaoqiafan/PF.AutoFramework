@@ -219,6 +219,16 @@ namespace PF.Core.Constants
             /// </summary>
             public const string CascadeAlarm = "SYS_CASCADE_INTERNAL";
 
+            /// <summary>
+            /// 报警触发时上游未提供错误码的兜底占位码。
+            /// 出现即表示某调用方触发报警时未传 errorCode，已降级处理以防报警被静默吞没。
+            /// </summary>
+            [AlarmInfo("系统异常", "报警触发时未提供错误码（已兜底）", AlarmSeverity.Error,
+                "1. 此报警表示某处触发报警时未携带错误码，已被框架兜底;\n" +
+                "2. 记录复现步骤并联系开发人员排查触发点;\n" +
+                "3. 复位后即可恢复;")]
+            public const string UndefinedAlarm = "SYS_UNDEFINED_001";
+
             /// <summary>调试页面手动触发报警</summary>
             [AlarmInfo("调试测试", "调试页面手动触发的模拟报警", AlarmSeverity.Warning,
                 "此为调试测试报警，复位后即可恢复;")]
@@ -270,6 +280,15 @@ namespace PF.Core.Constants
                 "5. 确认门锁信号正常后重新操作;",
                 "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen2 = "HW_SAFE_001_2";
+
+            /// <summary>安全监控IO连续读取失败，安全门检测可能已失效</summary>
+            [AlarmInfo("安全防护", "安全监控IO连续读取失败，安全门检测可能已失效", AlarmSeverity.Fatal,
+                "1. 立即检查 IO 模块连接状态;\n" +
+                "2. 检查运动控制卡通讯是否正常;\n" +
+                "3. 若无法恢复请立即停止设备;\n" +
+                "4. 联系维护人员检查硬件;",
+                "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
+            public const string MonitorFailure = "HW_SAFE_002";
         }
     }
 

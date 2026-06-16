@@ -14,6 +14,7 @@ namespace PF.WorkStation.AutoOcr.UI.UserControls
     /// </summary>
     public partial class WaferSlotDetailView : UserControl
     {
+        /// <summary>Initializes a new instance.</summary>
         public WaferSlotDetailView()
         {
             InitializeComponent();

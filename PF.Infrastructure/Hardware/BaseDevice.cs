@@ -23,6 +23,9 @@ namespace PF.Infrastructure.Hardware
         private bool _isDisposed;
         private volatile bool _suppressHealthMonitoring = false;
 
+        // 自动消警防抖：连续检测到"信号正常"的次数，达到阈值才撤销状态型报警，防止信号抖动反复弹消
+        private int _autoClearStreak;
+
         // 健康监控后台任务
         private CancellationTokenSource? _healthMonitorCts;
         private Task? _healthMonitorTask;
@@ -138,6 +141,12 @@ namespace PF.Infrastructure.Hardware
         /// 模拟模式下自动扩大为 5 倍（避免几十个模拟设备空转浪费 CPU）。
         /// </summary>
         protected virtual int HealthCheckIntervalMs => 1000;
+
+        /// <summary>
+        /// 自动消警防抖阈值：连续多少次健康检查都检测到信号正常，才自动撤销状态型报警，
+        /// 防止信号在临界点抖动导致报警反复弹出/消失。默认 3 次。
+        /// </summary>
+        protected int AutoClearHealthyThreshold { get; set; } = 3;
 
         /// <summary>
         /// 构造函数（强制要求子类提供基本信息和日志服务）
@@ -435,6 +444,50 @@ namespace PF.Infrastructure.Hardware
         public void SimulateAlarm(string errorCode, string message)
         {
             RaiseAlarm(errorCode, message);
+        }
+
+        /// <summary>
+        /// 撤销本设备报警（与 <see cref="RaiseAlarm"/> 对称）。
+        /// 供子类在健康监控中检测到"状态型故障信号已恢复"时调用。
+        /// 置 <see cref="HasAlarm"/>=false 会自动触发 <see cref="HardwareAlarmAutoCleared"/> 冒泡链，
+        /// 由上层模组聚合判断后清除模组/工站/活跃列表的报警显示。
+        /// <para>注意：仅撤销报警显示，不代表工站可续跑——状态机仍需操作员复位。</para>
+        /// </summary>
+        protected void ClearAlarm()
+        {
+            if (!HasAlarm) return;
+            _logger?.Info($"[{DeviceName}] 故障信号已恢复，自动撤销硬件报警。");
+            HasAlarm = false;
+        }
+
+        /// <summary>
+        /// 连接/可用性类状态型报警的统一健康判定 + 自动消除（带防抖）。
+        /// <list type="bullet">
+        ///   <item><paramref name="faulted"/>=true 且未报警 → 触发报警；</item>
+        ///   <item><paramref name="faulted"/>=false 且已报警 → 连续 <see cref="AutoClearHealthyThreshold"/> 次正常后自动撤销；</item>
+        /// </list>
+        /// 仅适用于信号会自行恢复的连接类报警（断连→重连）。
+        /// 锁存型（伺服 ALM）与事件型（运动超时）请勿使用本方法，应保持只触发、由复位清除。
+        /// </summary>
+        protected void UpdateAutoClearableHealth(bool faulted, string errorCode, string message)
+        {
+            if (faulted)
+            {
+                _autoClearStreak = 0;
+                if (!HasAlarm) RaiseAlarm(errorCode, message);
+            }
+            else if (HasAlarm)
+            {
+                if (++_autoClearStreak >= AutoClearHealthyThreshold)
+                {
+                    _autoClearStreak = 0;
+                    ClearAlarm();
+                }
+            }
+            else
+            {
+                _autoClearStreak = 0;
+            }
         }
 
         #endregion

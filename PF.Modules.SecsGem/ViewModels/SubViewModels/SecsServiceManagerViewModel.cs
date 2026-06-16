@@ -1,5 +1,7 @@
+using Microsoft.Win32;
 using PF.CommonTools.ServeTool;
 using PF.UI.Infrastructure.PrismBase;
+using System.IO;
 using System.Runtime.Versioning;
 using System.ServiceProcess;
 using System.Windows;
@@ -11,6 +13,9 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     /// </summary>
     public class SecsServiceManagerViewModel : ViewModelBase
     {
+        private const string DefaultServiceName = "SecsGemService";
+        private const string DefaultServiceExeName = "PF.SecsGem.Service.exe";
+
         private readonly SecsLogViewModel _log;
 
         /// <summary>初始化实例</summary>
@@ -18,10 +23,16 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             _log = log;
 
+            _serviceNameForManagement = DefaultServiceName;
+            _serviceExePath           = ResolveServiceExePath();
+
             RefreshServiceStatusCommand = new DelegateCommand(ExecuteRefreshServiceStatus);
             InstallServiceCommand       = new DelegateCommand(ExecuteInstallService);
             UninstallServiceCommand     = new DelegateCommand(async () => await ExecuteUninstallServiceAsync());
             StartServiceCommand         = new DelegateCommand(ExecuteStartService);
+
+            if (OperatingSystem.IsWindows())
+                ExecuteRefreshServiceStatus();
         }
 
         // ── 服务状态属性 ───────────────────────────────────────────────────────
@@ -42,7 +53,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             set => SetProperty(ref _serviceStatusColor, value);
         }
 
-        private string _serviceExePath = string.Empty;
+        private string _serviceExePath;
         /// <summary>获取或设置服务可执行文件路径</summary>
         public string ServiceExePath
         {
@@ -50,7 +61,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             set => SetProperty(ref _serviceExePath, value);
         }
 
-        private string _serviceNameForManagement = "MyDotNet8Service";
+        private string _serviceNameForManagement;
         /// <summary>获取或设置服务管理名称</summary>
         public string ServiceNameForManagement
         {
@@ -153,6 +164,25 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             bool ok = ServerMangerTool.StartWindowsService(ServiceNameForManagement);
             _log.Append(null, ok ? $"服务 [{ServiceNameForManagement}] 已启动" : $"服务 [{ServiceNameForManagement}] 启动失败", isSystem: true);
             ExecuteRefreshServiceStatus();
+        }
+
+        // ── 路径解析 ───────────────────────────────────────────────────────────
+
+        private static string ResolveServiceExePath()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\PowerFocus\PFAutoFramework");
+                    if (key?.GetValue("InstallPath") is string installPath && !string.IsNullOrEmpty(installPath))
+                        return Path.Combine(installPath, "SecsGemService", DefaultServiceExeName);
+                }
+                catch { }
+            }
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "PowerFocus", "PFAutoFramework", "SecsGemService", DefaultServiceExeName);
         }
     }
 }

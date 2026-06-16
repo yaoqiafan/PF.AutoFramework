@@ -12,6 +12,8 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
+		<Version>1.0.1</Version>
+		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
 		<Description>通用数据访问层：EF Core DbContext 工厂、参数/生产数据实体、泛型仓储</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

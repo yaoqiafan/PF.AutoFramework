@@ -65,9 +65,10 @@ namespace PF.Infrastructure.Hardware.IO
         /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
-            if ((ParentCard == null || !ParentCard.IsConnected) && !HasAlarm)
-                RaiseAlarm(AlarmCodes.Hardware.IoModuleError,
-                    "IO 模块所在控制卡已断开，EtherCAT IO 不可用");
+            // 连接类报警：父卡断开→报警，父卡重连→防抖后自动消除
+            bool faulted = ParentCard == null || !ParentCard.IsConnected;
+            UpdateAutoClearableHealth(faulted, AlarmCodes.Hardware.IoModuleError,
+                "IO 模块所在控制卡已断开，EtherCAT IO 不可用");
             return Task.CompletedTask;
         }
     }

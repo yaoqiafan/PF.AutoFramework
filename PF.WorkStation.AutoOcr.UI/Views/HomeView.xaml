@@ -166,14 +166,18 @@
                                     Text=" 程式名称:" />
                                 <TextBlock Grid.Column="5" Text="{Binding Station1RecipeName}" />
 
-                                <Button
+                                <StackPanel
                                     Grid.Column="6"
-                                    Margin="0,0,50,0"
+                                    Margin="0,0,0,0"
                                     HorizontalAlignment="Right"
-                                    Command="{Binding Station1ChangeLotCommand}"
-                                    Content="切换批次"
-                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                    Style="{DynamicResource ButtonPrimary}" />
+                                    Orientation="Horizontal">
+
+                                    <Button
+                                        Command="{Binding Station1ChangeLotCommand}"
+                                        Content="切换批次"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                </StackPanel>
                             </Grid>
 
                             <Grid Grid.Row="1">
@@ -182,11 +186,13 @@
                                     <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
 
-                                <usercontrol:ZoomableImageViewer
+                                <pf:ImageViewer
                                     Grid.Column="0"
                                     Margin="5"
-                                    AnnotationContent="{Binding Station1CurrentMachineDetection}"
-                                    Source="{Binding Station1CurrentMachineDetection.ImagePath}" />
+                                    pf:TipElement.Content="{Binding Station1CurrentMachineDetection}"
+                                    pf:TipElement.Placement="LeftTop"
+                                    pf:TipElement.Visibility="Visible"
+                                    Uri="{Binding Station1CurrentMachineDetection.ImagePath}" />
 
                                 <!--  工位1晶圆盒槽位可视化：第1层在底部，第13层在顶部  -->
                                 <Border
@@ -207,10 +213,10 @@
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    IsEnabled="{Binding IsClickable}"
-                                                    Style="{StaticResource SlotButtonStyle}"
                                                     Command="{Binding DataContext.Station1ViewSlotDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
+                                                    IsEnabled="{Binding IsClickable}"
+                                                    Style="{StaticResource SlotButtonStyle}"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
@@ -328,7 +334,10 @@
 
                     <!--  工位1 OCR比对异常遮罩层  -->
                     <Border Background="#CC1A1A2E" Visibility="{Binding Station1OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel
+                            Width="420"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -608,14 +617,17 @@
                                     Text=" 程式名称:" />
                                 <TextBlock Grid.Column="5" Text="{Binding Station2RecipeName}" />
 
-                                <Button
+                                <StackPanel
                                     Grid.Column="6"
-                                    Margin="0,0,50,0"
+                                    Margin="0,0,0,0"
                                     HorizontalAlignment="Right"
-                                    Command="{Binding Station2ChangeLotCommand}"
-                                    Content="切换批次"
-                                    FontSize="{DynamicResource FontSize.H3.Subtitle}"
-                                    Style="{DynamicResource ButtonPrimary}" />
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Command="{Binding Station2ChangeLotCommand}"
+                                        Content="切换批次"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                </StackPanel>
                             </Grid>
 
                             <Grid Grid.Row="1">
@@ -624,11 +636,13 @@
                                     <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
 
-                                <usercontrol:ZoomableImageViewer
+                                <pf:ImageViewer
                                     Grid.Column="0"
                                     Margin="5"
-                                    AnnotationContent="{Binding Station2CurrentMachineDetection}"
-                                    Source="{Binding Station2CurrentMachineDetection.ImagePath}" />
+                                    pf:TipElement.Content="{Binding Station2CurrentMachineDetection}"
+                                    pf:TipElement.Placement="LeftTop"
+                                    pf:TipElement.Visibility="Visible"
+                                    Uri="{Binding Station2CurrentMachineDetection.ImagePath}" />
 
                                 <!--  工位2晶圆盒槽位可视化：第1层在底部，第13层在顶部  -->
                                 <Border
@@ -649,10 +663,10 @@
                                                     Margin="2,1"
                                                     Background="{Binding Status, Converter={StaticResource SlotStatusConverter}}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
-                                                    IsEnabled="{Binding IsClickable}"
-                                                    Style="{StaticResource SlotButtonStyle}"
                                                     Command="{Binding DataContext.Station2ViewSlotDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
+                                                    IsEnabled="{Binding IsClickable}"
+                                                    Style="{StaticResource SlotButtonStyle}"
                                                     ToolTip="{Binding DisplayIndex, StringFormat=第 {0} 层}">
                                                     <TextBlock
                                                         HorizontalAlignment="Center"
@@ -771,7 +785,10 @@
 
                     <!--  工位2 OCR比对异常遮罩层  -->
                     <Border Background="#CC1A1A2E" Visibility="{Binding Station2OcrMismatchVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel
+                            Width="420"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 FontSize="22"
@@ -1008,6 +1025,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <StackPanel
@@ -1130,6 +1148,22 @@
                                     Tag="{StaticResource DangerBrush}"
                                     Template="{StaticResource HoverButtonTemplate}" />
                             </pf:ButtonGroup>
+                        </Grid>
+
+                        <Grid Grid.Row="5">
+                            <pf:Badge
+                                ShowBadge="{Binding HasPendingBatches}"
+                                Status="Text"
+                                Style="{DynamicResource BadgeDanger}"
+                                Value="{Binding PendingBatchCount}">
+                                <Button
+                                    MinHeight="80"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding ManagePendingCommand}"
+                                    Content="批次管理"
+                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </pf:Badge>
                         </Grid>
 
                     </Grid>

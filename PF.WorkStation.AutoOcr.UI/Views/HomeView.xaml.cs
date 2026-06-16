@@ -12,6 +12,7 @@ namespace PF.WorkStation.AutoOcr.UI.Views
       )]
     public partial class HomeView : UserControl
     {
+        /// <summary>Initializes a new instance.</summary>
         public HomeView()
         {
             InitializeComponent();

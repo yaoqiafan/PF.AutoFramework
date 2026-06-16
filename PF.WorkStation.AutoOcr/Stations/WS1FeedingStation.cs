@@ -201,7 +201,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 待处理的层索引集合，记录还需要进行上下料作业的层。
         /// </summary>
-        public List<int> LayersToProcess { get; set; } = new();
+        public List<int> LayersToProcess { get; set; } = [];
 
         /// <summary>
         /// 当前料盒/花篮（Cassette/Magazine）的总层数。
@@ -239,9 +239,9 @@ namespace PF.WorkStation.AutoOcr.Stations
         // ── 跨步序流转的缓存字段 ──
         private OCRRecipeParam? _cachedRecipe;
         private E_WafeSize _detectedWaferSize;
-        private Dictionary<int, List<double>> _rawMappingData = new();
+        private Dictionary<int, List<double>> _rawMappingData = [];
         private int _totalLayerCount;
-        private List<int> _layersToProcess = new();
+        private List<int> _layersToProcess = [];
         private int _currentLayerIndex;
 
         #endregion
@@ -250,9 +250,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// <summary>
         /// 构造
         /// </summary>
-        /// <param name="containerProvider"></param>
-        /// <param name="sync"></param>
-        /// <param name="logger"></param>
+        /// <param name="containerProvider">DI 容器，用于延迟解析机构与服务依赖。</param>
+        /// <param name="sync">跨工站信号量同步服务。</param>
+        /// <param name="logger">日志服务。</param>
+        /// <param name="towerLight">三色灯控制服务，用于指示工站运行状态。</param>
+        /// <param name="eventAggregator">Prism 事件聚合器，用于发布/订阅跨模块事件。</param>
         public WS1FeedingStation(IContainerProvider containerProvider, IStationSyncService sync, ILogService logger,
             ITowerLightService towerLight, IEventAggregator eventAggregator)
             // 调用带 TStep 泛型的基类构造函数，并传入初始步序
@@ -297,8 +299,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                     case Station1FeedingStep.Z轴扫描寻层:
                     case Station1FeedingStep.算法过滤层数:
                         _logger.Info($"[{StationName}] 重新初始化寻层状态");
-                        _rawMappingData = new();
-                        _layersToProcess = new();
+                        _rawMappingData = [];
+                        _layersToProcess = [];
                         _currentLayerIndex = 0;
                         break;
 
@@ -318,7 +320,7 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 _logger.Error($"[{StationName}] 执行断点续跑时发生异常: {ex.Message}");
                 _currentStep = Station1FeedingStep.等待按下工位1启动按钮;
-                Fire(MachineTrigger.Error);
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.ResumeException, $"断点续跑异常: {ex.Message}");
                 throw;
             }
         }
@@ -351,7 +353,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 try
                 {
                     _cachedRecipe = _dataModule.Station1ReciepParam;
-                    if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize))
+                    if (!await _feedingModule.SwitchProductionStateAsync(_cachedRecipe.WafeSize, token))
                     {
                         throw new Exception("物料状态切换失败");
                     }
@@ -384,7 +386,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                 catch (Exception ex)
                 {
                     _logger.Error($"[{StationName}] 初始化异常: {ex.Message}");
-                    Fire(MachineTrigger.Error);
+                    TriggerAlarm(AlarmCodesExtensions.WS1Feeding.InitException, $"初始化异常: {ex.Message}");
                     throw;
                 }
 
@@ -415,9 +417,9 @@ namespace PF.WorkStation.AutoOcr.Stations
                 _logger.Warn($"[{StationName}] 初始化已被外部强行取消。");
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
-                Fire(MachineTrigger.Error);
+                TriggerAlarm(AlarmCodesExtensions.WS1Feeding.InitException, $"初始化异常: {ex.Message}");
                 throw;
             }
         }
@@ -556,11 +558,11 @@ namespace PF.WorkStation.AutoOcr.Stations
         /// </summary>
         private void RestoreStateFromMemory()
         {
-            _layersToProcess = new List<int>(MemoryParam.LayersToProcess);
+            _layersToProcess = [.. MemoryParam.LayersToProcess];
             _currentLayerIndex = MemoryParam.CurrentLayerIndex;
             _totalLayerCount = MemoryParam.TotalLayerCount;
             _detectedWaferSize = MemoryParam.DetectedWaferSize;
-            _rawMappingData = new(); // 扫描数据已用于验证，此处清空
+            _rawMappingData = []; // 扫描数据已用于验证，此处清空
         }
 
         /// <summary>
@@ -661,6 +663,15 @@ namespace PF.WorkStation.AutoOcr.Stations
             if (_feedingModule != null)
                 await _feedingModule.StopAsync().ConfigureAwait(false);
         }
+
+        /// <summary>物理暂停回调：仅软暂停（保留伺服使能），安全门关闭后可立即 Start 恢复</summary>
+        protected override async Task OnPhysicalPauseAsync()
+        {
+            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
+            if (_feedingModule != null)
+                await _feedingModule.StopAsync().ConfigureAwait(false);
+        }
+
         /// <summary>
         /// 获取模组列表
         /// </summary>
@@ -717,7 +728,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             // 等待批次切换期间允许操作员开门操作，禁用安全门检测
                             _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
 
-                            await Task.Delay(500);
+                            await Task.Delay(500, token);
                             // 阻塞等待外部信号触发
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位1启动按钮按下), token, scope: E_WorkStation.工位1上下料工站.ToString()).ConfigureAwait(false);
 
@@ -883,8 +894,8 @@ namespace PF.WorkStation.AutoOcr.Stations
                                 if (layerMode == E_LayerProcessMode.指定层)
                                 {
                                     var specifiedLayers = _dataModule.GetSpecifiedLayers(E_WorkSpace.工位1);
-                                    bool setsMatch = allDetectedLayers.Count == specifiedLayers.Count &&
-                                                     allDetectedLayers.All(k => specifiedLayers.Contains(k));
+                                    bool setsMatch = allDetectedLayers.Count >= specifiedLayers.Count &&
+                                                     specifiedLayers.All(k => allDetectedLayers.Contains(k));
                                     _logger.Info($"[{StationName}] 指定层模式 — 指定: [{string.Join(",", specifiedLayers.OrderBy(k => k).Select(k => k + 1))}]，" +
                                                  $"实际: [{string.Join(",", allDetectedLayers.Select(k => k + 1))}]，" +
                                                  $"匹配: {setsMatch}");
@@ -894,7 +905,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                         RouteToError(Station1FeedingStep.指定层与实际层不匹配, Station1FeedingStep.等待按下工位1启动按钮);
                                         break;
                                     }
-                                    _layersToProcess = allDetectedLayers;
+                                    _layersToProcess = specifiedLayers;
                                 }
                                 else
                                 {
@@ -916,7 +927,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                                     _logger.Info($"[{StationName}] 过滤完成，共处理 {_totalLayerCount} 层。");
                                     MemoryParam.IsInProgress = true;
                                     MemoryParam.CurrentLayerIndex = 0;
-                                    MemoryParam.LayersToProcess = new List<int>(_layersToProcess);
+                                    MemoryParam.LayersToProcess = [.. _layersToProcess];
                                     MemoryParam.TotalLayerCount = _totalLayerCount;
                                     MemoryParam.DetectedWaferSize = _detectedWaferSize;
                                     MemoryParam.PersistedStep = (int)Station1FeedingStep.判断Z轴是否具备运动条件_取料定位;
@@ -994,7 +1005,7 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                             if (await _feedingModule.SetThrustWasherAsync(true, token))
                             {
-                                await Task.Delay(500);
+                                await Task.Delay(500, token);
                                 // 等待拉料工站反馈 Y 轴已拉出至安全位
                                 await _sync.WaitAsync(nameof(WorkstationSignals.工位1拉料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
 
@@ -1017,7 +1028,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             CurrentStepDescription = "阻塞等待物料回退完成...";
                             if (await _feedingModule.SetThrustWasherAsync(true, token))
                             {
-                                await Task.Delay(500);
+                                await Task.Delay(500, token);
                                 // 等待拉料工站反馈 Y 轴已拉出至安全位
                                 // 等待拉料工站反馈 Y 轴已完全退回
                                 await _sync.WaitAsync(nameof(WorkstationSignals.工位1退料完成), token, scope: E_WorkStation.工位1拉料工站.ToString()).ConfigureAwait(false);
@@ -1063,7 +1074,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                             _currentStep = Station1FeedingStep.判断X轴是否具备运动条件_结束;
                             MemoryParam.IsInProgress = false;
                             MemoryParam.CurrentLayerIndex = 0;
-                            MemoryParam.LayersToProcess = new();
+                            MemoryParam.LayersToProcess = [];
                             MemoryParam.TotalLayerCount = 0;
                             MemoryParam.PersistedStep = (int)Station1FeedingStep.等待按下工位1启动按钮;
                             FlushMemory();
@@ -1135,7 +1146,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                         case Station1FeedingStep.生产完毕:
                             CurrentStepDescription = "本批次生产完毕，清理缓存数据...";
                             _cachedRecipe = null;
-                            _layersToProcess = new();
+                            _layersToProcess = [];
                             _currentLayerIndex = 0;
                             _totalLayerCount = 0;
 
