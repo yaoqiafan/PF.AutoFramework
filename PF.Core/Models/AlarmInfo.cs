@@ -14,8 +14,11 @@ namespace PF.Core.Models
         /// <summary>报警分类</summary>
         public string Category { get; init; } = string.Empty;
 
-        /// <summary>报警描述文本</summary>
+        /// <summary>报警描述文本（中文）</summary>
         public string Message { get; init; } = string.Empty;
+
+        /// <summary>报警描述文本（英文，SECS/GEM 上传用）</summary>
+        public string MessageEn { get; init; } = string.Empty;
 
         /// <summary>严重程度</summary>
         public AlarmSeverity Severity { get; init; }
@@ -30,5 +33,16 @@ namespace PF.Core.Models
         /// 是否来自数据库扩展（true = 数据库定义，可覆盖代码内置；false = 代码内置）
         /// </summary>
         public bool IsFromDatabase { get; init; }
+
+        /// <summary>
+        /// 报警信息ID(用于上传SECSGEM)
+        /// </summary>
+        public int MessageID { get; init; }
+
+        /// <summary>
+        /// 报警信息英文文本(用于上传SECSGEM)，最长40 位。
+        /// </summary>
+        public string MessageIDHex { get; init; } = string.Empty;
+
     }
 }

@@ -32,5 +32,8 @@ namespace PF.Data.Entity.Alarm
 
         /// <summary>是否仍处于活跃状态</summary>
         public bool IsActive { get; set; }
+
+
+        
     }
 }
