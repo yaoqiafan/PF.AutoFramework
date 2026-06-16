@@ -22,6 +22,8 @@
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
 	  <!-- 工具库（非 Prism 模块）：原经由 PF.Modules.Parameter 传递，模块解耦后必须直接引用 -->
 	  <ProjectReference Include="..\PF.CommonTools\PF.CommonTools.csproj" />
+	  <!-- 视觉服务层：Shell 编译期需要 AddVisionServices 扩展方法 -->
+	  <ProjectReference Include="..\PF.Vision.Halcon\PF.Vision.Halcon.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 	  <!--
@@ -55,6 +57,10 @@
 	  <ProjectReference Include="..\PF.WorkStation.AutoOcr.UI\PF.WorkStation.AutoOcr.UI.csproj">
 	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 	  </ProjectReference>
+	  <!-- Halcon 视觉调试模块：运行时动态加载，编译期解耦 -->
+	  <ProjectReference Include="..\PF.Modules.Halcon\PF.Modules.Halcon.csproj">
+	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+	  </ProjectReference>
 	</ItemGroup>
 	<ItemGroup>
 	  <Reference Include="PF.UI.Controls">
@@ -82,7 +88,7 @@
     </PropertyGroup>
     <MakeDir Directories="$(_ModulesPublishDir)" />
     <ItemGroup>
-      <_ModuleDll Include="&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Alarm\bin\$(Configuration)\net8.0-windows\PF.Modules.Alarm.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Debug\bin\$(Configuration)\net8.0-windows\PF.Modules.Debug.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Identity\bin\$(Configuration)\net8.0-windows\PF.Modules.Identity.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Logging\bin\$(Configuration)\net8.0-windows\PF.Modules.Logging.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Parameter\bin\$(Configuration)\net8.0-windows\PF.Modules.Parameter.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.ProductionRecord\bin\$(Configuration)\net8.0-windows\PF.Modules.Production.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.SecsGem\bin\$(Configuration)\net8.0-windows\PF.Modules.SecsGem.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.WorkStation.AutoOcr.UI\bin\$(Configuration)\net8.0-windows\PF.WorkStation.AutoOcr.UI.dll&#xD;&#xA;      " />
+      <_ModuleDll Include="&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Alarm\bin\$(Configuration)\net8.0-windows\PF.Modules.Alarm.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Debug\bin\$(Configuration)\net8.0-windows\PF.Modules.Debug.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Identity\bin\$(Configuration)\net8.0-windows\PF.Modules.Identity.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Logging\bin\$(Configuration)\net8.0-windows\PF.Modules.Logging.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Parameter\bin\$(Configuration)\net8.0-windows\PF.Modules.Parameter.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.ProductionRecord\bin\$(Configuration)\net8.0-windows\PF.Modules.Production.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.SecsGem\bin\$(Configuration)\net8.0-windows\PF.Modules.SecsGem.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.WorkStation.AutoOcr.UI\bin\$(Configuration)\net8.0-windows\PF.WorkStation.AutoOcr.UI.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Halcon\bin\$(Configuration)\net8.0-windows\PF.Modules.Halcon.dll&#xD;&#xA;      " />
     </ItemGroup>
     <Copy SourceFiles="@(_ModuleDll)" DestinationFolder="$(_ModulesPublishDir)" SkipUnchangedFiles="true" />
     <Message Text="[CopyModulesToPublishDir] 已复制 @(_ModuleDll-&gt;Count()) 个模块 DLL 到 $(_ModulesPublishDir)" Importance="High" />

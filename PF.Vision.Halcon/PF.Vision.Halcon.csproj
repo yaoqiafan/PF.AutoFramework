@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Description>Halcon HDevEngine 视觉服务（Layer 04，零 Prism.Wpf / WPF 依赖）</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Prism.Core" />
+  </ItemGroup>
+
+  <!-- 通配引用 DLL\HALCON\ 目录下所有托管 DLL -->
+  <!-- 注意：必须用 Target 内批处理，直接在 ItemGroup 中用 transform 会丢失路径元数据 -->
+  <ItemGroup>
+    <_HalconDll Include="$(HalconDllDir)*.dll" Exclude="$(HalconDllDir)*xl.dll" />
+  </ItemGroup>
+
+  <Target Name="AddHalconReferences_Vision" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Include="%(_HalconDll.Filename)">
+        <HintPath>%(_HalconDll.FullPath)</HintPath>
+        <Private>true</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
+  </ItemGroup>
+
+</Project>

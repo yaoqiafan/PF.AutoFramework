@@ -65,6 +65,7 @@ using PF.Workstation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
+using PF.Vision.Halcon.Extensions;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Diagnostics;
@@ -376,6 +377,9 @@ namespace PF.Application.Shell
 
             // 集中定时服务
             RegisterTimerService(containerRegistry);
+
+            // 视觉引擎服务
+            RegisterVisionServices(containerRegistry);
         }
 
         /// <summary>
@@ -765,6 +769,29 @@ namespace PF.Application.Shell
             catch (Exception ex)
             {
                 _dbLogger.Error("定时服务注册失败", ex);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region 视觉服务注册
+
+        /// <summary>
+        /// 注册 Halcon 视觉引擎服务（单例）。
+        /// procedurePath 指向 .hdev 算子文件目录，FileSystemWatcher 监听该目录热重载。
+        /// </summary>
+        private void RegisterVisionServices(IContainerRegistry containerRegistry)
+        {
+            try
+            {
+                var procedurePath = Path.Combine(ConstGlobalParam.ConfigPath, "VisionProcedures");
+                containerRegistry.AddVisionServices(procedurePath);
+                _dbLogger.Info("视觉引擎服务注册完成");
+            }
+            catch (Exception ex)
+            {
+                _dbLogger.Error("视觉引擎服务注册失败", ex);
                 throw;
             }
         }

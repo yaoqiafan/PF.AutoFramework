@@ -1,0 +1,43 @@
+<UserControl x:Class="PF.Modules.Halcon.Views.HalconDashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:local="clr-namespace:PF.Modules.Halcon"
+             prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧：过程列表 -->
+        <Border Grid.Column="0" BorderThickness="0,0,1,0"
+                BorderBrush="{DynamicResource BorderBrush}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
+                    <TextBlock Text="视觉过程" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <Button DockPanel.Dock="Right" Content="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HorizontalAlignment="Right" Padding="8,2"/>
+                </DockPanel>
+
+                <ListBox ItemsSource="{Binding AvailableProcedures}"
+                         SelectedItem="{Binding SelectedProcedure, Mode=TwoWay}"
+                         BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Padding="4,2"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- 右侧：内容区域，由 RegionManager 加载 ProcedureDebugView -->
+        <ContentControl Grid.Column="1"
+                        prism:RegionManager.RegionName="{x:Static local:HalconNavigationConstants+Regions.HalconContentRegion}"/>
+    </Grid>
+
+</UserControl>

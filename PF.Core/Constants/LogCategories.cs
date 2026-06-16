@@ -32,6 +32,10 @@ namespace PF.Core.Constants
 
         /// <summary>SecsGem日志分类</summary>
         public const string SecsGem = "SecsGem";
+
+        /// <summary>视觉日志分类</summary>
+        public const string Vision = "Vision";
+
         /// <summary>
         /// 获取所有内置分类
         /// </summary>
@@ -47,6 +51,7 @@ namespace PF.Core.Constants
                HaraWare,
                Recipe,
                SecsGem,
+               Vision,
             };
         }
     }

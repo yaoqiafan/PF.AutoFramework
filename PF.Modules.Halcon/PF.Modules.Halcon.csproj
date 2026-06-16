@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+
+  <PropertyGroup>
+    <IsModuleProject>true</IsModuleProject>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Description>Halcon 视觉调试 Prism 模块：过程列表导航面板 + HWindowControlWPF 图像查看器</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Prism.Wpf" />
+    <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+
+  <!-- 通配引用 DLL\HALCON\ 目录下所有托管 DLL（含 HWindowControlWPF） -->
+  <ItemGroup>
+    <_HalconDll Include="$(HalconDllDir)*.dll" Exclude="$(HalconDllDir)*xl.dll" />
+  </ItemGroup>
+
+  <Target Name="AddHalconReferences_Modules" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Include="%(_HalconDll.Filename)">
+        <HintPath>%(_HalconDll.FullPath)</HintPath>
+        <Private>true</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PF.Vision.Halcon\PF.Vision.Halcon.csproj" />
+    <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="PF.UI.Controls">
+      <HintPath>..\DLL\PF.UI.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="PF.UI.Resources">
+      <HintPath>..\DLL\PF.UI.Resources.dll</HintPath>
+    </Reference>
+    <Reference Include="PF.UI.Shared">
+      <HintPath>..\DLL\PF.UI.Shared.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
