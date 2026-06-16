@@ -388,6 +388,7 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<ProductionRecordModule>();
         }
 
+
         #endregion
 
         #region 日志服务注册
