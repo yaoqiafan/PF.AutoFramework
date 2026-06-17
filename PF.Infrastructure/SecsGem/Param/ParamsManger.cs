@@ -56,17 +56,16 @@ namespace PF.Infrastructure.SecsGem.Param
         {
             try
             {
-                bool res1, res2, res3;
+                bool res1, res2, res3, res4;
 
                 res1 = await LoadSystemConfiguration();
                 res2 = await LoadValidateConfiguration();
                 res3 = await LoadFormulaConfiguration();
+                res4 = await _commandManager.InitializeAsync((FormulaConfiguration)_params[ParamType.Formula]);
 
-                if (res1 & res2 /*& res3*/)
-                {
-                    return await _commandManager.InitializeAsync((FormulaConfiguration)_params[ParamType.Formula]);
-                }
-                return false;
+
+                return res1 & res2 & res4;
+
             }
             catch (Exception)
             {
@@ -317,11 +316,21 @@ namespace PF.Infrastructure.SecsGem.Param
         {
             try
             {
-                var manger1 = _secsGemDataBase.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
-                var incentiveCommands = new ConcurrentDictionary<string, SFCommand>((await manger1.GetAllAsync()).Select(t => t.GetSFCommandFormIncentiveEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
 
-                var manger2 = _secsGemDataBase.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
-                var responseCommands = new ConcurrentDictionary<string, SFCommand>((await manger2.GetAllAsync()).Select(t => t.GetSFCommandFormResponseEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
+                var incentiveCommands = new ConcurrentDictionary<string, SFCommand>();
+                var responseCommands = new ConcurrentDictionary<string, SFCommand>();
+                try
+                {
+                    var manger1 = _secsGemDataBase.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    incentiveCommands = new ConcurrentDictionary<string, SFCommand>((await manger1.GetAllAsync()).Select(t => t.GetSFCommandFormIncentiveEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
+
+                    var manger2 = _secsGemDataBase.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    responseCommands = new ConcurrentDictionary<string, SFCommand>((await manger2.GetAllAsync()).Select(t => t.GetSFCommandFormResponseEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
+                }
+                catch (Exception)
+                {
+                }
+
 
                 ((FormulaConfiguration)_params[ParamType.Formula]).IncentiveCommandDictionary = incentiveCommands;
                 ((FormulaConfiguration)_params[ParamType.Formula]).ResponseCommandDictionary = responseCommands;
