@@ -33,6 +33,7 @@ namespace PF.SecsGem.DataBase.Entities.Variable
         /// <summary>
         /// 初始化实例
         /// </summary>
+        [Required(AllowEmptyStrings = true )]
         public uint[] LinkVID { get; set; } = Array.Empty<uint>();
     }
 
@@ -60,6 +61,10 @@ namespace PF.SecsGem.DataBase.Entities.Variable
         /// </summary>
         public static ReportID ToReportID(this ReportIDEntity entity)
         {
+            if (entity.LinkVID ==null )
+            {
+                entity.LinkVID = new uint[0];
+            }
             var report = new ReportID(entity.Code, entity.Description, entity.LinkVID);
             report.Comment = entity.Comment;
             return report;

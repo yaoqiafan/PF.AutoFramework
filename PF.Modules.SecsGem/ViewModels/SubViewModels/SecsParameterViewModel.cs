@@ -45,40 +45,40 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             SecsLogViewModel log,
             Func<Task> reloadCommandTrees)
         {
-            _manager            = manager;
-            _db                 = db;
-            _log                = log;
+            _manager = manager;
+            _db = db;
+            _log = log;
             _reloadCommandTrees = reloadCommandTrees;
 
-            ParamRows     = new ObservableCollection<ParamRowViewModel>();
-            VidRows       = new ObservableCollection<VidRowViewModel>();
-            CeidRows      = new ObservableCollection<CeidRowViewModel>();
-            ReportIdRows  = new ObservableCollection<ReportIdRowViewModel>();
+            ParamRows = new ObservableCollection<ParamRowViewModel>();
+            VidRows = new ObservableCollection<VidRowViewModel>();
+            CeidRows = new ObservableCollection<CeidRowViewModel>();
+            ReportIdRows = new ObservableCollection<ReportIdRowViewModel>();
             CommandIdRows = new ObservableCollection<CommandIdRowViewModel>();
 
-            DbSystemRows    = new ObservableCollection<ParamRowViewModel>();
+            DbSystemRows = new ObservableCollection<ParamRowViewModel>();
             DbCommandIdRows = new ObservableCollection<CommandIdRowViewModel>();
-            DbCeidRows      = new ObservableCollection<CeidRowViewModel>();
-            DbReportIdRows  = new ObservableCollection<ReportIdRowViewModel>();
-            DbVidRows       = new ObservableCollection<VidRowViewModel>();
+            DbCeidRows = new ObservableCollection<CeidRowViewModel>();
+            DbReportIdRows = new ObservableCollection<ReportIdRowViewModel>();
+            DbVidRows = new ObservableCollection<VidRowViewModel>();
             DbIncentiveRows = new ObservableCollection<ParamRowViewModel>();
-            DbResponseRows  = new ObservableCollection<ParamRowViewModel>();
+            DbResponseRows = new ObservableCollection<ParamRowViewModel>();
 
-            ImportParamsCommand       = new DelegateCommand(async () => await ExecuteImportParamsAsync());
-            ExportParamsCommand       = new DelegateCommand(async () => await ExecuteExportParamsAsync());
-            SaveParamCommand          = new DelegateCommand(async () => await ExecuteSaveParamAsync());
-            ImportSystemParamCommand  = new DelegateCommand(async () => await ExecuteImportSystemParamToDbAsync());
-            ImportValidateParamCommand= new DelegateCommand(async () => await ExecuteImportValidateParamToDbAsync());
+            ImportParamsCommand = new DelegateCommand(async () => await ExecuteImportParamsAsync());
+            ExportParamsCommand = new DelegateCommand(async () => await ExecuteExportParamsAsync());
+            SaveParamCommand = new DelegateCommand(async () => await ExecuteSaveParamAsync());
+            ImportSystemParamCommand = new DelegateCommand(async () => await ExecuteImportSystemParamToDbAsync());
+            ImportValidateParamCommand = new DelegateCommand(async () => await ExecuteImportValidateParamToDbAsync());
             ImportFormulaParamCommand = new DelegateCommand(async () => await ExecuteImportFormulaParamToDbAsync());
-            RefreshDbViewCommand      = new DelegateCommand(async () => await ExecuteRefreshDbViewAsync());
+            RefreshDbViewCommand = new DelegateCommand(async () => await ExecuteRefreshDbViewAsync());
 
-            AddVidCommand       = new DelegateCommand(() => VidRows.Add(new VidRowViewModel      { Description = "新VID",       DataType = "U4",          Value = "0",          Comment = string.Empty }));
-            DeleteVidCommand    = new DelegateCommand(() => { if (SelectedVidRow       != null) VidRows.Remove(SelectedVidRow); });
-            AddCeidCommand      = new DelegateCommand(() => CeidRows.Add(new CeidRowViewModel     { Description = "新CEID",      LinkReportIDs = string.Empty, Comment = string.Empty }));
-            DeleteCeidCommand   = new DelegateCommand(() => { if (SelectedCeidRow      != null) CeidRows.Remove(SelectedCeidRow); });
-            AddReportIdCommand  = new DelegateCommand(() => ReportIdRows.Add(new ReportIdRowViewModel  { Description = "新ReportID",  LinkVIDs = string.Empty,      Comment = string.Empty }));
-            DeleteReportIdCommand = new DelegateCommand(() => { if (SelectedReportIdRow  != null) ReportIdRows.Remove(SelectedReportIdRow); });
-            AddCommandIdCommand = new DelegateCommand(() => CommandIdRows.Add(new CommandIdRowViewModel { Description = "新CommandID", RCMD = string.Empty,          LinkVIDs = string.Empty, Comment = string.Empty }));
+            AddVidCommand = new DelegateCommand(() => VidRows.Add(new VidRowViewModel { Description = "新VID", DataType = "U4", Value = "0", Comment = string.Empty }));
+            DeleteVidCommand = new DelegateCommand(() => { if (SelectedVidRow != null) VidRows.Remove(SelectedVidRow); });
+            AddCeidCommand = new DelegateCommand(() => CeidRows.Add(new CeidRowViewModel { Description = "新CEID", LinkReportIDs = string.Empty, Comment = string.Empty }));
+            DeleteCeidCommand = new DelegateCommand(() => { if (SelectedCeidRow != null) CeidRows.Remove(SelectedCeidRow); });
+            AddReportIdCommand = new DelegateCommand(() => ReportIdRows.Add(new ReportIdRowViewModel { Description = "新ReportID", LinkVIDs = string.Empty, Comment = string.Empty }));
+            DeleteReportIdCommand = new DelegateCommand(() => { if (SelectedReportIdRow != null) ReportIdRows.Remove(SelectedReportIdRow); });
+            AddCommandIdCommand = new DelegateCommand(() => CommandIdRows.Add(new CommandIdRowViewModel { Description = "新CommandID", RCMD = string.Empty, LinkVIDs = string.Empty, Comment = string.Empty }));
             DeleteCommandIdCommand = new DelegateCommand(() => { if (SelectedCommandIdRow != null) CommandIdRows.Remove(SelectedCommandIdRow); });
         }
 
@@ -103,77 +103,77 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 分类参数集合 ───────────────────────────────────────────────────────
         /// <summary>获取VID行集合</summary>
-        public ObservableCollection<VidRowViewModel>       VidRows       { get; }
+        public ObservableCollection<VidRowViewModel> VidRows { get; }
         /// <summary>获取CEID行集合</summary>
-        public ObservableCollection<CeidRowViewModel>      CeidRows      { get; }
+        public ObservableCollection<CeidRowViewModel> CeidRows { get; }
         /// <summary>获取报告ID行集合</summary>
-        public ObservableCollection<ReportIdRowViewModel>  ReportIdRows  { get; }
+        public ObservableCollection<ReportIdRowViewModel> ReportIdRows { get; }
         /// <summary>获取命令ID行集合</summary>
         public ObservableCollection<CommandIdRowViewModel> CommandIdRows { get; }
 
-        private VidRowViewModel       _selectedVidRow;
+        private VidRowViewModel _selectedVidRow;
         /// <summary>获取或设置选中的VID行</summary>
-        public  VidRowViewModel       SelectedVidRow       { get => _selectedVidRow;       set => SetProperty(ref _selectedVidRow,       value); }
+        public VidRowViewModel SelectedVidRow { get => _selectedVidRow; set => SetProperty(ref _selectedVidRow, value); }
 
-        private CeidRowViewModel      _selectedCeidRow;
+        private CeidRowViewModel _selectedCeidRow;
         /// <summary>获取或设置选中的CEID行</summary>
-        public  CeidRowViewModel      SelectedCeidRow      { get => _selectedCeidRow;      set => SetProperty(ref _selectedCeidRow,      value); }
+        public CeidRowViewModel SelectedCeidRow { get => _selectedCeidRow; set => SetProperty(ref _selectedCeidRow, value); }
 
-        private ReportIdRowViewModel  _selectedReportIdRow;
+        private ReportIdRowViewModel _selectedReportIdRow;
         /// <summary>获取或设置选中的报告ID行</summary>
-        public  ReportIdRowViewModel  SelectedReportIdRow  { get => _selectedReportIdRow;  set => SetProperty(ref _selectedReportIdRow,  value); }
+        public ReportIdRowViewModel SelectedReportIdRow { get => _selectedReportIdRow; set => SetProperty(ref _selectedReportIdRow, value); }
 
         private CommandIdRowViewModel _selectedCommandIdRow;
         /// <summary>获取或设置选中的命令ID行</summary>
-        public  CommandIdRowViewModel SelectedCommandIdRow { get => _selectedCommandIdRow; set => SetProperty(ref _selectedCommandIdRow, value); }
+        public CommandIdRowViewModel SelectedCommandIdRow { get => _selectedCommandIdRow; set => SetProperty(ref _selectedCommandIdRow, value); }
 
         // ── 数据库镜像集合 ─────────────────────────────────────────────────────
         /// <summary>获取数据库系统参数行集合</summary>
-        public ObservableCollection<ParamRowViewModel>     DbSystemRows    { get; }
+        public ObservableCollection<ParamRowViewModel> DbSystemRows { get; }
         /// <summary>获取数据库命令ID行集合</summary>
         public ObservableCollection<CommandIdRowViewModel> DbCommandIdRows { get; }
         /// <summary>获取数据库CEID行集合</summary>
-        public ObservableCollection<CeidRowViewModel>      DbCeidRows      { get; }
+        public ObservableCollection<CeidRowViewModel> DbCeidRows { get; }
         /// <summary>获取数据库报告ID行集合</summary>
-        public ObservableCollection<ReportIdRowViewModel>  DbReportIdRows  { get; }
+        public ObservableCollection<ReportIdRowViewModel> DbReportIdRows { get; }
         /// <summary>获取数据库VID行集合</summary>
-        public ObservableCollection<VidRowViewModel>       DbVidRows       { get; }
+        public ObservableCollection<VidRowViewModel> DbVidRows { get; }
         /// <summary>获取数据库主动命令行集合</summary>
-        public ObservableCollection<ParamRowViewModel>     DbIncentiveRows { get; }
+        public ObservableCollection<ParamRowViewModel> DbIncentiveRows { get; }
         /// <summary>获取数据库应答命令行集合</summary>
-        public ObservableCollection<ParamRowViewModel>     DbResponseRows  { get; }
+        public ObservableCollection<ParamRowViewModel> DbResponseRows { get; }
 
         // ── 命令 ───────────────────────────────────────────────────────────────
         /// <summary>导入参数命令</summary>
-        public DelegateCommand ImportParamsCommand        { get; }
+        public DelegateCommand ImportParamsCommand { get; }
         /// <summary>导出参数命令</summary>
-        public DelegateCommand ExportParamsCommand        { get; }
+        public DelegateCommand ExportParamsCommand { get; }
         /// <summary>保存参数命令</summary>
-        public DelegateCommand SaveParamCommand           { get; }
+        public DelegateCommand SaveParamCommand { get; }
         /// <summary>导入系统参数命令</summary>
-        public DelegateCommand ImportSystemParamCommand   { get; }
+        public DelegateCommand ImportSystemParamCommand { get; }
         /// <summary>导入变量参数命令</summary>
         public DelegateCommand ImportValidateParamCommand { get; }
         /// <summary>导入配方参数命令</summary>
-        public DelegateCommand ImportFormulaParamCommand  { get; }
+        public DelegateCommand ImportFormulaParamCommand { get; }
         /// <summary>刷新数据库视图命令</summary>
-        public DelegateCommand RefreshDbViewCommand       { get; }
+        public DelegateCommand RefreshDbViewCommand { get; }
         /// <summary>添加VID命令</summary>
-        public DelegateCommand AddVidCommand              { get; }
+        public DelegateCommand AddVidCommand { get; }
         /// <summary>删除VID命令</summary>
-        public DelegateCommand DeleteVidCommand           { get; }
+        public DelegateCommand DeleteVidCommand { get; }
         /// <summary>添加CEID命令</summary>
-        public DelegateCommand AddCeidCommand             { get; }
+        public DelegateCommand AddCeidCommand { get; }
         /// <summary>删除CEID命令</summary>
-        public DelegateCommand DeleteCeidCommand          { get; }
+        public DelegateCommand DeleteCeidCommand { get; }
         /// <summary>添加报告ID命令</summary>
-        public DelegateCommand AddReportIdCommand         { get; }
+        public DelegateCommand AddReportIdCommand { get; }
         /// <summary>删除报告ID命令</summary>
-        public DelegateCommand DeleteReportIdCommand      { get; }
+        public DelegateCommand DeleteReportIdCommand { get; }
         /// <summary>添加命令ID命令</summary>
-        public DelegateCommand AddCommandIdCommand        { get; }
+        public DelegateCommand AddCommandIdCommand { get; }
         /// <summary>删除命令ID命令</summary>
-        public DelegateCommand DeleteCommandIdCommand     { get; }
+        public DelegateCommand DeleteCommandIdCommand { get; }
 
         // ── 参数行加载（供主 VM 在导航时调用）─────────────────────────────────
 
@@ -187,18 +187,18 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 {
                     switch (index)
                     {
-                        case 0: LoadSystemParamRows();   break;
+                        case 0: LoadSystemParamRows(); break;
                         case 1: LoadValidateParamRows(); break;
-                        case 2: LoadFormulaParamRows();  break;
+                        case 2: LoadFormulaParamRows(); break;
                     }
                 }
                 catch (Exception ex)
                 {
                     ParamRows.Add(new ParamRowViewModel
                     {
-                        Name        = "错误",
-                        Value       = ex.Message,
-                        DataType    = "-",
+                        Name = "错误",
+                        Value = ex.Message,
+                        DataType = "-",
                         Description = "加载参数失败"
                     });
                 }
@@ -221,19 +221,19 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 ParamRows.Add(new ParamRowViewModel { Name = "提示", Value = "系统参数为空，请先初始化或导入", DataType = "-", Description = "" });
                 return;
             }
-            ParamRows.Add(new ParamRowViewModel { Name = "ServiceName",         Value = sys.ServiceName,          DataType = "String", Description = "服务名称" });
-            ParamRows.Add(new ParamRowViewModel { Name = "IPAddress",           Value = sys.IPAddress,            DataType = "String", Description = "连接 IP 地址" });
-            ParamRows.Add(new ParamRowViewModel { Name = "Port",                Value = sys.Port.ToString(),      DataType = "Int",    Description = "端口号" });
-            ParamRows.Add(new ParamRowViewModel { Name = "DeviceID",            Value = sys.DeviceID,             DataType = "String", Description = "设备 ID" });
-            ParamRows.Add(new ParamRowViewModel { Name = "MDLN",                Value = sys.MDLN,                 DataType = "String", Description = "设备型号" });
-            ParamRows.Add(new ParamRowViewModel { Name = "SOFTREV",             Value = sys.SOFTREV,              DataType = "String", Description = "软件版本" });
-            ParamRows.Add(new ParamRowViewModel { Name = "AutoStart",           Value = sys.AutoStart.ToString(), DataType = "Bool",   Description = "自动启动" });
-            ParamRows.Add(new ParamRowViewModel { Name = "T3 (ms)",             Value = sys.T3.ToString(),        DataType = "Int",    Description = "回复等待超时" });
-            ParamRows.Add(new ParamRowViewModel { Name = "T5 (ms)",             Value = sys.T5.ToString(),        DataType = "Int",    Description = "连接超时" });
-            ParamRows.Add(new ParamRowViewModel { Name = "T6 (ms)",             Value = sys.T6.ToString(),        DataType = "Int",    Description = "控制消息超时" });
-            ParamRows.Add(new ParamRowViewModel { Name = "T7 (ms)",             Value = sys.T7.ToString(),        DataType = "Int",    Description = "未连接超时" });
-            ParamRows.Add(new ParamRowViewModel { Name = "T8 (ms)",             Value = sys.T8.ToString(),        DataType = "Int",    Description = "网络字节超时" });
-            ParamRows.Add(new ParamRowViewModel { Name = "BeatInterval (ms)",   Value = sys.BeatInterval.ToString(), DataType = "Int", Description = "心跳间隔" });
+            ParamRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = sys.ServiceName, DataType = "String", Description = "服务名称" });
+            ParamRows.Add(new ParamRowViewModel { Name = "IPAddress", Value = sys.IPAddress, DataType = "String", Description = "连接 IP 地址" });
+            ParamRows.Add(new ParamRowViewModel { Name = "Port", Value = sys.Port.ToString(), DataType = "Int", Description = "端口号" });
+            ParamRows.Add(new ParamRowViewModel { Name = "DeviceID", Value = sys.DeviceID, DataType = "String", Description = "设备 ID" });
+            ParamRows.Add(new ParamRowViewModel { Name = "MDLN", Value = sys.MDLN, DataType = "String", Description = "设备型号" });
+            ParamRows.Add(new ParamRowViewModel { Name = "SOFTREV", Value = sys.SOFTREV, DataType = "String", Description = "软件版本" });
+            ParamRows.Add(new ParamRowViewModel { Name = "AutoStart", Value = sys.AutoStart.ToString(), DataType = "Bool", Description = "自动启动" });
+            ParamRows.Add(new ParamRowViewModel { Name = "T3 (ms)", Value = sys.T3.ToString(), DataType = "Int", Description = "回复等待超时" });
+            ParamRows.Add(new ParamRowViewModel { Name = "T5 (ms)", Value = sys.T5.ToString(), DataType = "Int", Description = "连接超时" });
+            ParamRows.Add(new ParamRowViewModel { Name = "T6 (ms)", Value = sys.T6.ToString(), DataType = "Int", Description = "控制消息超时" });
+            ParamRows.Add(new ParamRowViewModel { Name = "T7 (ms)", Value = sys.T7.ToString(), DataType = "Int", Description = "未连接超时" });
+            ParamRows.Add(new ParamRowViewModel { Name = "T8 (ms)", Value = sys.T8.ToString(), DataType = "Int", Description = "网络字节超时" });
+            ParamRows.Add(new ParamRowViewModel { Name = "BeatInterval (ms)", Value = sys.BeatInterval.ToString(), DataType = "Int", Description = "心跳间隔" });
         }
 
         private void LoadValidateParamRows()
@@ -261,7 +261,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             foreach (var kvp in formula.IncentiveCommandDictionary ?? new ConcurrentDictionary<string, SFCommand>())
                 ParamRows.Add(new ParamRowViewModel { Name = kvp.Key, Value = kvp.Value.Name, DataType = "Incentive", Description = $"S{kvp.Value.Stream}F{kvp.Value.Function}" });
             foreach (var kvp in formula.ResponseCommandDictionary ?? new ConcurrentDictionary<string, SFCommand>())
-                ParamRows.Add(new ParamRowViewModel { Name = kvp.Key, Value = kvp.Value.Name, DataType = "Response",  Description = $"S{kvp.Value.Stream}F{kvp.Value.Function}" });
+                ParamRows.Add(new ParamRowViewModel { Name = kvp.Key, Value = kvp.Value.Name, DataType = "Response", Description = $"S{kvp.Value.Stream}F{kvp.Value.Function}" });
         }
 
         private void LoadVidRows(ValidateConfiguration cfg)
@@ -306,19 +306,19 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 {
                     switch (row.Name)
                     {
-                        case "IPAddress":           sys.IPAddress   = row.Value; break;
-                        case "Port":                if (int.TryParse(row.Value, out int port))    sys.Port          = port;      break;
-                        case "DeviceID":            sys.DeviceID    = row.Value; break;
-                        case "MDLN":                sys.MDLN        = row.Value; break;
-                        case "SOFTREV":             sys.SOFTREV     = row.Value; break;
-                        case "ServiceName":         sys.ServiceName = row.Value; break;
-                        case "AutoStart":           if (bool.TryParse(row.Value, out bool ab))    sys.AutoStart     = ab;        break;
-                        case "T3 (ms)":             if (int.TryParse(row.Value, out int t3))      sys.T3            = t3;        break;
-                        case "T5 (ms)":             if (int.TryParse(row.Value, out int t5))      sys.T5            = t5;        break;
-                        case "T6 (ms)":             if (int.TryParse(row.Value, out int t6))      sys.T6            = t6;        break;
-                        case "T7 (ms)":             if (int.TryParse(row.Value, out int t7))      sys.T7            = t7;        break;
-                        case "T8 (ms)":             if (int.TryParse(row.Value, out int t8))      sys.T8            = t8;        break;
-                        case "BeatInterval (ms)":   if (int.TryParse(row.Value, out int bi))      sys.BeatInterval  = bi;        break;
+                        case "IPAddress": sys.IPAddress = row.Value; break;
+                        case "Port": if (int.TryParse(row.Value, out int port)) sys.Port = port; break;
+                        case "DeviceID": sys.DeviceID = row.Value; break;
+                        case "MDLN": sys.MDLN = row.Value; break;
+                        case "SOFTREV": sys.SOFTREV = row.Value; break;
+                        case "ServiceName": sys.ServiceName = row.Value; break;
+                        case "AutoStart": if (bool.TryParse(row.Value, out bool ab)) sys.AutoStart = ab; break;
+                        case "T3 (ms)": if (int.TryParse(row.Value, out int t3)) sys.T3 = t3; break;
+                        case "T5 (ms)": if (int.TryParse(row.Value, out int t5)) sys.T5 = t5; break;
+                        case "T6 (ms)": if (int.TryParse(row.Value, out int t6)) sys.T6 = t6; break;
+                        case "T7 (ms)": if (int.TryParse(row.Value, out int t7)) sys.T7 = t7; break;
+                        case "T8 (ms)": if (int.TryParse(row.Value, out int t8)) sys.T8 = t8; break;
+                        case "BeatInterval (ms)": if (int.TryParse(row.Value, out int bi)) sys.BeatInterval = bi; break;
                     }
                 }
                 catch { /* 单字段解析失败不影响其他字段 */ }
@@ -335,7 +335,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                     .Where(r => !string.IsNullOrWhiteSpace(r.Description))
                     .Select(r =>
                     {
-                        var dt  = Enum.TryParse<DataType>(r.DataType, out var parsed) ? parsed : DataType.U4;
+                        var dt = Enum.TryParse<DataType>(r.DataType, out var parsed) ? parsed : DataType.U4;
                         var vid = new VID(r.Code, r.Description, dt) { Comment = r.Comment ?? string.Empty };
                         if (!string.IsNullOrWhiteSpace(r.Value)) vid.SetValue(r.Value);
                         return vid;
@@ -378,7 +378,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                             .Select(s => uint.TryParse(s.Trim(), out var n) ? n : 0u)
                             .Where(n => n > 0).ToArray();
                         return new CommandID(r.Code, r.Description, links, r.RCMD ?? string.Empty, r.Description)
-                               { Comment = r.Comment ?? string.Empty };
+                        { Comment = r.Comment ?? string.Empty };
                     })
                     .ToDictionary(c => c.Description));
         }
@@ -537,10 +537,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                     foreach (var e in sysEntities)
                     {
                         var p = e.ToParam();
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = p.ServiceName,     DataType = "String", Description = "服务名称" });
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "IPAddress",   Value = p.IPAddress,       DataType = "String", Description = "IP 地址" });
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "Port",        Value = p.Port.ToString(), DataType = "Int",    Description = "端口" });
-                        DbSystemRows.Add(new ParamRowViewModel { Name = "DeviceID",    Value = p.DeviceID,        DataType = "String", Description = "设备ID" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = p.ServiceName, DataType = "String", Description = "服务名称" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "IPAddress", Value = p.IPAddress, DataType = "String", Description = "IP 地址" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "Port", Value = p.Port.ToString(), DataType = "Int", Description = "端口" });
+                        DbSystemRows.Add(new ParamRowViewModel { Name = "DeviceID", Value = p.DeviceID, DataType = "String", Description = "设备ID" });
                     }
                 });
 
@@ -580,9 +580,9 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                await ReplaceAllAsync<VIDEntity>      (SecsDbSet.VIDs,       cfg.VIDS.Values.Select      (v => v.ToEntity()));
-                await ReplaceAllAsync<CEIDEntity>     (SecsDbSet.CEIDs,      cfg.CEIDS.Values.Select     (c => c.ToEntity()));
-                await ReplaceAllAsync<ReportIDEntity> (SecsDbSet.ReportIDs,  cfg.ReportIDS.Values.Select (r => r.ToEntity()));
+                await ReplaceAllAsync<VIDEntity>(SecsDbSet.VIDs, cfg.VIDS.Values.Select(v => v.ToEntity()));
+                await ReplaceAllAsync<CEIDEntity>(SecsDbSet.CEIDs, cfg.CEIDS.Values.Select(c => c.ToEntity()));
+                await ReplaceAllAsync<ReportIDEntity>(SecsDbSet.ReportIDs, cfg.ReportIDS.Values.Select(r => r.ToEntity()));
                 await ReplaceAllAsync<CommandIDEntity>(SecsDbSet.CommnadIDs, cfg.CommandIDS.Values.Select(c => c.ToEntity()));
                 await _db.SaveChangesAsync();
             }

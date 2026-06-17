@@ -62,7 +62,7 @@ namespace PF.Infrastructure.SecsGem.Param
                 res2 = await LoadValidateConfiguration();
                 res3 = await LoadFormulaConfiguration();
 
-                if (res1 & res2 & res3)
+                if (res1 & res2 /*& res3*/)
                 {
                     return await _commandManager.InitializeAsync((FormulaConfiguration)_params[ParamType.Formula]);
                 }
