@@ -82,9 +82,12 @@ namespace PF.Services.Alarm
                 ErrorCode    = errorCode,
                 Category     = "未定义报警",
                 Message      = $"未定义报警 (未知代码: {errorCode})",
+                MessageEn    = "Undefined alarm",
                 Severity     = AlarmSeverity.Error,
                 Solution     = "该报警代码尚未在字典中定义。\n1. 联系技术支持确认代码含义;\n2. 可在 AlarmDefinitions 数据库表中扩展此代码的定义;\n3. 记录报警代码并联系开发人员;",
-                IsFromDatabase = false
+                IsFromDatabase = false,
+                MessageID = -1,
+                MessageIDHex = "NoneError"
             };
         }
 
@@ -145,10 +148,13 @@ namespace PF.Services.Alarm
                     ErrorCode      = code,
                     Category       = attr.Category,
                     Message        = attr.Message,
+                    MessageEn      = attr.MessageEn,
                     Severity       = attr.Severity,
                     Solution       = attr.Solution,
-                    ImagePath = attr.ImagePath,
-                    IsFromDatabase = false
+                    ImagePath      = attr.ImagePath,
+                    IsFromDatabase = false,
+                    MessageID      = attr.MessageID,
+                    MessageIDHex   = attr.MessageIDHex
                 };
                 count++;
             }
@@ -186,9 +192,12 @@ namespace PF.Services.Alarm
                         ErrorCode      = def.ErrorCode,
                         Category       = def.Category,
                         Message        = def.Message,
+                        MessageEn      = def.MessageEn,
                         Severity       = def.Severity,
                         Solution       = def.Solution,
-                        IsFromDatabase = true
+                        IsFromDatabase = true,
+                        MessageID      = def.MessageID,
+                        MessageIDHex   = def.MessageIDHex
                     };
                     count++;
                 }
