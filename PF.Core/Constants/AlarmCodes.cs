@@ -25,7 +25,7 @@ namespace PF.Core.Constants
                 "2. 检查伺服驱动器与运动控制卡之间的通讯线是否松动;\n" +
                 "3. 查看驱动器面板报警代码，对照手册处理;\n" +
                 "4. 重启驱动器后点击【复位】按钮;",
-    10000, "Servo drive offline or error",
+    50000, "Servo drive offline or error",
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string ServoError = "HW_SRV_001";
             #endregion
@@ -37,7 +37,7 @@ namespace PF.Core.Constants
                 "2. 检查 IO 模块供电是否正常;\n" +
                 "3. 在调试页面尝试重新初始化硬件;\n" +
                 "4. 重新上电后点击【复位】按钮;",
-    10001, "IO module connection failed",
+    50001, "IO module connection failed",
     "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
             public const string IoModuleError = "HW_IO_001";
 
@@ -47,7 +47,7 @@ namespace PF.Core.Constants
                 "2. 检查 IO 模块供电是否正常;\n" +
                 "3. 在调试页面尝试重新初始化硬件;\n" +
                 "4. 重新上电后点击【复位】按钮;",
-    10002, "IO read error",
+    50002, "IO read error",
     "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
             public const string IoGetError = "HW_IO_002";
 
@@ -57,7 +57,7 @@ namespace PF.Core.Constants
                 "2. 检查 IO 模块供电是否正常;\n" +
                 "3. 在调试页面尝试重新初始化硬件;\n" +
                 "4. 重新上电后点击【复位】按钮;",
-    10003, "IO set error",
+    50003, "IO set error",
     "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
             public const string IoSetError = "HW_IO_003";
             #endregion
@@ -69,7 +69,7 @@ namespace PF.Core.Constants
                 "2. 检查控制卡驱动是否安装;\n" +
                 "3. 检查设备管理器中是否存在控制卡设备;\n" +
                 "4. 尝试重启电脑后重新启动软件;",
-    10004, "Motion card init failed",
+    50004, "Motion card init failed",
     "/PF.UI.Infrastructure;component/HardwareImage/运动控制卡.png")]
             public const string MotionCardInitFailed = "HW_CARD_001";
 
@@ -79,7 +79,7 @@ namespace PF.Core.Constants
                 "2. 检查各伺服驱动器及 IO 模块供电是否正常;\n" +
                 "3. 在调试页面重新初始化运动控制卡;\n" +
                 "4. 尝试重启设备后重新启动软件;",
-    10005, "Motion card bus comm error",
+    50005, "Motion card bus comm error",
     "/PF.UI.Infrastructure;component/HardwareImage/运动控制卡.png")]
             public const string MotionCardBusError = "HW_CARD_002";
             #endregion
@@ -92,7 +92,7 @@ namespace PF.Core.Constants
                 "3. 使用 Ping 命令测试相机 IP 是否可达;\n" +
                 "4. 检查相机供电;\n" +
                 "5. 重启相机后重新初始化;",
-    10006, "Camera connection timeout",
+    50006, "Camera connection timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
             public const string CameraTimeout = "HW_CAM_001";
 
@@ -102,7 +102,7 @@ namespace PF.Core.Constants
                 "2. 使用 Ping 命令验证相机 IP 是否可达;\n" +
                 "3. 确认网络适配器 IP 与相机在同一网段;\n" +
                 "4. 重启相机后点击【复位】重新连接;",
-    10007, "Camera heartbeat timeout",
+    50007, "Camera heartbeat timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
             public const string CameraHeartbeatTimeout = "HW_CAM_002";
             #endregion
@@ -114,7 +114,7 @@ namespace PF.Core.Constants
                 "2. 尝试重新插拔扫描枪;\n" +
                 "3. 检查设备管理器中是否正确识别;\n" +
                 "4. 确认端口号与参数配置一致;",
-    10008, "Barcode scanner conn failed",
+    50008, "Barcode scanner conn failed",
     "/PF.UI.Infrastructure;component/HardwareImage/海康读码器.png")]
             public const string BarcodeReaderError = "HW_BCR_001";
 
@@ -124,7 +124,7 @@ namespace PF.Core.Constants
                 "2. 使用 Ping 命令验证扫码枪 IP 是否可达;\n" +
                 "3. 重启扫码枪后点击【复位】重新连接;\n" +
                 "4. 确认端口号与配置文件一致;",
-    10009, "Scanner heartbeat timeout",
+    50009, "Scanner heartbeat timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/海康读码器.png")]
             public const string BarcodeScannerHeartbeatTimeout = "HW_BCR_002";
             #endregion
@@ -136,7 +136,7 @@ namespace PF.Core.Constants
                 "2. 确认波特率等串口参数配置正确;\n" +
                 "3. 重启光源控制器;\n" +
                 "4. 在参数页面核对 COM 端口号;",
-    10010, "Light controller comm error",
+    50010, "Light controller comm error",
     "/PF.UI.Infrastructure;component/HardwareImage/控制器.png")]
             public const string LightControllerError = "HW_LGT_001";
             #endregion
@@ -148,7 +148,7 @@ namespace PF.Core.Constants
                 "2. 手动将轴移离限位开关后点击【复位】;\n" +
                 "3. 确认限位开关接线和信号极性是否正确;\n" +
                 "4. 检查运动参数中行程保护设置是否合理;",
-    10011, "Servo axis limit triggered",
+    50011, "Servo axis limit triggered",
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisLimitError = "HW_AXIS_002";
 
@@ -159,7 +159,7 @@ namespace PF.Core.Constants
                 "3. 手动点动该轴，确认运动是否正常;\n" +
                 "4. 检查运动参数（速度/加速度）是否合理;\n" +
                 "5. 复位后重新运行;",
-    10012, "Axis motion done timeout",
+    50012, "Axis motion done timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisMoveTimeout = "HW_AXIS_003";
 
@@ -169,7 +169,7 @@ namespace PF.Core.Constants
                 "2. 检查限位开关是否触发;\n" +
                 "3. 确认回零方向与速度参数配置是否正确;\n" +
                 "4. 手动移动轴后重新执行初始化;",
-    10013, "Axis homing done timeout",
+    50013, "Axis homing done timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string HomingTimeout = "HW_AXIS_004";
 
@@ -179,7 +179,7 @@ namespace PF.Core.Constants
                 "2. 确认定位精度参数设置是否合理;\n" +
                 "3. 检查伺服增益参数;\n" +
                 "4. 复位后重新运行;",
-    10014, "Axis positioning accuracy exceeded",
+    50014, "Axis positioning accuracy exceeded",
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisMoveInaccuratePositioning = "HW_AXIS_005";
 
@@ -188,7 +188,7 @@ namespace PF.Core.Constants
     "1. 检查伺服驱动器与运动控制卡通讯是否正常;\n" +
                 "2. 确认轴编码器反馈信号是否正常;\n" +
                 "3. 复位后重新运行;",
-    10015, "Axis position read failed",
+    50015, "Axis position read failed",
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisGetCurrentPositionFailed = "HW_AXIS_006";
             #endregion
@@ -210,7 +210,7 @@ namespace PF.Core.Constants
                 "2. 查看调试页面中各硬件连接指示灯;\n" +
                 "3. 逐一排除连接失败的设备;\n" +
                 "4. 全部就绪后点击【复位】按钮;",
-    10016, "System init timeout, HW not ready")]
+    50016, "System init timeout, HW not ready")]
             public const string InitializationTimeout = "SYS_INIT_001";
 
             /// <summary>数据库写入失败</summary>
@@ -219,7 +219,7 @@ namespace PF.Core.Constants
                 "2. 检查数据库文件是否被其他程序占用;\n" +
                 "3. 以管理员权限重启软件;\n" +
                 "4. 联系维护人员检查数据库文件完整性;",
-    10017, "Database write failed")]
+    50017, "Database write failed")]
             public const string DatabaseWriteError = "SYS_DB_001";
 
             /// <summary>工站同步服务异常</summary>
@@ -228,7 +228,7 @@ namespace PF.Core.Constants
                 "2. 查看日志中工站异常原因;\n" +
                 "3. 逐一复位各工站;\n" +
                 "4. 重启同步服务（重启软件）;",
-    10018, "Station sync service error")]
+    50018, "Station sync service error")]
             public const string StationSyncError = "SYS_SYNC_001";
 
             /// <summary>
@@ -246,13 +246,13 @@ namespace PF.Core.Constants
     "1. 此报警表示某处触发报警时未携带错误码，已被框架兜底;\n" +
                 "2. 记录复现步骤并联系开发人员排查触发点;\n" +
                 "3. 复位后即可恢复;",
-    10019, "No error code provided")]
+    50019, "No error code provided")]
             public const string UndefinedAlarm = "SYS_UNDEFINED_001";
 
             /// <summary>调试页面手动触发报警</summary>
             [AlarmInfo("调试测试", "调试页面手动触发的模拟报警", "Debug page manual test alarm", AlarmSeverity.Warning,
     "此为调试测试报警，复位后即可恢复;",
-    10020, "Debug page manual test alarm")]
+    50020, "Debug page manual test alarm")]
             public const string ManualTestAlarm = "SYS_TEST_001";
 
 
@@ -262,7 +262,7 @@ namespace PF.Core.Constants
                 "2. 查看日志中异常步序编号;\n" +
                 "3. 重启软件后重新运行;\n" +
                 "4. 提供日志文件给技术支持;",
-    10021, "State machine undefined step")]
+    50021, "State machine undefined step")]
             public const string UndefinedStep = "SYS_SYNC_002";
 
         }
@@ -280,7 +280,7 @@ namespace PF.Core.Constants
                 "3. 点击【启动】继续运行;\n" +
                 "4. 如门锁无法正常关闭，请检查传感器接线;\n" +
                 "5. 确认门锁信号正常后重新操作;",
-    10022, "Safety door open, paused",
+    50022, "Safety door open, paused",
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen = "HW_SAFE_001";
 
@@ -291,7 +291,7 @@ namespace PF.Core.Constants
                 "3. 点击【启动】继续运行;\n" +
                 "4. 如门锁无法正常关闭，请检查传感器接线;\n" +
                 "5. 确认门锁信号正常后重新操作;",
-    10023, "Station 1 safety door open",
+    50023, "Station 1 safety door open",
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen1 = "HW_SAFE_001_1";
 
@@ -302,7 +302,7 @@ namespace PF.Core.Constants
                 "3. 点击【启动】继续运行;\n" +
                 "4. 如门锁无法正常关闭，请检查传感器接线;\n" +
                 "5. 确认门锁信号正常后重新操作;",
-    10024, "Station 2 safety door open",
+    50024, "Station 2 safety door open",
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string SafeDoorOpen2 = "HW_SAFE_001_2";
 
@@ -312,7 +312,7 @@ namespace PF.Core.Constants
                 "2. 检查运动控制卡通讯是否正常;\n" +
                 "3. 若无法恢复请立即停止设备;\n" +
                 "4. 联系维护人员检查硬件;",
-    10025, "Safety IO fail, door detect lost",
+    50025, "Safety IO fail, door detect lost",
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string MonitorFailure = "HW_SAFE_002";
         }

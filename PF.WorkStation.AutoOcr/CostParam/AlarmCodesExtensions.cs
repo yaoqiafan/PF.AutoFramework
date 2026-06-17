@@ -33,7 +33,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查 MES 批次数据是否已正确下发;\n" +
                 "2. 确认批次产品数量字段不为空;\n" +
                 "3. 重新下发批次数据后复位重启;",
-    10026, "WS1 load/unload: batch count 0",
+    50026, "WS1 load/unload: batch count 0",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string BatchCountZero = "PROC_WS1F_DATA_001";
 
@@ -42,7 +42,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 核实料盒内实际晶圆尺寸;\n" +
                 "2. 核对配方中要求的晶圆尺寸;\n" +
                 "3. 更换正确料盒或修改配方后复位重启;",
-    10027, "WS1 load/unload: box size mismatch",
+    50027, "WS1 load/unload: box size mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string WaferSizeMismatch = "PROC_WS1F_DATA_002";
 
@@ -51,7 +51,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认配方已正确下发至工位1;\n" +
                 "2. 检查配方参数页面数据是否完整;\n" +
                 "3. 重新下发配方后复位重启;",
-    10028, "WS1 load/unload: recipe empty",
+    50028, "WS1 load/unload: recipe empty",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string RecipeNull = "PROC_WS1F_DATA_003";
 
@@ -61,7 +61,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒已正确放置到位;\n" +
                 "3. 检查寻层传感器信号是否正常;\n" +
                 "4. 复位后重新执行寻层;",
-    10029, "WS1 load/unload: layer find = 0",
+    50029, "WS1 load/unload: layer find = 0",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmZeroLayers = "PROC_WS1F_ALG_001";
 
@@ -71,7 +71,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查寻层传感器信号与原始数据;\n" +
                 "3. 确认物料摆放无严重倾斜;\n" +
                 "4. 复位后重新执行寻层;",
-    10030, "WS1 LD/ULD: layer find fatal err",
+    50030, "WS1 LD/ULD: layer find fatal err",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmException = "PROC_WS1F_ALG_002";
 
@@ -81,7 +81,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒是否放正;\n" +
                 "3. 清洁传感器感应面;\n" +
                 "4. 复位后将重新识别尺寸;",
-    10031, "WS1 LD/ULD: box size detect fail",
+    50031, "WS1 LD/ULD: box size detect fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SizeDetectionSensorFailed = "PROC_WS1F_SEN_001";
 
@@ -90,7 +90,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Z轴伺服是否报警;\n" +
                 "2. 确认互锁信号是否就绪;\n" +
                 "3. 处理轴故障后复位，将重新评估Z轴状态;",
-    10032, "WS1 LD/ULD: Z-axis mot not ready",
+    50032, "WS1 LD/ULD: Z-axis mot not ready",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisPreconditionFailed = "PROC_WS1F_MOT_001";
 
@@ -99,7 +99,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查凸片传感器是否有信号（铁环凸片是否触发）;\n" +
                 "2. 确认X轴伺服是否报警;\n" +
                 "3. 处理后复位，将重新评估X轴状态;",
-    10033, "WS1 LD/ULD: X-axis mot not ready",
+    50033, "WS1 LD/ULD: X-axis mot not ready",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisPreconditionFailed = "PROC_WS1F_MOT_002";
 
@@ -109,7 +109,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒位置摆放正确;\n" +
                 "3. 查看日志中扫描原始数据;\n" +
                 "4. 复位后将重新执行扫描;",
-    10034, "WS1 load/unload: Z layer scan error",
+    50034, "WS1 load/unload: Z layer scan error",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerScanFailed = "PROC_WS1F_SEN_002";
 
@@ -118,7 +118,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查当前取料位置物料状态;\n" +
                 "2. 小心处理错层/翘起物料;\n" +
                 "3. 确认物料归位后复位，将重新检查该层;",
-    10035, "WS1 LD/ULD: wafer warp, pull locked",
+    50035, "WS1 LD/ULD: wafer warp, pull locked",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string MaterialTiltedMisaligned = "PROC_WS1F_MAT_001";
 
@@ -129,7 +129,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 手动点动Z轴确认运动正常;\n" +
                 "4. 检查运动参数（速度/加速度）;\n" +
                 "5. 复位后重新运行;",
-    10036, "WS1 LD/ULD: Z-axis mot timeout",
+    50036, "WS1 LD/ULD: Z-axis mot timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisMoveTimeout = "PROC_WS1F_MOT_003";
 
@@ -140,7 +140,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 手动点动X轴确认运动正常;\n" +
                 "4. 检查运动参数（速度/加速度）;\n" +
                 "5. 复位后重新运行;",
-    10037, "WS1 LD/ULD: X-axis mot timeout",
+    50037, "WS1 LD/ULD: X-axis mot timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisMoveTimeout = "PROC_WS1F_MOT_004";
 
@@ -153,7 +153,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Z轴和X轴是否处于报警状态;\n" +
                 "2. 手动点动确认各轴运动正常;\n" +
                 "3. 复位后重新运行;",
-    10038, "WS1 LD/ULD: init LD state fail",
+    50038, "WS1 LD/ULD: init LD state fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string InitFeedingStateFailed = "PROC_WS1F_MOT_005";
 
@@ -162,7 +162,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认当前配方尺寸与料盒规格一致;\n" +
                 "2. 检查配方中阵列点位参数是否完整;\n" +
                 "3. 重新下发配方后复位重新运行;",
-    10039, "WS1 LD/ULD: recipe size switch fail",
+    50039, "WS1 LD/ULD: recipe size switch fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SwitchArrayRecipeSizeFailed = "PROC_WS1F_MOT_007";
 
@@ -172,7 +172,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查底座光电传感器是否正常;\n" +
                 "3. 清洁传感器感应面;\n" +
                 "4. 复位后重新检测;",
-    10040, "WS1 load/unload: box base no object",
+    50040, "WS1 load/unload: box base no object",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string BoxBaseNotDetected = "PROC_WS1F_SEN_003";
 
@@ -184,7 +184,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查8寸和12寸传感器安装位置;\n" +
                 "3. 清洁传感器感应面;\n" +
                 "4. 复位后重新检测;",
-    10041, "WS1: box size sensor clash",
+    50041, "WS1: box size sensor clash",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string BoxSizeConflict = "PROC_WS1F_SEN_006";
 
@@ -193,7 +193,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查配方中最大层数设置;\n" +
                 "2. 确认料盒规格;\n" +
                 "3. 复位后重新运行;",
-    10042, "WS1: target layer out of range",
+    50042, "WS1: target layer out of range",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerOutOfRange = "PROC_WS1F_ALG_003";
 
@@ -202,7 +202,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认已执行切换生产状态步骤;\n" +
                 "2. 检查配方参数是否完整;\n" +
                 "3. 复位后重新运行;",
-    10043, "WS1: target layer missing",
+    50043, "WS1: target layer missing",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerPointNotFound = "PROC_WS1F_ALG_004";
 
@@ -212,7 +212,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Z轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10044, "WS1 LD/ULD: Z layer switch fail",
+    50044, "WS1 LD/ULD: Z layer switch fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerMoveFailed = "PROC_WS1F_MOT_006";
 
@@ -221,7 +221,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认料盒已完全落座;\n" +
                 "2. 检查底座到位传感器;\n" +
                 "3. 复位后重新检查;",
-    10045, "WS1: Z ILK, box not ready",
+    50045, "WS1: Z ILK, box not ready",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisBoxNotInPlace = "PROC_WS1F_MOT_011";
 
@@ -230,7 +230,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查铁环突片检测传感器;\n" +
                 "2. 确认铁环安装方向;\n" +
                 "3. 复位后重新检查;",
-    10046, "WS1: X ILK, ring tab present",
+    50046, "WS1: X ILK, ring tab present",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisTabDetected = "PROC_WS1F_MOT_008";
 
@@ -239,7 +239,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查挡杆驱动气缸状态;\n" +
                 "2. 确认挡杆传感器信号;\n" +
                 "3. 复位后重新检查;",
-    10047, "WS1: pull ILK, latch closed",
+    50047, "WS1: pull ILK, latch closed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string PullOutLeverNotOpen = "PROC_WS1F_ACT_001";
 
@@ -249,7 +249,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查Z轴是否卡在中途;\n" +
                 "3. 手动点动Z轴确认运动正常;\n" +
                 "4. 复位后重新运行;",
-    10048, "WS1 LD/ULD: scan move to start fail",
+    50048, "WS1 LD/ULD: scan move to start fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToStartFailed = "PROC_WS1F_MOT_009";
 
@@ -258,7 +258,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查运动控制卡连接;\n" +
                 "2. 确认传感器接线;\n" +
                 "3. 复位后重新运行;",
-    10049, "WS1 LD/ULD: scan latch config fail",
+    50049, "WS1 LD/ULD: scan latch config fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanLatchConfigFailed = "PROC_WS1F_SEN_007";
 
@@ -268,7 +268,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查Z轴是否卡在中途;\n" +
                 "3. 手动点动Z轴确认运动正常;\n" +
                 "4. 复位后重新运行;",
-    10050, "WS1 LD/ULD: scan move to end fail",
+    50050, "WS1 LD/ULD: scan move to end fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToEndFailed = "PROC_WS1F_MOT_010";
 
@@ -277,7 +277,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认已执行切换生产状态;\n" +
                 "2. 检查配方参数是否完整;\n" +
                 "3. 复位后重新运行;",
-    10051, "WS1 LD: slot-find coords not init",
+    50051, "WS1 LD: slot-find coords not init",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmNotInitialized = "PROC_WS1F_ALG_005";
 
@@ -286,7 +286,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查传感器信号线连接;\n" +
                 "2. 确认料盒位置正确;\n" +
                 "3. 复位后重新运行;",
-    10052, "WS1 LD: low sensor raw data",
+    50052, "WS1 LD: low sensor raw data",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmRawDataMissing = "PROC_WS1F_ALG_006";
 
@@ -295,7 +295,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查左右传感器信号;\n" +
                 "2. 确认物料摆放无倾斜;\n" +
                 "3. 复位后重新运行;",
-    10053, "WS1 LD: dual-sensor count mismatch",
+    50053, "WS1 LD: dual-sensor count mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmCountMismatch = "PROC_WS1F_ALG_007";
 
@@ -304,7 +304,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查料盒内物料状态;\n" +
                 "2. 小心处理斜片物料;\n" +
                 "3. 复位后重新执行寻层;",
-    10054, "WS1 Load: Cross-slot wafer detected",
+    50054, "WS1 Load: Cross-slot wafer detected",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmCrossSlot = "PROC_WS1F_ALG_008";
 
@@ -313,7 +313,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查料盒内物料状态;\n" +
                 "2. 小心分离重叠物料;\n" +
                 "3. 复位后重新执行寻层;",
-    10055, "WS1 Load: Double-wafer detected",
+    50055, "WS1 Load: Double-wafer detected",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmDoubleWafer = "PROC_WS1F_ALG_009";
 
@@ -322,7 +322,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查物料是否正确插入槽位;\n" +
                 "2. 确认料盒无损坏;\n" +
                 "3. 复位后重新执行寻层;",
-    10056, "WS1 LD: wafer off-slot, not seated",
+    50056, "WS1 LD: wafer off-slot, not seated",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmSlotMismatch = "PROC_WS1F_ALG_010";
 
@@ -331,7 +331,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 核查料盒内实际物料层位;\n" +
                 "2. 确认切换批次时选择的指定层是否正确;\n" +
                 "3. 修正指定层设置后重新切换批次;",
-    10057, "WS1 Load: Target slot mismatch",
+    50057, "WS1 Load: Target slot mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SpecifiedLayersMismatch = "PROC_WS1F_ALG_011";
 
@@ -341,7 +341,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 若物料已被取走，请清空批次后重新下发;\n" +
                 "3. 若物料仍在，检查传感器或算法是否异常;\n" +
                 "4. 确认状态后手动复位重启;",
-    10058, "WS1 Load: Resume status mismatch",
+    50058, "WS1 Load: Resume status mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ResumeConsistencyFailed = "PROC_WS1F_RSM_001";
 
@@ -350,7 +350,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 查看日志中具体异常信息;\n" +
                 "2. 排查对应硬件或配置项;\n" +
                 "3. 排除故障后复位重新初始化;",
-    10059, "WS1 Load: Initialization failed",
+    50059, "WS1 Load: Initialization failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string InitException = "PROC_WS1F_INIT_001";
 
@@ -359,7 +359,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 查看日志中具体异常信息;\n" +
                 "2. 排查对应硬件或状态异常;\n" +
                 "3. 排除故障后复位重新运行;",
-    10060, "WS1 Load: Resume run failed",
+    50060, "WS1 Load: Resume run failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ResumeException = "PROC_WS1F_RSM_002";
         }
@@ -377,7 +377,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查 MES 批次数据是否已正确下发;\n" +
                 "2. 确认批次产品数量字段不为空;\n" +
                 "3. 重新下发批次数据后复位重启;",
-    10061, "WS2 LD: batch product count is zero",
+    50061, "WS2 LD: batch product count is zero",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string BatchCountZero = "PROC_WS2F_DATA_001";
 
@@ -386,7 +386,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 核实料盒内实际晶圆尺寸;\n" +
                 "2. 核对配方中要求的晶圆尺寸;\n" +
                 "3. 更换正确料盒或修改配方后复位重启;",
-    10062, "WS2 Load: Cassette size mismatch",
+    50062, "WS2 Load: Cassette size mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string WaferSizeMismatch = "PROC_WS2F_DATA_002";
 
@@ -395,7 +395,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认配方已正确下发至工位2;\n" +
                 "2. 检查配方参数页面数据是否完整;\n" +
                 "3. 重新下发配方后复位重启;",
-    10063, "WS2 Load: Recipe params empty",
+    50063, "WS2 Load: Recipe params empty",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string RecipeNull = "PROC_WS2F_DATA_003";
 
@@ -405,7 +405,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒已正确放置到位;\n" +
                 "3. 检查寻层传感器信号是否正常;\n" +
                 "4. 复位后重新执行寻层;",
-    10064, "WS2 Load: Slot-find algo=0 layers",
+    50064, "WS2 Load: Slot-find algo=0 layers",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmZeroLayers = "PROC_WS2F_ALG_001";
 
@@ -415,7 +415,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查寻层传感器信号与原始数据;\n" +
                 "3. 确认物料摆放无严重倾斜;\n" +
                 "4. 复位后重新执行寻层;",
-    10065, "WS2 LD: slot-find algo critical err",
+    50065, "WS2 LD: slot-find algo critical err",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmException = "PROC_WS2F_ALG_002";
 
@@ -425,7 +425,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒是否放正;\n" +
                 "3. 清洁传感器感应面;\n" +
                 "4. 复位后将重新识别尺寸;",
-    10066, "WS2 LD: cassette size detect fail",
+    50066, "WS2 LD: cassette size detect fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SizeDetectionSensorFailed = "PROC_WS2F_SEN_001";
 
@@ -434,7 +434,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Z轴伺服是否报警;\n" +
                 "2. 确认互锁信号是否就绪;\n" +
                 "3. 处理轴故障后复位，将重新评估Z轴状态;",
-    10067, "WS2 Load: Z-axis motion not ready",
+    50067, "WS2 Load: Z-axis motion not ready",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisPreconditionFailed = "PROC_WS2F_MOT_001";
 
@@ -443,7 +443,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查凸片传感器是否有信号（铁环凸片是否触发）;\n" +
                 "2. 确认X轴伺服是否报警;\n" +
                 "3. 处理后复位，将重新评估X轴状态;",
-    10068, "WS2 Load: X-axis motion not ready",
+    50068, "WS2 Load: X-axis motion not ready",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisPreconditionFailed = "PROC_WS2F_MOT_002";
 
@@ -453,7 +453,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认料盒位置摆放正确;\n" +
                 "3. 查看日志中扫描原始数据;\n" +
                 "4. 复位后将重新执行扫描;",
-    10069, "WS2 Load: Z-axis slot scan abnormal",
+    50069, "WS2 Load: Z-axis slot scan abnormal",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerScanFailed = "PROC_WS2F_SEN_002";
 
@@ -462,7 +462,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查当前取料位置物料状态;\n" +
                 "2. 小心处理错层/翘起物料;\n" +
                 "3. 确认物料归位后复位，将重新检查该层;",
-    10070, "WS2 Load: Wafer翘曲, pull blocked",
+    50070, "WS2 Load: Wafer翘曲, pull blocked",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string MaterialTiltedMisaligned = "PROC_WS2F_MAT_001";
 
@@ -473,7 +473,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 手动点动Z轴确认运动正常;\n" +
                 "4. 检查运动参数（速度/加速度）;\n" +
                 "5. 复位后重新运行;",
-    10071, "WS2 Load: Z-axis motion timeout",
+    50071, "WS2 Load: Z-axis motion timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisMoveTimeout = "PROC_WS2F_MOT_003";
 
@@ -484,7 +484,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 手动点动X轴确认运动正常;\n" +
                 "4. 检查运动参数（速度/加速度）;\n" +
                 "5. 复位后重新运行;",
-    10072, "WS2 Load: X-axis motion timeout",
+    50072, "WS2 Load: X-axis motion timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisMoveTimeout = "PROC_WS2F_MOT_004";
 
@@ -497,7 +497,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Z轴和X轴是否处于报警状态;\n" +
                 "2. 手动点动确认各轴运动正常;\n" +
                 "3. 复位后重新运行;",
-    10073, "WS2 Load: Init load state failed",
+    50073, "WS2 Load: Init load state failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string InitFeedingStateFailed = "PROC_WS2F_MOT_005";
 
@@ -506,7 +506,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认当前配方尺寸与料盒规格一致;\n" +
                 "2. 检查配方中阵列点位参数是否完整;\n" +
                 "3. 重新下发配方后复位重新运行;",
-    10074, "WS2 LD: switch array recipe fail",
+    50074, "WS2 LD: switch array recipe fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SwitchArrayRecipeSizeFailed = "PROC_WS2F_MOT_007";
 
@@ -516,7 +516,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查底座光电传感器是否正常;\n" +
                 "3. 清洁传感器感应面;\n" +
                 "4. 复位后重新检测;",
-    10075, "WS2 Load: Cassette base empty",
+    50075, "WS2 Load: Cassette base empty",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string BoxBaseNotDetected = "PROC_WS2F_SEN_003";
 
@@ -528,7 +528,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查8寸和12寸传感器安装位置;\n" +
                 "3. 清洁传感器感应面;\n" +
                 "4. 复位后重新检测;",
-    10076, "WS2 Load: Cassette sensor conflict",
+    50076, "WS2 Load: Cassette sensor conflict",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string BoxSizeConflict = "PROC_WS2F_SEN_006";
 
@@ -537,7 +537,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查配方中最大层数设置;\n" +
                 "2. 确认料盒规格;\n" +
                 "3. 复位后重新运行;",
-    10077, "WS2 Load: Target layer out of range",
+    50077, "WS2 Load: Target layer out of range",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerOutOfRange = "PROC_WS2F_ALG_003";
 
@@ -546,7 +546,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认已执行切换生产状态步骤;\n" +
                 "2. 检查配方参数是否完整;\n" +
                 "3. 复位后重新运行;",
-    10078, "WS2 LD: target layer missing",
+    50078, "WS2 LD: target layer missing",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerPointNotFound = "PROC_WS2F_ALG_004";
 
@@ -556,7 +556,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Z轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10079, "WS2 LD: Z-axis layer switch fail",
+    50079, "WS2 LD: Z-axis layer switch fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string LayerMoveFailed = "PROC_WS2F_MOT_006";
 
@@ -565,7 +565,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认料盒已完全落座;\n" +
                 "2. 检查底座到位传感器;\n" +
                 "3. 复位后重新检查;",
-    10080, "WS2 LD: Z ILK, cassette not ready",
+    50080, "WS2 LD: Z ILK, cassette not ready",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ZAxisBoxNotInPlace = "PROC_WS2F_MOT_011";
 
@@ -574,7 +574,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查铁环突片检测传感器;\n" +
                 "2. 确认铁环安装方向;\n" +
                 "3. 复位后重新检查;",
-    10081, "WS2 LD: X ILK, ring protrusion",
+    50081, "WS2 LD: X ILK, ring protrusion",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string XAxisTabDetected = "PROC_WS2F_MOT_008";
 
@@ -583,7 +583,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查挡杆驱动气缸状态;\n" +
                 "2. 确认挡杆传感器信号;\n" +
                 "3. 复位后重新检查;",
-    10082, "WS2 LD: pull ILK, latch not open",
+    50082, "WS2 LD: pull ILK, latch not open",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string PullOutLeverNotOpen = "PROC_WS2F_ACT_001";
 
@@ -593,7 +593,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查Z轴是否卡在中途;\n" +
                 "3. 手动点动Z轴确认运动正常;\n" +
                 "4. 复位后重新运行;",
-    10083, "WS2 LD: slot scan start move fail",
+    50083, "WS2 LD: slot scan start move fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToStartFailed = "PROC_WS2F_MOT_009";
 
@@ -602,7 +602,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查运动控制卡连接;\n" +
                 "2. 确认传感器接线;\n" +
                 "3. 复位后重新运行;",
-    10084, "WS2 Load: Scan latch config failed",
+    50084, "WS2 Load: Scan latch config failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanLatchConfigFailed = "PROC_WS2F_SEN_007";
 
@@ -612,7 +612,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查Z轴是否卡在中途;\n" +
                 "3. 手动点动Z轴确认运动正常;\n" +
                 "4. 复位后重新运行;",
-    10085, "WS2 LD: slot scan move to end fail",
+    50085, "WS2 LD: slot scan move to end fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ScanMoveToEndFailed = "PROC_WS2F_MOT_010";
 
@@ -621,7 +621,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认已执行切换生产状态;\n" +
                 "2. 检查配方参数是否完整;\n" +
                 "3. 复位后重新运行;",
-    10086, "WS2 LD: slot-find coords not init",
+    50086, "WS2 LD: slot-find coords not init",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmNotInitialized = "PROC_WS2F_ALG_005";
 
@@ -630,7 +630,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查传感器信号线连接;\n" +
                 "2. 确认料盒位置正确;\n" +
                 "3. 复位后重新运行;",
-    10087, "WS2 LD: low sensor raw data",
+    50087, "WS2 LD: low sensor raw data",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmRawDataMissing = "PROC_WS2F_ALG_006";
 
@@ -639,7 +639,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查左右传感器信号;\n" +
                 "2. 确认物料摆放无倾斜;\n" +
                 "3. 复位后重新运行;",
-    10088, "WS2 LD: dual-sensor count mismatch",
+    50088, "WS2 LD: dual-sensor count mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmCountMismatch = "PROC_WS2F_ALG_007";
 
@@ -648,7 +648,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查料盒内物料状态;\n" +
                 "2. 小心处理斜片物料;\n" +
                 "3. 复位后重新执行寻层;",
-    10089, "WS2 Load: Cross-slot wafer detected",
+    50089, "WS2 Load: Cross-slot wafer detected",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmCrossSlot = "PROC_WS2F_ALG_008";
 
@@ -657,7 +657,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查料盒内物料状态;\n" +
                 "2. 小心分离重叠物料;\n" +
                 "3. 复位后重新执行寻层;",
-    10090, "WS2 Load: Double-wafer detected",
+    50090, "WS2 Load: Double-wafer detected",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmDoubleWafer = "PROC_WS2F_ALG_009";
 
@@ -666,7 +666,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查物料是否正确插入槽位;\n" +
                 "2. 确认料盒无损坏;\n" +
                 "3. 复位后重新执行寻层;",
-    10091, "WS2 LD: wafer off-slot, not seated",
+    50091, "WS2 LD: wafer off-slot, not seated",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string AlgorithmSlotMismatch = "PROC_WS2F_ALG_010";
 
@@ -675,7 +675,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 核查料盒内实际物料层位;\n" +
                 "2. 确认切换批次时选择的指定层是否正确;\n" +
                 "3. 修正指定层设置后重新切换批次;",
-    10092, "WS2 Load: Target slot mismatch",
+    50092, "WS2 Load: Target slot mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string SpecifiedLayersMismatch = "PROC_WS2F_ALG_011";
 
@@ -685,7 +685,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 若物料已被取走，请清空批次后重新下发;\n" +
                 "3. 若物料仍在，检查传感器或算法是否异常;\n" +
                 "4. 确认状态后手动复位重启;",
-    10093, "WS2 Load: Resume status mismatch",
+    50093, "WS2 Load: Resume status mismatch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ResumeConsistencyFailed = "PROC_WS2F_RSM_001";
 
@@ -694,7 +694,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 查看日志中具体异常信息;\n" +
                 "2. 排查对应硬件或配置项;\n" +
                 "3. 排除故障后复位重新初始化;",
-    10094, "WS2 Load: Initialization failed",
+    50094, "WS2 Load: Initialization failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string InitException = "PROC_WS2F_INIT_001";
 
@@ -703,7 +703,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 查看日志中具体异常信息;\n" +
                 "2. 排查对应硬件或状态异常;\n" +
                 "3. 排除故障后复位重新运行;",
-    10095, "WS2 Load: Resume run failed",
+    50095, "WS2 Load: Resume run failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/上晶圆-成品.png")]
             public const string ResumeException = "PROC_WS2F_RSM_002";
         }
@@ -721,7 +721,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认配方已正确下发至工位1;\n" +
                 "2. 检查配方参数页面数据是否完整;\n" +
                 "3. 重新下发配方后复位;",
-    10096, "WS1 Pull: Recipe params empty",
+    50096, "WS1 Pull: Recipe params empty",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string RecipeNull = "PROC_WS1P_DATA_001";
 
@@ -730,7 +730,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 根据报警描述核对夹爪物料状态与配方尺寸是否一致;\n" +
                 "2. 确认轨道/夹爪上无残留或异常物料;\n" +
                 "3. 排除后复位重新初始化;",
-    10097, "WS1 Pull: Init check failed",
+    50097, "WS1 Pull: Init check failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string InitCheckFailed = "PROC_WS1P_INIT_001";
 
@@ -740,7 +740,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认气源压力是否在正常范围;\n" +
                 "3. 手动操作确认流道机构;\n" +
                 "4. 复位后将重试调整;",
-    10098, "WS1 Pull: Adjust track size failed",
+    50098, "WS1 Pull: Adjust track size failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string TrackSizeMotorFailed = "PROC_WS1P_MOT_001";
 
@@ -750,7 +750,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后将重试移动;",
-    10099, "WS1 Pull: Y-axis move to pick fail",
+    50099, "WS1 Pull: Y-axis move to pick fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string YAxisToPickupFailed = "PROC_WS1P_MOT_002";
 
@@ -760,7 +760,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查夹爪闭合传感器信号;\n" +
                 "3. 手动操作夹爪确认动作;\n" +
                 "4. 复位后将重试;",
-    10100, "WS1 Pull: Close grip failed",
+    50100, "WS1 Pull: Close grip failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseFailed = "PROC_WS1P_ACT_001";
 
@@ -769,7 +769,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查料盒内物料状态;\n" +
                 "2. 小心分离叠料;\n" +
                 "3. 确认物料正常后复位;",
-    10101, "WS1 Pull: Stacked wafer detected",
+    50101, "WS1 Pull: Stacked wafer detected",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string StackedPiecesDetected = "PROC_WS1P_MAT_001";
 
@@ -780,7 +780,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 取出料盒检查晶圆放置方向;\n" +
                 "2. 确认防反传感器信号正常;\n" +
                 "3. 正确放置后复位;",
-    10102, "WS1 Pull: 8\" Wafer Reversed",
+    50102, "WS1 Pull: 8\" Wafer Reversed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string Wafer8InchReversed = "PROC_WS1P_SEN_004";
 
@@ -789,7 +789,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 取出料盒检查晶圆放置方向;\n" +
                 "2. 确认防反传感器信号正常;\n" +
                 "3. 正确放置后复位;",
-    10103, "WS1 Pull: 12\" Wafer Reversed",
+    50103, "WS1 Pull: 12\" Wafer Reversed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string Wafer12InchReversed = "PROC_WS1P_SEN_005";
 
@@ -802,7 +802,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查是否触发卡料或掉料防呆;\n" +
                 "3. 手动确认Y轴运动是否顺畅;\n" +
                 "4. 复位后将重试拉出;",
-    10104, "WS1 Pull: Pull to Check Failed",
+    50104, "WS1 Pull: Pull to Check Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutToInspectionFailed = "PROC_WS1P_MOT_003";
 
@@ -812,7 +812,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查是否触发防呆拦截;\n" +
                 "3. 确认Y轴无卡阻;\n" +
                 "4. 复位后将重试推回;",
-    10105, "WS1 Pull: push back fail",
+    50105, "WS1 Pull: push back fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackToCassetteFailed = "PROC_WS1P_MOT_004";
 
@@ -822,7 +822,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查夹爪张开传感器信号;\n" +
                 "3. 手动操作夹爪确认动作;\n" +
                 "4. 复位后将重试;",
-    10106, "WS1 Pull: Open Gripper Failed",
+    50106, "WS1 Pull: Open Gripper Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperOpenFailed = "PROC_WS1P_ACT_002";
 
@@ -831,7 +831,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后将重试退回;",
-    10107, "WS1 Pull: Y-Axis Return Home Failed",
+    50107, "WS1 Pull: Y-Axis Return Home Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string YAxisRetractFailed = "PROC_WS1P_MOT_005";
 
@@ -841,7 +841,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 小心取下残留物料;\n" +
                 "3. 检查夹爪内传感器;\n" +
                 "4. 确认无料后复位;",
-    10108, "WS1 Pull: Material Still in Gripper",
+    50108, "WS1 Pull: Material Still in Gripper",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string WaferStuckInGripper = "PROC_WS1P_MAT_002";
 
@@ -852,7 +852,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10109, "WS1 Pull: Init Sequence Failed",
+    50109, "WS1 Pull: Init Sequence Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string InitPullingFailed = "PROC_WS1P_MOT_006";
 
@@ -860,7 +860,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
             [AlarmInfo("流程异常/物料", "工位1拉料-轨道有物料，无法执行尺寸切换", "WS1 Pull: track busy, no switch", AlarmSeverity.Error,
     "1. 清除轨道上的残留物料;\n" +
                 "2. 确认轨道无料后复位;",
-    10110, "WS1 Pull: track busy, no switch",
+    50110, "WS1 Pull: track busy, no switch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string ChangeSizeTrackHasMaterial = "PROC_WS1P_MAT_003";
 
@@ -869,7 +869,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查IO模块输出信号;\n" +
                 "2. 确认电磁阀接线;\n" +
                 "3. 复位后重新运行;",
-    10111, "WS1 Pull: Size Cylinder IO Failed",
+    50111, "WS1 Pull: Size Cylinder IO Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string ChangeSizeCylinderFailed = "PROC_WS1P_ACT_003";
 
@@ -878,7 +878,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查气源压力是否正常;\n" +
                 "2. 确认磁性开关信号;\n" +
                 "3. 复位后重新运行;",
-    10112, "WS1 Pull: Size Cylinder Timeout",
+    50112, "WS1 Pull: Size Cylinder Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string ChangeSizeCylinderTimeout = "PROC_WS1P_ACT_004";
 
@@ -887,7 +887,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查IO模块输出信号;\n" +
                 "2. 确认气缸接线;\n" +
                 "3. 复位后重新运行;",
-    10113, "WS1 Pull: Gripper Open Cyl Failed",
+    50113, "WS1 Pull: Gripper Open Cyl Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperOpenCylinderFailed = "PROC_WS1P_ACT_005";
 
@@ -896,7 +896,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查气源压力;\n" +
                 "2. 确认气缸张开传感器信号;\n" +
                 "3. 复位后重新运行;",
-    10114, "WS1 Pull: Gripper Open Timeout",
+    50114, "WS1 Pull: Gripper Open Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperOpenTimeout = "PROC_WS1P_ACT_006";
 
@@ -905,7 +905,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查IO模块输出信号;\n" +
                 "2. 确认气缸接线;\n" +
                 "3. 复位后重新运行;",
-    10115, "WS1 Pull: Gripper Close Cyl Failed",
+    50115, "WS1 Pull: Gripper Close Cyl Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseCylinderFailed = "PROC_WS1P_ACT_007";
 
@@ -914,7 +914,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查气源压力;\n" +
                 "2. 确认气缸闭合传感器信号;\n" +
                 "3. 复位后重新运行;",
-    10116, "WS1 Pull: Gripper Close Timeout",
+    50116, "WS1 Pull: Gripper Close Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseTimeout = "PROC_WS1P_ACT_008";
 
@@ -924,7 +924,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认晶圆铁环是否在正确位置;\n" +
                 "3. 检查铁环检测传感器;\n" +
                 "4. 复位后重新运行;",
-    10117, "WS1 Pull: No Ring Detected (Empty)",
+    50117, "WS1 Pull: No Ring Detected (Empty)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseNoRing = "PROC_WS1P_SEN_001";
 
@@ -933,7 +933,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10118, "WS1 Pull: Move to Home Failed",
+    50118, "WS1 Pull: Move to Home Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string MoveInitialFailed = "PROC_WS1P_MOT_007";
 
@@ -941,7 +941,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
             [AlarmInfo("流程异常/传感器", "工位1拉料-待机位检测到残留物料", "WS1 Pull: Residual Material at Home", AlarmSeverity.Error,
     "1. 人工确认夹爪内是否有残留物料;\n" +
                 "2. 清除残留物料后复位;",
-    10119, "WS1 Pull: Residual Material at Home",
+    50119, "WS1 Pull: Residual Material at Home",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string MoveInitialResidualMaterial = "PROC_WS1P_SEN_002";
 
@@ -950,7 +950,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10120, "WS1 Pull: move to home fail (force)",
+    50120, "WS1 Pull: move to home fail (force)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string MoveInitialNoScanFailed = "PROC_WS1P_MOT_008";
 
@@ -959,7 +959,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10121, "WS1 Pull: Move to Safe Pos Failed",
+    50121, "WS1 Pull: Move to Safe Pos Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PutOverMoveFailed = "PROC_WS1P_MOT_009";
 
@@ -968,7 +968,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工排查夹爪是否粘连带料;\n" +
                 "2. 小心取下残留物料;\n" +
                 "3. 复位后重新运行;",
-    10122, "WS1 Pull: mat stuck, unload fail",
+    50122, "WS1 Pull: mat stuck, unload fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PutOverMaterialStuck = "PROC_WS1P_SEN_003";
 
@@ -977,7 +977,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10123, "WS1 Pull: Move to Pick Pos Failed",
+    50123, "WS1 Pull: Move to Pick Pos Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string InitialMoveFeedingFailed = "PROC_WS1P_MOT_010";
 
@@ -986,7 +986,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 确认运动控制卡连接;\n" +
                 "3. 复位后重新运行;",
-    10124, "WS1 Pull: pull motion trigger fail",
+    50124, "WS1 Pull: pull motion trigger fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutTriggerFailed = "PROC_WS1P_MOT_011";
 
@@ -995,7 +995,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查是否有物料卡阻;\n" +
                 "2. 确认轨道无异物;\n" +
                 "3. 处理后复位;",
-    10125, "WS1 Pull: Pull Jam, E-Stop Active",
+    50125, "WS1 Pull: Pull Jam, E-Stop Active",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutJamAlarm = "PROC_WS1P_MOT_012";
 
@@ -1004,7 +1004,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查物料是否脱落;\n" +
                 "2. 小心回收脱落的物料;\n" +
                 "3. 处理后复位;",
-    10126, "WS1 Pull: Pull Drop, E-Stop Active",
+    50126, "WS1 Pull: Pull Drop, E-Stop Active",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutDropAlarm = "PROC_WS1P_MOT_013";
 
@@ -1014,7 +1014,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10127, "WS1 Pull: Y-Axis Pull Timeout",
+    50127, "WS1 Pull: Y-Axis Pull Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutTimeout = "PROC_WS1P_MOT_014";
 
@@ -1023,7 +1023,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 确认运动控制卡连接;\n" +
                 "3. 复位后重新运行;",
-    10128, "WS1 Pull: feed motion trigger fail",
+    50128, "WS1 Pull: feed motion trigger fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackTriggerFailed = "PROC_WS1P_MOT_015";
 
@@ -1032,7 +1032,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查是否有物料卡阻;\n" +
                 "2. 确认轨道无异物;\n" +
                 "3. 处理后复位;",
-    10129, "WS1 Pull: Feed Jam, E-Stop Active",
+    50129, "WS1 Pull: Feed Jam, E-Stop Active",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackJamAlarm = "PROC_WS1P_MOT_016";
 
@@ -1041,7 +1041,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查物料是否脱落;\n" +
                 "2. 小心回收脱落的物料;\n" +
                 "3. 处理后复位;",
-    10130, "WS1 Pull: Feed Drop, E-Stop Active",
+    50130, "WS1 Pull: Feed Drop, E-Stop Active",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackDropAlarm = "PROC_WS1P_MOT_017";
 
@@ -1051,7 +1051,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10131, "WS1 Pull: Feed Motion Timeout",
+    50131, "WS1 Pull: Feed Motion Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackTimeout = "PROC_WS1P_MOT_018";
 
@@ -1061,7 +1061,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认光源亮度;\n" +
                 "3. 清洁扫码枪镜头;\n" +
                 "4. 复位后重新运行;",
-    10132, "WS1 Pull: Scan/Verify Failed",
+    50132, "WS1 Pull: Scan/Verify Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string CodeScanFailed = "PROC_WS1P_CAM_001";
         }
@@ -1079,7 +1079,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认配方已正确下发至工位2;\n" +
                 "2. 检查配方参数页面数据是否完整;\n" +
                 "3. 重新下发配方后复位;",
-    10133, "WS2 Pull: Recipe Params Empty",
+    50133, "WS2 Pull: Recipe Params Empty",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string RecipeNull = "PROC_WS2P_DATA_001";
 
@@ -1088,7 +1088,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 根据报警描述核对夹爪物料状态与配方尺寸是否一致;\n" +
                 "2. 确认轨道/夹爪上无残留或异常物料;\n" +
                 "3. 排除后复位重新初始化;",
-    10134, "WS2 Pull: Init Check Failed",
+    50134, "WS2 Pull: Init Check Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string InitCheckFailed = "PROC_WS2P_INIT_001";
 
@@ -1098,7 +1098,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认气源压力是否在正常范围;\n" +
                 "3. 手动操作确认流道机构;\n" +
                 "4. 复位后将重试调整;",
-    10135, "WS2 Pull: Adjust Track Size Failed",
+    50135, "WS2 Pull: Adjust Track Size Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string TrackSizeMotorFailed = "PROC_WS2P_MOT_001";
 
@@ -1108,7 +1108,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后将重试移动;",
-    10136, "WS2 Pull: Y-axis move to pick fail",
+    50136, "WS2 Pull: Y-axis move to pick fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string YAxisToPickupFailed = "PROC_WS2P_MOT_002";
 
@@ -1118,7 +1118,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查夹爪闭合传感器信号;\n" +
                 "3. 手动操作夹爪确认动作;\n" +
                 "4. 复位后将重试;",
-    10137, "WS2 Pull: Close Gripper Failed",
+    50137, "WS2 Pull: Close Gripper Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseFailed = "PROC_WS2P_ACT_001";
 
@@ -1127,7 +1127,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查料盒内物料状态;\n" +
                 "2. 小心分离叠料;\n" +
                 "3. 确认物料正常后复位;",
-    10138, "WS2 Pull: Double Material Detected",
+    50138, "WS2 Pull: Double Material Detected",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string StackedPiecesDetected = "PROC_WS2P_MAT_001";
 
@@ -1137,7 +1137,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查是否触发卡料或掉料防呆;\n" +
                 "3. 手动确认Y轴运动是否顺畅;\n" +
                 "4. 复位后将重试拉出;",
-    10139, "WS2 Pull: Pull to Check Failed",
+    50139, "WS2 Pull: Pull to Check Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutToInspectionFailed = "PROC_WS2P_MOT_003";
 
@@ -1147,7 +1147,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查是否触发防呆拦截;\n" +
                 "3. 确认Y轴无卡阻;\n" +
                 "4. 复位后将重试推回;",
-    10140, "WS2 Pull: push back fail",
+    50140, "WS2 Pull: push back fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackToCassetteFailed = "PROC_WS2P_MOT_004";
 
@@ -1157,7 +1157,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 检查夹爪张开传感器信号;\n" +
                 "3. 手动操作夹爪确认动作;\n" +
                 "4. 复位后将重试;",
-    10141, "WS2 Pull: Open Gripper Failed",
+    50141, "WS2 Pull: Open Gripper Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperOpenFailed = "PROC_WS2P_ACT_002";
 
@@ -1166,7 +1166,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后将重试退回;",
-    10142, "WS2 Pull: Y-Axis Return Home Failed",
+    50142, "WS2 Pull: Y-Axis Return Home Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string YAxisRetractFailed = "PROC_WS2P_MOT_005";
 
@@ -1176,7 +1176,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 小心取下残留物料;\n" +
                 "3. 检查夹爪内传感器;\n" +
                 "4. 确认无料后复位;",
-    10143, "WS2 Pull: Material Still in Gripper",
+    50143, "WS2 Pull: Material Still in Gripper",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string WaferStuckInGripper = "PROC_WS2P_MAT_002";
 
@@ -1187,7 +1187,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10144, "WS2 Pull: Init Sequence Failed",
+    50144, "WS2 Pull: Init Sequence Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string InitPullingFailed = "PROC_WS2P_MOT_006";
 
@@ -1195,7 +1195,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
             [AlarmInfo("流程异常/物料", "工位2拉料-轨道有物料，无法执行尺寸切换", "WS2 Pull: track busy, no switch", AlarmSeverity.Error,
     "1. 清除轨道上的残留物料;\n" +
                 "2. 确认轨道无料后复位;",
-    10145, "WS2 Pull: track busy, no switch",
+    50145, "WS2 Pull: track busy, no switch",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string ChangeSizeTrackHasMaterial = "PROC_WS2P_MAT_003";
 
@@ -1204,7 +1204,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查IO模块输出信号;\n" +
                 "2. 确认电磁阀接线;\n" +
                 "3. 复位后重新运行;",
-    10146, "WS2 Pull: Size Cylinder IO Failed",
+    50146, "WS2 Pull: Size Cylinder IO Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string ChangeSizeCylinderFailed = "PROC_WS2P_ACT_003";
 
@@ -1213,7 +1213,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查气源压力是否正常;\n" +
                 "2. 确认磁性开关信号;\n" +
                 "3. 复位后重新运行;",
-    10147, "WS2 Pull: Size Cylinder Timeout",
+    50147, "WS2 Pull: Size Cylinder Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string ChangeSizeCylinderTimeout = "PROC_WS2P_ACT_004";
 
@@ -1222,7 +1222,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查IO模块输出信号;\n" +
                 "2. 确认气缸接线;\n" +
                 "3. 复位后重新运行;",
-    10148, "WS2 Pull: Gripper Open Cyl Failed",
+    50148, "WS2 Pull: Gripper Open Cyl Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperOpenCylinderFailed = "PROC_WS2P_ACT_005";
 
@@ -1231,7 +1231,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查气源压力;\n" +
                 "2. 确认气缸张开传感器信号;\n" +
                 "3. 复位后重新运行;",
-    10149, "WS2 Pull: Gripper Open Timeout",
+    50149, "WS2 Pull: Gripper Open Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperOpenTimeout = "PROC_WS2P_ACT_006";
 
@@ -1240,7 +1240,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查IO模块输出信号;\n" +
                 "2. 确认气缸接线;\n" +
                 "3. 复位后重新运行;",
-    10150, "WS2 Pull: Gripper Close Cyl Failed",
+    50150, "WS2 Pull: Gripper Close Cyl Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseCylinderFailed = "PROC_WS2P_ACT_007";
 
@@ -1249,7 +1249,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查气源压力;\n" +
                 "2. 确认气缸闭合传感器信号;\n" +
                 "3. 复位后重新运行;",
-    10151, "WS2 Pull: Gripper Close Timeout",
+    50151, "WS2 Pull: Gripper Close Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseTimeout = "PROC_WS2P_ACT_008";
 
@@ -1259,7 +1259,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认晶圆铁环是否在正确位置;\n" +
                 "3. 检查铁环检测传感器;\n" +
                 "4. 复位后重新运行;",
-    10152, "WS2 Pull: No Ring Detected (Empty)",
+    50152, "WS2 Pull: No Ring Detected (Empty)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string GripperCloseNoRing = "PROC_WS2P_SEN_001";
 
@@ -1268,7 +1268,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10153, "WS2 Pull: move to standby pos fail",
+    50153, "WS2 Pull: move to standby pos fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string MoveInitialFailed = "PROC_WS2P_MOT_007";
 
@@ -1276,7 +1276,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
             [AlarmInfo("流程异常/传感器", "工位2拉料-待机位检测到残留物料", "WS2 Pull: residue at standby", AlarmSeverity.Error,
     "1. 人工确认夹爪内是否有残留物料;\n" +
                 "2. 清除残留物料后复位;",
-    10154, "WS2 Pull: residue at standby",
+    50154, "WS2 Pull: residue at standby",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string MoveInitialResidualMaterial = "PROC_WS2P_SEN_002";
 
@@ -1285,7 +1285,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10155, "WS2 Pull: standby move fail (RST)",
+    50155, "WS2 Pull: standby move fail (RST)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string MoveInitialNoScanFailed = "PROC_WS2P_MOT_008";
 
@@ -1294,7 +1294,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10156, "WS2 Pull: Move to Safe Pos Failed",
+    50156, "WS2 Pull: Move to Safe Pos Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PutOverMoveFailed = "PROC_WS2P_MOT_009";
 
@@ -1303,7 +1303,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工排查夹爪是否粘连带料;\n" +
                 "2. 小心取下残留物料;\n" +
                 "3. 复位后重新运行;",
-    10157, "WS2 Pull: Gripper Material Sticking",
+    50157, "WS2 Pull: Gripper Material Sticking",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PutOverMaterialStuck = "PROC_WS2P_SEN_003";
 
@@ -1315,7 +1315,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 取出料盒检查晶圆放置方向;\n" +
                 "2. 确认防反传感器信号正常;\n" +
                 "3. 正确放置后复位;",
-    10158, "WS2 Pull: 8\" Wafer Placed Reversed",
+    50158, "WS2 Pull: 8\" Wafer Placed Reversed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string Wafer8InchReversed = "PROC_WS2P_SEN_004";
             /// <summary>12寸晶圆放反</summary>
@@ -1323,7 +1323,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 取出料盒检查晶圆放置方向;\n" +
                 "2. 确认防反传感器信号正常;\n" +
                 "3. 正确放置后复位;",
-    10159, "WS2 Pull: 12\" Wafer Reversed",
+    50159, "WS2 Pull: 12\" Wafer Reversed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string Wafer12InchReversed = "PROC_WS2P_SEN_005";
 
@@ -1334,7 +1334,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10160, "WS2 Pull: Move to Pick Pos Failed",
+    50160, "WS2 Pull: Move to Pick Pos Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string InitialMoveFeedingFailed = "PROC_WS2P_MOT_010";
 
@@ -1343,7 +1343,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 确认运动控制卡连接;\n" +
                 "3. 复位后重新运行;",
-    10161, "WS2 Pull: Pull Motion Trigger Fail",
+    50161, "WS2 Pull: Pull Motion Trigger Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutTriggerFailed = "PROC_WS2P_MOT_011";
 
@@ -1352,7 +1352,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查是否有物料卡阻;\n" +
                 "2. 确认轨道无异物;\n" +
                 "3. 处理后复位;",
-    10162, "WS2 Pull: pull jam, E-stop on",
+    50162, "WS2 Pull: pull jam, E-stop on",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutJamAlarm = "PROC_WS2P_MOT_012";
 
@@ -1361,7 +1361,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查物料是否脱落;\n" +
                 "2. 小心回收脱落的物料;\n" +
                 "3. 处理后复位;",
-    10163, "WS2 Pull: pull drop, E-stop on",
+    50163, "WS2 Pull: pull drop, E-stop on",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutDropAlarm = "PROC_WS2P_MOT_013";
 
@@ -1371,7 +1371,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10164, "WS2 Pull: Y pull motion timeout",
+    50164, "WS2 Pull: Y pull motion timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PullOutTimeout = "PROC_WS2P_MOT_014";
 
@@ -1380,7 +1380,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Y轴伺服是否报警;\n" +
                 "2. 确认运动控制卡连接;\n" +
                 "3. 复位后重新运行;",
-    10165, "WS2 Pull: Feed Motion Trigger Fail",
+    50165, "WS2 Pull: Feed Motion Trigger Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackTriggerFailed = "PROC_WS2P_MOT_015";
 
@@ -1389,7 +1389,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查是否有物料卡阻;\n" +
                 "2. 确认轨道无异物;\n" +
                 "3. 处理后复位;",
-    10166, "WS2 Pull: feed jam, E-stop on",
+    50166, "WS2 Pull: feed jam, E-stop on",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackJamAlarm = "PROC_WS2P_MOT_016";
 
@@ -1398,7 +1398,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 人工检查物料是否脱落;\n" +
                 "2. 小心回收脱落的物料;\n" +
                 "3. 处理后复位;",
-    10167, "WS2 Pull: feed drop, E-stop on",
+    50167, "WS2 Pull: feed drop, E-stop on",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackDropAlarm = "PROC_WS2P_MOT_017";
 
@@ -1408,7 +1408,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10168, "WS2 Pull: Feed Motion Timeout",
+    50168, "WS2 Pull: Feed Motion Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string PushBackTimeout = "PROC_WS2P_MOT_018";
 
@@ -1418,7 +1418,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认光源亮度;\n" +
                 "3. 清洁扫码枪镜头;\n" +
                 "4. 复位后重新运行;",
-    10169, "WS2 Pull: Scan or Verify Failed",
+    50169, "WS2 Pull: Scan or Verify Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/夹爪-成品.png")]
             public const string CodeScanFailed = "PROC_WS2P_CAM_001";
         }
@@ -1437,7 +1437,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认工站间同步配置是否正确;\n" +
                 "3. 查看关联工站报警信息;\n" +
                 "4. 复位后重新运行;",
-    10170, "OCR: Task Pool Abnormal Interrupt",
+    50170, "OCR: Task Pool Abnormal Interrupt",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string SignalWaitFault = "PROC_DET_SIG_001";
 
@@ -1447,7 +1447,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认配方中目标坐标是否正确;\n" +
                 "3. 手动点动确认龙门运动;\n" +
                 "4. 复位后重试定位;",
-    10171, "OCR: gantry inspect pos move fail",
+    50171, "OCR: gantry inspect pos move fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string GantryMoveFailed = "PROC_DET_MOT_001";
 
@@ -1458,7 +1458,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "3. 确认相机触发参数配置正确;\n" +
                 "4. 手动触发相机确认功能;\n" +
                 "5. 复位后重新运行;",
-    10172, "OCR: Cam Handshake Fail (Light/Cam)",
+    50172, "OCR: Cam Handshake Fail (Light/Cam)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string CameraTriggerFailed = "PROC_DET_CAM_001";
 
@@ -1468,7 +1468,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Z轴确认是否能抬起;\n" +
                 "3. 确认无机械干涉;\n" +
                 "4. 复位后重试;",
-    10173, "OCR: Z-Axis Lift Fail (Crash Lock)",
+    50173, "OCR: Z-Axis Lift Fail (Crash Lock)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string ZAxisRetractAfterScan = "PROC_DET_MOT_002";
 
@@ -1478,7 +1478,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 查看日志中具体写入错误信息;\n" +
                 "3. 尝试重启数据服务后复位;\n" +
                 "4. 联系维护人员检查数据库;",
-    10174, "OCR: Data Write Failed",
+    50174, "OCR: Data Write Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string DataWriteFailed = "PROC_DET_DATA_001";
 
@@ -1491,7 +1491,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查XYZ轴伺服是否报警;\n" +
                 "2. 手动点动确认各轴运动正常;\n" +
                 "3. 复位后重新运行;",
-    10175, "OCR: Move Standby Fail (Z/XY Axis)",
+    50175, "OCR: Move Standby Fail (Z/XY Axis)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveInitialFailed = "PROC_DET_MOT_003";
 
@@ -1500,7 +1500,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查Z轴伺服是否报警;\n" +
                 "2. 手动点动Z轴确认运动正常;\n" +
                 "3. 复位后重新运行;",
-    10176, "OCR: Z-Axis Move to Safe Pos Fail",
+    50176, "OCR: Z-Axis Move to Safe Pos Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveZSafePosFailed = "PROC_DET_MOT_004";
 
@@ -1509,7 +1509,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认工位1配方已正确下发;\n" +
                 "2. 检查配方参数是否完整;\n" +
                 "3. 重新下发配方后复位;",
-    10177, "OCR: WS1 Recipe Empty, No Coords",
+    50177, "OCR: WS1 Recipe Empty, No Coords",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation1RecipeNull = "PROC_DET_DATA_002";
 
@@ -1518,7 +1518,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查XYZ轴伺服是否报警;\n" +
                 "2. 确认运动控制卡连接;\n" +
                 "3. 复位后重新运行;",
-    10178, "OCR: WS1 Axis Trigger Fail",
+    50178, "OCR: WS1 Axis Trigger Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation1MoveFailed = "PROC_DET_MOT_005";
 
@@ -1527,7 +1527,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查相机通讯连接;\n" +
                 "2. 确认配方名称是否正确;\n" +
                 "3. 复位后重新运行;",
-    10179, "OCR: Switch to WS1 Recipe Fail",
+    50179, "OCR: Switch to WS1 Recipe Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation1RecipeSwitchFailed = "PROC_DET_CAM_002";
 
@@ -1537,7 +1537,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10180, "OCR: WS1 XYZ Axis Motion Timeout",
+    50180, "OCR: WS1 XYZ Axis Motion Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation1MoveTimeout = "PROC_DET_MOT_006";
 
@@ -1546,7 +1546,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 确认工位2配方已正确下发;\n" +
                 "2. 检查配方参数是否完整;\n" +
                 "3. 重新下发配方后复位;",
-    10181, "OCR: WS2 Recipe Empty, No Coords",
+    50181, "OCR: WS2 Recipe Empty, No Coords",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation2RecipeNull = "PROC_DET_DATA_003";
 
@@ -1555,7 +1555,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查XYZ轴伺服是否报警;\n" +
                 "2. 确认运动控制卡连接;\n" +
                 "3. 复位后重新运行;",
-    10182, "OCR: WS2 Axis Trigger Fail",
+    50182, "OCR: WS2 Axis Trigger Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation2MoveFailed = "PROC_DET_MOT_007";
 
@@ -1564,7 +1564,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查相机通讯连接;\n" +
                 "2. 确认配方名称是否正确;\n" +
                 "3. 复位后重新运行;",
-    10183, "OCR: Switch to WS2 Recipe Fail",
+    50183, "OCR: Switch to WS2 Recipe Fail",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation2RecipeSwitchFailed = "PROC_DET_CAM_003";
 
@@ -1574,7 +1574,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动确认运动正常;\n" +
                 "3. 检查运动参数;\n" +
                 "4. 复位后重新运行;",
-    10184, "OCR: WS2 XYZ Axis Motion Timeout",
+    50184, "OCR: WS2 XYZ Axis Motion Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string MoveToStation2MoveTimeout = "PROC_DET_MOT_008";
 
@@ -1584,7 +1584,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认相机触发参数;\n" +
                 "3. 手动触发相机确认功能;\n" +
                 "4. 复位后重新运行;",
-    10185, "OCR: Cam Trigger Fail / Comm Error",
+    50185, "OCR: Cam Trigger Fail / Comm Error",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string CameraCaptureFailed = "PROC_DET_CAM_004";
 
@@ -1596,7 +1596,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Z轴确认运动正常;\n" +
                 "3. 确认Z轴原点传感器信号;\n" +
                 "4. 复位后重新初始化;",
-    10186, "OCR: Z-Axis Homing Fail (Init)",
+    50186, "OCR: Z-Axis Homing Fail (Init)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string InitHomeZFailed = "PROC_DET_MOT_009";
 
@@ -1606,7 +1606,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动X轴确认运动正常;\n" +
                 "3. 确认X轴原点传感器信号;\n" +
                 "4. 复位后重新初始化;",
-    10187, "OCR: X-Axis Homing Fail (Init)",
+    50187, "OCR: X-Axis Homing Fail (Init)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string InitHomeXFailed = "PROC_DET_MOT_010";
 
@@ -1616,7 +1616,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 手动点动Y轴确认运动正常;\n" +
                 "3. 确认Y轴原点传感器信号;\n" +
                 "4. 复位后重新初始化;",
-    10188, "OCR: Y-Axis Homing Fail (Init)",
+    50188, "OCR: Y-Axis Homing Fail (Init)",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string InitHomeYFailed = "PROC_DET_MOT_011";
 
@@ -1625,7 +1625,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 查看日志中具体异常信息;\n" +
                 "2. 根据异常详情排查对应硬件或配置;\n" +
                 "3. 复位后重新初始化;",
-    10189, "OCR: Initialization Abnormal",
+    50189, "OCR: Initialization Abnormal",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string InitException = "PROC_DET_INIT_001";
         }
@@ -1644,7 +1644,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认网络配置正确;\n" +
                 "3. 检查MES接口参数;\n" +
                 "4. 联系MES维护人员;",
-    10190, "Data: MES Query Failed",
+    50190, "Data: MES Query Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string MesQueryFailed = "PROC_DATA_MES_001";
 
@@ -1654,7 +1654,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认配方版本兼容性;\n" +
                 "3. 检查存储空间;\n" +
                 "4. 重新下发配方;",
-    10191, "Data: Recipe Update Failed",
+    50191, "Data: Recipe Update Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string RecipeUpdateFailed = "PROC_DATA_REC_001";
 
@@ -1663,7 +1663,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查OCR识别结果;\n" +
                 "2. 确认校验规则配置;\n" +
                 "3. 调整OCR参数后重试;",
-    10192, "Data: OCR Verification Failed",
+    50192, "Data: OCR Verification Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string OcrValidationFailed = "PROC_DATA_OCR_001";
 
@@ -1673,7 +1673,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认磁盘空间充足;\n" +
                 "3. 检查文件读写权限;\n" +
                 "4. 重启数据服务;",
-    10193, "Data: Persistence Failed",
+    50193, "Data: Persistence Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string DataPersistenceFailed = "PROC_DATA_DB_001";
 
@@ -1682,7 +1682,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查MES下发的批次数据;\n" +
                 "2. 确认所有必填字段已填充;\n" +
                 "3. 重新请求批次数据;",
-    10194, "Data: Batch Data Incomplete",
+    50194, "Data: Batch Data Incomplete",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string BatchDataIncomplete = "PROC_DATA_BAT_001";
 
@@ -1691,7 +1691,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查工位标识是否合法;\n" +
                 "2. 确认MES数据格式正确;\n" +
                 "3. 重新尝试切换批次;",
-    10195, "Data: MES Batch Update Failed",
+    50195, "Data: MES Batch Update Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string MesInfoUpdateFailed = "PROC_DATA_MES_002";
 
@@ -1700,7 +1700,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查扫码枪读取结果;\n" +
                 "2. 确认条码格式与配方规则匹配;\n" +
                 "3. 核对MES下发的客户批次名单;",
-    10196, "Data: Barcode Verify Failed",
+    50196, "Data: Barcode Verify Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string CodeValidationFailed = "PROC_DATA_CODE_001";
         }
@@ -1719,7 +1719,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认IP地址配置;\n" +
                 "3. 检查端口占用情况;\n" +
                 "4. 重启通讯服务;",
-    10197, "SECS/GEM: Init Failed",
+    50197, "SECS/GEM: Init Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string InitializationFailed = "PROC_SECS_INIT_001";
 
@@ -1729,7 +1729,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认协议版本兼容性;\n" +
                 "3. 查看通讯日志;\n" +
                 "4. 重新建立连接;",
-    10198, "SECS/GEM: Protocol Proc Failed",
+    50198, "SECS/GEM: Protocol Proc Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string ProtocolProcessingFailed = "PROC_SECS_PROT_001";
 
@@ -1739,7 +1739,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认目标主机可达;\n" +
                 "3. 检查防火墙设置;\n" +
                 "4. 重试发送消息;",
-    10199, "SECS/GEM: Message Send Failed",
+    50199, "SECS/GEM: Message Send Failed",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string MessageSendFailed = "PROC_SECS_SEND_001";
 
@@ -1749,7 +1749,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
                 "2. 确认消息处理逻辑;\n" +
                 "3. 调整超时时间;\n" +
                 "4. 重新发送请求;",
-    10200, "SECS/GEM: Message Receive Timeout",
+    50200, "SECS/GEM: Message Receive Timeout",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string MessageReceiveTimeout = "PROC_SECS_RECV_001";
 
@@ -1758,7 +1758,7 @@ namespace PF.WorkStation.AutoOcr.CostParam
     "1. 检查物理连接;\n" +
                 "2. 确认主机状态;\n" +
                 "3. 自动重连或手动复位;",
-    10201, "SECS/GEM: Connection Lost",
+    50201, "SECS/GEM: Connection Lost",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png")]
             public const string ConnectionLost = "PROC_SECS_CONN_001";
         }
