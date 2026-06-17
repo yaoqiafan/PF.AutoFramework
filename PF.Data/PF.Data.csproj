@@ -12,8 +12,29 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-06-17) — 报警实体扩展（SECS/GEM 字段）+ 数据库 Schema 变更
+
+[数据库 Schema 变更 — 需执行迁移]
+- AlarmDefinitions 表（AlarmHistory.db）新增三列：
+    MessageEn     NVARCHAR(35)   — 英文报警描述，SECS/GEM S5F1 上传用
+    MessageID     INTEGER        — 整型报警 ID（默认 0）
+    MessageIDHex  NVARCHAR(40)   — 英文报警文本
+  若直接覆盖 dll 而不迁移，旧库可正常读写（EF Core 对未知列无感），
+  但新字段将读取为默认值（空字符串 / 0）。
+
+[实体变更]
+- AlarmDefinitionEntity 新增属性：
+    MessageEn    ([MaxLength(35)])
+    MessageID    (int)
+    MessageIDHex ([MaxLength(40)])
+- AlarmDbContext Fluent API 为 MessageEn（MaxLength 35）和
+  MessageIDHex（MaxLength 40）补充列长度约束，与数据库类型匹配。
+- AlarmRecordEntity 清理空白行（无逻辑变化）。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>通用数据访问层：EF Core DbContext 工厂、参数/生产数据实体、泛型仓储</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

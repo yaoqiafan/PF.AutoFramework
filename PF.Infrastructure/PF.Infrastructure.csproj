@@ -16,8 +16,25 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-06-17) — SecsGem 初始化逻辑重构 + 指令加载容错
+
+[行为变更 — SecsGem ParamsManger]
+- InitializeAsync 加载顺序调整：
+  旧逻辑：res1 &amp; res2 &amp; res3 全部成功后才执行命令管理器初始化；
+          配方配置（res3）加载失败则直接返回 false，命令管理器不初始化。
+  新逻辑：res1（系统配置）、res2（变量配置）、res3（配方配置）并行加载，
+          命令管理器初始化（res4）始终执行，返回 res1 &amp; res2 &amp; res4；
+          res3 失败不再阻塞初始化，SecsGem 服务空库时不再报错退出。
+
+- LoadFormulaConfiguration 容错增强：
+  IncentiveCommand / ResponseCommand 从数据库读取操作包进 try-catch；
+  数据库为空或表不存在时静默返回空字典，不抛异常，不中断初始化流程。
+  适用场景：首次部署、SecsGemConfig.db 尚未导入配方配置时。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>底层基础设施：BaseDevice、BaseMechanism、StationBase、TCP 通信基类</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

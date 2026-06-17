@@ -13,8 +13,19 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.1</Version>
-    <PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+    <Version>1.0.2</Version>
+    <PackageReleaseNotes>
+v1.0.2 (2026-06-17) — ReportIDEntity 空值容错 + LinkVID 注解修正
+
+[Bug 修复]
+- ReportIDEntity.LinkVID 加 [Required(AllowEmptyStrings = true)] 注解：
+  修复 EF Core 将空数组序列化为 NULL 后反序列化时抛出 NullReferenceException 的问题。
+- ToReportID() 扩展方法增加 null 保护：
+  若 entity.LinkVID 为 null（数据库旧数据或迁移前记录），自动替换为 uint[0]，
+  防止构造 ReportID 时因 null 数组导致 VID 链路初始化崩溃。
+
+v1.0.1 - 框架初始独立版本
+    </PackageReleaseNotes>
     <Description>SECS/GEM 协议专用数据库层：EF Core 实体、DbContext、Repository</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
   </PropertyGroup>

@@ -25,8 +25,20 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-06-17) — SecsParameterViewModel 代码整理 + 命名空间引用补全
+
+[变更]
+- SecsCommandBuilderViewModel：补充 using PF.Infrastructure.SecsGem.Command.Interaction，
+  修复因缺少该引用在某些编译环境下的 CS0246 潜在错误。
+- SecsParameterViewModel：全量代码格式化（去除列对齐空格，统一紧凑风格），
+  无逻辑变化，仅提升代码可读性与 diff 一致性。
+- SecsLogViewModel：小幅格式调整（空行），无逻辑变化。
+- 依赖 PF.Infrastructure 1.0.2（SecsGem 初始化逻辑重构）。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>SECS/GEM 通信模块：报文监控与发送 UI</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

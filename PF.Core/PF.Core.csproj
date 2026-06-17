@@ -3,8 +3,38 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-06-17) — 报警系统 SECS/GEM 支持 + SecsGemNodeMessage 修复
+
+[破坏性变更]
+- AlarmInfoAttribute 构造函数新增三个必填参数（签名已变更，现有标注须更新）：
+    messageEn     — 英文报警描述，上传 SECS/GEM S5F1 消息用，限 35 字符
+    messageID     — 整型报警 ID，框架内置从 50000 起步，需开发者保证唯一性
+    messageIDHex  — 英文报警文本（限 40 字符），与 messageEn 保持一致
+  旧签名：(category, message, severity, solution, imagePath?)
+  新签名：(category, message, messageEn, severity, solution, messageID, messageIDHex, imagePath?)
+
+[新功能]
+- AlarmInfoAttribute 新增属性：MessageEn、MessageID、MessageIDHex。
+- AlarmInfo 模型新增属性：MessageEn、MessageID、MessageIDHex，
+  报警字典查询结果完整携带 SECS/GEM 上传元数据。
+- AlarmRecord 模型新增属性：MessageEn、MessageID、MessageIDHex，
+  触发记录完整携带上传所需字段，无需在上传侧二次查字典。
+- AlarmCodes 内置 26 条框架报警全量更新 [AlarmInfo] 特性：
+    HW 类（硬件）：ServoError=50000 … MonitorFailure=50025
+    SYS 类（系统）：InitializationTimeout=50016 … UndefinedStep=50021
+    SAFE 类（安全）：SafeDoorOpen=50022 … MonitorFailure=50025
+  所有英文描述均控制在 35 字符内，符合 SECS/GEM ALID 上报规范。
+
+[Bug 修复]
+- SecsGemNodeMessage.SetValue(DataType.U4)：
+  将 `if (_value is uint uU4)` 强类型守卫改为 Convert.ToUInt32(_value)，
+  修复 int / long / short 等整型赋值时因类型不匹配而静默跳过、Data 字段保持旧值的问题。
+  TypedValue 由 uU4 改为存储原始 _value，与其他 DataType 分支行为一致。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>PF.AutoFramework 核心契约层：接口、枚举、特性，无任何外部依赖</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

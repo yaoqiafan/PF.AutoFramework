@@ -3,8 +3,33 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.1</Version>
-    <PackageReleaseNotes>v1.0.1 - 框架初始独立版本；各子包版本由各自 .csproj 独立管理</PackageReleaseNotes>
+    <Version>1.0.2</Version>
+    <PackageReleaseNotes>
+v1.0.2 (2026-06-17) — 新增 PF.Modules.Alarm 依赖 + 全量子包升级至 1.0.2
+
+[元包变更]
+- 新增依赖项：PF.Modules.Alarm 1.0.2。
+  升级前使用元包的项目需移除对 PF.Modules.Alarm 的单独引用（如有）以避免重复。
+
+[子包更新摘要（全部升级至 1.0.2）]
+- PF.Core          — [破坏性] AlarmInfoAttribute 构造函数新增 messageEn/messageID/
+                     messageIDHex 三个必填参数；AlarmInfo/AlarmRecord 模型同步扩展；
+                     SecsGemNodeMessage U4 类型转换 Bug 修复。
+- PF.Data          — AlarmDefinitionEntity 新增三列（需迁移 AlarmHistory.db）：
+                     MessageEn(35)、MessageID、MessageIDHex(40)。
+- PF.Infrastructure — SecsGem ParamsManger 初始化逻辑重构：配方配置加载失败不再
+                     阻塞初始化；IncentiveCommand/ResponseCommand 空库容错。
+- PF.Services      — AlarmService 触发 &amp; 查询全链路透传 SECS/GEM 字段；
+                     AlarmDictionaryService 反射/数据库双路径同步映射；
+                     LogService 修复初始化顺序导致启动日志丢失的 Bug。
+- PF.SecsGem.DataBase — ReportIDEntity.LinkVID 空值容错修复。
+- PF.Modules.SecsGem  — SecsCommandBuilderViewModel 命名空间补全；
+                        SecsParameterViewModel 代码格式化。
+- PF.Modules.Alarm    — 无逻辑变化，随框架升级。
+- 其余子包（CommonTools / UI.Infrastructure / Modules.*）随框架统一升级至 1.0.2。
+
+v1.0.1 - 框架初始独立版本；各子包版本由各自 .csproj 独立管理
+    </PackageReleaseNotes>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
     <Description>PF.AutoFramework 一键引用元包，包含全部核心库、UI 组件库及业务模块</Description>
     <!-- 元包无代码产出，抑制 NU5128 警告 -->
