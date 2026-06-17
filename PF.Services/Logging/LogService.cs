@@ -115,9 +115,11 @@ namespace PF.Services.Logging
             // 确保基础目录存在
             EnsureBaseDirectory();
 
+
+            _log4netLogger = _categoryLoggers.ContainsKey("System") ? _categoryLoggers["System"] : LogManager.GetLogger("System");
             // 初始化log4net
             InitializeLog4Net();
-            _log4netLogger = _categoryLoggers.ContainsKey("System") ? _categoryLoggers["System"] : LogManager.GetLogger("System");
+
 
             // 启动处理任务
             StartProcessingTask();

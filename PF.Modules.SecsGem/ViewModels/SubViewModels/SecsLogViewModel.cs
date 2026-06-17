@@ -58,6 +58,8 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 entry = CreateLogEntry(msg, message ?? "→");
             }
             TransactionLogs.Insert(0,entry);
+
+
         }
 
         /// <summary>追加一条接收到的报文日志。</summary>

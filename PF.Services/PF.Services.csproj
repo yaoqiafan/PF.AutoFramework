@@ -16,8 +16,31 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-06-17) — 报警服务全链路 SECS/GEM 字段透传 + LogService 初始化 Bug 修复
+
+[AlarmService — 新功能]
+- TriggerAlarm：构造 AlarmRecord 时补填 MessageEn / MessageID / MessageIDHex，
+  触发的报警记录完整携带 SECS/GEM 上传所需元数据，无需上传侧二次查字典。
+- GetHistoryAlarms：历史记录从数据库映射时同步补填三个新字段，
+  历史查询结果与实时报警记录字段保持一致。
+
+[AlarmDictionaryService — 新功能]
+- 反射扫描路径（代码内置报警）：从 [AlarmInfo] 特性读取 MessageEn / MessageID /
+  MessageIDHex 并写入 AlarmInfo 模型。
+- 数据库加载路径（AlarmDefinitions 扩展报警）：同步从 AlarmDefinitionEntity
+  映射 MessageEn / MessageID / MessageIDHex。
+- 兜底路径（未知报警码）：返回默认值 MessageID=-1 / MessageIDHex="NoneError"，
+  保证上传侧收到的字段始终非 null。
+
+[LogService — Bug 修复]
+- 修复初始化顺序错误：_log4netLogger 赋值移至 InitializeLog4Net() 调用之后，
+  修复旧版中因 log4net 未完成初始化即赋值导致 logger 可能为 null 的问题，
+  表现为启动阶段前几条日志静默丢失。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>核心业务服务：ParamService、HardwareManagerService、ProductionDataService、LogService</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

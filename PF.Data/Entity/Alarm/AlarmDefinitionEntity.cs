@@ -19,9 +19,13 @@ namespace PF.Data.Entity.Alarm
         [MaxLength(64)]
         public string Category { get; set; } = string.Empty;
 
-        /// <summary>报警描述文本</summary>
+        /// <summary>报警描述文本（中文）</summary>
         [MaxLength(512)]
         public string Message { get; set; } = string.Empty;
+
+        /// <summary>报警描述文本（英文，SECS/GEM 上传用）</summary>
+        [MaxLength(35)]
+        public string MessageEn { get; set; } = string.Empty;
 
         /// <summary>严重程度</summary>
         public AlarmSeverity Severity { get; set; }
@@ -29,5 +33,12 @@ namespace PF.Data.Entity.Alarm
         /// <summary>排故 SOP 指导文本（支持换行符 \n）</summary>
         [MaxLength(4096)]
         public string Solution { get; set; } = string.Empty;
+
+        /// <summary>报警信息ID(用于上传SECSGEM)</summary>
+        public int MessageID { get; set; }
+
+        /// <summary>报警信息英文文本(用于上传SECSGEM)，最长40 位</summary>
+        [MaxLength(40)]
+        public string MessageIDHex { get; set; } = string.Empty;
     }
 }

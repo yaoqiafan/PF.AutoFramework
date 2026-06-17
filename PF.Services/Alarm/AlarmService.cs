@@ -39,9 +39,9 @@ namespace PF.Services.Alarm
         private readonly Channel<PersistJob> _persistChannel = Channel.CreateBounded<PersistJob>(
             new BoundedChannelOptions(10_000)
             {
-                FullMode                      = BoundedChannelFullMode.Wait,
-                SingleReader                  = true,
-                SingleWriter                  = false,
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = false,
                 AllowSynchronousContinuations = false
             });
 
@@ -58,9 +58,9 @@ namespace PF.Services.Alarm
             ILogService? logger = null)
         {
             _dictionary = dictionary;
-            _dbOptions  = dbOptions;
-            _publisher  = publisher;
-            _logger     = logger;
+            _dbOptions = dbOptions;
+            _publisher = publisher;
+            _logger = logger;
 
             // 启动单一后台串行消费者（保证数据库 ID 生成与回写不发生竞态）
             _persistWorker = Task.Run(RunPersistWorkerAsync);
@@ -85,7 +85,7 @@ namespace PF.Services.Alarm
             // 兜底降级：来源/错误码缺失时不再抛异常。抛异常会中断上游报警级联
             // （OnSubStationAlarm 抛出后不再 Fire(Error)，导致主控漏进报警态），
             // 改用占位值确保报警仍被记录、不被静默吞没。
-            if (string.IsNullOrWhiteSpace(source))    source    = "未知来源";
+            if (string.IsNullOrWhiteSpace(source)) source = "未知来源";
             if (string.IsNullOrWhiteSpace(errorCode)) errorCode = AlarmCodes.System.UndefinedAlarm;
 
             var key = (source, errorCode);
@@ -93,19 +93,22 @@ namespace PF.Services.Alarm
             // 幂等：相同复合键已存在则跳过，返回 false 表示非首次触发（唯一去重源）
             if (_activeMap.ContainsKey(key)) return false;
 
-            var now  = DateTime.Now;
+            var now = DateTime.Now;
             var info = _dictionary.GetAlarmInfo(errorCode); // 兜底自动处理未知代码
             var record = new AlarmRecord
             {
-                ErrorCode   = errorCode,
-                Source      = source,
+                ErrorCode = errorCode,
+                Source = source,
                 TriggerTime = now,
-                IsActive    = true,
-                Category    = info.Category,
-                Message     = runtimeMessage ?? info.Message,  // 运行时消息优先
-                Severity    = info.Severity,
-                ImagePath   = info.ImagePath,
-                Solution    = info.Solution
+                IsActive = true,
+                Category = info.Category,
+                Message = runtimeMessage ?? info.Message,  // 运行时消息优先
+                MessageEn = info.MessageEn,
+                Severity = info.Severity,
+                ImagePath = info.ImagePath,
+                Solution = info.Solution,
+                MessageID = info.MessageID,
+                MessageIDHex = info.MessageIDHex,
             };
 
             var state = new ActiveAlarmState { Record = record };
@@ -126,7 +129,7 @@ namespace PF.Services.Alarm
         {
             if (string.IsNullOrWhiteSpace(source)) return;
 
-            var now  = DateTime.Now;
+            var now = DateTime.Now;
             var keys = _activeMap.Keys.Where(k => k.Source == source).ToList();
             foreach (var key in keys)
                 ClearAlarmInternal(key, now);
@@ -142,7 +145,7 @@ namespace PF.Services.Alarm
         /// <inheritdoc/>
         public void ClearAllActiveAlarms()
         {
-            var now  = DateTime.Now;
+            var now = DateTime.Now;
             var keys = _activeMap.Keys.ToList();
             foreach (var key in keys)
                 ClearAlarmInternal(key, now);
@@ -184,25 +187,28 @@ namespace PF.Services.Alarm
                         var info = _dictionary.GetAlarmInfo(entity.ErrorCode);
                         return new AlarmRecord
                         {
-                            Id          = entity.Id,
-                            ErrorCode   = entity.ErrorCode,
-                            Source      = entity.Source,
+                            Id = entity.Id,
+                            ErrorCode = entity.ErrorCode,
+                            Source = entity.Source,
                             TriggerTime = entity.TriggerTime,
-                            ClearTime   = entity.ClearTime,
-                            IsActive    = entity.IsActive,
-                            Category    = info.Category,
-                            Message     = info.Message,
-                            Severity    = info.Severity,
-                            ImagePath   = info.ImagePath,
-                            Solution    = info.Solution
+                            ClearTime = entity.ClearTime,
+                            IsActive = entity.IsActive,
+                            Category = info.Category,
+                            Message = info.Message,
+                            MessageEn = info.MessageEn,
+                            Severity = info.Severity,
+                            ImagePath = info.ImagePath,
+                            Solution = info.Solution,
+                            MessageID = info.MessageID,
+                            MessageIDHex = info.MessageIDHex
                         };
                     })
-                    .Where(r => startTime          == null || r.TriggerTime >= startTime)
-                    .Where(r => endTime            == null || r.TriggerTime <= endTime)
-                    .Where(r => category           == null || r.Category == category)
-                    .Where(r => severity           == null || r.Severity == severity)
-                    .Where(r => source             == null || r.Source == source)
-                    .Where(r => errorCode          == null || (r.ErrorCode?.Contains(errorCode, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .Where(r => startTime == null || r.TriggerTime >= startTime)
+                    .Where(r => endTime == null || r.TriggerTime <= endTime)
+                    .Where(r => category == null || r.Category == category)
+                    .Where(r => severity == null || r.Severity == severity)
+                    .Where(r => source == null || r.Source == source)
+                    .Where(r => errorCode == null || (r.ErrorCode?.Contains(errorCode, StringComparison.OrdinalIgnoreCase) ?? false))
                     .Where(r => descriptionKeyword == null || (r.Message?.Contains(descriptionKeyword, StringComparison.OrdinalIgnoreCase) ?? false))
                     .ToList()
                     .AsReadOnly();
@@ -221,7 +227,7 @@ namespace PF.Services.Alarm
             if (!_activeMap.TryRemove(key, out var state)) return;
 
             state.Record.ClearTime = clearTime;
-            state.Record.IsActive  = false;
+            state.Record.IsActive = false;
 
             EnqueuePersist(new PersistJob.UpdateClear(state.Record));
 
@@ -230,7 +236,7 @@ namespace PF.Services.Alarm
             _publisher?.PublishAlarmCleared(state.Record);
             _publisher?.PublishHardwareResetRequested(new HardwareResetRequest
             {
-                Source     = key.Source,
+                Source = key.Source,
                 ErrorCodes = new[] { key.ErrorCode }
             });
         }
@@ -304,10 +310,10 @@ namespace PF.Services.Alarm
 
                 var entity = new AlarmRecordEntity
                 {
-                    ErrorCode   = record.ErrorCode,
-                    Source      = record.Source,
+                    ErrorCode = record.ErrorCode,
+                    Source = record.Source,
                     TriggerTime = record.TriggerTime,
-                    IsActive    = true
+                    IsActive = true
                 };
 
                 ctx.AlarmRecords.Add(entity);
@@ -338,11 +344,11 @@ namespace PF.Services.Alarm
                     await EnsureYearTableAsync(ctx);
                     ctx.AlarmRecords.Add(new AlarmRecordEntity
                     {
-                        ErrorCode   = record.ErrorCode,
-                        Source      = record.Source,
+                        ErrorCode = record.ErrorCode,
+                        Source = record.Source,
                         TriggerTime = record.TriggerTime,
-                        ClearTime   = record.ClearTime,
-                        IsActive    = false
+                        ClearTime = record.ClearTime,
+                        IsActive = false
                     });
                     await ctx.SaveChangesAsync();
                     return;
@@ -352,7 +358,7 @@ namespace PF.Services.Alarm
                 if (entity == null) return;
 
                 entity.ClearTime = record.ClearTime;
-                entity.IsActive  = false;
+                entity.IsActive = false;
                 await ctx.SaveChangesAsync();
             }
             catch (Exception ex)

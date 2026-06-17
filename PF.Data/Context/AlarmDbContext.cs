@@ -56,7 +56,9 @@ namespace PF.Data.Context
                 entity.Property(e => e.ErrorCode).HasMaxLength(64);
                 entity.Property(e => e.Category).HasMaxLength(64);
                 entity.Property(e => e.Message).HasMaxLength(512);
+                entity.Property(e => e.MessageEn).HasMaxLength(35);
                 entity.Property(e => e.Solution).HasMaxLength(4096);
+                entity.Property(e => e.MessageIDHex).HasMaxLength(40);
             });
 
             // 报警流水表（按年份分表）

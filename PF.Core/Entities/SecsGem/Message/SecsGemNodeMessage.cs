@@ -304,15 +304,14 @@ namespace PF.Core.Entities.SecsGem.Message
                     break;
 
                 case DataType.U4:
-                    if (_value is uint uU4)
-                    {
-                        byte[] u4 = BitConverter.GetBytes(uU4);
+                    
+                        byte[] u4 = BitConverter.GetBytes(Convert.ToUInt32(_value));
                         DataType = DataType.U4;
                         Array.Reverse(u4);
                         Data = u4;
                         Length = 4;
-                        TypedValue = uU4;
-                    }
+                        TypedValue = _value;
+                    
                     break;
 
                 default:

@@ -5,6 +5,7 @@ using PF.Core.Enums;
 using PF.Core.Interfaces.SecsGem;
 using PF.Core.Interfaces.SecsGem.Command;
 using PF.Core.Interfaces.SecsGem.DataBase;
+using PF.Infrastructure.SecsGem.Command.Interaction;
 using PF.Infrastructure.SecsGem.Tools;
 using PF.SecsGem.DataBase.Entities.Command;
 using PF.SecsGem.DataBase.Entities.Variable;
@@ -122,6 +123,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
+
                 var incentiveList = await _manager.CommandManager.IncentiveCommands.GetAllCommands();
                 var responseList  = await _manager.CommandManager.ResponseCommands.GetAllCommands();
 
