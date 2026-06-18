@@ -51,7 +51,8 @@
       "Bash(xargs grep -l \"Badge\")",
       "Bash(git commit -m '修复报警弹窗不显示与硬件自动消警 *)",
       "Bash(grep -E \"\\\\.props$|\\\\.targets$|icon|Icon|\\\\.png$|\\\\.ico$\")",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "PowerShell(dotnet build *)"
     ]
   }
 }

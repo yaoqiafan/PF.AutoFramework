@@ -15,6 +15,6 @@ public partial class ProcedureDebugView : UserControl
     private void HalconWindow_Loaded(object sender, RoutedEventArgs e)
     {
         if (DataContext is ProcedureDebugViewModel vm && sender is HWindowControlWPF ctrl)
-            vm.SetHalconWindow(ctrl.HalconWindow);
+            vm.SetHalconControl(ctrl);
     }
 }

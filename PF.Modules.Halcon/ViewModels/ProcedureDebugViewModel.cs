@@ -15,8 +15,9 @@ public class ProcedureDebugViewModel : RegionViewModelBase
 {
     private readonly IVisionService _visionService;
 
-    // HWindow 由 View code-behind 在 HInitWindowCompleted 事件后注入
-    private HWindow? _halconWindow;
+    // 保存控件引用而非裸 HWindow：HWindowControlWPF 懒初始化，Loaded 时 handle 尚为 null，
+    // 渲染时实时调用 HalconWindow 确保拿到有效句柄
+    private HWindowControlWPF? _halconControl;
 
     // ── 状态属性 ──────────────────────────────────────────────────────────────
 
@@ -94,8 +95,18 @@ public class ProcedureDebugViewModel : RegionViewModelBase
 
     // ── View 注入 HWindow ─────────────────────────────────────────────────────
 
-    /// <summary>由 ProcedureDebugView code-behind 在 HInitWindowCompleted 后调用</summary>
-    public void SetHalconWindow(HWindow window) => _halconWindow = window;
+    public void SetHalconControl(HWindowControlWPF control) => _halconControl = control;
+
+    /// <summary>
+    /// 每次渲染前实时取句柄；若 HALCON 内部 handle 为 null（窗口尚未就绪）返回 null。
+    /// </summary>
+    private HWindow? GetWindow()
+    {
+        var win = _halconControl?.HalconWindow;
+        if (win == null) return null;
+        try { HOperatorSet.GetWindowExtents(win, out _, out _, out _, out _); return win; }
+        catch { return null; }
+    }
 
     // ── 命令实现 ──────────────────────────────────────────────────────────────
 
@@ -122,6 +133,8 @@ public class ProcedureDebugViewModel : RegionViewModelBase
             {
                 StatusMessage = $"执行成功（{LastElapsedMs:F1} ms）";
 
+                LogService.Info($"[Vision] 控制量输出 {result.ControlOutputs.Count} 个，图标量输出 {result.IconicOutputs.Count} 个", "Vision");
+
                 foreach (var (key, value) in result.ControlOutputs)
                     ControlOutputs.Add(new KeyValuePair<string, string>(key, value?.ToString() ?? "null"));
 
@@ -130,7 +143,7 @@ public class ProcedureDebugViewModel : RegionViewModelBase
             else
             {
                 StatusMessage = $"执行失败: {result.ErrorMessage}";
-                LogService.Error($"[Vision] {result.ErrorMessage}", "Vision");
+                LogService.Error($"[Vision] 执行失败: {result.ErrorMessage}", "Vision");
             }
         }
         catch (Exception ex)
@@ -146,33 +159,122 @@ public class ProcedureDebugViewModel : RegionViewModelBase
 
     private void RenderIconicOutputs(IReadOnlyDictionary<string, object?> iconicOutputs)
     {
-        if (_halconWindow is null) return;
-        try
+        var win = GetWindow();
+        if (win is null)
         {
-            HOperatorSet.ClearWindow(_halconWindow);
-            foreach (var (key, value) in iconicOutputs)
-            {
-                if (value is not HObject hobj || !hobj.IsInitialized()) continue;
+            LogService.Warn("[Vision] HalconWindow 未就绪，跳过渲染", "Vision");
+            return;
+        }
 
-                if (key.Contains("REGION", StringComparison.OrdinalIgnoreCase))
-                {
-                    HOperatorSet.SetColor(_halconWindow, "red");
-                    HOperatorSet.SetDraw(_halconWindow, "margin");
-                }
-                HOperatorSet.DispObj(hobj, _halconWindow);
+        try { HOperatorSet.ClearWindow(win); }
+        catch (Exception ex) { LogService.Warn($"[Vision] ClearWindow 失败: {ex.Message}", "Vision"); return; }
+
+        AdaptWindowPart(win, iconicOutputs);
+        DispatchIconicObjects(win, iconicOutputs, imageFirst: true);
+        DispatchIconicObjects(win, iconicOutputs, imageFirst: false);
+    }
+
+    /// <param name="imageFirst">true 只渲染 image 类对象；false 只渲染 region/XLD 类对象</param>
+    private void DispatchIconicObjects(HWindow win, IReadOnlyDictionary<string, object?> iconicOutputs, bool imageFirst)
+    {
+        foreach (var (key, value) in iconicOutputs)
+        {
+            if (value is not HObject hobj || !hobj.IsInitialized())
+            {
+                LogService.Info($"[Vision] 跳过 {key}：非 HObject 或未初始化 (type={value?.GetType().Name ?? "null"})", "Vision");
+                continue;
+            }
+
+            int cnt = 0;
+            try { HOperatorSet.CountObj(hobj, out HTuple c); cnt = c.I; }
+            catch (Exception ex) { LogService.Warn($"[Vision] CountObj({key}) 失败: {ex.Message}", "Vision"); continue; }
+            if (cnt <= 0) { LogService.Info($"[Vision] 跳过 {key}：空对象 (count=0)", "Vision"); continue; }
+
+            bool isImage;
+            try
+            {
+                HOperatorSet.GetObjClass(hobj, out HTuple cls);
+                isImage = cls.S == "image";
+                LogService.Info($"[Vision] {key}: class={cls.S}, count={cnt}, imageFirst={imageFirst}", "Vision");
+            }
+            catch (Exception ex)
+            {
+                LogService.Warn($"[Vision] GetObjClass({key}) 失败: {ex.Message}", "Vision");
+                isImage = false;
+            }
+
+            if (imageFirst != isImage) continue;
+
+            if (!isImage)
+            {
+                try { HOperatorSet.SetColor(win, "red"); } catch { }
+                try { HOperatorSet.SetDraw(win, "margin"); } catch { }
+            }
+            else
+            {
+                try { HOperatorSet.SetDraw(win, "fill"); } catch { }
+            }
+
+            try
+            {
+                HOperatorSet.DispObj(hobj, win);
+                LogService.Info($"[Vision] DispObj({key}) 成功", "Vision");
+            }
+            catch (HalconException hex)
+            {
+                LogService.Warn($"[Vision] DispObj({key}) 失败: H{hex.GetErrorCode()} {hex.GetErrorMessage()}", "Vision");
+            }
+            catch (Exception ex)
+            {
+                LogService.Warn($"[Vision] DispObj({key}) 异常: {ex.Message}", "Vision");
             }
         }
-        catch (HalconException hex)
+    }
+
+    private void AdaptWindowPart(HWindow win, IReadOnlyDictionary<string, object?> iconicOutputs)
+    {
+        // 优先用 image 尺寸设置 part
+        foreach (var (_, value) in iconicOutputs)
         {
-            LogService.Warn($"[Vision] 图像渲染失败: H{hex.GetErrorCode()}", "Vision");
+            if (value is not HObject hobj || !hobj.IsInitialized()) continue;
+            try
+            {
+                HOperatorSet.GetObjClass(hobj, out HTuple cls);
+                if (cls.S != "image") continue;
+                HOperatorSet.GetImageSize(hobj, out HTuple w, out HTuple h);
+                HOperatorSet.SetPart(win, 0, 0, h.I - 1, w.I - 1);
+                return;
+            }
+            catch { }
+        }
+
+        // 没有 image，用 region 最大包围盒
+        int maxRow = 0, maxCol = 0;
+        foreach (var (_, value) in iconicOutputs)
+        {
+            if (value is not HObject hobj || !hobj.IsInitialized()) continue;
+            try
+            {
+                HOperatorSet.SmallestRectangle1(hobj,
+                    out HTuple _, out HTuple _, out HTuple row2, out HTuple col2);
+                if (row2.I > maxRow) maxRow = row2.I;
+                if (col2.I > maxCol) maxCol = col2.I;
+            }
+            catch { }
+        }
+        if (maxRow > 0 && maxCol > 0)
+        {
+            try { HOperatorSet.SetPart(win, 0, 0, maxRow, maxCol); }
+            catch { }
         }
     }
 
     private void OnClearWindow()
     {
-        if (_halconWindow is null) return;
-        try { HOperatorSet.ClearWindow(_halconWindow); }
-        catch { /* 窗口未就绪时静默忽略 */ }
+        var win = GetWindow();
+        if (win is null) return;
+        try { HOperatorSet.ClearWindow(win); }
+        catch { }
     }
 
     /// <summary>

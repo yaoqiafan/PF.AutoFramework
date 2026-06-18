@@ -12,9 +12,16 @@ namespace PF.Vision.Halcon.Services;
 /// <summary>
 /// Halcon HDevEngine 视觉服务实现。
 /// <para>
-/// 线程安全策略：HDevEngine 及所有 HDevProcedure / HDevProcedureCall 对象
+/// 线程安全策略：HDevEngine 及所有 HDevProgram / HDevProcedure / HDevProcedureCall 对象
 /// 仅在 <c>_workerTask</c>（LongRunning 专用线程）上创建和访问，严禁跨线程调用。
 /// 外部通过有界 Channel 投递 <see cref="VisionJob"/>，Worker 串行消费。
+/// </para>
+/// <para>
+/// 过程加载策略：<c>new HDevProcedure(name)</c> 依赖 SetProcedurePath 的全局注册，
+/// 仅适用于过程间互调，C# 端直接构造不触发文件扫描。
+/// 正确做法：<c>HDevProgram(filePath)</c> 显式加载文件，
+/// 再通过 <c>HDevProcedure(program, name)</c> 取得过程对象。
+/// HDevProgram 必须与 HDevProcedure 同生命周期，否则过程对象失效。
 /// </para>
 /// </summary>
 internal sealed class HalconVisionService : IVisionService, IDisposable
@@ -26,7 +33,10 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     // Halcon 对象：仅在 _workerTask 线程访问
     private HDevEngine? _engine;
-    private readonly Dictionary<string, HDevProcedure> _cache = new();
+
+    // HDevProgram 必须与对应 HDevProcedure 同生命周期（procedure 持有 program 引用）
+    private readonly Dictionary<string, HDevProgram>   _programCache   = new();
+    private readonly Dictionary<string, HDevProcedure> _procedureCache = new();
 
     // 可用过程列表（FileSystemWatcher 维护，读写锁保护）
     private readonly List<string> _availableProcedures = new();
@@ -121,13 +131,14 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         return await tcs.Task;
     }
 
-    // ── Worker 核心（仅此方法内访问 HDevEngine / HDevProcedure） ─────────────
+    // ── Worker 核心（仅此方法内访问 HDevEngine / HDevProgram / HDevProcedure） ──
 
     private async Task RunWorkerAsync()
     {
         try
         {
             _engine = new HDevEngine();
+            // SetProcedurePath 保留用于过程间互调（procedure 内部调用其他 procedure 时的查找路径）
             _engine.SetProcedurePath(_procedureDirectory);
             _logger.Info($"[Vision] HDevEngine 初始化完成，过程目录: {_procedureDirectory}", LogCategories.Vision);
         }
@@ -160,9 +171,8 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
             ProcedureExecuted?.Invoke(this, result);
         }
 
-        // Channel 关闭后释放所有 Halcon 资源（在 Worker 线程上执行，线程安全）
-        foreach (var proc in _cache.Values) proc.Dispose();
-        _cache.Clear();
+        // Channel 关闭后在 Worker 线程上释放所有 Halcon 资源（线程安全）
+        DisposeAllCachedProcedures();
         _engine?.Dispose();
     }
 
@@ -171,10 +181,9 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         var sw = Stopwatch.StartNew();
         try
         {
-            if (!_cache.ContainsKey(procedureName))
+            if (!_procedureCache.ContainsKey(procedureName))
             {
-                _cache[procedureName] = new HDevProcedure(procedureName);
-                UpdateLoadedSnapshot();
+                LoadProcedureFromFile(procedureName);
                 _logger.Info($"[Vision] 过程加载成功: {procedureName}", LogCategories.Vision);
             }
             return HalconVisionResult.Succeeded(procedureName, sw.Elapsed, new(), new());
@@ -189,12 +198,17 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
     private IVisionResult DoUnload(string procedureName)
     {
         var sw = Stopwatch.StartNew();
-        if (_cache.TryGetValue(procedureName, out var proc))
+        if (_procedureCache.TryGetValue(procedureName, out var proc))
         {
             proc.Dispose();
-            _cache.Remove(procedureName);
+            _procedureCache.Remove(procedureName);
             UpdateLoadedSnapshot();
             _logger.Info($"[Vision] 过程卸载: {procedureName}", LogCategories.Vision);
+        }
+        if (_programCache.TryGetValue(procedureName, out var prog))
+        {
+            prog.Dispose();
+            _programCache.Remove(procedureName);
         }
         return HalconVisionResult.Succeeded(procedureName, sw.Elapsed, new(), new());
     }
@@ -205,12 +219,10 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         HDevProcedureCall? call = null;
         try
         {
-            // 自动加载（未缓存时）
-            if (!_cache.TryGetValue(request.ProcedureName, out var procedure))
+            if (!_procedureCache.TryGetValue(request.ProcedureName, out var procedure))
             {
-                procedure = new HDevProcedure(request.ProcedureName);
-                _cache[request.ProcedureName] = procedure;
-                UpdateLoadedSnapshot();
+                LoadProcedureFromFile(request.ProcedureName);
+                procedure = _procedureCache[request.ProcedureName];
             }
 
             call = new HDevProcedureCall(procedure);
@@ -231,22 +243,25 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
             call.Execute();
 
-            // 收集控制量输出
+            // 收集控制量输出（HALCON 参数索引 1-based）
+            // GetOutputCtrlParamName 的异常独立捕获，防止单次失败中断整个收集
             var ctrlOut = new Dictionary<string, object?>();
             var ctrlCount = procedure.GetOutputCtrlParamCount();
-            for (int i = 0; i < ctrlCount; i++)
+            for (int i = 1; i <= ctrlCount; i++)
             {
-                var paramName = procedure.GetOutputCtrlParamName(i);
-                try { ctrlOut[paramName] = call.GetOutputCtrlParamTuple(paramName); }
+                string? paramName = null;
+                try { paramName = procedure.GetOutputCtrlParamName(i); } catch { continue; }
+                try { ctrlOut[paramName] = HTupleToValue(call.GetOutputCtrlParamTuple(paramName)); }
                 catch { ctrlOut[paramName] = null; }
             }
 
-            // 收集图标量输出
+            // 收集图标量输出（HALCON 参数索引 1-based）
             var iconicOut = new Dictionary<string, object?>();
             var iconicCount = procedure.GetOutputIconicParamCount();
-            for (int i = 0; i < iconicCount; i++)
+            for (int i = 1; i <= iconicCount; i++)
             {
-                var paramName = procedure.GetOutputIconicParamName(i);
+                string? paramName = null;
+                try { paramName = procedure.GetOutputIconicParamName(i); } catch { continue; }
                 try { iconicOut[paramName] = call.GetOutputIconicParamObject(paramName); }
                 catch { iconicOut[paramName] = null; }
             }
@@ -267,7 +282,33 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         }
     }
 
+    // ── 核心加载逻辑 ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 从 .hdev 文件显式加载过程：HDevProgram 加载文件 → HDevProcedure(program, name) 取过程。
+    /// 两者均入缓存，HDevProgram 必须与 HDevProcedure 同寿命。
+    /// 文件不存在或过程名不匹配时，HALCON C 层会抛出 HalconException。
+    /// </summary>
+    private void LoadProcedureFromFile(string procedureName)
+    {
+        var filePath  = Path.Combine(_procedureDirectory, procedureName + ".hdev");
+        var program   = new HDevProgram(filePath);
+        var procedure = new HDevProcedure(program, procedureName);
+
+        _programCache[procedureName]   = program;
+        _procedureCache[procedureName] = procedure;
+        UpdateLoadedSnapshot();
+    }
+
     // ── 辅助 ──────────────────────────────────────────────────────────────────
+
+    private void DisposeAllCachedProcedures()
+    {
+        foreach (var proc in _procedureCache.Values) proc.Dispose();
+        _procedureCache.Clear();
+        foreach (var prog in _programCache.Values) prog.Dispose();
+        _programCache.Clear();
+    }
 
     private static HTuple ObjectToHTuple(object value) => value switch
     {
@@ -289,12 +330,43 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         _           => new HTuple(value.ToString()),
     };
 
+    /// <summary>
+    /// 将 HTuple 转为 C# 原生类型，使 ToString() 直接可读。
+    /// 单元素：int / double / string；多元素：逗号分隔字符串。
+    /// </summary>
+    private static object HTupleToValue(HTuple t)
+    {
+        if (t.Length == 0) return string.Empty;
+        if (t.Length == 1)
+        {
+            try { return (object)t.I; } catch { }
+            try { return (object)t.D; } catch { }
+            try { return (object)t.S; } catch { }
+            return t.ToString() ?? string.Empty;
+        }
+        // 多元素逐个转换，失败回退到整体 ToString
+        try
+        {
+            var parts = new string[t.Length];
+            for (int j = 0; j < t.Length; j++)
+            {
+                HTuple elem = t[j];
+                try { parts[j] = elem.I.ToString(); continue; } catch { }
+                try { parts[j] = elem.D.ToString("G6"); continue; } catch { }
+                try { parts[j] = elem.S; continue; } catch { }
+                parts[j] = elem.ToString() ?? "";
+            }
+            return string.Join(", ", parts);
+        }
+        catch { return t.ToString() ?? string.Empty; }
+    }
+
     private void UpdateLoadedSnapshot()
     {
         lock (_loadedLock)
         {
             _loadedSnapshot.Clear();
-            _loadedSnapshot.AddRange(_cache.Keys);
+            _loadedSnapshot.AddRange(_procedureCache.Keys);
         }
     }
 
@@ -338,8 +410,8 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
         var changedName = Path.GetFileNameWithoutExtension(e.Name) ?? string.Empty;
 
-        // 文件被修改/删除时，卸载旧缓存（Worker 线程异步执行，下次 Execute 自动重新加载）
-        if (_cache.ContainsKey(changedName))
+        // 文件变更时卸载旧缓存，下次执行时重新从文件加载
+        if (_procedureCache.ContainsKey(changedName))
             _ = UnloadProcedureAsync(changedName);
 
         _logger.Info($"[Vision] 过程目录变化: {e.ChangeType} - {changedName}", LogCategories.Vision);
@@ -357,7 +429,7 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         _watcher.Dispose();
         _availableLock.Dispose();
 
-        // 完成 Channel，Worker 在消费完剩余 Job 后自行释放 HDevEngine
+        // 完成 Channel，Worker 在消费完剩余 Job 后自行释放所有 Halcon 资源
         _channel.Writer.TryComplete();
     }
 }
