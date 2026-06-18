@@ -74,7 +74,7 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
                 }
 
 
-                TiggerStr = $"PL,1,{ProgramID.ToString("X4")}\r\n";
+                TiggerStr = $"PL,1,{ProgramID.ToString("F4")}\r\n";
                 TiggerRec = string.Empty;
                 TiggerRec = string.Empty;
                 rec = await tiggerclient.WaitSentReceiveDataAsync(Encoding.ASCII.GetBytes(TiggerStr), TimeOutMs);
