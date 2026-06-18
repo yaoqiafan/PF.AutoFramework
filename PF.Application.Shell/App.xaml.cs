@@ -3,13 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using NPOI.POIFS.Storage;
 using PF.Application.Shell.CustomConfiguration.Param;
+using PF.Application.Shell.Services;
 using PF.Application.Shell.ViewModels;
 using PF.Application.Shell.Views;
 using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
-using PF.Infrastructure.Logging;
 using PF.Core.Entities.Identity;
+using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
@@ -26,10 +28,14 @@ using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Core.Interfaces.SecsGem.Params;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
+using PF.Core.Interfaces.Timer;
+using PF.Core.Interfaces.TowerLight;
+using PF.Core.Models;
 using PF.Data;
 using PF.Data.Context;
 using PF.Data.Entity.Category;
 using PF.Data.Repositories;
+using PF.Infrastructure.Logging;
 using PF.Infrastructure.SecsGem;
 using PF.Infrastructure.SecsGem.Command;
 using PF.Infrastructure.SecsGem.Incentive;
@@ -46,26 +52,21 @@ using PF.Services.Params;
 using PF.Services.Production;
 using PF.Services.Sync;
 using PF.Services.Timer;
-using PF.Core.Interfaces.Timer;
-using PF.Application.Shell.Services;
-using PF.Core.Interfaces.Alarm;
-using PF.Core.Interfaces.TowerLight;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Dialog.ViewModels;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Resources;
-using PF.Core.Enums;
-using PF.Core.Models;
+using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
-using PF.WorkStation.AutoOcr.CostParam;
+using PF.Vision.Halcon.Extensions;
 using PF.Workstation.AutoOcr.CostParam;
+using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
-using PF.Vision.Halcon.Extensions;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Diagnostics;
@@ -74,7 +75,7 @@ using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
-using PF.UI.Shared.Data;
+using static PF.WorkStation.AutoOcr.CostParam.AlarmCodesExtensions;
 using MsgType = PF.UI.Shared.Data.MsgType;
 
 namespace PF.Application.Shell
@@ -278,8 +279,10 @@ namespace PF.Application.Shell
             // 用所有已注册菜单的 Title 初始化 PermissionHelper 的动态中文名称映射
             PermissionHelper.Initialize(Container.Resolve<INavigationMenuService>());
             // 使用默认的超级管理员账号进行静默登录
-            //authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
+            //
             authService.ResetToOperator();
+
+            authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
 
             // ── 软硬联动：将 Prism EA 硬件复位事件路由到主控 ─────────────────────────
             // BaseMasterController 不依赖 Prism，通过 RegisterHardwareResetHandler 委托桥接，
@@ -409,6 +412,7 @@ namespace PF.Application.Shell
             // moduleCatalog.AddModule<DebugModule>();
             // moduleCatalog.AddModule<ProductionRecordModule>();
             // moduleCatalog.AddModule<SecsGemModule>();
+
         }
 
 

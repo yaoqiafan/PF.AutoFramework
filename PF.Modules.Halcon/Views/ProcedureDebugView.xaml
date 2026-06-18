@@ -28,7 +28,7 @@
             <Separator/>
             <TextBlock VerticalAlignment="Center" Margin="4,0">
                 <Run Text="耗时: "/>
-                <Run Text="{Binding LastElapsedMs, StringFormat={}{0:F1} ms}"/>
+                <Run Text="{Binding LastElapsedMs, Mode=OneWay, StringFormat={}{0:F1} ms}"/>
             </TextBlock>
         </ToolBar>
 

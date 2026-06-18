@@ -59,7 +59,8 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     public HalconVisionService(string procedureDirectory, ILogService logService)
     {
-        _procedureDirectory = procedureDirectory;
+        // Path.GetFullPath 规范化路径：消除 D://foo\bar 中的双斜杠，HALCON C 层不保证处理混合斜杠
+        _procedureDirectory = Path.GetFullPath(procedureDirectory);
         _logger = logService;
 
         if (!Directory.Exists(_procedureDirectory))
