@@ -53,6 +53,7 @@ public sealed class InputIconicParamVm : BindableBase
             {
                 RaisePropertyChanged(nameof(IsFileMode));
                 RaisePropertyChanged(nameof(ModeLabelText));
+                BrowseCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -70,8 +71,7 @@ public sealed class InputIconicParamVm : BindableBase
     public InputIconicParamVm(string name)
     {
         Name             = name;
-        BrowseCommand    = new DelegateCommand(OnBrowse, () => IsFileMode)
-                               .ObservesProperty(() => IsFileMode);
+        BrowseCommand    = new DelegateCommand(OnBrowse, () => IsFileMode);
         ToggleModeCommand = new DelegateCommand(() => IsRoiMode = !IsRoiMode);
     }
 

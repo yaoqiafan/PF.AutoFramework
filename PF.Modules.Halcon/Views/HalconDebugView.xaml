@@ -6,7 +6,7 @@
              prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
-        <!-- 控制量输入条目 -->
+        <!-- 控制量输入 -->
         <DataTemplate x:Key="InputCtrlTemplate">
             <Grid Margin="0,0,0,6">
                 <Grid.ColumnDefinitions>
@@ -27,10 +27,14 @@
             </Grid>
         </DataTemplate>
 
-        <!-- 图像/ROI 输入条目 -->
+        <!--
+            图像/ROI 输入参数条目。
+            避免使用 ContentPresenter，防止 WPF 将 DataContext 作为 Content
+            触发 ItemTemplate 递归展开导致 StackOverflow。
+        -->
         <DataTemplate x:Key="InputIconicTemplate">
             <StackPanel Margin="0,0,0,8">
-                <!-- 第一行：标签 + 参数名 + 模式切换 -->
+                <!-- 标签行：图标 / 参数名 / 当前模式 / 切换按钮 -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="28"/>
@@ -48,13 +52,12 @@
                     <TextBlock Grid.Column="2" Text="{Binding ModeLabelText}"
                                VerticalAlignment="Center"
                                FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <Button Grid.Column="3"
-                            Content="切换模式"
+                    <Button Grid.Column="3" Content="切换模式"
                             Command="{Binding ToggleModeCommand}"
                             Padding="8,3" FontSize="11" Margin="4,0,0,0"/>
                 </Grid>
 
-                <!-- 文件路径行（文件模式） -->
+                <!-- 文件路径行（仅文件模式显示） -->
                 <Grid Margin="28,4,0,0">
                     <Grid.Style>
                         <Style TargetType="Grid">
@@ -80,12 +83,12 @@
                             Margin="8,0,0,0" Padding="10,4" FontSize="12"/>
                 </Grid>
 
-                <!-- ROI 编辑器（ROI 模式，由 code-behind 关联） -->
-                <Border Margin="28,4,0,0" Height="300"
-                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <!-- ROI 模式提示（仅 ROI 模式显示） -->
+                <Border Margin="28,4,0,0" Padding="8,6" CornerRadius="3">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Visibility" Value="Collapsed"/>
+                            <Setter Property="Background" Value="#1A2196F3"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
                                     <Setter Property="Visibility" Value="Visible"/>
@@ -93,14 +96,22 @@
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
-                    <!-- ROI 编辑器由 code-behind 动态插入到此占位容器 -->
-                    <ContentPresenter x:Name="RoiEditorHost"
-                                      Tag="{Binding Name}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="ROI 绘制模式 — 在右侧「ROI 编辑」标签页中绘制区域"
+                                   FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}">
+                            <Run Text="（已有 "/>
+                            <Run Text="{Binding CurrentRois.Count, Mode=OneWay}"/>
+                            <Run Text=" 个 ROI）"/>
+                        </TextBlock>
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </DataTemplate>
 
-        <!-- 输出控制量条目 -->
+        <!-- 控制量输出 -->
         <DataTemplate x:Key="OutputCtrlTemplate">
             <Grid Margin="0,0,0,6">
                 <Grid.ColumnDefinitions>
@@ -124,7 +135,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <!-- 根布局：左=配置面板  右=图像查看器 -->
+    <!-- 根：左=配置面板  右=图像/ROI 标签页 -->
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="480"/>
@@ -132,33 +143,32 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ═══════════════════════════ 左：配置面板 ═══════════════════════════ -->
+        <!-- ══════════════════ 左：配置面板 ══════════════════ -->
         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
             <Grid Margin="20">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>   <!-- 0: 标题 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="16"/>
-                    <RowDefinition Height="Auto"/>   <!-- 2: 过程选择 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
-                    <RowDefinition Height="Auto"/>   <!-- 4: 参数区 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="20"/>
-                    <RowDefinition Height="Auto"/>   <!-- 6: 分隔线 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="16"/>
-                    <RowDefinition Height="Auto"/>   <!-- 8: 调试服务器标题 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
-                    <RowDefinition Height="Auto"/>   <!-- 10: 端口 + 密码 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
-                    <RowDefinition Height="Auto"/>   <!-- 12: 启动/停止服务器 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>   <!-- 14: 启动 HDevelop + 取消 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
-                    <RowDefinition Height="Auto"/>   <!-- 16: 分隔线 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
-                    <RowDefinition Height="Auto"/>   <!-- 18: 状态 -->
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 标题 -->
                 <TextBlock Grid.Row="0"
                            Text="HALCON 过程调试（HDevEngine Level 2）"
                            FontSize="15" FontWeight="SemiBold"
@@ -183,7 +193,7 @@
                             Margin="8,0,0,0" Padding="12,4"/>
                 </Grid>
 
-                <!-- 参数区 -->
+                <!-- 参数签名 -->
                 <Border Grid.Row="4" CornerRadius="4" Padding="14,10" BorderThickness="1">
                     <Border.Style>
                         <Style TargetType="Border">
@@ -213,7 +223,6 @@
                         <ItemsControl ItemsSource="{Binding OutputControls}"
                                       ItemTemplate="{StaticResource OutputCtrlTemplate}"/>
 
-                        <!-- 图标量输出提示 -->
                         <Grid Margin="0,4,0,0">
                             <Grid.Style>
                                 <Style TargetType="Grid">
@@ -237,7 +246,7 @@
                                        TextWrapping="Wrap" VerticalAlignment="Center"
                                        Foreground="{DynamicResource SecondaryTextBrush}">
                                 <Run Text="{Binding OutputIconicSummary, Mode=OneWay}"/>
-                                <Run Text="（右侧图像区显示）" FontStyle="Italic"/>
+                                <Run Text="（右侧「图像输出」显示）" FontStyle="Italic"/>
                             </TextBlock>
                         </Grid>
                     </StackPanel>
@@ -245,9 +254,7 @@
 
                 <Separator Grid.Row="6" BorderBrush="{DynamicResource BorderBrush}"/>
 
-                <!-- 调试服务器标题 -->
-                <TextBlock Grid.Row="8"
-                           Text="调试服务器"
+                <TextBlock Grid.Row="8" Text="调试服务器"
                            FontSize="13" FontWeight="SemiBold"
                            Foreground="{DynamicResource PrimaryTextBrush}"/>
 
@@ -282,7 +289,7 @@
                             Margin="10,0,0,0" Padding="14,7" MinWidth="130"/>
                 </StackPanel>
 
-                <!-- 启动 HDevelop + 取消 + 选项 -->
+                <!-- 启动 HDevelop -->
                 <StackPanel Grid.Row="14" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Content="启动 HDevelop（附加到进程调试）"
                             Command="{Binding LaunchCommand}"
@@ -299,13 +306,12 @@
                                 <LineBreak/>
                                 <Run Text="3. 点此按钮 → HDevelop 打开，过程在入口暂停"/>
                                 <LineBreak/>
-                                <Run Text="4. 在 HDevelop 中：HDevEngine → 附加到进程 → 输入端口号"/>
+                                <Run Text="4. HDevelop：HDevEngine → 附加到进程 → 输入端口号"/>
                                 <LineBreak/>
-                                <Run Text="5. 连接后可断点调试，完成后输出回填本界面"/>
+                                <Run Text="5. 连接后可断点调试，结束后输出回填本界面"/>
                             </TextBlock>
                         </Button.ToolTip>
                     </Button>
-
                     <Button Content="取消调试"
                             Command="{Binding CancelDebugCommand}"
                             Margin="10,0,0,0" Padding="10,7">
@@ -319,9 +325,7 @@
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
-                        <Button.ToolTip>关闭 HDevelop 或断开连接后，调试会话自动结束</Button.ToolTip>
                     </Button>
-
                     <CheckBox Content="打开后直接运行"
                               IsChecked="{Binding RunImmediately}"
                               Margin="12,0,0,0" VerticalAlignment="Center"
@@ -330,14 +334,14 @@
 
                 <Separator Grid.Row="16" BorderBrush="{DynamicResource BorderBrush}"/>
 
-                <!-- 状态 -->
+                <!-- 状态指示 -->
                 <StackPanel Grid.Row="18" Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="10" Height="10" VerticalAlignment="Center">
                         <Ellipse.Style>
                             <Style TargetType="Ellipse">
                                 <Setter Property="Fill" Value="{DynamicResource SecondaryTextBrush}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                    <DataTrigger Binding="{Binding IsActive}"    Value="True">
                                         <Setter Property="Fill" Value="#4CAF50"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsDebugging}" Value="True">
@@ -357,19 +361,16 @@
 
         <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
 
-        <!-- ═══════════════════════════ 右：图像查看器 ═══════════════════════════ -->
-        <Grid Grid.Column="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Text="图像输出"
-                       FontSize="13" FontWeight="SemiBold"
-                       Margin="8,8,8,4"
-                       Foreground="{DynamicResource PrimaryTextBrush}"/>
-            <controls:HalconImageViewer x:Name="OutputImageViewer"
-                                        Grid.Row="1"
-                                        Loaded="OutputImageViewer_Loaded"/>
-        </Grid>
+        <!-- ══════════════════ 右：图像输出 / ROI 编辑 ══════════════════ -->
+        <TabControl Grid.Column="2">
+            <TabItem Header="图像输出">
+                <controls:HalconImageViewer x:Name="OutputImageViewer"
+                                            Loaded="OutputImageViewer_Loaded"/>
+            </TabItem>
+            <TabItem Header="ROI 编辑">
+                <controls:HalconRoiEditor x:Name="SharedRoiEditor"
+                                          Loaded="SharedRoiEditor_Loaded"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>
