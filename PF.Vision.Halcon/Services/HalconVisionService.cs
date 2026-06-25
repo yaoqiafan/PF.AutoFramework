@@ -1,11 +1,13 @@
 using HalconDotNet;
 using PF.Core.Constants;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Entities.Vision;
 using PF.Core.Interfaces.Vision;
 using PF.Vision.Halcon.Internal;
 using PF.Vision.Halcon.Models;
 using System.Diagnostics;
 using System.Threading.Channels;
+using System.Threading;
 
 namespace PF.Vision.Halcon.Services;
 
@@ -28,8 +30,9 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 {
     // ── 字段 ──────────────────────────────────────────────────────────────────
 
-    private readonly string _procedureDirectory;
-    private readonly ILogService _logger;
+    private readonly string            _procedureDirectory;
+    private readonly ILogService       _logger;
+    private readonly VisionEngineConfig _config;
 
     // Halcon 对象：仅在 _workerTask 线程访问
     private HDevEngine? _engine;
@@ -46,15 +49,8 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
     private readonly object _loadedLock = new();
     private readonly List<string> _loadedSnapshot = new();
 
-    // Channel：容量 100，调用方 Wait（不丢弃），单 Reader 保证串行
-    private readonly Channel<VisionJob> _channel = Channel.CreateBounded<VisionJob>(
-        new BoundedChannelOptions(100)
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleReader = true,
-            SingleWriter = false,
-            AllowSynchronousContinuations = false,
-        });
+    // Channel：容量由 VisionEngineConfig 决定，调用方 Wait（不丢弃），单 Reader 保证串行
+    private readonly Channel<VisionJob> _channel;
 
     private readonly Task _workerTask;
     private readonly FileSystemWatcher _watcher;
@@ -67,11 +63,22 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     // ── 构造 ──────────────────────────────────────────────────────────────────
 
-    public HalconVisionService(string procedureDirectory, ILogService logService)
+    public HalconVisionService(string procedureDirectory, ILogService logService,
+                               VisionEngineConfig? config = null)
     {
         // Path.GetFullPath 规范化路径：消除 D://foo\bar 中的双斜杠，HALCON C 层不保证处理混合斜杠
         _procedureDirectory = Path.GetFullPath(procedureDirectory);
         _logger = logService;
+        _config = config ?? VisionEngineConfig.Production;
+
+        _channel = Channel.CreateBounded<VisionJob>(
+            new BoundedChannelOptions(_config.ChannelCapacity)
+            {
+                FullMode                      = BoundedChannelFullMode.Wait,
+                SingleReader                  = true,
+                SingleWriter                  = false,
+                AllowSynchronousContinuations = false,
+            });
 
         if (!Directory.Exists(_procedureDirectory))
             Directory.CreateDirectory(_procedureDirectory);
@@ -87,6 +94,10 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default).Unwrap();
     }
+
+    // ── 包内访问（HalconDebugService 使用）───────────────────────────────────
+
+    internal string ProcedureDirectory => _procedureDirectory;
 
     // ── IVisionService ────────────────────────────────────────────────────────
 
@@ -124,10 +135,38 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         var tcs = new TaskCompletionSource<IVisionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var job = new VisionJob { Request = request, Completion = tcs, CancellationToken = cancellationToken };
 
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        linkedCts.CancelAfter(request.Timeout);
+        // Debug 引擎（无超时限制）不设置 CancelAfter，避免打断调试会话
+        if (_config.ExecutionTimeout == Timeout.InfiniteTimeSpan)
+        {
+            await _channel.Writer.WriteAsync(job, cancellationToken);
+        }
+        else
+        {
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            linkedCts.CancelAfter(request.Timeout);
+            await _channel.Writer.WriteAsync(job, linkedCts.Token);
+        }
 
-        await _channel.Writer.WriteAsync(job, linkedCts.Token);
+        return await tcs.Task;
+    }
+
+    public async Task<IVisionResult> ExecutePipelineAsync(
+        VisionPipelineDefinition     pipeline,
+        Dictionary<string, object?>? externalInputs    = null,
+        CancellationToken            cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var tcs = new TaskCompletionSource<IVisionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var job = new VisionJob
+        {
+            Pipeline          = pipeline,
+            ExternalInputs    = externalInputs,
+            Completion        = tcs,
+            CancellationToken = cancellationToken,
+        };
+
+        await _channel.Writer.WriteAsync(job, cancellationToken);
         return await tcs.Task;
     }
 
@@ -140,7 +179,7 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
             _engine = new HDevEngine();
             // SetProcedurePath 保留用于过程间互调（procedure 内部调用其他 procedure 时的查找路径）
             _engine.SetProcedurePath(_procedureDirectory);
-            _logger.Info($"[Vision] HDevEngine 初始化完成，过程目录: {_procedureDirectory}", LogCategories.Vision);
+            _logger.Info($"[Vision] HDevEngine 初始化完成，过程目录: {_procedureDirectory}，容量: {_config.ChannelCapacity}，详细日志: {_config.VerboseLogging}", LogCategories.Vision);
         }
         catch (Exception ex)
         {
@@ -153,21 +192,45 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         {
             if (job.CancellationToken.IsCancellationRequested)
             {
-                job.Completion.TrySetCanceled(job.CancellationToken);
+                if (job.IsEngineAction)
+                    job.ActionCompletion?.TrySetCanceled(job.CancellationToken);
+                else
+                    job.Completion?.TrySetCanceled(job.CancellationToken);
                 continue;
             }
 
+            // ── 元操作（调试端口、引擎属性设置等）────────────────────────────
+            if (job.IsEngineAction)
+            {
+                try
+                {
+                    var ok = job.EngineAction!(_engine!);
+                    job.ActionCompletion?.TrySetResult(ok);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"[Vision] 引擎元操作失败: {ex.Message}", LogCategories.Vision);
+                    job.ActionCompletion?.TrySetException(ex);
+                }
+                continue;
+            }
+
+            // ── 普通视觉作业 ──────────────────────────────────────────────────
             IVisionResult result;
-            var name = job.Request.ProcedureName;
 
-            if (name.StartsWith("__LOAD__", StringComparison.Ordinal))
-                result = DoLoad(name[8..]);
-            else if (name.StartsWith("__UNLOAD__", StringComparison.Ordinal))
-                result = DoUnload(name[10..]);
+            if (job.IsPipeline)
+            {
+                result = DoExecutePipeline(job.Pipeline!, job.ExternalInputs);
+            }
             else
-                result = DoExecute(job.Request);
+            {
+                var name = job.Request!.ProcedureName;
+                if      (name.StartsWith("__LOAD__",   StringComparison.Ordinal)) result = DoLoad(name[8..]);
+                else if (name.StartsWith("__UNLOAD__", StringComparison.Ordinal)) result = DoUnload(name[10..]);
+                else    result = DoExecute(job.Request);
+            }
 
-            job.Completion.TrySetResult(result);
+            job.Completion?.TrySetResult(result);
             ProcedureExecuted?.Invoke(this, result);
         }
 
@@ -215,8 +278,9 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     private IVisionResult DoExecute(VisionRequest request)
     {
-        var sw = Stopwatch.StartNew();
+        var sw           = Stopwatch.StartNew();
         HDevProcedureCall? call = null;
+        var loadedImages = new List<HObject>();
         try
         {
             if (!_procedureCache.TryGetValue(request.ProcedureName, out var procedure))
@@ -234,12 +298,28 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
                 call.SetInputCtrlParamTuple(key, ObjectToHTuple(value));
             }
 
-            // 设置输入图标量
+            // 设置输入图标量（HObject 直传）
             foreach (var (key, value) in request.IconicInputs)
             {
                 if (value is HObject hobj)
                     call.SetInputIconicParamObject(key, hobj);
             }
+
+            // 设置输入图标量（从文件路径加载，用于调试/测试执行）
+            foreach (var (key, filePath) in request.IconicFilePaths)
+            {
+                if (string.IsNullOrEmpty(filePath)) continue;
+                HOperatorSet.ReadImage(out HObject img, filePath);
+                call.SetInputIconicParamObject(key, img);
+                loadedImages.Add(img);
+            }
+
+            if (_config.VerboseLogging)
+                _logger.Info($"[Vision][Debug] → {request.ProcedureName} | ctrl-in={request.ControlInputs.Count} iconic-in={request.IconicInputs.Count}", LogCategories.Vision);
+
+            // Debug 模式：在过程入口暂停，等待 HDevelop 连接后再继续执行
+            if (_config.WaitForDebugConnection)
+                call.SetWaitForDebugConnection(true);
 
             call.Execute();
 
@@ -268,10 +348,14 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
             sw.Stop();
             _logger.Info($"[Vision] 执行成功: {request.ProcedureName}，耗时: {sw.ElapsedMilliseconds} ms", LogCategories.Vision);
+            if (_config.VerboseLogging)
+                _logger.Info($"[Vision][Debug] ← {request.ProcedureName} | ctrl-out={ctrlOut.Count} iconic-out={iconicOut.Count} elapsed={sw.ElapsedMilliseconds}ms", LogCategories.Vision);
             return HalconVisionResult.Succeeded(request.ProcedureName, sw.Elapsed, ctrlOut, iconicOut);
         }
         catch (HalconException hex)
         {
+            string str = hex.ToString();
+
             sw.Stop();
             _logger.Error($"[Vision] 执行失败: {request.ProcedureName} H{hex.GetErrorCode()}: {hex.GetErrorMessage()}", LogCategories.Vision);
             return HalconVisionResult.Failure(request.ProcedureName, $"H{hex.GetErrorCode()}: {hex.GetErrorMessage()}", sw.Elapsed);
@@ -279,25 +363,138 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         finally
         {
             call?.Dispose();
+            foreach (var img in loadedImages) img.Dispose();
         }
     }
 
     // ── 核心加载逻辑 ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// 从 .hdev 文件显式加载过程：HDevProgram 加载文件 → HDevProcedure(program, name) 取过程。
-    /// 两者均入缓存，HDevProgram 必须与 HDevProcedure 同寿命。
-    /// 文件不存在或过程名不匹配时，HALCON C 层会抛出 HalconException。
+    /// 从磁盘加载过程到缓存，自动按扩展名选择策略：
+    ///   .hdvp → HDevProcedure(engine, name)（SetProcedurePath 已指向过程目录）；
+    ///   .hdev → HDevProgram(filePath) + HDevProcedure(program, name)（程序与过程同寿命）。
+    /// .hdvp 优先：同名文件同时存在时加载 .hdvp。
     /// </summary>
     private void LoadProcedureFromFile(string procedureName)
     {
-        var filePath  = Path.Combine(_procedureDirectory, procedureName + ".hdev");
-        var program   = new HDevProgram(filePath);
-        var procedure = new HDevProcedure(program, procedureName);
+        var hdvpPath = Path.Combine(_procedureDirectory, procedureName + ".hdvp");
+        var hdevPath = Path.Combine(_procedureDirectory, procedureName + ".hdev");
 
-        _programCache[procedureName]   = program;
-        _procedureCache[procedureName] = procedure;
+        if (File.Exists(hdvpPath))
+        {
+            // 独立过程文件（.hdvp）：通过 SetProcedurePath 按名称加载，不需要 HDevProgram
+            // _engine.SetProcedurePath 已在 RunWorkerAsync 中指向过程目录
+            var procedure = new HDevProcedure(procedureName);
+            _procedureCache[procedureName] = procedure;
+        }
+        else if (File.Exists(hdevPath))
+        {
+            // 程序文件（.hdev）：必须通过 HDevProgram 显式加载，两者须同寿命
+            var program   = new HDevProgram(hdevPath);
+            var procedure = new HDevProcedure(program, procedureName);
+            _programCache[procedureName]   = program;
+            _procedureCache[procedureName] = procedure;
+        }
+        else
+        {
+            throw new FileNotFoundException(
+                $"过程文件不存在: {procedureName}（已查找 .hdvp 和 .hdev）", hdvpPath);
+        }
+
         UpdateLoadedSnapshot();
+    }
+
+    // ── 管线执行（仅在 Worker 线程调用）────────────────────────────────────────
+
+    private IVisionResult DoExecutePipeline(
+        VisionPipelineDefinition     pipeline,
+        Dictionary<string, object?>? externalInputs)
+    {
+        var sw  = Stopwatch.StartNew();
+        var ctx = new VisionContext();
+        ctx.InjectExternal(externalInputs);
+
+        _logger.Info($"[Pipeline] 开始执行: {pipeline.PipelineId}（{pipeline.Steps.Count} 步）", LogCategories.Vision);
+
+        foreach (var step in pipeline.Steps)
+        {
+            // 条件评估
+            bool conditionMet;
+            try   { conditionMet = ctx.EvaluateCondition(step.Condition); }
+            catch (Exception ex)
+            {
+                _logger.Warn($"[Pipeline:{pipeline.PipelineId}] 步骤 {step.Id} 条件解析异常: {ex.Message}，视为 true", LogCategories.Vision);
+                conditionMet = true;
+            }
+
+            if (!conditionMet)
+            {
+                _logger.Info($"[Pipeline:{pipeline.PipelineId}] 跳过步骤 {step.Id}（条件不满足）", LogCategories.Vision);
+                continue;
+            }
+
+            // 解析输入：上下文引用 → 实际值
+            var resolved = step.Inputs.ToDictionary(kv => kv.Key, kv => ctx.Resolve(kv.Value));
+
+            var request = new VisionRequest
+            {
+                ProcedureName = step.Procedure,
+                ControlInputs = resolved
+                    .Where(kv => kv.Value is not HObject)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value),
+                IconicInputs = resolved
+                    .Where(kv => kv.Value is HObject)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value),
+            };
+
+            var stepResult = DoExecute(request);
+
+            // 每步完成均触发事件（UI 可监听进度）
+            ProcedureExecuted?.Invoke(this, stepResult);
+
+            if (!stepResult.Success)
+            {
+                if (step.SkipOnError)
+                {
+                    _logger.Warn($"[Pipeline:{pipeline.PipelineId}] 步骤 {step.Id} 失败，skip_on_error=true，继续后续步骤", LogCategories.Vision);
+                    continue;
+                }
+                sw.Stop();
+                _logger.Error($"[Pipeline:{pipeline.PipelineId}] 步骤 {step.Id} 失败，管线终止: {stepResult.ErrorMessage}", LogCategories.Vision);
+                return HalconVisionResult.Failure(
+                    pipeline.PipelineId,
+                    $"步骤 [{step.Id}/{step.Procedure}] 失败: {stepResult.ErrorMessage}",
+                    sw.Elapsed);
+            }
+
+            // 将声明的 outputs 写入上下文（控制量和图标量分别处理）
+            foreach (var paramName in step.Outputs)
+            {
+                if (stepResult.ControlOutputs.TryGetValue(paramName, out var cv))
+                    ctx.Set(step.Id, paramName, cv);
+                else if (stepResult.IconicOutputs.TryGetValue(paramName, out var iv))
+                    ctx.Set(step.Id, paramName, iv);
+                else
+                    _logger.Warn($"[Pipeline:{pipeline.PipelineId}] 步骤 {step.Id} 声明输出 '{paramName}' 在结果中不存在", LogCategories.Vision);
+            }
+
+            _logger.Info($"[Pipeline:{pipeline.PipelineId}] 步骤 {step.Id} 完成", LogCategories.Vision);
+        }
+
+        sw.Stop();
+
+        // 从上下文收集管线最终输出
+        var finalOutputs = ctx.Collect(pipeline.PipelineOutputs);
+
+        _logger.Info($"[Pipeline] 完成: {pipeline.PipelineId}，耗时: {sw.ElapsedMilliseconds} ms", LogCategories.Vision);
+
+        return HalconVisionResult.Succeeded(
+            pipeline.PipelineId,
+            sw.Elapsed,
+            finalOutputs.Where(kv => kv.Value is not HObject)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value),
+            finalOutputs.Where(kv => kv.Value is HObject)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
     // ── 辅助 ──────────────────────────────────────────────────────────────────
@@ -375,9 +572,16 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
     private void ScanAvailableProcedures()
     {
         if (!Directory.Exists(_procedureDirectory)) return;
-        var names = Directory.GetFiles(_procedureDirectory, "*.hdev", SearchOption.AllDirectories)
-            .Select(f => Path.GetFileNameWithoutExtension(f)!)
+
+        // .hdvp 优先（同名时覆盖 .hdev 条目）
+        var hdvp = Directory.GetFiles(_procedureDirectory, "*.hdvp", SearchOption.AllDirectories)
+            .Select(f => Path.GetFileNameWithoutExtension(f)!);
+        var hdev = Directory.GetFiles(_procedureDirectory, "*.hdev", SearchOption.AllDirectories)
+            .Select(f => Path.GetFileNameWithoutExtension(f)!);
+
+        var names = hdvp.Concat(hdev)
             .Where(n => !string.IsNullOrEmpty(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n)
             .ToList();
 
@@ -392,13 +596,15 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     private FileSystemWatcher CreateWatcher()
     {
-        var w = new FileSystemWatcher(_procedureDirectory, "*.hdev")
+        // 监听所有文件，在回调中按扩展名过滤，以同时捕获 .hdev 和 .hdvp 变化
+        var w = new FileSystemWatcher(_procedureDirectory, "*.*")
         {
             IncludeSubdirectories = true,
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
             EnableRaisingEvents = true,
         };
         w.Created += OnWatcherChanged;
+        w.Changed += OnWatcherChanged;
         w.Deleted += OnWatcherChanged;
         w.Renamed += OnWatcherChanged;
         return w;
@@ -406,16 +612,46 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     private void OnWatcherChanged(object sender, FileSystemEventArgs e)
     {
+        var ext = Path.GetExtension(e.Name);
+        if (!string.Equals(ext, ".hdev", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(ext, ".hdvp", StringComparison.OrdinalIgnoreCase))
+            return;
+
         ScanAvailableProcedures();
 
         var changedName = Path.GetFileNameWithoutExtension(e.Name) ?? string.Empty;
 
-        // 文件变更时卸载旧缓存，下次执行时重新从文件加载
-        if (_procedureCache.ContainsKey(changedName))
-            _ = UnloadProcedureAsync(changedName);
+        // 无论缓存里是否有该过程，都通过 Channel 投递卸载请求。
+        // Worker 线程消费后会安全地从 _procedureCache / _programCache 移除，
+        // 下次 Execute 时从修改后的文件重新加载。
+        _ = UnloadProcedureAsync(changedName);
 
         _logger.Info($"[Vision] 过程目录变化: {e.ChangeType} - {changedName}", LogCategories.Vision);
         ProcedureDirectoryChanged?.Invoke(this, changedName);
+    }
+
+    // ── 引擎元操作（调试等） ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// 在 Worker 线程上执行引擎级配置操作（如 SetEngineAttribute）。
+    /// 操作排队执行，确保线程安全。
+    /// </summary>
+    internal async Task<bool> ScheduleEngineActionAsync(
+        Func<HDevEngine, bool> action,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var job = new VisionJob
+        {
+            EngineAction      = action,
+            ActionCompletion  = tcs,
+            CancellationToken = cancellationToken,
+        };
+
+        await _channel.Writer.WriteAsync(job, cancellationToken);
+        return await tcs.Task;
     }
 
     // ── Dispose ───────────────────────────────────────────────────────────────

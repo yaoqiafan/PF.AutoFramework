@@ -1,3 +1,5 @@
+using PF.Core.Entities.Vision;
+
 namespace PF.Core.Interfaces.Vision;
 
 /// <summary>
@@ -23,16 +25,31 @@ public interface IVisionService
     /// <summary>卸载指定过程并释放其占用的内存</summary>
     Task UnloadProcedureAsync(string procedureName, CancellationToken cancellationToken = default);
 
-    // ── 执行 ──────────────────────────────────────────────────────────────────
+    // ── 单步执行 ──────────────────────────────────────────────────────────────
 
     /// <summary>
     /// 异步执行视觉过程。线程安全：内部通过 Channel 委托给单一 Worker 线程串行执行。
     /// </summary>
     Task<IVisionResult> ExecuteAsync(VisionRequest request, CancellationToken cancellationToken = default);
 
+    // ── 管线执行 ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 按顺序执行多步管线，步骤间通过 VisionContext 自动传递 HObject。
+    /// 整个管线在同一 Worker 线程内完成，HALCON 对象不跨线程。
+    /// </summary>
+    /// <param name="pipeline">管线定义（通常由 VisionPipelineLoader 从 JSON 反序列化）</param>
+    /// <param name="externalInputs">
+    /// 外部注入的初始值（如相机实时图像），在步骤 inputs 中用 "$__ext__.keyName" 引用
+    /// </param>
+    Task<IVisionResult> ExecutePipelineAsync(
+        VisionPipelineDefinition        pipeline,
+        Dictionary<string, object?>?    externalInputs    = null,
+        CancellationToken               cancellationToken = default);
+
     // ── 事件 ──────────────────────────────────────────────────────────────────
 
-    /// <summary>过程执行完成后触发（成功或失败均触发）</summary>
+    /// <summary>过程执行完成后触发（成功或失败均触发，管线每步完成也触发）</summary>
     event EventHandler<IVisionResult> ProcedureExecuted;
 
     /// <summary>过程目录下 .hdev 文件发生变化时触发（FileSystemWatcher 驱动）</summary>

@@ -12,11 +12,17 @@ public class HalconModule : IModule
 {
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        containerRegistry.RegisterForNavigation<HalconDashboardView, HalconDashboardViewModel>(
+        containerRegistry.RegisterForNavigation<HalconDashboardView,  HalconDashboardViewModel>(
             HalconNavigationConstants.Views.Dashboard);
 
-        containerRegistry.RegisterForNavigation<ProcedureDebugView, ProcedureDebugViewModel>(
+        containerRegistry.RegisterForNavigation<ProcedureDebugView,   ProcedureDebugViewModel>(
             HalconNavigationConstants.Views.ProcedureDebug);
+
+        containerRegistry.RegisterForNavigation<PipelineRunnerView,   PipelineRunnerViewModel>(
+            HalconNavigationConstants.Views.PipelineRunner);
+
+        containerRegistry.RegisterForNavigation<HalconDebugView,      HalconDebugViewModel>(
+            HalconNavigationConstants.Views.HalconDebug);
     }
 
     public void OnInitialized(IContainerProvider containerProvider)

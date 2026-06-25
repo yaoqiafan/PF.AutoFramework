@@ -75,7 +75,6 @@ using System.Net;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
-using static PF.WorkStation.AutoOcr.CostParam.AlarmCodesExtensions;
 using MsgType = PF.UI.Shared.Data.MsgType;
 
 namespace PF.Application.Shell
@@ -782,16 +781,19 @@ namespace PF.Application.Shell
         #region 视觉服务注册
 
         /// <summary>
-        /// 注册 Halcon 视觉引擎服务（单例）。
-        /// procedurePath 指向 .hdev 算子文件目录，FileSystemWatcher 监听该目录热重载。
+        /// 注册 Halcon 视觉引擎服务和管线加载器（均为单例）。
+        /// VisionProceduresPath：.hdev 算法文件目录，FileSystemWatcher 监听热重载。
+        /// VisionWorkflowsPath ：管线 JSON 配置目录，文件变更后 UI 列表自动刷新。
         /// </summary>
         private void RegisterVisionServices(IContainerRegistry containerRegistry)
         {
             try
             {
-                var procedurePath = Path.Combine(ConstGlobalParam.ConfigPath, "VisionProcedures");
-                containerRegistry.AddVisionServices(procedurePath);
-                _dbLogger.Info("视觉引擎服务注册完成");
+                containerRegistry.AddVisionServices(
+                    procedureDirectory: ConstGlobalParam.VisionProceduresPath,
+                    pipelineDirectory:  ConstGlobalParam.VisionWorkflowsPath);
+
+                _dbLogger.Info($"视觉引擎服务注册完成 | 算法目录: {ConstGlobalParam.VisionProceduresPath} | 管线目录: {ConstGlobalParam.VisionWorkflowsPath}");
             }
             catch (Exception ex)
             {

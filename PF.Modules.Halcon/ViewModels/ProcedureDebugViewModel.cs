@@ -1,19 +1,26 @@
 using HalconDotNet;
+using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Vision;
 using PF.Modules.Halcon.Models;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using Prism.Navigation.Regions;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Xml.Linq;
 
 namespace PF.Modules.Halcon.ViewModels;
 
 /// <summary>
 /// 算子调试面板 ViewModel：动态参数输入、执行、图像渲染和结果展示。
+/// 使用 Debug 引擎（无超时限制、详细日志），首次执行时懒拉起，Destroy 时释放。
 /// </summary>
 public class ProcedureDebugViewModel : RegionViewModelBase
 {
-    private readonly IVisionService _visionService;
+    private readonly IVisionContextManager _contextManager;
+
+    private IVisionService VisionService => _contextManager.GetOrCreate(EngineMode.Debug);
 
     // 保存控件引用而非裸 HWindow：HWindowControlWPF 懒初始化，Loaded 时 handle 尚为 null，
     // 渲染时实时调用 HalconWindow 确保拿到有效句柄
@@ -71,11 +78,11 @@ public class ProcedureDebugViewModel : RegionViewModelBase
 
     // ── 构造 ──────────────────────────────────────────────────────────────────
 
-    public ProcedureDebugViewModel(IVisionService visionService) : base()
+    public ProcedureDebugViewModel(IVisionContextManager contextManager) : base()
     {
-        _visionService = visionService;
-        ExecuteCommand = new DelegateCommand(async () => await OnExecuteAsync(), () => IsNotExecuting);
-        ClearCommand   = new DelegateCommand(OnClearWindow);
+        _contextManager = contextManager;
+        ExecuteCommand  = new DelegateCommand(async () => await OnExecuteAsync(), () => IsNotExecuting);
+        ClearCommand    = new DelegateCommand(OnClearWindow);
     }
 
     // ── 导航生命周期 ──────────────────────────────────────────────────────────
@@ -125,7 +132,7 @@ public class ProcedureDebugViewModel : RegionViewModelBase
                     p => p.Name, p => (object?)p.Value),
             };
 
-            var result = await _visionService.ExecuteAsync(request);
+            var result = await VisionService.ExecuteAsync(request);
 
             LastElapsedMs = result.ElapsedTime.TotalMilliseconds;
 
@@ -278,13 +285,49 @@ public class ProcedureDebugViewModel : RegionViewModelBase
     }
 
     /// <summary>
-    /// 根据过程元数据反射构建动态输入参数行。
-    /// 当前使用占位实现；接入 HDevProcedure 后可通过 GetInputCtrlParamCount/Name 精确获取。
+    /// 解析 .hdev 文件的 &lt;ic&gt; 节点，动态构建 ctrl 输入参数行。
+    /// 直接读 XML，无需经过 HDevEngine Channel，可在 UI 线程上同步完成。
     /// </summary>
     private void BuildInputParameters()
     {
         InputParameters.Clear();
-        InputParameters.Add(new VisionParameterItem { Name = "INPUT_THRESHOLD", Value = "128"  });
-        InputParameters.Add(new VisionParameterItem { Name = "INPUT_MIN_AREA",  Value = "1000" });
+
+        var filePath = Path.Combine(ConstGlobalParam.VisionProceduresPath, ProcedureName + ".hdev");
+        if (!File.Exists(filePath))
+        {
+            LogService.Warn($"[Vision] 过程文件不存在，无法构建参数列表: {filePath}", "Vision");
+            return;
+        }
+
+        try
+        {
+            var doc = XDocument.Load(filePath);
+            var ipElement = doc.Descendants("ic").FirstOrDefault();
+            if (ipElement == null) return;
+
+            foreach (var par in ipElement.Elements("par"))
+            {
+                var name     = par.Attribute("name")?.Value;
+                var baseType = par.Attribute("base_type")?.Value;
+                if (string.IsNullOrEmpty(name) || baseType != "ctrl") continue;
+
+                InputParameters.Add(new VisionParameterItem { Name = name, Value = "" });
+            }
+
+            LogService.Info($"[Vision] 已加载 {ProcedureName} 的 {InputParameters.Count} 个 ctrl 输入参数", "Vision");
+        }
+        catch (Exception ex)
+        {
+            LogService.Warn($"[Vision] 解析过程参数失败: {ProcedureName} → {ex.Message}", "Vision");
+        }
+    }
+
+    // ── 生命周期 ──────────────────────────────────────────────────────────────
+
+    public override void Destroy()
+    {
+        // Debug 引擎在调试视图关闭时释放，下次进入时重新拉起
+        _ = _contextManager.ReleaseAsync(EngineMode.Debug);
+        base.Destroy();
     }
 }

@@ -18,5 +18,11 @@ public static class HalconNavigationConstants
 
         /// <summary>算子调试面板（参数输入 + 图像显示 + 结果输出）</summary>
         public const string ProcedureDebug = "ProcedureDebugView";
+
+        /// <summary>管线运行面板（选择并执行 JSON 管线，查看各步输出）</summary>
+        public const string PipelineRunner = "PipelineRunnerView";
+
+        /// <summary>HALCON 调试集成面板（Level 2 调试服务器 + HDevelop 联调）</summary>
+        public const string HalconDebug = "HalconDebugView";
     }
 }

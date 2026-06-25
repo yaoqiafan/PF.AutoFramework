@@ -20,6 +20,13 @@ public class VisionRequest
     /// </summary>
     public Dictionary<string, object?> IconicInputs { get; init; } = new();
 
+    /// <summary>
+    /// 通过文件路径传入的图像输入（调试/测试场景）。
+    /// 实现层在 Worker 线程上调用 ReadImage 加载文件，再传入 HDevProcedureCall。
+    /// Key 为 .hdev 参数名，Value 为磁盘图像文件的绝对路径。
+    /// </summary>
+    public Dictionary<string, string> IconicFilePaths { get; init; } = new();
+
     /// <summary>单次执行超时（默认 30 秒）</summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
 }
