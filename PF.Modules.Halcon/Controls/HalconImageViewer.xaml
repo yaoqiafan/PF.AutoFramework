@@ -4,11 +4,8 @@
              xmlns:halcon="clr-namespace:HalconDotNet;assembly=halcondotnet">
 
     <Grid>
+        <!-- 鼠标交互通过 HALCON 原生事件处理（HwndHost 不传递 WPF 路由事件） -->
         <halcon:HWindowControlWPF x:Name="HalconWindow"
-                               MouseWheel="HalconWindow_MouseWheel"
-                               MouseRightButtonDown="HalconWindow_PanStart"
-                               MouseMove="HalconWindow_PanMove"
-                               MouseRightButtonUp="HalconWindow_PanEnd"
                                MouseDoubleClick="HalconWindow_FitToWindow"/>
         <!-- 空状态提示 -->
         <TextBlock x:Name="PlaceholderText"

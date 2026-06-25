@@ -21,6 +21,11 @@ public partial class HalconImageViewer : UserControl
     public HalconImageViewer()
     {
         InitializeComponent();
+        // WPF 路由事件无法穿透 HwndHost，改用 HALCON 原生事件
+        HalconWindow.HMouseWheel += OnHMouseWheel;
+        HalconWindow.HMouseDown  += OnHMouseDown;
+        HalconWindow.HMouseMove  += OnHMouseMove;
+        HalconWindow.HMouseUp    += OnHMouseUp;
     }
 
     // ── 公共 API ──────────────────────────────────────────────────────────────
@@ -139,19 +144,17 @@ public partial class HalconImageViewer : UserControl
     }
 
     // ── 鼠标交互：滚轮缩放 / 右键拖动平移 / 双击自适应 ──────────────────────────
+    // 使用 HALCON 原生事件，e.Row/e.Column 已由 HALCON 转换为图像坐标
 
-    private void HalconWindow_MouseWheel(object sender, MouseWheelEventArgs e)
+    private void OnHMouseWheel(object sender, HMouseEventArgsWPF e)
     {
         var win = GetWindow();
         if (win is null) return;
         try
         {
-            var pos = e.GetPosition(HalconWindow);
-            if (!TryToImageCoords(win, pos, out double imgR, out double imgC)) return;
-
             HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
             double factor = e.Delta > 0 ? 0.75 : 1.333; // 缩小视口 = 放大图像
-
+            double imgR = e.Row, imgC = e.Column;
             HOperatorSet.SetPart(win,
                 imgR - (imgR - r1.D) * factor,
                 imgC - (imgC - c1.D) * factor,
@@ -159,75 +162,49 @@ public partial class HalconImageViewer : UserControl
                 imgC + (c2.D - imgC) * factor);
         }
         catch { }
-        e.Handled = true;
     }
 
-    private void HalconWindow_PanStart(object sender, MouseButtonEventArgs e)
+    private void OnHMouseDown(object sender, HMouseEventArgsWPF e)
     {
-        var win = GetWindow();
-        if (win is null) return;
-        var pos = e.GetPosition(HalconWindow);
-        if (TryToImageCoords(win, pos, out double r, out double c))
-        {
-            _panAnchor = new Point(c, r);
-            HalconWindow.CaptureMouse();
-            HalconWindow.Cursor = Cursors.SizeAll;
-        }
+        if (e.Button != System.Windows.Input.MouseButton.Right) return;
+        _panAnchor = new Point(e.Column, e.Row);
+        HalconWindow.Cursor = Cursors.SizeAll;
     }
 
-    private void HalconWindow_PanMove(object sender, MouseEventArgs e)
+    private void OnHMouseMove(object sender, HMouseEventArgsWPF e)
     {
         if (_panAnchor is null) return;
         var win = GetWindow();
         if (win is null) return;
         try
         {
-            var pos = e.GetPosition(HalconWindow);
-            if (!TryToImageCoords(win, pos, out double r, out double c)) return;
-
-            double dr = _panAnchor.Value.Y - r;
-            double dc = _panAnchor.Value.X - c;
+            // _panAnchor 是锚点的图像坐标，e.Row/Column 是当前鼠标的图像坐标
+            // 平移量 = 锚点 − 当前位置（锚点需跟随鼠标）
+            double dr = _panAnchor.Value.Y - e.Row;
+            double dc = _panAnchor.Value.X - e.Column;
             if (Math.Abs(dr) < 0.001 && Math.Abs(dc) < 0.001) return;
 
             HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
             HOperatorSet.SetPart(win, r1.D + dr, c1.D + dc, r2.D + dr, c2.D + dc);
-
-            // 平移后重新采样锚点，使拖动跟随鼠标
-            if (TryToImageCoords(win, pos, out double nr, out double nc))
-                _panAnchor = new Point(nc, nr);
+            // 平移后锚点随鼠标，不需要更新 _panAnchor（锚点始终在鼠标下方）
         }
         catch { }
     }
 
-    private void HalconWindow_PanEnd(object sender, MouseButtonEventArgs e)
+    private void OnHMouseUp(object sender, HMouseEventArgsWPF e)
     {
+        if (e.Button != System.Windows.Input.MouseButton.Right) return;
         _panAnchor = null;
-        HalconWindow.ReleaseMouseCapture();
         HalconWindow.Cursor = Cursors.Arrow;
     }
 
-    private void HalconWindow_FitToWindow(object sender, MouseButtonEventArgs e)
+    // MouseDoubleClick 是 WPF 特殊事件，HWindowControlWPF 支持
+    private void HalconWindow_FitToWindow(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         var win = GetWindow();
         if (win is null || _currentImage is null || !_hasImage) return;
         try { AdaptPart(win, _currentImage); }
         catch { }
-    }
-
-    // 将 WPF 控件坐标转换为 HALCON 图像坐标
-    private bool TryToImageCoords(HWindow win, Point wpfPos, out double row, out double col)
-    {
-        try
-        {
-            HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
-            double w = HalconWindow.ActualWidth;
-            double h = HalconWindow.ActualHeight;
-            if (w <= 0 || h <= 0) { row = col = 0; return false; }
-            col = c1.D + (wpfPos.X / w) * (c2.D - c1.D);
-            row = r1.D + (wpfPos.Y / h) * (r2.D - r1.D);
-            return true;
-        }
-        catch { row = col = 0; return false; }
     }
 
     // ── 内部 ──────────────────────────────────────────────────────────────────
