@@ -72,12 +72,10 @@
                         <DataGridTemplateColumn Header="操作" Width="60">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <ComboBox SelectedItem="{Binding OpLabel, UpdateSourceTrigger=PropertyChanged}"
+                                    <ComboBox SelectedValue="{Binding OpLabel, UpdateSourceTrigger=PropertyChanged}"
                                               SelectionChanged="OpComboBox_SelectionChanged"
-                                              FontSize="11" Padding="2,1" BorderThickness="0">
-                                        <ComboBoxItem>包含</ComboBoxItem>
-                                        <ComboBoxItem>排除</ComboBoxItem>
-                                    </ComboBox>
+                                              ItemsSource="{x:Static local:HalconRoiEditor.OpLabels}"
+                                              FontSize="11" Padding="2,1" BorderThickness="0"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

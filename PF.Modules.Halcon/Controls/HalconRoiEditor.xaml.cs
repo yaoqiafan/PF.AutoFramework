@@ -55,6 +55,8 @@ public sealed class RoiRowVm : BindableBase
 
 public partial class HalconRoiEditor : UserControl
 {
+    public static readonly IReadOnlyList<string> OpLabels = ["包含", "排除"];
+
     private readonly ObservableCollection<RoiRowVm> _rows = new();
     private RoiOp   _currentOp = RoiOp.Include;
     private int     _roiCounter;
@@ -113,14 +115,14 @@ public partial class HalconRoiEditor : UserControl
 
     private void IncludeBtn_Checked(object sender, RoutedEventArgs e)
     {
-        _currentOp           = RoiOp.Include;
-        ExcludeBtn.IsChecked = false;
+        _currentOp = RoiOp.Include;
+        if (ExcludeBtn is not null) ExcludeBtn.IsChecked = false;
     }
 
     private void ExcludeBtn_Checked(object sender, RoutedEventArgs e)
     {
-        _currentOp           = RoiOp.Exclude;
-        IncludeBtn.IsChecked = false;
+        _currentOp = RoiOp.Exclude;
+        if (IncludeBtn is not null) IncludeBtn.IsChecked = false;
     }
 
     private void AddRect_Click(object sender, RoutedEventArgs e)    => AddRoi(RoiType.Rect);
