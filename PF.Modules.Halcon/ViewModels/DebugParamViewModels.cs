@@ -1,6 +1,8 @@
 using Microsoft.Win32;
+using PF.Core.Interfaces.Vision.Pipeline;
 using Prism.Commands;
 using Prism.Mvvm;
+using System.Collections.ObjectModel;
 
 namespace PF.Modules.Halcon.ViewModels;
 
@@ -19,10 +21,16 @@ public sealed class InputControlParamVm : BindableBase
     public InputControlParamVm(string name) => Name = name;
 }
 
-/// <summary>图像文件输入参数（文件选择器绑定）</summary>
+/// <summary>
+/// 图像/ROI 输入参数。
+/// IsRoiMode=false：文件路径模式（原有行为）。
+/// IsRoiMode=true ：ROI 绘制模式，CurrentRois 由 HalconRoiEditor 填充。
+/// </summary>
 public sealed class InputIconicParamVm : BindableBase
 {
     public string Name { get; }
+
+    // ── 文件路径模式 ──────────────────────────────────────────────────────────
 
     private string? _filePath;
     public string? FilePath
@@ -33,10 +41,38 @@ public sealed class InputIconicParamVm : BindableBase
 
     public DelegateCommand BrowseCommand { get; }
 
+    // ── ROI 绘制模式 ──────────────────────────────────────────────────────────
+
+    private bool _isRoiMode;
+    public bool IsRoiMode
+    {
+        get => _isRoiMode;
+        set
+        {
+            if (SetProperty(ref _isRoiMode, value))
+            {
+                RaisePropertyChanged(nameof(IsFileMode));
+                RaisePropertyChanged(nameof(ModeLabelText));
+            }
+        }
+    }
+
+    public bool   IsFileMode     => !_isRoiMode;
+    public string ModeLabelText  => _isRoiMode ? "ROI 绘制" : "图像文件";
+
+    /// <summary>ROI 绘制模式下的配置列表（由 HalconRoiEditor 通过 GetCurrentRois 写入）</summary>
+    public ObservableCollection<VisionRoiConfig> CurrentRois { get; } = new();
+
+    public DelegateCommand ToggleModeCommand { get; }
+
+    // ── 构造 ──────────────────────────────────────────────────────────────────
+
     public InputIconicParamVm(string name)
     {
-        Name          = name;
-        BrowseCommand = new DelegateCommand(OnBrowse);
+        Name             = name;
+        BrowseCommand    = new DelegateCommand(OnBrowse, () => IsFileMode)
+                               .ObservesProperty(() => IsFileMode);
+        ToggleModeCommand = new DelegateCommand(() => IsRoiMode = !IsRoiMode);
     }
 
     private void OnBrowse()

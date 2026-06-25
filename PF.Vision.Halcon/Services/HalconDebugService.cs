@@ -89,8 +89,9 @@ public sealed class HalconDebugService : IHalconDebugService
 
     public Task<IVisionResult> RunTestAsync(
         string procedureName,
-        IReadOnlyDictionary<string, string> controlInputs,
-        IReadOnlyDictionary<string, string> iconicFilePaths,
+        IReadOnlyDictionary<string, string>  controlInputs,
+        IReadOnlyDictionary<string, string>  iconicFilePaths,
+        IReadOnlyDictionary<string, object?> iconicObjects,
         CancellationToken ct = default)
     {
         var engine  = GetDebugEngine();
@@ -103,6 +104,8 @@ public sealed class HalconDebugService : IHalconDebugService
                 .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value))
                 .ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value),
             IconicFilePaths = iconicFilePaths.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+            // 预计算 HObject（ROI Region 等），同名时优先级高于 FilePath
+            IconicInputs    = iconicObjects.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
         };
         return engine.ExecuteAsync(request, ct);
     }

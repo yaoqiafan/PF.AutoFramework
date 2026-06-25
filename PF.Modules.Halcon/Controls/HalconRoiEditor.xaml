@@ -1,0 +1,99 @@
+<UserControl x:Class="PF.Modules.Halcon.Controls.HalconRoiEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PF.Modules.Halcon.Controls">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- 工具栏 -->
+            <RowDefinition Height="*"/>     <!-- 图像 + ROI 列表 -->
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <ToolBar Grid.Row="0" ToolBarTray.IsLocked="True">
+            <!-- 操作模式 -->
+            <TextBlock Text="操作:" VerticalAlignment="Center" Margin="0,0,4,0"
+                       Foreground="{DynamicResource PrimaryTextBrush}"/>
+            <ToggleButton x:Name="IncludeBtn" Content="+ 包含" IsChecked="True"
+                          Checked="IncludeBtn_Checked" Padding="8,3" Margin="0,0,2,0"
+                          ToolTip="新增 ROI 作为包含区域"/>
+            <ToggleButton x:Name="ExcludeBtn" Content="− 排除"
+                          Checked="ExcludeBtn_Checked" Padding="8,3"
+                          ToolTip="新增 ROI 作为排除区域"/>
+            <Separator/>
+            <!-- 形状选择 -->
+            <TextBlock Text="形状:" VerticalAlignment="Center" Margin="0,0,4,0"
+                       Foreground="{DynamicResource PrimaryTextBrush}"/>
+            <Button Content="□ 矩形"     Click="AddRect_Click"      Padding="8,3" Margin="0,0,2,0"/>
+            <Button Content="◧ 旋转矩"   Click="AddRect2_Click"     Padding="8,3" Margin="0,0,2,0"/>
+            <Button Content="○ 圆"       Click="AddCircle_Click"    Padding="8,3" Margin="0,0,2,0"/>
+            <Button Content="◎ 椭圆"     Click="AddEllipse_Click"   Padding="8,3" Margin="0,0,2,0"/>
+            <Button Content="⌓ 扇形"     Click="AddSector_Click"    Padding="8,3" Margin="0,0,2,0"/>
+            <Separator/>
+            <Button Content="预览检测范围" Click="PreviewRegion_Click" Padding="8,3" Margin="0,0,2,0"
+                    ToolTip="叠层显示 Include − Exclude 的最终检测区域"/>
+            <Button Content="清空 ROI"   Click="ClearRois_Click"    Padding="8,3"/>
+        </ToolBar>
+
+        <!-- 主体：左=图像，右=ROI 列表 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="240"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 图像显示区 -->
+            <local:HalconImageViewer x:Name="ImageViewer" Grid.Column="0"/>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
+
+            <!-- ROI 列表 -->
+            <DockPanel Grid.Column="2" Margin="4">
+                <TextBlock DockPanel.Dock="Top" Text="ROI 列表"
+                           FontWeight="SemiBold" Margin="0,0,0,4"
+                           Foreground="{DynamicResource PrimaryTextBrush}"/>
+                <DataGrid x:Name="RoiGrid"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          GridLinesVisibility="None"
+                          HeadersVisibility="Column"
+                          BorderThickness="1"
+                          SelectedCellsChanged="RoiGrid_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="名称" Width="*"
+                                            Binding="{Binding Name}"/>
+                        <DataGridTextColumn Header="类型" Width="60"
+                                            Binding="{Binding TypeLabel}"
+                                            IsReadOnly="True"/>
+                        <DataGridTemplateColumn Header="操作" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedItem="{Binding OpLabel, UpdateSourceTrigger=PropertyChanged}"
+                                              SelectionChanged="OpComboBox_SelectionChanged"
+                                              FontSize="11" Padding="2,1" BorderThickness="0">
+                                        <ComboBoxItem>包含</ComboBoxItem>
+                                        <ComboBoxItem>排除</ComboBoxItem>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="30">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="✕" FontSize="10" Padding="2,0"
+                                            BorderThickness="0" Background="Transparent"
+                                            Tag="{Binding}"
+                                            Click="DeleteRoi_Click"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>

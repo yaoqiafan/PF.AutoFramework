@@ -1,5 +1,9 @@
+using HalconDotNet;
 using PF.Core.Interfaces.Vision;
+using PF.Core.Interfaces.Vision.Pipeline;
+using PF.Modules.Halcon.Controls;
 using PF.UI.Infrastructure.PrismBase;
+using PF.Vision.Halcon.Internal;
 using Prism.Commands;
 using System.Collections.ObjectModel;
 
@@ -234,18 +238,36 @@ public class HalconDebugViewModel : RegionViewModelBase
 
     // ── 启动 HDevelop + 调试执行 ──────────────────────────────────────────────
 
+    // ── 图像查看器注入 ────────────────────────────────────────────────────────
+
+    private HalconImageViewer? _imageViewer;
+
+    /// <summary>由 code-behind 在 Loaded 后调用，注入图像查看器控件引用</summary>
+    public void SetImageViewer(HalconImageViewer viewer) => _imageViewer = viewer;
+
+    // ── ROI 编辑器注入 ────────────────────────────────────────────────────────
+
+    private HalconRoiEditor? _roiEditor;
+
+    /// <summary>由 code-behind 在 Loaded 后调用，注入当前激活的 ROI 编辑器</summary>
+    public void SetRoiEditor(HalconRoiEditor? editor) => _roiEditor = editor;
+
+    // ── 调试执行 ──────────────────────────────────────────────────────────────
+
     private async Task OnLaunchAsync()
     {
         if (SelectedProcedure is null) return;
 
-        var missing = InputIconics.Where(p => string.IsNullOrEmpty(p.FilePath)).ToList();
-        if (missing.Count > 0)
+        // 文件模式的 iconic 参数必须已选择文件
+        var missingFiles = InputIconics.Where(p => p.IsFileMode && string.IsNullOrEmpty(p.FilePath)).ToList();
+        if (missingFiles.Count > 0)
         {
-            ServerStatus = $"请先选择图像文件：{string.Join("，", missing.Select(p => p.Name))}";
+            ServerStatus = $"请先选择图像文件：{string.Join("，", missingFiles.Select(p => p.Name))}";
             return;
         }
 
         foreach (var p in OutputControls) p.Value = null;
+        _imageViewer?.Clear();
 
         // 1. 启动 HDevelop（非阻塞），HDevelop 打开后通过「附加到进程」连接调试服务器
         _debugService.LaunchHDevelop(SelectedProcedure, RunImmediately);
@@ -253,7 +275,7 @@ public class HalconDebugViewModel : RegionViewModelBase
         ServerStatus = $"HDevelop 已启动「{SelectedProcedure}」| "
                      + $"在 HDevelop 中附加到进程（端口 {Port}），C# 端过程将在入口暂停等待接入";
 
-        // 2. C# 端执行过程，过程设置参数后在入口暂停，等待 HDevelop 附加后继续
+        // 2. C# 端执行过程，过程在入口暂停等待 HDevelop 附加后继续
         _debugCts?.Dispose();
         _debugCts   = new CancellationTokenSource();
         IsDebugging = true;
@@ -263,11 +285,29 @@ public class HalconDebugViewModel : RegionViewModelBase
             var ctrlInputs  = InputControls
                 .Where(p => !string.IsNullOrWhiteSpace(p.Value))
                 .ToDictionary(p => p.Name, p => p.Value);
+
             var iconicPaths = InputIconics
+                .Where(p => p.IsFileMode && !string.IsNullOrEmpty(p.FilePath))
                 .ToDictionary(p => p.Name, p => p.FilePath!);
 
+            // ROI 模式：从编辑器读取当前 ROI，计算 Region，直接注入为 HObject
+            var iconicObjects = new Dictionary<string, object?>();
+            foreach (var param in InputIconics.Where(p => p.IsRoiMode))
+            {
+                var rois = _roiEditor is not null
+                    ? _roiEditor.GetCurrentRois()
+                    : (IReadOnlyList<VisionRoiConfig>)param.CurrentRois.ToList();
+
+                var region = RoiRegionBuilder.Build(rois);
+                iconicObjects[param.Name] = region;
+            }
+
             var result = await _debugService.RunTestAsync(
-                SelectedProcedure, ctrlInputs, iconicPaths, _debugCts.Token);
+                SelectedProcedure, ctrlInputs, iconicPaths, iconicObjects, _debugCts.Token);
+
+            // 释放临时 HObject
+            foreach (var obj in iconicObjects.Values.OfType<HObject>())
+                try { obj.Dispose(); } catch { }
 
             if (result.Success)
             {
@@ -277,7 +317,13 @@ public class HalconDebugViewModel : RegionViewModelBase
                         ? val?.ToString() ?? "(null)"
                         : "(未返回)";
                 }
-                ServerStatus = $"调试完成，耗时 {result.ElapsedTime.TotalMilliseconds:F0} ms | 输出参数已更新";
+
+                // 在右侧图像查看器渲染图标量输出
+                if (_imageViewer is not null && result.IconicOutputs.Count > 0)
+                    _imageViewer.DisplayIconics(result.IconicOutputs);
+
+                ServerStatus = $"调试完成，耗时 {result.ElapsedTime.TotalMilliseconds:F0} ms | "
+                             + $"控制量 {result.ControlOutputs.Count} 个，图标量 {result.IconicOutputs.Count} 个";
             }
             else
             {

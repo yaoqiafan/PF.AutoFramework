@@ -39,12 +39,15 @@ public interface IHalconDebugService
     /// <summary>
     /// 使用指定参数执行一次过程（测试执行）。
     /// 图像输入通过文件路径传入，在 Worker 线程上加载；控制量字符串由实现层自动解析为数值或字符串。
-    /// 执行结果包含所有控制量输出，图标量输出不在此返回（可在 HDevelop 中查看）。
+    /// <paramref name="iconicObjects"/> 用于传入预计算的 HObject（如 ROI Region），
+    /// 与 <paramref name="iconicFilePaths"/> 并行注入，同名时 iconicObjects 优先。
+    /// 执行结果包含所有控制量输出和图标量输出。
     /// </summary>
     Task<IVisionResult> RunTestAsync(
         string procedureName,
-        IReadOnlyDictionary<string, string> controlInputs,
-        IReadOnlyDictionary<string, string> iconicFilePaths,
+        IReadOnlyDictionary<string, string>  controlInputs,
+        IReadOnlyDictionary<string, string>  iconicFilePaths,
+        IReadOnlyDictionary<string, object?> iconicObjects,
         CancellationToken ct = default);
 
     /// <summary>
