@@ -65,6 +65,8 @@ public partial class HalconRoiEditor : UserControl
     {
         InitializeComponent();
         RoiGrid.ItemsSource = _rows;
+        // HALCON 窗口（重新）创建后重挂载 DrawingObject（切 tab/导航返回时窗口会重建）
+        ImageViewer.WindowInitialized += OnWindowInitialized;
         Loaded   += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -100,8 +102,25 @@ public partial class HalconRoiEditor : UserControl
 
     // ── 生命周期 ──────────────────────────────────────────────────────────────
 
+    private void OnWindowInitialized(object? sender, EventArgs e) => ReattachAllDrawObjects();
+
     private void OnLoaded(object sender, RoutedEventArgs e) { }
-    private void OnUnloaded(object sender, RoutedEventArgs e) => ClearAllDrawObjects();
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        // 窗口即将释放：先把 DrawingObject 当前坐标同步回 Config，再销毁 drawId
+        // 这样窗口重建后能按 Config.RoiParams 重新创建 DrawingObject，位置不丢
+        SyncAllFromDrawObjects();
+        ClearAllDrawObjects();
+    }
+
+    /// <summary>对每个未挂载的行重新创建并挂载 DrawingObject（窗口重建后调用）</summary>
+    private void ReattachAllDrawObjects()
+    {
+        foreach (var row in _rows)
+            if (row.DrawId is null)
+                AttachDrawObject(row);
+    }
 
     private HWindow? GetHWindow()
     {

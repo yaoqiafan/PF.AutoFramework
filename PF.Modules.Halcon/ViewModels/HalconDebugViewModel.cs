@@ -263,8 +263,8 @@ public class HalconDebugViewModel : RegionViewModelBase
         try
         {
             HOperatorSet.ReadImage(out HObject image, param.FilePath);
+            // LoadImage → DisplayImage 接管 image 所有权，此处不可 Dispose
             _roiEditor.LoadImage(image);
-            image.Dispose();
         }
         catch (Exception ex)
         {

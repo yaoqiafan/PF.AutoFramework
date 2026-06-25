@@ -18,6 +18,32 @@ public partial class HalconImageViewer : UserControl
     public HalconImageViewer()
     {
         InitializeComponent();
+        // 窗口（重新）创建时重绘底图；TabControl 切换 tab / 导航离开再返回会释放 HALCON 窗口
+        HalconWindow.HInitWindow += OnHInitWindow;
+    }
+
+    /// <summary>HALCON 窗口（重新）初始化完成时触发，供宿主（如 ROI 编辑器）重挂载 DrawingObject</summary>
+    public event EventHandler? WindowInitialized;
+
+    private void OnHInitWindow(object sender, EventArgs e)
+    {
+        // 窗口重建后内容丢失，重绘底图（保持自适应视口）
+        if (_hasImage && _currentImage?.IsInitialized() == true)
+        {
+            var win = GetWindow();
+            if (win is not null)
+            {
+                try
+                {
+                    HOperatorSet.ClearWindow(win);
+                    AdaptPart(win, _currentImage);
+                    HOperatorSet.SetDraw(win, "fill");
+                    HOperatorSet.DispObj(_currentImage, win);
+                }
+                catch { }
+            }
+        }
+        WindowInitialized?.Invoke(this, EventArgs.Empty);
     }
 
     // ── 公共 API ──────────────────────────────────────────────────────────────
