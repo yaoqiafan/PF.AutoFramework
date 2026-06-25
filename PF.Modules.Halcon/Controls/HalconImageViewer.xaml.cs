@@ -1,13 +1,13 @@
 using HalconDotNet;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace PF.Modules.Halcon.Controls;
 
 /// <summary>
-/// 通用 HALCON 图像显示控件。封装 HWindowControlWPF，提供简洁的显示 API。
-/// 所有显示方法必须在 UI 线程调用。
+/// 通用 HALCON 图像显示控件。封装 HSmartWindowControlWPF。
+/// 平移（左键拖动）/ 缩放（滚轮）/ 自适应（双击）由控件内置，
+/// 无需手写鼠标交互。所有显示方法必须在 UI 线程调用。
 /// </summary>
 public partial class HalconImageViewer : UserControl
 {
@@ -15,17 +15,9 @@ public partial class HalconImageViewer : UserControl
     private HObject? _currentImage;
     private bool     _hasImage;
 
-    // 右键拖动平移：记录开始拖动时鼠标对应的图像坐标
-    private Point? _panAnchor; // (X=col, Y=row)
-
     public HalconImageViewer()
     {
         InitializeComponent();
-        // WPF 路由事件无法穿透 HwndHost，改用 HALCON 原生事件
-        HalconWindow.HMouseWheel += OnHMouseWheel;
-        HalconWindow.HMouseDown  += OnHMouseDown;
-        HalconWindow.HMouseMove  += OnHMouseMove;
-        HalconWindow.HMouseUp    += OnHMouseUp;
     }
 
     // ── 公共 API ──────────────────────────────────────────────────────────────
@@ -78,7 +70,7 @@ public partial class HalconImageViewer : UserControl
         catch { }
     }
 
-    /// <summary>清除叠层，只保留底图</summary>
+    /// <summary>清除叠层，只保留底图（保持当前缩放/平移视口）</summary>
     public void ClearOverlays()
     {
         var win = GetWindow();
@@ -89,7 +81,6 @@ public partial class HalconImageViewer : UserControl
             HOperatorSet.ClearWindow(win);
             if (_hasImage && _currentImage?.IsInitialized() == true)
             {
-                AdaptPart(win, _currentImage);
                 HOperatorSet.SetDraw(win, "fill");
                 HOperatorSet.DispObj(_currentImage, win);
             }
@@ -141,70 +132,6 @@ public partial class HalconImageViewer : UserControl
         try { HOperatorSet.ClearWindow(win); } catch { }
         _hasImage = false;
         PlaceholderText.Visibility = Visibility.Visible;
-    }
-
-    // ── 鼠标交互：滚轮缩放 / 右键拖动平移 / 双击自适应 ──────────────────────────
-    // 使用 HALCON 原生事件，e.Row/e.Column 已由 HALCON 转换为图像坐标
-
-    private void OnHMouseWheel(object sender, HMouseEventArgsWPF e)
-    {
-        var win = GetWindow();
-        if (win is null) return;
-        try
-        {
-            HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
-            double factor = e.Delta > 0 ? 0.75 : 1.333; // 缩小视口 = 放大图像
-            double imgR = e.Row, imgC = e.Column;
-            HOperatorSet.SetPart(win,
-                imgR - (imgR - r1.D) * factor,
-                imgC - (imgC - c1.D) * factor,
-                imgR + (r2.D - imgR) * factor,
-                imgC + (c2.D - imgC) * factor);
-        }
-        catch { }
-    }
-
-    private void OnHMouseDown(object sender, HMouseEventArgsWPF e)
-    {
-        if (e.Button != System.Windows.Input.MouseButton.Right) return;
-        _panAnchor = new Point(e.Column, e.Row);
-        HalconWindow.Cursor = Cursors.SizeAll;
-    }
-
-    private void OnHMouseMove(object sender, HMouseEventArgsWPF e)
-    {
-        if (_panAnchor is null) return;
-        var win = GetWindow();
-        if (win is null) return;
-        try
-        {
-            // _panAnchor 是锚点的图像坐标，e.Row/Column 是当前鼠标的图像坐标
-            // 平移量 = 锚点 − 当前位置（锚点需跟随鼠标）
-            double dr = _panAnchor.Value.Y - e.Row;
-            double dc = _panAnchor.Value.X - e.Column;
-            if (Math.Abs(dr) < 0.001 && Math.Abs(dc) < 0.001) return;
-
-            HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
-            HOperatorSet.SetPart(win, r1.D + dr, c1.D + dc, r2.D + dr, c2.D + dc);
-            // 平移后锚点随鼠标，不需要更新 _panAnchor（锚点始终在鼠标下方）
-        }
-        catch { }
-    }
-
-    private void OnHMouseUp(object sender, HMouseEventArgsWPF e)
-    {
-        if (e.Button != System.Windows.Input.MouseButton.Right) return;
-        _panAnchor = null;
-        HalconWindow.Cursor = Cursors.Arrow;
-    }
-
-    // MouseDoubleClick 是 WPF 特殊事件，HWindowControlWPF 支持
-    private void HalconWindow_FitToWindow(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        var win = GetWindow();
-        if (win is null || _currentImage is null || !_hasImage) return;
-        try { AdaptPart(win, _currentImage); }
-        catch { }
     }
 
     // ── 内部 ──────────────────────────────────────────────────────────────────

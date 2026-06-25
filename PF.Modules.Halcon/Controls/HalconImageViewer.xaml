@@ -4,9 +4,11 @@
              xmlns:halcon="clr-namespace:HalconDotNet;assembly=halcondotnet">
 
     <Grid>
-        <!-- 鼠标交互通过 HALCON 原生事件处理（HwndHost 不传递 WPF 路由事件） -->
-        <halcon:HWindowControlWPF x:Name="HalconWindow"
-                               MouseDoubleClick="HalconWindow_FitToWindow"/>
+        <!-- HSmartWindowControlWPF 内置 pan/zoom/fit，无需手写鼠标交互 -->
+        <halcon:HSmartWindowControlWPF x:Name="HalconWindow"
+                                       HMoveContent="True"
+                                       HZoomContent="WheelForwardZoomsIn"
+                                       HDoubleClickToFitContent="True"/>
         <!-- 空状态提示 -->
         <TextBlock x:Name="PlaceholderText"
                    Text="无图像"
