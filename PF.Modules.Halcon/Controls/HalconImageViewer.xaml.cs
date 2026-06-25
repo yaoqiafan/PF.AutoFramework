@@ -1,6 +1,7 @@
 using HalconDotNet;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace PF.Modules.Halcon.Controls;
 
@@ -13,6 +14,9 @@ public partial class HalconImageViewer : UserControl
     // 当前底图（叠层清除后重绘用）
     private HObject? _currentImage;
     private bool     _hasImage;
+
+    // 右键拖动平移：记录开始拖动时鼠标对应的图像坐标
+    private Point? _panAnchor; // (X=col, Y=row)
 
     public HalconImageViewer()
     {
@@ -132,6 +136,98 @@ public partial class HalconImageViewer : UserControl
         try { HOperatorSet.ClearWindow(win); } catch { }
         _hasImage = false;
         PlaceholderText.Visibility = Visibility.Visible;
+    }
+
+    // ── 鼠标交互：滚轮缩放 / 右键拖动平移 / 双击自适应 ──────────────────────────
+
+    private void HalconWindow_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        var win = GetWindow();
+        if (win is null) return;
+        try
+        {
+            var pos = e.GetPosition(HalconWindow);
+            if (!TryToImageCoords(win, pos, out double imgR, out double imgC)) return;
+
+            HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
+            double factor = e.Delta > 0 ? 0.75 : 1.333; // 缩小视口 = 放大图像
+
+            HOperatorSet.SetPart(win,
+                imgR - (imgR - r1.D) * factor,
+                imgC - (imgC - c1.D) * factor,
+                imgR + (r2.D - imgR) * factor,
+                imgC + (c2.D - imgC) * factor);
+        }
+        catch { }
+        e.Handled = true;
+    }
+
+    private void HalconWindow_PanStart(object sender, MouseButtonEventArgs e)
+    {
+        var win = GetWindow();
+        if (win is null) return;
+        var pos = e.GetPosition(HalconWindow);
+        if (TryToImageCoords(win, pos, out double r, out double c))
+        {
+            _panAnchor = new Point(c, r);
+            HalconWindow.CaptureMouse();
+            HalconWindow.Cursor = Cursors.SizeAll;
+        }
+    }
+
+    private void HalconWindow_PanMove(object sender, MouseEventArgs e)
+    {
+        if (_panAnchor is null) return;
+        var win = GetWindow();
+        if (win is null) return;
+        try
+        {
+            var pos = e.GetPosition(HalconWindow);
+            if (!TryToImageCoords(win, pos, out double r, out double c)) return;
+
+            double dr = _panAnchor.Value.Y - r;
+            double dc = _panAnchor.Value.X - c;
+            if (Math.Abs(dr) < 0.001 && Math.Abs(dc) < 0.001) return;
+
+            HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
+            HOperatorSet.SetPart(win, r1.D + dr, c1.D + dc, r2.D + dr, c2.D + dc);
+
+            // 平移后重新采样锚点，使拖动跟随鼠标
+            if (TryToImageCoords(win, pos, out double nr, out double nc))
+                _panAnchor = new Point(nc, nr);
+        }
+        catch { }
+    }
+
+    private void HalconWindow_PanEnd(object sender, MouseButtonEventArgs e)
+    {
+        _panAnchor = null;
+        HalconWindow.ReleaseMouseCapture();
+        HalconWindow.Cursor = Cursors.Arrow;
+    }
+
+    private void HalconWindow_FitToWindow(object sender, MouseButtonEventArgs e)
+    {
+        var win = GetWindow();
+        if (win is null || _currentImage is null || !_hasImage) return;
+        try { AdaptPart(win, _currentImage); }
+        catch { }
+    }
+
+    // 将 WPF 控件坐标转换为 HALCON 图像坐标
+    private bool TryToImageCoords(HWindow win, Point wpfPos, out double row, out double col)
+    {
+        try
+        {
+            HOperatorSet.GetPart(win, out HTuple r1, out HTuple c1, out HTuple r2, out HTuple c2);
+            double w = HalconWindow.ActualWidth;
+            double h = HalconWindow.ActualHeight;
+            if (w <= 0 || h <= 0) { row = col = 0; return false; }
+            col = c1.D + (wpfPos.X / w) * (c2.D - c1.D);
+            row = r1.D + (wpfPos.Y / h) * (r2.D - r1.D);
+            return true;
+        }
+        catch { row = col = 0; return false; }
     }
 
     // ── 内部 ──────────────────────────────────────────────────────────────────

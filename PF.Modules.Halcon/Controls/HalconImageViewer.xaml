@@ -4,7 +4,12 @@
              xmlns:halcon="clr-namespace:HalconDotNet;assembly=halcondotnet">
 
     <Grid>
-        <halcon:HWindowControlWPF x:Name="HalconWindow"/>
+        <halcon:HWindowControlWPF x:Name="HalconWindow"
+                               MouseWheel="HalconWindow_MouseWheel"
+                               MouseRightButtonDown="HalconWindow_PanStart"
+                               MouseMove="HalconWindow_PanMove"
+                               MouseRightButtonUp="HalconWindow_PanEnd"
+                               MouseDoubleClick="HalconWindow_FitToWindow"/>
         <!-- 空状态提示 -->
         <TextBlock x:Name="PlaceholderText"
                    Text="无图像"

@@ -43,6 +43,9 @@ public sealed class InputIconicParamVm : BindableBase
 
     // ── ROI 绘制模式 ──────────────────────────────────────────────────────────
 
+    /// <summary>切换到 ROI 绘制模式时触发，供外部加载图像到 ROI 编辑器</summary>
+    public event Action<InputIconicParamVm>? RoiModeEntered;
+
     private bool _isRoiMode;
     public bool IsRoiMode
     {
@@ -54,6 +57,7 @@ public sealed class InputIconicParamVm : BindableBase
                 RaisePropertyChanged(nameof(IsFileMode));
                 RaisePropertyChanged(nameof(ModeLabelText));
                 BrowseCommand.RaiseCanExecuteChanged();
+                if (value) RoiModeEntered?.Invoke(this);
             }
         }
     }

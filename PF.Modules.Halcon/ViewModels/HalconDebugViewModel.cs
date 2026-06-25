@@ -190,6 +190,7 @@ public class HalconDebugViewModel : RegionViewModelBase
         _signatureCts = new CancellationTokenSource();
         var ct = _signatureCts.Token;
 
+        foreach (var p in InputIconics) p.RoiModeEntered -= OnRoiModeEntered;
         InputIconics.Clear();
         InputControls.Clear();
         OutputControls.Clear();
@@ -207,7 +208,11 @@ public class HalconDebugViewModel : RegionViewModelBase
             foreach (var p in sig.InputParams)
             {
                 if (p.Kind == ProcedureParamKind.Iconic)
-                    InputIconics.Add(new InputIconicParamVm(p.Name));
+                {
+                    var vm = new InputIconicParamVm(p.Name);
+                    vm.RoiModeEntered += OnRoiModeEntered;
+                    InputIconics.Add(vm);
+                }
                 else
                     InputControls.Add(new InputControlParamVm(p.Name));
             }
@@ -251,6 +256,21 @@ public class HalconDebugViewModel : RegionViewModelBase
 
     /// <summary>由 code-behind 在 Loaded 后调用，注入当前激活的 ROI 编辑器</summary>
     public void SetRoiEditor(HalconRoiEditor? editor) => _roiEditor = editor;
+
+    private void OnRoiModeEntered(InputIconicParamVm param)
+    {
+        if (_roiEditor is null || string.IsNullOrEmpty(param.FilePath)) return;
+        try
+        {
+            HOperatorSet.ReadImage(out HObject image, param.FilePath);
+            _roiEditor.LoadImage(image);
+            image.Dispose();
+        }
+        catch (Exception ex)
+        {
+            LogService.Warn($"[Vision] ROI 编辑器加载图像失败: {ex.Message}", "Vision");
+        }
+    }
 
     // ── 调试执行 ──────────────────────────────────────────────────────────────
 
@@ -429,6 +449,7 @@ public class HalconDebugViewModel : RegionViewModelBase
 
     public override void Destroy()
     {
+        foreach (var p in InputIconics) p.RoiModeEntered -= OnRoiModeEntered;
         _signatureCts?.Cancel();
         _signatureCts?.Dispose();
         _debugCts?.Cancel();
