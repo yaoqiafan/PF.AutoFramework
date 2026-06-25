@@ -30,8 +30,11 @@
             <Button Content="◎ 椭圆"     Click="AddEllipse_Click"   Padding="8,3" Margin="0,0,2,0"/>
             <Button Content="⌓ 扇形"     Click="AddSector_Click"    Padding="8,3" Margin="0,0,2,0"/>
             <Separator/>
-            <Button Content="预览检测范围" Click="PreviewRegion_Click" Padding="8,3" Margin="0,0,2,0"
-                    ToolTip="叠层显示 Include − Exclude 的最终检测区域"/>
+            <Button x:Name="PreviewBtn" Content="预览检测范围" Click="PreviewRegion_Click" Padding="8,3" Margin="0,0,2,0"
+                    ToolTip="隐藏工具框，叠层显示 Include − Exclude 的最终检测区域"/>
+            <Button x:Name="ExitPreviewBtn" Content="退出预览" Click="ExitPreview_Click" Padding="8,3" Margin="0,0,2,0"
+                    Visibility="Collapsed"
+                    ToolTip="清除预览区域，恢复显示工具框"/>
             <Button Content="清空 ROI"   Click="ClearRois_Click"    Padding="8,3"/>
         </ToolBar>
 

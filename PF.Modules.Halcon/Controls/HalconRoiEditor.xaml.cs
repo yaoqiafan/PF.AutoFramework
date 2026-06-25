@@ -60,6 +60,7 @@ public partial class HalconRoiEditor : UserControl
     private readonly ObservableCollection<RoiRowVm> _rows = new();
     private RoiOp   _currentOp = RoiOp.Include;
     private int     _roiCounter;
+    private bool    _isPreviewing;   // 预览检测范围时隐藏工具框，仅显示最终 Region
 
     public HalconRoiEditor()
     {
@@ -95,6 +96,9 @@ public partial class HalconRoiEditor : UserControl
 
     public void ClearRois()
     {
+        _isPreviewing = false;
+        PreviewBtn.Visibility     = Visibility.Visible;
+        ExitPreviewBtn.Visibility = Visibility.Collapsed;
         ClearAllDrawObjects();
         _rows.Clear();
         ImageViewer.ClearOverlays();
@@ -102,7 +106,12 @@ public partial class HalconRoiEditor : UserControl
 
     // ── 生命周期 ──────────────────────────────────────────────────────────────
 
-    private void OnWindowInitialized(object? sender, EventArgs e) => ReattachAllDrawObjects();
+    private void OnWindowInitialized(object? sender, EventArgs e)
+    {
+        // 窗口重建后：预览态重绘最终 Region（工具框保持隐藏），否则重挂工具框
+        if (_isPreviewing) RedrawPreviewRegion();
+        else               EnsureAllAttached();
+    }
 
     private void OnLoaded(object sender, RoutedEventArgs e) { }
 
@@ -114,12 +123,29 @@ public partial class HalconRoiEditor : UserControl
         ClearAllDrawObjects();
     }
 
-    /// <summary>对每个未挂载的行重新创建并挂载 DrawingObject（窗口重建后调用）</summary>
-    private void ReattachAllDrawObjects()
+    /// <summary>挂载所有行的 DrawingObject（drawId 为空则新建，否则重新 attach 已有）</summary>
+    private void EnsureAllAttached()
     {
+        var win = GetHWindow();
         foreach (var row in _rows)
+        {
             if (row.DrawId is null)
                 AttachDrawObject(row);
+            else if (win is not null)
+            {
+                try { HOperatorSet.AttachDrawingObjectToWindow(win, row.DrawId); } catch { }
+            }
+        }
+    }
+
+    /// <summary>从窗口卸载所有 DrawingObject（保留 drawId，退出预览时重新 attach）</summary>
+    private void DetachAllDrawObjects()
+    {
+        var win = GetHWindow();
+        if (win is null) return;
+        foreach (var row in _rows)
+            if (row.DrawId is not null)
+                try { HOperatorSet.DetachDrawingObjectFromWindow(win, row.DrawId); } catch { }
     }
 
     private HWindow? GetHWindow()
@@ -150,14 +176,45 @@ public partial class HalconRoiEditor : UserControl
     private void AddEllipse_Click(object sender, RoutedEventArgs e) => AddRoi(RoiType.Ellipse);
     private void AddSector_Click(object sender, RoutedEventArgs e)  => AddRoi(RoiType.EllipseSector);
 
-    private void PreviewRegion_Click(object sender, RoutedEventArgs e)
+    private void PreviewRegion_Click(object sender, RoutedEventArgs e) => EnterPreview();
+
+    private void ExitPreview_Click(object sender, RoutedEventArgs e) => ExitPreview();
+
+    /// <summary>进入预览：隐藏工具框，显示 Include − Exclude 最终检测区域</summary>
+    private void EnterPreview()
+    {
+        if (_rows.Count == 0) return;
+        _isPreviewing = true;
+        DetachAllDrawObjects();
+        RedrawPreviewRegion();
+        PreviewBtn.Visibility     = Visibility.Collapsed;
+        ExitPreviewBtn.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>退出预览：清除预览区域，恢复显示工具框</summary>
+    private void ExitPreview()
+    {
+        _isPreviewing = false;
+        ImageViewer.ClearOverlays();
+        EnsureAllAttached();
+        PreviewBtn.Visibility     = Visibility.Visible;
+        ExitPreviewBtn.Visibility = Visibility.Collapsed;
+    }
+
+    private void RedrawPreviewRegion()
     {
         SyncAllFromDrawObjects();
         var region = RoiRegionBuilder.Build(_rows.Select(r => r.Config));
-        if (!region.IsInitialized()) return;
         ImageViewer.ClearOverlays();
-        ImageViewer.DisplayOverlay(region, color: "lime green", lineWidth: 2);
+        if (region.IsInitialized())
+            ImageViewer.DisplayOverlay(region, color: "lime green", lineWidth: 2);
         region.Dispose();
+    }
+
+    /// <summary>任何 ROI 编辑操作前调用：若处于预览态先退出，恢复工具框</summary>
+    private void BeginEdit()
+    {
+        if (_isPreviewing) ExitPreview();
     }
 
     private void ClearRois_Click(object sender, RoutedEventArgs e) => ClearRois();
@@ -170,6 +227,7 @@ public partial class HalconRoiEditor : UserControl
 
     private void OpComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        BeginEdit();
         if (sender is ComboBox cb && cb.DataContext is RoiRowVm row && row.DrawId is not null)
         {
             try
@@ -187,6 +245,7 @@ public partial class HalconRoiEditor : UserControl
 
     private void AddRoi(RoiType type)
     {
+        BeginEdit();
         _roiCounter++;
         var cfg = new VisionRoiConfig
         {
@@ -202,6 +261,7 @@ public partial class HalconRoiEditor : UserControl
 
     private void RemoveRow(RoiRowVm row)
     {
+        BeginEdit();
         if (row.DrawId is not null)
         {
             try { HOperatorSet.ClearDrawingObject(row.DrawId); } catch { }
