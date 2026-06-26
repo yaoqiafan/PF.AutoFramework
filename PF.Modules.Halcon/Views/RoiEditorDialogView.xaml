@@ -11,8 +11,7 @@
         </Grid.RowDefinitions>
 
         <!-- ROI 编辑器占满上半区 -->
-        <controls:HalconRoiEditor x:Name="RoiEditor" Grid.Row="0"
-                                  Loaded="RoiEditor_Loaded"/>
+        <controls:HalconRoiEditor x:Name="RoiEditor" Grid.Row="0"/>
 
         <!-- 底部确认/取消 -->
         <StackPanel Grid.Row="1" Orientation="Horizontal"
