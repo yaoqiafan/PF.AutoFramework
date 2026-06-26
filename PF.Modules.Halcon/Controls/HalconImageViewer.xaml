@@ -1,21 +1,24 @@
-<UserControl x:Class="PF.Modules.Halcon.Controls.HalconImageViewer"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:halcon="clr-namespace:HalconDotNet;assembly=halcondotnet">
+<UserControl
+    x:Class="PF.Modules.Halcon.Controls.HalconImageViewer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:halcon="clr-namespace:HalconDotNet;assembly=halcondotnet">
 
     <Grid>
-        <!-- HSmartWindowControlWPF 内置 pan/zoom/fit，无需手写鼠标交互 -->
-        <halcon:HSmartWindowControlWPF x:Name="HalconWindow"
-                                       HMoveContent="True"
-                                       HZoomContent="WheelForwardZoomsIn"
-                                       HDoubleClickToFitContent="True"/>
-        <!-- 空状态提示 -->
-        <TextBlock x:Name="PlaceholderText"
-                   Text="⚠️ 无图像"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="{DynamicResource SecondaryTextBrush}"
-                   FontSize="13"
-                   IsHitTestVisible="False"/>
+        <!--  HSmartWindowControlWPF 内置 pan/zoom/fit，无需手写鼠标交互  -->
+        <halcon:HSmartWindowControlWPF
+            x:Name="HalconWindow"
+            HDoubleClickToFitContent="True"
+            HMoveContent="True"
+            HZoomContent="WheelForwardZoomsIn" />
+        <!--  空状态提示  -->
+        <TextBlock
+            x:Name="PlaceholderText"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="13"
+            Foreground="{DynamicResource SecondaryTextBrush}"
+            IsHitTestVisible="False"
+            Text="⚠️ 无图像" />
     </Grid>
 </UserControl>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
+
+	<ItemGroup>
+		<PackageReference Include="Prism.DryIoc" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
+		<ProjectReference Include="..\PF.Services\PF.Services.csproj" />
+		<ProjectReference Include="..\PF.Data\PF.Data.csproj" />
+		<ProjectReference Include="..\PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
+		<ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
+		<ProjectReference Include="..\PF.CommonTools\PF.CommonTools.csproj" />
+	</ItemGroup>
+</Project>
