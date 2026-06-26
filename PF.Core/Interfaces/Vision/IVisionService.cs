@@ -37,12 +37,12 @@ public interface IVisionService
     /// <summary>
     /// 按顺序执行多步管线，步骤间通过 VisionContext 自动传递 HObject。
     /// 整个管线在同一 Worker 线程内完成，HALCON 对象不跨线程。
-    /// </summary>
     /// <param name="pipeline">管线定义（通常由 VisionPipelineLoader 从 JSON 反序列化）</param>
-    /// <param name="externalInputs">
-    ///  <param name="cancellationToken">
+    /// <param name="externalInputs"></param>
+    ///  <param name="cancellationToken"></param>
     /// 外部注入的初始值（如相机实时图像），在步骤 inputs 中用 "$__ext__.keyName" 引用
-    /// </param>
+    /// </summary>
+
     Task<IVisionResult> ExecutePipelineAsync(
         VisionPipelineDefinition        pipeline,
         Dictionary<string, object?>?    externalInputs    = null,
