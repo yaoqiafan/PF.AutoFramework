@@ -25,4 +25,11 @@ public static class HalconNavigationConstants
         /// <summary>HALCON 调试集成面板（Level 2 调试服务器 + HDevelop 联调）</summary>
         public const string HalconDebug = "HalconDebugView";
     }
+
+    /// <summary>对话框键（IDialogService）</summary>
+    public static class Dialogs
+    {
+        /// <summary>ROI 绘制弹窗</summary>
+        public const string RoiEditor = "RoiEditorDialog";
+    }
 }

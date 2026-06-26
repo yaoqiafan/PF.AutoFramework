@@ -1,6 +1,7 @@
 using PF.Modules.Halcon.ViewModels;
 using PF.Modules.Halcon.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.PrismBase;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Reflection;
@@ -23,6 +24,10 @@ public class HalconModule : IModule
 
         containerRegistry.RegisterForNavigation<HalconDebugView,      HalconDebugViewModel>(
             HalconNavigationConstants.Views.HalconDebug);
+
+        // ROI 编辑弹窗（通过 IDialogService 调用）
+        containerRegistry.RegisterDialog<RoiEditorDialogView, RoiEditorDialogViewModel>(
+            HalconNavigationConstants.Dialogs.RoiEditor);
     }
 
     public void OnInitialized(IContainerProvider containerProvider)

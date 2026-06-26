@@ -25,10 +25,4 @@ public partial class HalconDebugView : UserControl
         if (DataContext is HalconDebugViewModel vm)
             vm.SetImageViewer(OutputImageViewer);
     }
-
-    private void SharedRoiEditor_Loaded(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is HalconDebugViewModel vm)
-            vm.SetRoiEditor(SharedRoiEditor);
-    }
 }

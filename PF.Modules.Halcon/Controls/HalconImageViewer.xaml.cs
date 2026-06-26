@@ -20,6 +20,7 @@ public partial class HalconImageViewer : UserControl
         InitializeComponent();
         // 窗口（重新）创建时重绘底图；TabControl 切换 tab / 导航离开再返回会释放 HALCON 窗口
         HalconWindow.HInitWindow += OnHInitWindow;
+        Unloaded += (_, _) => { _currentImage?.Dispose(); _currentImage = null; _hasImage = false; };
     }
 
     /// <summary>HALCON 窗口（重新）初始化完成时触发，供宿主（如 ROI 编辑器）重挂载 DrawingObject</summary>

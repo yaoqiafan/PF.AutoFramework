@@ -97,7 +97,7 @@
                         </Style>
                     </Border.Style>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="ROI 绘制模式 — 在右侧「ROI 编辑」标签页中绘制区域"
+                        <TextBlock Text="ROI 绘制模式 — 再次点击「切换模式」可重新打开绘制弹窗"
                                    FontSize="11" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
                         <TextBlock Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"
@@ -359,18 +359,10 @@
             </Grid>
         </ScrollViewer>
 
-        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
+        <GridSplitter Grid.Column="1" Width="3" HorizontalAlignment="Stretch" Background="{DynamicResource SecondaryBorderBrush}"/>
 
-        <!-- ══════════════════ 右：图像输出 / ROI 编辑 ══════════════════ -->
-        <TabControl Grid.Column="2">
-            <TabItem Header="图像输出">
-                <controls:HalconImageViewer x:Name="OutputImageViewer"
-                                            Loaded="OutputImageViewer_Loaded"/>
-            </TabItem>
-            <TabItem Header="ROI 编辑">
-                <controls:HalconRoiEditor x:Name="SharedRoiEditor"
-                                          Loaded="SharedRoiEditor_Loaded"/>
-            </TabItem>
-        </TabControl>
+        <!-- ══════════════════ 右：图像输出 ══════════════════ -->
+        <controls:HalconImageViewer x:Name="OutputImageViewer" Grid.Column="2"
+                                    Loaded="OutputImageViewer_Loaded"/>
     </Grid>
 </UserControl>

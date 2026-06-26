@@ -18,6 +18,7 @@ namespace PF.Modules.Halcon.ViewModels;
 public class HalconDebugViewModel : RegionViewModelBase
 {
     private readonly IHalconDebugService _debugService;
+    private readonly IDialogService      _dialogService;
 
     // ── 过程文件 ──────────────────────────────────────────────────────────────
 
@@ -154,9 +155,10 @@ public class HalconDebugViewModel : RegionViewModelBase
 
     // ── 构造 ──────────────────────────────────────────────────────────────────
 
-    public HalconDebugViewModel(IHalconDebugService debugService) : base()
+    public HalconDebugViewModel(IHalconDebugService debugService, IDialogService dialogService) : base()
     {
-        _debugService = debugService;
+        _debugService  = debugService;
+        _dialogService = dialogService;
 
         RefreshCommand = new DelegateCommand(RefreshProcedures);
         EnableCommand  = new DelegateCommand(async () => await OnEnableAsync(),
@@ -190,7 +192,7 @@ public class HalconDebugViewModel : RegionViewModelBase
         _signatureCts = new CancellationTokenSource();
         var ct = _signatureCts.Token;
 
-        foreach (var p in InputIconics) p.RoiModeEntered -= OnRoiModeEntered;
+        foreach (var p in InputIconics) p.RoiEditorRequested -= OnRoiEditorRequested;
         InputIconics.Clear();
         InputControls.Clear();
         OutputControls.Clear();
@@ -210,7 +212,7 @@ public class HalconDebugViewModel : RegionViewModelBase
                 if (p.Kind == ProcedureParamKind.Iconic)
                 {
                     var vm = new InputIconicParamVm(p.Name);
-                    vm.RoiModeEntered += OnRoiModeEntered;
+                    vm.RoiEditorRequested += OnRoiEditorRequested;
                     InputIconics.Add(vm);
                 }
                 else
@@ -250,26 +252,27 @@ public class HalconDebugViewModel : RegionViewModelBase
     /// <summary>由 code-behind 在 Loaded 后调用，注入图像查看器控件引用</summary>
     public void SetImageViewer(HalconImageViewer viewer) => _imageViewer = viewer;
 
-    // ── ROI 编辑器注入 ────────────────────────────────────────────────────────
+    // ── ROI 弹窗 ──────────────────────────────────────────────────────────────
 
-    private HalconRoiEditor? _roiEditor;
-
-    /// <summary>由 code-behind 在 Loaded 后调用，注入当前激活的 ROI 编辑器</summary>
-    public void SetRoiEditor(HalconRoiEditor? editor) => _roiEditor = editor;
-
-    private void OnRoiModeEntered(InputIconicParamVm param)
+    private void OnRoiEditorRequested(InputIconicParamVm param)
     {
-        if (_roiEditor is null || string.IsNullOrEmpty(param.FilePath)) return;
-        try
+        var dialogParams = new DialogParameters
         {
-            HOperatorSet.ReadImage(out HObject image, param.FilePath);
-            // LoadImage → DisplayImage 接管 image 所有权，此处不可 Dispose
-            _roiEditor.LoadImage(image);
-        }
-        catch (Exception ex)
-        {
-            LogService.Warn($"[Vision] ROI 编辑器加载图像失败: {ex.Message}", "Vision");
-        }
+            { "FilePath", param.FilePath },
+            { "Rois",     (IReadOnlyList<VisionRoiConfig>)param.CurrentRois.ToList() },
+        };
+
+        _dialogService.ShowDialog(
+            HalconNavigationConstants.Dialogs.RoiEditor,
+            dialogParams,
+            result =>
+            {
+                if (result.Result != ButtonResult.OK) return;
+
+                var rois = result.Parameters.GetValue<IReadOnlyList<VisionRoiConfig>>("Rois") ?? [];
+                param.CurrentRois.Clear();
+                foreach (var r in rois) param.CurrentRois.Add(r);
+            });
     }
 
     // ── 调试执行 ──────────────────────────────────────────────────────────────
@@ -310,15 +313,11 @@ public class HalconDebugViewModel : RegionViewModelBase
                 .Where(p => p.IsFileMode && !string.IsNullOrEmpty(p.FilePath))
                 .ToDictionary(p => p.Name, p => p.FilePath!);
 
-            // ROI 模式：从编辑器读取当前 ROI，计算 Region，直接注入为 HObject
+            // ROI 模式：从 param.CurrentRois（弹窗关闭已写回）计算 Region 注入
             var iconicObjects = new Dictionary<string, object?>();
             foreach (var param in InputIconics.Where(p => p.IsRoiMode))
             {
-                var rois = _roiEditor is not null
-                    ? _roiEditor.GetCurrentRois()
-                    : (IReadOnlyList<VisionRoiConfig>)param.CurrentRois.ToList();
-
-                var region = RoiRegionBuilder.Build(rois);
+                var region = RoiRegionBuilder.Build(param.CurrentRois);
                 iconicObjects[param.Name] = region;
             }
 
@@ -449,12 +448,11 @@ public class HalconDebugViewModel : RegionViewModelBase
 
     public override void Destroy()
     {
-        foreach (var p in InputIconics) p.RoiModeEntered -= OnRoiModeEntered;
+        foreach (var p in InputIconics) p.RoiEditorRequested -= OnRoiEditorRequested;
         _signatureCts?.Cancel();
         _signatureCts?.Dispose();
         _debugCts?.Cancel();
         _debugCts?.Dispose();
-
         if (_debugService.IsDebugServerActive)
             _ = _debugService.DisableDebugServerAsync();
         base.Destroy();

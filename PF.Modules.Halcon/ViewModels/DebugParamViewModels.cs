@@ -43,8 +43,11 @@ public sealed class InputIconicParamVm : BindableBase
 
     // ── ROI 绘制模式 ──────────────────────────────────────────────────────────
 
-    /// <summary>切换到 ROI 绘制模式时触发，供外部加载图像到 ROI 编辑器</summary>
-    public event Action<InputIconicParamVm>? RoiModeEntered;
+    /// <summary>
+    /// 切换到 ROI 绘制模式 或 在 ROI 模式下重新打开编辑弹窗时触发。
+    /// 外部订阅此事件以弹出 ROI 编辑对话框。
+    /// </summary>
+    public event Action<InputIconicParamVm>? RoiEditorRequested;
 
     private bool _isRoiMode;
     public bool IsRoiMode
@@ -57,7 +60,6 @@ public sealed class InputIconicParamVm : BindableBase
                 RaisePropertyChanged(nameof(IsFileMode));
                 RaisePropertyChanged(nameof(ModeLabelText));
                 BrowseCommand.RaiseCanExecuteChanged();
-                if (value) RoiModeEntered?.Invoke(this);
             }
         }
     }
@@ -65,7 +67,7 @@ public sealed class InputIconicParamVm : BindableBase
     public bool   IsFileMode     => !_isRoiMode;
     public string ModeLabelText  => _isRoiMode ? "ROI 绘制" : "图像文件";
 
-    /// <summary>ROI 绘制模式下的配置列表（由 HalconRoiEditor 通过 GetCurrentRois 写入）</summary>
+    /// <summary>ROI 绘制模式下的配置列表（弹窗关闭后写回）</summary>
     public ObservableCollection<VisionRoiConfig> CurrentRois { get; } = new();
 
     public DelegateCommand ToggleModeCommand { get; }
@@ -74,9 +76,14 @@ public sealed class InputIconicParamVm : BindableBase
 
     public InputIconicParamVm(string name)
     {
-        Name             = name;
-        BrowseCommand    = new DelegateCommand(OnBrowse, () => IsFileMode);
-        ToggleModeCommand = new DelegateCommand(() => IsRoiMode = !IsRoiMode);
+        Name              = name;
+        BrowseCommand     = new DelegateCommand(OnBrowse, () => IsFileMode);
+        // 无论当前模式，点击都打开 ROI 编辑弹窗；首次点击同时切换到 ROI 模式
+        ToggleModeCommand = new DelegateCommand(() =>
+        {
+            IsRoiMode = true;               // 幂等，已是 ROI 模式时 SetProperty 不通知
+            RoiEditorRequested?.Invoke(this);
+        });
     }
 
     private void OnBrowse()
