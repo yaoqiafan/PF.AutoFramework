@@ -176,6 +176,7 @@ namespace PF.Application.Base
 
         #region 单实例保护
 
+        /// <summary>单实例保护：检测到重复实例时提示并退出，否则注册 DispatcherUnhandledException 处理器。</summary>
         protected override async void OnStartup(StartupEventArgs e)
         {
             try
@@ -198,6 +199,7 @@ namespace PF.Application.Base
             }
         }
 
+        /// <summary>释放全局互斥锁并执行基类退出逻辑。</summary>
         protected override void OnExit(ExitEventArgs e)
         {
             base.OnExit(e);
@@ -238,6 +240,7 @@ namespace PF.Application.Base
 
         #region Prism 核心方法
 
+        /// <summary>创建并显示 Splash 加载窗口，完成后返回 MainWindow 作为主 Shell。</summary>
         protected override Window CreateShell()
         {
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -270,6 +273,7 @@ namespace PF.Application.Base
             return Container.Resolve<MainWindow>();
         }
 
+        /// <summary>注册导航菜单、桥接 Prism EA 事件、完成权限初始化并启动定时服务。</summary>
         protected override void OnInitialized()
         {
             var navMenuService = Container.Resolve<INavigationMenuService>();
@@ -304,6 +308,7 @@ namespace PF.Application.Base
             base.OnInitialized();
         }
 
+        /// <summary>注册全部框架公共服务（日志、参数、生产数据、硬件、报警、定时器、视觉等）及子类项目服务。</summary>
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             var commonSettings = CommonSettings.Load();
@@ -344,14 +349,17 @@ namespace PF.Application.Base
             RegisterVisionServices(containerRegistry);
         }
 
+        /// <summary>创建空 ModuleCatalog，由 ConfigureModuleCatalog 通过 AddModule&lt;T&gt;() 显式注册模块。</summary>
         protected override IModuleCatalog CreateModuleCatalog() => new ModuleCatalog();
 
+        /// <summary>基类默认为空实现，子类 override 后调用 AddModule&lt;T&gt;() 注册项目所需 Prism 模块。</summary>
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog) { }
 
         #endregion
 
         #region 公共方法（供 MainWindow.xaml.cs 调用）
 
+        /// <summary>切换应用程序皮肤主题，同时刷新主题资源字典。</summary>
         public void UpdateSkin(string str = "Default")
         {
             if (!Enum.TryParse<SkinType>(str, out SkinType skin)) return;

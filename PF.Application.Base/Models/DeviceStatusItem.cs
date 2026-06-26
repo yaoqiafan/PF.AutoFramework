@@ -5,9 +5,11 @@ namespace PF.Application.Base.Models;
 /// </summary>
 public class DeviceStatusItem : BindableBase
 {
+    /// <summary>状态栏显示的设备名称标签。</summary>
     public string Label { get; init; } = string.Empty;
 
     private bool _isConnected;
+    /// <summary>设备当前是否已连接。</summary>
     public bool IsConnected
     {
         get => _isConnected;
