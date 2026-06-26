@@ -1,6 +1,7 @@
 ﻿using PF.Modules.Halcon.ViewModels;
 using PF.Modules.Halcon.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.PrismBase;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Reflection;
@@ -12,15 +13,18 @@ public class HalconModule : IModule
 {
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        // 根页面：Dashboard 内嵌 HalconDebugView + PipelineRunnerView，无需独立 ViewModel
-        containerRegistry.RegisterForNavigation<HalconDashboardView>(
+        // 根页面（侧边栏入口）
+        containerRegistry.RegisterForNavigation<HalconDashboardView, HalconDashboardViewModel>(
             HalconNavigationConstants.Views.Dashboard);
 
-        // 子视图 ViewModel 注册（AutoWireViewModel 从容器解析）
-        containerRegistry.Register<HalconDebugViewModel>();
-        containerRegistry.Register<PipelineRunnerViewModel>();
+        // 子页面（在 HalconContentRegion 内导航）
+        containerRegistry.RegisterForNavigation<HalconDebugView,    HalconDebugViewModel>(
+            HalconNavigationConstants.Views.HalconDebug);
 
-        // ROI 编辑弹窗（通过 IDialogService 调用）
+        containerRegistry.RegisterForNavigation<PipelineRunnerView, PipelineRunnerViewModel>(
+            HalconNavigationConstants.Views.PipelineRunner);
+
+        // ROI 编辑弹窗
         containerRegistry.RegisterDialog<RoiEditorDialogView, RoiEditorDialogViewModel>(
             HalconNavigationConstants.Dialogs.RoiEditor);
     }
