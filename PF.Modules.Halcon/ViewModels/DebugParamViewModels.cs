@@ -60,6 +60,7 @@ public sealed class InputIconicParamVm : BindableBase
                 RaisePropertyChanged(nameof(IsFileMode));
                 RaisePropertyChanged(nameof(ModeLabelText));
                 BrowseCommand.RaiseCanExecuteChanged();
+                EditRoisCommand?.RaiseCanExecuteChanged();
             }
         }
     }
@@ -70,20 +71,35 @@ public sealed class InputIconicParamVm : BindableBase
     /// <summary>ROI 绘制模式下的配置列表（弹窗关闭后写回）</summary>
     public ObservableCollection<VisionRoiConfig> CurrentRois { get; } = new();
 
-    public DelegateCommand ToggleModeCommand { get; }
+    public DelegateCommand ToggleModeCommand  { get; }
+    public DelegateCommand EditRoisCommand    { get; }
 
     // ── 构造 ──────────────────────────────────────────────────────────────────
 
     public InputIconicParamVm(string name)
     {
-        Name              = name;
-        BrowseCommand     = new DelegateCommand(OnBrowse, () => IsFileMode);
-        // 无论当前模式，点击都打开 ROI 编辑弹窗；首次点击同时切换到 ROI 模式
+        Name          = name;
+        BrowseCommand = new DelegateCommand(OnBrowse, () => IsFileMode);
+
+        // 文件模式 → 切换到 ROI 模式并打开弹窗；ROI 模式 → 切回文件模式
         ToggleModeCommand = new DelegateCommand(() =>
         {
-            IsRoiMode = true;               // 幂等，已是 ROI 模式时 SetProperty 不通知
-            RoiEditorRequested?.Invoke(this);
+            if (IsFileMode)
+            {
+                IsRoiMode = true;
+                RoiEditorRequested?.Invoke(this);
+            }
+            else
+            {
+                IsRoiMode = false;
+                CurrentRois.Clear();
+            }
         });
+
+        // ROI 模式下再次打开弹窗编辑
+        EditRoisCommand = new DelegateCommand(
+            () => RoiEditorRequested?.Invoke(this),
+            () => IsRoiMode);
     }
 
     private void OnBrowse()

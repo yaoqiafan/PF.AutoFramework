@@ -52,9 +52,51 @@
                     <TextBlock Grid.Column="2" Text="{Binding ModeLabelText}"
                                VerticalAlignment="Center"
                                FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                    <Button Grid.Column="3" Content="切换模式"
-                            Command="{Binding ToggleModeCommand}"
-                            Padding="8,3" FontSize="11" Margin="4,0,0,0"/>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal">
+                        <!-- 文件模式：点击切换到 ROI 模式并打开编辑器 -->
+                        <Button Content="切换为 ROI 模式"
+                                Command="{Binding ToggleModeCommand}"
+                                Padding="8,3" FontSize="11" Margin="4,0,0,0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <!-- ROI 模式：编辑 ROI / 切回文件模式 -->
+                        <Button Content="编辑 ROI"
+                                Command="{Binding EditRoisCommand}"
+                                Padding="8,3" FontSize="11" Margin="4,0,2,0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="切回文件模式"
+                                Command="{Binding ToggleModeCommand}"
+                                Padding="8,3" FontSize="11">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
                 </Grid>
 
                 <!-- 文件路径行（仅文件模式显示） -->
@@ -97,7 +139,7 @@
                         </Style>
                     </Border.Style>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="ROI 绘制模式 — 再次点击「切换模式」可重新打开绘制弹窗"
+                        <TextBlock Text="ROI 绘制模式"
                                    FontSize="11" VerticalAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}"/>
                         <TextBlock Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"
