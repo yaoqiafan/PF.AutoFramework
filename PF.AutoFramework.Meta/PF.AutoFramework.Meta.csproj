@@ -3,8 +3,25 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <PackageReleaseNotes>
+v1.0.3 (2026-06-26) — 新增 PF.Application.Base 依赖；CS1591 XML 注释全量补全
+
+[元包变更]
+- 新增依赖项：PF.Application.Base 1.0.0。
+  包含 PrismApplication 抽象基类（PFApplicationBase）、主窗口（MainWindow）、
+  主窗口 ViewModel 基类（MainWindowViewModelBase）及公共服务（IdleMonitorService /
+  TowerLightManager / CommonSettings）；消费项目继承 PFApplicationBase 并实现
+  6 个抽象钩子即可完成接入，无需再手写 Splash / DI / Prism EA 桥接样板。
+
+[子包更新摘要]
+- PF.Core          — 视觉接口 EngineMode / RoiOp / RoiType / VisionRoiConfig /
+                     ProcedureSignature 枚举与记录类补全 XML 文档注释。
+- PF.Application.Base（新增）— v1.0.0 初始版本：PrismApplication 抽象基类、
+                     主窗口、ViewModel 基类及公共服务。
+- PF.Modules.Debug — AxisDebugViewModel.GetNavigationGuards 补全 XML 注释。
+- 其余子包          — 无逻辑变化。
+
 v1.0.2 (2026-06-17) — 新增 PF.Modules.Alarm 依赖 + 全量子包升级至 1.0.2
 
 [元包变更]
@@ -57,6 +74,7 @@ v1.0.1 - 框架初始独立版本；各子包版本由各自 .csproj 独立管�
     <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj" />
     <ProjectReference Include="..\PF.Modules.ProductionRecord\PF.Modules.Production.csproj" />
     <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj" />
+    <ProjectReference Include="..\PF.Application.Base\PF.Application.Base.csproj" />
   </ItemGroup>
 
 </Project>
