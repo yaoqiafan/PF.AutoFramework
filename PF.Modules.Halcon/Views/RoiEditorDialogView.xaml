@@ -1,28 +1,34 @@
-<UserControl x:Class="PF.Modules.Halcon.Views.RoiEditorDialogView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
->
+<UserControl
+    x:Class="PF.Modules.Halcon.Views.RoiEditorDialogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls">
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- ROI 编辑器占满上半区 -->
-        <controls:HalconRoiEditor x:Name="RoiEditor" Grid.Row="0"/>
+        <!--  ROI 编辑器占满上半区  -->
+        <controls:HalconRoiEditor x:Name="RoiEditor" Grid.Row="0" />
 
-        <!-- 底部确认/取消 -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal"
-                    HorizontalAlignment="Right" Margin="12,8">
-            <Button Content="确 认"
-                    Command="{Binding ConfirmCommand}"
-                    Padding="28,7" Margin="0,0,10,0"
-                    Style="{DynamicResource ButtonPrimary}"/>
-            <Button Content="取 消"
-                    Command="{Binding CancelCommand}"
-                    Padding="28,7"/>
+        <!--  底部确认/取消  -->
+        <StackPanel
+            Grid.Row="1"
+            Margin="12,8"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Margin="0,0,10,0"
+                Padding="28,7"
+                Command="{Binding ConfirmCommand}"
+                Content="确 认"
+                Style="{DynamicResource ButtonPrimary}" />
+            <Button
+                Padding="28,7"
+                Command="{Binding CancelCommand}"
+                Content="取 消" />
         </StackPanel>
     </Grid>
 </UserControl>

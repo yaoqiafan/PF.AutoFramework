@@ -40,6 +40,7 @@ public interface IVisionService
     /// </summary>
     /// <param name="pipeline">管线定义（通常由 VisionPipelineLoader 从 JSON 反序列化）</param>
     /// <param name="externalInputs">
+    ///  <param name="cancellationToken">
     /// 外部注入的初始值（如相机实时图像），在步骤 inputs 中用 "$__ext__.keyName" 引用
     /// </param>
     Task<IVisionResult> ExecutePipelineAsync(
