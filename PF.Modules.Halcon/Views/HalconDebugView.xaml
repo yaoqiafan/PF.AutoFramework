@@ -58,7 +58,7 @@
                                 Command="{Binding ToggleModeCommand}"
                                 Padding="8,3" FontSize="11" Margin="4,0,0,0">
                             <Button.Style>
-                                <Style TargetType="Button">
+                                <Style TargetType="Button" BasedOn="{StaticResource ButtonDashedPrimary}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -72,7 +72,7 @@
                                 Command="{Binding EditRoisCommand}"
                                 Padding="8,3" FontSize="11" Margin="4,0,2,0">
                             <Button.Style>
-                                <Style TargetType="Button">
+                                <Style TargetType="Button"  BasedOn="{StaticResource ButtonDashedPrimary}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
@@ -86,7 +86,7 @@
                                 Command="{Binding ToggleModeCommand}"
                                 Padding="8,3" FontSize="11">
                             <Button.Style>
-                                <Style TargetType="Button">
+                                <Style TargetType="Button"  BasedOn="{StaticResource  ButtonDashedWarning}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsRoiMode}" Value="True">
@@ -324,7 +324,7 @@
                             Command="{Binding EnableCommand}"
                             IsEnabled="{Binding IsNotBusy}"
                             Padding="14,7" MinWidth="130"
-                            Style="{DynamicResource PrimaryButtonStyle}"/>
+                            Style="{DynamicResource ButtonInfo}"/>
                     <Button Content="停止调试服务器"
                             Command="{Binding DisableCommand}"
                             IsEnabled="{Binding IsNotBusy}"
@@ -337,7 +337,7 @@
                             Command="{Binding LaunchCommand}"
                             IsEnabled="{Binding CanLaunchHDevelop}"
                             Padding="14,7"
-                            Style="{DynamicResource AccentButtonStyle}">
+                            Style="{DynamicResource  ButtonPrimary}">
                         <Button.ToolTip>
                             <TextBlock>
                                 <Run FontWeight="SemiBold" Text="调试流程："/>

@@ -1,7 +1,6 @@
-using PF.Modules.Halcon.ViewModels;
+﻿using PF.Modules.Halcon.ViewModels;
 using PF.Modules.Halcon.Views;
 using PF.UI.Infrastructure.Navigation;
-using PF.UI.Infrastructure.PrismBase;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Reflection;
@@ -13,17 +12,13 @@ public class HalconModule : IModule
 {
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        containerRegistry.RegisterForNavigation<HalconDashboardView,  HalconDashboardViewModel>(
+        // 根页面：Dashboard 内嵌 HalconDebugView + PipelineRunnerView，无需独立 ViewModel
+        containerRegistry.RegisterForNavigation<HalconDashboardView>(
             HalconNavigationConstants.Views.Dashboard);
 
-        containerRegistry.RegisterForNavigation<ProcedureDebugView,   ProcedureDebugViewModel>(
-            HalconNavigationConstants.Views.ProcedureDebug);
-
-        containerRegistry.RegisterForNavigation<PipelineRunnerView,   PipelineRunnerViewModel>(
-            HalconNavigationConstants.Views.PipelineRunner);
-
-        containerRegistry.RegisterForNavigation<HalconDebugView,      HalconDebugViewModel>(
-            HalconNavigationConstants.Views.HalconDebug);
+        // 子视图 ViewModel 注册（AutoWireViewModel 从容器解析）
+        containerRegistry.Register<HalconDebugViewModel>();
+        containerRegistry.Register<PipelineRunnerViewModel>();
 
         // ROI 编辑弹窗（通过 IDialogService 调用）
         containerRegistry.RegisterDialog<RoiEditorDialogView, RoiEditorDialogViewModel>(
@@ -32,7 +27,6 @@ public class HalconModule : IModule
 
     public void OnInitialized(IContainerProvider containerProvider)
     {
-        // 扫描当前程序集，自动将 [ModuleNavigation] 标注的视图注册到侧边栏菜单
         var navMenuService = containerProvider.Resolve<INavigationMenuService>();
         navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
     }

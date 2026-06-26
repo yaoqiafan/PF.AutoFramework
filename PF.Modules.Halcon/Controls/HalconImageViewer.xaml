@@ -11,7 +11,7 @@
                                        HDoubleClickToFitContent="True"/>
         <!-- 空状态提示 -->
         <TextBlock x:Name="PlaceholderText"
-                   Text="无图像"
+                   Text="⚠️ 无图像"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    Foreground="{DynamicResource SecondaryTextBrush}"

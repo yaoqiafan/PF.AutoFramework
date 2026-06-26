@@ -19,7 +19,7 @@
             <Button Content="确 认"
                     Command="{Binding ConfirmCommand}"
                     Padding="28,7" Margin="0,0,10,0"
-                    Style="{DynamicResource PrimaryButtonStyle}"/>
+                    Style="{DynamicResource ButtonPrimary}"/>
             <Button Content="取 消"
                     Command="{Binding CancelCommand}"
                     Padding="28,7"/>
