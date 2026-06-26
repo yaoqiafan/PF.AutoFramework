@@ -43,13 +43,16 @@ namespace PF.Application.Base.ViewModels
         private string _currentViewName = string.Empty;
 
         // 子类在 PollDeviceStatuses() 中使用，Splash 后由 OnLoading 延迟解析
+        /// <summary>硬件管理服务（Splash 完成后延迟解析，供子类 PollDeviceStatuses 使用）。</summary>
         protected IHardwareManagerService? HardwareManager { get; private set; }
+        /// <summary>SECS/GEM 管理服务（可选，未注册时为 null）。</summary>
         protected ISecsGemManager? SecsGemManager { get; private set; }
 
         #endregion
 
         #region 公共集合
 
+        /// <summary>侧边栏导航菜单项集合（按权限过滤后绑定到 MainWindow）。</summary>
         public ObservableCollection<NavigationItem> MenuItems { get; } = new();
 
         /// <summary>
@@ -61,6 +64,7 @@ namespace PF.Application.Base.ViewModels
 
         #region 构造函数
 
+        /// <summary>注入全部依赖并初始化命令、报警联动、空闲降权订阅。</summary>
         public MainWindowViewModelBase(
             INavigationMenuService navigationMenuService,
             IContainerProvider containerProvider,
@@ -363,6 +367,7 @@ namespace PF.Application.Base.ViewModels
                 TaskScheduler.Default);
         }
 
+        /// <summary>停止设备状态轮询任务并释放 CancellationTokenSource。</summary>
         public async Task StopAsync()
         {
             _cts?.Cancel();
@@ -397,6 +402,7 @@ namespace PF.Application.Base.ViewModels
         #region 公共属性
 
         private string _softWareName = string.Empty;
+        /// <summary>当前软件名称（绑定到主窗口标题栏）。</summary>
         public string SoftWareName
         {
             get => _softWareName;
@@ -404,6 +410,7 @@ namespace PF.Application.Base.ViewModels
         }
 
         private object _selectedMenuItem;
+        /// <summary>当前选中的侧边栏菜单项。</summary>
         public object SelectedMenuItem
         {
             get => _selectedMenuItem;
@@ -411,6 +418,7 @@ namespace PF.Application.Base.ViewModels
         }
 
         private string _coName = string.Empty;
+        /// <summary>公司名称（绑定到主窗口底部信息栏）。</summary>
         public string CoName
         {
             get => _coName;
@@ -418,6 +426,7 @@ namespace PF.Application.Base.ViewModels
         }
 
         private string _sysTime = string.Empty;
+        /// <summary>当前系统时间字符串（格式 yyyy-MM-dd HH:mm:ss，每 500ms 刷新）。</summary>
         public string SysTime
         {
             get => _sysTime;
@@ -425,6 +434,7 @@ namespace PF.Application.Base.ViewModels
         }
 
         private UserInfo _currentUser = new();
+        /// <summary>当前已登录的用户信息（含权限级别和可访问视图列表）。</summary>
         public UserInfo CurrentUser
         {
             get => _currentUser;
@@ -432,6 +442,7 @@ namespace PF.Application.Base.ViewModels
         }
 
         private ExpandMode _expandMode = ExpandMode.ShowAll;
+        /// <summary>侧边栏展开模式（全展开 / 全折叠 / 单展）。</summary>
         public ExpandMode Expand
         {
             get => _expandMode;
@@ -439,6 +450,7 @@ namespace PF.Application.Base.ViewModels
         }
 
         private MachineState _machineState = MachineState.Uninitialized;
+        /// <summary>主控当前状态机状态（500ms 轮询更新）。</summary>
         public MachineState MachineState
         {
             get => _machineState;
@@ -458,6 +470,7 @@ namespace PF.Application.Base.ViewModels
         private static bool IsMachineLocked(MachineState state) =>
             state == MachineState.Running || state == MachineState.Initializing || state == MachineState.Resetting;
 
+        /// <summary>对应当前机台状态的颜色画刷（绑定到状态指示器）。</summary>
         public Brush MachineStateBrush => _machineState switch
         {
             MachineState.Running      => new SolidColorBrush(Color.FromRgb(0x02, 0xad, 0x8b)),
@@ -470,6 +483,7 @@ namespace PF.Application.Base.ViewModels
             _ => new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75))
         };
 
+        /// <summary>当前机台状态对应的中文文本描述。</summary>
         public string MachineStateText => _machineState switch
         {
             MachineState.Uninitialized => "未初始化",
@@ -484,6 +498,7 @@ namespace PF.Application.Base.ViewModels
         };
 
         private int _activeAlarmCount;
+        /// <summary>当前活跃报警数量。</summary>
         public int ActiveAlarmCount
         {
             get => _activeAlarmCount;
@@ -497,9 +512,11 @@ namespace PF.Application.Base.ViewModels
             }
         }
 
+        /// <summary>是否存在活跃报警（用于绑定报警指示器可见性）。</summary>
         public bool HasActiveAlarms => ActiveAlarmCount > 0;
 
         private AlarmSeverity? _highestAlarmSeverity;
+        /// <summary>当前活跃报警中最高的严重级别（无报警时为 null）。</summary>
         public AlarmSeverity? HighestAlarmSeverity
         {
             get => _highestAlarmSeverity;
@@ -510,6 +527,7 @@ namespace PF.Application.Base.ViewModels
             }
         }
 
+        /// <summary>对应最高报警严重级别的颜色画刷（绑定到报警状态指示器）。</summary>
         public Brush AlarmStatusBrush => _highestAlarmSeverity switch
         {
             AlarmSeverity.Fatal       => new SolidColorBrush(Color.FromRgb(0xdb, 0x33, 0x40)),
@@ -519,15 +537,20 @@ namespace PF.Application.Base.ViewModels
             _ => new SolidColorBrush(Color.FromRgb(0x75, 0x75, 0x75))
         };
 
+        /// <summary>报警状态文本（有报警时显示数量，否则显示"正常"）。</summary>
         public string AlarmStatusText => HasActiveAlarms ? $"报警 {ActiveAlarmCount}" : "正常";
 
         #endregion
 
         #region 命令
 
+        /// <summary>主窗口 Loaded 时触发，完成延迟资源解析并启动轮询。</summary>
         public ICommand LoadCommand { get; }
+        /// <summary>侧边栏菜单项点击命令，触发 Prism 导航或权限拦截。</summary>
         public ICommand SwitchItemCmd { get; }
+        /// <summary>切换侧边栏展开模式（ShowAll / HideAll / Single）。</summary>
         public ICommand ChangeExpandCmd { get; }
+        /// <summary>导航至报警中心页面。</summary>
         public ICommand NavigateToAlarmCenterCmd { get; }
 
         #endregion

@@ -79,6 +79,7 @@ namespace PF.Application.Base.Services
             }
         };
 
+        /// <summary>构造并订阅 <see cref="MachineStateChangedEvent"/>，状态变化时自动更新三色灯。</summary>
         public TowerLightManager(ITowerLightService towerLight, IEventAggregator eventAggregator)
         {
             _towerLight = towerLight;

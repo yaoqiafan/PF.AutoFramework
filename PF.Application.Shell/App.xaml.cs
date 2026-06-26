@@ -37,17 +37,22 @@ using System.Windows.Threading;
 
 namespace PF.Application.Shell
 {
+    /// <summary>AutoOCR 演示工站应用程序入口，继承 PFApplicationBase 并实现全部项目钩子。</summary>
     public partial class App : PFApplicationBase
     {
+        /// <summary>AutoOCR 应用全局互斥体唯一标识。</summary>
         protected override string AppMutexId => "OCRAppID-12345678-ABCD-EFGH-IJKL-1234567890AB";
 
+        /// <summary>返回 AutoOCR 项目默认参数集。</summary>
         protected override IDefaultParam CreateDefaultParameters() => new DefaultParameters();
 
+        /// <summary>注册项目主窗口 ViewModel 实现类 MainWindowViewModel。</summary>
         protected override void RegisterMainWindowViewModel(IContainerRegistry containerRegistry)
             => containerRegistry.RegisterSingleton<MainWindowViewModelBase, MainWindowViewModel>();
 
         #region 硬件工厂
 
+        /// <summary>注册 6 种硬件工厂（运动控制卡、轴、IO、条码枪、OCR 相机、三色灯）。</summary>
         protected override void RegisterHardwareFactories(IHardwareManagerService hwManager)
         {
             var dataDirectory = ConstGlobalParam.ConfigPath;
@@ -110,6 +115,7 @@ namespace PF.Application.Shell
 
         #region IO 映射
 
+        /// <summary>注册 IO 映射枚举（输入 E_InPutName、输出 E_OutPutName）。</summary>
         protected override void RegisterIOMappings(IIOMappingService ioMappingService)
         {
             ioMappingService.RegisterInputEnum<E_InPutName>("IO_Collectorll");
@@ -120,6 +126,7 @@ namespace PF.Application.Shell
 
         #region 机构、工站、主控注册
 
+        /// <summary>注册 7 个机构、5 个工站及 AutoOCR 主控（DryIoc 多键 Singleton）。</summary>
         protected override void RegisterMechanismsAndStations(IContainerRegistry containerRegistry)
         {
             var container = containerRegistry.GetContainer();
@@ -192,6 +199,7 @@ namespace PF.Application.Shell
 
         #region 配方注册
 
+        /// <summary>注册 OCR 配方服务（IRecipeService&lt;OCRRecipeParam&gt;）。</summary>
         protected override void RegisterRecipes(IContainerRegistry containerRegistry)
         {
             containerRegistry.GetContainer().RegisterMany(
@@ -204,6 +212,7 @@ namespace PF.Application.Shell
 
         #region 机构初始化序列
 
+        /// <summary>按顺序初始化 7 个机构（任一失败立即返回 false）。</summary>
         protected override async Task<bool> InitializeMechanismsAsync()
         {
             var c = this.Container;
@@ -223,6 +232,7 @@ namespace PF.Application.Shell
 
         #region 模块目录
 
+        /// <summary>注册 9 个 Prism 模块（Identity、Alarm、Logging、Parameter、Debug、Production、SecsGem、AutoOcrUI、Halcon）。</summary>
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
             moduleCatalog.AddModule<IdentityModule>();
@@ -240,6 +250,7 @@ namespace PF.Application.Shell
 
         #region 视觉服务
 
+        /// <summary>注册 Halcon 视觉引擎服务（AddVisionServices 扩展，含三模式引擎管理器）。</summary>
         protected override void RegisterVisionServices(IContainerRegistry containerRegistry)
         {
             containerRegistry.AddVisionServices(
@@ -251,6 +262,7 @@ namespace PF.Application.Shell
 
         #region 每日定时任务
 
+        /// <summary>注册每日 08:00 执行的磁盘预警和 OCR 图片清理定时任务。</summary>
         protected override void RegisterProjectDailyTasks()
         {
             var timer = Container.Resolve<IAppTimerService>();

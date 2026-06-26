@@ -25,6 +25,9 @@
   -->
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
     <PackageIcon>nuget-icon.png</PackageIcon>
+  </PropertyGroup>
+  <!-- 仅当项目目录内确实存在 README.md 时才声明，避免 NU5039 -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true' AND Exists('$(MSBuildProjectDirectory)\README.md')">
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

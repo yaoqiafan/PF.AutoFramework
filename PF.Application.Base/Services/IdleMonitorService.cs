@@ -11,8 +11,10 @@ namespace PF.Application.Base.Services
         private readonly DispatcherTimer _timer;
         private bool _disposed;
 
+        /// <summary>无操作超时事件，由 UI 线程触发。</summary>
         public event EventHandler? IdleTimeout;
 
+        /// <summary>构造并配置空闲超时时长。</summary>
         public IdleMonitorService(TimeSpan timeout)
         {
             _timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
@@ -22,12 +24,14 @@ namespace PF.Application.Base.Services
             _timer.Tick += OnTimerTick;
         }
 
+        /// <summary>启动监控：注册全局输入事件并开始计时。</summary>
         public void Start()
         {
             InputManager.Current.PreProcessInput += OnInputActivity;
             _timer.Start();
         }
 
+        /// <summary>停止监控：取消计时并移除全局输入事件订阅。</summary>
         public void Stop()
         {
             _timer.Stop();
@@ -50,6 +54,7 @@ namespace PF.Application.Base.Services
             IdleTimeout?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>释放定时器资源并停止监控。</summary>
         public void Dispose()
         {
             if (_disposed) return;

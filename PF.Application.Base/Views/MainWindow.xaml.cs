@@ -20,6 +20,7 @@ using SwWindow = System.Windows.Window;
 
 namespace PF.Application.Base.Views
 {
+    /// <summary>框架主窗口：数据驱动状态栏 + 侧边菜单 + 主题切换 + 登录动画。</summary>
     public partial class MainWindow : PF.UI.Controls.Window
     {
         private readonly IMessageService _messageService;
@@ -28,6 +29,7 @@ namespace PF.Application.Base.Views
         private readonly IEnumerable<IMechanism> _mechanismsList;
         private bool _isAnimating;
 
+        /// <summary>注入依赖并完成窗口初始化，订阅用户变更事件与 Loaded 事件。</summary>
         public MainWindow(
             MainWindowViewModelBase viewModel,
             IMessageService messageService,

@@ -2,9 +2,12 @@
   <Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <Version>1.0.0</Version>
+    <PackageReleaseNotes>v1.0.0 - Halcon HDevEngine 视觉服务层初始版本：过程执行引擎、ROI 管理、视觉工作流管线、DI 扩展方法。</PackageReleaseNotes>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <Description>Halcon HDevEngine 视觉服务（Layer 04，零 Prism.Wpf / WPF 依赖）</Description>
+    <Description>Halcon HDevEngine 视觉服务层（Layer 04）：过程执行引擎、ROI 管理、视觉工作流管线；零 Prism.Wpf / WPF 依赖，可独立于 UI 引用。</Description>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

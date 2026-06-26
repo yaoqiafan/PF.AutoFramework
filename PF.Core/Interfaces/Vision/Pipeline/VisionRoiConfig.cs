@@ -13,8 +13,12 @@ namespace PF.Core.Interfaces.Vision.Pipeline;
 /// </summary>
 public sealed class VisionRoiConfig
 {
+    /// <summary>ROI 名称标识。</summary>
     public string   Name      { get; set; } = string.Empty;
+    /// <summary>ROI 几何形状类型。</summary>
     public RoiType  Type      { get; set; } = RoiType.Rect;
+    /// <summary>ROI 操作（纳入或排除检测范围）。</summary>
     public RoiOp    Op        { get; set; } = RoiOp.Include;
+    /// <summary>ROI 几何参数数组（含义由 Type 决定，见类注释）。</summary>
     public double[] RoiParams { get; set; } = [];
 }

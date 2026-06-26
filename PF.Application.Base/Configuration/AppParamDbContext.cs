@@ -5,10 +5,14 @@ using PF.Data.Entity.Category.Basic;
 
 namespace PF.Application.Base.Configuration
 {
+    /// <summary>参数存储分类：用户登录参数 / 系统配置参数 / 硬件参数。</summary>
     public enum ParamType
     {
+        /// <summary>用户登录参数表。</summary>
         UserLoginParams,
+        /// <summary>系统配置参数表。</summary>
         SystemConfigParams,
+        /// <summary>硬件连接参数表。</summary>
         HardwareParams
     }
 
@@ -17,12 +21,17 @@ namespace PF.Application.Base.Configuration
     /// </summary>
     public class AppParamDbContext : DbContext
     {
+        /// <summary>构造函数，注入 EF Core 配置选项。</summary>
         public AppParamDbContext(DbContextOptions<AppParamDbContext> options) : base(options) { }
 
+        /// <summary>用户登录参数表。</summary>
         public DbSet<UserLoginParam> UserLoginParams { get; set; }
+        /// <summary>系统配置参数表。</summary>
         public DbSet<SystemConfigParam> SystemConfigParams { get; set; }
+        /// <summary>硬件连接参数表。</summary>
         public DbSet<HardwareParam> HardwareParams { get; set; }
 
+        /// <inheritdoc/>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -40,6 +49,7 @@ namespace PF.Application.Base.Configuration
                 .IsUnique();
         }
 
+        /// <summary>保存更改并自动维护 CreateTime / UpdateTime 审计字段。</summary>
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var entries = ChangeTracker.Entries()
@@ -56,6 +66,7 @@ namespace PF.Application.Base.Configuration
             return await base.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>确保数据库已建表，并根据 <paramref name="defaultParam"/> 补全缺失的默认参数行、移除已废弃行。</summary>
         public async Task EnsureDefaultParametersCreatedAsync(IDefaultParam defaultParam, CancellationToken cancellationToken = default)
         {
             await Database.EnsureCreatedAsync(cancellationToken);

@@ -51,6 +51,7 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>导航守卫：要求轴必须在安全位置才允许进入调试界面。</summary>
         protected override IEnumerable<NavigationGuard> GetNavigationGuards(NavigationContext? context = null)
         {
             var axis = context?.Parameters.ContainsKey("Device") == true

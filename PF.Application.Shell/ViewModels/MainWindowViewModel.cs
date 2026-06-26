@@ -8,6 +8,7 @@ using PF.UI.Infrastructure.Navigation;
 
 namespace PF.Application.Shell.ViewModels
 {
+    /// <summary>AutoOCR 主窗口 ViewModel：扩展状态栏以显示扫码枪、相机和 SECS/GEM 连接状态。</summary>
     public class MainWindowViewModel : MainWindowViewModelBase
     {
         private readonly DeviceStatusItem _scanner1;
@@ -15,6 +16,7 @@ namespace PF.Application.Shell.ViewModels
         private readonly DeviceStatusItem _camera;
         private readonly DeviceStatusItem _secGem;
 
+        /// <summary>初始化并向 DeviceStatusItems 添加工位1/2扫码枪、智能相机和 SECS/GEM 状态条目。</summary>
         public MainWindowViewModel(
             INavigationMenuService navigationMenuService,
             IContainerProvider containerProvider,
@@ -34,6 +36,7 @@ namespace PF.Application.Shell.ViewModels
             DeviceStatusItems.Add(_secGem);
         }
 
+        /// <summary>轮询硬件管理器和 SECS/GEM 管理器，更新各设备连接状态指示。</summary>
         protected override void PollDeviceStatuses()
         {
             if (HardwareManager != null)

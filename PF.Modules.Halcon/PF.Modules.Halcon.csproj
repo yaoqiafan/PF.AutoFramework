@@ -3,9 +3,12 @@
 
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <Version>1.0.0</Version>
+    <PackageReleaseNotes>v1.0.0 - Halcon 视觉调试 Prism 模块初始版本：过程列表导航面板、HWindowControlWPF 图像查看器、ROI 编辑弹窗、流水线运行器。</PackageReleaseNotes>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <Description>Halcon 视觉调试 Prism 模块：过程列表导航面板 + HWindowControlWPF 图像查看器</Description>
+    <Description>Halcon 视觉调试 Prism 模块（Layer 05）：过程列表导航面板 + HWindowControlWPF 图像查看器 + ROI 编辑弹窗 + 流水线运行器；依赖 PF.Vision.Halcon 服务层。</Description>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
