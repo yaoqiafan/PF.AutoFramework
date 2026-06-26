@@ -177,6 +177,11 @@ public class HalconDebugViewModel : RegionViewModelBase
     private void RefreshProcedures()
     {
         var current = SelectedProcedure;
+
+        // 强制卸载当前选中过程缓存，确保下次执行时从磁盘重新加载最新文件
+        if (!string.IsNullOrEmpty(current))
+            _ = _debugService.ForceReloadAsync(current);
+
         Procedures.Clear();
         foreach (var name in _debugService.GetAvailableProcedures())
             Procedures.Add(name);

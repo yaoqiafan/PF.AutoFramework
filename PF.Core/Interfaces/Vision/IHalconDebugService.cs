@@ -29,6 +29,9 @@ public interface IHalconDebugService
     /// <summary>返回过程目录中可用的 .hdev 文件名列表（不含扩展名）</summary>
     IReadOnlyList<string> GetAvailableProcedures();
 
+    /// <summary>强制从缓存卸载指定过程，下次执行时从磁盘重新加载</summary>
+    Task ForceReloadAsync(string procedureName, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// 解析 .hdev 文件，返回过程的输入/输出参数签名。
     /// 返回 null 表示文件不存在或无法解析。

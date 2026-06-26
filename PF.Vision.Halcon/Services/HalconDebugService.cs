@@ -87,6 +87,9 @@ public sealed class HalconDebugService : IHalconDebugService
     public IReadOnlyList<string> GetAvailableProcedures()
         => GetDebugEngine().GetAvailableProcedures();
 
+    public Task ForceReloadAsync(string procedureName, CancellationToken cancellationToken = default)
+        => GetDebugEngine().UnloadProcedureAsync(procedureName, cancellationToken);
+
     public Task<IVisionResult> RunTestAsync(
         string procedureName,
         IReadOnlyDictionary<string, string>  controlInputs,
