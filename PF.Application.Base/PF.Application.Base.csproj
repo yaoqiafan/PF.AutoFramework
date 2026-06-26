@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Version>1.0.0</Version>
+		<PackageReleaseNotes>v1.0.0 - 框架应用程序基础层初始版本：PrismApplication 抽象基类、MainWindow、MainWindowViewModelBase 及公共服务（IdleMonitor / PrismAlarmEventPublisher / TowerLightManager）。</PackageReleaseNotes>
+		<Description>PF.AutoFramework 应用程序基础层：PrismApplication 抽象基类、主窗口、ViewModel 基类及公共服务；消费项目继承 PFApplicationBase 并实现抽象钩子即可完成接入。</Description>
+		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Prism.DryIoc" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" />

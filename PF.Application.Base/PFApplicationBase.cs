@@ -344,11 +344,7 @@ namespace PF.Application.Base
             RegisterVisionServices(containerRegistry);
         }
 
-        protected override IModuleCatalog CreateModuleCatalog()
-        {
-            var modulesPath = Path.Combine(AppContext.BaseDirectory, "Modules");
-            return new DirectoryModuleCatalog { ModulePath = modulesPath };
-        }
+        protected override IModuleCatalog CreateModuleCatalog() => new ModuleCatalog();
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog) { }
 

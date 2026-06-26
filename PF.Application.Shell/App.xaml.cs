@@ -14,6 +14,14 @@ using PF.Core.Interfaces.Timer;
 using PF.Core.Interfaces.TowerLight;
 using PF.Data.Entity.Category.Basic;
 using PF.Infrastructure.Station.Basic;
+using PF.Modules.Alarm;
+using PF.Modules.Debug;
+using PF.Modules.Halcon;
+using PF.Modules.Identity;
+using PF.Modules.Logging;
+using PF.Modules.Parameter;
+using PF.Modules.Production;
+using PF.Modules.SecsGem;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.Vision.Halcon.Extensions;
 using PF.Workstation.AutoOcr.CostParam;
@@ -21,6 +29,8 @@ using PF.WorkStation.AutoOcr.CostParam;
 using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
+using PF.WorkStation.AutoOcr.UI;
+using Prism.Modularity;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
@@ -207,6 +217,23 @@ namespace PF.Application.Shell
             if (!await c.Resolve<IMechanism>(nameof(WSSecsGemModule)).InitializeAsync()) return false;
 
             return true;
+        }
+
+        #endregion
+
+        #region 模块目录
+
+        protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
+        {
+            moduleCatalog.AddModule<IdentityModule>();
+            moduleCatalog.AddModule<AlarmModule>();
+            moduleCatalog.AddModule<LoggingModule>();
+            moduleCatalog.AddModule<ParameterModule>();
+            moduleCatalog.AddModule<DebugModule>();
+            moduleCatalog.AddModule<ProductionRecordModule>();
+            moduleCatalog.AddModule<SecsGemModule>();
+            moduleCatalog.AddModule<AutoOcrUIModule>();
+            moduleCatalog.AddModule<HalconModule>();
         }
 
         #endregion

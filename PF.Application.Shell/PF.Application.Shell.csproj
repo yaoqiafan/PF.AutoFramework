@@ -1,85 +1,48 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<ApplicationIcon>-pfico.ico</ApplicationIcon>
-
 	</PropertyGroup>
 
 	<ItemGroup>
 	  <Content Include="-pfico.ico" />
 	</ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Prism.DryIoc" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" />
 	</ItemGroup>
+
 	<ItemGroup>
 	  <!-- 框架入口基类：包含所有样板 DI/Prism/Splash 逻辑 -->
 	  <ProjectReference Include="..\PF.Application.Base\PF.Application.Base.csproj" />
-	  <!-- 业务层：Shell 的钩子方法在编译期直接使用这些类型，保持完整引用 -->
+	  <!-- 业务层：Shell 的钩子方法在编译期直接使用这些类型 -->
 	  <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
 	  <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
 	  <ProjectReference Include="..\PF.WorkStation.AutoOcr\PF.Workstation.AutoOcr.csproj" />
 	  <ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
-	  <!-- 工具库（非 Prism 模块）：原经由 PF.Modules.Parameter 传递，模块解耦后必须直接引用 -->
 	  <ProjectReference Include="..\PF.CommonTools\PF.CommonTools.csproj" />
 	  <!-- 视觉服务层：Shell 编译期需要 AddVisionServices 扩展方法 -->
 	  <ProjectReference Include="..\PF.Vision.Halcon\PF.Vision.Halcon.csproj" />
 	</ItemGroup>
+
 	<ItemGroup>
 	  <!--
-	    Prism 模块：ReferenceOutputAssembly=false
-	    · MSBuild 仍维护构建顺序（模块先于 Shell 构建）
-	    · C# 编译器不可见模块类型（编译期解耦）
-	    · 模块 DLL 由 Directory.Build.targets 复制到 bin\Modules\ 子目录
-	    · Shell 在运行时通过 DirectoryModuleCatalog 动态加载
+	    Prism 模块：直接引用（普通 ProjectReference）。
+	    · DLL 落入主输出目录，App.xaml.cs 以 AddModule<T>() 显式注册
+	    · 无需 ReferenceOutputAssembly=false + Modules\ 子目录扫描
 	  -->
-	  <ProjectReference Include="..\PF.Modules.Alarm\PF.Modules.Alarm.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <ProjectReference Include="..\PF.Modules.Identity\PF.Modules.Identity.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <ProjectReference Include="..\PF.Modules.ProductionRecord\PF.Modules.Production.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <ProjectReference Include="..\PF.WorkStation.AutoOcr.UI\PF.WorkStation.AutoOcr.UI.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
-	  <!-- Halcon 视觉调试模块：运行时动态加载，编译期解耦 -->
-	  <ProjectReference Include="..\PF.Modules.Halcon\PF.Modules.Halcon.csproj">
-	    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-	  </ProjectReference>
+	  <ProjectReference Include="..\PF.Modules.Alarm\PF.Modules.Alarm.csproj" />
+	  <ProjectReference Include="..\PF.Modules.Debug\PF.Modules.Debug.csproj" />
+	  <ProjectReference Include="..\PF.Modules.Identity\PF.Modules.Identity.csproj" />
+	  <ProjectReference Include="..\PF.Modules.Logging\PF.Modules.Logging.csproj" />
+	  <ProjectReference Include="..\PF.Modules.Parameter\PF.Modules.Parameter.csproj" />
+	  <ProjectReference Include="..\PF.Modules.ProductionRecord\PF.Modules.Production.csproj" />
+	  <ProjectReference Include="..\PF.Modules.SecsGem\PF.Modules.SecsGem.csproj" />
+	  <ProjectReference Include="..\PF.WorkStation.AutoOcr.UI\PF.WorkStation.AutoOcr.UI.csproj" />
+	  <ProjectReference Include="..\PF.Modules.Halcon\PF.Modules.Halcon.csproj" />
 	</ItemGroup>
-
-  <!--
-    dotnet publish 时将所有 Prism 模块 DLL 复制到发布输出目录的 Modules\ 子目录。
-    · dotnet build  → 由 Directory.Build.targets 的 CopyModuleToOutputFolder 处理
-    · dotnet publish → 由本 target 处理（$(PublishDir) 由 MSBuild 自动设置）
-    模块项目作为 ReferenceOutputAssembly=false 的 ProjectReference，
-    其 DLL 位于各自的 bin\$(Configuration)\net8.0-windows\ 目录，
-    在 Shell publish 流程中已完成构建，路径可靠。
-  -->
-  <Target Name="CopyModulesToPublishDir" AfterTargets="Publish">
-    <PropertyGroup>
-      <_ModulesPublishDir>$(PublishDir)Modules\</_ModulesPublishDir>
-    </PropertyGroup>
-    <MakeDir Directories="$(_ModulesPublishDir)" />
-    <ItemGroup>
-      <_ModuleDll Include="&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Alarm\bin\$(Configuration)\net8.0-windows\PF.Modules.Alarm.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Debug\bin\$(Configuration)\net8.0-windows\PF.Modules.Debug.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Identity\bin\$(Configuration)\net8.0-windows\PF.Modules.Identity.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Logging\bin\$(Configuration)\net8.0-windows\PF.Modules.Logging.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Parameter\bin\$(Configuration)\net8.0-windows\PF.Modules.Parameter.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.ProductionRecord\bin\$(Configuration)\net8.0-windows\PF.Modules.Production.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.SecsGem\bin\$(Configuration)\net8.0-windows\PF.Modules.SecsGem.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.WorkStation.AutoOcr.UI\bin\$(Configuration)\net8.0-windows\PF.WorkStation.AutoOcr.UI.dll;&#xD;&#xA;        $(MSBuildProjectDirectory)\..\PF.Modules.Halcon\bin\$(Configuration)\net8.0-windows\PF.Modules.Halcon.dll&#xD;&#xA;      " />
-    </ItemGroup>
-    <Copy SourceFiles="@(_ModuleDll)" DestinationFolder="$(_ModulesPublishDir)" SkipUnchangedFiles="true" />
-    <Message Text="[CopyModulesToPublishDir] 已复制 @(_ModuleDll-&gt;Count()) 个模块 DLL 到 $(_ModulesPublishDir)" Importance="High" />
-  </Target>
 
 </Project>
