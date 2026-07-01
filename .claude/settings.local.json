@@ -76,7 +76,19 @@
       "Bash(Remove-Item -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.AutoFramework\\\\PF.Modules.Halcon\\\\Views\\\\ProcedureDebugView.xaml.cs\" -Force)",
       "Bash(Remove-Item -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.AutoFramework\\\\PF.Modules.Halcon\\\\ViewModels\\\\ProcedureDebugViewModel.cs\" -Force)",
       "Bash(Remove-Item -Path \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.AutoFramework\\\\PF.Modules.Halcon\\\\ViewModels\\\\HalconDashboardViewModel.cs\" -Force)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(grep -r ^namespace 'D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.StandardProject\\\\PF.WorkStation.Standard\\\\CostParam\" *)",
+      "Bash(grep -r ^namespace 'D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.StandardProject\\\\PF.WorkStation.Standard\\\\Stations\" *)",
+      "Bash(grep -v \"//\\\\|\\\\.cs:\")",
+      "PowerShell(git *)",
+      "Bash(xargs grep -l \"PF.AutoFramework.Meta\")",
+      "Bash(git -C \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.StandardProject\" status)",
+      "Bash(git -C \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.StandardProject\" diff --stat)",
+      "Bash(git *)",
+      "PowerShell(cd \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.StandardProject\"; dotnet pack PF.AutoFramework.Template.csproj -o \"$PWD\\\\nupkg\" -v detailed 2>&1 | Select-String \"Pack|nupkg|error|Error|warning|Content\" | Select-Object -First 30)",
+      "PowerShell(dotnet new *)",
+      "PowerShell(Copy-Item *)",
+      "Bash(dotnet pack *)"
     ]
   }
 }

@@ -26,5 +26,10 @@ namespace PF.Data.Entity.Category.Basic
         /// 获取HardwareDefaults
         /// </summary>
         Dictionary<string, HardwareParam> GetHardwareDefaults();
+
+        /// <summary>
+        /// 获取CommunicationDefaults
+        /// </summary>
+        Dictionary<string, CommunicationParam> GetCommunicationDefaults();
     }
 }

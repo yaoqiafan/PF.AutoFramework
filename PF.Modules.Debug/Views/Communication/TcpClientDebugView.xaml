@@ -1,0 +1,102 @@
+<UserControl
+    x:Class="PF.Modules.Debug.Views.Communication.TcpClientDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    d:DesignHeight="500"
+    d:DesignWidth="900"
+    mc:Ignorable="d">
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  头部信息卡  -->
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,15"
+                Padding="15"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="{Binding ClientId, StringFormat='TCP 客户端：{0}'}" />
+                        <TextBlock Margin="0,4,0,0" FontSize="13" Text="{Binding TargetEndpoint, StringFormat='目标服务端：{0}'}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock
+                            Margin="0,0,15,0"
+                            VerticalAlignment="Center"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Text="{Binding StatusText, StringFormat='状态：{0}'}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding ConnectCommand}"
+                            Content="连接"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding DisconnectCommand}"
+                            Content="断开"
+                            Style="{DynamicResource ButtonWarning}" />
+                        <Button
+                            Height="32"
+                            Command="{Binding ShowParamDialogCommand}"
+                            Content="参数设置"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--  发送测试数据  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,15"
+                Padding="12"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox
+                        Grid.Column="0"
+                        Margin="0,0,10,0"
+                        Text="{Binding SendText, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button
+                        Grid.Column="1"
+                        Width="100"
+                        Command="{Binding SendCommand}"
+                        Content="发送"
+                        Style="{DynamicResource ButtonDefault}" />
+                </Grid>
+            </Border>
+
+            <!--  日志  -->
+            <Border Grid.Row="2" Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" Text="事件日志" />
+                    <ListBox FontFamily="Consolas" ItemsSource="{Binding LogEntries}" />
+                </DockPanel>
+            </Border>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

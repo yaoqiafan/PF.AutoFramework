@@ -1,5 +1,8 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
 using System;
 using System.Collections.Concurrent;
@@ -15,7 +18,8 @@ namespace PF.Infrastructure.Communication.TCP
     /// <summary>
     /// TCP服务器实现
     /// </summary>
-    public class TcpServer : IServer
+    [CommunicationUI(NavigationConstants.Views.TcpServerDebugView)]
+    public class TcpServer : IServer, ICommunication
     {
         private TcpListener _listener;
         private CancellationTokenSource _cancellationTokenSource;
@@ -54,6 +58,25 @@ namespace PF.Infrastructure.Communication.TCP
         /// 已连接的客户端列表
         /// </summary>
         public IReadOnlyList<IClientConnection> Clients => _clients.Values.ToList();
+
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的监听 IP，需在 StartAsync(CancellationToken) 调用前设置</summary>
+        public string BindIp { get; set; } = "0.0.0.0";
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的监听端口</summary>
+        public int BindPort { get; set; }
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的挂起连接队列长度</summary>
+        public int Backlog { get; set; } = 10;
+
+        /// <inheritdoc cref="ICommunication.InstanceId"/>
+        string ICommunication.InstanceId => ServerName;
+        /// <inheritdoc cref="ICommunication.Category"/>
+        CommunicationCategory ICommunication.Category => CommunicationCategory.Tcp;
+        /// <inheritdoc cref="ICommunication.Role"/>
+        CommunicationRole ICommunication.Role => CommunicationRole.Server;
+        /// <inheritdoc cref="ICommunication.DisplayName"/>
+        string ICommunication.DisplayName => $"[{ServerName}] {IP}:{Port}";
+
+        /// <summary>供 ICommunicationManagerService 统一调度的启动入口，内部使用 BindIp/BindPort/Backlog</summary>
+        public Task<bool> StartAsync(CancellationToken token = default) => StartAsync(BindIp, BindPort, Backlog);
 
         /// <summary>
         /// 编码方式

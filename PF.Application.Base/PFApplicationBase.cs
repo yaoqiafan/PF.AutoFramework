@@ -7,6 +7,8 @@ using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
 using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
+using PF.Core.Entities.Communication;
+using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
@@ -36,6 +38,7 @@ using PF.Infrastructure.SecsGem.Tools;
 using PF.Infrastructure.Station;
 using PF.SecsGem.DataBase;
 using PF.Services.Alarm;
+using PF.Services.Communication;
 using PF.Services.Hardware;
 using PF.Services.Identity;
 using PF.Services.Logging;
@@ -110,8 +113,20 @@ namespace PF.Application.Base
         /// <summary>返回项目的默认参数集（硬件配置、系统参数、用户默认）</summary>
         protected abstract IDefaultParam CreateDefaultParameters();
 
-        /// <summary>向 HardwareManagerService 注册项目特有的硬件工厂</summary>
-        protected abstract void RegisterHardwareFactories(IHardwareManagerService hwManager);
+        /// <summary>
+        /// 向 HardwareManagerService 注册项目特有的硬件工厂。
+        /// 同时传入 ICommunicationManagerService，供需要引用通讯实例的硬件工厂闭包
+        /// 通过 GetCommunication&lt;T&gt;(InstanceId) 查找（此时通讯实例已实例化完成，AutoStart=true 的也已连接/监听）。
+        /// </summary>
+        protected abstract void RegisterHardwareFactories(IHardwareManagerService hwManager, ICommunicationManagerService commManager);
+
+        /// <summary>
+        /// 向 CommunicationManagerService 注册项目特有的通讯实例工厂。
+        /// 硬件工厂如需引用某个通讯实例，可在 RegisterHardwareFactories 的闭包里
+        /// 通过 ICommunicationManagerService.GetCommunication&lt;T&gt; 按 InstanceId 查找——
+        /// 因为 RegisterCommunicationTypes 固定先于 RegisterHardwareTypes 执行，届时通讯管理服务已可解析。
+        /// </summary>
+        protected abstract void RegisterCommunicationFactories(ICommunicationManagerService commManager);
 
         /// <summary>注册项目特有的机构、工站和主控（包括 IPanelIoConfig、ITowerLightDoWriterConfig）</summary>
         protected abstract void RegisterMechanismsAndStations(IContainerRegistry containerRegistry);
@@ -326,6 +341,8 @@ namespace PF.Application.Base
 
             RegisterProductionDataService(containerRegistry);
             RegisterSecsGemServices(containerRegistry);
+            // 必须先于 RegisterHardwareTypes：硬件工厂闭包可能要捕获 ICommunicationManagerService 引用
+            RegisterCommunicationTypes(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
 
             containerRegistry.RegisterSingleton<Splash>();
@@ -434,14 +451,31 @@ namespace PF.Application.Base
             var paramService = container.Resolve<IParamService>();
             paramService.RegisterParamType<HardwareParam, HardwareConfig>();
 
+            var commManager = container.Resolve<ICommunicationManagerService>();
             var hwManager = new HardwareManagerService(LogService, paramService);
-            RegisterHardwareFactories(hwManager);
+            RegisterHardwareFactories(hwManager, commManager);
 
             containerRegistry.RegisterSingleton<IIOMappingService, IOMappingService>();
             var ioMappingService = container.Resolve<IIOMappingService>();
             RegisterIOMappings(ioMappingService);
 
             containerRegistry.RegisterInstance<IHardwareManagerService>(hwManager);
+        }
+
+        /// <summary>
+        /// 注册通讯实例管理服务：结构对齐 RegisterHardwareTypes，但通讯实例之间没有硬件那种父子拓扑，
+        /// CommunicationManagerService 内部加载流程更简单。
+        /// </summary>
+        private void RegisterCommunicationTypes(IContainerRegistry containerRegistry)
+        {
+            var container = containerRegistry.GetContainer();
+            var paramService = container.Resolve<IParamService>();
+            paramService.RegisterParamType<CommunicationParam, CommunicationConfig>();
+
+            var commManager = new CommunicationManagerService(LogService, paramService);
+            RegisterCommunicationFactories(commManager);
+
+            containerRegistry.RegisterInstance<ICommunicationManagerService>(commManager);
         }
 
         private void RegisterHardwareAndMechanisms(IContainerRegistry containerRegistry)
@@ -514,6 +548,13 @@ namespace PF.Application.Base
                 }
                 SplashUpdateMessage(splash, logService, "配置文件加载成功。。。", msgType: MsgType.Success);
                 await Task.Delay(500);
+
+                SplashUpdateMessage(splash, logService, "通讯实例初始化中。。。", msgType: MsgType.Info);
+                await Task.Delay(300);
+                var commManager = Container.Resolve<ICommunicationManagerService>();
+                await commManager.LoadAndInitializeAsync();
+                SplashUpdateMessage(splash, logService, "通讯实例初始化完成", msgType: MsgType.Success);
+                await Task.Delay(300);
 
                 SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
                 await Task.Delay(500);

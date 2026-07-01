@@ -1,5 +1,8 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
 using System;
 using System.IO;
@@ -13,8 +16,28 @@ namespace PF.Infrastructure.Communication.TCP
     /// <summary>
     /// TCP客户端
     /// </summary>
-    public class TCPClient : IClient
+    [CommunicationUI(NavigationConstants.Views.TcpClientDebugView)]
+    public class TCPClient : IClient, ICommunication
     {
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的目标服务端 IP，需在 StartAsync(CancellationToken) 调用前设置</summary>
+        public string TargetServerIp { get; set; } = string.Empty;
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的目标服务端端口</summary>
+        public int TargetServerPort { get; set; }
+
+        /// <inheritdoc cref="ICommunication.InstanceId"/>
+        string ICommunication.InstanceId => ClientId;
+        /// <inheritdoc cref="ICommunication.Category"/>
+        CommunicationCategory ICommunication.Category => CommunicationCategory.Tcp;
+        /// <inheritdoc cref="ICommunication.Role"/>
+        CommunicationRole ICommunication.Role => CommunicationRole.Client;
+        /// <inheritdoc cref="ICommunication.DisplayName"/>
+        string ICommunication.DisplayName => $"[{ClientId}] → {TargetServerIp}:{TargetServerPort}";
+
+        /// <summary>供 ICommunicationManagerService 统一调度的启动入口，内部使用 TargetServerIp/TargetServerPort</summary>
+        public Task<bool> StartAsync(CancellationToken token = default) => ConnectAsync(TargetServerIp, TargetServerPort);
+
+        /// <summary>供 ICommunicationManagerService 统一调度的停止入口</summary>
+        public Task StopAsync() => DisconnectAsync();
         private System.Net.Sockets.TcpClient _tcpClient;
         private NetworkStream _stream;
         private CancellationTokenSource _receiveCancellationTokenSource;

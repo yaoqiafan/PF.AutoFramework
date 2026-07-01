@@ -48,6 +48,8 @@ namespace PF.Core.Constants
             public const string StationContentRegion = nameof(StationContentRegion);
             /// <summary>工站控制器内容区域</summary>
             public const string StationControllerContentRegion = nameof(StationControllerContentRegion);
+            /// <summary>通讯调试模块右侧内容区域</summary>
+            public const string CommunicationViewRegion = nameof(CommunicationViewRegion);
         }
 
         /// <summary>
@@ -106,6 +108,15 @@ namespace PF.Core.Constants
             public const string CameraDebugView = nameof(CameraDebugView);
             /// <summary>光源控制器调试视图</summary>
             public const string LightControllerDebugView = nameof(LightControllerDebugView);
+
+            /// <summary>通讯综合调试视图</summary>
+            public const string CommunicationDebugView = nameof(CommunicationDebugView);
+            /// <summary>TCP服务端调试视图</summary>
+            public const string TcpServerDebugView = nameof(TcpServerDebugView);
+            /// <summary>TCP客户端调试视图</summary>
+            public const string TcpClientDebugView = nameof(TcpClientDebugView);
+            /// <summary>文件传输通道调试视图</summary>
+            public const string FileTransferDebugView = nameof(FileTransferDebugView);
 
             #endregion
 

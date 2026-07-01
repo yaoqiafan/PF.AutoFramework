@@ -6,6 +6,8 @@
 		<PackageReference Include="log4net" />
 		<PackageReference Include="Stateless" />
 		<PackageReference Include="NPOI" />
+		<PackageReference Include="System.IO.Hashing" />
+		<PackageReference Include="System.IO.Ports" />
 	</ItemGroup>
 
 

@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Communication.TCP;
 using PF.Core.Interfaces.Logging;
 using System;
 using System.Collections.Generic;
@@ -11,26 +12,36 @@ using System.Threading.Tasks;
 namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 {
     /// <summary>
-    /// 基恩士智能相机实现
+    /// 基恩士智能相机实现。底层触发通道 TCP 连接由外部注入
+    /// （通常来自 ICommunicationManagerService 按配置创建的 IClient 实例，AutoStart=false，
+    /// 连接生命周期交由本类的 InternalConnectAsync/InternalDisconnectAsync 驱动）。
     /// </summary>
     public class KeyenceIntelligentCamera : BaseIntelligentCamera
     {
         /// <summary>
-        /// 构造基恩士智能相机
+        /// 构造基恩士智能相机。IP/端口不再单独传入——直接读取注入客户端的 TargetServerIp/TargetServerPort，
+        /// 避免和通讯实例配置出现两份数据源不一致的问题。
         /// </summary>
-        public KeyenceIntelligentCamera(string IP, int port, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
+        /// <param name="triggerClient">触发通道 TCP 客户端（外部注入，未连接状态，已配置好 TargetServerIp/TargetServerPort）</param>
+        /// <param name="timeoutms">应用协议超时时间（毫秒）——等待相机响应的业务超时，与底层TCP连接本身无关，因此仍需显式传入</param>
+        /// <param name="deviceId">设备唯一标识</param>
+        /// <param name="deviceName">设备显示名称</param>
+        /// <param name="isSimulated">是否为模拟模式</param>
+        /// <param name="logger">日志服务</param>
+        public KeyenceIntelligentCamera(IClient triggerClient, int timeoutms,
+            string deviceId, string deviceName, bool isSimulated, ILogService logger)
+            : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
-            this.IPAdress = IP;
-            this.TiggerPort = port;
+            tiggerclient = triggerClient;
             this.TimeOutMs = timeoutms;
         }
 
 
 
         /// <summary>
-        /// 触发客户端
+        /// 触发客户端（外部注入）
         /// </summary>
-        private PF.Infrastructure.Communication.TCP.TCPClient tiggerclient = new Communication.TCP.TCPClient();
+        private readonly IClient tiggerclient;
 
 
 
@@ -38,14 +49,14 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera.Keyence
 
         private string TiggerRec = string.Empty;
         /// <summary>
-        /// IP地址
+        /// IP地址（直接读取触发通道客户端的目标地址）
         /// </summary>
-        public override string IPAdress { get; }
+        public override string IPAdress => tiggerclient.TargetServerIp;
 
         /// <summary>
-        /// 触发端口
+        /// 触发端口（直接读取触发通道客户端的目标端口）
         /// </summary>
-        public override int TiggerPort { get; }
+        public override int TiggerPort => tiggerclient.TargetServerPort;
 
         /// <summary>
         /// 超时时间（毫秒）

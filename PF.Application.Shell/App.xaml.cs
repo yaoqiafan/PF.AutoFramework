@@ -3,6 +3,10 @@ using PF.Application.Base.ViewModels;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.ViewModels;
 using PF.Core.Constants;
+using PF.Core.Entities.Communication.FileTransfer;
+using PF.Core.Enums.FileTransfer;
+using PF.Core.Interfaces.Communication;
+using PF.Core.Interfaces.Communication.TCP;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
@@ -50,10 +54,58 @@ namespace PF.Application.Shell
         protected override void RegisterMainWindowViewModel(IContainerRegistry containerRegistry)
             => containerRegistry.RegisterSingleton<MainWindowViewModelBase, MainWindowViewModel>();
 
+        #region 通讯工厂
+
+        /// <summary>
+        /// 注册通讯实例工厂（TCP Server/Client、FileTransfer 通道）。
+        /// 硬件工厂如需引用某个通讯实例，在 RegisterHardwareFactories 的闭包里通过
+        /// hwManager 捕获的 ICommunicationManagerService.GetCommunication&lt;T&gt;(InstanceId) 查找即可，
+        /// 此方法固定在硬件工厂注册之前执行，届时实例还未 StartAsync，但已可被引用。
+        /// </summary>
+        protected override void RegisterCommunicationFactories(ICommunicationManagerService commManager)
+        {
+            commManager.RegisterFactory("TcpServer", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
+                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 0;
+                int backlog = cfg.ConnectionParameters.TryGetValue("Backlog", out var bl) ? int.Parse(bl) : 10;
+                return new PF.Infrastructure.Communication.TCP.TcpServer(cfg.InstanceId)
+                {
+                    BindIp = ip ?? "0.0.0.0",
+                    BindPort = port,
+                    Backlog = backlog
+                };
+            });
+
+            commManager.RegisterFactory("TcpClient", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("ServerIp", out var serverIp);
+                int serverPort = cfg.ConnectionParameters.TryGetValue("ServerPort", out var sp) ? int.Parse(sp) : 0;
+                return new PF.Infrastructure.Communication.TCP.TCPClient(cfg.InstanceId)
+                {
+                    TargetServerIp = serverIp ?? string.Empty,
+                    TargetServerPort = serverPort
+                };
+            });
+
+            commManager.RegisterFactory("FileTransferChannel", cfg =>
+            {
+                var roleStr = cfg.ConnectionParameters.GetValueOrDefault("Role", nameof(FileTransferRole.Server));
+                var role = Enum.Parse<FileTransferRole>(roleStr);
+                var linksJson = cfg.ConnectionParameters.GetValueOrDefault("LinksJson", "[]");
+                var links = System.Text.Json.JsonSerializer.Deserialize<List<FileTransferLinkEndpoint>>(linksJson) ?? new();
+
+                var options = new FileTransferOptions { Role = role, Links = links };
+                return new PF.Infrastructure.Communication.FileTransfer.FileTransferChannel(options, cfg.InstanceId);
+            });
+        }
+
+        #endregion
+
         #region 硬件工厂
 
         /// <summary>注册 6 种硬件工厂（运动控制卡、轴、IO、条码枪、OCR 相机、三色灯）。</summary>
-        protected override void RegisterHardwareFactories(IHardwareManagerService hwManager)
+        protected override void RegisterHardwareFactories(IHardwareManagerService hwManager, ICommunicationManagerService commManager)
         {
             var dataDirectory = ConstGlobalParam.ConfigPath;
 
@@ -86,21 +138,26 @@ namespace PF.Application.Shell
 
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
             {
-                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
-                int trigPort = cfg.ConnectionParameters.TryGetValue("TiggerPort", out var tp) ? int.Parse(tp) : 0;
-                int userPort = cfg.ConnectionParameters.TryGetValue("UserPort", out var up) ? int.Parse(up) : 0;
-                int timeout  = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var to) ? int.Parse(to) : 0;
+                int timeout = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var to) ? int.Parse(to) : 0;
+
+                // 底层两条 TCP 通道由通讯管理服务按配置创建（AutoStart=false，实际连接时机仍由本设备的
+                // InternalConnectAsync 驱动，避免和通讯管理器抢先连接冲突）；IP/端口从注入的 IClient 自身读取，
+                // 不再由 HardwareConfig 重复提供
+                var triggerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["TriggerCommInstanceId"]);
+                var userPowerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["UserPowerCommInstanceId"]);
+
                 return new Infrastructure.Hardware.BarcodeScan.HKRobot.HKBarcodeScan(
-                    ip, trigPort, userPort, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+                    triggerClient, userPowerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
             hwManager.RegisterFactory("KeyenceIntelligentCamera", cfg =>
             {
-                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
-                int trigPort = cfg.ConnectionParameters.TryGetValue("TiggerPort", out var tp) ? int.Parse(tp) : 0;
-                int timeout  = cfg.ConnectionParameters.TryGetValue("TimeOutms", out var to) ? int.Parse(to) : 0;
+                int timeout = cfg.ConnectionParameters.TryGetValue("TimeOutms", out var to) ? int.Parse(to) : 0;
+
+                var triggerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["CommInstanceId"]);
+
                 return new Infrastructure.Hardware.Carame.IntelligentCamera.Keyence.KeyenceIntelligentCamera(
-                    ip, trigPort, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+                    triggerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
             hwManager.RegisterFactory("CTS_LightControoller", cfg =>

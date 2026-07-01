@@ -1,7 +1,10 @@
 ﻿using PF.CommonTools.EnumRelated;
+using PF.Core.Entities.Communication;
+using PF.Core.Entities.Communication.FileTransfer;
 using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
+using PF.Core.Enums.FileTransfer;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
@@ -31,7 +34,113 @@ namespace PF.Application.Shell.CustomConfiguration.Param
 
 
 
+        /// <summary>
+        /// 获取通讯实例默认配置。
+        /// 说明：每条 CommunicationParam 的 Name = InstanceId，JsonValue = CommunicationConfig 的 JSON 序列化结果。
+        ///
+        /// 前 5 条是 HKBarcodeScan/KeyenceIntelligentCamera 底层 TCP 通道的配置——
+        /// AutoStart=false，因为这些连接的生命周期交由对应硬件设备的 BaseDevice 逻辑驱动
+        /// （通讯管理器只负责按配置实例化，不抢先连接，避免和硬件自己的 InternalConnectAsync 冲突）。
+        /// IP/端口必须和 GetHardwareDefaults() 里 scancode1/scancode2/camera1 展示用的 IP/Port 保持一致。
+        ///
+        /// 最后一条是 FileTransferChannel 服务端示例——AutoStart=true，独立运行，不依附任何硬件，
+        /// 通讯调试面板可以直接点开验证收发。
+        /// </summary>
+        public Dictionary<string, CommunicationParam> GetCommunicationDefaults()
+        {
+            CommunicationConfig scanCode1Trigger = new()
+            {
+                InstanceId = "ScanCode1_Trigger",
+                DisplayName = "工位1扫码枪-触发通道",
+                Category = CommunicationCategory.Tcp,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "TcpClient",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["ServerIp"] = "127.0.0.1", ["ServerPort"] = "9600" },
+                Remarks = "海康扫码枪工位1触发通道底层TCP连接"
+            };
+            CommunicationConfig scanCode1UserPower = new()
+            {
+                InstanceId = "ScanCode1_UserPower",
+                DisplayName = "工位1扫码枪-用户权限通道",
+                Category = CommunicationCategory.Tcp,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "TcpClient",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["ServerIp"] = "127.0.0.1", ["ServerPort"] = "21" },
+                Remarks = "海康扫码枪工位1用户权限通道底层TCP连接"
+            };
+            CommunicationConfig scanCode2Trigger = new()
+            {
+                InstanceId = "ScanCode2_Trigger",
+                DisplayName = "工位2扫码枪-触发通道",
+                Category = CommunicationCategory.Tcp,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "TcpClient",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["ServerIp"] = "127.0.0.1", ["ServerPort"] = "9700" },
+                Remarks = "海康扫码枪工位2触发通道底层TCP连接"
+            };
+            CommunicationConfig scanCode2UserPower = new()
+            {
+                InstanceId = "ScanCode2_UserPower",
+                DisplayName = "工位2扫码枪-用户权限通道",
+                Category = CommunicationCategory.Tcp,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "TcpClient",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["ServerIp"] = "127.0.0.1", ["ServerPort"] = "21" },
+                Remarks = "海康扫码枪工位2用户权限通道底层TCP连接"
+            };
+            CommunicationConfig camera1Trigger = new()
+            {
+                InstanceId = "Camera1_Trigger",
+                DisplayName = "OCR相机-触发通道",
+                Category = CommunicationCategory.Tcp,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "TcpClient",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["ServerIp"] = "127.0.0.1", ["ServerPort"] = "9800" },
+                Remarks = "基恩士OCR智能相机触发通道底层TCP连接"
+            };
 
+            CommunicationConfig fileTransferServer = new()
+            {
+                InstanceId = "VisionFileTransferServer",
+                DisplayName = "视觉图像传输服务端(示例)",
+                Category = CommunicationCategory.FileTransfer,
+                Role = CommunicationRole.Server,
+                ImplementationClassName = "FileTransferChannel",
+                IsEnabled = true,
+                AutoStart = true,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["Role"] = nameof(FileTransferRole.Server),
+                    ["LinksJson"] = JsonSerializer.Serialize(new List<FileTransferLinkEndpoint>
+                    {
+                        new() { LaneId = 0, LocalIp = "127.0.0.1", Port = 9900 }
+                    })
+                },
+                Remarks = "FileTransferChannel 服务端示例配置，单口回环，供通讯调试面板验证收发"
+            };
+
+            var configs = new[] { scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger, fileTransferServer };
+
+            return configs.ToDictionary(c => c.InstanceId, c => new CommunicationParam
+            {
+                Name = c.InstanceId,
+                Description = c.Remarks,
+                TypeFullName = typeof(CommunicationConfig).FullName,
+                JsonValue = JsonSerializer.Serialize(c),
+                Category = "Communication",
+                Version = 1
+            });
+        }
 
 
         /// <summary>
@@ -200,7 +309,13 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9600", ["UserPort"] = "21", ["TimeOutMs"] = "5000" },
+                // IP/端口不再由硬件配置提供——由下面两个 CommInstanceId 对应的 CommunicationConfig 决定，
+                // 硬件层通过注入的 IClient.TargetServerIp/TargetServerPort 读取，避免两份数据源不一致
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["TimeOutMs"] = "5000",
+                    ["TriggerCommInstanceId"] = "ScanCode1_Trigger", ["UserPowerCommInstanceId"] = "ScanCode1_UserPower"
+                },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
             HardwareConfig scancode2 = new HardwareConfig
@@ -212,7 +327,11 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9700", ["UserPort"] = "21", ["TimeOutMs"] = "5000" },
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["TimeOutMs"] = "5000",
+                    ["TriggerCommInstanceId"] = "ScanCode2_Trigger", ["UserPowerCommInstanceId"] = "ScanCode2_UserPower"
+                },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
 
@@ -226,7 +345,11 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
-                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["TiggerPort"] = "9800", ["TimeOutms"] = "5000" },
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["TimeOutms"] = "5000",
+                    ["CommInstanceId"] = "Camera1_Trigger"
+                },
                 Remarks = "基恩士OCR智能相机，用于开发/调试"
             };
 
@@ -418,6 +541,8 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 }
             };
         }
+
+        
 
         /// <summary>
         /// 获取系统默认配置（动态遍历枚举自动生成）

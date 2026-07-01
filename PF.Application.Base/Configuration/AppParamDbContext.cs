@@ -5,7 +5,7 @@ using PF.Data.Entity.Category.Basic;
 
 namespace PF.Application.Base.Configuration
 {
-    /// <summary>参数存储分类：用户登录参数 / 系统配置参数 / 硬件参数。</summary>
+    /// <summary>参数存储分类：用户登录参数 / 系统配置参数 / 硬件参数 / 通讯参数。</summary>
     public enum ParamType
     {
         /// <summary>用户登录参数表。</summary>
@@ -13,11 +13,13 @@ namespace PF.Application.Base.Configuration
         /// <summary>系统配置参数表。</summary>
         SystemConfigParams,
         /// <summary>硬件连接参数表。</summary>
-        HardwareParams
+        HardwareParams,
+        /// <summary>通讯实例参数表。</summary>
+        CommunicationParams
     }
 
     /// <summary>
-    /// 参数数据库上下文（UserLoginParam / SystemConfigParam / HardwareParam 三表通用）
+    /// 参数数据库上下文（UserLoginParam / SystemConfigParam / HardwareParam / CommunicationParam 四表通用）
     /// </summary>
     public class AppParamDbContext : DbContext
     {
@@ -30,6 +32,8 @@ namespace PF.Application.Base.Configuration
         public DbSet<SystemConfigParam> SystemConfigParams { get; set; }
         /// <summary>硬件连接参数表。</summary>
         public DbSet<HardwareParam> HardwareParams { get; set; }
+        /// <summary>通讯实例参数表。</summary>
+        public DbSet<CommunicationParam> CommunicationParams { get; set; }
 
         /// <inheritdoc/>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -45,6 +49,10 @@ namespace PF.Application.Base.Configuration
                 .IsUnique();
 
             modelBuilder.Entity<HardwareParam>()
+                .HasIndex(p => p.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<CommunicationParam>()
                 .HasIndex(p => p.Name)
                 .IsUnique();
         }
@@ -89,9 +97,31 @@ namespace PF.Application.Base.Configuration
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_HardwareParams_Name ON HardwareParams (Name);",
                 cancellationToken);
 
+            // CommunicationParams 表是在 SystemParamsCollection.db 已经存在之后才加入的，
+            // EnsureCreatedAsync 只在数据库文件整个不存在时才会按当前 Model 建表，
+            // 已经建过库的机器上必须靠这段显式 SQL 才能补出这张表（同 HardwareParams 的处理方式）。
+            await Database.ExecuteSqlRawAsync(@"
+                CREATE TABLE IF NOT EXISTS CommunicationParams (
+                    ID          TEXT NOT NULL,
+                    Name        TEXT NOT NULL,
+                    JsonValue   TEXT,
+                    TypeFullName TEXT,
+                    Category    TEXT,
+                    Description TEXT,
+                    CreateTime  TEXT NOT NULL DEFAULT '',
+                    UpdateTime  TEXT NOT NULL DEFAULT '',
+                    Version     INTEGER NOT NULL DEFAULT 0,
+                    CONSTRAINT PK_CommunicationParams PRIMARY KEY (ID)
+                );", cancellationToken);
+
+            await Database.ExecuteSqlRawAsync(
+                "CREATE UNIQUE INDEX IF NOT EXISTS IX_CommunicationParams_Name ON CommunicationParams (Name);",
+                cancellationToken);
+
             await EnsureParametersExistAsync(UserLoginParams, defaultParam.GetUsersDefaults(), cancellationToken);
             await EnsureParametersExistAsync(SystemConfigParams, defaultParam.GetSystemDefaults(), cancellationToken);
             await EnsureParametersExistAsync(HardwareParams, defaultParam.GetHardwareDefaults(), cancellationToken);
+            await EnsureParametersExistAsync(CommunicationParams, defaultParam.GetCommunicationDefaults(), cancellationToken);
         }
 
         private async Task EnsureParametersExistAsync<T>(
