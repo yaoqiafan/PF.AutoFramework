@@ -167,7 +167,10 @@ namespace PF.Infrastructure.Communication.Serial
                 if (bytesToRead <= 0) return;
 
                 var buffer = new byte[bytesToRead];
-                _port.Read(buffer, 0, bytesToRead);
+                // Read 不保证读满请求的长度，必须按实际返回值截取，否则事件可能带出尾部全零的脏数据
+                var read = _port.Read(buffer, 0, bytesToRead);
+                if (read <= 0) return;
+                if (read < bytesToRead) Array.Resize(ref buffer, read);
                 DataReceived?.Invoke(this, new DataReceivedEventArgs(PortName, buffer));
             }
             catch (Exception ex)

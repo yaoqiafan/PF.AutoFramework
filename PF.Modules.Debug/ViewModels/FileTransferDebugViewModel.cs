@@ -84,6 +84,59 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        // ── 接收数据消费方式（演示 FileTransferCompletedEventArgs 的统一消费入口） ──────────
+        // 三个入口对内存/落盘两种交付形态一视同仁，消费方无需分辨 Data/FilePath。
+        // 四个 bool 属性共享一个枚举字段，是 RadioButton 组绑定的标准做法（只响应置 true）。
+
+        private ReceiveConsumeMode _consumeMode = ReceiveConsumeMode.LogOnly;
+
+        /// <summary>仅记录完成日志，不消费数据</summary>
+        public bool ConsumeModeLogOnly
+        {
+            get => _consumeMode == ReceiveConsumeMode.LogOnly;
+            set { if (value) SetConsumeMode(ReceiveConsumeMode.LogOnly); }
+        }
+
+        /// <summary>OpenReadStream 流式读取示例</summary>
+        public bool ConsumeModeOpenStream
+        {
+            get => _consumeMode == ReceiveConsumeMode.OpenReadStream;
+            set { if (value) SetConsumeMode(ReceiveConsumeMode.OpenReadStream); }
+        }
+
+        /// <summary>SaveToFileAsync 保存为文件示例</summary>
+        public bool ConsumeModeSaveToFile
+        {
+            get => _consumeMode == ReceiveConsumeMode.SaveToFile;
+            set { if (value) SetConsumeMode(ReceiveConsumeMode.SaveToFile); }
+        }
+
+        /// <summary>GetBytesAsync 读回内存示例</summary>
+        public bool ConsumeModeGetBytes
+        {
+            get => _consumeMode == ReceiveConsumeMode.GetBytes;
+            set { if (value) SetConsumeMode(ReceiveConsumeMode.GetBytes); }
+        }
+
+        /// <summary>是否选中了保存为文件模式（控制保存目录输入的可用性）</summary>
+        public bool IsSaveModeSelected => _consumeMode == ReceiveConsumeMode.SaveToFile;
+
+        private void SetConsumeMode(ReceiveConsumeMode mode)
+        {
+            if (_consumeMode == mode) return;
+            _consumeMode = mode;
+            RaisePropertyChanged(nameof(ConsumeModeLogOnly));
+            RaisePropertyChanged(nameof(ConsumeModeOpenStream));
+            RaisePropertyChanged(nameof(ConsumeModeSaveToFile));
+            RaisePropertyChanged(nameof(ConsumeModeGetBytes));
+            RaisePropertyChanged(nameof(IsSaveModeSelected));
+            AppendLog($"[消费方式] 已切换为 {mode}");
+        }
+
+        private string _saveDirectory = Path.Combine(Path.GetTempPath(), "PFFileTransfer", "Saved");
+        /// <summary>SaveToFileAsync 模式的保存目录</summary>
+        public string SaveDirectory { get => _saveDirectory; set => SetProperty(ref _saveDirectory, value); }
+
         /// <summary>启动通道命令</summary>
         public DelegateCommand StartCommand { get; }
         /// <summary>停止通道命令</summary>
@@ -92,6 +145,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand SendTestDataCommand { get; }
         /// <summary>选择待发送文件命令</summary>
         public DelegateCommand BrowseFileCommand { get; }
+        /// <summary>选择接收保存目录命令（SaveToFileAsync 消费模式使用）</summary>
+        public DelegateCommand BrowseSaveDirCommand { get; }
         /// <summary>发送磁盘文件命令（SendFileAsync）</summary>
         public DelegateCommand SendFileCommand { get; }
         /// <summary>打开本实例参数修改对话框命令</summary>
@@ -105,6 +160,7 @@ namespace PF.Modules.Debug.ViewModels
             StopCommand = new DelegateCommand(async () => await ExecuteStopAsync());
             SendTestDataCommand = new DelegateCommand(async () => await ExecuteSendTestDataAsync(), () => !IsSending && _channel != null);
             BrowseFileCommand = new DelegateCommand(ExecuteBrowseFile);
+            BrowseSaveDirCommand = new DelegateCommand(ExecuteBrowseSaveDir);
             SendFileCommand = new DelegateCommand(async () => await ExecuteSendFileAsync(),
                 () => !IsSending && _channel != null && !string.IsNullOrWhiteSpace(SendFilePath));
             ShowParamDialogCommand = new DelegateCommand(ExecuteShowParamDialog);
@@ -295,6 +351,13 @@ namespace PF.Modules.Debug.ViewModels
                 SendFilePath = dialog.FileName;
         }
 
+        private void ExecuteBrowseSaveDir()
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "选择接收数据的保存目录" };
+            if (dialog.ShowDialog() == true)
+                SaveDirectory = dialog.FolderName;
+        }
+
         private async Task ExecuteSendFileAsync()
         {
             if (_channel == null || string.IsNullOrWhiteSpace(SendFilePath)) return;
@@ -421,10 +484,72 @@ namespace PF.Modules.Debug.ViewModels
             ProgressText = $"{e.BytesTransferred / 1048576.0:F1} / {e.TotalBytes / 1048576.0:F1} MB";
         });
 
-        private void OnTransferCompleted(object? sender, FileTransferCompletedEventArgs e) => RunOnUi(() =>
-            AppendLog(e.FilePath is null
-                ? $"[{e.Direction}完成] {e.Metadata.Tag}，{e.Result.ThroughputMBps:F1}MB/s"
-                : $"[{e.Direction}完成] {e.Metadata.Tag}，{e.Result.ThroughputMBps:F1}MB/s，已落盘：{e.FilePath}"));
+        private void OnTransferCompleted(object? sender, FileTransferCompletedEventArgs e)
+        {
+            RunOnUi(() =>
+            {
+                // 直接读 Data/FilePath 仅为调试展示通道内部的交付形态；实际消费走下面的统一入口示例
+                var delivery = !e.HasPayload ? "" : e.Data != null ? "，内存交付" : $"，已落盘：{e.FilePath}";
+                AppendLog($"[{e.Direction}完成] {e.Metadata.Tag}，{e.Result.ThroughputMBps:F1}MB/s{delivery}");
+            });
+
+            // 按界面选择的方式演示统一消费入口。消费涉及磁盘 I/O，不能阻塞通道的收尾路径，异步脱开执行
+            if (e.Direction == TransferDirection.Received && e.HasPayload && _consumeMode != ReceiveConsumeMode.LogOnly)
+                _ = ConsumeReceivedAsync(e, _consumeMode);
+        }
+
+        /// <summary>
+        /// 接收数据的三种统一消费方式示例：不论通道内部是内存重组还是落盘交付，代码完全一致，
+        /// 无需判断 e.Data / e.FilePath 谁有值。
+        /// </summary>
+        private async Task ConsumeReceivedAsync(FileTransferCompletedEventArgs e, ReceiveConsumeMode mode)
+        {
+            try
+            {
+                switch (mode)
+                {
+                    case ReceiveConsumeMode.OpenReadStream:
+                    {
+                        // 入口一 OpenReadStream()：拿到只读流按业务协议解析即可，
+                        // 内存模式下是 MemoryStream、落盘模式下是异步 FileStream。这里以流式读完统计长度为例
+                        await using var stream = e.OpenReadStream();
+                        var buffer = new byte[81920];
+                        long total = 0;
+                        int read;
+                        while ((read = await stream.ReadAsync(buffer)) > 0) total += read;
+                        AppendLogSafe($"[消费·OpenReadStream] 流式读取完成，共 {total / 1048576.0:F2} MB（大文件全程不整块占用内存）");
+                        break;
+                    }
+                    case ReceiveConsumeMode.SaveToFile:
+                    {
+                        // 入口二 SaveToFileAsync()：以文件形态交付到目标路径。
+                        // 落盘模式同卷为零拷贝改名且所有权转移（无需再删临时文件），内存模式写盘
+                        var tag = string.IsNullOrWhiteSpace(e.Metadata.Tag) ? "Received" : e.Metadata.Tag;
+                        var safeTag = string.Join("_", tag.Split(Path.GetInvalidFileNameChars()));
+                        var extension = string.IsNullOrWhiteSpace(e.Metadata.FileExtension) ? ".bin" : e.Metadata.FileExtension;
+                        var target = Path.Combine(SaveDirectory, $"{safeTag}_{DateTime.Now:HHmmssfff}{extension}");
+                        await e.SaveToFileAsync(target);
+                        AppendLogSafe($"[消费·SaveToFileAsync] 已保存：{target}");
+                        break;
+                    }
+                    case ReceiveConsumeMode.GetBytes:
+                    {
+                        // 入口三 GetBytesAsync()：以字节数组形态取回（落盘模式超过 512MB 会拒绝，防止误把大文件搬回内存）
+                        var bytes = await e.GetBytesAsync();
+                        var preview = Convert.ToHexString(bytes.AsSpan(0, Math.Min(4, bytes.Length)));
+                        AppendLogSafe($"[消费·GetBytesAsync] 已取回 byte[{bytes.Length}]，前 4 字节：{preview}");
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // GetBytesAsync 超上限、目标目录不可写等异常在此转日志，不让 fire-and-forget 的任务异常无人观察
+                AppendLogSafe($"[消费示例失败] {mode}: {ex.Message}");
+            }
+        }
+
+        private void AppendLogSafe(string message) => RunOnUi(() => AppendLog(message));
 
         private void OnTransferFailed(object? sender, FileTransferFailedEventArgs e) => RunOnUi(() =>
             AppendLog($"[传输失败] {e.Reason}: {e.Message}"));
@@ -451,6 +576,22 @@ namespace PF.Modules.Debug.ViewModels
 
         /// <inheritdoc/>
         public override void Destroy() => Dispose();
+    }
+
+    /// <summary>调试面板演示用：接收数据的消费方式（对应 FileTransferCompletedEventArgs 的统一消费入口）</summary>
+    public enum ReceiveConsumeMode
+    {
+        /// <summary>仅记录完成日志，不消费数据</summary>
+        LogOnly,
+
+        /// <summary>OpenReadStream()：统一只读流，按业务协议流式解析</summary>
+        OpenReadStream,
+
+        /// <summary>SaveToFileAsync()：以文件形态交付到指定目录（落盘模式零拷贝移动并转移所有权）</summary>
+        SaveToFile,
+
+        /// <summary>GetBytesAsync()：以字节数组形态读回内存（超 512MB 拒绝）</summary>
+        GetBytes
     }
 
     /// <summary>单条 Lane 状态展示行，支持原地更新以避免列表闪烁</summary>

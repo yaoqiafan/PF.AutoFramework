@@ -38,8 +38,10 @@ namespace PF.Services.Communication
         // 已激活的实例字典：InstanceId → ICommunication
         private readonly ConcurrentDictionary<string, ICommunication> _activeCommunications = new();
 
-        // 内存配置缓存（在 LoadAndInitializeAsync 后有效）
+        // 内存配置缓存（在 LoadAndInitializeAsync 后有效）。
+        // List 非线程安全，而调试面板的配置 CRUD 与热重载可能并发访问，读写都必须持 _configsLock
         private List<CommunicationConfig> _configs = new();
+        private readonly object _configsLock = new();
 
         /// <inheritdoc/>
         public event EventHandler<ICommunication>? CommunicationAdded;
@@ -75,15 +77,21 @@ namespace PF.Services.Communication
 
         /// <inheritdoc/>
         public CommunicationConfig? GetConfig(string instanceId)
-            => _configs.FirstOrDefault(c => c.InstanceId == instanceId);
+        {
+            lock (_configsLock)
+                return _configs.FirstOrDefault(c => c.InstanceId == instanceId);
+        }
 
         /// <inheritdoc/>
         public async Task SaveConfigAsync(CommunicationConfig config)
         {
-            var existing = _configs.FirstOrDefault(c => c.InstanceId == config.InstanceId);
-            if (existing != null)
-                _configs.Remove(existing);
-            _configs.Add(config);
+            lock (_configsLock)
+            {
+                var existing = _configs.FirstOrDefault(c => c.InstanceId == config.InstanceId);
+                if (existing != null)
+                    _configs.Remove(existing);
+                _configs.Add(config);
+            }
 
             await _paramService.SetParamAsync<CommunicationConfig>(
                 config.InstanceId, config, description: config.Remarks);
@@ -94,10 +102,13 @@ namespace PF.Services.Communication
         /// <inheritdoc/>
         public async Task DeleteConfigAsync(string instanceId)
         {
-            var target = _configs.FirstOrDefault(c => c.InstanceId == instanceId);
-            if (target == null) return;
+            lock (_configsLock)
+            {
+                var target = _configs.FirstOrDefault(c => c.InstanceId == instanceId);
+                if (target == null) return;
+                _configs.Remove(target);
+            }
 
-            _configs.Remove(target);
             await _paramService.DeleteParamAsync<CommunicationConfig>(instanceId);
 
             _logger.Info($"[CommunicationManager] 删除配置: '{instanceId}'");
@@ -117,10 +128,13 @@ namespace PF.Services.Communication
 
             foreach (var config in list)
             {
-                var existing = _configs.FirstOrDefault(c => c.InstanceId == config.InstanceId);
-                if (existing != null)
-                    _configs.Remove(existing);
-                _configs.Add(config);
+                lock (_configsLock)
+                {
+                    var existing = _configs.FirstOrDefault(c => c.InstanceId == config.InstanceId);
+                    if (existing != null)
+                        _configs.Remove(existing);
+                    _configs.Add(config);
+                }
 
                 await _paramService.SetParamAsync<CommunicationConfig>(
                     config.InstanceId, config, description: config.Remarks);
@@ -150,15 +164,16 @@ namespace PF.Services.Communication
                 return;
             }
 
-            var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
+            List<CommunicationConfig> enabledConfigs;
+            lock (_configsLock) enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
             _logger.Info($"[CommunicationManager] 开始初始化，共 {enabledConfigs.Count} 个已启用通讯实例...");
-            await Task.Delay(500);
+
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"通讯设备开始初始化，共 {enabledConfigs.Count} 个已启用通讯实例...",
                 MsgType = MsgType.Info
             });
-            await Task.Delay(500);
+
             // 逐个激活，并报告整体进度
             for (int i = 0; i < enabledConfigs.Count; i++)
             {
@@ -168,7 +183,7 @@ namespace PF.Services.Communication
                     Status = $"正在处理通讯实例 ({i + 1}/{enabledConfigs.Count}): {config.DisplayName}",
                     MsgType = MsgType.Info
                 });
-                await Task.Delay(500);
+
                 await ActivateCommunicationAsync(config, progress);
             }
 
@@ -178,7 +193,7 @@ namespace PF.Services.Communication
                 Status = $"通讯初始化完成，活跃实例数: {_activeCommunications.Count}",
                 MsgType = MsgType.Success
             });
-            await Task.Delay(500);
+            await Task.Delay(300);
         }
 
         /// <inheritdoc/>
@@ -217,24 +232,35 @@ namespace PF.Services.Communication
             {
                 var paramInfos = await _paramService.GetParamsByCategoryAsync<CommunicationParam>();
 
-                _configs = paramInfos
-                    .Select(p =>
+                var configs = new List<CommunicationConfig>();
+                foreach (var p in paramInfos)
+                {
+                    try
                     {
-                        try { return JsonSerializer.Deserialize<CommunicationConfig>(p.Value.ToString()); }
-                        catch { return null; }
-                    })
-                    .Where(c => c != null)
-                    .ToList()!;
+                        var config = JsonSerializer.Deserialize<CommunicationConfig>(p.Value.ToString());
+                        if (config != null)
+                            configs.Add(config);
+                        else
+                            _logger.Warn($"[CommunicationManager] 配置 '{p.Name}' 反序列化结果为空，已跳过。");
+                    }
+                    catch (Exception ex)
+                    {
+                        // 静默吞掉会让配置"凭空消失"且无从排查，必须留下带 Key 的告警
+                        _logger.Warn($"[CommunicationManager] 配置 '{p.Name}' 反序列化失败，已跳过: {ex.Message}");
+                    }
+                }
 
-                if (!_configs.Any())
+                lock (_configsLock) _configs = configs;
+
+                if (configs.Count == 0)
                     _logger.Info("[CommunicationManager] 数据库中无通讯配置，等待外部注入或配置。");
                 else
-                    _logger.Info($"[CommunicationManager] 从数据库加载了 {_configs.Count} 条通讯配置。");
+                    _logger.Info($"[CommunicationManager] 从数据库加载了 {configs.Count} 条通讯配置。");
             }
             catch (Exception ex)
             {
                 _logger.Error($"[CommunicationManager] 从数据库加载通讯配置失败: {ex.Message}");
-                _configs = [];
+                lock (_configsLock) _configs = [];
             }
         }
 
@@ -255,7 +281,19 @@ namespace PF.Services.Communication
             try
             {
                 var comm = factory(config);
-                _activeCommunications[config.InstanceId] = comm;
+                if (!_activeCommunications.TryAdd(config.InstanceId, comm))
+                {
+                    // 直接索引覆盖会让先注册的实例既不 Stop 也不 Dispose 地泄漏，重复 InstanceId 属配置错误，保留前者、跳过后者
+                    _logger.Warn($"[CommunicationManager] InstanceId '{config.InstanceId}' 重复，已保留先注册的实例、跳过 '{config.DisplayName}'，请检查配置。");
+                    if (comm is IDisposable duplicated) duplicated.Dispose();
+                    progress?.Report(new SplashProgressPayload
+                    {
+                        Status = $"跳过 '{config.DisplayName}': InstanceId '{config.InstanceId}' 重复",
+                        MsgType = MsgType.Warning
+                    });
+               
+                    return;
+                }
                 CommunicationAdded?.Invoke(this, comm);
                 _logger.Info($"[CommunicationManager] 实例已注册: '{config.DisplayName}' ({config.InstanceId})");
 
@@ -267,7 +305,7 @@ namespace PF.Services.Communication
                         Status = $"'{config.DisplayName}' 注册完成（AutoStart=false，跳过自动启动）",
                         MsgType = MsgType.Success
                     });
-                    await Task.Delay(500);
+                  
                     return;
                 }
 
@@ -277,7 +315,7 @@ namespace PF.Services.Communication
                     Status = $"正在启动通讯实例: {config.DisplayName}...",
                     MsgType = MsgType.Info
                 });
-                await Task.Delay(500);
+               
                 try
                 {
                     var started = await comm.StartAsync();
@@ -289,7 +327,7 @@ namespace PF.Services.Communication
                             Status = $"'{config.DisplayName}' 启动成功",
                             MsgType = MsgType.Success
                         });
-                        await Task.Delay(500);
+                     
                     }
                     else
                     {
@@ -299,7 +337,7 @@ namespace PF.Services.Communication
                             Status = $"'{config.DisplayName}' 启动返回 false，已保留在活跃列表",
                             MsgType = MsgType.Warning
                         });
-                        await Task.Delay(500);
+                       
                     }
                 }
                 catch (Exception startEx)
@@ -310,7 +348,7 @@ namespace PF.Services.Communication
                         Status = $"'{config.DisplayName}' 启动异常: {startEx.Message}",
                         MsgType = MsgType.Error
                     });
-                    await Task.Delay(500);
+                  
                 }
             }
             catch (Exception ex)
@@ -321,7 +359,7 @@ namespace PF.Services.Communication
                     Status = $"实例化 '{config.DisplayName}' 失败: {ex.Message}",
                     MsgType = MsgType.Error
                 });
-                await Task.Delay(500);
+                
             }
         }
 

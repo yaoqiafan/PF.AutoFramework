@@ -45,14 +45,16 @@ public sealed class FileTransferOptions
     public long MaxTransferSizeBytes { get; init; } = 4096L * 1024 * 1024;
 
     /// <summary>
-    /// 接收端内存重组阈值（字节）：不超过该值的传输在内存中重组、通过完成事件的 Data 交付；
-    /// 超过该值的传输直接落盘为临时文件、通过完成事件的 FilePath 交付，内存占用与数据大小无关。
+    /// 接收端内存重组阈值（字节）：不超过该值的传输在内存中重组，超过则直接落盘为临时文件，
+    /// 内存占用与数据大小无关。该选择对消费方透明——完成事件的 OpenReadStream / SaveToFileAsync /
+    /// GetBytesAsync 统一消费入口对两种形态一视同仁。
     /// </summary>
     public long InMemoryReceiveThresholdBytes { get; init; } = 16L * 1024 * 1024;
 
     /// <summary>
     /// 接收落盘模式的根目录。通道会在其下建立以 ChannelName 命名的子目录存放临时文件（以 TransferId 命名），
-    /// 文件交付给消费方后由消费方负责删除；通道启动时会清理该子目录中上次运行的残留文件。
+    /// 消费方经完成事件的 SaveToFileAsync 取走文件即转移所有权（推荐）；若直接经 FilePath 消费则
+    /// 使用完毕后负责删除。通道启动时会清理该子目录中上次运行的残留文件。
     /// </summary>
     public string ReceiveDirectory { get; init; } = Path.Combine(Path.GetTempPath(), "PFFileTransfer");
 

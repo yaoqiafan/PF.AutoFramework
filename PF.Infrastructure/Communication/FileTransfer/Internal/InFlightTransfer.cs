@@ -29,12 +29,20 @@ internal sealed class InFlightTransfer
     public bool IsFileMode => FilePath != null;
 
     private SafeFileHandle? _fileHandle;
-    private long _bytesReceived;
     private long _lastActivityTicksUtc = DateTime.UtcNow.Ticks;
     private int _aborted;
 
-    public long BytesReceived => Interlocked.Read(ref _bytesReceived);
+    // 已接收字节的覆盖区间（互不重叠、按起点升序），用区间覆盖而非简单字节累加判定完成——
+    // 重复/重叠分片（对端异常行为或协议错乱）在累加方案下会把计数推到 TotalLength 而数据实际留洞，
+    // 关闭 VerifyFinalHash 时就没有任何机制能发现。区间数量级 ≈ Lane 数 + 空洞数，线性扫描足够。
+    private readonly List<(long Start, long End)> _coverage = new();
+    private readonly object _coverageLock = new();
+    private long _coveredBytes;
+
+    public long BytesReceived => Interlocked.Read(ref _coveredBytes);
     public bool IsAborted => Volatile.Read(ref _aborted) != 0;
+
+    /// <summary>覆盖区间互不重叠且都落在 [0, TotalLength) 内，覆盖字节数到达 TotalLength 即等价于无空洞收满</summary>
     public bool IsComplete => BytesReceived >= TotalLength;
 
     /// <summary>最后一次收到本传输分片的时间（UTC），供通道的孤儿清扫任务判定接收超时</summary>
@@ -105,10 +113,39 @@ internal sealed class InFlightTransfer
     public Task<ulong> ComputeFileHashAsync(CancellationToken token)
         => FrameCodec.ComputeXxHash64Async(_fileHandle!, TotalLength, token);
 
-    /// <summary>数据写入后上报字节数并刷新活动时间，供 <see cref="IsComplete"/> 判定、进度事件和孤儿清扫使用</summary>
-    public void ReportBytesWritten(int length)
+    /// <summary>
+    /// 数据写入后登记覆盖区间并刷新活动时间，供 <see cref="IsComplete"/> 判定、进度事件和孤儿清扫使用。
+    /// 与已有区间重叠的部分（重复分片）不重复计数。
+    /// </summary>
+    public void ReportBytesWritten(long offset, int length)
     {
-        Interlocked.Add(ref _bytesReceived, length);
+        var newStart = offset;
+        var newEnd = offset + length;
+        long added;
+
+        lock (_coverageLock)
+        {
+            long mergedStart = newStart, mergedEnd = newEnd, overlap = 0;
+
+            var i = 0;
+            while (i < _coverage.Count && _coverage[i].End < newStart) i++; // 跳过完全在新区间左侧的
+            var insertAt = i;
+
+            // 吸收所有与新区间相交或相邻的区间，累计其中已覆盖的重叠量
+            while (i < _coverage.Count && _coverage[i].Start <= newEnd)
+            {
+                var (start, end) = _coverage[i];
+                overlap += Math.Max(0, Math.Min(end, newEnd) - Math.Max(start, newStart));
+                mergedStart = Math.Min(mergedStart, start);
+                mergedEnd = Math.Max(mergedEnd, end);
+                _coverage.RemoveAt(i);
+            }
+
+            _coverage.Insert(insertAt, (mergedStart, mergedEnd));
+            added = (newEnd - newStart) - overlap;
+        }
+
+        if (added > 0) Interlocked.Add(ref _coveredBytes, added);
         Interlocked.Exchange(ref _lastActivityTicksUtc, DateTime.UtcNow.Ticks);
     }
 

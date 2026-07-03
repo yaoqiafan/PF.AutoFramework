@@ -83,7 +83,27 @@ internal sealed class TransferLane : IAsyncDisposable
 
         if (_guardianTask != null) await SafeAwaitAsync(_guardianTask).ConfigureAwait(false);
         try { _listener?.Stop(); } catch { /* 已停止或未启动，忽略 */ }
+        _listener = null; // 重新 Start 时由守护循环重建，复用已 Stop 的监听器会导致 Accept 永远失败
         _lifecycleCts?.Dispose();
+
+        // 队列里没来得及发出的任务可能持有 ArrayPool 租借缓冲（EnqueueChunkOwnedAsync 的所有权语义），
+        // 必须执行其归还逻辑，不能连任务一起丢弃
+        var leftovers = new List<Func<Stream, CancellationToken, Task>>();
+        while (_sendQueue.Reader.TryRead(out var job)) leftovers.Add(job);
+        await ReleaseJobsAsync(leftovers).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// 对着 Null 流把任务执行一遍：数据不会真正发出，但任务在 finally 中持有的租借缓冲会被归还。
+    /// 供停机清空队列、断线改派无幸存 Lane 可去时释放资源使用。
+    /// </summary>
+    internal static async Task ReleaseJobsAsync(IReadOnlyList<Func<Stream, CancellationToken, Task>> jobs)
+    {
+        foreach (var job in jobs)
+        {
+            try { await job(Stream.Null, CancellationToken.None).ConfigureAwait(false); }
+            catch { /* 仅为触发资源归还，写 Null 流的异常无意义 */ }
+        }
     }
 
     public ValueTask EnqueueBeginAsync(Guid transferId, long totalLength, FrameCodec.BeginFlags flags,
@@ -167,12 +187,6 @@ internal sealed class TransferLane : IAsyncDisposable
 
     private async Task GuardianLoopAsync(CancellationToken token)
     {
-        if (_role == FileTransferRole.Server)
-        {
-            _listener = new TcpListener(IPAddress.Parse(Endpoint.LocalIp), Endpoint.Port);
-            _listener.Start();
-        }
-
         while (!token.IsCancellationRequested)
         {
             TcpClient? client = null;
@@ -180,7 +194,11 @@ internal sealed class TransferLane : IAsyncDisposable
             {
                 if (_role == FileTransferRole.Server)
                 {
-                    client = await _listener!.AcceptTcpClientAsync(token).ConfigureAwait(false);
+                    // 监听器在循环内按需创建：端口被占用/网口未就绪等启动失败不能终结守护任务——
+                    // 否则表现为"通道启动成功但该 Lane 永远无人监听"的静默死 Lane，且不会重试。
+                    // 创建失败与连接失败走同一条重试路径，待占用释放后自动恢复。
+                    _listener ??= CreateAndStartListener();
+                    client = await _listener.AcceptTcpClientAsync(token).ConfigureAwait(false);
                 }
                 else
                 {
@@ -213,6 +231,14 @@ internal sealed class TransferLane : IAsyncDisposable
             try { await Task.Delay(_options.ReconnectIntervalMs, token).ConfigureAwait(false); }
             catch (OperationCanceledException) { break; }
         }
+    }
+
+    /// <summary>创建并启动监听器。Start 失败（端口占用等）时不污染 <see cref="_listener"/> 字段，下一轮重试会重新创建</summary>
+    private TcpListener CreateAndStartListener()
+    {
+        var listener = new TcpListener(IPAddress.Parse(Endpoint.LocalIp), Endpoint.Port);
+        listener.Start();
+        return listener;
     }
 
     private void ConfigureSocket(TcpClient client)

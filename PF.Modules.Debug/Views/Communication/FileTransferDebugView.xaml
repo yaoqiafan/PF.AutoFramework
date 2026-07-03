@@ -77,7 +77,7 @@
                 </Grid>
             </Border>
 
-            <!--  测试发送区：内存数据（SendAsync）/ 磁盘文件（SendFileAsync）两种发送入口  -->
+            <!--  测试发送区：内存数据（SendAsync）/ 磁盘文件（SendFileAsync）两种发送入口 + 接收消费方式  -->
             <Border
                 Grid.Row="1"
                 Margin="0,0,0,15"
@@ -87,6 +87,8 @@
                 CornerRadius="6">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="10" />
                         <RowDefinition Height="Auto" />
@@ -184,6 +186,77 @@
                             VerticalAlignment="Center"
                             Content="分片级诊断日志"
                             IsChecked="{Binding ChunkDiagnosticsEnabled}" />
+                    </Grid>
+
+                    <!--  第三行：接收数据消费方式——演示完成事件的三个统一消费入口，
+                          对通道内部的内存/落盘两种交付形态一视同仁，无需分辨 Data/FilePath  -->
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="15" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="接收消费方式：" />
+                        <RadioButton
+                            Grid.Column="1"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center"
+                            Content="仅记录日志"
+                            GroupName="ReceiveConsumeMode"
+                            IsChecked="{Binding ConsumeModeLogOnly}" />
+                        <RadioButton
+                            Grid.Column="2"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center"
+                            Content="OpenReadStream 流式读取"
+                            GroupName="ReceiveConsumeMode"
+                            IsChecked="{Binding ConsumeModeOpenStream}"
+                            ToolTip="e.OpenReadStream()：拿到统一只读流按业务协议解析，大文件不整块占用内存" />
+                        <RadioButton
+                            Grid.Column="3"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center"
+                            Content="SaveToFileAsync 保存为文件"
+                            GroupName="ReceiveConsumeMode"
+                            IsChecked="{Binding ConsumeModeSaveToFile}"
+                            ToolTip="e.SaveToFileAsync(path)：落盘模式同卷零拷贝改名且所有权转移，内存模式写盘" />
+                        <RadioButton
+                            Grid.Column="4"
+                            VerticalAlignment="Center"
+                            Content="GetBytesAsync 读回内存"
+                            GroupName="ReceiveConsumeMode"
+                            IsChecked="{Binding ConsumeModeGetBytes}"
+                            ToolTip="e.GetBytesAsync()：以字节数组取回，超过 512MB 拒绝以防误把大文件搬回内存" />
+
+                        <TextBlock
+                            Grid.Column="6"
+                            VerticalAlignment="Center"
+                            IsEnabled="{Binding IsSaveModeSelected}"
+                            Text="保存到：" />
+                        <TextBox
+                            Grid.Column="7"
+                            VerticalAlignment="Center"
+                            IsEnabled="{Binding IsSaveModeSelected}"
+                            Text="{Binding SaveDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button
+                            Grid.Column="9"
+                            Width="70"
+                            VerticalAlignment="Center"
+                            Command="{Binding BrowseSaveDirCommand}"
+                            Content="浏览..."
+                            IsEnabled="{Binding IsSaveModeSelected}"
+                            Style="{DynamicResource ButtonDefault}" />
                     </Grid>
                 </Grid>
             </Border>

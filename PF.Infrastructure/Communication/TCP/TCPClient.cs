@@ -58,6 +58,10 @@ namespace PF.Infrastructure.Communication.TCP
         // 新增：用于记录当前是否启用了后台异步接收
         private bool _isAsyncMode;
 
+        // 断开事件去重标记：主动断开与接收循环的异常路径可能并发各走一次 OnDisconnected，
+        // 事件每个连接周期只对外发一次（成功连接时归零）
+        private int _disconnectNotified;
+
         /// <summary>
         /// 客户端标识
         /// </summary>
@@ -191,6 +195,10 @@ namespace PF.Infrastructure.Communication.TCP
 
                     if (completedTask == timeoutTask)
                     {
+                        // 被遗弃的 connectTask 随后会因 TcpClient 被清理而失败，其异常必须有人观察，
+                        // 否则会打到 TaskScheduler.UnobservedTaskException
+                        _ = connectTask.ContinueWith(t => _ = t.Exception,
+                            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
                         throw new TimeoutException($"连接超时 ({ConnectTimeout}ms)");
                     }
 
@@ -205,13 +213,17 @@ namespace PF.Infrastructure.Communication.TCP
                     _receiveCancellationTokenSource?.Dispose();
                     _receiveCancellationTokenSource = new CancellationTokenSource();
 
+                    // 状态必须先置为 Connected 再启动接收循环：循环条件依赖 Status == Connected，
+                    // 若循环线程抢先执行会在第一次判断就退出，表现为"已连接但永远收不到数据"的静默故障
+                    Status = ClientStatus.Connected;
+                    Interlocked.Exchange(ref _disconnectNotified, 0);
+
                     if (IsAsync)
                     {
                         // 仅当启用异步时，启动后台接收循环
                         _ = Task.Run(() => ReceiveLoopAsync(_receiveCancellationTokenSource.Token), _receiveCancellationTokenSource.Token);
                     }
 
-                    Status = ClientStatus.Connected;
                     OnConnected($"已连接到服务器 {serverIp}:{serverPort}");
 
                     return true;
@@ -504,6 +516,7 @@ namespace PF.Infrastructure.Communication.TCP
             {
                 Status = ClientStatus.Disconnected;
             }
+            if (Interlocked.Exchange(ref _disconnectNotified, 1) == 1) return;
             Disconnected?.Invoke(this, new ClientDisconnectedEventArgs(_clientId, isManual ? $"手动断开: {reason}" : reason));
         }
 

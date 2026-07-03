@@ -304,7 +304,7 @@ namespace PF.Application.Shell
                     Status = $"正在初始化机构 ({i + 1}/{mechanismNames.Length}): {name}",
                     MsgType = MsgType.Info
                 });
-                await Task.Delay(500); 
+             
 
                 try
                 {
@@ -317,7 +317,7 @@ namespace PF.Application.Shell
                             Status = $"机构初始化失败: {name} 返回 false",
                             MsgType = MsgType.Error
                         });
-                        await Task.Delay(300);
+                      
                         return false;
                     }
                 }
@@ -328,7 +328,7 @@ namespace PF.Application.Shell
                         Status = $"机构初始化异常: {name} - {ex.Message}",
                         MsgType = MsgType.Error
                     });
-                    await Task.Delay(300);
+                    
                     return false;
                 }
 
@@ -337,7 +337,7 @@ namespace PF.Application.Shell
                     Status = $"机构初始化成功: {name}",
                     MsgType = MsgType.Success
                 });
-                await Task.Delay(300);
+             
             }
 
             progress?.Report(new SplashProgressPayload
@@ -345,7 +345,7 @@ namespace PF.Application.Shell
                 Status = "所有机构初始化完成",
                 MsgType = MsgType.Success
             });
-            await Task.Delay(500);
+            await Task.Delay(300);
             return true;
         }
 

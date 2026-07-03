@@ -55,7 +55,6 @@ using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
-using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -353,8 +352,8 @@ namespace PF.Application.Base
             containerRegistry.RegisterSingleton<Splash>();
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
-           
-           
+
+
             containerRegistry.RegisterSingleton<IUserService, UserService>();
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
@@ -539,8 +538,13 @@ namespace PF.Application.Base
             Splash splash = Container.Resolve<Splash>();
             ILogService logService = Container.Resolve<ILogService>();
 
-            var splashProgress = commonParam.EnableDetailedLog ? new Progress<SplashProgressPayload>(payload =>
-                   SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString())) : null;
+            var splashProgress = commonParam.EnableDetailedLog ? 
+                new Progress<SplashProgressPayload>(async payload =>
+                    {
+                        SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString());
+                        await Task.Delay(300);
+                    })
+                    : null;
 
             SplashUpdateMessage(splash, logService, "程序加载中。。。", msgType: MsgType.Info);
             try
@@ -606,7 +610,7 @@ namespace PF.Application.Base
             }
         }
 
-      
+
         private static void SplashUpdateMessage(Splash splash, ILogService? logService, string status, string category = "Splash", string msgType = "Info")
         {
             switch (msgType)
