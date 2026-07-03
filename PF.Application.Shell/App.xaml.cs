@@ -4,6 +4,7 @@ using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.ViewModels;
 using PF.Core.Constants;
 using PF.Core.Entities.Communication.FileTransfer;
+using PF.Core.Enums;
 using PF.Core.Enums.FileTransfer;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
@@ -16,6 +17,7 @@ using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Timer;
 using PF.Core.Interfaces.TowerLight;
+using PF.Core.Models;
 using PF.Data.Entity.Category.Basic;
 using PF.Infrastructure.Station.Basic;
 using PF.Modules.Alarm;
@@ -69,7 +71,7 @@ namespace PF.Application.Shell
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
                 int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 0;
                 int backlog = cfg.ConnectionParameters.TryGetValue("Backlog", out var bl) ? int.Parse(bl) : 10;
-                return new PF.Infrastructure.Communication.TCP.TcpServer(cfg.InstanceId)
+                return new PF.Infrastructure.Communication.TCP.TcpServer(cfg.DisplayName, cfg.InstanceId)
                 {
                     BindIp = ip ?? "0.0.0.0",
                     BindPort = port,
@@ -81,7 +83,7 @@ namespace PF.Application.Shell
             {
                 cfg.ConnectionParameters.TryGetValue("ServerIp", out var serverIp);
                 int serverPort = cfg.ConnectionParameters.TryGetValue("ServerPort", out var sp) ? int.Parse(sp) : 0;
-                return new PF.Infrastructure.Communication.TCP.TCPClient(cfg.InstanceId)
+                return new PF.Infrastructure.Communication.TCP.TCPClient(cfg.DisplayName, cfg.InstanceId)
                 {
                     TargetServerIp = serverIp ?? string.Empty,
                     TargetServerPort = serverPort
@@ -95,7 +97,24 @@ namespace PF.Application.Shell
                 var linksJson = cfg.ConnectionParameters.GetValueOrDefault("LinksJson", "[]");
                 var links = System.Text.Json.JsonSerializer.Deserialize<List<FileTransferLinkEndpoint>>(linksJson) ?? new();
 
-                var options = new FileTransferOptions { Role = role, Links = links };
+                // ReceiveDirectory / InMemoryReceiveThresholdMb 为可选配置键：
+                // 缺省或非法时沿用 FileTransferOptions 的默认值（借一个临时实例取默认值，避免在此处复写默认字面量）
+                var optionDefaults = new FileTransferOptions { Role = role, Links = links };
+                var receiveDirectory = cfg.ConnectionParameters.GetValueOrDefault("ReceiveDirectory");
+                var thresholdBytes = optionDefaults.InMemoryReceiveThresholdBytes;
+                if (cfg.ConnectionParameters.TryGetValue("InMemoryReceiveThresholdMb", out var thresholdStr)
+                    && int.TryParse(thresholdStr, out var thresholdMb) && thresholdMb > 0)
+                {
+                    thresholdBytes = thresholdMb * 1024L * 1024;
+                }
+
+                var options = new FileTransferOptions
+                {
+                    Role = role,
+                    Links = links,
+                    ReceiveDirectory = string.IsNullOrWhiteSpace(receiveDirectory) ? optionDefaults.ReceiveDirectory : receiveDirectory,
+                    InMemoryReceiveThresholdBytes = thresholdBytes
+                };
                 return new PF.Infrastructure.Communication.FileTransfer.FileTransferChannel(options, cfg.InstanceId);
             });
         }
@@ -270,18 +289,63 @@ namespace PF.Application.Shell
         #region 机构初始化序列
 
         /// <summary>按顺序初始化 7 个机构（任一失败立即返回 false）。</summary>
-        protected override async Task<bool> InitializeMechanismsAsync()
+        protected override async Task<bool> InitializeMechanismsAsync(IProgress<SplashProgressPayload>? progress = null)
         {
             var c = this.Container;
 
-            if (!await c.Resolve<IMechanism>(nameof(WS1FeedingModel)).InitializeAsync()) return false;
-            if (!await c.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)).InitializeAsync()) return false;
-            if (!await c.Resolve<IMechanism>(nameof(WS2FeedingModel)).InitializeAsync()) return false;
-            if (!await c.Resolve<IMechanism>(nameof(WS2MaterialPullingModule)).InitializeAsync()) return false;
-            if (!await c.Resolve<IMechanism>(nameof(WSDetectionModule)).InitializeAsync()) return false;
-            if (!await c.Resolve<IMechanism>(nameof(WSDataModule)).InitializeAsync()) return false;
-            if (!await c.Resolve<IMechanism>(nameof(WSSecsGemModule)).InitializeAsync()) return false;
+            // 机构名称与显示名对应，便于进度反馈
+            var mechanismNames = new[] { nameof(WS1FeedingModel), nameof(WS1MaterialPullingModule), nameof(WS2FeedingModel), nameof(WS2MaterialPullingModule), nameof(WSDetectionModule), nameof(WSDataModule), nameof(WSSecsGemModule) };
 
+            for (int i = 0; i < mechanismNames.Length; i++)
+            {
+                var name = mechanismNames[i];
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"正在初始化机构 ({i + 1}/{mechanismNames.Length}): {name}",
+                    MsgType = MsgType.Info
+                });
+                await Task.Delay(500); 
+
+                try
+                {
+                    var mechanism = c.Resolve<IMechanism>(name);
+                    bool initialized = await mechanism.InitializeAsync();
+                    if (!initialized)
+                    {
+                        progress?.Report(new SplashProgressPayload
+                        {
+                            Status = $"机构初始化失败: {name} 返回 false",
+                            MsgType = MsgType.Error
+                        });
+                        await Task.Delay(300);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report(new SplashProgressPayload
+                    {
+                        Status = $"机构初始化异常: {name} - {ex.Message}",
+                        MsgType = MsgType.Error
+                    });
+                    await Task.Delay(300);
+                    return false;
+                }
+
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"机构初始化成功: {name}",
+                    MsgType = MsgType.Success
+                });
+                await Task.Delay(300);
+            }
+
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = "所有机构初始化完成",
+                MsgType = MsgType.Success
+            });
+            await Task.Delay(500);
             return true;
         }
 
@@ -312,7 +376,7 @@ namespace PF.Application.Shell
         {
             containerRegistry.AddVisionServices(
                 procedureDirectory: ConstGlobalParam.VisionProceduresPath,
-                pipelineDirectory:  ConstGlobalParam.VisionWorkflowsPath);
+                pipelineDirectory: ConstGlobalParam.VisionWorkflowsPath);
         }
 
         #endregion

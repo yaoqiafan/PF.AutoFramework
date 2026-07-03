@@ -65,4 +65,18 @@ public interface IFileTransferChannel : IDisposable
     /// 上一次尚未完成时调用会立即返回 <see cref="FileTransferFailureReason.Busy"/>。
     /// </summary>
     Task<FileTransferResult> SendAsync(byte[] data, FileTransferMetadata metadata, CancellationToken token = default);
+
+    /// <summary>
+    /// <see cref="SendAsync(byte[], FileTransferMetadata, CancellationToken)"/> 的零拷贝版本：
+    /// 调用方可传入池化/复用缓冲区的切片，避免为发送而额外物化一份 byte[]。
+    /// 缓冲区在本方法返回前不得被复用或归还。
+    /// </summary>
+    Task<FileTransferResult> SendAsync(ReadOnlyMemory<byte> data, FileTransferMetadata metadata, CancellationToken token = default);
+
+    /// <summary>
+    /// 直接发送磁盘上的文件：按分片边读边发，全程内存占用只有「Lane 数 × 发送流水线深度 × 分片大小」量级，
+    /// 与文件大小无关。启用 VerifyFinalHash 时会先顺序读一遍文件计算整体哈希（协议要求 Begin 帧先携带哈希），
+    /// 再读第二遍发送。
+    /// </summary>
+    Task<FileTransferResult> SendFileAsync(string filePath, FileTransferMetadata metadata, CancellationToken token = default);
 }

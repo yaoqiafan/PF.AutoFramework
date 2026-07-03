@@ -67,6 +67,12 @@ namespace PF.Application.Base.Configuration
         [BrowsableAttribute(true)]
         public SkinType Skin { get; set; } = SkinType.Dark;
 
+        /// <summary>是否启用加载界面详细日志</summary>
+        [CategoryAttribute("A.系统参数")]
+        [DisplayNameAttribute("7.启用加载界面详细日志")]
+        [BrowsableAttribute(true)]
+        public bool EnableDetailedLog { get; set; } = true;
+
         /// <summary>操作员登录时是否播放庆祝动画。</summary>
         [CategoryAttribute("B.登录参数")]
         [DisplayNameAttribute("1.启用操作员登录动画")]

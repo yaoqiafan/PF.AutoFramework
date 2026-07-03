@@ -31,7 +31,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// <inheritdoc cref="ICommunication.Role"/>
         CommunicationRole ICommunication.Role => CommunicationRole.Client;
         /// <inheritdoc cref="ICommunication.DisplayName"/>
-        string ICommunication.DisplayName => $"[{ClientId}] → {TargetServerIp}:{TargetServerPort}";
+        string ICommunication.DisplayName => $"[{_displayName}]";
 
         /// <summary>供 ICommunicationManagerService 统一调度的启动入口，内部使用 TargetServerIp/TargetServerPort</summary>
         public Task<bool> StartAsync(CancellationToken token = default) => ConnectAsync(TargetServerIp, TargetServerPort);
@@ -49,6 +49,7 @@ namespace PF.Infrastructure.Communication.TCP
         private ClientStatus _status = ClientStatus.None;
         private DateTime _connectTime;
         private string _clientId;
+        private string _displayName;
         private string _serverIp;
         private int _serverPort;
         private string _localEndPoint;
@@ -147,9 +148,10 @@ namespace PF.Infrastructure.Communication.TCP
         /// <summary>
         /// 构造TCP客户端
         /// </summary>
-        public TCPClient(string clientId = null)
+        public TCPClient(string displayName = null, string clientId = null)
         {
             _clientId = clientId ?? Guid.NewGuid().ToString();
+            _displayName = displayName ?? $"{_clientId}";
         }
 
         /// <summary>

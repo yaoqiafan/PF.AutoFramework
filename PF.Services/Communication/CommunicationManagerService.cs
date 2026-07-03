@@ -1,7 +1,9 @@
 using PF.Core.Entities.Communication;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using PF.Data.Entity.Category;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -130,17 +132,53 @@ namespace PF.Services.Communication
         // ── 生命周期 ───────────────────────────────────────────────────────────
 
         /// <inheritdoc/>
-        public async Task LoadAndInitializeAsync()
+        public async Task LoadAndInitializeAsync(IProgress<SplashProgressPayload>? progress = null)
         {
-            await LoadConfigsAsync();
+            // 加载配置（加入异常保护）
+            try
+            {
+                await LoadConfigsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[CommunicationManager] 加载配置失败: {ex.Message}");
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"加载通讯配置失败: {ex.Message}",
+                    MsgType = MsgType.Error
+                });
+                return;
+            }
 
             var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
             _logger.Info($"[CommunicationManager] 开始初始化，共 {enabledConfigs.Count} 个已启用通讯实例...");
-
-            foreach (var config in enabledConfigs)
-                await ActivateCommunicationAsync(config);
+            await Task.Delay(500);
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"通讯设备开始初始化，共 {enabledConfigs.Count} 个已启用通讯实例...",
+                MsgType = MsgType.Info
+            });
+            await Task.Delay(500);
+            // 逐个激活，并报告整体进度
+            for (int i = 0; i < enabledConfigs.Count; i++)
+            {
+                var config = enabledConfigs[i];
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"正在处理通讯实例 ({i + 1}/{enabledConfigs.Count}): {config.DisplayName}",
+                    MsgType = MsgType.Info
+                });
+                await Task.Delay(500);
+                await ActivateCommunicationAsync(config, progress);
+            }
 
             _logger.Success($"[CommunicationManager] 初始化完成，活跃实例数: {_activeCommunications.Count}");
+            progress?.Report(new SplashProgressPayload
+            {
+                Status = $"通讯初始化完成，活跃实例数: {_activeCommunications.Count}",
+                MsgType = MsgType.Success
+            });
+            await Task.Delay(500);
         }
 
         /// <inheritdoc/>
@@ -201,18 +239,22 @@ namespace PF.Services.Communication
         }
 
         /// <summary>实例化并启动单个通讯实例</summary>
-        private async Task ActivateCommunicationAsync(CommunicationConfig config)
+        private async Task ActivateCommunicationAsync(CommunicationConfig config, IProgress<SplashProgressPayload>? progress = null)
         {
             if (!_factories.TryGetValue(config.ImplementationClassName, out var factory))
             {
                 _logger.Warn($"[CommunicationManager] 未找到工厂 '{config.ImplementationClassName}'，跳过实例 '{config.InstanceId}'");
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"跳过 '{config.DisplayName}': 未找到工厂 {config.ImplementationClassName}",
+                    MsgType = MsgType.Warning
+                });
                 return;
             }
 
             try
             {
                 var comm = factory(config);
-
                 _activeCommunications[config.InstanceId] = comm;
                 CommunicationAdded?.Invoke(this, comm);
                 _logger.Info($"[CommunicationManager] 实例已注册: '{config.DisplayName}' ({config.InstanceId})");
@@ -220,27 +262,72 @@ namespace PF.Services.Communication
                 if (!config.AutoStart)
                 {
                     _logger.Info($"[CommunicationManager] 实例 '{config.DisplayName}' AutoStart=false，跳过自动启动，连接生命周期交由外部（如硬件层）驱动。");
+                    progress?.Report(new SplashProgressPayload
+                    {
+                        Status = $"'{config.DisplayName}' 注册完成（AutoStart=false，跳过自动启动）",
+                        MsgType = MsgType.Success
+                    });
+                    await Task.Delay(500);
                     return;
                 }
 
+                // 报告：正在启动
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"正在启动通讯实例: {config.DisplayName}...",
+                    MsgType = MsgType.Info
+                });
+                await Task.Delay(500);
                 try
                 {
                     var started = await comm.StartAsync();
                     if (started)
+                    {
                         _logger.Info($"[CommunicationManager] 实例 '{config.DisplayName}' 启动成功。");
+                        progress?.Report(new SplashProgressPayload
+                        {
+                            Status = $"'{config.DisplayName}' 启动成功",
+                            MsgType = MsgType.Success
+                        });
+                        await Task.Delay(500);
+                    }
                     else
+                    {
                         _logger.Warn($"[CommunicationManager] 实例 '{config.DisplayName}' 启动返回 false，已保留在活跃列表，可在调试面板手动重试。");
+                        progress?.Report(new SplashProgressPayload
+                        {
+                            Status = $"'{config.DisplayName}' 启动返回 false，已保留在活跃列表",
+                            MsgType = MsgType.Warning
+                        });
+                        await Task.Delay(500);
+                    }
                 }
                 catch (Exception startEx)
                 {
                     _logger.Error($"[CommunicationManager] 实例 '{config.DisplayName}' 启动时发生异常: {startEx.Message}，已保留在活跃列表。");
+                    progress?.Report(new SplashProgressPayload
+                    {
+                        Status = $"'{config.DisplayName}' 启动异常: {startEx.Message}",
+                        MsgType = MsgType.Error
+                    });
+                    await Task.Delay(500);
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error($"[CommunicationManager] 实例化 '{config.InstanceId}' 失败: {ex.Message}");
+                progress?.Report(new SplashProgressPayload
+                {
+                    Status = $"实例化 '{config.DisplayName}' 失败: {ex.Message}",
+                    MsgType = MsgType.Error
+                });
+                await Task.Delay(500);
             }
         }
+
+
+
+
 
         /// <inheritdoc/>
         public void Dispose()
@@ -252,5 +339,6 @@ namespace PF.Services.Communication
             }
             _activeCommunications.Clear();
         }
+
     }
 }

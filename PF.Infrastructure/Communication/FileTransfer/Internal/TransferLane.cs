@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Channels;
@@ -23,9 +24,18 @@ internal sealed class TransferLane : IAsyncDisposable
     private readonly Func<int, FrameCodec.CommonHeader, Stream, CancellationToken, Task> _onFrameReceived;
     private readonly Action<LaneStatus, bool> _onStatusChanged;
 
-    private readonly Channel<Func<Stream, CancellationToken, Task>> _sendQueue =
+    // 发送队列深度即发送侧流水线深度：文件发送时每个排队的 Chunk 任务持有一块租借缓冲，
+    // 队列深度 × 分片大小上限 × Lane 数 = 发送侧内存峰值上界（如 2 Lane × 4 × 8MB = 64MB）。
+    // 深度 4 已足够让 Socket 持续饱和（队列满时分发循环阻塞在入队处形成反压），不要为吞吐盲目调大。
+    //
+    // 非 readonly：StopAsync 会 TryComplete 这个 Channel（不可逆的永久关闭），Start() 之后必须换一个全新实例，
+    // 否则重新启动后 SendLoopAsync 一读取已关闭的 Channel 就抛 ChannelClosedException、连接被判定断线，
+    // GuardianLoopAsync 重连后又立刻复现同样的问题，表现为连接成功/断开无限循环。
+    private Channel<Func<Stream, CancellationToken, Task>> _sendQueue = CreateSendQueue();
+
+    private static Channel<Func<Stream, CancellationToken, Task>> CreateSendQueue() =>
         Channel.CreateBounded<Func<Stream, CancellationToken, Task>>(
-            new BoundedChannelOptions(32) { FullMode = BoundedChannelFullMode.Wait });
+            new BoundedChannelOptions(4) { FullMode = BoundedChannelFullMode.Wait });
 
     private TcpListener? _listener;
     private CancellationTokenSource? _lifecycleCts;
@@ -58,6 +68,9 @@ internal sealed class TransferLane : IAsyncDisposable
 
     public void Start()
     {
+        // 上一轮 StopAsync 已把旧 Channel 永久 Complete，这里必须换一个全新实例才能再次写入
+        _sendQueue = CreateSendQueue();
+        _stopping = false;
         _lifecycleCts = new CancellationTokenSource();
         _guardianTask = Task.Run(() => GuardianLoopAsync(_lifecycleCts.Token));
     }
@@ -88,6 +101,29 @@ internal sealed class TransferLane : IAsyncDisposable
             var crc = withCrc ? FrameCodec.ComputeCrc32(payload.Span) : 0u;
             await FrameCodec.WriteChunkFrameAsync(stream, transferId, offset, payload, crc, ct).ConfigureAwait(false);
             Interlocked.Add(ref _bytesSent, payload.Length);
+        }, token);
+    }
+
+    /// <summary>
+    /// 入队一个持有租借缓冲所有权的分片发送任务（文件发送路径使用）：缓冲来自 ArrayPool，
+    /// 帧写入完成或任务执行失败后都在任务内部归还；断线改派（DrainPendingJobs → RequeueJobAsync）时
+    /// 所有权随闭包一起转移到新 Lane，依然有效。
+    /// </summary>
+    public ValueTask EnqueueChunkOwnedAsync(Guid transferId, long offset, byte[] rentedBuffer, int length, bool withCrc, CancellationToken token)
+    {
+        return _sendQueue.Writer.WriteAsync(async (stream, ct) =>
+        {
+            try
+            {
+                var payload = rentedBuffer.AsMemory(0, length);
+                var crc = withCrc ? FrameCodec.ComputeCrc32(payload.Span) : 0u;
+                await FrameCodec.WriteChunkFrameAsync(stream, transferId, offset, payload, crc, ct).ConfigureAwait(false);
+                Interlocked.Add(ref _bytesSent, length);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
+            }
         }, token);
     }
 

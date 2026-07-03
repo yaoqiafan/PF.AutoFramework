@@ -1,5 +1,6 @@
 ﻿using PF.CommonTools.Reflection;
 using PF.Core.Constants;
+using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Events;
@@ -595,6 +596,17 @@ namespace PF.Modules.Parameter.ViewModels
 
                 // 保存完成后重新拉取最新数据
                 await LoadParametersAsync();
+
+                // 硬件配置目前没有热重载机制，改动只在下次启动时由 App 工厂重新读取生效
+                bool touchedHardwareConfig = modifiedParams.Any(p => p.TypeFullName == typeof(HardwareConfig).FullName);
+                if (touchedHardwareConfig)
+                {
+                    await MessageService.ShowMessageAsync(
+                        "硬件通讯参数已保存，需重启程序后生效。",
+                        "提示",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {

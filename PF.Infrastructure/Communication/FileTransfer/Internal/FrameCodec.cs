@@ -1,3 +1,5 @@
+using Microsoft.Win32.SafeHandles;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Hashing;
 using System.Text;
@@ -54,6 +56,30 @@ internal static class FrameCodec
     public static uint ComputeCrc32(ReadOnlySpan<byte> data) => Crc32.HashToUInt32(data);
 
     public static ulong ComputeXxHash64(ReadOnlySpan<byte> data) => XxHash64.HashToUInt64(data);
+
+    /// <summary>流式计算文件整体 XxHash64：用固定大小的租借缓冲顺序读取增量哈希，内存占用与文件大小无关</summary>
+    public static async Task<ulong> ComputeXxHash64Async(SafeFileHandle fileHandle, long totalLength, CancellationToken token)
+    {
+        var hasher = new XxHash64();
+        var rented = ArrayPool<byte>.Shared.Rent(4 * 1024 * 1024);
+        try
+        {
+            long offset = 0;
+            while (offset < totalLength)
+            {
+                var toRead = (int)Math.Min(rented.Length, totalLength - offset);
+                var read = await RandomAccess.ReadAsync(fileHandle, rented.AsMemory(0, toRead), offset, token).ConfigureAwait(false);
+                if (read == 0) throw new EndOfStreamException($"计算文件哈希时提前读到末尾（预期 {totalLength} 字节，偏移 {offset} 处结束），文件被截断");
+                hasher.Append(rented.AsSpan(0, read));
+                offset += read;
+            }
+            return hasher.GetCurrentHashAsUInt64();
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+    }
 
     // ────────────────────────────── 写帧 ──────────────────────────────
 

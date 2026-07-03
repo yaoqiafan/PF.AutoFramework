@@ -6,9 +6,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
-    prism:ViewModelLocator.AutoWireViewModel="True"
-    d:DesignHeight="600"
+    d:DesignHeight="650"
     d:DesignWidth="950"
+    prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -21,7 +21,7 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!--  头部信息卡  -->
+            <!--  头部信息卡：名称/角色/状态 + 启停/参数设置  -->
             <Border
                 Grid.Row="0"
                 Margin="0,0,0,15"
@@ -36,8 +36,14 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="{Binding ChannelName, StringFormat='FileTransfer 通道：{0}'}" />
-                        <TextBlock Margin="0,4,0,0" FontSize="13" Text="{Binding RoleText, StringFormat='角色：{0}'}" />
+                        <TextBlock
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            FontWeight="Bold"
+                            Text="{Binding ChannelName, StringFormat='FileTransfer 通道：{0}'}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            FontSize="13"
+                            Text="{Binding RoleText, StringFormat='角色：{0}'}" />
                     </StackPanel>
                     <TextBlock
                         Grid.Column="1"
@@ -46,17 +52,32 @@
                         FontSize="{DynamicResource FontSize.Body.Standard}"
                         FontWeight="SemiBold"
                         Text="{Binding StatusText, StringFormat='状态：{0}'}" />
-                    <Button
+                    <StackPanel
                         Grid.Column="2"
-                        Height="32"
                         VerticalAlignment="Center"
-                        Command="{Binding ShowParamDialogCommand}"
-                        Content="参数设置"
-                        Style="{DynamicResource ButtonDefault}" />
+                        Orientation="Horizontal">
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding StartCommand}"
+                            Content="启动"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding StopCommand}"
+                            Content="停止"
+                            Style="{DynamicResource ButtonWarning}" />
+                        <Button
+                            Height="32"
+                            Command="{Binding ShowParamDialogCommand}"
+                            Content="参数设置"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <!--  测试发送区  -->
+            <!--  测试发送区：内存数据（SendAsync）/ 磁盘文件（SendFileAsync）两种发送入口  -->
             <Border
                 Grid.Row="1"
                 Margin="0,0,0,15"
@@ -65,60 +86,173 @@
                 BorderThickness="1"
                 CornerRadius="6">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="80" />
-                        <ColumnDefinition Width="15" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="测试数据大小(MB)：" />
-                    <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding TestSizeMb, UpdateSourceTrigger=PropertyChanged}" />
+                    <!--  第一行：业务标签 + 内存测试数据发送 + 进度  -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="15" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="70" />
+                            <ColumnDefinition Width="15" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                    <Button
-                        Grid.Column="3"
-                        Width="140"
-                        VerticalAlignment="Center"
-                        Command="{Binding SendTestDataCommand}"
-                        Content="生成并发送测试数据"
-                        Style="{DynamicResource ButtonDefault}" />
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="业务标签：" />
+                        <TextBox
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Text="{Binding TestTag, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            Text="测试数据(MB)：" />
+                        <TextBox
+                            Grid.Column="4"
+                            VerticalAlignment="Center"
+                            Text="{Binding TestSizeMb, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button
+                            Grid.Column="6"
+                            Width="150"
+                            VerticalAlignment="Center"
+                            Command="{Binding SendTestDataCommand}"
+                            Content="生成并发送测试数据"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <ProgressBar
+                            Grid.Column="7"
+                            Height="20"
+                            Margin="15,0,10,0"
+                            VerticalAlignment="Center"
+                            Maximum="100"
+                            Value="{Binding ProgressPercent, Mode=OneWay}" />
+                        <TextBlock
+                            Grid.Column="8"
+                            VerticalAlignment="Center"
+                            FontSize="{DynamicResource FontSize.Body.Small}"
+                            Foreground="#64748B"
+                            Text="{Binding ProgressText}" />
+                    </Grid>
 
-                    <ProgressBar
-                        Grid.Column="4"
-                        Height="20"
-                        Margin="15,0,0,0"
-                        VerticalAlignment="Center"
-                        Maximum="100"
-                        Value="{Binding ProgressPercent, Mode=OneWay}" />
+                    <!--  第二行：文件发送（内存占用与文件大小无关） + 分片级诊断开关  -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="15" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="发送文件：" />
+                        <TextBox
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Text="{Binding SendFilePath, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button
+                            Grid.Column="3"
+                            Width="70"
+                            VerticalAlignment="Center"
+                            Command="{Binding BrowseFileCommand}"
+                            Content="浏览..."
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Grid.Column="5"
+                            Width="100"
+                            VerticalAlignment="Center"
+                            Command="{Binding SendFileCommand}"
+                            Content="发送文件"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <CheckBox
+                            Grid.Column="7"
+                            VerticalAlignment="Center"
+                            Content="分片级诊断日志"
+                            IsChecked="{Binding ChunkDiagnosticsEnabled}" />
+                    </Grid>
                 </Grid>
             </Border>
 
             <!--  Lane 状态表  -->
-            <Border Grid.Row="2" Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+            <Border
+                Grid.Row="2"
+                Padding="10"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" Text="各 Lane 状态" />
+                    <TextBlock
+                        Margin="0,0,0,8"
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Text="各 Lane 状态" />
                     <DataGrid
                         AutoGenerateColumns="False"
                         CanUserAddRows="False"
                         IsReadOnly="True"
                         ItemsSource="{Binding LaneRows}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Width="60" Binding="{Binding LaneId}" Header="LaneId" />
-                            <DataGridTextColumn Width="80" Binding="{Binding IsConnected}" Header="已连接" />
-                            <DataGridTextColumn Width="*" Binding="{Binding RemoteEndPoint}" Header="对端地址" />
-                            <DataGridTextColumn Width="100" Binding="{Binding BytesSent}" Header="发送字节数" />
-                            <DataGridTextColumn Width="100" Binding="{Binding BytesReceived}" Header="接收字节数" />
-                            <DataGridTextColumn Width="90" Binding="{Binding ReconnectAttempts}" Header="重连次数" />
+                            <DataGridTextColumn
+                                Width="60"
+                                Binding="{Binding LaneId}"
+                                Header="LaneId" />
+                            <DataGridTextColumn
+                                Width="60"
+                                Binding="{Binding IsConnected}"
+                                Header="已连接" />
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding ConfiguredEndpoint}"
+                                Header="配置链路" />
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding RemoteEndPoint}"
+                                Header="对端地址" />
+                            <DataGridTextColumn
+                                Width="100"
+                                Binding="{Binding BytesSent}"
+                                Header="发送字节数" />
+                            <DataGridTextColumn
+                                Width="100"
+                                Binding="{Binding BytesReceived}"
+                                Header="接收字节数" />
+                            <DataGridTextColumn
+                                Width="80"
+                                Binding="{Binding ReconnectAttempts}"
+                                Header="重连次数" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>
             </Border>
 
             <!--  事件日志  -->
-            <Border Grid.Row="4" Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+            <Border
+                Grid.Row="4"
+                Padding="10"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" Text="事件日志" />
+                    <TextBlock
+                        Margin="0,0,0,8"
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Text="事件日志" />
                     <ListBox FontFamily="Consolas" ItemsSource="{Binding LogEntries}" />
                 </DockPanel>
             </Border>

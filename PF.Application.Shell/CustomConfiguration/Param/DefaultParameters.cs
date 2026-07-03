@@ -109,6 +109,19 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "基恩士OCR智能相机触发通道底层TCP连接"
             };
 
+            CommunicationConfig Severtest = new()
+            {
+                InstanceId = "Severtest",
+                DisplayName = "服务器测试",
+                Category = CommunicationCategory.Tcp,
+                Role = CommunicationRole.Server,
+                ImplementationClassName = "TcpServer",
+                IsEnabled = true,
+                AutoStart = true,
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "127.0.0.1", ["Port"] = "9900", ["Backlog"] = "10" },
+                Remarks = "服务器测试调试"
+            };
+
             CommunicationConfig fileTransferServer = new()
             {
                 InstanceId = "VisionFileTransferServer",
@@ -123,13 +136,37 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                     ["Role"] = nameof(FileTransferRole.Server),
                     ["LinksJson"] = JsonSerializer.Serialize(new List<FileTransferLinkEndpoint>
                     {
-                        new() { LaneId = 0, LocalIp = "127.0.0.1", Port = 9900 }
+                        new() { LaneId = 0, LocalIp = "192.168.3.252", Port = 10000 },
+                        new() { LaneId = 1, LocalIp = "192.168.3.252", Port = 10001 }
                     })
                 },
                 Remarks = "FileTransferChannel 服务端示例配置，单口回环，供通讯调试面板验证收发"
             };
 
-            var configs = new[] { scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger, fileTransferServer };
+            // 与 fileTransferServer 配对的客户端示例：LaneId 与端口都对齐，两者在同一进程内互连，
+            // 供通讯调试面板在不接真实第二台设备的情况下做本地回环收发测试。
+            CommunicationConfig fileTransferClient = new()
+            {
+                InstanceId = "VisionFileTransferClient",
+                DisplayName = "视觉图像传输客户端(本地回环测试)",
+                Category = CommunicationCategory.FileTransfer,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "FileTransferChannel",
+                IsEnabled = true,
+                AutoStart = true,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["Role"] = nameof(FileTransferRole.Client),
+                    ["LinksJson"] = JsonSerializer.Serialize(new List<FileTransferLinkEndpoint>
+                    {
+                        new() { LaneId = 0, LocalIp = "192.168.3.87", Port = 10000, RemoteIp = "192.168.3.252" },
+                        new() { LaneId = 1, LocalIp = "192.168.3.87", Port = 10001, RemoteIp = "192.168.3.252" }
+                    })
+                },
+                Remarks = "FileTransferChannel 客户端示例配置，连接本机 10000 端口，与 fileTransferServer 配对做本地回环测试"
+            };
+
+            var configs = new[] { scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger, Severtest, fileTransferServer, fileTransferClient };
 
             return configs.ToDictionary(c => c.InstanceId, c => new CommunicationParam
             {

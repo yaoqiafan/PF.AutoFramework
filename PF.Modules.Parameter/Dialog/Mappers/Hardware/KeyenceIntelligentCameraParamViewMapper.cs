@@ -20,13 +20,11 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 view.IsSimulated = config.IsSimulated;
                 view.Remarks     = config.Remarks;
 
-                config.ConnectionParameters.TryGetValue("IP",         out var ip);
-                config.ConnectionParameters.TryGetValue("TiggerPort", out var tiggerPort);
-                config.ConnectionParameters.TryGetValue("TimeOutms",  out var timeOutms);
+                config.ConnectionParameters.TryGetValue("CommInstanceId", out var commInstanceId);
+                config.ConnectionParameters.TryGetValue("TimeOutms",      out var timeOutms);
 
-                view.IP         = ip         ?? string.Empty;
-                view.TiggerPort = tiggerPort ?? string.Empty;
-                view.TimeOutms  = timeOutms  ?? string.Empty;
+                view.CommInstanceId = commInstanceId ?? string.Empty;
+                view.TimeOutms      = timeOutms      ?? string.Empty;
 
                 return true;
             }
@@ -51,9 +49,8 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ImplementationClassName = "KeyenceIntelligentCamera",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["IP"]         = view.IP         ?? string.Empty,
-                        ["TiggerPort"] = view.TiggerPort ?? string.Empty,
-                        ["TimeOutms"]  = view.TimeOutms  ?? string.Empty
+                        ["CommInstanceId"] = view.CommInstanceId ?? string.Empty,
+                        ["TimeOutms"]      = view.TimeOutms      ?? string.Empty
                     }
                 };
             }

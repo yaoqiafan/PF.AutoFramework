@@ -35,11 +35,34 @@ namespace PF.Modules.Debug.ViewModels
         public ObservableCollection<string> LogEntries { get; } = new();
 
         private string _sendText = string.Empty;
-        /// <summary>待广播的测试文本</summary>
+        /// <summary>待发送的测试文本</summary>
         public string SendText { get => _sendText; set => SetProperty(ref _sendText, value); }
 
+        private ClientRowModel? _selectedClient;
+        /// <summary>客户端列表中当前选中的行，用于单播发送/断开</summary>
+        public ClientRowModel? SelectedClient
+        {
+            get => _selectedClient;
+            set
+            {
+                if (SetProperty(ref _selectedClient, value))
+                {
+                    SendToClientCommand.RaiseCanExecuteChanged();
+                    DisconnectClientCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>启动服务器命令</summary>
+        public DelegateCommand StartCommand { get; }
+        /// <summary>停止服务器命令</summary>
+        public DelegateCommand StopCommand { get; }
         /// <summary>广播测试数据命令</summary>
         public DelegateCommand BroadcastCommand { get; }
+        /// <summary>发送数据到选中客户端命令</summary>
+        public DelegateCommand SendToClientCommand { get; }
+        /// <summary>断开选中客户端命令</summary>
+        public DelegateCommand DisconnectClientCommand { get; }
 
         /// <summary>打开本实例参数修改对话框命令</summary>
         public DelegateCommand ShowParamDialogCommand { get; }
@@ -48,8 +71,23 @@ namespace PF.Modules.Debug.ViewModels
         public TcpServerDebugViewModel(ICommunicationManagerService commManager)
         {
             _commManager = commManager;
+            StartCommand = new DelegateCommand(async () => await ExecuteStartAsync());
+            StopCommand = new DelegateCommand(async () => await ExecuteStopAsync());
             BroadcastCommand = new DelegateCommand(async () => await ExecuteBroadcastAsync());
+            SendToClientCommand = new DelegateCommand(async () => await ExecuteSendToClientAsync(), () => SelectedClient != null);
+            DisconnectClientCommand = new DelegateCommand(async () => await ExecuteDisconnectClientAsync(), () => SelectedClient != null);
             ShowParamDialogCommand = new DelegateCommand(ExecuteShowParamDialog);
+        }
+
+        /// <summary>
+        /// 只有导航目标和当前已绑定的是同一个 InstanceId 才允许复用本实例，
+        /// 这样同一个实例的调试页在本次程序运行期间反复进出时，LogEntries 等状态不会被清空重建。
+        /// </summary>
+        public override bool IsNavigationTarget(NavigationContext navigationContext)
+        {
+            if (!navigationContext.Parameters.ContainsKey("Instance")) return false;
+            var target = navigationContext.Parameters.GetValue<IServer>("Instance");
+            return target != null && (target as ICommunication)?.InstanceId == _instanceId;
         }
 
         /// <inheritdoc/>
@@ -59,9 +97,14 @@ namespace PF.Modules.Debug.ViewModels
 
             if (!navigationContext.Parameters.ContainsKey("Instance")) return;
 
-            _server = navigationContext.Parameters.GetValue<IServer>("Instance");
-            if (_server == null) return;
+            var server = navigationContext.Parameters.GetValue<IServer>("Instance");
+            if (server == null) return;
 
+            // 无论是首次绑定还是复用旧实例重新导航进来，都先退订旧引用的事件——
+            // 复用场景下 _server 可能在离开期间因为其他页面触发了 ReloadAllAsync 而变成了已释放的旧对象，
+            // 不先退订就直接订阅新对象，要么订阅到失效实例，要么（同一对象时）造成重复订阅、日志重复打印。
+            UnsubscribeEvents();
+            _server = server;
             _instanceId = (_server as ICommunication)?.InstanceId ?? string.Empty;
             BindToServer();
         }
@@ -77,6 +120,7 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (_server == null) return;
             ServerName = _server.ServerName;
+            SelectedClient = null;
             RefreshStatus();
             RefreshClients();
             SubscribeEvents();
@@ -106,7 +150,8 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (_server == null) return;
             StatusText = _server.Status.ToString();
-            ListenEndpoint = $"{_server.IP}:{_server.Port}";
+            // 启动前 IP/Port 尚未赋值，展示用监听地址改读 BindIp/BindPort（启动前后语义一致）
+            ListenEndpoint = $"{_server.BindIp}:{_server.BindPort}";
         }
 
         private void RefreshClients()
@@ -117,12 +162,45 @@ namespace PF.Modules.Debug.ViewModels
                 Clients.Add(new ClientRowModel { ClientId = c.ClientId, RemoteEndPoint = c.RemoteEndPoint, ConnectedTime = c.ConnectedTime });
         }
 
+        private async Task ExecuteStartAsync()
+        {
+            if (_server is not ICommunication comm) return;
+            var ok = await comm.StartAsync();
+            RefreshStatus();
+            AppendLog(ok ? "[服务器] 启动成功" : "[服务器] 启动失败");
+        }
+
+        private async Task ExecuteStopAsync()
+        {
+            if (_server is not ICommunication comm) return;
+            await comm.StopAsync();
+            RefreshStatus();
+            AppendLog("[服务器] 已停止");
+        }
+
         private async Task ExecuteBroadcastAsync()
         {
             if (_server == null || string.IsNullOrEmpty(SendText)) return;
             var bytes = Encoding.UTF8.GetBytes(SendText);
             var ok = await _server.BroadcastAsync(bytes);
             AppendLog(ok ? $"[发送] 广播 {bytes.Length} 字节: {SendText}" : "[发送] 广播失败");
+        }
+
+        private async Task ExecuteSendToClientAsync()
+        {
+            if (_server == null || SelectedClient == null || string.IsNullOrEmpty(SendText)) return;
+            var bytes = Encoding.UTF8.GetBytes(SendText);
+            var ok = await _server.SendAsync(SelectedClient.ClientId, bytes);
+            AppendLog(ok
+                ? $"[发送] 单播 {SelectedClient.ClientId} {bytes.Length} 字节: {SendText}"
+                : $"[发送] 单播 {SelectedClient.ClientId} 失败");
+        }
+
+        private async Task ExecuteDisconnectClientAsync()
+        {
+            if (_server == null || SelectedClient == null) return;
+            var ok = await _server.DisconnectClientAsync(SelectedClient.ClientId);
+            AppendLog(ok ? $"[断开] 已断开客户端 {SelectedClient.ClientId}" : $"[断开] 断开客户端 {SelectedClient.ClientId} 失败");
         }
 
         // ── 参数修改：弹窗 → 保存到数据库 → 重新加载全部通讯实例 → 重新绑定刷新后的实例 ──────────
@@ -191,6 +269,7 @@ namespace PF.Modules.Debug.ViewModels
         private void OnClientDisconnected(object? sender, ClientDisconnectedEventArgs e) => RunOnUi(() =>
         {
             AppendLog($"[断开] 客户端 {e.ClientId}: {e.Reason}");
+            if (SelectedClient?.ClientId == e.ClientId) SelectedClient = null;
             RefreshClients();
         });
 

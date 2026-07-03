@@ -39,10 +39,22 @@ public sealed class FileTransferOptions
     public bool VerifyFinalHash { get; init; } = true;
 
     /// <summary>
-    /// 单次传输允许的最大长度（字节），防止畸形帧的异常长度导致内存暴涨。
-    /// 接收端用 byte[] 承载重组缓冲区，受 CLR 单个数组约 2GB 上限约束，此值不应超过该上限，默认给到 1.5GB 留出余量。
+    /// 单次传输允许的最大长度（字节），用于拒绝畸形 Begin 帧声称的异常长度，防止恶意/损坏帧撑爆磁盘或内存。
+    /// 超过 <see cref="InMemoryReceiveThresholdBytes"/> 的传输在接收端直接落盘，不再受 CLR 单个数组约 2GB 上限约束。
     /// </summary>
-    public long MaxTransferSizeBytes { get; init; } = 1536L * 1024 * 1024;
+    public long MaxTransferSizeBytes { get; init; } = 4096L * 1024 * 1024;
+
+    /// <summary>
+    /// 接收端内存重组阈值（字节）：不超过该值的传输在内存中重组、通过完成事件的 Data 交付；
+    /// 超过该值的传输直接落盘为临时文件、通过完成事件的 FilePath 交付，内存占用与数据大小无关。
+    /// </summary>
+    public long InMemoryReceiveThresholdBytes { get; init; } = 16L * 1024 * 1024;
+
+    /// <summary>
+    /// 接收落盘模式的根目录。通道会在其下建立以 ChannelName 命名的子目录存放临时文件（以 TransferId 命名），
+    /// 文件交付给消费方后由消费方负责删除；通道启动时会清理该子目录中上次运行的残留文件。
+    /// </summary>
+    public string ReceiveDirectory { get; init; } = Path.Combine(Path.GetTempPath(), "PFFileTransfer");
 
     /// <summary>建立连接超时（毫秒）</summary>
     public int ConnectTimeoutMs { get; init; } = 5000;
@@ -68,6 +80,6 @@ public sealed class FileTransferOptions
     /// <summary>某条 Lane 传输中途断开时的处理策略</summary>
     public LaneFailurePolicy OnLaneFailure { get; init; } = LaneFailurePolicy.RerouteToSurvivingLanes;
 
-    /// <summary>接收方向同时允许在途的传输数量上限，防止孤儿传输占用内存持续叠加</summary>
+    /// <summary>接收方向同时允许在途的传输数量上限，限制并发占用的重组缓冲/文件句柄/磁盘 I/O</summary>
     public int MaxConcurrentInboundTransfers { get; init; } = 2;
 }

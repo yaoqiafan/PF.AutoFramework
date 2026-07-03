@@ -1,4 +1,5 @@
 using PF.Core.Entities.Communication.FileTransfer;
+using PF.Core.Enums;
 using PF.Core.Enums.FileTransfer;
 using PF.Core.Events.FileTransfer;
 using PF.Core.Interfaces.Communication;
@@ -6,6 +7,7 @@ using PF.Core.Interfaces.Communication.FileTransfer;
 using PF.Modules.Debug.Dialogs;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -42,17 +44,56 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>测试数据大小（MB）</summary>
         public int TestSizeMb { get => _testSizeMb; set => SetProperty(ref _testSizeMb, value); }
 
+        private string _testTag = "DebugTest";
+        /// <summary>随传输携带的业务标签（FileTransferMetadata.Tag），内存/文件两种发送共用</summary>
+        public string TestTag { get => _testTag; set => SetProperty(ref _testTag, value); }
+
+        private string _sendFilePath = string.Empty;
+        /// <summary>待发送文件的完整路径（SendFileAsync 测试入口）</summary>
+        public string SendFilePath
+        {
+            get => _sendFilePath;
+            set
+            {
+                if (SetProperty(ref _sendFilePath, value))
+                    SendFileCommand.RaiseCanExecuteChanged();
+            }
+        }
+
         private double _progressPercent;
         /// <summary>当前传输进度百分比</summary>
         public double ProgressPercent { get => _progressPercent; set => SetProperty(ref _progressPercent, value); }
 
+        private string _progressText = "——";
+        /// <summary>当前传输进度文本（已传/总量）</summary>
+        public string ProgressText { get => _progressText; set => SetProperty(ref _progressText, value); }
+
         private bool _isSending;
-        /// <summary>是否正在发送测试数据（防止重复点击）</summary>
+        /// <summary>是否正在发送（防止重复点击，内存/文件两种发送共用）</summary>
         public bool IsSending { get => _isSending; set => SetProperty(ref _isSending, value); }
 
-        /// <summary>生成随机数据并发送的测试命令</summary>
-        public DelegateCommand SendTestDataCommand { get; }
+        private bool _chunkDiagnosticsEnabled;
+        /// <summary>分片级诊断事件开关，直通 IFileTransferChannel.EnableChunkLevelDiagnostics</summary>
+        public bool ChunkDiagnosticsEnabled
+        {
+            get => _chunkDiagnosticsEnabled;
+            set
+            {
+                if (SetProperty(ref _chunkDiagnosticsEnabled, value) && _channel != null)
+                    _channel.EnableChunkLevelDiagnostics = value;
+            }
+        }
 
+        /// <summary>启动通道命令</summary>
+        public DelegateCommand StartCommand { get; }
+        /// <summary>停止通道命令</summary>
+        public DelegateCommand StopCommand { get; }
+        /// <summary>生成随机数据并发送的测试命令（SendAsync）</summary>
+        public DelegateCommand SendTestDataCommand { get; }
+        /// <summary>选择待发送文件命令</summary>
+        public DelegateCommand BrowseFileCommand { get; }
+        /// <summary>发送磁盘文件命令（SendFileAsync）</summary>
+        public DelegateCommand SendFileCommand { get; }
         /// <summary>打开本实例参数修改对话框命令</summary>
         public DelegateCommand ShowParamDialogCommand { get; }
 
@@ -60,11 +101,27 @@ namespace PF.Modules.Debug.ViewModels
         public FileTransferDebugViewModel(ICommunicationManagerService commManager)
         {
             _commManager = commManager;
+            StartCommand = new DelegateCommand(async () => await ExecuteStartAsync());
+            StopCommand = new DelegateCommand(async () => await ExecuteStopAsync());
             SendTestDataCommand = new DelegateCommand(async () => await ExecuteSendTestDataAsync(), () => !IsSending && _channel != null);
+            BrowseFileCommand = new DelegateCommand(ExecuteBrowseFile);
+            SendFileCommand = new DelegateCommand(async () => await ExecuteSendFileAsync(),
+                () => !IsSending && _channel != null && !string.IsNullOrWhiteSpace(SendFilePath));
             ShowParamDialogCommand = new DelegateCommand(ExecuteShowParamDialog);
 
             _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
             _pollTimer.Tick += (_, _) => RefreshLanes();
+        }
+
+        /// <summary>
+        /// 只有导航目标和当前已绑定的是同一个 InstanceId 才允许复用本实例，
+        /// 这样同一个实例的调试页在本次程序运行期间反复进出时，LogEntries 等状态不会被清空重建。
+        /// </summary>
+        public override bool IsNavigationTarget(NavigationContext navigationContext)
+        {
+            if (!navigationContext.Parameters.ContainsKey("Instance")) return false;
+            var target = navigationContext.Parameters.GetValue<IFileTransferChannel>("Instance");
+            return target != null && (target as ICommunication)?.InstanceId == _instanceId;
         }
 
         /// <inheritdoc/>
@@ -74,9 +131,12 @@ namespace PF.Modules.Debug.ViewModels
 
             if (!navigationContext.Parameters.ContainsKey("Instance")) return;
 
-            _channel = navigationContext.Parameters.GetValue<IFileTransferChannel>("Instance");
-            if (_channel == null) return;
+            var channel = navigationContext.Parameters.GetValue<IFileTransferChannel>("Instance");
+            if (channel == null) return;
 
+            // 无论首次绑定还是复用旧实例重新导航进来，都先退订旧引用的事件，理由同 TcpServerDebugViewModel
+            UnsubscribeEvents();
+            _channel = channel;
             _instanceId = (_channel as ICommunication)?.InstanceId ?? string.Empty;
             BindToChannel();
         }
@@ -94,12 +154,15 @@ namespace PF.Modules.Debug.ViewModels
             if (_channel == null) return;
             ChannelName = _channel.ChannelName;
             RoleText = _channel.Role.ToString();
+            // 重载后拿到的是全新实例（EnableChunkLevelDiagnostics 回到默认 false），把界面上的开关状态重新应用上去
+            _channel.EnableChunkLevelDiagnostics = ChunkDiagnosticsEnabled;
             RefreshStatus();
             RefreshLanes();
             SubscribeEvents();
 
             _pollTimer.Start();
             SendTestDataCommand.RaiseCanExecuteChanged();
+            SendFileCommand.RaiseCanExecuteChanged();
         }
 
         private void SubscribeEvents()
@@ -110,6 +173,8 @@ namespace PF.Modules.Debug.ViewModels
             _channel.TransferCompleted += OnTransferCompleted;
             _channel.TransferFailed += OnTransferFailed;
             _channel.LaneStatusChanged += OnLaneStatusChanged;
+            _channel.LaneReconnected += OnLaneReconnected;
+            _channel.ChunkTransferred += OnChunkTransferred;
         }
 
         private void UnsubscribeEvents()
@@ -120,6 +185,8 @@ namespace PF.Modules.Debug.ViewModels
             _channel.TransferCompleted -= OnTransferCompleted;
             _channel.TransferFailed -= OnTransferFailed;
             _channel.LaneStatusChanged -= OnLaneStatusChanged;
+            _channel.LaneReconnected -= OnLaneReconnected;
+            _channel.ChunkTransferred -= OnChunkTransferred;
         }
 
         private void RefreshStatus()
@@ -137,40 +204,128 @@ namespace PF.Modules.Debug.ViewModels
                 var row = LaneRows.FirstOrDefault(r => r.LaneId == lane.LaneId);
                 if (row == null)
                 {
-                    row = new LaneStatusRowModel { LaneId = lane.LaneId };
+                    var link = _channel.Links.FirstOrDefault(k => k.LaneId == lane.LaneId);
+                    var configured = link == null
+                        ? "——"
+                        : _channel.Role == FileTransferRole.Client
+                            ? $"{link.LocalIp} → {link.RemoteIp}:{link.Port}"
+                            : $"监听 {link.LocalIp}:{link.Port}";
+                    row = new LaneStatusRowModel { LaneId = lane.LaneId, ConfiguredEndpoint = configured };
                     LaneRows.Add(row);
                 }
                 row.Update(lane);
             }
         }
 
+        // ── 通道启停 ──────────────────────────────────────────────────────────
+
+        private async Task ExecuteStartAsync()
+        {
+            if (_channel == null) return;
+            var ok = await _channel.StartAsync();
+            RefreshStatus();
+            AppendLog(ok ? "[通道] 启动成功" : "[通道] 启动失败");
+        }
+
+        private async Task ExecuteStopAsync()
+        {
+            if (_channel == null) return;
+            await _channel.StopAsync();
+            RefreshStatus();
+            AppendLog("[通道] 已停止");
+        }
+
+        // ── 发送测试 ──────────────────────────────────────────────────────────
+
+        private void RaiseSendCommandsCanExecute()
+        {
+            SendTestDataCommand.RaiseCanExecuteChanged();
+            SendFileCommand.RaiseCanExecuteChanged();
+        }
+
+        private FileTransferMetadata BuildMetadata(FileContentKind kind, string? fileExtension = null) => new()
+        {
+            Tag = string.IsNullOrWhiteSpace(TestTag) ? $"DebugTest_{DateTime.Now:HHmmss}" : TestTag,
+            ContentKind = kind,
+            FileExtension = fileExtension
+        };
+
         private async Task ExecuteSendTestDataAsync()
         {
             if (_channel == null) return;
 
+            if (TestSizeMb <= 0 || TestSizeMb > 512)
+            {
+                AppendLog("[发送] 测试数据大小需在 1~512 MB 之间（更大数据请走文件发送入口）");
+                return;
+            }
+
             IsSending = true;
-            SendTestDataCommand.RaiseCanExecuteChanged();
+            RaiseSendCommandsCanExecute();
             try
             {
                 var data = new byte[TestSizeMb * 1024 * 1024];
                 Random.Shared.NextBytes(data);
 
-                var metadata = new FileTransferMetadata { Tag = $"DebugTest_{DateTime.Now:HHmmss}" };
-                var result = await _channel.SendAsync(data, metadata);
+                var result = await _channel.SendAsync(data, BuildMetadata(FileContentKind.RawFile));
 
                 AppendLog(result.Success
                     ? $"[发送完成] {TestSizeMb}MB，耗时 {result.Elapsed.TotalSeconds:F2}s，吞吐 {result.ThroughputMBps:F1}MB/s"
                     : $"[发送失败] {result.FailureReason}: {result.ErrorMessage}");
             }
+            catch (Exception ex)
+            {
+                AppendLog($"[发送失败] {ex.Message}");
+            }
             finally
             {
                 IsSending = false;
-                SendTestDataCommand.RaiseCanExecuteChanged();
+                RaiseSendCommandsCanExecute();
+            }
+        }
+
+        private void ExecuteBrowseFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "选择要发送的文件",
+                Filter = "所有文件 (*.*)|*.*"
+            };
+            if (dialog.ShowDialog() == true)
+                SendFilePath = dialog.FileName;
+        }
+
+        private async Task ExecuteSendFileAsync()
+        {
+            if (_channel == null || string.IsNullOrWhiteSpace(SendFilePath)) return;
+
+            IsSending = true;
+            RaiseSendCommandsCanExecute();
+            try
+            {
+                AppendLog($"[发送] 开始发送文件：{SendFilePath}");
+                var result = await _channel.SendFileAsync(SendFilePath,
+                    BuildMetadata(FileContentKind.RawFile, Path.GetExtension(SendFilePath)));
+
+                AppendLog(result.Success
+                    ? $"[发送完成] 文件 {Path.GetFileName(SendFilePath)}，耗时 {result.Elapsed.TotalSeconds:F2}s，吞吐 {result.ThroughputMBps:F1}MB/s"
+                    : $"[发送失败] {result.FailureReason}: {result.ErrorMessage}");
+            }
+            catch (Exception ex)
+            {
+                // 文件不存在/为空/超限等参数校验直接以异常抛出，转成日志而不是让 async void 崩掉进程
+                AppendLog($"[发送失败] {ex.Message}");
+            }
+            finally
+            {
+                IsSending = false;
+                RaiseSendCommandsCanExecute();
             }
         }
 
         // ── 参数修改：弹窗 → 保存到数据库 → 重新加载全部通讯实例 → 重新绑定刷新后的实例 ──────────
-        // 简化为单 Lane 编辑：取 LinksJson 里的第一条 Lane 展示，保存时重建为仅含一条 Lane 的列表。
+        // 通道级参数（角色/接收目录/内存阈值）与 Lane 级参数分层传入弹窗，弹窗内可新增/删除 Lane，
+        // 保存时把完整 Lane 列表写回 LinksJson，不再只保留第一条导致其余 Lane 配置被覆盖丢失。
 
         private void ExecuteShowParamDialog()
         {
@@ -180,18 +335,33 @@ namespace PF.Modules.Debug.ViewModels
 
             var linksJson = config.ConnectionParameters.GetValueOrDefault("LinksJson", "[]");
             var links = JsonSerializer.Deserialize<List<FileTransferLinkEndpoint>>(linksJson) ?? new List<FileTransferLinkEndpoint>();
-            var firstLane = links.FirstOrDefault();
 
-            var paramVm = new FileTransferParamViewModel
+            var channelParam = new FileTransferChannelParamViewModel
             {
                 RoleText = config.ConnectionParameters.GetValueOrDefault("Role", nameof(FileTransferRole.Server)),
-                LaneId = firstLane?.LaneId ?? 0,
-                LocalIp = firstLane?.LocalIp ?? "0.0.0.0",
-                Port = firstLane?.Port ?? 0,
-                RemoteIp = firstLane?.RemoteIp ?? string.Empty
+                // 未配置时展示 FileTransferOptions 的默认值，保存后才真正写入配置键
+                ReceiveDirectory = config.ConnectionParameters.GetValueOrDefault(
+                    "ReceiveDirectory", Path.Combine(Path.GetTempPath(), "PFFileTransfer")),
+                InMemoryReceiveThresholdMb = int.TryParse(
+                    config.ConnectionParameters.GetValueOrDefault("InMemoryReceiveThresholdMb", "16"), out var thresholdMb) && thresholdMb > 0
+                    ? thresholdMb : 16
             };
 
-            var dialogParams = new DialogParameters { { "Data", paramVm } };
+            var laneParams = links.Select(link => new FileTransferLaneParamViewModel
+            {
+                LaneId = link.LaneId,
+                LocalIp = link.LocalIp,
+                Port = link.Port,
+                RemoteIp = link.RemoteIp ?? string.Empty
+            }).ToList();
+            if (laneParams.Count == 0)
+                laneParams.Add(new FileTransferLaneParamViewModel { LaneId = 0, LocalIp = "0.0.0.0" });
+
+            var dialogParams = new DialogParameters
+            {
+                { "ChannelData", channelParam },
+                { "LanesData", laneParams }
+            };
             DialogService.ShowDialog(nameof(FileTransferParamDialog), dialogParams, OnParamDialogClosed);
         }
 
@@ -199,28 +369,31 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (result.Result != ButtonResult.Yes) return;
 
-            var paramItem = result.Parameters.GetValue<FileTransferParamViewModel>("CallBackParamItem");
-            if (paramItem == null) return;
+            var channelParam = result.Parameters.GetValue<FileTransferChannelParamViewModel>("CallBackChannelParam");
+            var lanes = result.Parameters.GetValue<List<FileTransferLaneParamViewModel>>("CallBackLanes");
+            if (channelParam == null || lanes == null) return;
 
-            if (!Enum.TryParse<FileTransferRole>(paramItem.RoleText, ignoreCase: true, out var role))
+            if (!Enum.TryParse<FileTransferRole>(channelParam.RoleText, ignoreCase: true, out var role))
             {
-                AppendLog($"[参数] Role 填写不合法（需为 Server 或 Client），已取消保存: {paramItem.RoleText}");
+                AppendLog($"[参数] Role 填写不合法（需为 Server 或 Client），已取消保存: {channelParam.RoleText}");
                 return;
             }
 
             var config = _commManager.GetConfig(_instanceId);
             if (config == null) return;
 
-            var newLink = new FileTransferLinkEndpoint
+            var newLinks = lanes.Select(lane => new FileTransferLinkEndpoint
             {
-                LaneId = paramItem.LaneId,
-                LocalIp = paramItem.LocalIp,
-                Port = paramItem.Port,
-                RemoteIp = string.IsNullOrWhiteSpace(paramItem.RemoteIp) ? null : paramItem.RemoteIp
-            };
+                LaneId = lane.LaneId,
+                LocalIp = lane.LocalIp,
+                Port = lane.Port,
+                RemoteIp = string.IsNullOrWhiteSpace(lane.RemoteIp) ? null : lane.RemoteIp
+            }).ToList();
 
             config.ConnectionParameters["Role"] = role.ToString();
-            config.ConnectionParameters["LinksJson"] = JsonSerializer.Serialize(new List<FileTransferLinkEndpoint> { newLink });
+            config.ConnectionParameters["LinksJson"] = JsonSerializer.Serialize(newLinks);
+            config.ConnectionParameters["ReceiveDirectory"] = channelParam.ReceiveDirectory;
+            config.ConnectionParameters["InMemoryReceiveThresholdMb"] = channelParam.InMemoryReceiveThresholdMb.ToString();
             await _commManager.SaveConfigAsync(config);
 
             AppendLog("[参数] 已保存，正在重新加载全部通讯实例...");
@@ -243,16 +416,27 @@ namespace PF.Modules.Debug.ViewModels
         });
 
         private void OnTransferProgress(object? sender, FileTransferProgressEventArgs e) => RunOnUi(() =>
-            ProgressPercent = e.PercentComplete);
+        {
+            ProgressPercent = e.PercentComplete;
+            ProgressText = $"{e.BytesTransferred / 1048576.0:F1} / {e.TotalBytes / 1048576.0:F1} MB";
+        });
 
         private void OnTransferCompleted(object? sender, FileTransferCompletedEventArgs e) => RunOnUi(() =>
-            AppendLog($"[{e.Direction}完成] {e.Metadata.Tag}，{e.Result.ThroughputMBps:F1}MB/s"));
+            AppendLog(e.FilePath is null
+                ? $"[{e.Direction}完成] {e.Metadata.Tag}，{e.Result.ThroughputMBps:F1}MB/s"
+                : $"[{e.Direction}完成] {e.Metadata.Tag}，{e.Result.ThroughputMBps:F1}MB/s，已落盘：{e.FilePath}"));
 
         private void OnTransferFailed(object? sender, FileTransferFailedEventArgs e) => RunOnUi(() =>
             AppendLog($"[传输失败] {e.Reason}: {e.Message}"));
 
         private void OnLaneStatusChanged(object? sender, LaneStatusChangedEventArgs e) => RunOnUi(() =>
             AppendLog($"[Lane{e.Status.LaneId}] {(e.Status.IsConnected ? "已连接" : "已断开")} 重连次数={e.Status.ReconnectAttempts}"));
+
+        private void OnLaneReconnected(object? sender, LaneStatusChangedEventArgs e) => RunOnUi(() =>
+            AppendLog($"[Lane{e.Status.LaneId}] 重连成功，对端 {e.Status.RemoteEndPoint}"));
+
+        private void OnChunkTransferred(object? sender, ChunkTransferredEventArgs e) => RunOnUi(() =>
+            AppendLog($"[分片{(e.Direction == TransferDirection.Sent ? "发" : "收")}] Lane{e.LaneId} 偏移={e.ChunkOffset} 长度={e.ChunkLength}"));
 
         private void AppendLog(string message)
         {
@@ -274,6 +458,9 @@ namespace PF.Modules.Debug.ViewModels
     {
         /// <summary>Lane 编号</summary>
         public int LaneId { get; init; }
+
+        /// <summary>配置的链路端点（Server 显示监听地址，Client 显示本端 → 对端）</summary>
+        public string ConfiguredEndpoint { get; init; } = "——";
 
         private bool _isConnected;
         /// <summary>是否已连接</summary>

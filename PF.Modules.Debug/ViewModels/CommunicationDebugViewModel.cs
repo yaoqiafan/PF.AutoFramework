@@ -80,10 +80,15 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (payload is not ICommunication comm) return;
 
-            var viewName = comm.GetType().GetCustomAttribute<CommunicationUIAttribute>()?.ViewName;
+            // 树节点的 Payload 是 BuildTree() 时的快照：任意一个通讯调试页触发 ReloadAllAsync() 后，
+            // 全部实例都会被停止/释放并重建，这里必须按 InstanceId 重新从管理服务取一次当前存活的实例，
+            // 否则会拿着已释放的旧实例导航过去，界面状态永远停在断开/默认值，也收不到任何后续事件。
+            var current = _commManager.ActiveCommunications.FirstOrDefault(c => c.InstanceId == comm.InstanceId) ?? comm;
+
+            var viewName = current.GetType().GetCustomAttribute<CommunicationUIAttribute>()?.ViewName;
             if (string.IsNullOrEmpty(viewName)) return;
 
-            var parameters = new NavigationParameters { { "Instance", comm } };
+            var parameters = new NavigationParameters { { "Instance", current } };
             RegionManager.RequestNavigate(NavigationConstants.Regions.CommunicationViewRegion, viewName, parameters);
         }
     }

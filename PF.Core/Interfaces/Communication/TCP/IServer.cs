@@ -44,6 +44,22 @@ namespace PF.Core.Interfaces.Communication.TCP
         int Port { get; }
 
         /// <summary>
+        /// 配置的监听IP，供 ICommunicationManagerService 按配置驱动启动时使用；
+        /// 启动前 <see cref="IP"/> 尚无值时，调试界面可读取此属性展示目标监听地址
+        /// </summary>
+        string BindIp { get; set; }
+
+        /// <summary>
+        /// 配置的监听端口，语义同 <see cref="BindIp"/>
+        /// </summary>
+        int BindPort { get; set; }
+
+        /// <summary>
+        /// 挂起连接队列的最大长度
+        /// </summary>
+        int Backlog { get; set; }
+
+        /// <summary>
         /// 客户端连接列表
         /// </summary>
         IReadOnlyList<IClientConnection> Clients { get; }

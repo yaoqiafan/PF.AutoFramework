@@ -1,4 +1,5 @@
 using PF.Core.Entities.Communication;
+using PF.Core.Models;
 
 namespace PF.Core.Interfaces.Communication;
 
@@ -34,7 +35,7 @@ public interface ICommunicationManagerService
     Task ImportConfigsAsync(IEnumerable<CommunicationConfig> configs);
 
     /// <summary>从数据库加载配置，实例化所有已启用的通讯实例并调用 StartAsync</summary>
-    Task LoadAndInitializeAsync();
+    Task LoadAndInitializeAsync(IProgress<SplashProgressPayload>? progress = null);
 
     /// <summary>停止并释放所有活跃实例，重新从数据库加载并启动</summary>
     Task ReloadAllAsync();

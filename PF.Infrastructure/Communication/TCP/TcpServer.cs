@@ -27,7 +27,7 @@ namespace PF.Infrastructure.Communication.TCP
         private readonly object _lockObject = new object();
         private ServerStatus _status = ServerStatus.Stopped;
         private ClientStatus _clientstatus = ClientStatus.None;
-
+        private string _displayName;
         /// <summary>
         /// 服务器名称
         /// </summary>
@@ -73,7 +73,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// <inheritdoc cref="ICommunication.Role"/>
         CommunicationRole ICommunication.Role => CommunicationRole.Server;
         /// <inheritdoc cref="ICommunication.DisplayName"/>
-        string ICommunication.DisplayName => $"[{ServerName}] {IP}:{Port}";
+        string ICommunication.DisplayName => $"[{_displayName}]";
 
         /// <summary>供 ICommunicationManagerService 统一调度的启动入口，内部使用 BindIp/BindPort/Backlog</summary>
         public Task<bool> StartAsync(CancellationToken token = default) => StartAsync(BindIp, BindPort, Backlog);
@@ -122,10 +122,11 @@ namespace PF.Infrastructure.Communication.TCP
         /// <summary>
         /// 构造TCP服务器
         /// </summary>
-        public TcpServer(string serverName = "Default TcpServer")
+        public TcpServer(string displayName = null, string serverName = "Default TcpServer")
         {
             ServerName = serverName;
             _clients = new ConcurrentDictionary<string, ClientConnection>();
+            _displayName = displayName ?? $"{ServerName}";
         }
 
         /// <summary>

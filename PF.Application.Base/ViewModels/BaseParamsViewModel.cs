@@ -16,7 +16,11 @@ namespace PF.Application.Base.ViewModels
         public BaseParamsViewModel(CommonSettings commonSettings)
         {
             _commonSettings = commonSettings;
-            SaveCommmand = new DelegateCommand(() => _commonSettings.Save());
+            SaveCommmand = new DelegateCommand(() => 
+            { 
+                _commonSettings.Save();
+                MessageService.ShowMessage("参数保存成功！");
+            });
         }
 
         /// <summary>当前系统公共参数对象（绑定到 PropertyGrid）。</summary>

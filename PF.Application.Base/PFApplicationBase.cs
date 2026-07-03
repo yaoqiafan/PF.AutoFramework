@@ -4,10 +4,10 @@ using PF.Application.Base.Services;
 using PF.Application.Base.ViewModels;
 using PF.Application.Base.Views;
 using PF.Core.Constants;
+using PF.Core.Entities.Communication;
 using PF.Core.Entities.Hardware;
 using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
-using PF.Core.Entities.Communication;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -55,6 +55,7 @@ using PF.UI.Resources;
 using PF.UI.Shared.Data;
 using PF.UI.Shared.Tools;
 using PF.UI.Shared.Tools.Helper;
+using Prism.Ioc;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -135,7 +136,7 @@ namespace PF.Application.Base
         protected abstract void RegisterRecipes(IContainerRegistry containerRegistry);
 
         /// <summary>按顺序初始化项目机构，返回 true 表示全部成功</summary>
-        protected abstract Task<bool> InitializeMechanismsAsync();
+        protected abstract Task<bool> InitializeMechanismsAsync(IProgress<SplashProgressPayload>? progress = null);
 
 
         #endregion
@@ -293,6 +294,8 @@ namespace PF.Application.Base
         {
             var navMenuService = Container.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetEntryAssembly());
+            navMenuService.RegisterAssembly(typeof(PFApplicationBase).Assembly);
+
 
             PermissionHelper.Initialize(navMenuService);
 
@@ -330,6 +333,8 @@ namespace PF.Application.Base
             if (!File.Exists(CommonSettings.ConfigFilePath))
                 commonSettings.Save();
             containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
+            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(
+               NavigationConstants.Views.CommonParamView);
 
             containerRegistry.AddLogging();
             LogService = containerRegistry.GetContainer().Resolve<ILogService>();
@@ -348,9 +353,8 @@ namespace PF.Application.Base
             containerRegistry.RegisterSingleton<Splash>();
             containerRegistry.RegisterDialogWindow<PFDialogBaseWindow>();
             containerRegistry.RegisterSingleton<INavigationMenuService, NavigationMenuService>();
-            containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(
-                NavigationConstants.Views.CommonParamView);
-
+           
+           
             containerRegistry.RegisterSingleton<IUserService, UserService>();
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
@@ -530,13 +534,18 @@ namespace PF.Application.Base
         private async Task<bool> PerformInitializationAsync()
         {
             bool loadErr = false;
+            var commonParam = Container.Resolve<CommonSettings>();
 
             Splash splash = Container.Resolve<Splash>();
             ILogService logService = Container.Resolve<ILogService>();
 
+            var splashProgress = commonParam.EnableDetailedLog ? new Progress<SplashProgressPayload>(payload =>
+                   SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString())) : null;
+
             SplashUpdateMessage(splash, logService, "程序加载中。。。", msgType: MsgType.Info);
             try
             {
+
                 await Task.Delay(500);
                 SplashUpdateMessage(splash, logService, "配置文件加载中。。。", msgType: MsgType.Info);
                 var configLoaded = await LoadConfigurationAsync();
@@ -550,24 +559,22 @@ namespace PF.Application.Base
                 await Task.Delay(500);
 
                 SplashUpdateMessage(splash, logService, "通讯实例初始化中。。。", msgType: MsgType.Info);
-                await Task.Delay(300);
+                await Task.Delay(500);
                 var commManager = Container.Resolve<ICommunicationManagerService>();
-                await commManager.LoadAndInitializeAsync();
+                await commManager.LoadAndInitializeAsync(splashProgress);
                 SplashUpdateMessage(splash, logService, "通讯实例初始化完成", msgType: MsgType.Success);
-                await Task.Delay(300);
+                await Task.Delay(500);
 
                 SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
                 await Task.Delay(500);
                 var hwManager = Container.Resolve<IHardwareManagerService>();
-                var hwProgress = new Progress<SplashProgressPayload>(payload =>
-                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString()));
-                await hwManager.LoadAndInitializeAsync(hwProgress);
+                await hwManager.LoadAndInitializeAsync(splashProgress);
                 SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
                 await Task.Delay(300);
 
                 SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
                 await Task.Delay(300);
-                if (await InitializeMechanismsAsync())
+                if (await InitializeMechanismsAsync(splashProgress))
                 {
                     SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
                 }

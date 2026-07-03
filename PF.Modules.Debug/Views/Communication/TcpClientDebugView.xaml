@@ -6,9 +6,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
-    prism:ViewModelLocator.AutoWireViewModel="True"
     d:DesignHeight="500"
     d:DesignWidth="900"
+    prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -33,10 +33,19 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="{Binding ClientId, StringFormat='TCP 客户端：{0}'}" />
-                        <TextBlock Margin="0,4,0,0" FontSize="13" Text="{Binding TargetEndpoint, StringFormat='目标服务端：{0}'}" />
+                        <TextBlock
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            FontWeight="Bold"
+                            Text="{Binding ClientId, StringFormat='TCP 客户端：{0}'}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            FontSize="13"
+                            Text="{Binding TargetEndpoint, StringFormat='目标服务端：{0}'}" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
                         <TextBlock
                             Margin="0,0,15,0"
                             VerticalAlignment="Center"
@@ -91,9 +100,18 @@
             </Border>
 
             <!--  日志  -->
-            <Border Grid.Row="2" Padding="10" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+            <Border
+                Grid.Row="2"
+                Padding="10"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" Text="事件日志" />
+                    <TextBlock
+                        Margin="0,0,0,8"
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Text="事件日志" />
                     <ListBox FontFamily="Consolas" ItemsSource="{Binding LogEntries}" />
                 </DockPanel>
             </Border>

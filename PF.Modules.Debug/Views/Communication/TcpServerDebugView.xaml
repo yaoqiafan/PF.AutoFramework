@@ -59,17 +59,32 @@
                             Foreground="#64748B"
                             Text="{Binding Clients.Count, StringFormat='已连接客户端：{0}'}" />
                     </StackPanel>
-                    <Button
+                    <StackPanel
                         Grid.Column="2"
-                        Height="32"
                         VerticalAlignment="Center"
-                        Command="{Binding ShowParamDialogCommand}"
-                        Content="参数设置"
-                        Style="{DynamicResource ButtonDefault}" />
+                        Orientation="Horizontal">
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding StartCommand}"
+                            Content="启动"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding StopCommand}"
+                            Content="停止"
+                            Style="{DynamicResource ButtonWarning}" />
+                        <Button
+                            Height="32"
+                            Command="{Binding ShowParamDialogCommand}"
+                            Content="参数设置"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <!--  广播测试数据  -->
+            <!--  发送测试数据：广播 / 单播到选中客户端  -->
             <Border
                 Grid.Row="1"
                 Margin="0,0,0,15"
@@ -81,6 +96,8 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBox
                         Grid.Column="0"
@@ -89,9 +106,23 @@
                     <Button
                         Grid.Column="1"
                         Width="100"
+                        Margin="0,0,10,0"
                         Command="{Binding BroadcastCommand}"
                         Content="广播发送"
                         Style="{DynamicResource ButtonDefault}" />
+                    <Button
+                        Grid.Column="2"
+                        Width="140"
+                        Margin="0,0,10,0"
+                        Command="{Binding SendToClientCommand}"
+                        Content="发送到选中客户端"
+                        Style="{DynamicResource ButtonDefault}" />
+                    <Button
+                        Grid.Column="3"
+                        Width="140"
+                        Command="{Binding DisconnectClientCommand}"
+                        Content="断开选中客户端"
+                        Style="{DynamicResource ButtonWarning}" />
                 </Grid>
             </Border>
 
@@ -115,7 +146,7 @@
                             DockPanel.Dock="Top"
                             FontWeight="SemiBold"
                             Text="已连接客户端" />
-                        <ListBox ItemsSource="{Binding Clients}">
+                        <ListBox ItemsSource="{Binding Clients}" SelectedItem="{Binding SelectedClient, Mode=TwoWay}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,3">

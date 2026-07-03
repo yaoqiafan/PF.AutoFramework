@@ -1,6 +1,11 @@
+using PF.Core.Attributes;
+using PF.Core.Constants;
+
 namespace PF.Application.Base.Views
 {
-    /// <summary>公共参数页面 View（硬件参数、系统配置参数、用户登录参数共用此宿主）。</summary>
+    [ModuleNavigation(NavigationConstants.Views.CommonParamView, "公共参数",
+        GroupName = "设备参数设置", Order = 2,
+        Icon = "AudioGeometry")]
     public partial class CommonParamView : System.Windows.Controls.UserControl
     {
         /// <summary>初始化 CommonParamView 组件。</summary>

@@ -20,15 +20,13 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 view.IsSimulated = config.IsSimulated;
                 view.Remarks     = config.Remarks;
 
-                config.ConnectionParameters.TryGetValue("IP",         out var ip);
-                config.ConnectionParameters.TryGetValue("TiggerPort", out var tiggerPort);
-                config.ConnectionParameters.TryGetValue("UserPort",   out var userPort);
-                config.ConnectionParameters.TryGetValue("TimeOutMs",  out var timeOutMs);
+                config.ConnectionParameters.TryGetValue("TriggerCommInstanceId",   out var triggerId);
+                config.ConnectionParameters.TryGetValue("UserPowerCommInstanceId", out var userPowerId);
+                config.ConnectionParameters.TryGetValue("TimeOutMs",               out var timeOutMs);
 
-                view.IP         = ip         ?? string.Empty;
-                view.TiggerPort = tiggerPort ?? string.Empty;
-                view.UserPort   = userPort   ?? string.Empty;
-                view.TimeOutMs  = timeOutMs  ?? string.Empty;
+                view.TriggerCommInstanceId   = triggerId   ?? string.Empty;
+                view.UserPowerCommInstanceId = userPowerId ?? string.Empty;
+                view.TimeOutMs               = timeOutMs   ?? string.Empty;
 
                 return true;
             }
@@ -53,10 +51,9 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ImplementationClassName = "HKBarcodeScan",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["IP"]         = view.IP         ?? string.Empty,
-                        ["TiggerPort"] = view.TiggerPort ?? string.Empty,
-                        ["UserPort"]   = view.UserPort   ?? string.Empty,
-                        ["TimeOutMs"]  = view.TimeOutMs  ?? string.Empty
+                        ["TriggerCommInstanceId"]   = view.TriggerCommInstanceId   ?? string.Empty,
+                        ["UserPowerCommInstanceId"] = view.UserPowerCommInstanceId ?? string.Empty,
+                        ["TimeOutMs"]               = view.TimeOutMs               ?? string.Empty
                     }
                 };
             }

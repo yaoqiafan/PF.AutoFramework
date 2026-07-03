@@ -6,20 +6,118 @@
     xmlns:local="clr-namespace:PF.Modules.Debug.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    Width="500"
-    MaxHeight="600"
+    Width="800"
+    MaxHeight="650"
     FontSize="{DynamicResource FontSize.H2.Title}"
     mc:Ignorable="d">
-    <Grid>
+    <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="45" />
         </Grid.RowDefinitions>
 
-        <pf:PropertyGrid SelectedObject="{Binding ParamInstance}" />
+        <!--  通道级参数：角色/接收目录/内存阈值，整个通道只有一份，常驻可见，不随选中的 Lane 变化  -->
+        <Border
+            Grid.Row="0"
+            Margin="0,0,0,10"
+            Padding="10"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
+            CornerRadius="6">
+            <DockPanel>
+                <TextBlock
+                    Margin="0,0,0,6"
+                    DockPanel.Dock="Top"
+                    FontWeight="SemiBold"
+                    Text="通道参数" />
+                <pf:PropertyGrid
+                    pf:TitleElement.TitleWidth="120"
+                    SelectedObject="{Binding ChannelParams}"
+                    ShowSortButton="False" />
+            </DockPanel>
+        </Border>
+
+        <!--  Lane 列表（可新增/删除） + 选中 Lane 的参数  -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="15" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                Grid.Column="0"
+                Padding="10"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <DockPanel>
+                    <TextBlock
+                        Margin="0,0,0,6"
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Text="Lane 列表" />
+                    <StackPanel
+                        Margin="0,8,0,0"
+                        DockPanel.Dock="Bottom"
+                        Orientation="Horizontal">
+                        <Button
+                            Width="80"
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding AddLaneCommand}"
+                            Content="新增"
+                            Style="{StaticResource ButtonPrimary}" />
+                        <Button
+                            Width="80"
+                            Height="32"
+                            Command="{Binding RemoveLaneCommand}"
+                            Content="删除"
+                            Style="{StaticResource ButtonWarning}" />
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Lanes}" SelectedItem="{Binding SelectedLane, Mode=TwoWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,3">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding LaneId, StringFormat='Lane {0}'}" />
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="#64748B"
+                                        Text="{Binding LocalIp}" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="#94A3B8"
+                                        Text="{Binding Port, StringFormat='端口 {0}'}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Border
+                Grid.Column="2"
+                Padding="10"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <DockPanel>
+                    <TextBlock
+                        Margin="0,0,0,6"
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Text="Lane 参数" />
+                    <pf:PropertyGrid
+                        pf:TitleElement.TitleWidth="140"
+                        SelectedObject="{Binding SelectedLane}"
+                        ShowSortButton="False" />
+                </DockPanel>
+            </Border>
+        </Grid>
 
         <StackPanel
-            Grid.Row="1"
+            Grid.Row="2"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"
             Orientation="Horizontal">

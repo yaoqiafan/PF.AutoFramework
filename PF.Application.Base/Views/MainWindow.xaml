@@ -351,9 +351,12 @@
                     <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />
                 </StackPanel>
             </StatusBarItem>
-
+            <Separator />
             <!--  数据驱动的项目特有设备状态条目  -->
-            <ItemsControl ItemsSource="{Binding DeviceStatusItems}">
+            <ItemsControl
+                Margin="0,-4,0,0"
+                FontSize="{DynamicResource FontSize.Body.Standard}"
+                ItemsSource="{Binding DeviceStatusItems}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" />
@@ -362,7 +365,6 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <Separator />
                             <StatusBarItem>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Label}" />

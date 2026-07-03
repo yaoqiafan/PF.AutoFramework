@@ -12,9 +12,8 @@ namespace PF.Modules.Halcon.Views;
     HalconNavigationConstants.Views.Dashboard,
     "Halcon视觉调试",
     groupName: "系统调试",
-    GroupOrder = 60,
-    Order = 1,
-    Icon = "VisionIcon")]
+    Order = 98,
+    Icon = "DebugIcon")]
 public partial class HalconDashboardView : UserControl
 {
     public HalconDashboardView(IRegionManager regionManager)

@@ -54,6 +54,17 @@ namespace PF.Modules.Debug.ViewModels
             ShowParamDialogCommand = new DelegateCommand(ExecuteShowParamDialog);
         }
 
+        /// <summary>
+        /// 只有导航目标和当前已绑定的是同一个 InstanceId 才允许复用本实例，
+        /// 这样同一个实例的调试页在本次程序运行期间反复进出时，LogEntries 等状态不会被清空重建。
+        /// </summary>
+        public override bool IsNavigationTarget(NavigationContext navigationContext)
+        {
+            if (!navigationContext.Parameters.ContainsKey("Instance")) return false;
+            var target = navigationContext.Parameters.GetValue<IClient>("Instance");
+            return target != null && (target as ICommunication)?.InstanceId == _instanceId;
+        }
+
         /// <inheritdoc/>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
@@ -61,9 +72,12 @@ namespace PF.Modules.Debug.ViewModels
 
             if (!navigationContext.Parameters.ContainsKey("Instance")) return;
 
-            _client = navigationContext.Parameters.GetValue<IClient>("Instance");
-            if (_client == null) return;
+            var client = navigationContext.Parameters.GetValue<IClient>("Instance");
+            if (client == null) return;
 
+            // 无论首次绑定还是复用旧实例重新导航进来，都先退订旧引用的事件，理由同 TcpServerDebugViewModel
+            UnsubscribeEvents();
+            _client = client;
             _instanceId = (_client as ICommunication)?.InstanceId ?? string.Empty;
             BindToClient();
         }
