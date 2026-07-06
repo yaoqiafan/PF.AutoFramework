@@ -171,7 +171,7 @@ namespace PF.Application.Shell
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
                 int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var timeout) ? int.Parse(timeout) : 0;
-                return new Infrastructure.Hardware.BarcodeScan.Hikvision.MvCodeReaderBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+                return new Infrastructure.Hardware.BarcodeScan.Hikvision.MvCodeReaderBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
             hwManager.RegisterFactory("KeyenceIntelligentCamera", cfg =>
