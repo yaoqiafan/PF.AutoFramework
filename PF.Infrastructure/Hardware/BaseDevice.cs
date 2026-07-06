@@ -504,6 +504,31 @@ namespace PF.Infrastructure.Hardware
         }
 
         /// <summary>
+        /// 异步释放：优先断开连接（真正 await DisconnectAsync，不阻塞线程）。
+        /// 推荐设备生命周期管理者（HardwareManagerService）在 ReloadAllAsync 等路径调用本方法。
+        /// </summary>
+        public virtual async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore().ConfigureAwait(false);
+            Dispose(false);   // 释放托管 CTS 等非连接资源（_isDisposed 由这里标记）
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>异步释放核心：断开连接（若已连接）。子类可 override 追加异步清理。</summary>
+        protected virtual async ValueTask DisposeAsyncCore()
+        {
+            if (IsConnected)
+            {
+                try { await DisconnectAsync().ConfigureAwait(false); }
+                catch (Exception ex)
+                {
+                    // 释放路径异常不得向上抛（掩盖原始错误），仅记录
+                    System.Diagnostics.Debug.WriteLine($"[BaseDevice] DisposeAsync 断连异常: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
         /// 释放资源的核心方法
         /// </summary>
         protected virtual void Dispose(bool disposing)
@@ -517,11 +542,9 @@ namespace PF.Infrastructure.Hardware
                     _healthMonitorCts?.Dispose();
                     _healthMonitorCts = null;
 
-                    if (IsConnected)
-                    {
-                        // 在线程池线程上运行，脱离当前 SynchronizationContext 防止死锁
-                        Task.Run(() => DisconnectAsync()).GetAwaiter().GetResult();
-                    }
+                    // 注意：同步 Dispose 不再在此同步阻塞断连（原 Task.Run(...).GetAwaiter().GetResult() 是 sync-over-async）。
+                    // 真正的异步断连走 DisposeAsyncCore/DisposeAsync。
+                    // 若调用方仅用同步 Dispose（如 DI 容器兜底），连接由 OS 进程回收或 finalizer 路径兜底。
                 }
                 _isDisposed = true;
             }

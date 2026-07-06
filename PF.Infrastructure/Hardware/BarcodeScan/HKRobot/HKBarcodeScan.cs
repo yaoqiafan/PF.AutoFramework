@@ -113,7 +113,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     a = Task.Run(() => UserParmEvent.Wait(), token);
                     b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    result = Task.WhenAny(a, b);
+                    result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪关闭流错误");
@@ -129,7 +129,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     a = Task.Run(() => UserParmEvent.Wait(), token);
                     b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    result = Task.WhenAny(a, b);
+                    result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪设置用户错误");
@@ -145,7 +145,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     a = Task.Run(() => UserParmEvent.Wait(), token);
                     b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    result = Task.WhenAny(a, b);
+                    result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪打开流错误");

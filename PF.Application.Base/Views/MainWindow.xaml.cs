@@ -2,7 +2,11 @@ using PF.Application.Base.Configuration;
 using PF.Application.Base.ViewModels;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Interfaces.Logging;
+using PF.Core.Interfaces.Production;
+using Prism;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Navigation;
@@ -27,7 +31,9 @@ namespace PF.Application.Base.Views
         private readonly CommonSettings _commonSettings;
         private readonly IEventAggregator _eventAggregator;
         private readonly IEnumerable<IMechanism> _mechanismsList;
+        private readonly IContainerProvider _containerProvider;
         private bool _isAnimating;
+        private bool _isClosing; // Window_Closing 重入门：防确认对话框期间用户再次点关闭弹出第二个对话框
 
         /// <summary>注入依赖并完成窗口初始化，订阅用户变更事件与 Loaded 事件。</summary>
         public MainWindow(
@@ -35,7 +41,8 @@ namespace PF.Application.Base.Views
             IMessageService messageService,
             CommonSettings commonSettings,
             IEnumerable<IMechanism> mechanisms,
-            IEventAggregator eventAggregator)
+            IEventAggregator eventAggregator,
+            IContainerProvider containerProvider)
         {
             InitializeComponent();
             DataContext = viewModel;
@@ -44,6 +51,7 @@ namespace PF.Application.Base.Views
             _commonSettings = commonSettings;
             _mechanismsList = mechanisms;
             _eventAggregator = eventAggregator;
+            _containerProvider = containerProvider;
 
             _eventAggregator.GetEvent<UserChangedEvent>().Subscribe(OnUserLogined);
             this.Loaded += MainWindow_Loaded;
@@ -140,24 +148,42 @@ namespace PF.Application.Base.Views
 
         private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            // 重入门：确认对话框期间用户若再次点关闭，直接忽略第二次触发。
+            if (_isClosing) { e.Cancel = true; return; }
+
+            // 必须在首个 await 之前设置 e.Cancel = true，否则事件处理器在首个 await 处即返回，
+            // 窗口会先关闭、若 ShutdownMode=OnMainWindowClose 进程开始退出，清理链被截断。
+            e.Cancel = true;
+            _isClosing = true;
+
             var result = await _messageService.ShowMessageAsync(
                 "确定要退出系统吗？", "退出提示",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
-            if (result == ButtonResult.Yes)
+            if (result != ButtonResult.Yes)
             {
-                try
-                {
-                    foreach (var item in _mechanismsList)
-                        item.Dispose();
-                }
-                catch { }
-                Environment.Exit(0);
+                _isClosing = false; // 用户取消，恢复以允许下次关闭尝试
+                return;
             }
-            else
+
+            try
             {
-                e.Cancel = true;
+                // 机构同步释放
+                foreach (var item in _mechanismsList)
+                    item.Dispose();
+
+                // 异步释放顺序：AlarmService → ProductionDataService → LogService（最后）。
+                // LogService 必须最后——它一旦释放，前面服务在排空/超时时记的 Warn 日志会全部丢失，
+                // 而"排空超时"恰恰是最需要留下证据的场景。
+                if (_containerProvider.IsRegistered<IAlarmService>())
+                    await _containerProvider.Resolve<IAlarmService>().DisposeAsync();
+                if (_containerProvider.IsRegistered<IProductionDataService>())
+                    await _containerProvider.Resolve<IProductionDataService>().DisposeAsync();
+                if (_containerProvider.IsRegistered<ILogService>())
+                    await _containerProvider.Resolve<ILogService>().DisposeAsync();
             }
+            catch { }
+            Environment.Exit(0);
         }
 
         #region 主题切换

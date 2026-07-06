@@ -200,6 +200,11 @@ namespace PF.Application.Base
                 {
                     base.OnStartup(e);
                     this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+                    // 兜底非 UI 线程异常：后台 Task、Timer 回调、AppDomain 级异常。
+                    // DispatcherUnhandledException 仅捕获 UI 线程，以下两者覆盖其余线程，
+                    // 避免进程静默崩溃而无任何日志/提示。
+                    AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+                    TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
                 }
                 else
                 {
@@ -251,6 +256,39 @@ namespace PF.Application.Base
             e.Handled = true;
         }
 
+        /// <summary>
+        /// 捕获所有非 UI 线程的未处理异常（后台 Task 抛出且未被观察、native 回调等）。
+        /// IsTerminating 恒为 true（CLR 规范），异常后进程必然终止，此处尽力留下日志。
+        /// </summary>
+        private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            try
+            {
+                var ex = e.ExceptionObject as Exception;
+                PF.Services.Logging.LogService.Instance?.Fatal(
+                    $"[AppDomain 未处理异常] IsTerminating={e.IsTerminating}。" +
+                    $"{(ex != null ? $"{ex.Message}\r\n堆栈: {ex.StackTrace}" : $"ExceptionObject: {e.ExceptionObject}")}",
+                    "AppDomain");
+            }
+            catch { /* 日志组件自身异常不得在此再抛，否则掩盖原始错误 */ }
+        }
+
+        /// <summary>
+        /// 捕获未被观察的 Task 异常（Task 抛异常且无 await/ContinueWith 观察）。
+        /// 调用 SetObserved 阻止该异常在 GC 终结时升级为进程崩溃。
+        /// </summary>
+        private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            try
+            {
+                PF.Services.Logging.LogService.Instance?.Fatal(
+                    $"[未观察的 Task 异常] {e.Exception?.Message}\r\n堆栈: {e.Exception?.StackTrace}",
+                    "TaskScheduler");
+            }
+            catch { /* 同上 */ }
+            e.SetObserved();
+        }
+
         #endregion
 
         #region Prism 核心方法
@@ -289,8 +327,12 @@ namespace PF.Application.Base
         }
 
         /// <summary>注册导航菜单、桥接 Prism EA 事件、完成权限初始化并启动定时服务。</summary>
-        protected override void OnInitialized()
+        protected override async void OnInitialized()
         {
+            // async void：Prism 的 OnInitialized 契约为 void，无法改 Task 返回。
+            // async void 的异常无法被 Prism 捕获，故全程 try/catch 兜底防崩溃。
+            try
+            {
             var navMenuService = Container.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetEntryAssembly());
             navMenuService.RegisterAssembly(typeof(PFApplicationBase).Assembly);
@@ -300,7 +342,8 @@ namespace PF.Application.Base
 
             var authService = Container.Resolve<IUserService>();
             authService.ResetToOperator();
-            authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00")).GetAwaiter().GetResult();
+            // 原 .GetAwaiter().GetResult() 同步阻塞 UI 线程（WPF SynchronizationContext 死锁风险），改 await。
+            await authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00"));
 
             var controller = Container.Resolve<IMasterController>();
             var ea = Container.Resolve<IEventAggregator>();
@@ -323,6 +366,14 @@ namespace PF.Application.Base
             RegisterProjectDailyTasks();
 
             base.OnInitialized();
+            }
+            catch (Exception ex)
+            {
+                // async void 异常兜底：记录日志防静默崩溃（Prism 无法捕获 async void 的异常）。
+                Debug.WriteLine($"[OnInitialized] 初始化阶段异常: {ex.Message}");
+                PF.Services.Logging.LogService.Instance?.Error(
+                    $"初始化阶段异常: {ex.Message}", "Startup", ex);
+            }
         }
 
         /// <summary>注册全部框架公共服务（日志、参数、生产数据、硬件、报警、定时器、视觉等）及子类项目服务。</summary>

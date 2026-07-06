@@ -34,19 +34,19 @@ namespace PF.SecsGem.DataBase
         /// 获取AllAsync
         /// </summary>
         public virtual async Task<IEnumerable<T>> GetAllAsync()
-            => await DbSet.ToListAsync();
+            => await DbSet.AsNoTracking().ToListAsync();
 
         /// <summary>
         /// FindAsync异步操作
         /// </summary>
         public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
-            => await DbSet.Where(predicate).ToListAsync();
+            => await DbSet.AsNoTracking().Where(predicate).ToListAsync();
 
         /// <summary>
         /// SingleOrDefaultAsync异步操作
         /// </summary>
         public virtual async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
-            => await DbSet.SingleOrDefaultAsync(predicate);
+            => await DbSet.AsNoTracking().SingleOrDefaultAsync(predicate);
 
         /// <summary>
         /// 添加Async

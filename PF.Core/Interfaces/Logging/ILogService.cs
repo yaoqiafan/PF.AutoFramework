@@ -9,7 +9,7 @@ namespace PF.Core.Interfaces.Logging
     /// <summary>
     /// 统一日志服务接口
     /// </summary>
-    public interface ILogService
+    public interface ILogService : IAsyncDisposable
     {
         /// <summary>记录日志</summary>
         void Log(LogLevel level, string message, string category = null, Exception exception = null);

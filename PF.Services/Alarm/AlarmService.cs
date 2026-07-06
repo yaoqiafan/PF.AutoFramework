@@ -418,7 +418,7 @@ namespace PF.Services.Alarm
                 """);
         }
 
-        // ── IDisposable ─────────────────────────────────────────────────────
+        // ── IDisposable / IAsyncDisposable ──────────────────────────────────
 
         public void Dispose()
         {
@@ -428,11 +428,38 @@ namespace PF.Services.Alarm
             // 关闭写入端，RunPersistWorkerAsync 的 ReadAllAsync 循环将自然退出
             _persistChannel.Writer.Complete();
 
-            // 等待队列排空，最多 3 秒（超时保护，防止主线程挂起）
+            // 同步 Dispose 兜底（DI 容器或未走异步路径时）：最多等 3 秒
             Task.WaitAny(_persistWorker, Task.Delay(TimeSpan.FromSeconds(3)));
 
             if (!_persistWorker.IsCompleted)
                 _logger?.Warn("[AlarmService] Dispose 超时：持久化队列未在 3s 内排空", "AlarmService");
+        }
+
+        /// <summary>
+        /// 异步释放：关闭写入端后真正 await 持久化 worker 排空（替换原 Dispose 的 Task.WaitAny 同步阻塞）。
+        /// Window_Closing 退出路径应优先调用本方法，确保报警落盘后再退出。
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            _persistChannel.Writer.Complete();
+
+            try
+            {
+                // WaitAsync 超时会抛 TimeoutException（不同于 Task.WaitAny 的静默超时），需捕获并告警。
+                await _persistWorker.WaitAsync(TimeSpan.FromSeconds(3));
+            }
+            catch (TimeoutException)
+            {
+                _logger?.Warn("[AlarmService] DisposeAsync 超时：持久化队列未在 3s 内排空", "AlarmService");
+            }
+            catch (Exception ex)
+            {
+                // worker 自身异常（非超时）也兜底，不得阻断退出链
+                _logger?.Error("[AlarmService] DisposeAsync 等待 worker 时异常", "AlarmService", ex);
+            }
         }
 
         // ── 内部状态类 ──────────────────────────────────────────────────────

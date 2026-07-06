@@ -439,8 +439,21 @@ namespace PF.Infrastructure.Mechanisms
             }
             catch (OperationCanceledException)
             {
+                // 优先判断是否是外部主动取消。如果是，将异常继续往上抛（对齐 WaitAxisMoveDoneAsync 的处理）。
+                if (token.IsCancellationRequested)
+                {
+                    _logger?.Warn($"[{MechanismName}] 轴 [{axisName}] 等待回零被外部手动取消");
+                    token.ThrowIfCancellationRequested();
+                    throw;
+                }
+
+                // 走到这里，说明外部没有取消，纯粹是 timeoutCts 触发的超时。
+                // 先物理制动：回零超时后轴可能仍在运动（回零模式），必须立即停止，否则有撞机/超程风险。
+                // 此时外部 token 尚未取消，可安全用于制动指令。
                 if (timeoutCts.IsCancellationRequested)
                 {
+                    await axis.StopAsync(token);
+
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待回零完成超时（{timeoutMs} ms）");
                     pendingAlarm = new MechanismAlarmEventArgs

@@ -31,6 +31,7 @@ namespace PF.Services.Timer
         private System.Threading.Timer? _timer;
         private DateTime _lastTick;
         private bool     _disposed;
+        private int      _tickRunning; // 单飞行门标志（0=空闲，1=运行中），用 Interlocked 操作保证 OnTick 不重入
 
         public DateTime CurrentTime { get; private set; } = DateTime.Now;
 
@@ -74,26 +75,37 @@ namespace PF.Services.Timer
 
         private void OnTick(object? state)
         {
-            var now = DateTime.Now;
-
-            if (now.Second != _lastTick.Second)
+            // 单飞行门：System.Threading.Timer 回调可能重入（上一次回调未完成时下一次已到），
+            // 用 CompareExchange 保证同一时刻只有一个 OnTick 执行，
+            // 从而消除 _lastTick/CurrentTime 的读改写竞态（避免漏触发或重复触发秒/分/时/天边界事件）。
+            if (Interlocked.CompareExchange(ref _tickRunning, 1, 0) != 0) return;
+            try
             {
-                CurrentTime = now;
-                SecondElapsed?.Invoke(this, now);
-            }
+                var now = DateTime.Now;
 
-            if (now.Minute != _lastTick.Minute)
+                if (now.Second != _lastTick.Second)
+                {
+                    CurrentTime = now;
+                    SecondElapsed?.Invoke(this, now);
+                }
+
+                if (now.Minute != _lastTick.Minute)
+                {
+                    MinuteElapsed?.Invoke(this, now);
+                    CheckSchedules(now);
+                }
+
+                if (now.Hour != _lastTick.Hour) HourElapsed?.Invoke(this, now);
+                if (now.Date != _lastTick.Date) DayElapsed?.Invoke(this, now);
+
+                CheckIntervals(now);
+
+                _lastTick = now;
+            }
+            finally
             {
-                MinuteElapsed?.Invoke(this, now);
-                CheckSchedules(now);
+                Volatile.Write(ref _tickRunning, 0);
             }
-
-            if (now.Hour != _lastTick.Hour) HourElapsed?.Invoke(this, now);
-            if (now.Date != _lastTick.Date) DayElapsed?.Invoke(this, now);
-
-            CheckIntervals(now);
-
-            _lastTick = now;
         }
 
         private void CheckIntervals(DateTime now)

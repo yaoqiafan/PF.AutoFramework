@@ -267,14 +267,10 @@ namespace PF.Services.Production
         {
             var cutoff = DateTime.Now.AddDays(-retentionDays);
             await using var ctx = new ProductionDbContext(_dbOptions);
-            var old = await ctx.ProductionData
+            // ExecuteDeleteAsync 直接生成 DELETE WHERE，无需加载实体到内存（原 ToListAsync + RemoveRange 在大数据量下 OOM/慢）。
+            await ctx.ProductionData
                 .Where(x => x.RecordTime < cutoff)
-                .ToListAsync();
-            if (old.Count > 0)
-            {
-                ctx.ProductionData.RemoveRange(old);
-                await ctx.SaveChangesAsync();
-            }
+                .ExecuteDeleteAsync();
         }
 
         // ══════════════════════════════════════════════════════
@@ -313,6 +309,43 @@ namespace PF.Services.Production
             // 先等待消费循环排空（不取消，让 ReadAllAsync 自然结束），
             // 排空超时后再 Cancel 强制回收资源——避免 Cancel 抢先打断排空导致关机丢生产数据。
             try { _consumerTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            _cts.Cancel();
+            _writeContext?.Dispose();
+            _cts.Dispose();
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// 异步释放：用 WaitAsync 替换同步 Dispose 的 .Wait(5s) 阻塞（消除关机路径的线程池线程占用）。
+        /// Window_Closing 退出路径应优先调用本方法，让生产数据排空后再退出。
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed) return;
+            _writeChannel.Writer.TryComplete();
+
+            try
+            {
+                // WaitAsync 超时抛 TimeoutException（不同于 Wait 的静默超时），捕获并告警。
+                if (_consumerTask != null)
+                    await _consumerTask.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (TimeoutException)
+            {
+                // 排空超时——生产数据可能在关机时部分丢失。
+                // 本服务先于 LogService 释放（退出链顺序 Alarm→Production→Log），此刻日志队列仍可用，
+                // 告警会随 LogService 排空落盘，为"关机丢数据"留下证据。
+                Logging.LogService.Instance?.Warn(
+                    "[ProductionDataService] DisposeAsync 超时：生产数据队列未在 5s 内排空，可能部分丢失", "ProductionData");
+            }
+            catch (Exception ex)
+            {
+                // 消费循环自身异常兜底，不得阻断退出链
+                Logging.LogService.Instance?.Warn(
+                    $"[ProductionDataService] DisposeAsync 等待消费循环时异常: {ex.Message}", "ProductionData");
+            }
+
             _cts.Cancel();
             _writeContext?.Dispose();
             _cts.Dispose();
