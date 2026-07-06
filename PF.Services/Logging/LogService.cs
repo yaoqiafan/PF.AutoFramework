@@ -1137,8 +1137,10 @@ namespace PF.Services.Logging
         {
             if (_disposed) return;
             _logQueue.CompleteAdding();
-            _processingCts.Cancel();
+            // 先等待消费循环排空（不取消，让 GetConsumingEnumerable 自然结束），
+            // 排空超时后再 Cancel 强制回收资源——避免 Cancel 抢先打断排空导致关机丢日志。
             try { _processingTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            _processingCts.Cancel();
             _cleanupTimer?.Dispose();
             _flushTimer?.Dispose();
             _processingCts.Dispose();

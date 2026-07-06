@@ -1,26 +1,23 @@
-﻿using PF.Core.Enums;
-using PF.Core.Interfaces.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace PF.Core.Interfaces.SecsGem.DataBase
 {
     /// <summary>
     /// SECS/GEM 数据库管理接口。
-    /// 提供对 SECS/GEM 相关数据表的仓储访问、数据库初始化以及统一的事务提交功能。
+    /// <para>提供对 SECS/GEM 相关数据表的工作单元作用域访问与数据库初始化。</para>
+    /// <para>并发模型：每次 <see cref="BeginScope"/> 返回一个独立的短生命周期 DbContext 作用域，
+    /// 多线程调用各自隔离，天然避免 DbContext 的线程不安全问题。</para>
     /// </summary>
     public interface ISecsGemDataBase
     {
         /// <summary>
-        /// 根据指定的枚举获取对应的泛型数据仓储。
+        /// 开启一个工作单元作用域。作用域内多次 <see cref="ISecsGemDbScope.GetRepository{T}"/>
+        /// 返回绑定到同一 DbContext 的仓储，<see cref="ISecsGemDbScope.SaveChangesAsync"/>
+        /// 一次性提交整个作用域的变更。
+        /// <para>调用方负责 Dispose（推荐 <c>using var scope = db.BeginScope();</c>）。</para>
         /// </summary>
-        /// <typeparam name="T">实体类型，必须是引用类型且实现 <see cref="IEntity"/> 接口，并具有无参构造函数。</typeparam>
-        /// <param name="dbSet">用于指定目标数据表的 <see cref="SecsDbSet"/> 枚举值。</param>
-        /// <returns>返回对应实体类型的泛型仓储接口 <see cref="IGenericRepository{T}"/>。</returns>
-        IGenericRepository<T> GetRepository<T>(SecsDbSet dbSet) where T : class, IEntity, new();
+        /// <returns>一个新的工作单元作用域。</returns>
+        ISecsGemDbScope BeginScope();
 
         /// <summary>
         /// 异步初始化 SECS/GEM 数据库。
@@ -28,11 +25,5 @@ namespace PF.Core.Interfaces.SecsGem.DataBase
         /// </summary>
         /// <returns>返回一个表示异步操作的任务。如果初始化成功，结果为 <c>true</c>；否则为 <c>false</c>。</returns>
         Task<bool> InitializationDataBase();
-
-        /// <summary>
-        /// 异步保存上下文中的所有挂起更改到数据库（实现工作单元模式的统一提交）。
-        /// </summary>
-        /// <returns>返回一个表示异步保存操作的任务。任务结果包含成功写入底层数据库的状态实体数量。</returns>
-        Task<int> SaveChangesAsync();
     }
 }

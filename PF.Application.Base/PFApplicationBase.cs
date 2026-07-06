@@ -165,7 +165,6 @@ namespace PF.Application.Base
                 var opts = new DbContextOptionsBuilder<SecsGemDbContext>()
                     .UseSqlite($"Data Source={filePath}").Options;
                 containerRegistry.RegisterInstance<DbContextOptions<SecsGemDbContext>>(opts);
-                containerRegistry.RegisterSingleton<SecsGemDbContext>();
                 containerRegistry.RegisterSingleton<ISecsGemDataBase, SecsGemDataBaseManger>();
                 containerRegistry.RegisterSingleton<ICommandManager, SecsGemCommandManger>();
                 containerRegistry.RegisterSingleton<SecsGemMessageProcessor>();

@@ -31,11 +31,14 @@ namespace PF.Services.Alarm
         // 复合键：(Source, ErrorCode) → 同一工站可并发持有多条不同代码的活跃报警
         private readonly ConcurrentDictionary<(string Source, string ErrorCode), ActiveAlarmState> _activeMap = new();
 
-        // 有界持久化队列：容量 10000，背压策略改为 Wait。
-        // 原 DropOldest 在高并发停机时会将最早入队的首发故障报警挤出，导致根因丢失；
-        // Wait 模式确保写入端阻塞等待空位，首发报警不被后续报警覆盖。
-        // 容量 10000 已足够大，正常情况下不会触发背压；若数据库持续死锁，
-        // 写入方阻塞是合理的背压信号，优于静默丢弃关键故障信息。
+        // 有界持久化队列：容量 10000。
+        // 写入端（EnqueuePersist）采用 TryWrite 快速失败策略：队列满时不阻塞 TriggerAlarm
+        // 调用方（TriggerAlarm 是同步 bool 方法，await WriteAsync 会引入 sync-over-async），
+        // 而是升级为 Fatal 日志并累加 _droppedPersistCount，使关键报警信息的丢失对运维可见。
+        // 注：BoundedChannelFullMode.Wait 仅约束 WriteAsync 的行为，不影响 TryWrite——
+        // TryWrite 在任何非丢弃模式下、队列满时照样返回 false，故丢弃分支可达，Fatal 监控有效。
+        // 容量 10000 已足够大，正常运行下几乎不会触发丢弃；若 _droppedPersistCount 非 0，
+        // 即表示数据库持续阻塞，需立即排查。
         private readonly Channel<PersistJob> _persistChannel = Channel.CreateBounded<PersistJob>(
             new BoundedChannelOptions(10_000)
             {
@@ -173,14 +176,27 @@ namespace PF.Services.Alarm
                 await using var ctx = new AlarmDbContext(_dbOptions, targetYear);
                 await EnsureYearTableAsync(ctx);
 
-                var entities = await ctx.AlarmRecords
+                // 实体字段过滤条件（source/startTime/endTime/errorCode）下推到 SQL，
+                // 在 OrderByDescending 之前应用，确保分页前已过滤，每页返回行数准确。
+                // 注意：AlarmRecordEntity 仅含 Id/ErrorCode/Source/TriggerTime/ClearTime/IsActive，
+                // category/severity/message 来自字典联查（非实体字段），无法下推，留内存层过滤。
+                var query = ctx.AlarmRecords
                     .AsNoTracking()
-                    .OrderByDescending(r => r.TriggerTime)
+                    .Where(r => source == null || r.Source == source)
+                    .Where(r => startTime == null || r.TriggerTime >= startTime)
+                    .Where(r => endTime == null || r.TriggerTime <= endTime)
+                    .Where(r => errorCode == null || EF.Functions.Like(r.ErrorCode, $"%{errorCode}%"))
+                    .OrderByDescending(r => r.TriggerTime);
+
+                var entities = await query
                     .Skip(page * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // 联查字典并在内存层应用所有过滤条件
+                // 联查字典并在内存层应用字典维度过滤条件
+                // TODO(P1): category/severity/descriptionKeyword 依赖字典联查，无法下推 SQL。
+                //           当前先 DB 分页（实体字段已下推）再内存过滤，含这些字典维度的查询
+                //           每页可能 < pageSize。彻底修复需"按字典维度过取"策略。
                 return entities
                     .Select(entity =>
                     {
@@ -203,12 +219,8 @@ namespace PF.Services.Alarm
                             MessageIDHex = info.MessageIDHex
                         };
                     })
-                    .Where(r => startTime == null || r.TriggerTime >= startTime)
-                    .Where(r => endTime == null || r.TriggerTime <= endTime)
                     .Where(r => category == null || r.Category == category)
                     .Where(r => severity == null || r.Severity == severity)
-                    .Where(r => source == null || r.Source == source)
-                    .Where(r => errorCode == null || (r.ErrorCode?.Contains(errorCode, StringComparison.OrdinalIgnoreCase) ?? false))
                     .Where(r => descriptionKeyword == null || (r.Message?.Contains(descriptionKeyword, StringComparison.OrdinalIgnoreCase) ?? false))
                     .ToList()
                     .AsReadOnly();

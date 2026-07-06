@@ -62,11 +62,11 @@ namespace PF.Services.Production
 
             // 创建写专用 DbContext 并启动消费者线程
             _writeContext = new ProductionDbContext(_dbOptions);
-            _consumerTask = Task.Factory.StartNew(
-                ConsumeAsync,
-                _cts.Token,
-                TaskCreationOptions.LongRunning,
-                TaskScheduler.Default);
+            // Task.Run 接收 Func<Task> 时自动解包，返回内层 Task，
+            // Dispose 时的 Wait(5s) 才能真正等待消费循环结束。
+            // （原 Task.Factory.StartNew 未 Unwrap，_consumerTask 在首个 await 即"完成"，
+            //   Wait 从未等过消费循环；LongRunning + async 也是无效组合——首个 await 后专用线程即归还。）
+            _consumerTask = Task.Run(ConsumeAsync, _cts.Token);
         }
 
         // ══════════════════════════════════════════════════════
@@ -310,8 +310,10 @@ namespace PF.Services.Production
         {
             if (_disposed) return;
             _writeChannel.Writer.TryComplete();
-            _cts.Cancel();
+            // 先等待消费循环排空（不取消，让 ReadAllAsync 自然结束），
+            // 排空超时后再 Cancel 强制回收资源——避免 Cancel 抢先打断排空导致关机丢生产数据。
             try { _consumerTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            _cts.Cancel();
             _writeContext?.Dispose();
             _cts.Dispose();
             _disposed = true;

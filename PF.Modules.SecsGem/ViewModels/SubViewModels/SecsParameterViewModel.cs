@@ -531,8 +531,9 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
+                using var scope = _db.BeginScope();
                 // DbSystemRows: 1-to-many expansion — handled manually
-                var sysEntities = await _db.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs).GetAllAsync();
+                var sysEntities = await scope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs).GetAllAsync();
                 Application.Current?.Dispatcher.Invoke(() =>
                 {
                     DbSystemRows.Clear();
@@ -547,27 +548,27 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 });
 
                 await LoadEntitiesToRowsAsync<CommandIDEntity, CommandIdRowViewModel>(
-                    SecsDbSet.CommnadIDs, DbCommandIdRows,
+                    scope, SecsDbSet.CommnadIDs, DbCommandIdRows,
                     e => { var c = e.ToCommandID(); return new CommandIdRowViewModel { Code = c.ID, Description = c.Description, RCMD = c.RCMD, LinkVIDs = string.Join(", ", c.LinkVID), Comment = c.Comment ?? string.Empty }; });
 
                 await LoadEntitiesToRowsAsync<CEIDEntity, CeidRowViewModel>(
-                    SecsDbSet.CEIDs, DbCeidRows,
+                    scope, SecsDbSet.CEIDs, DbCeidRows,
                     e => { var c = e.ToCEID(); return new CeidRowViewModel { Code = c.ID, Description = c.Description, LinkReportIDs = string.Join(", ", c.LinkReportID), Comment = c.Comment ?? string.Empty }; });
 
                 await LoadEntitiesToRowsAsync<ReportIDEntity, ReportIdRowViewModel>(
-                    SecsDbSet.ReportIDs, DbReportIdRows,
+                    scope, SecsDbSet.ReportIDs, DbReportIdRows,
                     e => { var r = e.ToReportID(); return new ReportIdRowViewModel { Code = r.ID, Description = r.Description, LinkVIDs = string.Join(", ", r.LinkVID), Comment = r.Comment ?? string.Empty }; });
 
                 await LoadEntitiesToRowsAsync<VIDEntity, VidRowViewModel>(
-                    SecsDbSet.VIDs, DbVidRows,
+                    scope, SecsDbSet.VIDs, DbVidRows,
                     e => { var v = e.ToVID(); return new VidRowViewModel { Code = v.ID, Description = v.Description, DataType = v.DataType.ToString(), Value = v.Value?.ToString() ?? string.Empty, Comment = v.Comment ?? string.Empty }; });
 
                 await LoadEntitiesToRowsAsync<IncentiveEntity, ParamRowViewModel>(
-                    SecsDbSet.IncentiveCommands, DbIncentiveRows,
+                    scope, SecsDbSet.IncentiveCommands, DbIncentiveRows,
                     e => { var c = e.GetSFCommandFormIncentiveEntity(); return new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Incentive", Description = c.ID }; });
 
                 await LoadEntitiesToRowsAsync<ResponseEntity, ParamRowViewModel>(
-                    SecsDbSet.ResponseCommands, DbResponseRows,
+                    scope, SecsDbSet.ResponseCommands, DbResponseRows,
                     e => { var c = e.GetSFCommandFormResponseEntity(); return new ParamRowViewModel { Name = c.Key, Value = c.Name, DataType = "Response", Description = c.ID }; });
             }
             catch (Exception ex)
@@ -582,11 +583,12 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                await ReplaceAllAsync<VIDEntity>(SecsDbSet.VIDs, cfg.VIDS.Values.Select(v => v.ToEntity()));
-                await ReplaceAllAsync<CEIDEntity>(SecsDbSet.CEIDs, cfg.CEIDS.Values.Select(c => c.ToEntity()));
-                await ReplaceAllAsync<ReportIDEntity>(SecsDbSet.ReportIDs, cfg.ReportIDS.Values.Select(r => r.ToEntity()));
-                await ReplaceAllAsync<CommandIDEntity>(SecsDbSet.CommnadIDs, cfg.CommandIDS.Values.Select(c => c.ToEntity()));
-                await _db.SaveChangesAsync();
+                using var scope = _db.BeginScope();
+                await ReplaceAllAsync<VIDEntity>(scope, SecsDbSet.VIDs, cfg.VIDS.Values.Select(v => v.ToEntity()));
+                await ReplaceAllAsync<CEIDEntity>(scope, SecsDbSet.CEIDs, cfg.CEIDS.Values.Select(c => c.ToEntity()));
+                await ReplaceAllAsync<ReportIDEntity>(scope, SecsDbSet.ReportIDs, cfg.ReportIDS.Values.Select(r => r.ToEntity()));
+                await ReplaceAllAsync<CommandIDEntity>(scope, SecsDbSet.CommnadIDs, cfg.CommandIDS.Values.Select(c => c.ToEntity()));
+                await scope.SaveChangesAsync();
             }
             catch (Exception ex) { _log.Append(null, $"Validate 参数持久化失败: {ex.Message}", isSystem: true); }
         }
@@ -595,8 +597,9 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                await ReplaceAllAsync<SecsGemSystemEntity>(SecsDbSet.SystemConfigs, [sys.ToEntity()]);
-                await _db.SaveChangesAsync();
+                using var scope = _db.BeginScope();
+                await ReplaceAllAsync<SecsGemSystemEntity>(scope, SecsDbSet.SystemConfigs, [sys.ToEntity()]);
+                await scope.SaveChangesAsync();
             }
             catch (Exception ex) { _log.Append(null, $"System 参数持久化失败: {ex.Message}", isSystem: true); }
         }
@@ -607,34 +610,36 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             {
                 var formula = _manager.CommandManager.FormulaConfiguration;
                 if (formula == null) return;
-                await ReplaceAllAsync<IncentiveEntity>(SecsDbSet.IncentiveCommands,
+                using var scope = _db.BeginScope();
+                await ReplaceAllAsync<IncentiveEntity>(scope, SecsDbSet.IncentiveCommands,
                     formula.IncentiveCommandDictionary.Values.Select(c => c.GetIncentiveEntityFormSFCommand()));
-                await ReplaceAllAsync<ResponseEntity>(SecsDbSet.ResponseCommands,
+                await ReplaceAllAsync<ResponseEntity>(scope, SecsDbSet.ResponseCommands,
                     formula.ResponseCommandDictionary.Values.Select(c => c.GetResponseEntityFormSFCommand()));
-                await _db.SaveChangesAsync();
+                await scope.SaveChangesAsync();
             }
             catch (Exception ex) { _log.Append(null, $"Formula 参数持久化失败: {ex.Message}", isSystem: true); }
         }
 
         // ── 通用 DB 操作辅助 ────────────────────────────────────────────────────
 
-        /// <summary>清空指定 DbSet 后写入新实体（replace-all 模式）。</summary>
-        private async Task ReplaceAllAsync<TEntity>(SecsDbSet dbSet, IEnumerable<TEntity> newEntities)
+        /// <summary>清空指定 DbSet 后写入新实体（replace-all 模式，作用于给定 scope）。</summary>
+        private async Task ReplaceAllAsync<TEntity>(ISecsGemDbScope scope, SecsDbSet dbSet, IEnumerable<TEntity> newEntities)
             where TEntity : class, IEntity, new()
         {
-            var repo = _db.GetRepository<TEntity>(dbSet);
+            var repo = scope.GetRepository<TEntity>(dbSet);
             await repo.RemoveRangeAsync(await repo.GetAllAsync());
             await repo.AddRangeAsync(newEntities);
         }
 
         /// <summary>从指定 DbSet 读取实体，映射后填入 UI 集合（Dispatcher 上执行 Clear + Add）。</summary>
         private async Task LoadEntitiesToRowsAsync<TEntity, TRow>(
+            ISecsGemDbScope scope,
             SecsDbSet dbSet,
             ObservableCollection<TRow> target,
             Func<TEntity, TRow> mapper)
             where TEntity : class, IEntity, new()
         {
-            var entities = await _db.GetRepository<TEntity>(dbSet).GetAllAsync();
+            var entities = await scope.GetRepository<TEntity>(dbSet).GetAllAsync();
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 target.Clear();

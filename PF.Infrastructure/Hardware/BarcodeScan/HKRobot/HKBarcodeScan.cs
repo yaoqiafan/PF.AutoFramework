@@ -97,7 +97,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     Task a = Task.Run(() => UserParmEvent.Wait(), token);
                     Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    Task result = Task.WhenAny(a, b);
+                    Task result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪获取当前用户错误");
