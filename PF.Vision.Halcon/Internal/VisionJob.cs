@@ -49,4 +49,17 @@ internal sealed class VisionJob
 
     /// <summary>true = 引擎元操作</summary>
     public bool IsEngineAction => EngineAction is not null;
+
+    // ── 遗弃标记 ──────────────────────────────────────────────────────────────
+
+    private int _abandoned;
+
+    /// <summary>
+    /// 由提交方在超时/取消后调用：调用方已不再等待结果，
+    /// Worker 完成执行后须自行释放结果中的非托管资源（HObject），不再触发事件。
+    /// </summary>
+    public void Abandon() => Interlocked.Exchange(ref _abandoned, 1);
+
+    /// <summary>true = 调用方已放弃等待此作业</summary>
+    public bool IsAbandoned => Volatile.Read(ref _abandoned) == 1;
 }

@@ -60,6 +60,7 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using MsgType = PF.UI.Shared.Data.MsgType;
 
@@ -532,81 +533,150 @@ namespace PF.Application.Base
 
         private async Task<bool> PerformInitializationAsync()
         {
+           
             bool loadErr = false;
             var commonParam = Container.Resolve<CommonSettings>();
 
             Splash splash = Container.Resolve<Splash>();
+            splash.Progress = 0;
             ILogService logService = Container.Resolve<ILogService>();
 
-            var splashProgress = commonParam.EnableDetailedLog ? 
-                new Progress<SplashProgressPayload>(async payload =>
-                    {
-                        SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString());
-                        await Task.Delay(300);
-                    })
-                    : null;
+            SplashMessageThrottler? throttler = null;
+            IProgress<SplashProgressPayload>? splashProgress = null;
+            if (commonParam.EnableDetailedLog)
+            {
+                // 详细日志模式下把突发的 Report() 消息节流显示，避免加载过快时界面来不及渲染；
+                // 未启用时 splashProgress 为 null，底层服务不会调用 Report，加载速度不受影响。
+                throttler = new SplashMessageThrottler(payload =>
+                    SplashUpdateMessage(splash, logService, payload.Status, payload.Category, payload.MsgType.ToString()));
+                splashProgress = new Progress<SplashProgressPayload>(throttler.Enqueue);
+            }
 
-            SplashUpdateMessage(splash, logService, "程序加载中。。。", msgType: MsgType.Info);
+            // 阶段横幅消息统一走这里：详细日志模式下和底层 Report() 的逐条消息共用同一条
+            // FIFO 队列，保证显示顺序严格等于事件发生顺序，不会被队列里滞后的旧消息覆盖；
+            // 未启用详细日志时退化为直接同步显示，不引入任何额外延迟。
+            void UpdateStage(string status, MsgType msgType = MsgType.Info, string category = "Splash")
+            {
+                if (throttler != null)
+                {
+                    // SplashProgressPayload.MsgType 是 PF.Core.Enums.MsgType，与本文件 using 别名的
+                    // PF.UI.Shared.Data.MsgType 是两个不同的枚举类型（仅成员名相同），按名称转换。
+                    var payloadMsgType = Enum.Parse<PF.Core.Enums.MsgType>(msgType.ToString());
+                    throttler.Enqueue(new SplashProgressPayload { Status = status, Category = category, MsgType = payloadMsgType });
+                }
+                else
+                {
+                    SplashUpdateMessage(splash, logService, status, category, msgType);
+                }
+            }
+
+            // 进度条动画完全在外部（消费侧）实现，不依赖控件库改动：ProgressProperty 是
+            // Splash 上已公开的依赖属性，直接对它 BeginAnimation 即可从当前值平滑插值到
+            // 目标值，避免整百分比跳变显得生硬。
+            // 时长必须明显小于两次调用之间的实际间隔（各阶段 Task.Delay 通常 300~500ms），
+            // 否则上一段动画还没跑完就被下一次调用打断重启，视觉上会变成"卡住不动再跳变"，
+            // 而不是真正的丝滑过渡。
+            void AnimateProgress(double target)
+            {
+                splash.BeginAnimation(Splash.ProgressProperty, new DoubleAnimation(target, TimeSpan.FromMilliseconds(4000))
+                {
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                });
+            }
+
+            // 段落阻塞：等当前阶段队列里的消息全部按节奏显示完，再放行下一阶段的实际初始化工作
+            // 和它自己的消息上报。避免不同阶段的消息挤在同一个队列里越堆越多，
+            // 也避免只在最后 drain 一次时，恰好积压较多导致那一下等待时间明显变长、像是卡死。
+            async Task DrainStage()
+            {
+                if (throttler != null)
+                {
+                    await throttler.DrainAsync();
+                }
+            }
+
+            AnimateProgress(0);
+            UpdateStage("程序加载中。。。");
             try
             {
 
                 await Task.Delay(500);
-                SplashUpdateMessage(splash, logService, "配置文件加载中。。。", msgType: MsgType.Info);
+                UpdateStage("配置文件加载中。。。");
                 var configLoaded = await LoadConfigurationAsync();
                 if (!configLoaded)
                 {
-                    SplashUpdateMessage(splash, logService, "配置文件加载失败", msgType: MsgType.Error);
+                    UpdateStage("配置文件加载失败", MsgType.Error);
                     loadErr = true;
                     return false;
                 }
-                SplashUpdateMessage(splash, logService, "配置文件加载成功。。。", msgType: MsgType.Success);
-                await Task.Delay(500);
+                UpdateStage("配置文件加载成功。。。", MsgType.Success);
+               
+                await DrainStage();
+                AnimateProgress(15);
 
-                SplashUpdateMessage(splash, logService, "通讯实例初始化中。。。", msgType: MsgType.Info);
-                await Task.Delay(500);
+                UpdateStage("通讯实例初始化中。。。");
+              
                 var commManager = Container.Resolve<ICommunicationManagerService>();
                 await commManager.LoadAndInitializeAsync(splashProgress);
-                SplashUpdateMessage(splash, logService, "通讯实例初始化完成", msgType: MsgType.Success);
-                await Task.Delay(500);
+                UpdateStage("通讯实例初始化完成", MsgType.Success);
+               
+                await DrainStage();
+              
+                AnimateProgress(35);
 
-                SplashUpdateMessage(splash, logService, "硬件设备初始化中。。。", msgType: MsgType.Info);
-                await Task.Delay(500);
+                UpdateStage("硬件设备初始化中。。。");
+               
                 var hwManager = Container.Resolve<IHardwareManagerService>();
                 await hwManager.LoadAndInitializeAsync(splashProgress);
-                SplashUpdateMessage(splash, logService, "硬件设备初始化完成", msgType: MsgType.Success);
-                await Task.Delay(300);
+                UpdateStage("硬件设备初始化完成", MsgType.Success);
+               
+                await DrainStage();
+               
+                AnimateProgress(60);
 
-                SplashUpdateMessage(splash, logService, "模组初始化中。。。", msgType: MsgType.Info);
-                await Task.Delay(300);
+                UpdateStage("模组初始化中。。。");
+              
                 if (await InitializeMechanismsAsync(splashProgress))
                 {
-                    SplashUpdateMessage(splash, logService, "模组初始化完成！", msgType: MsgType.Success);
+                    UpdateStage("模组初始化完成！", MsgType.Success);
                 }
                 else
                 {
-                    SplashUpdateMessage(splash, logService, "模组初始化失败！", msgType: MsgType.Error);
+                    UpdateStage("模组初始化失败！", MsgType.Error);
                     loadErr = true;
                 }
+                await DrainStage();
+                AnimateProgress(85);
 
-
-                await Task.Delay(500);
-
+              
                 if (!loadErr)
                 {
-                    SplashUpdateMessage(splash, logService, "软件初始化成功！", msgType: MsgType.Success);
+                    UpdateStage("软件初始化成功！", MsgType.Success);
+                    
                 }
                 else
                 {
-                    SplashUpdateMessage(splash, logService, "软件初始化失败！", msgType: MsgType.Error);
+                    UpdateStage("软件初始化失败！", MsgType.Error);
                 }
-
-                await Task.Delay(500);
+                await DrainStage();
+                AnimateProgress(100);
+                
                 return !loadErr;
             }
             catch (Exception ex)
             {
-                SplashUpdateMessage(splash, logService, $"初始化过程中发生错误: {ex.Message}", msgType: MsgType.Error);
+                UpdateStage($"初始化过程中发生错误: {ex.Message}", MsgType.Error);
                 return false;
+            }
+            finally
+            {
+                await Task.Delay(4000);
+                // 等待节流队列剩余消息按节奏显示完，避免实际加载速度快于消息显示节奏时
+                // Splash 提前关闭、剩余消息只能在 Splash 关闭后才继续写入日志面板。
+                if (throttler != null)
+                {
+                    await throttler.DrainAsync();
+                }
             }
         }
 
@@ -637,6 +707,44 @@ namespace PF.Application.Base
                 default: logService?.Info(status, category); break;
             }
             splash?.UpdateMessage(status, msgType);
+        }
+
+        /// <summary>
+        /// 仅供详细日志模式使用：把短时间内突发的 Progress 消息排队，按固定节奏逐条显示，
+        /// 避免 Report() 密集调用时界面来不及渲染、只能看到最后几条。
+        /// Enqueue 本身不阻塞调用方（底层加载线程/UI线程），显示节奏与实际加载耗时解耦，
+        /// 因此不会拖慢 EnableDetailedLog=false 时的整体加载速度。
+        /// </summary>
+        private sealed class SplashMessageThrottler
+        {
+            private const int DisplayIntervalMs = 500;
+
+            private readonly Action<SplashProgressPayload> _display;
+            private readonly Queue<SplashProgressPayload> _pending = new();
+            private Task _pumpTask = Task.CompletedTask;
+
+            public SplashMessageThrottler(Action<SplashProgressPayload> display) => _display = display;
+
+            public void Enqueue(SplashProgressPayload payload)
+            {
+                _pending.Enqueue(payload);
+                if (_pumpTask.IsCompleted)
+                {
+                    _pumpTask = PumpAsync();
+                }
+            }
+
+            /// <summary>等待队列中剩余消息按节奏显示完毕；队列已空时立即返回。</summary>
+            public Task DrainAsync() => _pumpTask;
+
+            private async Task PumpAsync()
+            {
+                while (_pending.Count > 0)
+                {
+                    _display(_pending.Dequeue());
+                    await Task.Delay(DisplayIntervalMs);
+                }
+            }
         }
 
         #endregion

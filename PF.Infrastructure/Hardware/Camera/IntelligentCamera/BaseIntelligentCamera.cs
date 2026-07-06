@@ -1,4 +1,4 @@
-﻿using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
+using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Logging;
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
+namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera
 {
     /// <summary>
     /// 智能相机基类
@@ -24,20 +24,17 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
         /// <summary>
         /// IP地址
         /// </summary>
-        public abstract string IPAdress { get; }
+        public abstract string IPAddress { get; }
 
         /// <summary>
         /// 触发端口
         /// </summary>
-        public abstract int TiggerPort { get; }
+        public abstract int TriggerPort { get; }
 
         /// <summary>
         /// 相机程序列表
         /// </summary>
         public abstract List<string> CameraProgram { get; }
-
-
-
 
         /// <summary>
         /// 超时时间（毫秒）
@@ -45,23 +42,22 @@ namespace PF.Infrastructure.Hardware.Carame.IntelligentCamera
         public abstract int TimeOutMs { get; }
 
         /// <summary>当前相机已加载的程式名称。</summary>
-        public abstract string CurProgrammer { get; }
+        public abstract string CurrentProgram { get; }
 
         /// <summary>
         /// 切换程序
         /// </summary>
         public abstract Task<bool> ChangeProgram(object ProgramNumber, CancellationToken token = default);
 
-
         /// <summary>
-        /// 触发拍照
+        /// 触发拍照。失败抛出异常（而非返回 null），取消抛出 OperationCanceledException。
         /// </summary>
-        public abstract Task<string> Tigger(CancellationToken token = default);
+        public abstract Task<string> Trigger(CancellationToken token = default);
 
         /// <summary>
         /// 判断程序是否存在
         /// </summary>
-        public abstract Task<bool> DetermineProgramExits(object programName, CancellationToken token = default);
+        public abstract Task<bool> DetermineProgramExists(object programName, CancellationToken token = default);
 
     }
 }

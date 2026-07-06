@@ -14,8 +14,7 @@ namespace PF.Modules.Debug.ViewModels
     /// <summary>智能相机调试 ViewModel</summary>
     public class CameraDebugViewModel : RegionViewModelBase
     {
-        // 假设 BaseIntelligentCamera 继承自 BaseDevice，且包含触发和读码等方法
-        private IIntelligentCamera _camera; // 如果你有明确的接口引用（如 IIntelligentCamera），请替换 dynamic
+        private IIntelligentCamera _camera;
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
 
@@ -131,9 +130,11 @@ namespace PF.Modules.Debug.ViewModels
 
         private void InitializeCommands()
         {
-            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
-            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
-            ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
+            // 设备生命周期操作同样必须捕获异常：DelegateCommand 的 async lambda 是 async void，
+            // 未捕获异常会直接击穿到 Dispatcher 导致进程崩溃
+            ConnectCommand    = new DelegateCommand(async () => await RunDeviceOpAsync("连接",   d => d.ConnectAsync(CancellationToken.None)));
+            DisconnectCommand = new DelegateCommand(async () => await RunDeviceOpAsync("断开连接", d => d.DisconnectAsync()));
+            ResetCommand      = new DelegateCommand(async () => await RunDeviceOpAsync("复位",   d => d.ResetAsync(CancellationToken.None)));
 
             TriggerCommand = new DelegateCommand(async () =>
             {
@@ -141,9 +142,8 @@ namespace PF.Modules.Debug.ViewModels
                 try
                 {
                     ResultText = "正在触发检测...";
-                    // 请替换为 BaseIntelligentCamera 实际的触发及获取结果的方法
-                    var result = await _camera.Tigger();
-                    ResultText = result?.ToString() ?? "触发成功，无返回数据";
+                    var result = await _camera.Trigger();
+                    ResultText = string.IsNullOrEmpty(result) ? "触发成功，无返回数据" : result;
                 }
                 catch (Exception ex)
                 {
@@ -156,9 +156,10 @@ namespace PF.Modules.Debug.ViewModels
                 if (_camera == null) return;
                 try
                 {
-                    // 请替换为 BaseIntelligentCamera 实际的切换程序方法
-                    await _camera.ChangeProgram(TargetJob );
-                    ResultText = $"成功切换到程序号: {TargetJob }";
+                    var ok = await _camera.ChangeProgram(TargetJob);
+                    ResultText = ok
+                        ? $"成功切换到程序号: {TargetJob}"
+                        : $"切换程序失败: {TargetJob}（详见硬件日志）";
                 }
                 catch (Exception ex)
                 {
@@ -170,6 +171,20 @@ namespace PF.Modules.Debug.ViewModels
             {
                 _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.CameraTimeout, "调试页面手动模拟相机报警");
             });
+        }
+
+        /// <summary>执行设备生命周期操作并把异常反馈到界面（不允许异常逃出 async void 命令）</summary>
+        private async Task RunDeviceOpAsync(string opName, Func<BaseDevice, Task> op)
+        {
+            if (_baseDevice == null) return;
+            try
+            {
+                await op(_baseDevice);
+            }
+            catch (Exception ex)
+            {
+                ResultText = $"{opName}失败: {ex.Message}";
+            }
         }
 
         #endregion

@@ -27,8 +27,13 @@ public sealed class VisionContextManager : IVisionContextManager, IDisposable
         _procedureDirectory = procedureDirectory;
         _logger             = logger;
 
-        // 非阻塞：只写 Warn 日志，不影响启动
-        AlgorithmVerifier.VerifyAndUpdate(_procedureDirectory, _logger);
+        // 后台执行：校验会对目录下所有 .hdev 计算 MD5，文件多/盘慢时耗时显著，
+        // 不得阻塞构造函数（DI 容器解析发生在启动路径上）
+        _ = Task.Run(() =>
+        {
+            try { AlgorithmVerifier.VerifyAndUpdate(_procedureDirectory, _logger); }
+            catch (Exception ex) { _logger.Warn("[Vision] 算法文件校验后台任务异常", LogCategories.Vision, ex); }
+        });
     }
 
     public IReadOnlyList<EngineMode> ActiveEngines =>
@@ -40,12 +45,15 @@ public sealed class VisionContextManager : IVisionContextManager, IDisposable
 
     public IVisionService GetOrCreate(EngineMode mode)
     {
-        // 快速路径：槽位非空时无锁返回（只会有创建/释放并发，且引用赋值是原子的）
-        if (_engines[(int)mode] is { } existing) return existing;
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
+        // 统一走锁：无锁快速路径会与 ReleaseAsync/Dispose 竞态，
+        // 可能返回一个即将/已经被释放的引擎实例（调用频率低，锁开销可忽略）
         _lock.Wait();
         try
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             // 双重检查，防止并发创建
             if (_engines[(int)mode] is { } raceWinner) return raceWinner;
 
@@ -82,13 +90,22 @@ public sealed class VisionContextManager : IVisionContextManager, IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
 
-        for (int i = 0; i < _engines.Length; i++)
+        // 持锁释放：与 GetOrCreate/ReleaseAsync 互斥，防止并发创建的引擎逃逸释放
+        _lock.Wait();
+        try
         {
-            _engines[i]?.Dispose();
-            _engines[i] = null;
+            if (_disposed) return;
+            _disposed = true;
+
+            for (int i = 0; i < _engines.Length; i++)
+            {
+                _engines[i]?.Dispose();
+                _engines[i] = null;
+            }
         }
+        finally { _lock.Release(); }
+
         _lock.Dispose();
     }
 }

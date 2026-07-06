@@ -142,20 +142,64 @@ public sealed class VisionPipelineLoader : IDisposable
         finally { _cacheLock.ExitWriteLock(); }
     }
 
+    // 防抖：编辑器保存会在短时间内触发连串事件（临时文件、改名、多次 Changed），
+    // 原实现每个事件都排一次全量重扫；现在仅在静默 250ms 后重扫一次
+    private readonly object _rescanGate = new();
+    private CancellationTokenSource? _rescanCts;
+    private string _lastChangedFile = "";
+    private volatile bool _disposed;
+
     private void OnFileEvent(object sender, FileSystemEventArgs e)
     {
-        // 短暂延迟避免文件写入未完成时读取
-        Task.Delay(200).ContinueWith(_ =>
+        CancellationToken token;
+        lock (_rescanGate)
+        {
+            _lastChangedFile = e.Name ?? "";
+            _rescanCts?.Cancel();
+            _rescanCts?.Dispose();
+            _rescanCts = new CancellationTokenSource();
+            token = _rescanCts.Token;
+        }
+        _ = RescanAfterDelayAsync(token);
+    }
+
+    private async Task RescanAfterDelayAsync(CancellationToken token)
+    {
+        // 延迟同时起到"等待文件写入完成"的作用
+        try { await Task.Delay(250, token); }
+        catch (OperationCanceledException) { return; }
+
+        if (_disposed) return;
+
+        string changed;
+        lock (_rescanGate) { changed = _lastChangedFile; }
+
+        try
         {
             ScanAll();
-            PipelineFileChanged?.Invoke(this, e.Name ?? "");
-        });
+            PipelineFileChanged?.Invoke(this, changed);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("[Pipeline] 文件变更重扫失败", "Vision", ex);
+        }
     }
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         _watcher.EnableRaisingEvents = false;
         _watcher.Dispose();
+
+        lock (_rescanGate)
+        {
+            _rescanCts?.Cancel();
+            _rescanCts?.Dispose();
+            _rescanCts = null;
+        }
+
         _cacheLock.Dispose();
     }
 }

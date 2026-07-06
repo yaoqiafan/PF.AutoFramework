@@ -26,7 +26,12 @@ public static class VisionServiceExtensions
         string? pipelineDirectory = null)
     {
         containerRegistry.RegisterSingleton<IVisionContextManager>(cp =>
-            new VisionContextManager(procedureDirectory, cp.Resolve<ILogService>()));
+        {
+            var logService = cp.Resolve<ILogService>();
+            // 静态工具类无法参与构造注入，在此挂接日志（幂等赋值，重复注册无副作用）
+            Internal.RoiRegionBuilder.Logger = logService;
+            return new VisionContextManager(procedureDirectory, logService);
+        });
 
         containerRegistry.RegisterSingleton<IHalconDebugService>(cp =>
             new HalconDebugService(

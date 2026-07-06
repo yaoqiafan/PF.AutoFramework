@@ -405,7 +405,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     // 调试/强制抓图模式：清空旧图片以确保提取到的是最新一帧
                     DeleteDir(originalPathDir);
                     var triggerTime = DateTime.Now;
-                    string ocreec = await _camera.Tigger(token);
+                    string ocreec = await _camera.Trigger(token);
                     string path = await WaitForNewImageAsync(originalPathDir, triggerTime, imageWaitTimeout, token);
                     return MechResult<(string, string)>.Success((ocreec, path));
                 }
@@ -418,7 +418,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     {
                         token.ThrowIfCancellationRequested();
                         lastTriggerTime = DateTime.Now;
-                        rec = await _camera.Tigger(token);
+                        rec = await _camera.Trigger(token);
 
                         var flag = await _dataModule.CheckOcrTextAsync(workStation, rec, token);
                         if (flag.IsSuccess) break;

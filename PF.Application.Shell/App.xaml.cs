@@ -36,10 +36,8 @@ using PF.WorkStation.AutoOcr.Mechanisms;
 using PF.WorkStation.AutoOcr.Recipe;
 using PF.WorkStation.AutoOcr.Stations;
 using PF.WorkStation.AutoOcr.UI;
-using Prism.Modularity;
 using System.IO;
 using System.Windows;
-using System.Windows.Threading;
 
 namespace PF.Application.Shell
 {
@@ -175,7 +173,7 @@ namespace PF.Application.Shell
 
                 var triggerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["CommInstanceId"]);
 
-                return new Infrastructure.Hardware.Carame.IntelligentCamera.Keyence.KeyenceIntelligentCamera(
+                return new Infrastructure.Hardware.Camera.IntelligentCamera.Keyence.KeyenceIntelligentCamera(
                     triggerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 

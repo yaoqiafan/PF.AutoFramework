@@ -27,6 +27,11 @@ public interface IVisionResult
     /// <summary>
     /// 图标量输出（图像 / 区域 / 轮廓类型变量）。
     /// Key 为 .hdev 中的变量名；Value 为装箱的 HObject，由 UI 层强转后显示。
+    /// <para>
+    /// 所有权：HObject 为非托管 HALCON 内存。通过 ExecuteAsync / ExecutePipelineAsync
+    /// 返回值拿到的结果归调用方所有，用毕必须释放；
+    /// 通过 ProcedureExecuted 事件拿到的结果仅在回调期间有效，保留必须自行克隆。
+    /// </para>
     /// </summary>
     IReadOnlyDictionary<string, object?> IconicOutputs { get; }
 }

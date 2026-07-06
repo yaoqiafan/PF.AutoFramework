@@ -36,8 +36,11 @@ public class PipelineRunnerViewModel : RegionViewModelBase
         catch { return null; }
     }
 
-    // 跨步骤累积所有 iconic 输出，按 paramName 去重（后步覆盖同名前步输出）
+    // 跨步骤累积所有 iconic 输出，按 paramName 去重（后步覆盖同名前步输出）。
+    // 值为本 VM 持有的 HObject 克隆——引擎事件参数仅在回调期间有效，保留必须克隆；
+    // Worker 线程（OnStepExecuted）与 UI 线程（渲染/清空）并发访问，由 _iconicsGate 保护。
     private readonly Dictionary<string, object?> _cumulativeIconics = new();
+    private readonly object _iconicsGate = new();
 
     // ── 集合 ──────────────────────────────────────────────────────────────────
 
@@ -130,7 +133,7 @@ public class PipelineRunnerViewModel : RegionViewModelBase
         Status    = $"运行中: {SelectedPipeline.Name}...";
         Outputs.Clear();
         StepLogs.Clear();
-        _cumulativeIconics.Clear();
+        DisposeCumulativeIconics();
         StepLogs.Add($"[{DateTime.Now:HH:mm:ss}] 启动管线: {SelectedPipeline.PipelineId}");
 
         try
@@ -151,6 +154,11 @@ public class PipelineRunnerViewModel : RegionViewModelBase
                 StepLogs.Add($"[{DateTime.Now:HH:mm:ss}] 错误: {result.ErrorMessage}");
                 LogService.Error($"[Pipeline] 执行失败: {result.ErrorMessage}", "Vision");
             }
+
+            // 最终输出中的 HObject 所有权归本调用方；渲染用的是各步骤事件的克隆，
+            // 这里直接释放最终输出，防止非托管内存泄漏
+            foreach (var v in result.IconicOutputs.Values)
+                (v as HObject)?.Dispose();
 
             // 无论成败，渲染已收集到的 iconic 输出（方便调试中间步骤）
             RenderCumulativeIconics();
@@ -177,11 +185,38 @@ public class PipelineRunnerViewModel : RegionViewModelBase
 
         Application.Current?.Dispatcher.InvokeAsync(() => StepLogs.Add(line));
 
-        // 将本步骤的 iconic 输出合并入累积字典（同名参数后步覆盖前步）
+        // 将本步骤的 iconic 输出合并入累积字典（同名参数后步覆盖前步）。
+        // 引擎契约：事件参数中的 HObject 仅在回调期间有效，保留必须克隆（句柄级复制，代价极低）；
+        // 被覆盖的旧克隆就地释放。
         if (stepResult.Success)
         {
-            foreach (var (k, v) in stepResult.IconicOutputs)
-                _cumulativeIconics[k] = v;
+            lock (_iconicsGate)
+            {
+                foreach (var (k, v) in stepResult.IconicOutputs)
+                {
+                    object? owned = v;
+                    if (v is HObject h)
+                    {
+                        if (!h.IsInitialized()) continue;
+                        HOperatorSet.CopyObj(h, out HObject copy, 1, -1);
+                        owned = copy;
+                    }
+                    if (_cumulativeIconics.TryGetValue(k, out var old))
+                        (old as HObject)?.Dispose();
+                    _cumulativeIconics[k] = owned;
+                }
+            }
+        }
+    }
+
+    /// <summary>释放并清空累积的 iconic 克隆（本 VM 是这些 HObject 的唯一所有者）</summary>
+    private void DisposeCumulativeIconics()
+    {
+        lock (_iconicsGate)
+        {
+            foreach (var v in _cumulativeIconics.Values)
+                (v as HObject)?.Dispose();
+            _cumulativeIconics.Clear();
         }
     }
 
@@ -189,19 +224,24 @@ public class PipelineRunnerViewModel : RegionViewModelBase
 
     private void RenderCumulativeIconics()
     {
-        if (_cumulativeIconics.Count == 0) return;
-
         var win = GetWindow();
         if (win is null) return;
 
-        try { HOperatorSet.ClearWindow(win); }
-        catch (Exception ex) { LogService.Warn($"[Pipeline] ClearWindow 失败: {ex.Message}", "Vision"); return; }
+        // 持锁渲染：防止 Worker 线程在 OnStepExecuted 中释放被覆盖的旧克隆时，
+        // UI 线程正拿着同一句柄执行 DispObj（use-after-free）
+        lock (_iconicsGate)
+        {
+            if (_cumulativeIconics.Count == 0) return;
 
-        AdaptWindowPart(win);
+            try { HOperatorSet.ClearWindow(win); }
+            catch (Exception ex) { LogService.Warn($"[Pipeline] ClearWindow 失败: {ex.Message}", "Vision"); return; }
 
-        // 先渲染 image 类（背景），再渲染 region/XLD 类（前景）
-        DispIconics(win, imageFirst: true);
-        DispIconics(win, imageFirst: false);
+            AdaptWindowPart(win);
+
+            // 先渲染 image 类（背景），再渲染 region/XLD 类（前景）
+            DispIconics(win, imageFirst: true);
+            DispIconics(win, imageFirst: false);
+        }
     }
 
     private void AdaptWindowPart(HWindow win)
@@ -267,9 +307,11 @@ public class PipelineRunnerViewModel : RegionViewModelBase
     private void OnClearWindow()
     {
         var win = GetWindow();
-        if (win is null) return;
-        try { HOperatorSet.ClearWindow(win); } catch { }
-        _cumulativeIconics.Clear();
+        if (win is not null)
+        {
+            try { HOperatorSet.ClearWindow(win); } catch { }
+        }
+        DisposeCumulativeIconics();
     }
 
     // ── 生命周期 ──────────────────────────────────────────────────────────────
@@ -278,6 +320,7 @@ public class PipelineRunnerViewModel : RegionViewModelBase
     {
         if (_engine is not null)
             _engine.ProcedureExecuted -= OnStepExecuted;
+        DisposeCumulativeIconics();
         base.Destroy();
     }
 }

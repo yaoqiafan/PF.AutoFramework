@@ -29,20 +29,28 @@ public interface IVisionService
 
     /// <summary>
     /// 异步执行视觉过程。线程安全：内部通过 Channel 委托给单一 Worker 线程串行执行。
+    /// 超时（<see cref="VisionRequest.Timeout"/>）覆盖排队 + 执行全过程，超时返回失败结果；
+    /// 通过 <paramref name="cancellationToken"/> 主动取消则抛出 OperationCanceledException。
+    /// <para>
+    /// 所有权：返回结果 IconicOutputs 中的图标量（装箱 HObject）归调用方所有，
+    /// 使用完毕必须由调用方释放。
+    /// </para>
     /// </summary>
     Task<IVisionResult> ExecuteAsync(VisionRequest request, CancellationToken cancellationToken = default);
 
     // ── 管线执行 ──────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// 按顺序执行多步管线，步骤间通过 VisionContext 自动传递 HObject。
+    /// 按顺序执行多步管线，步骤间通过上下文黑板自动传递 HObject。
     /// 整个管线在同一 Worker 线程内完成，HALCON 对象不跨线程。
-    /// <param name="pipeline">管线定义（通常由 VisionPipelineLoader 从 JSON 反序列化）</param>
-    /// <param name="externalInputs"></param>
-    ///  <param name="cancellationToken"></param>
-    /// 外部注入的初始值（如相机实时图像），在步骤 inputs 中用 "$__ext__.keyName" 引用
+    /// <para>
+    /// 所有权：返回结果 IconicOutputs 中的图标量归调用方所有，使用完毕必须由调用方释放；
+    /// <paramref name="externalInputs"/> 中的图标量所有权仍归调用方（实现层存副本）。
+    /// </para>
     /// </summary>
-
+    /// <param name="pipeline">管线定义（通常由 VisionPipelineLoader 从 JSON 反序列化）</param>
+    /// <param name="externalInputs">外部注入的初始值（如相机实时图像），在步骤 inputs 中用 "$__ext__.keyName" 引用</param>
+    /// <param name="cancellationToken">取消令牌（主动取消时抛出 OperationCanceledException）</param>
     Task<IVisionResult> ExecutePipelineAsync(
         VisionPipelineDefinition        pipeline,
         Dictionary<string, object?>?    externalInputs    = null,
@@ -50,7 +58,14 @@ public interface IVisionService
 
     // ── 事件 ──────────────────────────────────────────────────────────────────
 
-    /// <summary>过程执行完成后触发（成功或失败均触发，管线每步完成也触发）</summary>
+    /// <summary>
+    /// 过程执行完成后触发（成功或失败均触发，管线每步完成也触发）。
+    /// 在引擎 Worker 线程上同步回调。
+    /// <para>
+    /// 所有权：事件参数中的图标量（装箱 HObject）仅在回调期间有效，
+    /// 订阅者若需保留必须自行克隆（如 HOperatorSet.CopyObj），严禁保存原引用或释放它。
+    /// </para>
+    /// </summary>
     event EventHandler<IVisionResult> ProcedureExecuted;
 
     /// <summary>过程目录下 .hdev 文件发生变化时触发（FileSystemWatcher 驱动）</summary>

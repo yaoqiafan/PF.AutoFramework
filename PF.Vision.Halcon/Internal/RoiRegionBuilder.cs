@@ -1,4 +1,5 @@
 using HalconDotNet;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Vision.Pipeline;
 
 namespace PF.Vision.Halcon.Internal;
@@ -10,6 +11,12 @@ namespace PF.Vision.Halcon.Internal;
 /// </summary>
 public static class RoiRegionBuilder
 {
+    /// <summary>
+    /// 可选日志服务（DI 注册时由 <c>VisionServiceExtensions.AddVisionServices</c> 设置）。
+    /// ROI 参数非法导致生成失败时记录警告，替代原先的完全静默降级。
+    /// </summary>
+    public static ILogService? Logger { get; set; }
+
     /// <summary>
     /// 计算最终检测区域：Union(Include) − Union(Exclude)。
     /// 无任何 Include ROI 时返回全黑空区域（安全兜底）。
@@ -111,8 +118,13 @@ public static class RoiRegionBuilder
                     break;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            // 参数非法（如 NaN、半径为负）时降级为空区域，但必须留下线索——
+            // 静默降级会让"检测区域为空 → 全部漏检"极难排查
+            Logger?.Warn(
+                $"[Vision] ROI 生成失败，已降级为空区域: Type={roi.Type}, Params=[{string.Join(", ", p)}]",
+                "Vision", ex);
             HOperatorSet.GenEmptyRegion(out region);
         }
 
