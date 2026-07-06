@@ -25,8 +25,8 @@ namespace PF.Modules.Parameter.Views
         NavigationParameter = "SystemConfigParam")]                // 传递的参数名
 
     [ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
-        GroupName = "系统调试", Order = 3,
-        Icon = "CurveIcon",
+        GroupName = "系统调试", Order = 1,
+        Icon = "DebugIcon",
         NavigationParameter = "HardwareParam")]
 
 

@@ -1,5 +1,6 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Enums;
+using PF.Core.Interfaces.Communication.TCP;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Models;
 using System;
@@ -11,37 +12,46 @@ using System.Threading.Tasks;
 namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 {
     /// <summary>
-    /// 海康扫码枪实现
+    /// 海康扫码枪实现。底层的触发通道/用户权限通道两个 TCP 连接由外部注入
+    /// （通常来自 ICommunicationManagerService 按配置创建的 IClient 实例，AutoStart=false，
+    /// 连接生命周期交由本类的 InternalConnectAsync/InternalDisconnectAsync 驱动，不由通讯管理器抢先连接）。
     /// </summary>
     public class HKBarcodeScan : BaseBarcodeScan
     {
         /// <summary>
-        /// 构造海康扫码枪
+        /// 构造海康扫码枪。IP/端口不再单独传入——直接读取注入客户端的 TargetServerIp/TargetServerPort，
+        /// 避免和通讯实例配置出现两份数据源不一致的问题。
         /// </summary>
-        public HKBarcodeScan(string IP, int tiggerPort, int userPort, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
+        /// <param name="triggerClient">触发通道 TCP 客户端（外部注入，未连接状态，已配置好 TargetServerIp/TargetServerPort）</param>
+        /// <param name="userPowerClient">用户权限通道 TCP 客户端（外部注入，未连接状态）</param>
+        /// <param name="timeoutms">应用协议超时时间（毫秒）——等待扫码枪响应的业务超时，与底层TCP连接本身无关，因此仍需显式传入</param>
+        /// <param name="deviceId">设备唯一标识</param>
+        /// <param name="deviceName">设备显示名称</param>
+        /// <param name="isSimulated">是否为模拟模式</param>
+        /// <param name="logger">日志服务</param>
+        public HKBarcodeScan(IClient triggerClient, IClient userPowerClient, int timeoutms,
+            string deviceId, string deviceName, bool isSimulated, ILogService logger)
+            : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
-
-            this.IPAdress = IP;
-            this.TiggerPort = tiggerPort;
-            this.UserPort = userPort;
+            tiggerclient = triggerClient;
+            Userpowerclient = userPowerClient;
             this.TimeOutMs = timeoutms;
-
         }
 
         /// <summary>
-        /// IP地址
+        /// IP地址（直接读取触发通道客户端的目标地址，触发/用户权限两通道理应指向同一主机）
         /// </summary>
-        public override string IPAdress { get; }
+        public override string IPAdress => tiggerclient.TargetServerIp;
 
         /// <summary>
-        /// 触发端口
+        /// 触发端口（直接读取触发通道客户端的目标端口）
         /// </summary>
-        public override int TiggerPort { get; }
+        public override int TiggerPort => tiggerclient.TargetServerPort;
 
         /// <summary>
-        /// 用户端口
+        /// 用户端口（直接读取用户权限通道客户端的目标端口）
         /// </summary>
-        public override int UserPort { get; }
+        public override int UserPort => Userpowerclient.TargetServerPort;
 
         /// <summary>
         /// 超时时间（毫秒）
@@ -49,14 +59,14 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         public override int TimeOutMs { get; }
 
         /// <summary>
-        /// 触发客户端
+        /// 触发客户端（外部注入）
         /// </summary>
-        private PF.Infrastructure.Communication.TCP.TCPClient tiggerclient=new Communication.TCP.TCPClient ();
+        private readonly IClient tiggerclient;
 
         /// <summary>
-        /// 用户权限客户端
+        /// 用户权限客户端（外部注入）
         /// </summary>
-        private PF.Infrastructure.Communication.TCP.TCPClient Userpowerclient=new Communication.TCP.TCPClient ();
+        private readonly IClient Userpowerclient;
 
 
         private ManualResetEventSlim TiggerEvent = new ManualResetEventSlim(false);
@@ -88,7 +98,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     Task a = Task.Run(() => UserParmEvent.Wait(), token);
                     Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    Task result = Task.WhenAny(a, b);
+                    Task result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪获取当前用户错误");
@@ -104,7 +114,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     a = Task.Run(() => UserParmEvent.Wait(), token);
                     b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    result = Task.WhenAny(a, b);
+                    result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪关闭流错误");
@@ -120,7 +130,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     a = Task.Run(() => UserParmEvent.Wait(), token);
                     b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    result = Task.WhenAny(a, b);
+                    result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪设置用户错误");
@@ -136,7 +146,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                     }
                     a = Task.Run(() => UserParmEvent.Wait(), token);
                     b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
-                    result = Task.WhenAny(a, b);
+                    result = await Task.WhenAny(a, b);
                     if (!result.Equals(a))
                     {
                         throw new Exception("海康扫码枪打开流错误");

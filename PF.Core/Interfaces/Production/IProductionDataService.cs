@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 
 namespace PF.Core.Interfaces.Production
@@ -14,7 +15,7 @@ namespace PF.Core.Interfaces.Production
     ///   <item>实时推送：<see cref="DataRecorded"/> 事件在每条数据写入后触发，供 UI 实时订阅</item>
     /// </list>
     /// </summary>
-    public interface IProductionDataService
+    public interface IProductionDataService : IAsyncDisposable
     {
         // ══════════════════════════════════════════════════════
         //  写入

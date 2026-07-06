@@ -1,3 +1,4 @@
+using PF.Modules.Parameter.Dialog.Editors;
 using System.ComponentModel;
 
 namespace PF.Modules.Parameter.ViewModels.Models.Hardware
@@ -47,24 +48,15 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
             set => SetProperty(ref _isSimulated, value);
         }
 
-        private string _ip;
-        /// <summary>获取或设置IP地址</summary>
+        private string _commInstanceId;
+        /// <summary>获取或设置触发通讯实例ID（Tcp/Client）</summary>
         [Category("连接参数")]
-        [DisplayName("IP地址")]
-        public string IP
+        [DisplayName("触发通讯实例")]
+        [Editor(typeof(TcpClientInstancePropertyEditor), typeof(TcpClientInstancePropertyEditor))]
+        public string CommInstanceId
         {
-            get => _ip;
-            set => SetProperty(ref _ip, value);
-        }
-
-        private string _tiggerPort;
-        /// <summary>获取或设置触发端口</summary>
-        [Category("连接参数")]
-        [DisplayName("触发端口")]
-        public string TiggerPort
-        {
-            get => _tiggerPort;
-            set => SetProperty(ref _tiggerPort, value);
+            get => _commInstanceId;
+            set => SetProperty(ref _commInstanceId, value);
         }
 
         private string _timeOutms;

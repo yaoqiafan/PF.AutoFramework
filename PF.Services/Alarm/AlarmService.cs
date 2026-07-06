@@ -31,11 +31,14 @@ namespace PF.Services.Alarm
         // 复合键：(Source, ErrorCode) → 同一工站可并发持有多条不同代码的活跃报警
         private readonly ConcurrentDictionary<(string Source, string ErrorCode), ActiveAlarmState> _activeMap = new();
 
-        // 有界持久化队列：容量 10000，背压策略改为 Wait。
-        // 原 DropOldest 在高并发停机时会将最早入队的首发故障报警挤出，导致根因丢失；
-        // Wait 模式确保写入端阻塞等待空位，首发报警不被后续报警覆盖。
-        // 容量 10000 已足够大，正常情况下不会触发背压；若数据库持续死锁，
-        // 写入方阻塞是合理的背压信号，优于静默丢弃关键故障信息。
+        // 有界持久化队列：容量 10000。
+        // 写入端（EnqueuePersist）采用 TryWrite 快速失败策略：队列满时不阻塞 TriggerAlarm
+        // 调用方（TriggerAlarm 是同步 bool 方法，await WriteAsync 会引入 sync-over-async），
+        // 而是升级为 Fatal 日志并累加 _droppedPersistCount，使关键报警信息的丢失对运维可见。
+        // 注：BoundedChannelFullMode.Wait 仅约束 WriteAsync 的行为，不影响 TryWrite——
+        // TryWrite 在任何非丢弃模式下、队列满时照样返回 false，故丢弃分支可达，Fatal 监控有效。
+        // 容量 10000 已足够大，正常运行下几乎不会触发丢弃；若 _droppedPersistCount 非 0，
+        // 即表示数据库持续阻塞，需立即排查。
         private readonly Channel<PersistJob> _persistChannel = Channel.CreateBounded<PersistJob>(
             new BoundedChannelOptions(10_000)
             {
@@ -173,14 +176,27 @@ namespace PF.Services.Alarm
                 await using var ctx = new AlarmDbContext(_dbOptions, targetYear);
                 await EnsureYearTableAsync(ctx);
 
-                var entities = await ctx.AlarmRecords
+                // 实体字段过滤条件（source/startTime/endTime/errorCode）下推到 SQL，
+                // 在 OrderByDescending 之前应用，确保分页前已过滤，每页返回行数准确。
+                // 注意：AlarmRecordEntity 仅含 Id/ErrorCode/Source/TriggerTime/ClearTime/IsActive，
+                // category/severity/message 来自字典联查（非实体字段），无法下推，留内存层过滤。
+                var query = ctx.AlarmRecords
                     .AsNoTracking()
-                    .OrderByDescending(r => r.TriggerTime)
+                    .Where(r => source == null || r.Source == source)
+                    .Where(r => startTime == null || r.TriggerTime >= startTime)
+                    .Where(r => endTime == null || r.TriggerTime <= endTime)
+                    .Where(r => errorCode == null || EF.Functions.Like(r.ErrorCode, $"%{errorCode}%"))
+                    .OrderByDescending(r => r.TriggerTime);
+
+                var entities = await query
                     .Skip(page * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // 联查字典并在内存层应用所有过滤条件
+                // 联查字典并在内存层应用字典维度过滤条件
+                // TODO(P1): category/severity/descriptionKeyword 依赖字典联查，无法下推 SQL。
+                //           当前先 DB 分页（实体字段已下推）再内存过滤，含这些字典维度的查询
+                //           每页可能 < pageSize。彻底修复需"按字典维度过取"策略。
                 return entities
                     .Select(entity =>
                     {
@@ -203,12 +219,8 @@ namespace PF.Services.Alarm
                             MessageIDHex = info.MessageIDHex
                         };
                     })
-                    .Where(r => startTime == null || r.TriggerTime >= startTime)
-                    .Where(r => endTime == null || r.TriggerTime <= endTime)
                     .Where(r => category == null || r.Category == category)
                     .Where(r => severity == null || r.Severity == severity)
-                    .Where(r => source == null || r.Source == source)
-                    .Where(r => errorCode == null || (r.ErrorCode?.Contains(errorCode, StringComparison.OrdinalIgnoreCase) ?? false))
                     .Where(r => descriptionKeyword == null || (r.Message?.Contains(descriptionKeyword, StringComparison.OrdinalIgnoreCase) ?? false))
                     .ToList()
                     .AsReadOnly();
@@ -406,7 +418,7 @@ namespace PF.Services.Alarm
                 """);
         }
 
-        // ── IDisposable ─────────────────────────────────────────────────────
+        // ── IDisposable / IAsyncDisposable ──────────────────────────────────
 
         public void Dispose()
         {
@@ -416,11 +428,38 @@ namespace PF.Services.Alarm
             // 关闭写入端，RunPersistWorkerAsync 的 ReadAllAsync 循环将自然退出
             _persistChannel.Writer.Complete();
 
-            // 等待队列排空，最多 3 秒（超时保护，防止主线程挂起）
+            // 同步 Dispose 兜底（DI 容器或未走异步路径时）：最多等 3 秒
             Task.WaitAny(_persistWorker, Task.Delay(TimeSpan.FromSeconds(3)));
 
             if (!_persistWorker.IsCompleted)
                 _logger?.Warn("[AlarmService] Dispose 超时：持久化队列未在 3s 内排空", "AlarmService");
+        }
+
+        /// <summary>
+        /// 异步释放：关闭写入端后真正 await 持久化 worker 排空（替换原 Dispose 的 Task.WaitAny 同步阻塞）。
+        /// Window_Closing 退出路径应优先调用本方法，确保报警落盘后再退出。
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            _persistChannel.Writer.Complete();
+
+            try
+            {
+                // WaitAsync 超时会抛 TimeoutException（不同于 Task.WaitAny 的静默超时），需捕获并告警。
+                await _persistWorker.WaitAsync(TimeSpan.FromSeconds(3));
+            }
+            catch (TimeoutException)
+            {
+                _logger?.Warn("[AlarmService] DisposeAsync 超时：持久化队列未在 3s 内排空", "AlarmService");
+            }
+            catch (Exception ex)
+            {
+                // worker 自身异常（非超时）也兜底，不得阻断退出链
+                _logger?.Error("[AlarmService] DisposeAsync 等待 worker 时异常", "AlarmService", ex);
+            }
         }
 
         // ── 内部状态类 ──────────────────────────────────────────────────────

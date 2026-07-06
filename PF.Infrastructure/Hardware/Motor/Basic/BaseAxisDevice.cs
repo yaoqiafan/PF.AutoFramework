@@ -309,6 +309,26 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
 
+        /// <summary>检查当前位置是否在指定点位（含容差）</summary>
+        public bool IsAtPoint(string pointName, double tolerance = 0.5)
+        {
+            if (CurrentPosition == null) return false;
+            var point = _pointTable.FirstOrDefault(p => p.Name == pointName);
+            return point != null && Math.Abs(CurrentPosition.Value - point.TargetPosition) <= tolerance;
+        }
+
+        /// <summary>轴是否在安全位置；默认查找点表中名称包含"待机"的点位，子类可覆写</summary>
+        public virtual bool IsInSafePosition
+        {
+            get
+            {
+                if (CurrentPosition == null) return true;
+                var safePoint = _pointTable.FirstOrDefault(p => p.Name.Contains("待机"));
+                if (safePoint == null) return true;
+                return Math.Abs(CurrentPosition.Value - safePoint.TargetPosition) <= 0.5;
+            }
+        }
+
         // ── 私有工具 ────────────────────────────────────────────────────────────
 
         /// <summary>

@@ -389,7 +389,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             }
             else
             {
-                await Task.Delay(50);
+                await Task.Delay(50, token);
                 return MechResult.Success();
             }
         }

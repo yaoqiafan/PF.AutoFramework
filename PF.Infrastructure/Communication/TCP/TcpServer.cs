@@ -1,5 +1,8 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
 using System;
 using System.Collections.Concurrent;
@@ -15,7 +18,8 @@ namespace PF.Infrastructure.Communication.TCP
     /// <summary>
     /// TCP服务器实现
     /// </summary>
-    public class TcpServer : IServer
+    [CommunicationUI(NavigationConstants.Views.TcpServerDebugView)]
+    public class TcpServer : IServer, ICommunication
     {
         private TcpListener _listener;
         private CancellationTokenSource _cancellationTokenSource;
@@ -23,7 +27,7 @@ namespace PF.Infrastructure.Communication.TCP
         private readonly object _lockObject = new object();
         private ServerStatus _status = ServerStatus.Stopped;
         private ClientStatus _clientstatus = ClientStatus.None;
-
+        private string _displayName;
         /// <summary>
         /// 服务器名称
         /// </summary>
@@ -54,6 +58,25 @@ namespace PF.Infrastructure.Communication.TCP
         /// 已连接的客户端列表
         /// </summary>
         public IReadOnlyList<IClientConnection> Clients => _clients.Values.ToList();
+
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的监听 IP，需在 StartAsync(CancellationToken) 调用前设置</summary>
+        public string BindIp { get; set; } = "0.0.0.0";
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的监听端口</summary>
+        public int BindPort { get; set; }
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的挂起连接队列长度</summary>
+        public int Backlog { get; set; } = 10;
+
+        /// <inheritdoc cref="ICommunication.InstanceId"/>
+        string ICommunication.InstanceId => ServerName;
+        /// <inheritdoc cref="ICommunication.Category"/>
+        CommunicationCategory ICommunication.Category => CommunicationCategory.Tcp;
+        /// <inheritdoc cref="ICommunication.Role"/>
+        CommunicationRole ICommunication.Role => CommunicationRole.Server;
+        /// <inheritdoc cref="ICommunication.DisplayName"/>
+        string ICommunication.DisplayName => $"[{_displayName}]";
+
+        /// <summary>供 ICommunicationManagerService 统一调度的启动入口，内部使用 BindIp/BindPort/Backlog</summary>
+        public Task<bool> StartAsync(CancellationToken token = default) => StartAsync(BindIp, BindPort, Backlog);
 
         /// <summary>
         /// 编码方式
@@ -95,14 +118,20 @@ namespace PF.Infrastructure.Communication.TCP
         /// 数据接收事件
         /// </summary>
         public event EventHandler<DataReceivedEventArgs> DataReceived;
+        /// <summary>
+        /// 错误发生事件（如接受连接失败）。单次 accept 出错不代表服务器停止，
+        /// 与 <see cref="ServerStopped"/> 严格区分
+        /// </summary>
+        public event EventHandler<ErrorOccurredEventArgs> ErrorOccurred;
 
         /// <summary>
         /// 构造TCP服务器
         /// </summary>
-        public TcpServer(string serverName = "Default TcpServer")
+        public TcpServer(string displayName = null, string serverName = "Default TcpServer")
         {
             ServerName = serverName;
             _clients = new ConcurrentDictionary<string, ClientConnection>();
+            _displayName = displayName ?? $"{ServerName}";
         }
 
         /// <summary>
@@ -170,7 +199,8 @@ namespace PF.Infrastructure.Communication.TCP
                 }
                 catch (Exception ex)
                 {
-                    OnServerStopped($"接受客户端连接时发生错误: {ex.Message}");
+                    // 单次 accept 失败服务器仍在运行，此前误报 ServerStopped 会让订阅方以为服务器已停
+                    OnErrorOccurred($"接受客户端连接时发生错误: {ex.Message}", ex);
                 }
             }
         }
@@ -354,22 +384,16 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         public async Task<bool> DisconnectClientAsync(string clientId)
         {
-            if (!_clients.TryGetValue(clientId, out var client))
+            // 先原子移除再关闭：与 HandleClientAsync 的 finally（读循环感知到断开后同样会 TryRemove）竞争时，
+            // 只有移除成功的一方触发断开事件，避免同一客户端发出两次 ClientDisconnected
+            if (!_clients.TryRemove(clientId, out var client))
                 return false;
 
-            try
-            {
-                client.TcpClient.Close();
-                _clients.TryRemove(clientId, out _);
-                client.Dispose();
+            try { client.TcpClient.Close(); } catch { /* 已断开等关闭异常忽略 */ }
+            client.Dispose();
 
-                OnClientDisconnected(clientId, "服务器主动断开连接");
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            OnClientDisconnected(clientId, "服务器主动断开连接");
+            return true;
         }
 
         /// <summary>
@@ -412,6 +436,14 @@ namespace PF.Infrastructure.Communication.TCP
         protected virtual void OnDataReceived(string clientId, byte[] data)
         {
             DataReceived?.Invoke(this, new DataReceivedEventArgs(clientId, data));
+        }
+
+        /// <summary>
+        /// 触发错误发生事件
+        /// </summary>
+        protected virtual void OnErrorOccurred(string errorMessage, Exception exception)
+        {
+            ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(ServerName, errorMessage, exception));
         }
 
         #region IDisposable Support

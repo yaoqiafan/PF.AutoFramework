@@ -62,8 +62,8 @@ namespace PF.Services.Logging
         private readonly Dictionary<string, ILog> _categoryLoggers = new Dictionary<string, ILog>();
         private readonly object _loggersLock = new object();
 
-        // 内存缓存 (替代原来的 ObservableCollection)
-        private readonly List<LogEntry> _memoryLogEntries = new List<LogEntry>();
+        // 内存缓存：LinkedList 实现 O(1) 头插与尾删（最新日志在 Head），避免 List.Insert(0) 的 O(n) 搬移。
+        private readonly LinkedList<LogEntry> _memoryLogEntries = new LinkedList<LogEntry>();
         private readonly object _memoryLock = new object();
 
         // 生产者-消费者队列 (用于文件写入)
@@ -481,7 +481,12 @@ namespace PF.Services.Logging
         {
             lock (_memoryLock)
             {
-                _memoryLogEntries.RemoveAll(x => x.Category == category);
+                // LinkedList 无 RemoveAll，先选出待删节点再逐个移除（O(n) 遍历 + O(1) 删除）。
+                var nodesToRemove = _memoryLogEntries
+                    .Where(x => x.Category == category)
+                    .ToList();
+                foreach (var node in nodesToRemove)
+                    _memoryLogEntries.Remove(node);
             }
         }
         #endregion
@@ -961,13 +966,13 @@ namespace PF.Services.Logging
             if (!ShouldShowInUI(entry.Level, entry.Category))
                 return;
 
-            // 3. 添加到内存缓存 (仅最近N条)
+            // 3. 添加到内存缓存 (仅最近N条) —— 最新日志在 Head（AddFirst，O(1)）
             lock (_memoryLock)
             {
-                _memoryLogEntries.Insert(0, entry);
+                _memoryLogEntries.AddFirst(entry);
                 while (_memoryLogEntries.Count > MAX_MEMORY_LOG_ENTRIES)
                 {
-                    _memoryLogEntries.RemoveAt(_memoryLogEntries.Count - 1);
+                    _memoryLogEntries.RemoveLast();
                 }
             }
 
@@ -1137,8 +1142,46 @@ namespace PF.Services.Logging
         {
             if (_disposed) return;
             _logQueue.CompleteAdding();
-            _processingCts.Cancel();
+            // 先等待消费循环排空（不取消，让 GetConsumingEnumerable 自然结束），
+            // 排空超时后再 Cancel 强制回收资源——避免 Cancel 抢先打断排空导致关机丢日志。
             try { _processingTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            _processingCts.Cancel();
+            _cleanupTimer?.Dispose();
+            _flushTimer?.Dispose();
+            _processingCts.Dispose();
+            _logQueue.Dispose();
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// 异步释放：用 WaitAsync 替换同步 Dispose 的 .Wait(5s) 阻塞（消除关机路径的线程池线程占用）。
+        /// Window_Closing 退出路径应优先调用本方法，让日志排空后再退出。
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed) return;
+            _logQueue.CompleteAdding();
+
+            try
+            {
+                // WaitAsync 超时抛 TimeoutException（不同于 Wait 的静默超时），捕获并告警。
+                if (_processingTask != null)
+                    await _processingTask.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (TimeoutException)
+            {
+                // 排空超时——日志可能在关机时部分丢失。此刻队列已 CompleteAdding，
+                // 无法再走自身日志管道，退化为调试输出留痕。
+                System.Diagnostics.Debug.WriteLine("[LogService] DisposeAsync 超时：日志队列未在 5s 内排空，可能部分丢失");
+            }
+            catch (Exception ex)
+            {
+                // 消费循环自身异常兜底，不得阻断退出链
+                System.Diagnostics.Debug.WriteLine($"[LogService] DisposeAsync 等待消费循环时异常: {ex.Message}");
+            }
+
+            _processingCts.Cancel();
             _cleanupTimer?.Dispose();
             _flushTimer?.Dispose();
             _processingCts.Dispose();

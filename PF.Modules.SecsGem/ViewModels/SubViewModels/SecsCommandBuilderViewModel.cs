@@ -455,9 +455,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
                 await commandStore.UpdateCommandInfo(_currentCommand.Key, _currentCommand.Key, _currentCommand);
 
+                using var scope = _db.BeginScope();
                 if (isIncentive)
                 {
-                    var repo   = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    var repo   = scope.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
                     var all    = (await repo.GetAllAsync()).ToList();
                     var entity = all.FirstOrDefault(e => e.ID == _currentCommand.ID);
                     if (entity != null) await repo.RemoveAsync(entity);
@@ -465,14 +466,14 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 }
                 else
                 {
-                    var repo   = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    var repo   = scope.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
                     var all    = (await repo.GetAllAsync()).ToList();
                     var entity = all.FirstOrDefault(e => e.ID == _currentCommand.ID);
                     if (entity != null) await repo.RemoveAsync(entity);
                     await repo.AddAsync(_currentCommand.GetResponseEntityFormSFCommand());
                 }
 
-                await _db.SaveChangesAsync();
+                await scope.SaveChangesAsync();
                 _log.Append(null, $"报文已保存: {_currentCommand.Key} {_currentCommand.Name}", isSystem: true);
             }
             catch (Exception ex)
@@ -514,7 +515,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             List<VIDEntity> vids;
             try
             {
-                vids = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs)
+                // TODO(sync-over-async): 此事件处理器是同步签名，DB 读取用 GetAwaiter().GetResult() 阻塞。
+                //                       后续应改为 async 事件处理器（需调整事件签名）。
+                using var scope = _db.BeginScope();
+                vids = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs)
                           .GetAllAsync().GetAwaiter().GetResult().ToList();
             }
             catch (Exception ex)
@@ -552,7 +556,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             if (sender is not SecsNodeViewModel nodeVm) return;
             try
             {
-                var vids = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs)
+                // TODO(sync-over-async): 此事件处理器是同步签名，DB 读取用 GetAwaiter().GetResult() 阻塞。
+                //                       后续应改为 async 事件处理器（需调整事件签名）。
+                using var scope = _db.BeginScope();
+                var vids = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs)
                               .GetAllAsync().GetAwaiter().GetResult().ToList();
 
                 if (!vids.Any())
@@ -599,17 +606,18 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
+                using var scope = _db.BeginScope();
                 if (isIncentive)
                 {
-                    var repo = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    var repo = scope.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
                     await repo.AddAsync(cmd.GetIncentiveEntityFormSFCommand());
                 }
                 else
                 {
-                    var repo = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    var repo = scope.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
                     await repo.AddAsync(cmd.GetResponseEntityFormSFCommand());
                 }
-                await _db.SaveChangesAsync();
+                await scope.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -621,17 +629,18 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
+                using var scope = _db.BeginScope();
                 if (isIncentive)
                 {
-                    var repo   = _db.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    var repo   = scope.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
                     var entity = (await repo.FindAsync(e => e.ID == cmdId)).FirstOrDefault();
-                    if (entity != null) { await repo.RemoveAsync(entity); await _db.SaveChangesAsync(); }
+                    if (entity != null) { await repo.RemoveAsync(entity); await scope.SaveChangesAsync(); }
                 }
                 else
                 {
-                    var repo   = _db.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    var repo   = scope.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
                     var entity = (await repo.FindAsync(e => e.ID == cmdId)).FirstOrDefault();
-                    if (entity != null) { await repo.RemoveAsync(entity); await _db.SaveChangesAsync(); }
+                    if (entity != null) { await repo.RemoveAsync(entity); await scope.SaveChangesAsync(); }
                 }
             }
             catch (Exception ex)

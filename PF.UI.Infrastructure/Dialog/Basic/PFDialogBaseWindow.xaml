@@ -13,7 +13,7 @@
     ShowNonClientArea="True"
     Background="Transparent"
     MouseLeftButtonDown="Grid_MouseLeftButtonDown"
-    ResizeMode="NoResize"
+    ResizeMode="CanResize"
     SizeToContent="WidthAndHeight"
     Style="{StaticResource WindowWin10}"
     WindowStartupLocation="CenterScreen"

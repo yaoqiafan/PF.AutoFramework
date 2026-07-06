@@ -49,4 +49,9 @@
     <!-- ===== 默认不打包，防止 Shell / Demo / Service 意外生成 nupkg ===== -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <!-- ===== Halcon 本地 DLL 目录（修改此路径适配不同机器的 DLL 存放位置） ===== -->
+  <PropertyGroup>
+    <HalconDllDir>$(MSBuildThisFileDirectory)DLL\HALCON\</HalconDllDir>
+  </PropertyGroup>
 </Project>

@@ -39,19 +39,19 @@ namespace PF.Data.Repositories
         /// <inheritdoc/>
         public virtual async Task<IEnumerable<T>> GetAllAsync()
         {
-            return await DbSet.ToListAsync();
+            return await DbSet.AsNoTracking().ToListAsync();
         }
 
         /// <inheritdoc/>
         public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
         {
-            return await DbSet.Where(predicate).ToListAsync();
+            return await DbSet.AsNoTracking().Where(predicate).ToListAsync();
         }
 
         /// <inheritdoc/>
         public virtual async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate)
         {
-            return await DbSet.SingleOrDefaultAsync(predicate);
+            return await DbSet.AsNoTracking().SingleOrDefaultAsync(predicate);
         }
 
         /// <inheritdoc/>

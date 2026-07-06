@@ -209,6 +209,19 @@ namespace PF.Infrastructure.Mechanisms
         /// <summary>内部复位异步操作</summary>
         protected virtual Task<bool> InternalResetAsync(CancellationToken token) => Task.FromResult(true);
 
+        /// <summary>模组是否在安全位置（子类覆写，返回所有关键轴是否在待机点）</summary>
+        public virtual bool IsInSafePosition => false;
+
+        /// <summary>检查指定轴是否在目标点位（含容差），轴为 null 时返回 true</summary>
+        protected static bool IsAxisAtPoint(IAxis? axis, string pointName, double tolerance = 0.5)
+        {
+            if (axis == null) return true;
+            var pos = axis.CurrentPosition;
+            if (pos == null) return false;
+            var point = axis.PointTable.FirstOrDefault(p => p.Name == pointName);
+            return point != null && Math.Abs(pos.Value - point.TargetPosition) <= tolerance;
+        }
+
         /// <summary>检查机构是否就绪</summary>
         protected void CheckReady()
         {
@@ -426,8 +439,21 @@ namespace PF.Infrastructure.Mechanisms
             }
             catch (OperationCanceledException)
             {
+                // 优先判断是否是外部主动取消。如果是，将异常继续往上抛（对齐 WaitAxisMoveDoneAsync 的处理）。
+                if (token.IsCancellationRequested)
+                {
+                    _logger?.Warn($"[{MechanismName}] 轴 [{axisName}] 等待回零被外部手动取消");
+                    token.ThrowIfCancellationRequested();
+                    throw;
+                }
+
+                // 走到这里，说明外部没有取消，纯粹是 timeoutCts 触发的超时。
+                // 先物理制动：回零超时后轴可能仍在运动（回零模式），必须立即停止，否则有撞机/超程风险。
+                // 此时外部 token 尚未取消，可安全用于制动指令。
                 if (timeoutCts.IsCancellationRequested)
                 {
+                    await axis.StopAsync(token);
+
                     HasAlarm = true;
                     _logger?.Error($"[{MechanismName}] 轴 [{axisName}] 等待回零完成超时（{timeoutMs} ms）");
                     pendingAlarm = new MechanismAlarmEventArgs

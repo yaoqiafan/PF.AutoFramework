@@ -25,6 +25,9 @@
   -->
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
     <PackageIcon>nuget-icon.png</PackageIcon>
+  </PropertyGroup>
+  <!-- 仅当项目目录内确实存在 README.md 时才声明，避免 NU5039 -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true' AND Exists('$(MSBuildProjectDirectory)\README.md')">
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
@@ -42,27 +45,4 @@
           Pack="true" PackagePath="\README.md" />
   </ItemGroup>
 
-  <Target Name="CopyModuleToOutputFolder"
-          AfterTargets="Build"
-          Condition="'$(IsModuleProject)' == 'true'">
-
-    <PropertyGroup>
-      <!-- MSBuildThisFileDirectory = 解决方案根目录（含尾部斜杠），始终正确 -->
-      <_ShellModulesDir>$(MSBuildThisFileDirectory)PF.Application.Shell\bin\$(Configuration)\net8.0-windows\Modules\</_ShellModulesDir>
-    </PropertyGroup>
-
-    <MakeDir Directories="$(_ShellModulesDir)" Condition="!Exists('$(_ShellModulesDir)')" />
-
-    <!-- 复制模块主体 DLL -->
-    <Copy SourceFiles="$(TargetPath)"
-          DestinationFolder="$(_ShellModulesDir)"
-          SkipUnchangedFiles="true" />
-
-    <!-- 复制 PDB（调试符号，可选） -->
-    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
-          DestinationFolder="$(_ShellModulesDir)"
-          Condition="Exists('$(TargetDir)$(TargetName).pdb')"
-          SkipUnchangedFiles="true" />
-
-  </Target>
 </Project>

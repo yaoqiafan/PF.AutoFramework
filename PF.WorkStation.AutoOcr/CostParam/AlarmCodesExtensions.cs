@@ -1628,6 +1628,15 @@ namespace PF.WorkStation.AutoOcr.CostParam
     50189, "OCR: Initialization Abnormal",
     "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
             public const string InitException = "PROC_DET_INIT_001";
+
+            /// <summary>断点续跑异常（非预期故障统一归口）</summary>
+            [AlarmInfo("断点续跑", "OCR检测-断点续跑异常", "OCR: Resume run failed", AlarmSeverity.Error,
+    "1. 查看日志中具体异常信息;\n" +
+                "2. 排查对应硬件或状态异常;\n" +
+                "3. 排除故障后复位重新运行;",
+    50202, "OCR: Resume run failed",
+    "/PF.WorkStation.AutoOcr.UI;component/ModelImages/视觉龙门-成品.png")]
+            public const string ResumeException = "PROC_DET_RSM_002";
         }
 
         // ─────────────────────────────────────────────────────────────────────

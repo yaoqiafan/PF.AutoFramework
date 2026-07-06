@@ -1,0 +1,106 @@
+﻿<UserControl
+    x:Class="PF.Modules.Halcon.Views.HalconDashboardView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <UserControl.Resources>
+        <!--  标签页按钮基础样式：去掉系统按钮装饰，改为底边线指示激活状态  -->
+        <Style x:Key="NavTabStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0,0,0,2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="20,10" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  顶部 Tab 条  -->
+        <Border
+            Grid.Row="0"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+
+                <!--  过程调试 Tab  -->
+                <Button Command="{Binding NavToDebugCommand}">
+                    <Button.Style>
+                        <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDebugSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock FontSize="13" Text="过程调试">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDebugSelected}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
+
+                <!--  管线运行 Tab  -->
+                <Button Command="{Binding NavToPipelineCommand}">
+                    <Button.Style>
+                        <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPipelineSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock FontSize="13" Text="管线运行">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPipelineSelected}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
+
+            </StackPanel>
+        </Border>
+
+        <!--  内容区域：由 Prism 区域导航控制  -->
+        <ContentControl Grid.Row="1" prism:RegionManager.RegionName="{x:Static local:HalconNavigationConstants+Regions.HalconContentRegion}" />
+    </Grid>
+
+</UserControl>

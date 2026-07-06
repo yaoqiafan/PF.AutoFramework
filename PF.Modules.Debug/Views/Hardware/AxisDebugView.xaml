@@ -463,34 +463,34 @@
                                 SelectionMode="Single">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
-                                        Width="50"
+                                        Width="auto"
                                         Binding="{Binding SortOrder, UpdateSourceTrigger=PropertyChanged}"
                                         Header="序号" />
                                     <DataGridTextColumn
-                                        Width="120"
+                                        Width="auto"
                                         Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                                         Header="点位名称" />
                                     <DataGridTextColumn
-                                        Width="110"
+                                        Width="auto"
                                         Binding="{Binding TargetPosition, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
                                         Header="目标位置(um)" />
                                     <DataGridTextColumn
-                                        Width="90"
+                                        Width="auto"
                                         Binding="{Binding Speed, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
                                         Header="速度" />
 
                                     <DataGridTextColumn
-                                        Width="90"
+                                        Width="auto"
                                         Binding="{Binding Acc, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
                                         Header="加速度" />
 
                                     <DataGridTextColumn
-                                        Width="90"
+                                        Width="auto"
                                         Binding="{Binding Dec, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
                                         Header="减速度" />
 
                                     <DataGridTextColumn
-                                        Width="90"
+                                        Width="auto"
                                         Binding="{Binding STime, UpdateSourceTrigger=PropertyChanged}"
                                         Header="S段时间" />
 

@@ -133,12 +133,13 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步触发单轴回原点 (Homing)
         /// </summary>
-        public override Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default)
+        public override async Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default)
         {
             try
             {
-                // 模拟模式下等待 3 秒模拟回零耗时
-                if (IsSimulated) { Task.Delay(3000).Wait(); return Task.FromResult(true); }
+                // 模拟模式下等待 3 秒模拟回零耗时（原 Task.Delay(3000).Wait() 同步阻塞线程池且忽略 token，
+                // 改为 await 使调用方可取消、不占用线程池线程）。
+                if (IsSimulated) { await Task.Delay(3000, token); return true; }
 
                 double? equiv = this.GetCurEquiv(axisIndex);
                 if (equiv == null)
@@ -177,12 +178,12 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 {
                     throw new Exception($"单轴回原点失败，函数名：nmc_home_move，返回值：{ret}");
                 }
-                return Task.FromResult(true);
+                return true;
             }
             catch (Exception ex)
             {
                 HardwareLogger.Debug(ex.Message, ex);
-                return Task.FromResult(false);
+                return false;
             }
         }
 

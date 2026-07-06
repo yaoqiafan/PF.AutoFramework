@@ -841,7 +841,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             try
             {
                 OcrResult = "OCR识别中...";
-                var result = await _camera.Tigger();
+                var result = await _camera.Trigger();
                 OcrResult = result ?? "(空)";
             }
             catch (Exception ex)

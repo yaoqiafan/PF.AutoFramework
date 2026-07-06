@@ -1,5 +1,8 @@
-﻿using PF.Core.Enums;
+﻿using PF.Core.Attributes;
+using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Events;
+using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
 using System;
 using System.IO;
@@ -13,8 +16,28 @@ namespace PF.Infrastructure.Communication.TCP
     /// <summary>
     /// TCP客户端
     /// </summary>
-    public class TCPClient : IClient
+    [CommunicationUI(NavigationConstants.Views.TcpClientDebugView)]
+    public class TCPClient : IClient, ICommunication
     {
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的目标服务端 IP，需在 StartAsync(CancellationToken) 调用前设置</summary>
+        public string TargetServerIp { get; set; } = string.Empty;
+        /// <summary>由 ICommunicationManagerService 按配置驱动启动时使用的目标服务端端口</summary>
+        public int TargetServerPort { get; set; }
+
+        /// <inheritdoc cref="ICommunication.InstanceId"/>
+        string ICommunication.InstanceId => ClientId;
+        /// <inheritdoc cref="ICommunication.Category"/>
+        CommunicationCategory ICommunication.Category => CommunicationCategory.Tcp;
+        /// <inheritdoc cref="ICommunication.Role"/>
+        CommunicationRole ICommunication.Role => CommunicationRole.Client;
+        /// <inheritdoc cref="ICommunication.DisplayName"/>
+        string ICommunication.DisplayName => $"[{_displayName}]";
+
+        /// <summary>供 ICommunicationManagerService 统一调度的启动入口，内部使用 TargetServerIp/TargetServerPort</summary>
+        public Task<bool> StartAsync(CancellationToken token = default) => ConnectAsync(TargetServerIp, TargetServerPort);
+
+        /// <summary>供 ICommunicationManagerService 统一调度的停止入口</summary>
+        public Task StopAsync() => DisconnectAsync();
         private System.Net.Sockets.TcpClient _tcpClient;
         private NetworkStream _stream;
         private CancellationTokenSource _receiveCancellationTokenSource;
@@ -26,6 +49,7 @@ namespace PF.Infrastructure.Communication.TCP
         private ClientStatus _status = ClientStatus.None;
         private DateTime _connectTime;
         private string _clientId;
+        private string _displayName;
         private string _serverIp;
         private int _serverPort;
         private string _localEndPoint;
@@ -33,6 +57,10 @@ namespace PF.Infrastructure.Communication.TCP
 
         // 新增：用于记录当前是否启用了后台异步接收
         private bool _isAsyncMode;
+
+        // 断开事件去重标记：主动断开与接收循环的异常路径可能并发各走一次 OnDisconnected，
+        // 事件每个连接周期只对外发一次（成功连接时归零）
+        private int _disconnectNotified;
 
         /// <summary>
         /// 客户端标识
@@ -124,9 +152,10 @@ namespace PF.Infrastructure.Communication.TCP
         /// <summary>
         /// 构造TCP客户端
         /// </summary>
-        public TCPClient(string clientId = null)
+        public TCPClient(string displayName = null, string clientId = null)
         {
             _clientId = clientId ?? Guid.NewGuid().ToString();
+            _displayName = displayName ?? $"{_clientId}";
         }
 
         /// <summary>
@@ -134,7 +163,12 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         public async Task<bool> ConnectAsync(string serverIp, int serverPort, bool IsAsync = true)
         {
-            await _connectLock.WaitAsync();
+            // 锁超时分支在 try 外：超时未获锁不进入 finally 的 Release。
+            if (!await _connectLock.WaitAsync(ConnectTimeout).ConfigureAwait(false))
+            {
+                OnErrorOccurred($"连接失败: 等待连接锁超时 ({ConnectTimeout}ms)", null);
+                return false;
+            }
             try
             {
                 if (Status == ClientStatus.Connected || Status == ClientStatus.Connecting)
@@ -162,14 +196,18 @@ namespace PF.Infrastructure.Communication.TCP
                     var connectTask = _tcpClient.ConnectAsync(serverIp, serverPort);
                     var timeoutTask = Task.Delay(ConnectTimeout, _connectCancellationTokenSource.Token);
 
-                    var completedTask = await Task.WhenAny(connectTask, timeoutTask);
+                    var completedTask = await Task.WhenAny(connectTask, timeoutTask).ConfigureAwait(false);
 
                     if (completedTask == timeoutTask)
                     {
+                        // 被遗弃的 connectTask 随后会因 TcpClient 被清理而失败，其异常必须有人观察，
+                        // 否则会打到 TaskScheduler.UnobservedTaskException
+                        _ = connectTask.ContinueWith(t => _ = t.Exception,
+                            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
                         throw new TimeoutException($"连接超时 ({ConnectTimeout}ms)");
                     }
 
-                    await connectTask; // 确保连接完成
+                    await connectTask.ConfigureAwait(false); // 确保连接完成
 
                     _stream = _tcpClient.GetStream();
                     _localEndPoint = _tcpClient.Client.LocalEndPoint?.ToString() ?? "Unknown";
@@ -180,13 +218,17 @@ namespace PF.Infrastructure.Communication.TCP
                     _receiveCancellationTokenSource?.Dispose();
                     _receiveCancellationTokenSource = new CancellationTokenSource();
 
+                    // 状态必须先置为 Connected 再启动接收循环：循环条件依赖 Status == Connected，
+                    // 若循环线程抢先执行会在第一次判断就退出，表现为"已连接但永远收不到数据"的静默故障
+                    Status = ClientStatus.Connected;
+                    Interlocked.Exchange(ref _disconnectNotified, 0);
+
                     if (IsAsync)
                     {
                         // 仅当启用异步时，启动后台接收循环
                         _ = Task.Run(() => ReceiveLoopAsync(_receiveCancellationTokenSource.Token), _receiveCancellationTokenSource.Token);
                     }
 
-                    Status = ClientStatus.Connected;
                     OnConnected($"已连接到服务器 {serverIp}:{serverPort}");
 
                     return true;
@@ -195,7 +237,7 @@ namespace PF.Infrastructure.Communication.TCP
                 {
                     Status = ClientStatus.Error;
                     OnErrorOccurred($"连接失败: {ex.Message}", ex);
-                    await CleanupConnection();
+                    await CleanupConnection().ConfigureAwait(false);
                     return false;
                 }
             }
@@ -215,16 +257,16 @@ namespace PF.Infrastructure.Communication.TCP
                 {
                     if (_stream == null || !_stream.CanRead)
                     {
-                        await Task.Delay(100, cancellationToken);
+                        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
 
-                    var bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                    var bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
 
                     if (bytesRead == 0)
                     {
                         OnDisconnected("连接已关闭", false);
-                        await CleanupConnection();
+                        await CleanupConnection().ConfigureAwait(false);
                         break;
                     }
 
@@ -239,19 +281,19 @@ namespace PF.Infrastructure.Communication.TCP
                 catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
                 {
                     OnDisconnected($"IO异常: {socketEx.Message}", false);
-                    await CleanupConnection();
+                    await CleanupConnection().ConfigureAwait(false);
                     break;
                 }
                 catch (SocketException socketEx)
                 {
                     OnDisconnected($"Socket异常: {socketEx.Message}", false);
-                    await CleanupConnection();
+                    await CleanupConnection().ConfigureAwait(false);
                     break;
                 }
                 catch (Exception ex)
                 {
                     OnErrorOccurred($"接收数据时发生错误: {ex.Message}", ex);
-                    await Task.Delay(1000, cancellationToken);
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -268,16 +310,21 @@ namespace PF.Infrastructure.Communication.TCP
 
             if (data == null || data.Length == 0) return true;
 
-            await _sendLock.WaitAsync();
+            // 锁超时分支必须在 try 之外：若超时未获锁，绝不能进入 finally 的 Release（否则信号量计数错乱）。
+            if (!await _sendLock.WaitAsync(SendTimeout).ConfigureAwait(false))
+            {
+                OnErrorOccurred($"发送数据失败: 等待发送锁超时 ({SendTimeout}ms)，可能上次 WriteAsync 挂起", null);
+                return false;
+            }
             try
             {
-                await _stream.WriteAsync(data, 0, data.Length);
+                await _stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
                 return true;
             }
             catch (Exception ex)
             {
                 OnErrorOccurred($"发送数据失败: {ex.Message}", ex);
-                await DisconnectAsync();
+                await DisconnectAsync().ConfigureAwait(false);
                 return false;
             }
             finally
@@ -293,7 +340,7 @@ namespace PF.Infrastructure.Communication.TCP
         {
             if (string.IsNullOrEmpty(data)) return true;
             var bytes = Encoding.GetBytes(data);
-            return await SendAsync(bytes);
+            return await SendAsync(bytes).ConfigureAwait(false);
         }
 
         // ================= 新增方法区 ================= //
@@ -306,7 +353,7 @@ namespace PF.Infrastructure.Communication.TCP
             if (_isAsyncMode)
                 throw new InvalidOperationException("当前处于异步接收模式，无法使用同步阻塞读取，请在连接时将 IsAsync 设为 false。");
 
-            if (!await SendAsync(data))
+            if (!await SendAsync(data).ConfigureAwait(false))
                 throw new Exception("数据发送失败，无法等待响应。");
 
             using var cts = new CancellationTokenSource(timeoutMs);
@@ -315,12 +362,12 @@ namespace PF.Infrastructure.Communication.TCP
             try
             {
                 // 等待读取，超时会抛出 OperationCanceledException
-                int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cts.Token);
+                int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
 
                 if (bytesRead == 0)
                 {
                     OnDisconnected("服务器断开连接", false);
-                    await CleanupConnection();
+                    await CleanupConnection().ConfigureAwait(false);
                     return Array.Empty<byte>();
                 }
 
@@ -354,12 +401,12 @@ namespace PF.Infrastructure.Communication.TCP
                 // 只要时间窗口没到，就一直挂起读取
                 while (!cts.IsCancellationRequested)
                 {
-                    int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cts.Token);
+                    int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
 
                     if (bytesRead == 0)
                     {
                         OnDisconnected("服务器断开连接", false);
-                        await CleanupConnection();
+                        await CleanupConnection().ConfigureAwait(false);
                         break;
                     }
 
@@ -385,7 +432,12 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         public async Task DisconnectAsync()
         {
-            await _connectLock.WaitAsync();
+            // 锁超时分支在 try 外：超时未获锁不进入 finally 的 Release（断开不应长时间阻塞）。
+            if (!await _connectLock.WaitAsync(ConnectTimeout).ConfigureAwait(false))
+            {
+                System.Diagnostics.Debug.WriteLine($"[TCPClient] DisconnectAsync 等待连接锁超时 ({ConnectTimeout}ms)");
+                return;
+            }
             try
             {
                 // None / Disconnected 表示本就未连接，无需清理；其余状态（Connected / Error / Connecting）均执行断开
@@ -393,7 +445,7 @@ namespace PF.Infrastructure.Communication.TCP
 
                 Status = ClientStatus.Disconnected;
                 OnDisconnected("客户端主动断开", true);
-                await CleanupConnection();
+                await CleanupConnection().ConfigureAwait(false);
             }
             finally
             {
@@ -411,7 +463,7 @@ namespace PF.Infrastructure.Communication.TCP
                 throw new InvalidOperationException("无法重连：未保存服务器地址");
             }
 
-            await DisconnectAsync();
+            await DisconnectAsync().ConfigureAwait(false);
 
             if (AutoReconnect)
             {
@@ -426,9 +478,9 @@ namespace PF.Infrastructure.Communication.TCP
                     {
                         try
                         {
-                            await Task.Delay(ReconnectInterval, cts.Token);
+                            await Task.Delay(ReconnectInterval, cts.Token).ConfigureAwait(false);
                             // 保持上一次连接的 IsAsync 模式
-                            await ConnectAsync(_serverIp, _serverPort, _isAsyncMode);
+                            await ConnectAsync(_serverIp, _serverPort, _isAsyncMode).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
@@ -457,8 +509,10 @@ namespace PF.Infrastructure.Communication.TCP
                 _tcpClient?.Close();
                 _tcpClient = null;
             }
-            catch
+            catch (Exception ex)
             {
+                // 释放路径异常不应向上抛（掩盖原始错误），但需留痕便于排查连接关闭失败。
+                System.Diagnostics.Debug.WriteLine($"[TCPClient] CleanupConnection 异常: {ex.Message}");
             }
         }
 
@@ -479,6 +533,7 @@ namespace PF.Infrastructure.Communication.TCP
             {
                 Status = ClientStatus.Disconnected;
             }
+            if (Interlocked.Exchange(ref _disconnectNotified, 1) == 1) return;
             Disconnected?.Invoke(this, new ClientDisconnectedEventArgs(_clientId, isManual ? $"手动断开: {reason}" : reason));
         }
 

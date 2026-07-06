@@ -10,7 +10,7 @@ namespace PF.Core.Interfaces.Device.Hardware
     /// <summary>
     /// 工业硬件设备基础生命周期接口
     /// </summary>
-    public interface IHardwareDevice : IDisposable
+    public interface IHardwareDevice : IDisposable, IAsyncDisposable
     {
         #region 身份标识 (Identity)
 

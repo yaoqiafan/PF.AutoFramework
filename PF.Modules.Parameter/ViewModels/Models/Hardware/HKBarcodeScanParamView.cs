@@ -1,3 +1,4 @@
+using PF.Modules.Parameter.Dialog.Editors;
 using System.ComponentModel;
 
 namespace PF.Modules.Parameter.ViewModels.Models.Hardware
@@ -47,34 +48,26 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
             set => SetProperty(ref _isSimulated, value);
         }
 
-        private string _ip;
-        /// <summary>获取或设置IP地址</summary>
+        private string _triggerCommInstanceId;
+        /// <summary>获取或设置触发通讯实例ID（Tcp/Client）</summary>
         [Category("连接参数")]
-        [DisplayName("IP地址")]
-        public string IP
+        [DisplayName("触发通讯实例")]
+        [Editor(typeof(TcpClientInstancePropertyEditor), typeof(TcpClientInstancePropertyEditor))]
+        public string TriggerCommInstanceId
         {
-            get => _ip;
-            set => SetProperty(ref _ip, value);
+            get => _triggerCommInstanceId;
+            set => SetProperty(ref _triggerCommInstanceId, value);
         }
 
-        private string _tiggerPort;
-        /// <summary>获取或设置触发端口</summary>
+        private string _userPowerCommInstanceId;
+        /// <summary>获取或设置用户电源通讯实例ID（Tcp/Client）</summary>
         [Category("连接参数")]
-        [DisplayName("触发端口")]
-        public string TiggerPort
+        [DisplayName("用户电源通讯实例")]
+        [Editor(typeof(TcpClientInstancePropertyEditor), typeof(TcpClientInstancePropertyEditor))]
+        public string UserPowerCommInstanceId
         {
-            get => _tiggerPort;
-            set => SetProperty(ref _tiggerPort, value);
-        }
-
-        private string _userPort;
-        /// <summary>获取或设置用户端口</summary>
-        [Category("连接参数")]
-        [DisplayName("用户端口")]
-        public string UserPort
-        {
-            get => _userPort;
-            set => SetProperty(ref _userPort, value);
+            get => _userPowerCommInstanceId;
+            set => SetProperty(ref _userPowerCommInstanceId, value);
         }
 
         private string _timeOutMs;

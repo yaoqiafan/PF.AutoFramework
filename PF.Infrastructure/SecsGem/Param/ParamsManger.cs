@@ -272,7 +272,8 @@ namespace PF.Infrastructure.SecsGem.Param
         {
             try
             {
-                var manger0 = _secsGemDataBase.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
+                using var scope = _secsGemDataBase.BeginScope();
+                var manger0 = scope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
                 var systemParams = (await manger0.GetAllAsync()).Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
                 (_params[ParamType.System]) = systemParams;
                 return true;
@@ -287,16 +288,17 @@ namespace PF.Infrastructure.SecsGem.Param
         {
             try
             {
-                var manger1 = _secsGemDataBase.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs);
+                using var scope = _secsGemDataBase.BeginScope();
+                var manger1 = scope.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs);
                 var commandids = new ConcurrentDictionary<string, CommandID>((await manger1.GetAllAsync()).Select(t => t.GetCommandIDFormCommandIDEntity()).ToList().Select(item => new KeyValuePair<string, CommandID>(item.Description, item)));
 
-                var manger2 = _secsGemDataBase.GetRepository<CEIDEntity>(SecsDbSet.CEIDs);
+                var manger2 = scope.GetRepository<CEIDEntity>(SecsDbSet.CEIDs);
                 var ceids = new ConcurrentDictionary<string, CEID>((await manger2.GetAllAsync()).Select(t => t.GetCEIDFormCEIDEntity()).ToList().Select(item => new KeyValuePair<string, CEID>(item.Description, item)));
 
-                var manger3 = _secsGemDataBase.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs);
+                var manger3 = scope.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs);
                 var reoprtids = new ConcurrentDictionary<string, ReportID>((await manger3.GetAllAsync()).Select(t => t.GetReportIDFormReportIDEntity()).ToList().Select(item => new KeyValuePair<string, ReportID>(item.Description, item)));
 
-                var manger4 = _secsGemDataBase.GetRepository<VIDEntity>(SecsDbSet.VIDs);
+                var manger4 = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs);
                 var vids = new ConcurrentDictionary<string, VID>((await manger4.GetAllAsync()).Select(t => t.GetVIDFormVIDEntity()).ToList().Select(item => new KeyValuePair<string, VID>(item.Description, item)));
 
                 ((ValidateConfiguration)_params[ParamType.Validate]).CommandIDS = commandids;
@@ -321,10 +323,11 @@ namespace PF.Infrastructure.SecsGem.Param
                 var responseCommands = new ConcurrentDictionary<string, SFCommand>();
                 try
                 {
-                    var manger1 = _secsGemDataBase.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                    using var scope = _secsGemDataBase.BeginScope();
+                    var manger1 = scope.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
                     incentiveCommands = new ConcurrentDictionary<string, SFCommand>((await manger1.GetAllAsync()).Select(t => t.GetSFCommandFormIncentiveEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
 
-                    var manger2 = _secsGemDataBase.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                    var manger2 = scope.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
                     responseCommands = new ConcurrentDictionary<string, SFCommand>((await manger2.GetAllAsync()).Select(t => t.GetSFCommandFormResponseEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
                 }
                 catch (Exception)

@@ -466,7 +466,8 @@ namespace PF.SecsGem.Service
             using (var scope = _scopeFactory.CreateScope())
             {
                 var secsGemDataBase = scope.ServiceProvider.GetRequiredService<ISecsGemDataBase>();
-                var manger0 = secsGemDataBase.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
+                using var dbScope = secsGemDataBase.BeginScope();
+                var manger0 = dbScope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
                 _secsGemSystemParam = (await manger0.GetAllAsync()).Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
             }
 

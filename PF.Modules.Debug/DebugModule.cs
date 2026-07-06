@@ -1,7 +1,9 @@
 ﻿using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Modules.Debug.Dialogs;
 using PF.Modules.Debug.ViewModels;
 using PF.Modules.Debug.Views;
+using PF.Modules.Debug.Views.Communication;
 using PF.Modules.Debug.Views.Hardware;
 using PF.UI.Infrastructure.Navigation;
 using Prism.Ioc;
@@ -22,6 +24,9 @@ namespace PF.Modules.Debug
             // 这样 DeviceDebugView 上的 [ModuleNavigation] 特性就会被识别，自动添加到系统侧边栏菜单中
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            // 通讯综合调试视图跟硬件/工站调试一样，仅限工程师及以上权限可见
+            DefaultPermissions.RegisterViews(UserLevel.Engineer, NavigationConstants.Views.CommunicationDebugView);
         }
 
         /// <summary>注册调试模块的视图和对话框</summary>
@@ -52,6 +57,17 @@ namespace PF.Modules.Debug
 
             containerRegistry.RegisterForNavigation<LightControllerDebugView, LightControllerDebugViewModel >(NavigationConstants.Views.LightControllerDebugView);
             containerRegistry.RegisterDialog<AxisParamDialog, AxisParamDialogViewModel>(nameof(AxisParamDialog));
+
+            // 5. 注册通讯综合调试容器视图 + 三个叶子调试视图
+            containerRegistry.RegisterForNavigation<CommunicationDebugView, CommunicationDebugViewModel>(NavigationConstants.Views.CommunicationDebugView);
+            containerRegistry.RegisterForNavigation<TcpServerDebugView, TcpServerDebugViewModel>(NavigationConstants.Views.TcpServerDebugView);
+            containerRegistry.RegisterForNavigation<TcpClientDebugView, TcpClientDebugViewModel>(NavigationConstants.Views.TcpClientDebugView);
+            containerRegistry.RegisterForNavigation<FileTransferDebugView, FileTransferDebugViewModel>(NavigationConstants.Views.FileTransferDebugView);
+
+            // 6. 注册三个通讯实例参数修改对话框
+            containerRegistry.RegisterDialog<TcpServerParamDialog, TcpServerParamDialogViewModel>(nameof(TcpServerParamDialog));
+            containerRegistry.RegisterDialog<TcpClientParamDialog, TcpClientParamDialogViewModel>(nameof(TcpClientParamDialog));
+            containerRegistry.RegisterDialog<FileTransferParamDialog, FileTransferParamDialogViewModel>(nameof(FileTransferParamDialog));
         }
     }
 }

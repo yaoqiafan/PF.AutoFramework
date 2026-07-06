@@ -121,7 +121,8 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             try
             {
-                var vidRepo = _db.GetRepository<VIDEntity>(SecsDbSet.VIDs);
+                using var scope = _db.BeginScope();
+                var vidRepo = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs);
                 int vidCount = await vidRepo.CountAsync();
 
                 var sysParam = _manager.ParamsManager.GetParamOrDefault<SecsGemSystemParam>(ParamType.System, null);

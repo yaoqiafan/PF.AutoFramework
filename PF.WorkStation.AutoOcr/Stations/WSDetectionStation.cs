@@ -213,6 +213,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             {
                 _logger.Error($"[{StationName}] 执行断点续跑时发生异常: {ex.Message}");
                 _currentStep = StationDetectionStep.等待工位1或工位2允许检测;
+                TriggerAlarm(AlarmCodesExtensions.Detection.ResumeException, $"断点续跑异常: {ex.Message}");
+                throw;
             }
         }
 

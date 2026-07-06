@@ -1,6 +1,8 @@
 ﻿using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Identity;
 using PF.Core.Events;
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Data;
 using PF.Core.Interfaces.Logging;
@@ -582,8 +584,19 @@ namespace PF.Services.Params
         {
             try
             {
-                var repositoryType = typeof(ParamRepository<>).MakeGenericType(entityType);
-                return Activator.CreateInstance(repositoryType, dbContext);
+                // 缓存编译表达式工厂，彻底消除每次调用的 MakeGenericType + Activator.CreateInstance 反射开销。
+                // GetOrAdd 内部线程安全，首次构建后后续直接走编译委托（等价于 new ParamRepository<T>(ctx)）。
+                var factory = _repositoryFactories.GetOrAdd(entityType, t =>
+                {
+                    var repositoryType = typeof(ParamRepository<>).MakeGenericType(t);
+                    var ctor = repositoryType.GetConstructor(new[] { typeof(Microsoft.EntityFrameworkCore.DbContext) });
+                    if (ctor == null)
+                        throw new InvalidOperationException($"{repositoryType} 缺少 DbContext 构造函数");
+                    var param = Expression.Parameter(typeof(Microsoft.EntityFrameworkCore.DbContext), "ctx");
+                    return Expression.Lambda<Func<Microsoft.EntityFrameworkCore.DbContext, object>>(
+                        Expression.New(ctor, param), param).Compile();
+                });
+                return factory(dbContext);
             }
             catch (Exception ex)
             {
@@ -591,6 +604,10 @@ namespace PF.Services.Params
                 return null;
             }
         }
+
+        // 仓储工厂缓存：key=实体类型，value=编译后的 (DbContext)->ParamRepository<T> 构造委托。
+        // 与 CreateRepository 分离放置，避免其 XML 注释被误关联到本字段。
+        private static readonly ConcurrentDictionary<Type, Func<Microsoft.EntityFrameworkCore.DbContext, object>> _repositoryFactories = new();
 
         /// <summary>
         /// 基于泛型 T，在缓存字典中确定它对应的持久化实体类型(Entity)

@@ -7,6 +7,8 @@
 		<PackageReference Include="Stateless" />
 		<PackageReference Include="NPOI" />
 		<PackageReference Include="System.Drawing.Common" />
+		<PackageReference Include="System.IO.Hashing" />
+		<PackageReference Include="System.IO.Ports" />
 	</ItemGroup>
 
 

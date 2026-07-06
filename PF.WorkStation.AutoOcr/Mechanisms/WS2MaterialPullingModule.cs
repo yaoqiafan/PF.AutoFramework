@@ -105,6 +105,9 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         /// <summary>获取光源控制器实例</summary>
         public ILightController LightController => _lightController;
 
+        /// <inheritdoc/>
+        public override bool IsInSafePosition => IsAxisAtPoint(_yAxis, nameof(YAxisPoint.待机位置));
+
         #endregion
         #region Constructor & Lifecycle (构造与生命周期)
 
@@ -520,7 +523,7 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
             {
                 token.ThrowIfCancellationRequested(); // 【新增】入口检查
                                                       // 预留硬件检测叠片逻辑
-                await Task.Delay(500);
+                await Task.Delay(500, token);
                 bool? res1 = _io.ReadInput((int)E_InPutName.夹爪右叠料检测);
                 if (!res1.HasValue) return MechResult.Fail(AlarmCodesExtensions.WS2Pulling.StackedPiecesDetected, $"获取输入信号 {E_InPutName.夹爪右叠料检测} 失败");
 

@@ -38,7 +38,10 @@ namespace PF.UI.Infrastructure.PrismBase
         }
         private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            this.DragMove();
+            // 只在顶部标题栏区域（NonClientAreaHeight = 50px）内拖动，
+            // 避免抢占内容区域（如 HALCON ROI 绘制）的鼠标事件
+            if (e.GetPosition(this).Y <= 50)
+                this.DragMove();
         }
     }
 }

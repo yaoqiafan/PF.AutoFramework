@@ -331,23 +331,17 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         /// <summary>
         /// 重写父类钩子：处理全线复位成功后的收尾清理工作。
-        /// <para>各子工站已经在自己的 ExecuteResetAsync 中按 Scope 清理了本工站作用域内的信号量。
-        /// 故主控在此仅清理 <c>global</c> 作用域（如物理按钮按下、人工确认等无明确工站归属的共享信号量），
-        /// 避免越权重置其他工站的专属 Scope 造成流转逻辑错乱。</para>
+        /// <para>"复位" scope 仅含 3 个复位协调信号（检测模组复位完成 maxCount:2、工位1/工位2拉料复位完成），
+        /// 与断点续跑依赖的业务信号（允许拉料/允许检测/检测完成等，归属各工站自身 scope）无关，
+        /// 故无论初始化报警复位还是运行期报警复位，都需重置"复位"scope，确保下次复位的协调信号从干净状态开始。</para>
+        /// <para>断点续跑的业务信号由各子站在自己的 ExecuteResetAsync 中清理本站 scope，
+        /// 再由 ExecuteResumeFromBreakpointAsync 按 _currentStep 补发所需信号，链路自洽，
+        /// ResetScope("复位") 不会影响断点续跑。</para>
         /// </summary>
         protected override void OnAfterResetSuccess()
         {
-            // 仅初始化报警复位时重置全局信号量；运行期报警复位保留信号量以支持断点续跑
-            if (MasterCameFromInitAlarm)
-            {
-                _logger.Info("【主控】初始化报警复位，重置 \"复位\" 作用域信号量...");
-                _sync.ResetScope("复位");
-            }
-            else
-            {
-                _logger.Info("【主控】运行期报警复位，保留信号量以支持断点续跑。");
-                _sync.ResetScope("复位");
-            }
+            _logger.Info("【主控】复位成功，重置 \"复位\" 作用域协调信号量（检测模组复位完成 / 工位X拉料复位完成）。");
+            _sync.ResetScope("复位");
         }
 
         #endregion

@@ -1,5 +1,6 @@
 using PF.Core.Enums;
 using PF.Core.Models;
+using System;
 
 namespace PF.Core.Interfaces.Alarm
 {
@@ -8,7 +9,7 @@ namespace PF.Core.Interfaces.Alarm
     /// 所有 <c>TriggerAlarm</c> 调用的 <paramref name="errorCode"/> 参数
     /// 必须引用 <see cref="PF.Core.Constants.AlarmCodes"/> 中的常量，严禁魔法字符串。
     /// </summary>
-    public interface IAlarmService
+    public interface IAlarmService : IAsyncDisposable
     {
         // ── 活跃报警集合（线程安全快照） ────────────────────────────────────
 

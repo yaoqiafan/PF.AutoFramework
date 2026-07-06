@@ -664,7 +664,7 @@ namespace PF.Infrastructure.Station
             try
             {
                 await Parallel.ForEachAsync(_subStations,
-                    new ParallelOptions { MaxDegreeOfParallelism = 10, CancellationToken = cts.Token },
+                    new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = cts.Token },
                     async (station, token) =>
                     {
                         try { await station.ExecuteInitializeAsync(token).ConfigureAwait(false); }
