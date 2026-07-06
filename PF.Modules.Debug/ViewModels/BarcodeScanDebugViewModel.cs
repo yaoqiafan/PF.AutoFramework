@@ -1,8 +1,12 @@
 ﻿using PF.Core.Constants;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
@@ -111,6 +115,10 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取扫码历史记录列表</summary>
         public ObservableCollection<ScanRecord> ScanHistory { get; } = new ObservableCollection<ScanRecord>();
 
+        private BitmapSource _scanImage;
+        /// <summary>获取或设置最近一次触发采集到的图像（不支持图像采集/取图失败时为 null）</summary>
+        public BitmapSource ScanImage { get => _scanImage; set => SetProperty(ref _scanImage, value); }
+
         #endregion
 
         #region 【控制命令定义】
@@ -147,6 +155,12 @@ namespace PF.Modules.Debug.ViewModels
                     // 调用接口定义的 Tigger 方法
                     var result = await _scanner.Tigger(_cts.Token);
                     UpdateScanResult(result.IsSuccess ? result.CodesText : result.ErrorMessage);
+
+                    if (result.IsSuccess)
+                    {
+                        await _scanner.FetchLatestImageAsync(_cts.Token);
+                        ScanImage = BuildBitmapSource(_scanner.LastImageData, _scanner.LastImageWidth, _scanner.LastImageHeight, _scanner.LastImagePixelFormat);
+                    }
                 }
                 catch (TaskCanceledException) { }
                 catch (Exception ex)
@@ -212,6 +226,46 @@ namespace PF.Modules.Debug.ViewModels
             if (ScanHistory.Count > 100)
             {
                 ScanHistory.RemoveAt(ScanHistory.Count - 1);
+            }
+        }
+
+        /// <summary>
+        /// 将 <see cref="IBarcodeScan"/> 接口暴露的原始图像数据转换为可供 WPF 显示的 <see cref="BitmapSource"/>。
+        /// 无数据或像素格式不支持时返回 null（界面按需显示"暂无图像"占位）。
+        /// </summary>
+        private static BitmapSource BuildBitmapSource(byte[] data, int width, int height, BarcodeImagePixelFormat pixelFormat)
+        {
+            try
+            {
+                if (data == null || data.Length == 0 || width <= 0 || height <= 0)
+                    return null;
+
+                switch (pixelFormat)
+                {
+                    case BarcodeImagePixelFormat.Mono8:
+                        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Gray8, null, data, width);
+                        bitmap.Freeze();
+                        return bitmap;
+
+                    case BarcodeImagePixelFormat.Jpeg:
+                        using (var ms = new MemoryStream(data))
+                        {
+                            var image = new BitmapImage();
+                            image.BeginInit();
+                            image.CacheOption = BitmapCacheOption.OnLoad;
+                            image.StreamSource = ms;
+                            image.EndInit();
+                            image.Freeze();
+                            return image;
+                        }
+
+                    default:
+                        return null;
+                }
+            }
+            catch
+            {
+                return null;
             }
         }
 

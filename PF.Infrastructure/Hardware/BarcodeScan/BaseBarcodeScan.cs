@@ -68,6 +68,14 @@ namespace PF.Infrastructure.Hardware.BarcodeScan
         /// </summary>
         public abstract Task<BarcodeScanResult> Tigger(CancellationToken token = default);
 
+        /// <summary>
+        /// 确保图像属性已获取到最新图像并返回是否可用。默认实现不做任何额外通信，
+        /// 仅检查 <see cref="LastImageData"/> 是否已有内容（适用于 <see cref="Tigger"/> 内已随读码回调
+        /// 一并采集图像的子类，如海康 MvCodeReaderBarcodeScan，以及完全不支持图像采集的子类）。
+        /// 需要额外取图操作（如 FTP 拉取）的子类（如基恩士 KeyenceBarcodeScan）应重写本方法。
+        /// </summary>
+        public virtual Task<bool> FetchLatestImageAsync(CancellationToken token = default)
+            => Task.FromResult(LastImageData != null && LastImageData.Length > 0);
 
     }
 }

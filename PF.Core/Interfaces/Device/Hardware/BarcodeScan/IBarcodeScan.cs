@@ -74,5 +74,15 @@ namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
         /// <returns></returns>
         Task<bool> ChangeUserParam(object UserInfo, CancellationToken token = default);
 
+        /// <summary>
+        /// 确保 <see cref="LastImageData"/> 等图像属性已获取到最新图像并返回是否可用。
+        /// <para>部分扫码枪（如海康 MvCodeReaderBarcodeScan）在 <see cref="Tigger"/> 内已随读码回调
+        /// 一并采集图像，此时本方法只是确认图像已存在，不产生额外通信；
+        /// 另一些扫码枪（如基恩士 KeyenceBarcodeScan）需要额外的取图操作（如 FTP 拉取），
+        /// 因此拆分为独立方法，避免每次触发都强制产生取图开销。
+        /// 完全不支持图像采集的扫码枪固定返回 false。</para>
+        /// </summary>
+        Task<bool> FetchLatestImageAsync(CancellationToken token = default);
+
     }
 }

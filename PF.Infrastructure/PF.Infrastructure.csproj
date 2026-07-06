@@ -21,6 +21,12 @@
 	  <Reference Include="MvCodeReaderSDK.Net">
 	    <HintPath>..\DLL\MvCodeReaderSDK.Net.dll</HintPath>
 	  </Reference>
+	  <Reference Include="Keyence.AutoID.SDK">
+	    <HintPath>..\DLL\Keyence.AutoID.SDK.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Communication">
+	    <HintPath>..\DLL\Communication.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 
 	<PropertyGroup>
