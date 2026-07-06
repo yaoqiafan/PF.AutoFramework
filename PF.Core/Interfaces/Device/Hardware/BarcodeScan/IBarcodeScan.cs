@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PF.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,26 @@ namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
         /// 扫码枪IP地址
         /// </summary>
         string IPAdress { get; }
+
+        /// <summary>
+        /// 最近一次触发采集到的原始图像数据。不支持图像采集的扫码枪固定返回空数组。
+        /// </summary>
+        byte[] LastImageData { get; }
+
+        /// <summary>
+        /// 最近一帧图像宽度。不支持图像采集的扫码枪固定返回 0。
+        /// </summary>
+        int LastImageWidth { get; }
+
+        /// <summary>
+        /// 最近一帧图像高度。不支持图像采集的扫码枪固定返回 0。
+        /// </summary>
+        int LastImageHeight { get; }
+
+        /// <summary>
+        /// 最近一帧图像的像素/编码格式。不支持图像采集的扫码枪固定返回 <see cref="BarcodeImagePixelFormat.Unknown"/>。
+        /// </summary>
+        BarcodeImagePixelFormat LastImagePixelFormat { get; }
 
         /// <summary>
         /// 触发端口

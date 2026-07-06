@@ -572,6 +572,13 @@ namespace PF.Application.Shell
                 return new Infrastructure.Hardware.BarcodeScan.HKRobot.HKBarcodeScan(ip, tiggerport, userport, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
             });
 
+            hwManager.RegisterFactory("MvCodeReaderBarcodeScan", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
+                int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var timeout) ? int.Parse(timeout) : 0;
+                return new Infrastructure.Hardware.BarcodeScan.Hikvision.MvCodeReaderBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, _logService);
+            });
+
             hwManager.RegisterFactory("KeyenceIntelligentCamera", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
