@@ -1,6 +1,7 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -161,37 +162,37 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         }
 
         /// <summary>
-        /// 触发扫码
+        /// 触发扫码：TCP 透传协议不支持图像采集，返回结果中的图像字段固定为空。
         /// </summary>
-        public override async Task<string> Tigger(CancellationToken token = default)
+        public override async Task<BarcodeScanResult> Tigger(CancellationToken token = default)
         {
             try
             {
-                if (IsSimulated) { return "当前设备模拟模式中，触发测试！"; }
+                if (IsSimulated) { return BarcodeScanResult.Success(new[] { "当前设备模拟模式中，触发测试！" }); }
 
 
                 TiggerEvent.Reset();
                 string TiggerStr = "+";
                 if (!await tiggerclient.SendStringAsync(TiggerStr))
                 {
-                    return null;
+                    return BarcodeScanResult.Fail("海康扫码枪发送触发指令失败。");
                 }
                 Task a = Task.Run(() => TiggerEvent.Wait(), token);
                 Task b = Task.Run(() => Thread.Sleep(TimeOutMs), token);
                 Task result = await Task.WhenAny(a, b);
                 if (result.Equals(a))
                 {
-                    return TiggerRec;
+                    return BarcodeScanResult.Success(TiggerRec?.Split('&') ?? Array.Empty<string>());
                 }
                 else
                 {
-                    return null;
+                    return BarcodeScanResult.Fail($"海康扫码枪触发取码超时（{TimeOutMs}ms）。");
                 }
             }
             catch (Exception ex)
             {
                 HardwareLogger.Debug(ex.Message, ex);
-                return null;
+                return BarcodeScanResult.Fail(ex.Message);
             }
         }
 

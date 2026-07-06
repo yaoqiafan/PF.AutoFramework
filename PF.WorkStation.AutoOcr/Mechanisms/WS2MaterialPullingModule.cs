@@ -920,23 +920,24 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     token.ThrowIfCancellationRequested(); // 【新增】重试循环内的取消探测
 
-                    string str = await _codeScan.Tigger(token);
-                    if (string.IsNullOrEmpty(str))
+                    var scanResult = await _codeScan.Tigger(token);
+                    if (!scanResult.IsSuccess || scanResult.Codes.Count == 0)
                     {
                         continue;
                     }
                     else
                     {
-                        var flag = await WSDataModule.CheckCodeAsync(E_WorkSpace.工位2, [.. str.Split('&')], token);
+                        var codes = scanResult.Codes.Select(c => c.Code).ToList();
+                        var flag = await WSDataModule.CheckCodeAsync(E_WorkSpace.工位2, codes, token);
                         if (flag.IsSuccess)
                         {
-                            _logger.Info($"[{MechanismName}] 扫码结果校验通过: {str}");
-                            return MechResult<List<string>>.Success([.. str.Split('&')]);
+                            _logger.Info($"[{MechanismName}] 扫码结果校验通过: {scanResult.CodesText}");
+                            return MechResult<List<string>>.Success(codes);
                         }
                         else
                         {
-                            _logger.Warn($"[{MechanismName}] 扫码内容校验不合法 (拦截): {str}");
-                            if (i == 2) return MechResult<List<string>>.Success([.. str.Split('&')]);
+                            _logger.Warn($"[{MechanismName}] 扫码内容校验不合法 (拦截): {scanResult.CodesText}");
+                            if (i == 2) return MechResult<List<string>>.Success(codes);
                         }
                     }
                 }

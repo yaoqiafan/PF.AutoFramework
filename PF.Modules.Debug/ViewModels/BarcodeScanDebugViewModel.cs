@@ -145,8 +145,8 @@ namespace PF.Modules.Debug.ViewModels
                 try
                 {
                     // 调用接口定义的 Tigger 方法
-                    string result = await _scanner.Tigger(_cts.Token);
-                    UpdateScanResult(result);
+                    var result = await _scanner.Tigger(_cts.Token);
+                    UpdateScanResult(result.IsSuccess ? result.CodesText : result.ErrorMessage);
                 }
                 catch (TaskCanceledException) { }
                 catch (Exception ex)
