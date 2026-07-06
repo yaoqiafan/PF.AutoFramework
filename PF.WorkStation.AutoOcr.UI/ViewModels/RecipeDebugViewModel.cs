@@ -820,7 +820,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
             {
                 ScanResult = "扫码中...";
                 var result = await scanner.Tigger();
-                ScanResult = result ?? "(空)";
+                ScanResult = result.IsSuccess ? result.CodesText : (result.ErrorMessage ?? "(空)");
             }
             catch (Exception ex)
             {

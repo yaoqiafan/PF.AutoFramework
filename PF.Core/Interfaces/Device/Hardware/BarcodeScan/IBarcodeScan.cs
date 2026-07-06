@@ -1,4 +1,5 @@
 ﻿using PF.Core.Enums;
+using PF.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,10 +60,10 @@ namespace PF.Core.Interfaces.Device.Hardware.BarcodeScan
 
 
         /// <summary>
-        /// 出发扫码枪
+        /// 触发扫码枪：返回本次触发识别到的条码列表与采集到的图像信息。
         /// </summary>
-        /// <returns></returns>
-        Task<string> Tigger(CancellationToken token =default );
+        /// <returns>详细扫码结果，见 <see cref="BarcodeScanResult"/></returns>
+        Task<BarcodeScanResult> Tigger(CancellationToken token =default );
 
 
         /// <summary>

@@ -2,6 +2,7 @@
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -63,9 +64,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan
         /// </summary>
         public abstract Task<bool> ChangeUserParam(object UserInfo,CancellationToken token = default);
         /// <summary>
-        /// 触发扫码
+        /// 触发扫码：返回本次触发识别到的条码列表与采集到的图像信息，见 <see cref="BarcodeScanResult"/>。
         /// </summary>
-        public abstract Task<string> Tigger(CancellationToken token = default);
+        public abstract Task<BarcodeScanResult> Tigger(CancellationToken token = default);
 
 
     }

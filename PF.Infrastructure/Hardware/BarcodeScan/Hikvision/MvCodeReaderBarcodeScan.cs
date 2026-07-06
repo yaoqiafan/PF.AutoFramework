@@ -2,6 +2,7 @@ using MvCodeReaderSDKNet;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -60,9 +61,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         public override int TimeOutMs { get; }
 
         /// <summary>
-        /// 最近一次触发采集到的全部条码（一帧可能包含多个条码）。
+        /// 最近一次触发采集到的全部条码详细信息（一帧可能包含多个条码）。
         /// </summary>
-        public IReadOnlyList<string> LastCodes { get; private set; } = Array.Empty<string>();
+        public IReadOnlyList<BarcodeInfo> LastCodes { get; private set; } = Array.Empty<BarcodeInfo>();
 
         // 图像数据（LastImageData / LastImageWidth / LastImageHeight / LastImagePixelFormat）
         // 已提升为 IBarcodeScan 接口成员，定义于 BaseBarcodeScan（protected set），此处仅在回调中写入。
@@ -84,32 +85,29 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         #region IBarcodeScan
 
         /// <summary>
-        /// 触发扫码：发送软触发并等待图像回调采集到条码。
-        /// 一帧可能包含多个条码，返回值按项目既有约定以 <c>&amp;</c> 拼接全部条码
-        /// （与 <see cref="LastCodes"/> 内容一致，调用方按 <c>Split('&amp;')</c> 拆分，兼容既有调用方）。
-        /// 最新图像请通过 <c>LastImageData</c> 获取。
+        /// 触发扫码：发送软触发并等待图像回调采集到条码，返回条码列表与本次采集到的图像信息。
         /// </summary>
-        public override async Task<string> Tigger(CancellationToken token = default)
+        public override async Task<BarcodeScanResult> Tigger(CancellationToken token = default)
         {
             try
             {
                 if (IsSimulated)
-                    return "当前设备模拟模式中，触发测试！";
+                    return BarcodeScanResult.Success(new[] { "当前设备模拟模式中，触发测试！" });
 
                 if (_device == null || !_grabbing)
                 {
                     HardwareLogger.Debug("海康MvCodeReader扫码枪未连接，无法触发。");
-                    return null;
+                    return BarcodeScanResult.Fail("海康MvCodeReader扫码枪未连接，无法触发。");
                 }
 
                 _resultEvent.Reset();
-                LastCodes = Array.Empty<string>();
+                LastCodes = Array.Empty<BarcodeInfo>();
 
                 int ret = _device.MV_CODEREADER_SetCommandValue_NET("TriggerSoftware");
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
                 {
                     HardwareLogger.Debug($"海康MvCodeReader扫码枪软触发失败，错误码={ret}。");
-                    return null;
+                    return BarcodeScanResult.Fail($"海康MvCodeReader扫码枪软触发失败，错误码={ret}。");
                 }
 
                 Task waitTask = Task.Run(() => _resultEvent.Wait(), token);
@@ -117,15 +115,15 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 Task finished = await Task.WhenAny(waitTask, timeoutTask);
 
                 if (finished == waitTask && _resultEvent.IsSet)
-                    return string.Join('&', LastCodes);
+                    return BarcodeScanResult.Success(LastCodes, LastImageData, LastImageWidth, LastImageHeight, LastImagePixelFormat);
 
                 HardwareLogger.Debug($"海康MvCodeReader扫码枪触发取码超时（{TimeOutMs}ms）。");
-                return null;
+                return BarcodeScanResult.Fail($"海康MvCodeReader扫码枪触发取码超时（{TimeOutMs}ms）。");
             }
             catch (Exception ex)
             {
                 HardwareLogger.Debug(ex.Message, ex);
-                return null;
+                return BarcodeScanResult.Fail(ex.Message);
             }
         }
 
@@ -300,12 +298,23 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 if (bcrResult.nCodeNum <= 0 || bcrResult.stBcrInfoEx2 == null)
                     return;
 
-                var codes = new List<string>((int)bcrResult.nCodeNum);
+                var codes = new List<BarcodeInfo>((int)bcrResult.nCodeNum);
                 for (int i = 0; i < bcrResult.nCodeNum && i < bcrResult.stBcrInfoEx2.Length; i++)
                 {
-                    string code = DecodeCodeString(bcrResult.stBcrInfoEx2[i].chCode, (int)bcrResult.stBcrInfoEx2[i].nLen);
-                    if (!string.IsNullOrEmpty(code))
-                        codes.Add(code);
+                    var bcrInfo = bcrResult.stBcrInfoEx2[i];
+                    string code = DecodeCodeString(bcrInfo.chCode, (int)bcrInfo.nLen);
+                    if (string.IsNullOrEmpty(code))
+                        continue;
+
+                    codes.Add(new BarcodeInfo
+                    {
+                        Code = code,
+                        BarType = MapBarType((MvCodeReader.MV_CODEREADER_CODE_TYPE)bcrInfo.nBarType),
+                        Position = MapPosition(bcrInfo.pt),
+                        Angle = bcrInfo.nAngle / 10.0,
+                        QualityScore = bcrInfo.stCodeQuality.nOverQuality,
+                        ReadScore = (int)bcrInfo.nIDRScore
+                    });
                 }
 
                 if (codes.Count > 0)
@@ -339,6 +348,52 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 MvCodeReader.MvCodeReaderGvspPixelType.PixelType_CodeReader_Gvsp_Jpeg => BarcodeImagePixelFormat.Jpeg,
                 _ => BarcodeImagePixelFormat.Unknown
             };
+        }
+
+        /// <summary>将 SDK 专属条码类型映射为与厂商解耦的通用 <see cref="BarcodeType"/>。</summary>
+        private static BarcodeType MapBarType(MvCodeReader.MV_CODEREADER_CODE_TYPE sdkBarType)
+        {
+            return sdkBarType switch
+            {
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_DM => BarcodeType.DataMatrix,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_QR => BarcodeType.QRCode,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_MICROQR => BarcodeType.MicroQRCode,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_EAN8 => BarcodeType.EAN8,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_UPCE => BarcodeType.UPCE,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_UPCA => BarcodeType.UPCA,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_EAN13 => BarcodeType.EAN13,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_ISBN13 => BarcodeType.ISBN13,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_CODABAR => BarcodeType.Codabar,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_ITF25 => BarcodeType.Interleaved25,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_CODE39 => BarcodeType.Code39,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_CODE93 => BarcodeType.Code93,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_CODE128 => BarcodeType.Code128,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_PDF417 => BarcodeType.PDF417,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_MATRIX25 => BarcodeType.Matrix25,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_MSI => BarcodeType.MSI,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_CODE11 => BarcodeType.Code11,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_INDUSTRIAL25 => BarcodeType.Industrial25,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_CHINAPOST => BarcodeType.ChinaPost,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_ITF14 => BarcodeType.Interleaved14,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_PHARMACODE => BarcodeType.PharmaCode,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_BCR_PHARMACODE2D => BarcodeType.PharmaCode2D,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_ECC140 => BarcodeType.ECC140,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_AZTEC => BarcodeType.Aztec,
+                MvCodeReader.MV_CODEREADER_CODE_TYPE.MV_CODEREADER_TDCR_HANXIN => BarcodeType.HanXin,
+                _ => BarcodeType.Unknown
+            };
+        }
+
+        /// <summary>将 SDK 条码角点数组映射为通用 <see cref="BarcodePoint"/> 列表。</summary>
+        private static IReadOnlyList<BarcodePoint> MapPosition(MvCodeReader.MV_CODEREADER_POINT_I[] pt)
+        {
+            if (pt == null || pt.Length == 0)
+                return Array.Empty<BarcodePoint>();
+
+            var points = new List<BarcodePoint>(pt.Length);
+            foreach (var p in pt)
+                points.Add(new BarcodePoint { X = p.x, Y = p.y });
+            return points;
         }
 
         #endregion

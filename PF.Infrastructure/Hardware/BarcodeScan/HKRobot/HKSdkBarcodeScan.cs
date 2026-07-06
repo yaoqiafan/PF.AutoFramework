@@ -1,5 +1,6 @@
 using PF.Core.Constants;
 using PF.Core.Interfaces.Logging;
+using PF.Core.Models;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -71,19 +72,19 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
         #region IBarcodeScan
 
         /// <summary>
-        /// 触发扫码：发送软触发并等待结果回调，超时返回 null。
+        /// 触发扫码：发送软触发并等待结果回调。本 SDK 不支持图像采集，返回结果中的图像字段固定为空。
         /// </summary>
-        public override async Task<string> Tigger(CancellationToken token = default)
+        public override async Task<BarcodeScanResult> Tigger(CancellationToken token = default)
         {
             try
             {
                 if (IsSimulated)
-                    return "当前设备模拟模式中，触发测试！";
+                    return BarcodeScanResult.Success(new[] { "当前设备模拟模式中，触发测试！" });
 
                 if (_handle == IntPtr.Zero || !_grabbing)
                 {
                     HardwareLogger.Debug("海康SDK扫码枪未连接，无法触发。");
-                    return null;
+                    return BarcodeScanResult.Fail("海康SDK扫码枪未连接，无法触发。");
                 }
 
                 _resultEvent.Reset();
@@ -93,7 +94,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                 if (ret != HKRobotIdSdk.MV_ID_OK)
                 {
                     HardwareLogger.Debug($"海康SDK扫码枪软触发失败，错误码={ret}。");
-                    return null;
+                    return BarcodeScanResult.Fail($"海康SDK扫码枪软触发失败，错误码={ret}。");
                 }
 
                 // 等待结果回调，或触发超时
@@ -102,15 +103,15 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
                 Task finished = await Task.WhenAny(waitTask, timeoutTask);
 
                 if (finished == waitTask && _resultEvent.IsSet)
-                    return _lastCode;
+                    return BarcodeScanResult.Success(_lastCode?.Split('&') ?? Array.Empty<string>());
 
                 HardwareLogger.Debug($"海康SDK扫码枪触发取码超时（{TimeOutMs}ms）。");
-                return null;
+                return BarcodeScanResult.Fail($"海康SDK扫码枪触发取码超时（{TimeOutMs}ms）。");
             }
             catch (Exception ex)
             {
                 HardwareLogger.Debug(ex.Message, ex);
-                return null;
+                return BarcodeScanResult.Fail(ex.Message);
             }
         }
 
