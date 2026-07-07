@@ -128,6 +128,39 @@ public class FeedStation : StationBase<FeedMechanism>
 
 > **关键**：触发 `Start` / `Resume` 必须用 `await FireAsync()`，确保旧任务彻底终止后才启动新任务。
 
+### 机构报警自动桥接（WireMechanismAlarms）
+
+无需再手写 `mechanism.AlarmTriggered += ...` 订阅样板：
+
+```csharp
+public MyStation(...) : base(...)
+{
+    _mechanism = ...;
+    // 订阅 GetMechanisms() 返回的全部机构的 AlarmTriggered/AlarmAutoCleared，统一上抛为工站级报警
+    WireMechanismAlarms();
+}
+
+// 如需把机构报警码转换为工站报警码，重写此钩子（默认原样透传）
+protected override string? MapMechanismAlarmCode(MechanismAlarmEventArgs e) => e.ErrorCode;
+```
+
+幂等，子类构造函数末尾调用一次即可；`Dispose`/`DisposeAsync` 会自动对称解绑，无需手动清理。
+
+## 通讯管理（ICommunication）
+
+`TcpServer` / `TCPClient` / `FileTransferChannel` / `SerialPortCommunication`（基于 `System.IO.Ports`）均实现 `ICommunication`，接入统一的调试与管理体系（配合 `PF.Services.CommunicationManagerService` 与 `PF.Modules.Debug` 的通讯调试面板）。大文件传输通道支持多 Lane 并行、CRC32+xxHash64 校验、断线重连。
+
+## 硬件 SDK 集成
+
+已内置封装基恩士（Keyence）智能相机 SDK 与海康（Hikvision）扫码枪 SDK 的设备实现，可直接通过 `IHardwareManagerService.RegisterFactory` 注册使用。
+
+海康扫码枪有两条实现路径，新开发请选 `MvCodeReaderBarcodeScan`：
+
+| 实现 | 路径 | 状态 |
+|---|---|---|
+| `MvCodeReaderBarcodeScan` | `Hardware/BarcodeScan/Hikvision/` | **推荐**——官方 MvCodeReaderSDK.Net 托管封装，支持图像采集 |
+| `HKBarcodeScan` | `Hardware/BarcodeScan/HKRobot/` | 已弃用（`[Obsolete]`，仅警告不报错）——TCP 透传协议版，现网已部署配置继续可用，不建议新项目使用 |
+
 ## BaseMasterController — 主控编排基类
 
 ```csharp

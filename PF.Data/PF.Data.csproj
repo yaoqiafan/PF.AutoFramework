@@ -12,8 +12,14 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-07) — 仓储查询性能优化
+
+[修复]
+- PurgeOldDataAsync 改用 ExecuteDeleteAsync（避免先查询后删除的两次往返）；
+  GenericRepository 只读查询统一加 AsNoTracking，降低 EF Core 变更追踪开销。
+
 v1.0.2 (2026-06-17) — 报警实体扩展（SECS/GEM 字段）+ 数据库 Schema 变更
 
 [数据库 Schema 变更 — 需执行迁移]

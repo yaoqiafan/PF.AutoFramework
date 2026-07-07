@@ -41,7 +41,7 @@ namespace PF.Modules.Parameter
             ViewFactory.RegisterHardwareConfigType<EtherCatAxisParamView,             EtherCatAxisParamViewMapper>            ("EtherCatAxis");
             ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
             ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
-            ViewFactory.RegisterHardwareConfigType<HKSdkBarcodeScanParamView,         HKSdkBarcodeScanParamViewMapper>        ("HKSdkBarcodeScan");
+            ViewFactory.RegisterHardwareConfigType<MvCodeReaderBarcodeScanParamView,  MvCodeReaderBarcodeScanParamViewMapper> ("MvCodeReaderBarcodeScan");
             ViewFactory.RegisterHardwareConfigType<KeyenceSdkBarcodeScanParamView, KeyenceSdkBarcodeScanParamViewMapper>("KeyenceBarcodeScan");
             ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
             ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightControoller");

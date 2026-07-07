@@ -3,12 +3,12 @@ using System.ComponentModel;
 namespace PF.Modules.Parameter.ViewModels.Models.Hardware
 {
     /// <summary>
-    /// 海康 SDK 条码扫描枪参数视图（ImplementationClassName = "HKSdkBarcodeScan"）。
-    /// <para>与 HKBarcodeScanParamView（TCP 版）的区别：SDK 版不使用端口，
-    /// 仅需 IP（设备发现/匹配）与超时时间。读码参数通过 IDMVS 导出的 .cfg 由
-    /// ChangeUserParam 导入。</para>
+    /// 海康 MvCodeReaderSDK 条码扫描枪参数视图（ImplementationClassName = "MvCodeReaderBarcodeScan"）。
+    /// <para>与 HKBarcodeScanParamView（TCP 版，已弃用）的区别：SDK 版不使用端口，
+    /// 仅需 IP（设备发现/匹配）与超时时间。读码参数通过标准 GenICam 用户参数组由
+    /// ChangeUserParam 加载。</para>
     /// </summary>
-    public class HKSdkBarcodeScanParamView : BindableBase
+    public class MvCodeReaderBarcodeScanParamView : BindableBase
     {
         private string _deviceId;
         /// <summary>获取或设置设备ID</summary>

@@ -163,8 +163,12 @@ namespace PF.Application.Shell
                 var triggerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["TriggerCommInstanceId"]);
                 var userPowerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["UserPowerCommInstanceId"]);
 
+                // HKBarcodeScan（TCP 透传协议版）已弃用，新开发请用 MvCodeReaderBarcodeScan；
+                // 此处保留工厂注册仅为兼容现网已部署的 "HKBarcodeScan" 配置，故显式抑制 Obsolete 警告。
+#pragma warning disable CS0618
                 return new Infrastructure.Hardware.BarcodeScan.HKRobot.HKBarcodeScan(
                     triggerClient, userPowerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+#pragma warning restore CS0618
             });
 
             hwManager.RegisterFactory("MvCodeReaderBarcodeScan", cfg =>

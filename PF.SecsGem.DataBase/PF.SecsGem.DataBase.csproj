@@ -13,8 +13,24 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <PackageReleaseNotes>
+v1.0.3 (2026-07-07) — 工作单元(UoW)模式重构（破坏性变更）+ 诊断日志修复
+
+[破坏性变更]
+- ISecsGemDataBase：删除 GetRepository()/SaveChangesAsync()，新增 BeginScope() 返回
+  ISecsGemDbScope（新增接口：GetRepository&lt;T&gt;() + SaveChangesAsync，实现 IDisposable）。
+  SecsGemDataBaseManger 重写为持有 DbContextOptions 单例，每次 BeginScope 创建独立短
+  生命周期 DbContext + 仓储缓存，多线程调用各自隔离，避免 DbContext 线程不安全问题。
+  下游消费方（PF.Modules.SecsGem 已同步）需将 GetRepository()/SaveChangesAsync() 调用
+  改为 using var scope = db.BeginScope(); ... scope.GetRepository&lt;T&gt;() ...
+  await scope.SaveChangesAsync();
+- InitializationDataBase 改为独立短 context 执行，不再经过共享作用域。
+
+[修复]
+- InitializationDataBase 失败诊断日志误用 Debug.WriteLine（Release 下被编译器裁掉），
+  改用 Trace.WriteLine。
+
 v1.0.2 (2026-06-17) — ReportIDEntity 空值容错 + LinkVID 注解修正
 
 [Bug 修复]

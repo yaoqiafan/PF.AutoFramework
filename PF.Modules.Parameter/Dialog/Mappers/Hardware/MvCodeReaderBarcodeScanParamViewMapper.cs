@@ -5,14 +5,14 @@ using PF.UI.Infrastructure.Mappers;
 namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
 {
     /// <summary>
-    /// 海康 SDK 条码扫描枪参数映射器（ImplementationClassName = "HKSdkBarcodeScan"）。
+    /// 海康 MvCodeReaderSDK 条码扫描枪参数映射器（ImplementationClassName = "MvCodeReaderBarcodeScan"）。
     /// </summary>
-    public class HKSdkBarcodeScanParamViewMapper : ViewDataMapperBase
+    public class MvCodeReaderBarcodeScanParamViewMapper : ViewDataMapperBase
     {
         /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
-            if (viewInstance is HKSdkBarcodeScanParamView view && data is HardwareConfig config)
+            if (viewInstance is MvCodeReaderBarcodeScanParamView view && data is HardwareConfig config)
             {
                 view.DeviceId    = config.DeviceId;
                 view.DeviceName  = config.DeviceName;
@@ -35,7 +35,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
         /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
-            if (viewInstance is HKSdkBarcodeScanParamView view)
+            if (viewInstance is MvCodeReaderBarcodeScanParamView view)
             {
                 return new HardwareConfig
                 {
@@ -46,7 +46,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ParentDeviceId        = string.Empty,
                     Remarks               = view.Remarks,
                     Category              = "ScanCode",
-                    ImplementationClassName = "HKSdkBarcodeScan",
+                    ImplementationClassName = "MvCodeReaderBarcodeScan",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
                         ["IP"]        = view.IP        ?? string.Empty,

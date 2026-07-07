@@ -22,6 +22,10 @@ PF.SecsGem.Service（Windows 服务）
 半导体设备主机（Host）
 ```
 
+## ⚠️ 破坏性变更（v1.0.3）：数据访问迁移至 UoW 模式
+
+本模块的 `SecsParameterViewModel`/`SecsCommandBuilderViewModel`/`SecsConnectionViewModel` 已随 `PF.SecsGem.DataBase` v1.0.3 迁移到新的 `BeginScope()` 工作单元模式（`ISecsGemDataBase.GetRepository()`/`SaveChangesAsync()` 已删除）。依赖 `PF.SecsGem.DataBase >= 1.0.3`，详见该包 README 的新旧用法对比。若二次开发时直接调用了旧接口，需要同步改造。
+
 ## 接入步骤
 
 ### 1. 注册 SECS/GEM 服务（App.xaml.cs）

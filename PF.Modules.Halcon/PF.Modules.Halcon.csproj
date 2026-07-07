@@ -4,8 +4,17 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.0.0</Version>
-    <PackageReleaseNotes>v1.0.0 - Halcon 视觉调试 Prism 模块初始版本：过程列表导航面板、HWindowControlWPF 图像查看器、ROI 编辑弹窗、流水线运行器。</PackageReleaseNotes>
+    <Version>1.0.1</Version>
+    <PackageReleaseNotes>
+v1.0.1 (2026-07-07) — 调试面板健壮性修复 + KeepAlive 适配
+
+[修复]
+- 调试 UI 的 async void 命令补充统一异常保护，防止未观察异常导致进程崩溃。
+- HalconDashboardViewModel 补充 KeepAlive =&gt; true，配合 PF.UI.Infrastructure v1.0.2 的
+  RegionMemberLifetime 默认值变更，保留内部区域（过程调试/管线运行）的导航状态。
+
+v1.0.0 - Halcon 视觉调试 Prism 模块初始版本：过程列表导航面板、HWindowControlWPF 图像查看器、ROI 编辑弹窗、流水线运行器。
+    </PackageReleaseNotes>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Description>Halcon 视觉调试 Prism 模块（Layer 05）：过程列表导航面板 + HWindowControlWPF 图像查看器 + ROI 编辑弹窗 + 流水线运行器；依赖 PF.Vision.Halcon 服务层。</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

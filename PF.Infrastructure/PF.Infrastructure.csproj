@@ -31,8 +31,53 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-07) — 机构报警自动桥接 + 通讯管理框架 + 硬件SDK扩展 + 多轮健壮性修复
+
+[弃用]
+- HKBarcodeScan（海康扫码枪 TCP 透传协议版）标记 [Obsolete]：新开发请改用
+  MvCodeReaderBarcodeScan（海康官方 MvCodeReaderSDK.Net 托管封装，风险更低、支持图像采集）。
+  仅标记警告（error: false），现网已部署的 "HKBarcodeScan" 硬件配置不受影响、继续可用；
+  App.xaml.cs 中保留的工厂注册已显式抑制 CS0618 警告。
+
+[删除]
+- HKSdkBarcodeScan + HKRobotIdSdk（海康机器人 MvIdApi 原生 P/Invoke 封装）：全仓库确认零引用、
+  未注册硬件工厂、从未实际可用，完整删除（含 PF.Modules.Parameter 侧的参数视图/映射器，
+  见该包 changelog）。原文件自带注释承认结构体签名未经真实 SDK 头文件校对，属未验证代码，
+  非"能用但暂不用"，删除无风险。
+
+[新增 — StationBase&lt;T&gt;]
+- WireMechanismAlarms()/MapMechanismAlarmCode 钩子：统一订阅机构报警并上抛为工站级报警，
+  取代子类各自手写的订阅样板代码；子类构造函数末尾调用一次即可，幂等，Dispose 时自动对称解绑。
+
+[新增 — 通讯管理]
+- TcpServer/TCPClient/FileTransferChannel 实现 ICommunication，接入统一调试/管理体系；
+  新增 SerialPortCommunication（基于 System.IO.Ports）；新增大文件传输通道（多 Lane 并行、
+  CRC32+xxHash64 校验、断线重连）。
+
+[新增 — 硬件 SDK]
+- 集成基恩士（Keyence）智能相机 SDK 与海康（Hikvision）扫码枪 SDK。
+
+[修复 — Keyence 相机]
+- PR 响应校验条件写反（&amp;&amp; 应为 ||）修正；DetermineProgramExists 恢复原程式失败不再静默成功；
+  InternalResetAsync 补上重连与程序号刷新；Trigger 失败改为抛异常；失败日志 Debug→Error；
+  程序切换格式符最终定为 F4（对齐主控命令实际行为）。
+
+[修复 — 并发与生命周期]
+- TCPClient：发送/连接锁加超时、多处 await 补 ConfigureAwait(false)；
+  IHardwareDevice/BaseDevice 实现 IAsyncDisposable；
+  BaseAxisDevice 共享 Random 改用线程安全的 Random.Shared（原实现在多轴并发轮询下有状态损坏风险）；
+  BaseMasterController.MaxDegreeOfParallelism 10→4（对齐文档）。
+
+[清理]
+- BaseMasterController 删除未使用/未赋值的死字段 _sync（IStationSyncService），
+  各工站均已各自持有该服务实例，主控基类本身不消费。
+- 系统性 Debug.WriteLine（带 [Conditional("DEBUG")]，Release 构建下被编译器整体裁掉）问题修复，
+  TCPClient 等无 ILogService 可用的位置改用 System.Diagnostics.Trace.WriteLine。
+- 相机 API 重命名：Tigger→Trigger、IPAdress→IPAddress、TiggerPort→TriggerPort 等
+  （仅相机范围；工厂注册字符串 "KeyenceIntelligentCamera" 保持不变）。
+
 v1.0.2 (2026-06-17) — SecsGem 初始化逻辑重构 + 指令加载容错
 
 [行为变更 — SecsGem ParamsManger]

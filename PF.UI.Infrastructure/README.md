@@ -81,8 +81,8 @@ await _dialogService.ShowMessageAsync("初始化完成", MessageType.Success);
 ## PrismBase 辅助类
 
 ```csharp
-// 导航感知 ViewModel（实现 INavigationAware）
-public class ParamViewModel : NavigationViewModelBase
+// 区域导航 ViewModel（继承 RegionViewModelBase，实现 INavigationAware/IConfirmNavigationRequest）
+public class ParamViewModel : RegionViewModelBase
 {
     public override void OnNavigatedTo(NavigationContext ctx)
     {
@@ -91,3 +91,24 @@ public class ParamViewModel : NavigationViewModelBase
     }
 }
 ```
+
+### RegionViewModelBase — Region 生命周期契约（v1.0.2 起，行为变更）
+
+`RegionViewModelBase` 实现 `IRegionMemberLifetime`，**默认 `KeepAlive => false`**：导航离开后 Prism 自动把该视图实例从所属 Region 中移除，使其可被 GC 回收。
+
+- 默认行为（大多数页面）：无需任何额外代码，导航离开即释放，不再像此前那样永久滞留在 `Region.Views` 中导致内存持续累积。
+- 若某个 ViewModel 已经重写 `IsNavigationTarget => true`（希望"同一实例反复进出时状态不丢"），**必须同时重写 `KeepAlive => true`**：
+
+  ```csharp
+  public class FeedConnectionDebugViewModel : RegionViewModelBase
+  {
+      // 同一 InstanceId 复用本实例，保留 LogEntries 等状态
+      public override bool IsNavigationTarget(NavigationContext ctx) => ...;
+
+      // 必须同时重写，否则 Region 会在导航离开时把实例移除，
+      // 下次导航回来时 IsNavigationTarget 根本没有候选可比对，复用逻辑形同虚设
+      public override bool KeepAlive => true;
+  }
+  ```
+
+编写新的、需要实例复用的区域导航 ViewModel 时，务必检查这两个方法是否配套。

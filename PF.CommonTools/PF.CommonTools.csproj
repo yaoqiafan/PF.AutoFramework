@@ -13,8 +13,18 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-07-07) — 修复 Release 下诊断日志被裁剪问题
+
+[修复]
+- TypeExtensions.cs / TypeScanner.cs：程序集加载/扫描失败的诊断日志此前使用
+  System.Diagnostics.Debug.WriteLine（带 [Conditional("DEBUG")]，Release 构建下被编译器
+  整体裁掉，等同空 catch），改用 System.Diagnostics.Trace.WriteLine（Release 默认定义
+  TRACE，诊断信息得以保留）。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>通用工具集：EnumParameterExtensions、JSON 序列化、反射辅助工具</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

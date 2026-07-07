@@ -3,8 +3,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.0</Version>
-		<PackageReleaseNotes>v1.0.0 - 框架应用程序基础层初始版本：PrismApplication 抽象基类、MainWindow、MainWindowViewModelBase 及公共服务（IdleMonitor / PrismAlarmEventPublisher / TowerLightManager）。</PackageReleaseNotes>
+		<Version>1.0.1</Version>
+		<PackageReleaseNotes>
+v1.0.1 (2026-07-07) — 通讯管理集成 + 关闭流程健壮性修复
+
+[新增]
+- 通讯实例数据库持久化（新增 CommunicationParams 表）、默认配置、工厂注册；启动顺序
+  调整为通讯管理器先于硬件管理器初始化，硬件工厂可按需引用已实例化的通讯连接。
+
+[修复]
+- Window_Closing 接线：e.Cancel 前置 + 重入门 + 释放顺序 Alarm→Production→Log
+  （LogService 最后释放，确保关闭前的超时告警仍能落盘）。
+- 启动进度提示节奏收敛到 Progress 回调集中延迟，移除各处散落的 Task.Delay。
+
+v1.0.0 - 框架应用程序基础层初始版本：PrismApplication 抽象基类、MainWindow、MainWindowViewModelBase 及公共服务（IdleMonitor / PrismAlarmEventPublisher / TowerLightManager）。
+		</PackageReleaseNotes>
 		<Description>PF.AutoFramework 应用程序基础层：PrismApplication 抽象基类、主窗口、ViewModel 基类及公共服务；消费项目继承 PFApplicationBase 并实现抽象钩子即可完成接入。</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

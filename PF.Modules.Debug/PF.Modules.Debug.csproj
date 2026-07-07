@@ -11,8 +11,21 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-07-07) — 通讯调试面板 + KeepAlive 适配
+
+[新增]
+- 通讯综合调试面板（Category/Role 两级分类树）；TCP 服务端/客户端/文件传输三个调试
+  视图，含实时状态、测试收发、事件日志；均加"参数设置"入口（弹窗修改→存库→重新加载）。
+
+[修复]
+- TcpServerDebugViewModel/TcpClientDebugViewModel/FileTransferDebugViewModel 补充
+  KeepAlive =&gt; true，配合 PF.UI.Infrastructure v1.0.2 的 RegionMemberLifetime 默认值
+  变更，保留"同一 InstanceId 复用实例、LogEntries 等状态不清空"的既有语义。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>硬件调试面板：设备连接/断开、轴运动、IO 状态测试</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

@@ -24,6 +24,40 @@ IStation     // 工站：8 状态机驱动，Start / Pause / Resume / Stop
 IMasterController  // 主控：并行编排所有工站
 ```
 
+### 通讯接口
+
+```csharp
+ICommunication                 // 所有通讯实现（TCP Server/Client、FileTransfer 通道等）的公共契约
+ICommunicationManagerService   // 通讯实例注册、加载、生命周期管理（结构对齐 IHardwareManagerService）
+ISerialCommunication           // 串口通讯扩展契约
+```
+
+```csharp
+CommunicationCategory  // 通讯实例的一级分组（调试面板分类树）
+CommunicationRole       // 服务端/客户端角色，驱动二级分组（None 时不分组）
+```
+
+```csharp
+[CommunicationUIAttribute(...)]
+// 标注在 ICommunication 实现类上，决定调试面板导航到哪个调试视图
+```
+
+FileTransfer 传输通道相关接口/实体/事件（多 Lane 并行、CRC32+xxHash64 校验、断线重连）也定义在本层。
+
+### HALCON 视觉接口
+
+```csharp
+IVisionService   // 视觉引擎服务契约（零 Halcon 依赖），见 PF.Vision.Halcon README
+IVisionResult    // 视觉过程执行结果契约
+```
+
+```csharp
+EngineMode        // 视觉引擎运行模式
+RoiOp / RoiType   // ROI 运算方式 / 类型
+VisionRoiConfig   // ROI 配置实体
+ProcedureSignature // .hdev 过程的参数签名描述
+```
+
 ### 关键枚举
 
 ```csharp

@@ -14,8 +14,21 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-07) — 适配 PF.SecsGem.DataBase 工作单元(UoW)模式重构（破坏性变更）
+
+[破坏性变更 — 数据访问模式]
+- SecsParameterViewModel/SecsCommandBuilderViewModel/SecsConnectionViewModel 迁移至新的
+  BeginScope() 工作单元模式（对应 PF.SecsGem.DataBase v1.0.3 的 ISecsGemDataBase API 重写）。
+  旧的 ISecsGemDataBase.GetRepository()/SaveChangesAsync() 已删除；若有下游代码直接调用
+  这些旧接口，需要同步改为：
+    using var scope = db.BeginScope();
+    var repo = scope.GetRepository&lt;T&gt;();
+    ...
+    await scope.SaveChangesAsync();
+- 依赖 PF.SecsGem.DataBase &gt;= 1.0.3。
+
 v1.0.2 (2026-06-17) — SecsParameterViewModel 代码整理 + 命名空间引用补全
 
 [变更]

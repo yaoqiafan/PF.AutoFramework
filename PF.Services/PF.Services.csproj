@@ -16,8 +16,25 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-07) — 通讯管理服务 + 日志/硬件服务健壮性修复
+
+[新增]
+- CommunicationManagerService：结构对齐 HardwareManagerService，支持 AutoStart 开关，
+  统一管理 TCP/串口/文件传输等通讯实例的注册、启停与生命周期。
+
+[修复]
+- LogService.ProcessLogQueueAsync 加 while(!_disposed) 重启壳 + 单条日志 try/catch，
+  订阅者异常不再永久杀死日志消费任务（对齐 AlarmService 既有范本）；
+  生产者-消费者队列由 BlockingCollection 迁移至 Channel&lt;LogEntry&gt;。
+- HardwareManagerService._configLock：锁内仅同步操作、await 移到锁外，避免长时间持锁；
+  GetAllConfigs 返回防御性副本。
+- ParamService 仓储工厂缓存编译表达式，消除高频反射开销。
+- Alarm/Log/Production 三服务实现 IAsyncDisposable。
+- 系统性 Debug.WriteLine（Release 下被编译器裁掉）问题修复：HardwareManagerService/
+  UserService 改用已有的 _logger/_systemLogger，其余无 logger 可用处改用 Trace.WriteLine。
+
 v1.0.2 (2026-06-17) — 报警服务全链路 SECS/GEM 字段透传 + LogService 初始化 Bug 修复
 
 [AlarmService — 新功能]

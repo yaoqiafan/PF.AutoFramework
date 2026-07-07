@@ -13,8 +13,28 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-07-07) — Keyence SDK 扫码枪参数视图 + 计数竞态修复
+
+[新增]
+- KeyenceSdkBarcodeScanParamView + KeyenceSdkBarcodeScanParamViewMapper：
+  基恩士 SDK 扫码枪的参数配置视图与映射器，接入 ParameterModule 硬件配置类型注册。
+- MvCodeReaderBarcodeScanParamView + MvCodeReaderBarcodeScanParamViewMapper：
+  补齐海康 MvCodeReaderSDK 扫码枪的参数配置视图（此前硬件工厂已注册但界面无法选中/配置）。
+
+[删除]
+- HKSdkBarcodeScanParamView + HKSdkBarcodeScanParamViewMapper：对应的 HKSdkBarcodeScan
+  硬件实现从未注册工厂、全仓库零引用，随 PF.Infrastructure 一并删除，ParameterModule 中
+  "HKSdkBarcodeScan" 注册项替换为 "MvCodeReaderBarcodeScan"。
+
+[修复]
+- ParameterViewModel.DeleteParameterAsync：Parameters.Remove 经 Dispatcher.InvokeAsync
+  异步执行，但 UpdateCounts() 此前在其之前同步调用，导致删除后计数短暂偏高；现改为在
+  InvokeAsync 回调内、Remove 之后再调用 UpdateCounts()。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>参数管理模块：硬件与系统参数的可视化编辑与验证</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

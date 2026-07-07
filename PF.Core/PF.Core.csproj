@@ -3,8 +3,16 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-07) — 通讯契约 + HALCON 视觉数据模型 + 新增报警码
+
+[新增]
+- ICommunication/ICommunicationManagerService 契约、CommunicationCategory/Role 枚举、
+  CommunicationUIAttribute；FileTransfer 传输通道全套接口/实体/事件；ISerialCommunication。
+- HALCON 视觉：EngineMode/RoiOp/RoiType/VisionRoiConfig/ProcedureSignature 等枚举与接口。
+- AlarmCodesExtensions 新增 Detection.ResumeException（编号 50202）。
+
 v1.0.2 (2026-06-17) — 报警系统 SECS/GEM 支持 + SecsGemNodeMessage 修复
 
 [破坏性变更]

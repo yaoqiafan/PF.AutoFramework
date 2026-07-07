@@ -30,8 +30,24 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-07-07) — 修复区域视图导航内存泄漏（行为变更）+ 弹窗交互修复
+
+[行为变更 — RegionViewModelBase]
+- 实现 IRegionMemberLifetime，默认 KeepAlive =&gt; false：导航离开后 Prism 自动将视图实例
+  从所属 Region 移除以便被 GC 回收。
+  影响：此前所有页面导航离开后旧实例永远滞留在 Region.Views 中不释放（内存泄漏根因，
+  反复导航同一页面内存持续累积）；现默认改为"不保留"。
+  子类若需保留实例状态（如已有 IsNavigationTarget =&gt; true 的场景），须同时重写
+  KeepAlive =&gt; true，否则复用逻辑会被 Region 自动移除打断——消费方需自查自己的
+  ViewModel 是否属于这种情况（框架内已知的 6 处已同步处理，见下游各模块 changelog）。
+
+[修复]
+- ROI 弹窗拖动与内容区域绘制事件冲突：DragMove 限定在标题栏区域触发。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>UI 基础设施：ViewModelBase、导航服务、对话框服务</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

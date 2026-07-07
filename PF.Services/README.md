@@ -14,6 +14,7 @@ PF.AutoFramework 核心业务服务实现层，包含 8 个服务的具体实现
 | `UserService` | `IUserService` | 用户认证与权限 |
 | `StationSyncService` | `IStationSyncService` | 跨工站信号量 |
 | `AppTimerService` | `IAppTimerService` | 定时任务调度 |
+| `CommunicationManagerService` | `ICommunicationManagerService` | 通讯实例（TCP/串口/文件传输等）生命周期管理 |
 
 ## DI 注册（App.xaml.cs）
 
@@ -114,6 +115,18 @@ _sync.Release("FeedComplete");
 _sync.ResetAll(initialCount: 0);
 // 或单独复位
 _sync.ResetSingleSignal("AllowFeed", initialCount: 0);
+```
+
+## CommunicationManagerService
+
+结构对齐 `HardwareManagerService`（工厂注册 + 数据库加载配置 + 统一生命周期），但通讯实例之间没有硬件那种父子拓扑依赖，加载流程是单层的：逐个实例化 + `StartAsync`，不需要按层级排序。支持 `AutoStart` 开关（配置为 false 时仅注册不自动启动，供调试面板手动控制）。
+
+```csharp
+commManager.RegisterFactory("TCPClient", config => new TCPClient(config));
+await commManager.LoadAndInitializeAsync();   // 必须先于 IHardwareManagerService.LoadAndInitializeAsync()
+
+// 其他模块取用已实例化的通讯连接
+var client = commManager.GetCommunication<TCPClient>("Camera1Client");
 ```
 
 ## AppTimerService

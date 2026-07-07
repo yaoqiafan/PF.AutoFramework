@@ -3,8 +3,25 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.0</Version>
-    <PackageReleaseNotes>v1.0.0 - Halcon HDevEngine 视觉服务层初始版本：过程执行引擎、ROI 管理、视觉工作流管线、DI 扩展方法。</PackageReleaseNotes>
+    <Version>1.0.1</Version>
+    <PackageReleaseNotes>
+v1.0.1 (2026-07-07) — 视觉引擎核心健壮性修复（7 项）
+
+[修复 — 严重]
+- Worker 线程防崩溃：过程文件缺失时 LoadProcedureFromFile 抛 FileNotFoundException 曾
+  杀死 Worker 循环，导致此后所有视觉调用永久挂起；DoLoad/DoExecute 现捕获全部异常转为
+  失败结果，Worker 循环外再加最后防线。
+- 真实超时/取消：原超时只覆盖入队、await tcs.Task 无限等待；SubmitAndAwaitAsync 现覆盖
+  排队+执行全程，超时返回失败结果，主动取消抛 OperationCanceledException。
+- HObject 泄漏：管线黑板改为持有独立句柄副本（CopyObj）并随管线结束统一释放；所有权契约
+  已写入 IVisionService/IVisionResult 文档（返回值归调用方所有，事件参数仅回调期间有效）。
+
+[修复 — 中]
+- 管线条件解析失败从"视为 true 继续"改为终止管线；HTupleToValue 按 HTuple.Type 分派；
+  FileSystemWatcher 加防抖；VisionContextManager 去掉与释放竞态的无锁快速路径。
+
+v1.0.0 - Halcon HDevEngine 视觉服务层初始版本：过程执行引擎、ROI 管理、视觉工作流管线、DI 扩展方法。
+    </PackageReleaseNotes>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Description>Halcon HDevEngine 视觉服务层（Layer 04）：过程执行引擎、ROI 管理、视觉工作流管线；零 Prism.Wpf / WPF 依赖，可独立于 UI 引用。</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

@@ -12,10 +12,15 @@ using System.Threading.Tasks;
 namespace PF.Infrastructure.Hardware.BarcodeScan.HKRobot
 {
     /// <summary>
-    /// 海康扫码枪实现。底层的触发通道/用户权限通道两个 TCP 连接由外部注入
+    /// 海康扫码枪实现（TCP 透传协议版）。底层的触发通道/用户权限通道两个 TCP 连接由外部注入
     /// （通常来自 ICommunicationManagerService 按配置创建的 IClient 实例，AutoStart=false，
     /// 连接生命周期交由本类的 InternalConnectAsync/InternalDisconnectAsync 驱动，不由通讯管理器抢先连接）。
     /// </summary>
+    /// <remarks>
+    /// 已弃用：新项目请使用 <see cref="Hikvision.MvCodeReaderBarcodeScan"/>（海康官方 MvCodeReaderSDK.Net
+    /// 托管封装，风险更低、支持图像采集）。本类仅为兼容现有已部署配置保留，不会在近期移除。
+    /// </remarks>
+    [Obsolete("海康扫码枪 TCP 透传协议版已弃用，新开发请使用 MvCodeReaderBarcodeScan（官方 MvCodeReaderSDK.Net 托管封装）。本类仅为兼容现有配置保留。", error: false)]
     public class HKBarcodeScan : BaseBarcodeScan
     {
         /// <summary>

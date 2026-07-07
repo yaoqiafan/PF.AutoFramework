@@ -9,6 +9,7 @@ PF.AutoFramework 参数管理 Prism 模块，提供硬件参数与系统配置�
 - **修改审计**：每次修改记录操作人、时间、旧值、新值
 - **配方切换**：支持加载 / 保存不同工艺配方（Recipe）
 - **自定义视图**：通过 `[ParamView]` 特性注册各模块专属参数页面
+- **硬件参数视图**（内置）：`KeyenceSdkBarcodeScanParamView` + `KeyenceSdkBarcodeScanParamViewMapper`，基恩士 SDK 扫码枪的参数配置视图与映射器，已接入 `ParameterModule` 硬件配置类型注册，新增其他硬件参数视图可参考此实现
 
 ## 接入步骤
 
