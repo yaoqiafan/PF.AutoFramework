@@ -3,8 +3,80 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <PackageReleaseNotes>
+v1.0.4 (2026-07-07) — 通讯管理框架 + 内存泄漏修复 + 数据库工作单元重构（含破坏性变更）
+
+[破坏性变更]
+- PF.SecsGem.DataBase 1.0.2→1.0.3：ISecsGemDataBase.GetRepository()/SaveChangesAsync()
+  已删除，改为 BeginScope() 工作单元模式（返回 ISecsGemDbScope，含 GetRepository&lt;T&gt;()/
+  SaveChangesAsync()，实现 IDisposable），每次 BeginScope 创建独立短生命周期 DbContext，
+  多线程调用各自隔离。旧代码需改为：
+    using var scope = db.BeginScope();
+    var repo = scope.GetRepository&lt;T&gt;(...);
+    ...
+    await scope.SaveChangesAsync();
+  PF.Modules.SecsGem 1.0.2→1.0.3 已同步迁移三个 ViewModel；下游若有代码直接调用旧接口
+  （例如独立的 PF.SecsGem.Service 宿主项目），需自行同步改造。
+- PF.Data 1.0.2→1.0.3：IDefaultParam 新增接口成员 GetCommunicationDefaults()
+  （返回 Dictionary&lt;string, CommunicationParam&gt;，与既有 GetHardwareDefaults() 并列，
+  声明通讯实例的默认配置）。**所有项目侧的 DefaultParameters : IDefaultParam 实现类
+  都必须补充此方法才能编译通过**，无 TCP 通讯依赖的硬件可返回空字典。
+
+[行为变更]
+- PF.UI.Infrastructure 1.0.1→1.0.2：RegionViewModelBase 实现 IRegionMemberLifetime，
+  默认 KeepAlive =&gt; false——导航离开后 Prism 自动将视图实例从所属 Region 移除以便回收，
+  修复此前所有页面反复导航会在 Region.Views 中无限累积旧实例、内存持续增长的问题。
+  子类若靠 IsNavigationTarget =&gt; true 实现"同一实例反复进出保留状态"，须同时重写
+  KeepAlive =&gt; true，否则该复用逻辑会被自动移除打断。框架内已知的 6 处消费方
+  （HomeViewModel / AlarmCenterViewModel / HalconDashboardViewModel /
+  TcpServerDebugViewModel / TcpClientDebugViewModel / FileTransferDebugViewModel）
+  已同步处理，其余自定义 ViewModel 若有同类需求需自查。
+
+[弃用]
+- PF.Infrastructure 1.0.2→1.0.3：HKBarcodeScan（海康扫码枪 TCP 透传协议版）标记
+  [Obsolete]（仅警告不报错，现网已部署配置不受影响），新开发请改用
+  MvCodeReaderBarcodeScan（官方 MvCodeReaderSDK.Net 托管封装，风险更低、支持图像采集）。
+
+[新增]
+- PF.Infrastructure：StationBase.WireMechanismAlarms()/MapMechanismAlarmCode 钩子——
+  统一订阅机构报警并上抛为工站级报警，取代子类各自手写的订阅样板代码（且原实现从未
+  对称解绑，Dispose 时已自动补上）。
+- PF.Infrastructure / PF.Services / PF.Core：ICommunication 通讯管理框架——
+  TcpServer / TCPClient / FileTransferChannel / SerialPortCommunication 均实现该接口，
+  配合新增的 CommunicationManagerService（结构对齐 HardwareManagerService）与
+  PF.Modules.Debug 的通讯综合调试面板；新增大文件传输通道（多 Lane 并行、
+  CRC32+xxHash64 校验、断线重连）。
+- PF.Application.Base 1.0.0→1.0.1：通讯实例数据库持久化（CommunicationParams 表），
+  启动顺序调整为通讯管理器先于硬件管理器初始化。
+- PF.Modules.Parameter 1.0.1→1.0.2：MvCodeReaderBarcodeScanParamView + Mapper
+  （配合上面弃用/替换的海康扫码枪）；KeyenceSdkBarcodeScanParamView + Mapper（基恩士 SDK）。
+
+[修复]
+- PF.Services 1.0.2→1.0.3：LogService 生产者-消费者队列由 BlockingCollection 迁移至
+  Channel，消费循环加重启壳（订阅者异常不再永久杀死日志处理任务，对齐 AlarmService 范本）；
+  HardwareManagerService 锁范围收紧、ParamService 仓储工厂缓存编译表达式。
+- PF.Modules.Alarm 1.0.1→1.0.2：报警详情图（部分报警码可配置的产品图，最大 8500x5000px）
+  此前无解码尺寸限制，单次解码开销约 150MB，改用 DecodePixelHeight 限制解码尺寸。
+- 系统性 Debug.WriteLine（带 [Conditional("DEBUG")]，Release 构建下被编译器整体裁掉）
+  问题修复，波及 PF.Infrastructure / PF.Services / PF.CommonTools / PF.SecsGem.DataBase
+  多处诊断日志，改用 Trace.WriteLine 或改用已有的 ILogService 实例。
+- PF.Data 1.0.2→1.0.3：PurgeOldDataAsync 改用 ExecuteDeleteAsync；只读查询统一加 AsNoTracking。
+- PF.Modules.Parameter：ParameterViewModel 删除参数后计数短暂偏高的竞态修复。
+
+[删除]
+- PF.Infrastructure / PF.Modules.Parameter：HKSdkBarcodeScan + HKRobotIdSdk
+  （海康机器人 MvIdApi 原生 P/Invoke 封装，全仓库零引用、从未接硬件工厂、原文件自认结构体
+  签名未经真实 SDK 头文件校对）及其参数视图/映射器，完整删除。
+
+[子包版本对照]
+PF.Core 1.0.2→1.0.3，PF.Infrastructure 1.0.2→1.0.3，PF.Services 1.0.2→1.0.3，
+PF.Data 1.0.2→1.0.3，PF.SecsGem.DataBase 1.0.2→1.0.3（破坏性），
+PF.Modules.SecsGem 1.0.2→1.0.3（破坏性），PF.UI.Infrastructure 1.0.1→1.0.2（行为变更），
+PF.Modules.Alarm 1.0.1→1.0.2，PF.Modules.Debug 1.0.1→1.0.2，PF.CommonTools 1.0.1→1.0.2，
+PF.Modules.Parameter 1.0.1→1.0.2，PF.Application.Base 1.0.0→1.0.1；
+PF.Modules.Identity / PF.Modules.Logging / PF.Modules.ProductionRecord 本次无变化（仍 1.0.1）。
+
 v1.0.3 (2026-06-26) — 新增 PF.Application.Base 依赖；CS1591 XML 注释全量补全
 
 [元包变更]
@@ -56,8 +128,11 @@ v1.0.1 - 框架初始独立版本；各子包版本由各自 .csproj 独立管�
 
   <!--
     使用 ProjectReference：
-    dotnet pack 时 MSBuild 自动将其转换为 PackageId + $(Version) 的 NuGet 依赖。
-    因 Directory.Build.props 中 Version 统一，元包与各子包版本天然对齐。
+    dotnet pack 时 MSBuild 自动将其转换为 PackageId + $(Version) 的 NuGet 依赖，
+    版本号取自被引用项目当前 .csproj 中的 <Version>（而非本包自身版本号）。
+    注意：各子包版本号在各自 .csproj 中独立声明（见 Directory.Build.props 顶部注释），
+    并不随本元包版本统一变化——每次子包有实际改动升级版本号后，本元包也需要
+    重新打包/发布一次新版本，否则已发布的旧版本元包会一直指向旧的子包版本。
   -->
   <ItemGroup>
     <ProjectReference Include="..\PF.Core\PF.Core.csproj" />

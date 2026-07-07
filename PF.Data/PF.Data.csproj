@@ -14,7 +14,15 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
-v1.0.3 (2026-07-07) — 仓储查询性能优化
+v1.0.3 (2026-07-07) — 仓储查询性能优化 + 通讯实例默认配置契约
+
+[破坏性变更 — 补充说明，随通讯管理框架一并引入]
+- IDefaultParam 新增接口成员 GetCommunicationDefaults()，返回
+  Dictionary&lt;string, CommunicationParam&gt;，用于声明通讯实例（TcpServer/TCPClient/
+  FileTransferChannel 等）的默认配置，与既有 GetHardwareDefaults() 并列。
+  所有实现 IDefaultParam 的项目侧 DefaultParameters 类均需补充此方法（无 TCP 通讯
+  依赖的硬件可返回空字典）。
+- 新增实体 CommunicationParam（PF.Data.Entity.Category），结构对齐 HardwareParam。
 
 [修复]
 - PurgeOldDataAsync 改用 ExecuteDeleteAsync（避免先查询后删除的两次往返）；
