@@ -1102,6 +1102,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <returns></returns>
         public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
+        /// <summary>本实例依赖 IsNavigationTarget 复用，必须保留在 Region 中才可能被匹配到。</summary>
+        public override bool KeepAlive => true;
+
         /// <summary>
         /// 重写基类方法，在 ViewModel 销毁时停止定时器
         /// </summary>

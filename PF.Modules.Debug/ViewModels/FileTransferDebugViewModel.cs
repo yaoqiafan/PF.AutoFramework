@@ -180,6 +180,9 @@ namespace PF.Modules.Debug.ViewModels
             return target != null && (target as ICommunication)?.InstanceId == _instanceId;
         }
 
+        /// <summary>本实例依赖 IsNavigationTarget 复用，必须保留在 Region 中才可能被匹配到。</summary>
+        public override bool KeepAlive => true;
+
         /// <inheritdoc/>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {

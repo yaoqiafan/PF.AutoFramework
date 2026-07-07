@@ -218,17 +218,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             if (_dataModule != null)
             {
                 // 订阅底层模块的数据变化事件
-                _dataModule.DataChanged += async (s, e) =>
-                {
-                    try
-                    {
-                        await RefreshAllAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugMessage = $"自动刷新异常: {ex.Message}";
-                    }
-                };
+                _dataModule.DataChanged += OnDataModuleDataChanged;
             }
             else
             {
@@ -259,6 +249,18 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
         #region 内部执行逻辑与状态更新
 
+
+        private async void OnDataModuleDataChanged(object s, EventArgs e)
+        {
+            try
+            {
+                await RefreshAllAsync();
+            }
+            catch (Exception ex)
+            {
+                DebugMessage = $"自动刷新异常: {ex.Message}";
+            }
+        }
 
         private async Task ExecuteAsync(Func<Task> action)
         {
@@ -430,5 +432,14 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
         }
 
         #endregion  内部执行逻辑与状态更新
+
+        /// <summary>解绑底层模块事件、停止轮询定时器，防止导航离开后 ViewModel 无法被回收。</summary>
+        public override void Destroy()
+        {
+            if (_dataModule != null)
+                _dataModule.DataChanged -= OnDataModuleDataChanged;
+            _monitorTimer?.Stop();
+            base.Destroy();
+        }
     }
 }

@@ -27,6 +27,9 @@ public class HalconDashboardViewModel : RegionViewModelBase
 
     public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
+    /// <summary>本实例依赖 IsNavigationTarget 复用，必须保留在 Region 中才可能被匹配到。</summary>
+    public override bool KeepAlive => true;
+
     public override void OnNavigatedTo(NavigationContext navigationContext)
     {
         base.OnNavigatedTo(navigationContext);

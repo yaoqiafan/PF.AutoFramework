@@ -15,7 +15,7 @@ namespace PF.UI.Infrastructure.PrismBase
     /// <summary>
     /// IConfirmNavigationRequest
     /// </summary>
-    public abstract class RegionViewModelBase : ViewModelBase, INavigationAware, IConfirmNavigationRequest
+    public abstract class RegionViewModelBase : ViewModelBase, INavigationAware, IConfirmNavigationRequest, IRegionMemberLifetime
     {
         private readonly IUserService _userService;
 
@@ -72,6 +72,13 @@ namespace PF.UI.Infrastructure.PrismBase
         {
             return false;
         }
+
+        /// <summary>
+        /// 导航离开后是否保留在区域中：始终为 false。
+        /// IsNavigationTarget 恒为 false 意味着每次导航都会创建全新实例，
+        /// 若不随之设置 KeepAlive=false，旧实例会永久滞留在 Region.Views 中无法被回收（内存泄漏）。
+        /// </summary>
+        public virtual bool KeepAlive => false;
 
         /// <summary>
         /// 导航前触发(虚方法)

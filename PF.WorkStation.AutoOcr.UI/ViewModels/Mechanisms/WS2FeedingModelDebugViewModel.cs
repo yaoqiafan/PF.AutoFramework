@@ -530,6 +530,13 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             };
             _monitorTimer.Start();
         }
+
+        /// <summary>停止轮询定时器，防止导航离开后 ViewModel 因 Tick 闭包无法被回收。</summary>
+        public override void Destroy()
+        {
+            _monitorTimer?.Stop();
+            base.Destroy();
+        }
         #endregion
     }
 }

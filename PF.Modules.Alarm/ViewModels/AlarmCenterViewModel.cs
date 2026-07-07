@@ -225,6 +225,9 @@ namespace PF.Modules.Alarm.ViewModels
         /// <summary>允许重复导航至本视图</summary>
         public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
+        /// <summary>本实例依赖 IsNavigationTarget 复用，必须保留在 Region 中才可能被匹配到。</summary>
+        public override bool KeepAlive => true;
+
         // ── EventAggregator 回调（已在 UI 线程） ──────────────────────────────
 
         private void OnAlarmTriggered(AlarmRecord record)

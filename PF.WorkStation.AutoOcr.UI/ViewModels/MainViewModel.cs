@@ -12,5 +12,6 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     /// </summary>
     public class MainViewModel : RegionViewModelBase
     {
+
     }
 }
