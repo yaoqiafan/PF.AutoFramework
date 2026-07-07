@@ -326,7 +326,7 @@ namespace PF.Modules.Parameter.ViewModels
         /// </summary>
         private void OnCurrentUserChanged(object sender, UserInfo? newUser)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 RaisePropertyChanged(nameof(CanRefreshAndReset));
                 UpdatePermissions();
@@ -498,10 +498,10 @@ namespace PF.Modules.Parameter.ViewModels
         {
             if (SelectedParamType != null)
             {
-                // 回到 UI 线程刷新数据列表
-                Application.Current.Dispatcher.Invoke(() =>
+                // 回到 UI 线程刷新数据列表（用 InvokeAsync 避免同步阻塞，async void 防 fire-and-forget 异常丢失）
+                Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
-                    _ = LoadParametersAsync();
+                    await LoadParametersAsync();
                 });
 
                 // 通过 Prism 事件总线通知全系统该参数已被更新
@@ -739,12 +739,12 @@ namespace PF.Modules.Parameter.ViewModels
 
                 if (success)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
+                    _ = Application.Current.Dispatcher.InvokeAsync(() =>
                     {
                         Parameters.Remove(paramVm);
+                        UpdateCounts();
                     });
                     StatusMessage = $"参数 '{paramVm.Name}' 已删除";
-                    UpdateCounts();
                 }
                 else
                 {
@@ -823,9 +823,12 @@ namespace PF.Modules.Parameter.ViewModels
         /// <summary>
         /// 清理 ViewModel 占用的全局事件订阅资源。
         /// </summary>
-        public void Cleanup()
+        /// <summary>
+        /// Prism 框架生命周期钩子：Region 移除或导航离开时自动调用，解绑所有事件订阅以防内存泄漏。
+        /// </summary>
+        public override void Destroy()
         {
-            // 取消所有参数条目的 PropertyChanged 订阅，防止内存泄漏
+            // 取消所有参数条目的 PropertyChanged 订阅
             foreach (var p in Parameters)
                 UnsubscribeParam(p);
 
@@ -837,6 +840,8 @@ namespace PF.Modules.Parameter.ViewModels
             {
                 _userService.CurrentUserChanged -= OnCurrentUserChanged;
             }
+
+            base.Destroy();
         }
 
         #endregion

@@ -347,7 +347,7 @@ namespace PF.Services.Hardware
                     .Select(p =>
                     {
                         try { return JsonSerializer.Deserialize<HardwareConfig>(p.Value.ToString()); }
-                        catch { return null; }
+                        catch (Exception ex) { _logger.Warn($"[HardwareManager] JSON反序列化失败: {ex.Message}"); return null; }
                     })
                     .Where(c => c != null)
                     .ToList()!;
@@ -472,7 +472,7 @@ namespace PF.Services.Hardware
             foreach (var device in _activeDevices.Values)
             {
                 try { device.Dispose(); }
-                catch { /* 静默释放 */ }
+                catch (Exception ex) { _logger.Warn($"[HardwareManager] Dispose异常: {ex.Message}"); }
             }
             _activeDevices.Clear();
         }

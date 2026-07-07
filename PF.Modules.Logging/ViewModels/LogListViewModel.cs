@@ -88,14 +88,6 @@ namespace PF.Modules.Logging.ViewModels
             // 更新统计信息
             UpdateStatistics();
 
-
-            test = new DelegateCommand(()=>
-            {
-
-                CategoryLoggerFactory.Hardware(_logService).Debug("test",new Exception("1212132132132132132132"));
-
-
-            });
         }
 
         #region 属性
@@ -249,9 +241,6 @@ namespace PF.Modules.Logging.ViewModels
         public ICommand ToggleDateFilterCommand { get; }
         /// <summary>刷新命令</summary>
         public ICommand RefreshCommand { get; }
-
-        /// <summary>测试命令</summary>
-        public ICommand test { get; }
 
 
         #endregion

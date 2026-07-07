@@ -16,7 +16,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace PF.Modules.Debug.ViewModels
 {

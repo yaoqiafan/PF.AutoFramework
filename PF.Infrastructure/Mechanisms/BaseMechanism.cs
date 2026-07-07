@@ -1,5 +1,4 @@
-﻿using Org.BouncyCastle.Asn1.Tsp;
-using PF.Core.Constants;
+﻿using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;

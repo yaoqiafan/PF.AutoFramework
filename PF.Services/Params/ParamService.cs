@@ -702,7 +702,7 @@ namespace PF.Services.Params
                     Assembly assembly = Assembly.Load(assemblyName);
                     return assembly.GetType(shortTypeName);
                 }
-                catch { } // 吞掉加载异常，允许返回 null
+                catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[ParamService] 程序集加载失败: {ex.Message}"); } // 吞掉加载异常，允许返回 null
             }
             return null;
         }
