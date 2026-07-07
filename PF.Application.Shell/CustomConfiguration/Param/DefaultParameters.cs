@@ -360,14 +360,14 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceId = E_ScanCode.工位2扫码枪.ToString(),
                 DeviceName = "工位2扫码枪",
                 Category = "ScanCode",
-                ImplementationClassName = "HKBarcodeScan",
+                ImplementationClassName = "KeyenceBarcodeScan",
                 IsSimulated = false,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
                 ConnectionParameters = new Dictionary<string, string>
                 {
                     ["TimeOutMs"] = "5000",
-                    ["TriggerCommInstanceId"] = "ScanCode2_Trigger", ["UserPowerCommInstanceId"] = "ScanCode2_UserPower"
+                    ["IP"]="192.168.100.2"
                 },
                 Remarks = "雷赛运动控制卡，用于开发/调试"
             };
