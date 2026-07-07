@@ -486,8 +486,9 @@ namespace PF.Infrastructure.Communication.TCP
                         {
                             break;
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            System.Diagnostics.Trace.WriteLine($"[TCPClient] 重连失败: {ex.Message}");
                             // 重连失败，继续尝试
                         }
                     }
@@ -579,8 +580,8 @@ namespace PF.Infrastructure.Communication.TCP
                     _connectLock?.Dispose();
                     _sendLock?.Dispose();
 
-                    try { _stream?.Close(); _stream = null; } catch { }
-                    try { _tcpClient?.Close(); _tcpClient = null; } catch { }
+                    try { _stream?.Close(); _stream = null; } catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[TCPClient] 关闭流异常: {ex.Message}"); }
+                    try { _tcpClient?.Close(); _tcpClient = null; } catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[TCPClient] 关闭连接异常: {ex.Message}"); }
                 }
 
                 _disposedValue = true;

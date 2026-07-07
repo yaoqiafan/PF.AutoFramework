@@ -31,7 +31,6 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
     /// </summary>
     public abstract class BaseAxisDevice : BaseDevice, IAxis, IAttachedDevice
     {
-        Random Random = new Random();
         private readonly List<AxisPoint> _pointTable = new();
         private readonly string _pointTableFilePath;
 
@@ -162,7 +161,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             get
             {
                 EnsureCardAttached();
-                if (IsSimulated) { return (double)Random.Next(1, 100) + (double)Random.NextDouble(); }
+                if (IsSimulated) { return (double)Random.Shared.Next(1, 100) + Random.Shared.NextDouble(); }
                 return ParentCard!.GetAxisCurrentPosition(AxisIndex);
             }
         }
@@ -223,7 +222,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
 
-            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffest, token).ConfigureAwait(false);
+            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffset, token).ConfigureAwait(false);
         }
 
         /// <summary>绝对位置定位</summary>

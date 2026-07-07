@@ -206,7 +206,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <summary>
         /// 回零偏移
         /// </summary>
-        public double HomeOffest { get; set; }
+        public double HomeOffset { get; set; }
 
 
 

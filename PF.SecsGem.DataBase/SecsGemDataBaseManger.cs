@@ -50,7 +50,7 @@ namespace PF.SecsGem.DataBase
             catch (Exception ex)
             {
                 // 写日志或向上抛均可，此处先返回 false 避免阻断启动
-                Console.WriteLine($"[SecsGemDataBaseManger] InitializationDataBase failed: {ex.Message}");
+                System.Diagnostics.Trace.WriteLine($"[SecsGemDataBaseManger] InitializationDataBase failed: {ex.Message}");
                 return false;
             }
         }

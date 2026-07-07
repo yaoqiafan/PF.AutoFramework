@@ -66,10 +66,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="HomeVel">回零速度</param>
         /// <param name="HomeAcc">回零加速度</param>
         /// <param name="HomeDec">回零减速度</param>
-        /// <param name="HomeOffest">回零偏移量</param>
+        /// <param name="HomeOffset">回零偏移量</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default);
+        Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, CancellationToken token = default);
 
         /// <summary>指定轴绝对位置定位</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>

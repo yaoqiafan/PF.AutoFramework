@@ -315,8 +315,9 @@ namespace PF.CommonTools.Reflection
 
                 assemblyTypes = FilterTypes(types, options).ToList();
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine($"[TypeScanner] 程序集类型扫描失败: {ex.Message}");
                 assemblyTypes = new List<Type>();
             }
 

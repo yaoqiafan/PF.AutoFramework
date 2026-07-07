@@ -220,7 +220,7 @@ namespace PF.Services.Identity
                         if (user != null && !_builtInNames.Contains(user.UserName))
                             parsed.Add(user);
                     }
-                    catch { /* 忽略解析失败的脏数据 */ }
+                    catch (Exception ex) { _systemLogger.Warn($"用户数据解析失败: {ex.Message}"); /* 忽略解析失败的脏数据 */ }
                 }
 
                 // 按权限等级降序排列（高权限在前），等级相同时按用户名升序

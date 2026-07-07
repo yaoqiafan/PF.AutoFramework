@@ -110,7 +110,7 @@ namespace PF.Infrastructure.Hardware.Card
         public abstract Task<bool> StopAxisAsync(int axisIndex, bool IsEmgStop = false);
 
         /// <inheritdoc/>
-        public abstract Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default);
+        public abstract Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, CancellationToken token = default);
 
         /// <inheritdoc/>
         public abstract Task<bool> MoveAbsoluteAsync(int axisIndex, double targetPosition, double velocity, double Acc, double Dec, double STime, CancellationToken token = default);

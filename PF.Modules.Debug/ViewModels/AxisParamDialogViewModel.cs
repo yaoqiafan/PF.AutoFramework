@@ -100,7 +100,7 @@ namespace PF.Modules.Debug.ViewModels
                 HomeVel = model.HomeVel,
                 HomeAcc = model.HomeAcc,
                 HomeDec = model.HomeDec,
-                HomeOffest = model.HomeOffest,
+                HomeOffset = model.HomeOffset,
                 HomeModelFixed = model.HomeModelFixed,
                 PelHomeModel = model.PelHomeModel,
                 MelHomeModel = model.MelHomeModel,
@@ -130,7 +130,7 @@ namespace PF.Modules.Debug.ViewModels
                 HomeVel = viewModel.HomeVel,
                 HomeAcc = viewModel.HomeAcc,
                 HomeDec = viewModel.HomeDec,
-                HomeOffest = viewModel.HomeOffest,
+                HomeOffset = viewModel.HomeOffset,
                 HomeModelFixed = viewModel.HomeModelFixed,
                 PelHomeModel = viewModel.PelHomeModel,
                 MelHomeModel = viewModel.MelHomeModel,
@@ -349,7 +349,7 @@ namespace PF.Modules.Debug.ViewModels
         [CategoryAttribute("C. 回零参数")]
         [DisplayNameAttribute("8.回零偏移")]
         [BrowsableAttribute(true)]
-        public double HomeOffest
+        public double HomeOffset
         {
             get { return _homeOffest; }
             set { SetProperty(ref _homeOffest, value); }

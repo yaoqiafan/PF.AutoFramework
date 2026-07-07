@@ -133,7 +133,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步触发单轴回原点 (Homing)
         /// </summary>
-        public override async Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffest, CancellationToken token = default)
+        public override async Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, CancellationToken token = default)
         {
             try
             {
@@ -151,7 +151,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 var hovel = HomeVel / equiv;
                 var hoacc = HomeAcc / equiv;
                 var hodec = HomeDec / equiv;
-                var hooffest = HomeOffest / equiv;
+                var homeOffset = HomeOffset / equiv;
 
                 // 根据速度和加速度计算加速时间 (Tacc) 与减速时间 (Tdec)
                 // 公式：T = V / A。这里为了平滑处理，使用了最高速度的 90% 来计算加减速时间
@@ -159,7 +159,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 var Tdec = ((double)hovel - (double)hovel / 10.0) / (double)hodec;
 
                 // 1. 设置回原点参数曲线
-                short ret = CardAPI.LTDMC.nmc_set_home_profile((ushort)CardIndex, (ushort)axisIndex, (ushort)HomeModel, hovel.Value / 10, hovel.Value, Tacc, Tdec, hooffest.Value);
+                short ret = CardAPI.LTDMC.nmc_set_home_profile((ushort)CardIndex, (ushort)axisIndex, (ushort)HomeModel, hovel.Value / 10, hovel.Value, Tacc, Tdec, homeOffset.Value);
                 if (ret != 0)
                 {
                     throw new Exception($"设置轴回零参数失败，函数名：nmc_set_home_profile，返回值：{ret}");

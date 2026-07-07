@@ -40,7 +40,7 @@ namespace PF.CommonTools.Reflection
                     Assembly assembly = Assembly.Load(assemblyName);
                     return assembly.GetType(shortTypeName);
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[TypeExtensions] 程序集加载失败: {ex.Message}"); }
             }
 
             return null;

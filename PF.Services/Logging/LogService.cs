@@ -10,6 +10,7 @@ using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -66,8 +67,15 @@ namespace PF.Services.Logging
         private readonly LinkedList<LogEntry> _memoryLogEntries = new LinkedList<LogEntry>();
         private readonly object _memoryLock = new object();
 
-        // 生产者-消费者队列 (用于文件写入)
-        private readonly BlockingCollection<LogEntry> _logQueue = new(new ConcurrentQueue<LogEntry>());
+        // 生产者-消费者队列（Channel 模式，对齐 AlarmService/ProductionDataService）
+        private readonly Channel<LogEntry> _logChannel = Channel.CreateBounded<LogEntry>(
+            new BoundedChannelOptions(10_000)
+            {
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false
+            });
         private readonly CancellationTokenSource _processingCts = new();
         private Task _processingTask;
 
@@ -325,8 +333,9 @@ namespace PF.Services.Logging
                 hierarchy.Configured = true;
                 _log4netConfigured = true;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine($"[LogService] log4net 初始化失败: {ex.Message}");
             }
         }
 
@@ -341,11 +350,9 @@ namespace PF.Services.Logging
 
         private void StartProcessingTask()
         {
-            _processingTask = Task.Factory.StartNew(
-                ProcessLogQueue,
-                _processingCts.Token,
-                TaskCreationOptions.LongRunning,
-                TaskScheduler.Default);
+            // Task.Run 接收 Func<Task> 时自动解包，LongRunning 对 async 方法无效（首个 await 后线程即归还），
+            // 改用普通 Task.Run，线程池调度即可满足日志文件写入吞吐。
+            _processingTask = Task.Run(ProcessLogQueueAsync, _processingCts.Token);
         }
         #endregion
 
@@ -390,22 +397,9 @@ namespace PF.Services.Logging
                 Timestamp = DateTime.Now
             };
 
-            try
-            {
-                if (!_logQueue.IsAddingCompleted)
-                {
-                    _logQueue.Add(entry);
-                }
-                else
-                {
-                    if (entry?.Level != LogLevel.Debug)
-                    {
-                        ProcessLogEntrySync(entry);
-                    }
-
-                }
-            }
-            catch (InvalidOperationException)
+            // TryWrite 快速失败：Channel 满或已关闭时（数据库/磁盘持续阻塞，或 Dispose 之后）
+            // 不阻塞调用方（Log 是同步方法）；非 Debug 级别的日志回退到同步写以尽力保留，Debug 级别直接丢弃。
+            if (!_logChannel.Writer.TryWrite(entry) && entry.Level != LogLevel.Debug)
             {
                 ProcessLogEntrySync(entry);
             }
@@ -905,7 +899,7 @@ namespace PF.Services.Logging
                     return parts[0];
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[LogService] 日志文件名解析失败: {ex.Message}"); }
 
             return "Default"; // 或者你的 DEFAULT_CATEGORY 常量
         }
@@ -945,16 +939,37 @@ namespace PF.Services.Logging
         #endregion
 
         #region 核心处理逻辑
-        private void ProcessLogQueue()
+        private async Task ProcessLogQueueAsync()
         {
-            try
+            // 外层 while 重启外壳：即使处理单条日志或枚举器意外抛出，
+            // worker 也会重启而非永久退出（否则此后所有日志都会被静默丢弃或转为同步阻塞）。
+            while (!_disposed)
             {
-                foreach (var entry in _logQueue.GetConsumingEnumerable(_processingCts.Token))
+                try
                 {
-                    ProcessLogEntry(entry);
+                    await foreach (var entry in _logChannel.Reader.ReadAllAsync(_processingCts.Token))
+                    {
+                        try
+                        {
+                            ProcessLogEntry(entry);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Trace.WriteLine($"[LogService] 处理日志条目失败: {ex.Message}");
+                        }
+                    }
+                    // ReadAllAsync 正常结束 = Channel 已 Complete（Dispose 流程），退出循环
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.WriteLine($"[LogService] 日志处理 worker 异常，准备重启: {ex.Message}");
                 }
             }
-            catch (OperationCanceledException) { }
         }
 
         private void ProcessLogEntry(LogEntry entry)
@@ -1074,7 +1089,7 @@ namespace PF.Services.Logging
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[LogService] 刷新日志缓冲区失败: {ex.Message}"); }
         }
         #endregion
 
@@ -1122,7 +1137,7 @@ namespace PF.Services.Logging
                         var fileInfo = new FileInfo(file);
                         if (fileInfo.LastWriteTime < cutoffDate) fileInfo.Delete();
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[LogService] 日志文件删除失败: {ex.Message}"); }
                 }
 
                 try
@@ -1130,9 +1145,9 @@ namespace PF.Services.Logging
                     if (!Directory.EnumerateFileSystemEntries(directoryPath).Any())
                         Directory.Delete(directoryPath);
                 }
-                catch { }
+                catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[LogService] 日志目录删除失败: {ex.Message}"); }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[LogService] 日志目录清理失败: {ex.Message}"); }
         }
 
         /// <summary>
@@ -1141,15 +1156,14 @@ namespace PF.Services.Logging
         public void Dispose()
         {
             if (_disposed) return;
-            _logQueue.CompleteAdding();
-            // 先等待消费循环排空（不取消，让 GetConsumingEnumerable 自然结束），
+            _logChannel.Writer.Complete();
+            // 先等待消费循环排空（不取消，让 ReadAllAsync 自然结束），
             // 排空超时后再 Cancel 强制回收资源——避免 Cancel 抢先打断排空导致关机丢日志。
-            try { _processingTask?.Wait(TimeSpan.FromSeconds(5)); } catch { }
+            try { _processingTask?.Wait(TimeSpan.FromSeconds(5)); } catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[LogService] Dispose 排空等待异常: {ex.Message}"); }
             _processingCts.Cancel();
             _cleanupTimer?.Dispose();
             _flushTimer?.Dispose();
             _processingCts.Dispose();
-            _logQueue.Dispose();
             _disposed = true;
             GC.SuppressFinalize(this);
         }
@@ -1161,7 +1175,7 @@ namespace PF.Services.Logging
         public async ValueTask DisposeAsync()
         {
             if (_disposed) return;
-            _logQueue.CompleteAdding();
+            _logChannel.Writer.Complete();
 
             try
             {
@@ -1185,7 +1199,6 @@ namespace PF.Services.Logging
             _cleanupTimer?.Dispose();
             _flushTimer?.Dispose();
             _processingCts.Dispose();
-            _logQueue.Dispose();
             _disposed = true;
             GC.SuppressFinalize(this);
         }
