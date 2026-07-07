@@ -162,24 +162,8 @@ namespace PF.WorkStation.AutoOcr.Stations
             _paramService     = containerProvider.Resolve<IParamService>();
             _towerLight       = containerProvider.Resolve<ITowerLightService>();
 
-            // 订阅底层模组报警，将其上抛至工站级报警流水线
-            if (_detectionModule != null)
-            {
-                _detectionModule.AlarmTriggered += OnMechanismAlarm;
-                _detectionModule.AlarmAutoCleared += (_, _) => RaiseStationAlarmAutoCleared();
-            }
-        }
-
-        private void OnMechanismAlarm(object? sender, MechanismAlarmEventArgs e)
-        {
-            _logger.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
-            RaiseAlarm(new StationAlarmEventArgs
-            {
-                ErrorCode = e.ErrorCode ?? AlarmCodes.System.StationSyncError,
-                RuntimeMessage = e.ErrorMessage,
-                HardwareName = e.HardwareName,
-                InternalException = e.InternalException
-            });
+            // 订阅底层模组报警，将其上抛至工站级报警流水线（GetMechanisms() 已声明本工站机构清单）
+            WireMechanismAlarms();
         }
 
         private async Task ExecuteResumeFromBreakpointAsync(CancellationToken token)

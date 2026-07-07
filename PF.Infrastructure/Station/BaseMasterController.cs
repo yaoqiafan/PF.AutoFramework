@@ -176,8 +176,7 @@ namespace PF.Infrastructure.Station
         /// </summary>
         private readonly SemaphoreSlim _hardwareOpGate = new(1, 1);
 
-
-        private readonly IStationSyncService _sync;
+        // 工站间信号量同步（IStationSyncService）由各子类工站按需持有，主控基类本身不消费，故不在此声明。
 
         #endregion
 

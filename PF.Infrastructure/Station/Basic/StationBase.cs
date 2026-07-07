@@ -657,6 +657,58 @@ namespace PF.Infrastructure.Station.Basic
         /// </summary>
         protected virtual IEnumerable<BaseMechanism> GetMechanisms() => [];
 
+        private bool _mechanismAlarmsWired;
+
+        /// <summary>
+        /// 订阅 <see cref="GetMechanisms"/> 返回的全部机构的 AlarmTriggered/AlarmAutoCleared 事件，
+        /// 统一上抛为工站级报警，取代子类各自手写的订阅样板代码。
+        /// 子类构造函数末尾调用一次；幂等（重复调用不会重复订阅）。
+        /// </summary>
+        protected void WireMechanismAlarms()
+        {
+            if (_mechanismAlarmsWired) return;
+            _mechanismAlarmsWired = true;
+            foreach (var m in GetMechanisms())
+            {
+                m.AlarmTriggered -= OnWiredMechanismAlarmTriggered;
+                m.AlarmTriggered += OnWiredMechanismAlarmTriggered;
+                m.AlarmAutoCleared -= OnWiredMechanismAlarmAutoCleared;
+                m.AlarmAutoCleared += OnWiredMechanismAlarmAutoCleared;
+            }
+        }
+
+        /// <summary>与 <see cref="WireMechanismAlarms"/> 对称卸载，Dispose/DisposeAsync 中调用。</summary>
+        private void UnwireMechanismAlarms()
+        {
+            if (!_mechanismAlarmsWired) return;
+            _mechanismAlarmsWired = false;
+            foreach (var m in GetMechanisms())
+            {
+                m.AlarmTriggered -= OnWiredMechanismAlarmTriggered;
+                m.AlarmAutoCleared -= OnWiredMechanismAlarmAutoCleared;
+            }
+        }
+
+        private void OnWiredMechanismAlarmTriggered(object? sender, MechanismAlarmEventArgs e)
+        {
+            _logger?.Error($"[{StationName}] 接收到模组报警 [{e.HardwareName}]: {e.ErrorMessage}");
+            RaiseAlarm(new StationAlarmEventArgs
+            {
+                ErrorCode = MapMechanismAlarmCode(e) ?? AlarmCodes.System.StationSyncError,
+                RuntimeMessage = e.ErrorMessage,
+                HardwareName = e.HardwareName,
+                InternalException = e.InternalException
+            });
+        }
+
+        private void OnWiredMechanismAlarmAutoCleared(object? sender, EventArgs e) => RaiseStationAlarmAutoCleared();
+
+        /// <summary>
+        /// 机构报警码到工站报警码的映射钩子，默认原样透传 <see cref="MechanismAlarmEventArgs.ErrorCode"/>。
+        /// 子类如需将机构级错误码转换为工站级错误码，可重写此方法。
+        /// </summary>
+        protected virtual string? MapMechanismAlarmCode(MechanismAlarmEventArgs e) => e.ErrorCode;
+
         /// <summary>
         /// 创建暂停感知委托，注入到所有机构的 <see cref="BaseMechanism.PauseCheckAsync"/>。
         /// <para>
@@ -1130,6 +1182,7 @@ namespace PF.Infrastructure.Station.Basic
 
             WriteMemoryParam();
 
+            UnwireMechanismAlarms();
             try { _runCts?.Dispose(); } catch { }
             try { _stateLock.Dispose(); } catch { }
             GC.SuppressFinalize(this);
@@ -1146,6 +1199,7 @@ namespace PF.Infrastructure.Station.Basic
 
             try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
             WriteMemoryParam();
+            UnwireMechanismAlarms();
             try { _runCts?.Dispose(); } catch { }
             try { _stateLock.Dispose(); } catch { }
             GC.SuppressFinalize(this);
