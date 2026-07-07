@@ -3,8 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <PackageReleaseNotes>
+v1.0.5 (2026-07-07) — 紧急修复：老库升级启动崩溃（PF.Application.Base 1.0.1→1.0.2）
+
+[修复 — 关键，从 v1.0.4 升级的已部署机台必装]
+- PF.Application.Base 1.0.2：v1.0.1 为老库补建 CommunicationParams/HardwareParams 的
+  裸 SQL 漏掉 Remarks 列，导致所有已存在 SystemParamsCollection.db 的机台启动时参数
+  种子阶段即抛 "no such column: Remarks" 崩溃（全新数据库不受影响，开发机测不出）。
+  本版补齐建表 SQL 并新增幂等补列迁移，已建出缺列表的机器升级后自动修复。
+- 其余子包与 v1.0.4 完全一致。
+
 v1.0.4 (2026-07-07) — 通讯管理框架 + 内存泄漏修复 + 数据库工作单元重构（含破坏性变更）
 
 [破坏性变更]

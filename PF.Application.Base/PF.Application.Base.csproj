@@ -3,8 +3,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
+		<Version>1.0.2</Version>
 		<PackageReleaseNotes>
+v1.0.2 (2026-07-07) — 修复老库升级启动崩溃（CommunicationParams 建表 SQL 缺 Remarks 列）
+
+[修复 — 关键，v1.0.1 升级必装]
+- v1.0.1 为老库补建 HardwareParams/CommunicationParams 的裸 SQL 漏掉了 Remarks 列
+  （EF 模型经 BasicEntity 映射该列），导致所有已部署机台（SystemParamsCollection.db
+  已存在、CommunicationParams 表由裸 SQL 补建）启动时参数种子阶段首次查询即抛
+  "no such column: Remarks" 崩溃。全新数据库由 EnsureCreatedAsync 按完整模型建表
+  不受影响——这正是开发机测不出的原因。
+- 两处建表 SQL 补上 Remarks 列；并新增幂等补列逻辑（PRAGMA 检查后 ALTER TABLE），
+  已被 v1.0.1 建出缺列表的机器升级后自动修复，无需人工干预。
+
 v1.0.1 (2026-07-07) — 通讯管理集成 + 关闭流程健壮性修复
 
 [新增]
