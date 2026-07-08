@@ -16,6 +16,7 @@ using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Shared.Data;
 using Prism.Commands;
 using System.Collections.ObjectModel;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -354,6 +355,12 @@ namespace PF.Application.Base.ViewModels
             }
             catch { }
 
+            // 版本徽章：取入口程序集版本，原样显示（与 Splash 启动屏一致）
+            SoftWareVersion = Assembly.GetEntryAssembly()?.GetName()?.Version?.ToString() ?? "1.0.0";
+
+            // .NET 运行时版本（原样显示，如 8.0.x）
+            RuntimeVersion = Environment.Version.ToString();
+
             StartPolling();
         }
 
@@ -407,6 +414,29 @@ namespace PF.Application.Base.ViewModels
         {
             get => _softWareName;
             set => SetProperty(ref _softWareName, value);
+        }
+
+        private string _softWareVersion = string.Empty;
+        /// <summary>
+        /// 软件版本号（绑定到主窗口标题栏 V 徽章）。
+        /// 取值来源于入口程序集的版本号，与 csproj 中的 &lt;Version&gt; 自动同步，
+        /// 同时与 Splash 启动屏显示的版本保持一致。
+        /// </summary>
+        public string SoftWareVersion
+        {
+            get => _softWareVersion;
+            set => SetProperty(ref _softWareVersion, value);
+        }
+
+        private string _runtimeVersion = string.Empty;
+        /// <summary>
+        /// 当前 .NET 运行时版本（绑定到主窗口标题栏 .net 徽章）。
+        /// 取值来源于 <see cref="System.Environment.Version"/>，自动反映实际运行的 CLR 版本。
+        /// </summary>
+        public string RuntimeVersion
+        {
+            get => _runtimeVersion;
+            set => SetProperty(ref _runtimeVersion, value);
         }
 
         private object _selectedMenuItem;

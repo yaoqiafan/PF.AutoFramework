@@ -19,7 +19,7 @@ namespace PF.Modules.Identity.Views
 {
     [ModuleNavigation(NavigationConstants.Views.UserManagementView, "权限管理",
         GroupName = "权限管控", Order = 2,
-        Icon = "NailGeometry",
+        Icon = "AccountCogOutline",
         NavigationParameter = "UserLoginParam")]
     public partial class UserManagementView : UserControl
     {

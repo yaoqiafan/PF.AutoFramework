@@ -13,7 +13,7 @@ namespace PF.Modules.Halcon.Views;
     "Halcon视觉调试",
     groupName: "系统调试",
     Order = 98,
-    Icon = "DebugIcon")]
+    Icon = "CameraOutline")]
 public partial class HalconDashboardView : UserControl
 {
     public HalconDashboardView(IRegionManager regionManager)

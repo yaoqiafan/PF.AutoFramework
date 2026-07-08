@@ -2,6 +2,7 @@
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 
 	<PropertyGroup>
+		<Version>1.0.2.0</Version>
 		<OutputType>WinExe</OutputType>
 		<ApplicationIcon>-pfico.ico</ApplicationIcon>
 	</PropertyGroup>

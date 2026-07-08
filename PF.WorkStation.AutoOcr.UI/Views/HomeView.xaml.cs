@@ -8,7 +8,7 @@ namespace PF.WorkStation.AutoOcr.UI.Views
 {
     [ModuleNavigation(NavigationConstants.Views.HomeView, "运行",
         GroupName = "开始", Order = 2,
-        Icon = "NailGeometry"
+        Icon = "Rocket"
       )]
     public partial class HomeView : UserControl
     {

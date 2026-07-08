@@ -21,12 +21,12 @@ namespace PF.Modules.Parameter.Views
     [ModuleNavigation(NavigationConstants.Views.ParameterView_SystemConfigParam, "运行参数",
         GroupName = "设备参数设置", GroupOrder = 2, Order = 1,
         GroupIcon = "/PF.UI.Resources;component/Images/PNG/6.png", // 父节点 PNG 图标
-        Icon = "SettingIcon",                                      // 子节点矢量图
+        Icon = "Tune",                                              // 子节点矢量图
         NavigationParameter = "SystemConfigParam")]                // 传递的参数名
 
     [ModuleNavigation(NavigationConstants.Views.ParameterView_HardwareParam, "设备硬件参数",
         GroupName = "系统调试", Order = 1,
-        Icon = "DebugIcon",
+        Icon = "Chip",
         NavigationParameter = "HardwareParam")]
 
 

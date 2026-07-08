@@ -13,7 +13,7 @@ namespace PF.Modules.Alarm.Views
         groupName: "系统监控",
         GroupOrder = 80,
         Order = 10,
-        Icon = "ErrorGeometry",
+        Icon = "Pulse",
         GroupIcon = "/PF.UI.Resources;component/Images/PNG/1.png")]
     public partial class AlarmCenterView : UserControl
     {

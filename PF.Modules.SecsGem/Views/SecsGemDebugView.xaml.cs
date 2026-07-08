@@ -10,7 +10,7 @@ using System.Windows.Media;
 
 namespace PF.Modules.SecsGem.Views
 {
-    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView, "SECS/GEM 调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 99, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
+    [ModuleNavigation(NavigationConstants.Views.SecsGemDebugView, "SECS/GEM 调试", GroupName = "系统调试", Icon = "Antenna", Order = 99, GroupIcon = "/PF.UI.Resources;component/Images/PNG/4.png")]
 
     public partial class SecsGemDebugView : UserControl
     {

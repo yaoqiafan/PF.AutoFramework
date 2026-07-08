@@ -23,7 +23,7 @@ namespace PF.WorkStation.AutoOcr.UI.Views
     /// </summary>
     [ModuleNavigation(nameof(OcrRecipeManageView), "程式", GroupIcon = "/PF.UI.Resources;component/Images/PNG/10.png",
        GroupName = "程式管理", Order = 1, GroupOrder = 3,
-       Icon = "NailGeometry"
+       Icon = "ScriptOutline"
      )]
     
     public partial class OcrRecipeManageView : UserControl

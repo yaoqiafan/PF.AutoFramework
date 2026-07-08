@@ -204,13 +204,13 @@
             <pf:Shield
                 Grid.Column="2"
                 Margin="4,0,0,0"
-                Status="1.0.0"
+                Status="{Binding SoftWareVersion}"
                 Subject="V"
                 Color="{DynamicResource PrimaryBrush}" />
             <pf:Shield
                 Grid.Column="3"
                 Margin="4,0,0,0"
-                Status="8.0"
+                Status="{Binding RuntimeVersion}"
                 Subject=".net"
                 Color="{DynamicResource PrimaryBrush}" />
 

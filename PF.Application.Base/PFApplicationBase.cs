@@ -304,6 +304,7 @@ namespace PF.Application.Base
             splash.WelcomeText = $"欢迎使用{commonParam.SoftWareName}";
             splash.WelcomeText_small = $"Welcome to the {commonParam.SoftWareName_EN}";
             splash.VersionNumber = $"V{Assembly.GetEntryAssembly()?.GetName().Version}";
+            var str = Assembly.GetEntryAssembly()?.GetName();
             splash.LoadingAction = PerformInitializationAsync;
 
             if (splash.ShowDialog() == true)

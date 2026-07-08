@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -113,14 +114,15 @@ namespace PF.Application.Base.Views
                 };
                 foreach (var child in group.Children)
                 {
-                    groupItem.Items.Add(new SideMenuItem
+                    var childItem = new SideMenuItem
                     {
                         Header = $" {child.Title}",
                         Tag = child,
                         DataContext = child,
-                        Icon = CreateIconElement(child.Icon),
                         IsExpanded = false
-                    });
+                    };
+                    AttachChildIcon(childItem, child.Icon);
+                    groupItem.Items.Add(childItem);
                 }
                 MainSideMenu.Items.Add(groupItem);
             }
@@ -139,11 +141,164 @@ namespace PF.Application.Base.Views
             }
             else
             {
-                var path = new Path { Width = 16, Height = 16, Stretch = Stretch.Fill };
-                path.SetResourceReference(Path.DataProperty, iconStr);
+                var path = new Path { Width = 20, Height = 20, Stretch = Stretch.Fill, Data = ResolveIconGeometry(iconStr) };
                 path.SetResourceReference(Path.FillProperty, "TextIconBrush");
                 return path;
             }
+        }
+
+        // 悬停动画节奏：先隐藏填充、播放一次描边动画，描边完成后填充色再显示，伴随轻微放大
+        private static readonly TimeSpan ChildIconStrokeDuration = TimeSpan.FromSeconds(0.4);
+        private static readonly TimeSpan ChildIconFillDuration = TimeSpan.FromSeconds(0.2);
+        private static readonly TimeSpan ChildIconGrowDuration = TimeSpan.FromSeconds(0.18);
+        private static readonly TimeSpan ChildIconShrinkDuration = TimeSpan.FromSeconds(0.15);
+        private const double ChildIconHoverScale = 1.18;
+        private const double ChildIconBoxSize = 20;
+
+        /// <summary>
+        /// 侧边栏子菜单项图标：静止状态正常显示完整填充图标；鼠标进入子项的瞬间，
+        /// 填充变为透明、只保留描边动画播放一次，描边画完后填充色再淡入复原；
+        /// 鼠标离开时立即恢复正常填充显示。描边色与填充色统一使用 TextIconBrush。
+        /// 非 PNG 图标叠加"填充层(Path) + 描边层(pf:AnimationPath)"两层实现。
+        /// </summary>
+        private void AttachChildIcon(SideMenuItem item, string iconStr)
+        {
+            if (string.IsNullOrEmpty(iconStr)) return;
+            if (iconStr.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                item.Icon = CreateIconElement(iconStr);
+                return;
+            }
+
+            var geometry = ResolveIconGeometry(iconStr);
+            if (geometry == null) return;
+
+            var fillLayer = new Path
+            {
+                Width = ChildIconBoxSize,
+                Height = ChildIconBoxSize,
+                Stretch = Stretch.Uniform,
+                Data = geometry
+            };
+            fillLayer.SetResourceReference(Path.FillProperty, "TextIconBrush");
+
+            var strokeLayer = new AnimationPath
+            {
+                Width = ChildIconBoxSize,
+                Height = ChildIconBoxSize,
+                Data = geometry,
+                // 控件库自带的长度估算只在路径起点附近采样再线性外推，遇到多子路径/转角
+                // 较多的图标会严重失真，导致不同图标描边速度忽快忽慢；这里改为按展平后
+                // 折线精确求和，得到与 Stretch=Uniform 渲染结果一致的真实描边长度。
+                PathLength = ComputeStrokePathLength(geometry, ChildIconBoxSize),
+                StrokeThickness = 0,
+                RepeatBehavior = new RepeatBehavior(1),
+                FillBehavior = FillBehavior.HoldEnd,
+                Duration = new Duration(ChildIconStrokeDuration)
+            };
+            strokeLayer.SetResourceReference(AnimationPath.StrokeProperty, "TextIconBrush");
+
+            var scale = new ScaleTransform(1, 1);
+            var host = new Grid
+            {
+                Width = ChildIconBoxSize,
+                Height = ChildIconBoxSize,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = scale
+            };
+            host.Children.Add(fillLayer);
+            host.Children.Add(strokeLayer);
+            item.Icon = host;
+
+            item.MouseEnter += (s, e) =>
+            {
+                var grow = new DoubleAnimation(ChildIconHoverScale, ChildIconGrowDuration)
+                { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+
+                strokeLayer.StrokeThickness = 1;
+                strokeLayer.IsPlaying = false;
+                strokeLayer.IsPlaying = true;
+
+                fillLayer.BeginAnimation(UIElement.OpacityProperty, null);
+                fillLayer.Opacity = 0;
+                var fillIn = new DoubleAnimation(0, 1, ChildIconFillDuration) { BeginTime = ChildIconStrokeDuration };
+                fillLayer.BeginAnimation(UIElement.OpacityProperty, fillIn);
+            };
+            item.MouseLeave += (s, e) =>
+            {
+                var shrink = new DoubleAnimation(1, ChildIconShrinkDuration);
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, shrink);
+
+                strokeLayer.IsPlaying = false;
+                strokeLayer.StrokeThickness = 0;
+
+                fillLayer.BeginAnimation(UIElement.OpacityProperty, null);
+                fillLayer.Opacity = 1;
+            };
+        }
+
+        /// <summary>
+        /// 精确计算 Geometry 在 Stretch=Uniform、边长为 boxSize 的正方形框内渲染后的描边总长度：
+        /// 先展平为折线并逐段求和得到原始长度，再按 Uniform 等比缩放系数换算到目标框尺寸。
+        /// 用于替代 pf:AnimationPath 内置的估算（对多子路径/多转角图标误差很大，是描边速度
+        /// 忽快忽慢的根因），使不同图标的描边动画播放速度保持一致。
+        /// </summary>
+        private static double ComputeStrokePathLength(Geometry geometry, double boxSize)
+        {
+            if (geometry == null || boxSize <= 0) return 0;
+
+            var bounds = geometry.Bounds;
+            if (bounds.IsEmpty || bounds.Width <= 0 || bounds.Height <= 0) return 0;
+
+            double rawLength = 0;
+            var flattened = geometry.GetFlattenedPathGeometry(0.05, ToleranceType.Absolute);
+            foreach (var figure in flattened.Figures)
+            {
+                var previous = figure.StartPoint;
+                foreach (var segment in figure.Segments)
+                {
+                    switch (segment)
+                    {
+                        case PolyLineSegment poly:
+                            foreach (var point in poly.Points)
+                            {
+                                rawLength += (point - previous).Length;
+                                previous = point;
+                            }
+                            break;
+                        case LineSegment line:
+                            rawLength += (line.Point - previous).Length;
+                            previous = line.Point;
+                            break;
+                    }
+                }
+                if (figure.IsClosed)
+                    rawLength += (previous - figure.StartPoint).Length;
+            }
+
+            var scale = Math.Min(boxSize / bounds.Width, boxSize / bounds.Height);
+            return rawLength * scale;
+        }
+
+        /// <summary>
+        /// 解析图标字符串对应的 Geometry：优先按 PackIconKind 枚举名匹配控件库矢量图标库，
+        /// 匹配失败则回退为主题资源字典中的 Geometry 资源键（兼容既有 Icon 取值）。
+        /// </summary>
+        private static Geometry ResolveIconGeometry(string iconStr)
+        {
+            if (string.IsNullOrEmpty(iconStr)) return null;
+
+            if (Enum.TryParse<PackIconKind>(iconStr, true, out var kind))
+            {
+                var probe = new PackIcon { Kind = kind };
+                if (!string.IsNullOrEmpty(probe.Data))
+                    return Geometry.Parse(probe.Data);
+            }
+
+            return System.Windows.Application.Current.TryFindResource(iconStr) as Geometry;
         }
 
         private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

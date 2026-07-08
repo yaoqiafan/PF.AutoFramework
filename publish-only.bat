@@ -1,5 +1,5 @@
 @echo off
-:: 1. 环境初始化：解决中文乱码与路径跳转问题 [cite: 1]
+:: 1. 环境初始化：解决中文乱码与路径跳转问题
 chcp 65001 >nul
 pushd "%~dp0"
 color 0A
@@ -49,7 +49,7 @@ if not exist "%NUPKG_DIR%\*.nupkg" goto :ERROR_EXIT
 echo [OK] 打包完成，本地文件已生成到 nupkg 目录。
 
 echo.
-color 0B [cite: 5]
+color 0B
 echo ========================================================
 echo    任务圆满完成！
 echo    PF.AutoFramework 的组件已成功编译并打包至本地。
@@ -59,9 +59,9 @@ pause
 exit /b 0
 
 :ERROR_EXIT
-color 0C [cite: 6]
+color 0C
 echo.
-echo [致命错误] 流程由于代码报错或环境问题已中断，请检查上方日志。 [cite: 6]
+echo [致命错误] 流程由于代码报错或环境问题已中断，请检查上方日志。
 popd
 pause
 exit /b 1

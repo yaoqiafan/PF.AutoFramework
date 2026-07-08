@@ -7,7 +7,7 @@ using System.Windows.Controls;
 
 namespace PF.Modules.Debug.Views
 {
-    [ModuleNavigation(NavigationConstants.Views.CommunicationDebugView, "通讯综合调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 0)]
+    [ModuleNavigation(NavigationConstants.Views.CommunicationDebugView, "通讯综合调试", GroupName = "系统调试", Icon = "Lan", Order = 0)]
     public partial class CommunicationDebugView : UserControl
     {
         /// <summary>初始化通讯调试视图</summary>

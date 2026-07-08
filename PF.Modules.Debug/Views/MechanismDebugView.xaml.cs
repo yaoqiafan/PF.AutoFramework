@@ -7,7 +7,7 @@ namespace PF.Modules.Debug.Views
     /// <summary>
     /// 业务模组调试视图
     /// </summary>
-    [ModuleNavigation(NavigationConstants.Views.MechanismDebugView, "设备模组调试", GroupName = "系统调试", Icon = "DebugIcon", Order = 3)]
+    [ModuleNavigation(NavigationConstants.Views.MechanismDebugView, "设备模组调试", GroupName = "系统调试", Icon = "CogOutline", Order = 3)]
     public partial class MechanismDebugView
     {
         /// <summary>初始化模组调试视图</summary>
