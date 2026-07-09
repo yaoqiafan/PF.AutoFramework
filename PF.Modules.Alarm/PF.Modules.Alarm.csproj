@@ -11,8 +11,14 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-09) — 报警中心侧边栏图标调整
+
+[变更]
+- AlarmCenterView 侧边栏图标由 ErrorGeometry 改为 Pulse：原图标为碎片化线稿，配合
+  PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画时观感差，Pulse 描边路径连贯完整。
+
 v1.0.2 (2026-07-07) — 报警详情大图解码限制 + KeepAlive 适配
 
 [修复]

@@ -13,8 +13,16 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-09) — 参数模块侧边栏图标调整
+
+[变更]
+- 系统配置参数 Icon：SettingIcon → Tune
+- 硬件参数 Icon：DebugIcon → Chip
+  配合 PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画，原图标描边观感差或与其它
+  调试页图标重复，一并替换。
+
 v1.0.2 (2026-07-07) — Keyence SDK 扫码枪参数视图 + 计数竞态修复
 
 [新增]

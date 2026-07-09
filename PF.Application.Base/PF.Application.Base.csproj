@@ -3,8 +3,32 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效 + 版本徽章
+
+[新增]
+- MainWindowViewModelBase 新增 ProductImagePath/ProductDescription/UserManualPath 三个
+  虚属性；框架新增 MainView(Model) 作为各消费项目共用的主显界面（左侧产品图片+简介左右
+  布局卡片，简介以自定义样式 ContentControl 呈现并带加载动效；右侧品牌信息+常用操作区，
+  含"打开说明书"真实功能与三个占位操作），随 PFApplicationBase.RegisterTypes 统一注册。
+  消费项目只需在 Shell 层 MainWindowViewModel 子类中重写以上三属性即可接入，不必再各自
+  维护一份 MainView（PF.WorkStation.AutoOcr.UI 已同步删除原 MainView 三文件作为示例）。
+- MainWindowViewModelBase 绑定标题栏版本徽章（SoftWareVersion/RuntimeVersion）。
+
+[改进]
+- 侧边栏 MainWindow 子菜单图标：鼠标进入时轻微放大并播放一次路径描边动画（先隐藏填充→
+  精确计算长度匀速描边→填充淡入复原），离开后复位可重复触发；新增 ComputeStrokePathLength
+  替代控件库自带对多段路径估算严重失真的长度算法，避免不同图标描边速度不一致。
+- CommonParamView 图标由 AudioGeometry 改为 ViewListOutline（原图标语义不符且描边观感差）。
+
+[子包版本对照]
+本次侧边栏图标一并调整的消费方需同步升级：PF.Modules.Alarm 1.0.2→1.0.3、
+PF.Modules.Debug 1.0.2→1.0.3、PF.Modules.Halcon 1.0.1→1.0.2、
+PF.Modules.Identity 1.0.1→1.0.2、PF.Modules.Logging 1.0.1→1.0.2、
+PF.Modules.Parameter 1.0.2→1.0.3、PF.Modules.ProductionRecord 1.0.1→1.0.2、
+PF.Modules.SecsGem 1.0.3→1.0.4。
+
 v1.0.2 (2026-07-07) — 修复老库升级启动崩溃（CommunicationParams 建表 SQL 缺 Remarks 列）
 
 [修复 — 关键，v1.0.1 升级必装]

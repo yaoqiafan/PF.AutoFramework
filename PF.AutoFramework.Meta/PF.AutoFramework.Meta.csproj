@@ -3,8 +3,39 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <PackageReleaseNotes>
+v1.0.6 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效，全侧边栏图标审查替换
+
+[新增]
+- PF.Application.Base 1.0.2→1.0.3：新增框架级主显界面 MainView(Model)，左侧产品图片+
+  简介左右布局卡片（简介为自定义样式 ContentControl，带加载动效），右侧品牌信息+常用
+  操作区（"打开说明书"为真实功能，另 3 项为占位）；MainWindowViewModelBase 新增
+  ProductImagePath/ProductDescription/UserManualPath 三个虚属性，供 Shell 层子类按项目
+  重写后即可接入，不必再各自维护一份 MainView。同时绑定标题栏版本徽章
+  （SoftWareVersion/RuntimeVersion）。
+
+[改进 — 侧边栏悬停描边动画 + 全量图标审查]
+- PF.Application.Base：子菜单图标鼠标进入时轻微放大并播放一次路径描边动画（先隐藏填充→
+  精确计算长度匀速描边→填充淡入复原），新增 ComputeStrokePathLength 替代控件库自带对
+  多段路径估算严重失真的长度算法，避免不同图标描边速度不一致。
+- 审查全部子菜单图标的 SVG 路径，剔除"双重嵌套轮廓"（同一形状描边两遍）、"碎片化"
+  （大小悬殊的多个小碎片）及跨模块重复共用同一图标的问题，逐一替换为单一连贯复杂路径
+  的图标：
+  PF.Application.Base（CommonParamView）、PF.Modules.Alarm（报警中心）、
+  PF.Modules.Debug（通讯/硬件/设备模组/流程工站四个调试页）、
+  PF.Modules.Halcon（视觉调试面板）、PF.Modules.Identity（权限获取/窗体权限更改/用户管理）、
+  PF.Modules.Logging（日志查询）、PF.Modules.Parameter（系统配置/硬件参数）、
+  PF.Modules.ProductionRecord（生产历史，此前与日志查询图标重复）、
+  PF.Modules.SecsGem（SECS/GEM 调试）。
+
+[子包版本对照]
+PF.Application.Base 1.0.2→1.0.3，PF.Modules.Alarm 1.0.2→1.0.3，
+PF.Modules.Debug 1.0.2→1.0.3，PF.Modules.Halcon 1.0.1→1.0.2，
+PF.Modules.Identity 1.0.1→1.0.2，PF.Modules.Logging 1.0.1→1.0.2，
+PF.Modules.Parameter 1.0.2→1.0.3，PF.Modules.ProductionRecord 1.0.1→1.0.2，
+PF.Modules.SecsGem 1.0.3→1.0.4；其余子包本次无变化。
+
 v1.0.5 (2026-07-07) — 紧急修复：老库升级启动崩溃（PF.Application.Base 1.0.1→1.0.2）
 
 [修复 — 关键，从 v1.0.4 升级的已部署机台必装]

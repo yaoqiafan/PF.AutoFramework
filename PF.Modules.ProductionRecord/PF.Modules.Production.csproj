@@ -11,8 +11,17 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.1</Version>
-		<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+		<Version>1.0.2</Version>
+		<PackageReleaseNotes>
+v1.0.2 (2026-07-09) — 生产历史侧边栏图标调整
+
+[变更]
+- ProductionHistoryView Icon：RunInfoIcon → ChartBar，与日志查询图标（此前同为
+  RunInfoIcon）区分开；ChartBar 路径连贯完整，配合 PF.Application.Base v1.0.3 新增的
+  侧边栏悬停描边动画时绘制效果更好。
+
+v1.0.1 - 框架初始独立版本
+		</PackageReleaseNotes>
 		<Description>生产数据模块：历史数据浏览、条件查询、Excel/CSV 导出</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>

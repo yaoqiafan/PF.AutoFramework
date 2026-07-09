@@ -14,8 +14,14 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-07-09) — SECS/GEM 调试侧边栏图标调整
+
+[变更]
+- SecsGemDebugView Icon：DebugIcon → Antenna，避免与其它调试页共用同一图标，并适配
+  PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画。
+
 v1.0.3 (2026-07-07) — 适配 PF.SecsGem.DataBase 工作单元(UoW)模式重构（破坏性变更）
 
 [破坏性变更 — 数据访问模式]

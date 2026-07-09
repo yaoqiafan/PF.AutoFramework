@@ -11,8 +11,19 @@
 		<PropertyGroup>
 			<IsModuleProject>true</IsModuleProject>
 			<IsPackable>true</IsPackable>
-			<Version>1.0.1</Version>
-			<PackageReleaseNotes>v1.0.1 - 框架初始独立版本</PackageReleaseNotes>
+			<Version>1.0.2</Version>
+			<PackageReleaseNotes>
+v1.0.2 (2026-07-09) — 权限模块侧边栏图标调整
+
+[变更]
+- 权限获取（登录）Icon：LoginInIcon → Login
+- 窗体权限更改 Icon：SettingIcon → KeyVariant
+- 用户管理 Icon：NailGeometry → AccountCogOutline
+  配合 PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画，原图标存在描边观感差或
+  语义不符的问题，一并替换。
+
+v1.0.1 - 框架初始独立版本
+			</PackageReleaseNotes>
 			<Description>身份认证模块：登录、角色管理、细粒度权限 UI</Description>
 			<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 		</PropertyGroup>

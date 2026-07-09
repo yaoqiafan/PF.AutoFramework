@@ -11,8 +11,18 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-09) — 调试面板侧边栏图标调整
+
+[变更]
+- 通讯综合调试 Icon：DebugIcon → Lan
+- 硬件综合调试 Icon：DebugIcon → RobotIndustrialOutline
+- 设备模组调试 Icon：DebugIcon → CogOutline
+- 流程工站调试 Icon：DebugIcon → SitemapOutline
+  原 DebugIcon 被 4 个调试页共用（重复）且轮廓不适合描边展示，配合
+  PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画一并替换为各自独立、可完整描边的图标。
+
 v1.0.2 (2026-07-07) — 通讯调试面板 + KeepAlive 适配
 
 [新增]
