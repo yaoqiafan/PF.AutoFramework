@@ -108,9 +108,9 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         public Encoding Encoding { get; set; } = Encoding.ASCII;
         /// <summary>
-        /// 接收缓冲区大小
+        /// 接收缓冲区大小（默认与 TcpServer 对齐为 64KB，见 CommunicationConstants）
         /// </summary>
-        public int ReceiveBufferSize { get; set; } = 8192;
+        public int ReceiveBufferSize { get; set; } = CommunicationConstants.TcpReceiveBufferSize;
         /// <summary>
         /// 发送超时时间
         /// </summary>

@@ -229,7 +229,7 @@ namespace PF.Infrastructure.Communication.TCP
                 // 100 个并发客户端即占用 ~800MB 堆内存，极易引发 OOM。
                 // 工业设备协议单帧通常远小于 64KB，调整为合理大小。
                 // 若确实需要大包，应在应用层做流式分帧，而非一次性大缓冲。
-                var buffer = new byte[64 * 1024]; // 64KB，足够绝大多数工业协议
+                var buffer = new byte[CommunicationConstants.TcpReceiveBufferSize]; // 64KB，与 TCPClient 共用常量保持对等
 
                 // 修复：彻底移除 Poll/DataAvailable 同步阻塞轮询。
                 // 每个客户端的 Poll 调用最多阻塞 1 s（加上 IsSocketConnected 内的 3 次 Poll
@@ -347,7 +347,8 @@ namespace PF.Infrastructure.Communication.TCP
         }
 
         /// <summary>
-        /// 向指定客户端发送数据
+        /// 向指定客户端发送数据。
+        /// 通过每客户端发送锁串行化写入：并发 WriteAsync 同一 NetworkStream 会交错字节流、破坏帧边界。
         /// </summary>
         public async Task<bool> SendAsync(string clientId, byte[] data)
         {
@@ -356,9 +357,22 @@ namespace PF.Infrastructure.Communication.TCP
 
             try
             {
-                var stream = client.TcpClient.GetStream();
-                await stream.WriteAsync(data, 0, data.Length);
-                return true;
+                await client.SendLock.WaitAsync();
+                try
+                {
+                    var stream = client.TcpClient.GetStream();
+                    await stream.WriteAsync(data, 0, data.Length);
+                    return true;
+                }
+                finally
+                {
+                    client.SendLock.Release();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // 客户端已断开并释放，发送失败即可，无需再触发断开流程
+                return false;
             }
             catch
             {
@@ -492,6 +506,12 @@ namespace PF.Infrastructure.Communication.TCP
             public DateTime ConnectedTime { get; }
             public bool IsConnected => _tcpClient?.Connected ?? false;
             internal TcpClient TcpClient => _tcpClient;
+
+            /// <summary>
+            /// 每客户端发送锁。有意不在 Dispose 中释放：
+            /// SemaphoreSlim 不持有非托管资源，而带等待者时提前 Dispose 会让并发发送方抛异常。
+            /// </summary>
+            internal SemaphoreSlim SendLock { get; } = new SemaphoreSlim(1, 1);
 
             private readonly TcpClient _tcpClient;
 

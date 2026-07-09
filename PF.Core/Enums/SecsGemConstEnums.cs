@@ -25,10 +25,10 @@ namespace PF.Core.Enums
         CHARACTER_2 = 0b01001000,
         /// <summary>8字节有符号整数</summary>
         I8 = 0b01100000,
-        /// <summary>1字节有符号整数</summary>
-        I1 = 6,
-        /// <summary>2字节有符号整数</summary>
-        I2 = 0b011000100,
+        /// <summary>1字节有符号整数（SECS-II 格式码 031 八进制 = 0x64）</summary>
+        I1 = 0b01100100,
+        /// <summary>2字节有符号整数（SECS-II 格式码 032 八进制 = 0x68）</summary>
+        I2 = 0b01101000,
         /// <summary>4字节有符号整数</summary>
         I4 = 0b01110000,
         /// <summary>8字节浮点数</summary>

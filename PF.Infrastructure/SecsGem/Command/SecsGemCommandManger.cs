@@ -311,24 +311,22 @@ namespace PF.Infrastructure.SecsGem.Command
         /// </summary>
         public async Task ReloadAllCommandsAsync(FormulaConfiguration formulaConfiguration)
         {
+            // 重置标志在信号量内完成，但绝不能持锁调用 InitializeAsync：
+            // 其内部会再次 WaitAsync 同一个非重入信号量，持锁调用必然死锁
             await _initSemaphore.WaitAsync();
             try
             {
                 Console.WriteLine("重新加载所有命令...");
-
-                // 重置状态
                 _isInitialized = false;
                 _allCommandsCache.Clear();
-
-                // 重新初始化
-                await InitializeAsync(formulaConfiguration);
-
-                Console.WriteLine("重新加载完成");
             }
             finally
             {
                 _initSemaphore.Release();
             }
+
+            await InitializeAsync(formulaConfiguration);
+            Console.WriteLine("重新加载完成");
         }
 
         /// <summary>

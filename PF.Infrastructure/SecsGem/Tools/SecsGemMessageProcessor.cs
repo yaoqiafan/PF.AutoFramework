@@ -1089,13 +1089,14 @@ namespace PF.Infrastructure.SecsGem.Tools
         }
 
         /// <summary>
-        /// 通用数值解析辅助方法，支持单值和数组
+        /// 通用数值解析辅助方法，支持单值和数组。
+        /// 必须把每个元素拷贝出来再交给 converter（其内部会就地反转字节序），
+        /// 否则会把 node.Data 里的大端原始字节破坏成小端，导致该节点再次序列化时数值翻转。
         /// </summary>
         private object ParseNumbers<T>(byte[] data, int elementSize, Func<byte[], T> converter)
         {
             int count = data.Length / elementSize;
             if (count == 0) return default(T);
-            if (count == 1) return converter(data);
 
             T[] result = new T[count];
             for (int i = 0; i < count; i++)
@@ -1104,7 +1105,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 Buffer.BlockCopy(data, i * elementSize, element, 0, elementSize);
                 result[i] = converter(element);
             }
-            return result;
+            return count == 1 ? (object)result[0] : result;
         }
 
         /// <summary>

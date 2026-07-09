@@ -70,7 +70,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// <summary>创建I4类型节点</summary>
         public static SecsGemNodeMessage CreateI4Node(int value)
         {
-            byte[] data = BitConverter.GetBytes(value);
+            byte[] data = ToBigEndian(BitConverter.GetBytes(value));
             return new SecsGemNodeMessage
             {
                 DataType = DataType.I4,
@@ -83,7 +83,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// <summary>创建U2类型节点</summary>
         public static SecsGemNodeMessage CreateU2Node(ushort value)
         {
-            byte[] data = BitConverter.GetBytes(value);
+            byte[] data = ToBigEndian(BitConverter.GetBytes(value));
             return new SecsGemNodeMessage
             {
                 DataType = DataType.U2,
@@ -96,7 +96,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// <summary>创建U4类型节点</summary>
         public static SecsGemNodeMessage CreateU4Node(uint value)
         {
-            byte[] data = BitConverter.GetBytes(value);
+            byte[] data = ToBigEndian(BitConverter.GetBytes(value));
             return new SecsGemNodeMessage
             {
                 DataType = DataType.U4,
@@ -109,7 +109,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// <summary>创建U8类型节点</summary>
         public static SecsGemNodeMessage CreateU8Node(ulong value)
         {
-            byte[] data = BitConverter.GetBytes(value);
+            byte[] data = ToBigEndian(BitConverter.GetBytes(value));
             return new SecsGemNodeMessage
             {
                 DataType = DataType.U8,
@@ -122,7 +122,7 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// <summary>创建F4类型节点</summary>
         public static SecsGemNodeMessage CreateF4Node(float value)
         {
-            byte[] data = BitConverter.GetBytes(value);
+            byte[] data = ToBigEndian(BitConverter.GetBytes(value));
             return new SecsGemNodeMessage
             {
                 DataType = DataType.F4,
@@ -130,6 +130,15 @@ namespace PF.Infrastructure.SecsGem.Tools
                 Length = 4,
                 TypedValue = value // 提前填充强类型值
             };
+        }
+
+        /// <summary>
+        /// 主机序转大端序（SECS-II 线格式）；node.Data 按约定一律存大端字节
+        /// </summary>
+        private static byte[] ToBigEndian(byte[] bytes)
+        {
+            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
+            return bytes;
         }
 
         /// <summary>创建列表节点</summary>
@@ -242,96 +251,45 @@ namespace PF.Infrastructure.SecsGem.Tools
 
 
         }
-        private static  byte[] ConvertTobyteSecsNodeMessage(SecsGemNodeMessage  node)
+        private static byte[] ConvertTobyteSecsNodeMessage(SecsGemNodeMessage node)
         {
             if (node == null)
                 return Array.Empty<byte>();
 
+            // node.Data 按约定已是大端序线格式，直接原样输出（与 SecsGemMessageProcessor.SerializeMessageNode 一致）
+            byte[] dataPart;
+            int length;
+
+            if (node.DataType == DataType.LIST)
+            {
+                List<byte> subContent = new List<byte>();
+                foreach (var subNode in node.SubNode)
+                {
+                    subContent.AddRange(ConvertTobyteSecsNodeMessage(subNode));
+                }
+                dataPart = subContent.ToArray();
+                length = node.SubNode.Count; // LIST 的长度是元素个数
+            }
+            else
+            {
+                dataPart = node.Data ?? Array.Empty<byte>();
+                length = dataPart.Length;
+            }
+
+            // 长度字段占用字节数：≤255 用 1 字节，≤65535 用 2 字节，≤16777215 用 3 字节
+            if (length > 0xFFFFFF) throw new Exception($"传输数据长度有误（{length} 超过 SECS 单项上限 16777215），请确认");
+            byte numLenBytes = (byte)(length > 0xFFFF ? 3 : (length > 0xFF ? 2 : 1));
+
             List<byte> nodeBytes = new List<byte>();
-
-            // 1. 写入数据类型标识（1字节）
-            //nodeBytes.Add((byte)node.DataType);
-            int len_count = Math.Max(1, (int)Math.Ceiling(node.Length * 1.0 / 256));
-            if (len_count > 3) throw new Exception("传输数据长度有误，请确认");
-            byte data_type = (byte)((byte)node.DataType | len_count);
-            byte[] len_bytes = BitConverter.GetBytes(node.Length);
-            Array.Reverse(len_bytes);
-            nodeBytes.Add(data_type);// 类型
-
-            for (int i = 4 - len_count; i < 4; i++)
+            // 类型字节：格式码 | 长度字节数
+            nodeBytes.Add((byte)((byte)node.DataType | numLenBytes));
+            // 长度字段（大端序）
+            for (int i = numLenBytes - 1; i >= 0; i--)
             {
-                nodeBytes.Add(len_bytes[i]);// 长度
+                nodeBytes.Add((byte)((length >> (i * 8)) & 0xFF));
             }
-            switch (node.DataType)
-            {
-                case DataType.LIST:
-
-                    foreach (var subNode in node.SubNode)
-                    {
-                        nodeBytes.AddRange(ConvertTobyteSecsNodeMessage(subNode));
-                    }
-                    // List类型：先写元素个数（2字节Big-Endian），再递归序列化子节点
-
-                    break;
-
-                case DataType.Boolean:
-                    // Boolean类型：1字节（0x00=false，0x01=true）
-                    nodeBytes.Add(node.Data?.Length > 0 ? node.Data[0] : (byte)0x00);
-                    break;
-
-                case DataType.ASCII:
-                case DataType.JIS8:
-                case DataType.Binary:
-                    // 字符串/二进制类型：先写长度（2字节Big-Endian），再写数据
-                    if (node.Data != null && node.Data.Length > 0)
-                    {
-                        nodeBytes.AddRange(node.Data);
-                    }
-                    break;
-
-                case DataType.I1:
-                case DataType.U1:
-                    // 1字节整数：直接写数据
-                    nodeBytes.Add(node.Data?.Length > 0 ? node.Data[0] : (byte)0x00);
-                    break;
-
-                case DataType.I2:
-                case DataType.U2:
-                    // 2字节整数（Big-Endian）
-                    byte[] i2Bytes = node.Data?.Length >= 2 ? new[] { node.Data[1], node.Data[0] } : BitConverter.GetBytes((short)0).Reverse().ToArray();
-                    nodeBytes.AddRange(i2Bytes);
-                    break;
-
-                case DataType.I4:
-                case DataType.U4:
-                    // 4字节整数（Big-Endian）
-                    byte[] i4Bytes = node.Data?.Length >= 4 ? new[] { node.Data[3], node.Data[2], node.Data[1], node.Data[0] } : BitConverter.GetBytes((int)0).Reverse().ToArray();
-                    nodeBytes.AddRange(i4Bytes);
-                    break;
-
-                case DataType.I8:
-                case DataType.U8:
-                    // 8字节整数（Big-Endian）
-                    byte[] i8Bytes = node.Data?.Length >= 8 ? new[] { node.Data[7], node.Data[6], node.Data[5], node.Data[4], node.Data[3], node.Data[2], node.Data[1], node.Data[0] } : BitConverter.GetBytes((long)0).Reverse().ToArray();
-                    nodeBytes.AddRange(i8Bytes);
-                    break;
-
-                case DataType.F4:
-                    // 4字节浮点数（Big-Endian）
-                    byte[] f4Bytes = node.Data?.Length >= 4 ? new[] { node.Data[3], node.Data[2], node.Data[1], node.Data[0] } : BitConverter.GetBytes((float)0).Reverse().ToArray();
-                    nodeBytes.AddRange(f4Bytes);
-                    break;
-
-                case DataType.F8:
-                    // 8字节浮点数（Big-Endian）
-                    byte[] f8Bytes = node.Data?.Length >= 8 ? new[] { node.Data[7], node.Data[6], node.Data[5], node.Data[4], node.Data[3], node.Data[2], node.Data[1], node.Data[0] } : BitConverter.GetBytes((double)0).Reverse().ToArray();
-                    nodeBytes.AddRange(f8Bytes);
-                    break;
-
-                default:
-                    throw new NotSupportedException($"不支持的SECS数据类型：{node.DataType}");
-            }
-
+            // 数据
+            nodeBytes.AddRange(dataPart);
             return nodeBytes.ToArray();
         }
 
@@ -362,18 +320,19 @@ namespace PF.Infrastructure.SecsGem.Tools
         }
 
 
+        // SystemBytes 计数器：随机种子起点，避免进程重启后与上一轮在途事务撞号
+        private static int _systemBytesCounter = new Random().Next();
+
         /// <summary>
-        /// 生成SystemBytes（4字节）
+        /// 生成SystemBytes（4字节，大端序）。
+        /// 使用原子递增计数器保证并发下唯一；共享 Random 并发调用会损坏内部状态且可能撞号，不可用于此处。
         /// </summary>
         public static List<byte> GenerateSystemBytes()
         {
-            return new List<byte>
-            {
-                (byte)SysRandom.Next(0, 255),
-                (byte)SysRandom.Next(0, 255),
-                (byte)SysRandom.Next(0, 255),
-                (byte)SysRandom.Next(0, 255)
-            };
+            uint next = (uint)System.Threading.Interlocked.Increment(ref _systemBytesCounter);
+            byte[] bytes = BitConverter.GetBytes(next);
+            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
+            return bytes.ToList();
         }
 
 
@@ -386,17 +345,7 @@ namespace PF.Infrastructure.SecsGem.Tools
 
             if (match.Success)
             {
-                string a = match.Groups[1].Value;
-                string b = match.Groups[2].Value;
-
-                Console.WriteLine($"a = {a}");
-                Console.WriteLine($"b = {b}");
-
-                // 如果需要转换为整数
-                int aInt = int.Parse(a);
-                int bInt = int.Parse(b);
-
-                return new string[] { a, b };
+                return new string[] { match.Groups[1].Value, match.Groups[2].Value };
             }
             else
             {
