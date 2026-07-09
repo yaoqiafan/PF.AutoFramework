@@ -1,10 +1,12 @@
 using PF.Application.Base.Configuration;
 using PF.Application.Base.Models;
 using PF.Application.Base.ViewModels;
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Station;
 using PF.UI.Infrastructure.Navigation;
+using System.IO;
 
 namespace PF.Application.Shell.ViewModels
 {
@@ -15,6 +17,20 @@ namespace PF.Application.Shell.ViewModels
         private readonly DeviceStatusItem _scanner2;
         private readonly DeviceStatusItem _camera;
         private readonly DeviceStatusItem _secGem;
+
+        /// <summary>AutoOCR 整机实物图（原 MainView 使用的同一张图，随 UI 程序集打包）。</summary>
+        public override string ProductImagePath => "/PF.WorkStation.AutoOcr.UI;component/ModelImages/整机-成品.png";
+
+        /// <summary>AutoOCR 产品简介。</summary>
+        public override string ProductDescription =>
+            "晶圆双工位自动光学字符识别（OCR）设备，集成高精度智能相机与工业读码器，" +
+            "支持双工位并行上下料、自动对焦与字符识别，识别结果实时联动 SECS/GEM 通讯与产线追溯系统。";
+
+        /// <summary>
+        /// 使用说明书路径：约定放在 D:\PFConfig\PFAutoFrameWork\Docs\ 下，
+        /// 与其它运行期配置（参数库、视觉算法）保持一致的存放位置，方便现场更新替换。
+        /// </summary>
+        public override string UserManualPath => Path.Combine(ConstGlobalParam.ConfigPath, "Docs", "使用说明书.pdf");
 
         /// <summary>初始化并向 DeviceStatusItems 添加工位1/2扫码枪、智能相机和 SECS/GEM 状态条目。</summary>
         public MainWindowViewModel(

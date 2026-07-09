@@ -41,7 +41,7 @@ namespace PF.WorkStation.AutoOcr.UI
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<MainView, MainViewModel>(NavigationConstants.Views.MainView);
+            // MainView 已下沉至框架 PF.Application.Base，随 PFApplicationBase.RegisterTypes 统一注册
             containerRegistry.RegisterForNavigation<HomeView, HomeViewModel >(NavigationConstants.Views.HomeView);
 
             containerRegistry.RegisterForNavigation<OcrRecipeManageView, OcrRecipeManageViewModel>(nameof(OcrRecipeManageView));

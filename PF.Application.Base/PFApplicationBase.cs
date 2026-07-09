@@ -386,6 +386,8 @@ namespace PF.Application.Base
             containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
             containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(
                NavigationConstants.Views.CommonParamView);
+            containerRegistry.RegisterForNavigation<MainView, MainViewModel>(
+               NavigationConstants.Views.MainView);
 
             containerRegistry.AddLogging();
             LogService = containerRegistry.GetContainer().Resolve<ILogService>();

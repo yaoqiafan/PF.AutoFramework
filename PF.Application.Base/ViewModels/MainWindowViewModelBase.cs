@@ -455,6 +455,22 @@ namespace PF.Application.Base.ViewModels
             set => SetProperty(ref _coName, value);
         }
 
+        /// <summary>
+        /// 产品实物图片路径（消费项目在 Shell 层的 MainWindowViewModel 子类中重写，指向项目专属素材；
+        /// 支持包 URI，如 "/项目UI程序集;component/Images/xxx.png"，也支持磁盘绝对路径）。
+        /// 供框架主显界面（MainView）展示，未重写时为空。
+        /// </summary>
+        public virtual string ProductImagePath => string.Empty;
+
+        /// <summary>产品/项目简介文字（子类可重写，显示在主显界面产品图片下方，可为空）。</summary>
+        public virtual string ProductDescription => string.Empty;
+
+        /// <summary>
+        /// 用户使用说明书文件路径（子类可重写，指向磁盘上的 PDF/Word 等文档）。
+        /// 为空或文件不存在时，主显界面的"打开说明书"按钮自动禁用。
+        /// </summary>
+        public virtual string UserManualPath => string.Empty;
+
         private string _sysTime = string.Empty;
         /// <summary>当前系统时间字符串（格式 yyyy-MM-dd HH:mm:ss，每 500ms 刷新）。</summary>
         public string SysTime
