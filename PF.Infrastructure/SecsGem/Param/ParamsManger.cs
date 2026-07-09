@@ -64,7 +64,7 @@ namespace PF.Infrastructure.SecsGem.Param
                 res4 = await _commandManager.InitializeAsync((FormulaConfiguration)_params[ParamType.Formula]);
 
 
-                return res1 & res2 & res4;
+                return res1 & res2 & res3 & res4;
 
             }
             catch (Exception)

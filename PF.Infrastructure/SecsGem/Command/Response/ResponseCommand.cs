@@ -81,15 +81,13 @@ namespace PF.Infrastructure.SecsGem.Command.Response
         }
 
         /// <summary>
-        /// 通过Stream和Function查找命令
+        /// 通过Stream和Function查找命令。
+        /// 直接比较命令属性，不能用键的子串匹配（"S1F2" 会误配 S1F24、S11F2）
         /// </summary>
         public Task<List<SFCommand>> FindCommands(uint stream, uint function)
         {
-            var keyPattern = $"S{stream}F{function}";
-
-            var results = _commandDictionary
-                .Where(kvp => kvp.Key.Contains(keyPattern))
-                .Select(kvp => kvp.Value)
+            var results = _commandDictionary.Values
+                .Where(c => c.Stream == stream && c.Function == function)
                 .ToList();
 
             return Task.FromResult(results);
@@ -244,16 +242,17 @@ namespace PF.Infrastructure.SecsGem.Command.Response
         /// </summary>
         public async Task Reload()
         {
+            // 不能持有 _initSemaphore 调用 InitializeCommands：其内部会再次获取同一非重入信号量导致死锁
             await _initSemaphore.WaitAsync();
             try
             {
                 _isInitialized = false;
-                await InitializeCommands();
             }
             finally
             {
                 _initSemaphore.Release();
             }
+            await InitializeCommands();
         }
 
         /// <summary>

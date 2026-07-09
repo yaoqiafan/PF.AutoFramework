@@ -67,15 +67,17 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
         /// <summary>
         /// 报表定义映射表 (S2F33 定义)。
-        /// Key: RPTID (报表ID) -> Value: 该报表包含的 VID (变量ID) 集合的 <see cref="List{T}"/>
+        /// Key: RPTID (报表ID) -> Value: 该报表包含的 VID (变量ID) 集合的 <see cref="List{T}"/>。
+        /// 消息处理任务（写）与工站线程 TriggerDynamicEvent（读）并发访问，必须用并发字典。
         /// </summary>
-        private Dictionary<uint, List<uint>> _reportDefinitions = new Dictionary<uint, List<uint>>();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<uint, List<uint>> _reportDefinitions = new();
 
         /// <summary>
         /// 事件关联映射表 (S2F35 定义)。
-        /// Key: CEID (事件ID) -> Value: 该事件触发时需要绑定的 RPTID (报表ID) 集合的 <see cref="List{T}"/>
+        /// Key: CEID (事件ID) -> Value: 该事件触发时需要绑定的 RPTID (报表ID) 集合的 <see cref="List{T}"/>。
+        /// 并发访问同上。
         /// </summary>
-        private Dictionary<uint, List<uint>> _eventLinks = new Dictionary<uint, List<uint>>();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<uint, List<uint>> _eventLinks = new();
 
         #endregion
 
@@ -159,35 +161,35 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
 
             string str = $"S{message.Stream}F{message.Function}";
 
-            // 基于 Stream 和 Function 进行业务分发
-            // 注意：这些都是 Fire-And-Forget 异步调用，如果方法内部因为 Cancellation 抛出 OperationCanceledException
-            // Task 会安静地转入 Canceled 状态，符合预期的平滑退出逻辑。
+            // 基于 Stream 和 Function 进行业务分发。
+            // 通过 Dispatch 统一隔离异常：handler 抛出的任何异常（含同步段）都只记日志，
+            // 不能沿事件回调冲进 InternalClient 的消息消费循环把循环杀死。
             switch (str)
             {
                 case "S1F1":
-                    HandleS1F1Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS1F1Message, message);
                     break;
                 case "S1F3":
-                    HandleS1F3Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS1F3Message, message);
                     break;
                 case "S1F13":
-                    HandleS1F13Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS1F13Message, message);
                     break;
                 case "S1F15":
-                    HandleS1F15Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS1F15Message, message);
                     break;
                 case "S1F17":
-                    HandleS1F17Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS1F17Message, message);
                     break;
 
                 case "S2F33":
-                    HandleS2F33Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS2F33Message, message);
                     break;
                 case "S2F35":
-                    HandleS2F35Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS2F35Message, message);
                     break;
                 case "S2F41":
-                    HandleS2F41Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS2F41Message, message);
                     break;
 
                 case "S5F1":
@@ -198,29 +200,52 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                     break;
 
                 case "S7F1":
-                    HandleS7F1Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS7F1Message, message);
                     break;
                 case "S7F3":
-                    HandleS7F3Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS7F3Message, message);
                     break;
                 case "S7F5":
-                    HandleS7F5Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS7F5Message, message);
                     break;
                 case "S7F17":
-                    HandleS7F17Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS7F17Message, message);
                     break;
                 case "S7F19":
-                    HandleS7F19Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS7F19Message, message);
                     break;
 
                 case "S10F3":
-                    HandleS10F3Message(message).ConfigureAwait(false);
+                    Dispatch(str, HandleS10F3Message, message);
                     break;
 
                 default:
                     _secsGemlog.Warn($"未处理的 SecsGem 消息 (未实现该指令逻辑): {message}");
                     break;
             }
+        }
+
+        /// <summary>
+        /// 统一的 handler 派发：转入线程池执行并兜底记录异常。
+        /// 若 handler 未回复主机即失败，主机侧表现为 T3 超时，日志是唯一排查线索，绝不能静默吞掉。
+        /// </summary>
+        private void Dispatch(string sf, Func<SecsGemMessage, CancellationToken, Task> handler, SecsGemMessage message)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await handler(message, default);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 平滑退出，不上报
+                }
+                catch (Exception ex)
+                {
+                    _secsGemlog.Error($"处理 {sf} 消息失败（未能回复主机，主机侧将出现 T3 超时）: {ex.Message}");
+                }
+            });
         }
 
         #endregion
@@ -827,8 +852,10 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
         {
             token.ThrowIfCancellationRequested(); // 【新增】
 
-            // 通过数据中枢拼装出实际活跃的配方字串
-            string currentPpid = $"{_workStationDataModule.Station1ReciepParam.RecipeName ?? ""}&{_workStationDataModule.Station2ReciepParam.RecipeName ?? ""}";
+            // 数据中枢可能未解析成功（容器解析失败或初始化顺序问题），此时上报空配方而非抛异常导致主机 T3 超时
+            string currentPpid = _workStationDataModule == null
+                ? string.Empty
+                : $"{_workStationDataModule.Station1ReciepParam?.RecipeName ?? ""}&{_workStationDataModule.Station2ReciepParam?.RecipeName ?? ""}";
 
             var s7f20Response = CreateS7F20Response(message, currentPpid);
             s7f20Response.IsIncoming = false;

@@ -20,7 +20,7 @@ public class Program
     public static void Main(string[] args)
     {
         var host = CreateHostBuilder(args).Build();
-        // �������ݿ�
+        // 确保数据库已创建
         using (var scope = host.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<SecsGemDbContext>();
@@ -42,12 +42,12 @@ public class Program
             {
                 services.AddSingleton<ILogService>(_ => CreateServiceLogService());
                 ConfigureDatabase(services);
-                // ע��Worker��Ϊ��̨����
+                // 注册Worker作为后台服务
                 services.AddHostedService<Worker>();
             })
             .ConfigureLogging((context, logging) =>
             {
-                // ������־�������¼���־
+                // 配置日志：清空默认提供器后按配置重建
                 logging.ClearProviders();
                 logging.AddConfiguration(context.Configuration.GetSection("Logging"));
 
@@ -91,4 +91,3 @@ public class Program
 
 
 }
-

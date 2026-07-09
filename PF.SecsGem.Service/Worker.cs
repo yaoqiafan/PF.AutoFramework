@@ -64,6 +64,16 @@ namespace PF.SecsGem.Service
         private ConcurrentQueue<byte[]> SecsGemMessageQueue = new ConcurrentQueue<byte[]>();
 
         /// <summary>
+        /// 发往主机的数据统一走此通道，由单一后台循环串行发送：
+        /// 保证发送顺序与入队顺序一致，且不会并发写同一个连接
+        /// </summary>
+        private readonly Channel<byte[]> _hostSendChannel = Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions()
+        {
+            SingleReader = true,
+            SingleWriter = false,
+        });
+
+        /// <summary>
         /// 为每个SecsGem客户端维护的消息缓冲区
         /// </summary>
         private ConcurrentDictionary<string, MessageBuffer> _secsGemClientBuffers =
@@ -85,6 +95,9 @@ namespace PF.SecsGem.Service
         {
             private List<byte> _buffer = new List<byte>();
             private readonly object _lock = new object();
+
+            // 缓冲区从何时起有残留但拼不出完整消息；成功提取或缓冲区清空时归零
+            private DateTime? _stalledSince;
 
             /// <summary>
             /// 向缓冲区添加数据
@@ -126,8 +139,31 @@ namespace PF.SecsGem.Service
                             break;
                         }
                     }
+
+                    if (completeMessages.Count > 0 || _buffer.Count == 0)
+                        _stalledSince = null;
+                    else
+                        _stalledSince ??= DateTime.Now;
                 }
                 return completeMessages;
+            }
+
+            /// <summary>
+            /// 若缓冲区滞留残留数据超过 timeout 仍拼不出完整消息（脏数据/假长度头），清空以重新同步。
+            /// 返回是否执行了清空。
+            /// </summary>
+            public bool ClearIfStalled(TimeSpan timeout)
+            {
+                lock (_lock)
+                {
+                    if (_stalledSince.HasValue && DateTime.Now - _stalledSince.Value > timeout)
+                    {
+                        _buffer.Clear();
+                        _stalledSince = null;
+                        return true;
+                    }
+                    return false;
+                }
             }
 
             public void Clear()
@@ -135,6 +171,7 @@ namespace PF.SecsGem.Service
                 lock (_lock)
                 {
                     _buffer.Clear();
+                    _stalledSince = null;
                 }
             }
 
@@ -229,8 +266,16 @@ namespace PF.SecsGem.Service
 
         private async void SecsGemServer_ClientDisconnected(object? sender, ClientDisconnectedEventArgs e)
         {
-            _SecsStatus = false;
             _secsGemClientBuffers.TryRemove(e.ClientId, out _);
+
+            // 只有当前活跃主机连接断开才更新状态；
+            // 被新连接替换后旧连接的断开事件不应把新连接的状态打成离线
+            if (e.ClientId != this.SecsGemClientId)
+            {
+                return;
+            }
+
+            _SecsStatus = false;
 
             if (!string.IsNullOrEmpty(this.LocationClientId))
             {
@@ -260,10 +305,19 @@ namespace PF.SecsGem.Service
 
         private async void SecsGemServer_ClientConnected(object? sender, ClientConnectedEventArgs e)
         {
+            // 先切换活跃连接 ID 再断开旧连接：这样旧连接的断开事件会因 ID 不匹配被忽略，
+            // 不会把新连接的在线状态误置为离线
+            var oldClientId = this.SecsGemClientId;
             this.SecsGemClientId = e.ClientId;
             _SecsStatus = true;
 
             _secsGemClientBuffers.TryAdd(e.ClientId, new MessageBuffer());
+
+            if (!string.IsNullOrEmpty(oldClientId) && oldClientId != e.ClientId)
+            {
+                _commLogger.Warn($"检测到新的主机连接 {e.ClientId}，主动断开旧连接 {oldClientId}");
+                await this.SecsGemServer.DisconnectClientAsync(oldClientId);
+            }
 
             if (!string.IsNullOrEmpty(this.LocationClientId))
             {
@@ -271,9 +325,6 @@ namespace PF.SecsGem.Service
                     new byte[] { 0x02, (byte)SecsStatus.Connected });
             }
         }
-
-        bool MessageIsProcessingSucess = true;
-        DateTime MessageIsProcessingFailedDate = DateTime.Now;
 
         private void SecsGemServer_DataReceived(object? sender, DataReceivedEventArgs e)
         {
@@ -288,25 +339,11 @@ namespace PF.SecsGem.Service
                 buffer.AppendData(e.Data);
 
                 var completeMessages = buffer.ExtractCompleteMessages();
-                if (completeMessages.Count == 0)
+
+                // 滞留检测下沉到每个缓冲区自身，避免旧实现中跨客户端共享全局标志的误判
+                if (buffer.ClearIfStalled(TimeSpan.FromSeconds(20)))
                 {
-                    if (MessageIsProcessingSucess == false)
-                    {
-                        if ((DateTime.Now - MessageIsProcessingFailedDate).TotalSeconds > 20)
-                        {
-                            buffer.Clear();
-                            MessageIsProcessingSucess = true;
-                        }
-                    }
-                    else
-                    {
-                        MessageIsProcessingSucess = false;
-                        MessageIsProcessingFailedDate = DateTime.Now;
-                    }
-                }
-                else
-                {
-                    MessageIsProcessingSucess = true;
+                    _commLogger.Warn($"客户端 {e.ClientId} 缓冲区滞留超过20秒无法拼出完整消息，已清空重新同步");
                 }
 
                 foreach (var message in completeMessages)
@@ -346,7 +383,8 @@ namespace PF.SecsGem.Service
                     byte[] data = rec.Skip(1).ToArray();
 
                     this.SecsGemWriteLog.Writer.TryWrite(("发送主机", data));
-                    this.SecsGemServer?.SendAsync(this.SecsGemClientId, data);
+                    // 统一走发送通道串行发出：此前 fire-and-forget 直发会并发写同一连接导致字节流交错/乱序
+                    this._hostSendChannel.Writer.TryWrite(data);
                 }
             }
             catch (Exception ex)
@@ -441,9 +479,44 @@ namespace PF.SecsGem.Service
             byte[] sendData = SecsGemMessageTools.GenerateSecsBytes(message, _deviceId);
             this.SecsGemWriteLog.Writer.TryWrite(("发送主机", sendData));
 
-            if (this.SecsGemServer != null && !string.IsNullOrEmpty(SecsGemClientId))
+            // 与转发数据共用同一发送通道，保证 LinkTest 应答与业务报文的发送顺序
+            this._hostSendChannel.Writer.TryWrite(sendData);
+        }
+
+        /// <summary>
+        /// 主机方向唯一发送循环：从通道按序取出数据串行发送，
+        /// 消除多个接收线程并发写同一连接造成的交错与乱序
+        /// </summary>
+        private async Task ProcessHostSendAsync(CancellationToken token = default)
+        {
+            try
             {
-                await this.SecsGemServer.SendAsync(SecsGemClientId, sendData);
+                await foreach (var data in _hostSendChannel.Reader.ReadAllAsync(token))
+                {
+                    try
+                    {
+                        if (this.SecsGemServer != null && !string.IsNullOrEmpty(this.SecsGemClientId))
+                        {
+                            bool success = await this.SecsGemServer.SendAsync(this.SecsGemClientId, data);
+                            if (!success)
+                            {
+                                _commLogger.Warn("向主机发送数据失败（连接可能已断开），该条数据被丢弃");
+                            }
+                        }
+                        else
+                        {
+                            _commLogger.Warn("主机未连接，丢弃一条待发送数据");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _commLogger.Error("向主机发送数据时发生错误", ex);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _commLogger.Info("ProcessHostSendAsync 任务已取消");
             }
         }
 
@@ -473,6 +546,13 @@ namespace PF.SecsGem.Service
 
             _commLogger.Info("SecsGem 后台工作线程已启动");
 
+            if (_secsGemSystemParam == null)
+            {
+                // 数据库无系统配置时 IPAddress/Port 均不可用，继续执行只会 NRE 后静默空转
+                _commLogger.Error("未能从数据库加载 SecsGem 系统配置（SystemConfigs 为空），服务无法启动，请先配置后重启服务");
+                return;
+            }
+
             try
             {
                 LocationServer = new TcpServer("服务本地服务器");
@@ -488,6 +568,7 @@ namespace PF.SecsGem.Service
                 SecsGemServer.ClientDisconnected += SecsGemServer_ClientDisconnected;
 
                 _ = ProcessSecsGemServiceInfo(stoppingToken);
+                _ = ProcessHostSendAsync(stoppingToken);
                 _ = WriteLog(stoppingToken);
 
                 while (!stoppingToken.IsCancellationRequested)

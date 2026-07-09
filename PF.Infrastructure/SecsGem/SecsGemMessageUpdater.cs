@@ -86,7 +86,9 @@ namespace PF.Core.Interfaces.SecsGem
         }
 
         /// <summary>
-        /// 使用VID的信息更新节点
+        /// 使用VID的信息更新节点。
+        /// node.Data 按约定必须写入大端序（SECS-II 线格式）字节，
+        /// 序列化器会原样输出，直接写 BitConverter.GetBytes 的小端结果会导致数值字节序颠倒。
         /// </summary>
         private void UpdateNodeWithVID(SecsGemNodeMessage node, VID vid)
         {
@@ -94,59 +96,30 @@ namespace PF.Core.Interfaces.SecsGem
             switch (vid.DataType)
             {
                 case DataType.I4:
-                    if (vid.Value is int i4Value)
+                    if (vid.Value != null && int.TryParse(vid.Value.ToString(), out int intValue))
                     {
-                        node.Data = BitConverter.GetBytes(i4Value);
-                        node.TypedValue = i4Value;
+                        node.Data = ToBigEndian(BitConverter.GetBytes(intValue));
+                        node.TypedValue = intValue;
                         node.Length = 4;
-                    }
-                    else if (vid.Value != null)
-                    {
-                        // 尝试转换
-                        if (int.TryParse(vid.Value.ToString(), out int intValue))
-                        {
-                            node.Data = BitConverter.GetBytes(intValue);
-                            node.TypedValue = intValue;
-                            node.Length = 4;
-                        }
                     }
                     break;
 
                 case DataType.U2:
-                    if (vid.Value is ushort u2Value)
+                    if (vid.Value != null && ushort.TryParse(vid.Value.ToString(), out ushort ushortValue))
                     {
                         node.DataType = DataType.U2;
-                        node.Data = BitConverter.GetBytes(u2Value);
-                        node.TypedValue = u2Value;
+                        node.Data = ToBigEndian(BitConverter.GetBytes(ushortValue));
+                        node.TypedValue = ushortValue;
                         node.Length = 2;
-                    }
-                    else if (vid.Value != null)
-                    {
-                        if (ushort.TryParse(vid.Value.ToString(), out ushort ushortValue))
-                        {
-                            node.DataType = DataType.U2;
-                            node.Data = BitConverter.GetBytes(ushortValue);
-                            node.TypedValue = ushortValue;
-                            node.Length = 2;
-                        }
                     }
                     break;
 
                 case DataType.U4:
-                    if (vid.Value is uint u4Value)
+                    if (vid.Value != null && uint.TryParse(vid.Value.ToString(), out uint uintValue))
                     {
-                        node.Data = BitConverter.GetBytes(u4Value);
-                        node.TypedValue = u4Value;
-                        node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
-                    }
-                    else if (vid.Value != null)
-                    {
-                        if (uint.TryParse(vid.Value.ToString(), out uint uintValue))
-                        {
-                            node.Data = BitConverter.GetBytes(uintValue);
-                            node.TypedValue = uintValue;
-                            node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
-                        }
+                        node.Data = ToBigEndian(BitConverter.GetBytes(uintValue));
+                        node.TypedValue = uintValue;
+                        node.Length = 4;
                     }
                     break;
 
@@ -161,52 +134,30 @@ namespace PF.Core.Interfaces.SecsGem
                     break;
 
                 case DataType.F4:
-                    if (vid.Value is float f4Value)
+                    if (vid.Value != null && float.TryParse(vid.Value.ToString(), out float floatValue))
                     {
-                        node.Data = BitConverter.GetBytes(f4Value);
-                        node.TypedValue = f4Value;
-                        node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
-                    }
-                    else if (vid.Value != null)
-                    {
-                        if (float.TryParse(vid.Value.ToString(), out float floatValue))
-                        {
-                            node.Data = BitConverter.GetBytes(floatValue);
-                            node.TypedValue = floatValue;
-                            node.Length = 4; // Bug2 Fix: 缺少 Length 赋值
-                        }
+                        node.Data = ToBigEndian(BitConverter.GetBytes(floatValue));
+                        node.TypedValue = floatValue;
+                        node.Length = 4;
                     }
                     break;
 
                 case DataType.F8:
-                    if (vid.Value is double f8Value)
+                    if (vid.Value != null && double.TryParse(vid.Value.ToString(), out double doubleValue))
                     {
-                        node.Data = BitConverter.GetBytes(f8Value);
-                        node.TypedValue = f8Value;
-                        node.Length = 8; // Bug2 Fix: 缺少 Length 赋值
-                    }
-                    else if (vid.Value != null)
-                    {
-                        if (double.TryParse(vid.Value.ToString(), out double doubleValue))
-                        {
-                            node.Data = BitConverter.GetBytes(doubleValue);
-                            node.TypedValue = doubleValue;
-                            node.Length = 8; // Bug2 Fix: 缺少 Length 赋值
-                        }
+                        node.Data = ToBigEndian(BitConverter.GetBytes(doubleValue));
+                        node.TypedValue = doubleValue;
+                        node.Length = 8;
                     }
                     break;
 
                 case DataType.Boolean:
-                    if (vid.Value is bool boolValue)
+                    if (vid.Value != null)
                     {
-                        node.Data = new byte[] { (byte)(boolValue ? 0x01 : 0x00) };
-                        node.TypedValue = boolValue;
-                    }
-                    else if (vid.Value != null)
-                    {
-                        bool boolVal = Convert.ToBoolean(vid.Value);
+                        bool boolVal = vid.Value is bool b ? b : Convert.ToBoolean(vid.Value);
                         node.Data = new byte[] { (byte)(boolVal ? 0x01 : 0x00) };
                         node.TypedValue = boolVal;
+                        node.Length = 1;
                     }
                     break;
 
@@ -215,11 +166,13 @@ namespace PF.Core.Interfaces.SecsGem
                     {
                         node.Data = binaryValue;
                         node.TypedValue = binaryValue;
+                        node.Length = binaryValue.Length;
                     }
                     else if (vid.Value != null)
                     {
                         node.Data = new byte[] { 0X00 };
                         node.TypedValue = new byte[] { 0X00 };
+                        node.Length = 1;
                     }
                     break;
 
@@ -232,6 +185,15 @@ namespace PF.Core.Interfaces.SecsGem
                     }
                     break;
             }
+        }
+
+        /// <summary>
+        /// 主机序转大端序（SECS-II 线格式）；就地转换并返回
+        /// </summary>
+        private static byte[] ToBigEndian(byte[] bytes)
+        {
+            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
+            return bytes;
         }
     }
 }
