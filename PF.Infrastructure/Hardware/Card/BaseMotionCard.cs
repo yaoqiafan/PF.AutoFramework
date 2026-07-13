@@ -157,24 +157,69 @@ namespace PF.Infrastructure.Hardware.Card
 
         #region 位置锁存
 
-        /// <summary>
-        /// 设置锁存模式
-        /// </summary>
-        public abstract Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
-
+        #region 软件位置锁存
 
         /// <summary>
-        /// 获取锁存编号
+        /// 设置软件锁存模式
         /// </summary>
-        public abstract Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
+        public abstract Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+
+
 
         /// <summary>
-        /// 获取锁存位置
+        /// 获取软件锁存编号
         /// </summary>
-        public abstract Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+        public abstract Task<int> GetSoftWareLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
+
+        /// <summary>
+        /// 获取软件锁存位置
+        /// </summary>
+        public abstract Task<double?> GetSoftWareLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+
+
+        #endregion 软件位置锁存
+
+
+
+        #region 高速位置锁存
+
+        /// <summary>
+        /// 设置高速锁存模式
+        /// </summary>
+        public abstract Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder,  int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 获取高速锁存编号
+        /// </summary>
+        public abstract Task<int> GetLtcLatchNumber(int LatchNo, int AuxiliaryEncoder, CancellationToken token = default);
+
+        /// <summary>
+        /// 获取高速锁存位置
+        /// </summary>
+        public abstract Task<double?> GetLtcLatchPos(int LatchNo, int AuxiliaryEncoder, CancellationToken token = default);
+
+        #endregion 高速位置锁存
 
         #endregion 位置锁存
+
+
+
+        #region 辅助编码器功能
+
+        /// <summary>
+        /// 设置辅助编码器的位置
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Pos">位置值</param>
+        /// <returns></returns>
+      public abstract   Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default);
+
+
+
+        #endregion 辅助编码器功能
 
 
         #endregion 高级功能

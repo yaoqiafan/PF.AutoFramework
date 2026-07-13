@@ -770,8 +770,10 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
 
         #region 位置锁存
 
+        #region 软件锁存
+
         /// <summary>
-        /// 配置硬件高速位置锁存模式 (High-Speed Position Latch)。
+        /// 配置硬件软件位置锁存模式 (High-Speed Position Latch)。
         /// 主要应用于飞拍、高速探头定位等需要微秒级响应的场景。
         /// </summary>
         /// <param name="LatchNo">锁存器通道编号 (通常 0-3)</param>
@@ -782,7 +784,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <param name="Filter">滤波时间参数</param>
         /// <param name="LatchSource">锁存数据源（指令位置或编码器反馈位置）</param>
         /// <param name="token">取消令牌</param>
-        public override Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        public override Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
         {
             try
             {
@@ -828,7 +830,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步获取指定锁存器当前已捕获的有效位置点数
         /// </summary>
-        public override Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default)
+        public override Task<int> GetSoftWareLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default)
         {
             try
             {
@@ -852,7 +854,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步获取最近一次被捕获到的锁存点实际物理坐标
         /// </summary>
-        public override Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default)
+        public override Task<double?> GetSoftWareLatchPos(int LatchNo, int AxisNo, CancellationToken token = default)
         {
             try
             {
@@ -873,8 +875,155 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
         }
 
+
+        #endregion 软件锁存
+
+
+
+        #region 高速锁存
+        /// <summary>
+        /// 配置硬件软件位置锁存模式 (High-Speed Position Latch)。
+        /// 主要应用于飞拍、高速探头定位等需要微秒级响应的场景。（注意雷赛卡的告诉位置锁存锁存号和输入关系对应，不可变更  0-->4   1-->5  2-->6  3-->7 硬件需要保持一致）
+        /// </summary>
+        /// <param name="LatchNo">锁存器通道编号 (通常 0-3)</param>
+        /// <param name="AuxiliaryEncoder">辅助编码器通道</param>
+        /// <param name="LtcMode">锁存模式配置</param>
+        /// <param name="LtcLogic">锁存触发逻辑 (上升沿或下降沿)</param>
+        /// <param name="Filter">滤波时间参数</param>
+        /// <param name="LatchSource">锁存数据源（指令位置或编码器反馈位置）</param>
+        /// <param name="token">取消令牌</param>
+        public override Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(true); }
+                if (LatchNo < 0 || LatchNo > 3)
+                {
+                    throw new Exception($"设置锁存位置参数错误：锁存器ID错误");
+                }
+                // 1. 设置软件锁存模式和硬件关联触发口
+                short ret = CardAPI.LTDMC.dmc_ltc_set_mode ((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)1,   (ushort)LtcLogic, Filter);
+                if (ret != 0)
+                {
+                    throw new Exception($"配置锁存器失败，函数 dmc_ltc_set_mode 返回值 {ret}");
+                }
+
+                // 2. 将锁存器关联到目标物理轴
+                ret = CardAPI.LTDMC.dmc_ltc_set_source((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)AuxiliaryEncoder, (ushort)1);
+                if (ret != 0)
+                {
+                    throw new Exception($"配置锁存源失败，函数 dmc_ltc_set_source 返回值 {ret}");
+                }
+
+                // 3. 复位清理锁存器以准备捕获
+                ret = CardAPI.LTDMC.dmc_ltc_reset ((ushort)(this.CardIndex), (ushort)LatchNo);
+                if (ret != 0)
+                {
+                    throw new Exception($"复位锁存器失败，函数 dmc_ltc_reset 返回值 {ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+        }
+
+        /// <summary>
+        /// 异步获取指定锁存器当前已捕获的有效位置点数
+        /// </summary>
+        public override Task<int> GetLtcLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(0); }
+
+                int latchNumber = 0;
+                short ret = CardAPI.LTDMC.dmc_ltc_get_number ((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref latchNumber);
+                if (ret != 0)
+                {
+                    throw new Exception($"读取锁存个数失败, dmc_ltc_get_number：{ret}");
+                }
+                return Task.FromResult(latchNumber);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(-1);
+            }
+        }
+
+        /// <summary>
+        /// 异步获取最近一次被捕获到的锁存点实际物理坐标
+        /// </summary>
+        public override Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult((double?)0); }
+
+                double pos = 0;
+                short ret = CardAPI.LTDMC.dmc_ltc_get_value_unit ((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref pos);
+                if (ret != 0)
+                {
+                    throw new Exception($"读取锁存位置失败, dmc_ltc_get_value_unit：{ret}");
+                }
+                return Task.FromResult((double?)pos);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return null;
+            }
+        }
+
+
+
+        #endregion 高速锁存
+
         #endregion 位置锁存
 
+
+
+
+
+
+
         #endregion 高级功能
+
+
+
+        #region 辅助编码器功能
+
+        /// <summary>
+        /// 设置辅助编码器的位置
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Pos">位置值</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+      public override    Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default)
+        {
+            try
+            {
+                short ret = CardAPI.LTDMC.dmc_set_extra_encoder ((ushort)CardIndex, (ushort)Channel ,(ushort )Pos );
+                if (ret != 0)
+                {
+                    throw new Exception($"设置辅助编码器位置失败, dmc_set_extra_encoder返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+        }
+
+
+
+        #endregion 辅助编码器功能
+
     }
 }

@@ -269,7 +269,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
-            return await ParentCard!.SetLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token);
+            return await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token);
         }
 
 
@@ -282,7 +282,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return 1; }
-            return await ParentCard!.GetLatchNumber(LatchNo, this.AxisIndex, token);
+            return await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token);
         }
 
 
@@ -294,7 +294,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return 0; }
-            return await ParentCard!.GetLatchPos(LatchNo, this.AxisIndex, token);
+            return await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token);
         }
 
 

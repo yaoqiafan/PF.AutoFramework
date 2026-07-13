@@ -150,9 +150,11 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         #region 位置锁存
 
 
+        #region 软件位置锁存
+
 
         /// <summary>
-        /// 设置位置锁存参数
+        /// 设置软件位置锁存参数
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="AxisNo">轴号</param>
@@ -163,35 +165,103 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="LatchSource">锁存源</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLatchMode(int LatchNo, int AxisNo, int InPutPort,int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+        Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort,int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
 
 
         /// <summary>
-        /// 读取位置锁存个数
+        /// 读取软件位置锁存个数
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="AxisNo">轴号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<int> GetLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
+        Task<int> GetSoftWareLatchNumber(int LatchNo, int AxisNo, CancellationToken token = default);
 
 
 
         /// <summary>
-        /// 读取锁存位置
+        /// 读取软件锁存位置
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="AxisNo">轴号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+        Task<double?> GetSoftWareLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+
+
+
+        #endregion 软件位置锁存
+
+
+
+        #region  高速位置锁存
+
+
+        /// <summary>
+        /// 设置高速位置锁存参数
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="AuxiliaryEncoder">辅助编码器通道</param>
+        /// <param name="LtcMode">锁存模式</param>
+        /// <param name="LtcLogic">锁存逻辑</param>
+        /// <param name="Filter">滤波器</param>
+        /// <param name="LatchSource">锁存源</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder,  int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 读取高速位置锁存个数
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="AuxiliaryEncoder">辅助编码器通道</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<int> GetLtcLatchNumber(int LatchNo, int AuxiliaryEncoder, CancellationToken token = default);
+
+
+
+
+
+        /// <summary>
+        /// 读取高速锁存位置
+        /// </summary>
+        /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="AxisNo">轴号辅助编码器通道</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+
+
+        #endregion 高速位置锁存
+
 
 
         #endregion 位置锁存
 
 
         #endregion 高级功能
+
+
+        #region 辅助编码器功能
+
+        /// <summary>
+        /// 设置辅助编码器的位置
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Pos">位置值</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<bool> SetExtraPos(int Channel, int Pos,CancellationToken token =default );
+
+
+
+        #endregion 辅助编码器功能
+
+
     }
 
 
