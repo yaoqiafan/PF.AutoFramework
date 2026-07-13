@@ -265,11 +265,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 设置锁存模式
         /// </summary>
-        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default)
+        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
-            return await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token);
+            return LatchType == 0 ? await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token) : await ParentCard!.SetLtcLatchMode(LatchNo, this.AxisIndex,  LtcMode, LtcLogic, Filter, LatchSource, token);
         }
 
 
@@ -278,11 +278,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 获取锁存编号
         /// </summary>
-        public virtual async Task<int> GetLatchNumber(int LatchNo, CancellationToken token = default)
+        public virtual async Task<int> GetLatchNumber(int LatchNo,int LatchType=0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return 1; }
-            return await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token);
+            return  LatchType ==0 ? await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchNumber(LatchNo, this.AxisIndex, token);
         }
 
 
@@ -290,16 +290,30 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 获取锁存位置
         /// </summary>
-        public virtual async Task<double?> GetLatchPos(int LatchNo, CancellationToken token = default)
+        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return 0; }
-            return await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token);
+            return LatchType == 0 ? await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchPos(LatchNo, this.AxisIndex, token);
         }
 
 
         #endregion 位置锁存
 
+
+
+        #region 辅助编码器功能
+        /// <summary>
+        /// 设置辅助编码器的位置
+        /// </summary>
+        public virtual async   Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default)
+        {
+            EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true ; }
+            return await ParentCard!.SetExtraPos(Channel , Pos, token);
+        }
+
+        #endregion 辅助编码器功能
 
         #endregion 高级功能
 

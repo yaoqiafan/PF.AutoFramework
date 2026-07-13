@@ -104,9 +104,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <param name="LtcLogic">锁存逻辑</param>
         /// <param name="Filter">滤波器</param>
         /// <param name="LatchSource">锁存源</param>
+        /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default);
 
 
 
@@ -114,9 +115,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// 读取位置锁存个数
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<int> GetLatchNumber(int LatchNo, CancellationToken token = default);
+        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, CancellationToken token = default);
 
 
 
@@ -124,12 +126,37 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// 读取锁存位置
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
+        /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLatchPos(int LatchNo, CancellationToken token = default);
+        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default);
+
+
+
+
+
+
 
 
         #endregion 位置锁存
+
+        #region 辅助编码器功能
+
+        /// <summary>
+        /// 设置辅助编码器的位置
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Pos">位置值</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default);
+
+
+
+
+        #endregion 辅助编码器功能
+
+
 
 
         #endregion 高级功能
@@ -252,6 +279,6 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <summary>
         /// 轴定位精度
         /// </summary>
-        public double PositioningAccuracy { get ; set; }
+        public double PositioningAccuracy { get; set; }
     }
 }
