@@ -19,7 +19,10 @@ namespace PF.Modules.Production
         {
             containerRegistry.RegisterForNavigation<ProductionMonitorView, ProductionMonitorViewModel>(
                 NavigationConstants.Views.ProductionMonitorView);
-         
+
+            containerRegistry.RegisterForNavigation<ProductionHistoryView, ProductionHistoryViewModel>(
+               NavigationConstants.Views.ProductionHistoryView);
+
         }
 
         /// <summary>模块初始化回调</summary>

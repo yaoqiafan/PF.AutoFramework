@@ -3,82 +3,85 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
     <PackageReleaseNotes>
-v1.0.7 (2026-07-09) — SECS/GEM 通讯链路修复：大帧拆包/粘包、字节序统一、并发死锁与数据正确性
+		v1.0.8 (2026-07-13) — 现场报警，报警弹窗报错，显示异常
 
-[修复]
-- PF.Core 1.0.3→1.0.4（[破坏性]）：DataType.I1/I2 格式码修正为符合 SECS-II 标准的值
-  （此前均是错误值）；SecsGemNodeMessage 构造函数统一大端字节序（此前 F4/F8/I8 漏转换、
-  I4 类型匹配错误、防呆校验是死代码，均已修复）。
-- PF.Infrastructure 1.0.3→1.0.4：
-  - 新增服务端下行数据帧缓冲区，修复 SECS/GEM 客户端收到超过单次读取缓冲区的大消息时
-    拆包丢失/误判连接状态的问题，同时处理粘包；TCPClient/TcpServer 默认接收缓冲区
-    8KB→64KB。
-  - TcpServer 新增每客户端发送锁 + Worker 发往主机方向改走单一发送通道串行化，修复并发
-    写同一连接导致的字节流交错/乱序。
-  - TcpServer 三个客户端事件（Connected/Disconnected/DataReceived）此前传参不一致
-    （GUID vs. remote endpoint），导致按 ClientId 维护状态的订阅方收不到数据、断开时
-    清不掉缓冲区、无法有效反馈客户端状态；统一改传 clientId。
-  - 修复命令重新加载（ReloadAllCommandsAsync 等 3 处）信号量重入必然死锁的问题（命令
-    构建界面"重新加载"按钮点击即可复现）。
-  - 修复"等待回复"实际取到请求自身、真实应答被顶掉且永久滞留缓存字典的逻辑错误，
-    并为回复缓存新增按时间自动清理，避免无人等待的应答造成内存无限增长。
-  - 修复解析器 ParseNumbers 就地反转 node.Data 导致"收到消息原样转发"场景数值被静默
-    改写的问题；修复 VID 变量更新（SecsGemMessageUpdater）与部分节点构造工具
-    （SecsGemMessageTools）写入小端字节、与大端线格式约定相悖的问题。
-  - 其余：旧序列化器长度字节数公式错误、SystemBytes 生成器改用线程安全的原子计数器、
-    命令查找子串误匹配、参数初始化返回值遗漏、接口/实现默认超时不一致等多处修复，
-    详见该包 changelog。
 
-本次改动集中在 SECS/GEM 通讯链路（PF.Core + PF.Infrastructure），未涉及 UI/业务模块，
-其余子包版本不变。使用元包的项目升级后无需改动代码，直接受益于上述修复。
+		v1.0.7 (2026-07-09) — SECS/GEM 通讯链路修复：大帧拆包/粘包、字节序统一、并发死锁与数据正确性
 
-v1.0.6 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效，全侧边栏图标审查替换
+		[修复]
+		- PF.Core 1.0.3→1.0.4（[破坏性]）：DataType.I1/I2 格式码修正为符合 SECS-II 标准的值
+		（此前均是错误值）；SecsGemNodeMessage 构造函数统一大端字节序（此前 F4/F8/I8 漏转换、
+		I4 类型匹配错误、防呆校验是死代码，均已修复）。
+		- PF.Infrastructure 1.0.3→1.0.4：
+		- 新增服务端下行数据帧缓冲区，修复 SECS/GEM 客户端收到超过单次读取缓冲区的大消息时
+		拆包丢失/误判连接状态的问题，同时处理粘包；TCPClient/TcpServer 默认接收缓冲区
+		8KB→64KB。
+		- TcpServer 新增每客户端发送锁 + Worker 发往主机方向改走单一发送通道串行化，修复并发
+		写同一连接导致的字节流交错/乱序。
+		- TcpServer 三个客户端事件（Connected/Disconnected/DataReceived）此前传参不一致
+		（GUID vs. remote endpoint），导致按 ClientId 维护状态的订阅方收不到数据、断开时
+		清不掉缓冲区、无法有效反馈客户端状态；统一改传 clientId。
+		- 修复命令重新加载（ReloadAllCommandsAsync 等 3 处）信号量重入必然死锁的问题（命令
+		构建界面"重新加载"按钮点击即可复现）。
+		- 修复"等待回复"实际取到请求自身、真实应答被顶掉且永久滞留缓存字典的逻辑错误，
+		并为回复缓存新增按时间自动清理，避免无人等待的应答造成内存无限增长。
+		- 修复解析器 ParseNumbers 就地反转 node.Data 导致"收到消息原样转发"场景数值被静默
+		改写的问题；修复 VID 变量更新（SecsGemMessageUpdater）与部分节点构造工具
+		（SecsGemMessageTools）写入小端字节、与大端线格式约定相悖的问题。
+		- 其余：旧序列化器长度字节数公式错误、SystemBytes 生成器改用线程安全的原子计数器、
+		命令查找子串误匹配、参数初始化返回值遗漏、接口/实现默认超时不一致等多处修复，
+		详见该包 changelog。
 
-[新增]
-- PF.Application.Base 1.0.2→1.0.3：新增框架级主显界面 MainView(Model)，左侧产品图片+
-  简介左右布局卡片（简介为自定义样式 ContentControl，带加载动效），右侧品牌信息+常用
-  操作区（"打开说明书"为真实功能，另 3 项为占位）；MainWindowViewModelBase 新增
-  ProductImagePath/ProductDescription/UserManualPath 三个虚属性，供 Shell 层子类按项目
-  重写后即可接入，不必再各自维护一份 MainView。同时绑定标题栏版本徽章
-  （SoftWareVersion/RuntimeVersion）。
+		本次改动集中在 SECS/GEM 通讯链路（PF.Core + PF.Infrastructure），未涉及 UI/业务模块，
+		其余子包版本不变。使用元包的项目升级后无需改动代码，直接受益于上述修复。
 
-[改进 — 侧边栏悬停描边动画 + 全量图标审查]
-- PF.Application.Base：子菜单图标鼠标进入时轻微放大并播放一次路径描边动画（先隐藏填充→
-  精确计算长度匀速描边→填充淡入复原），新增 ComputeStrokePathLength 替代控件库自带对
-  多段路径估算严重失真的长度算法，避免不同图标描边速度不一致。
-- 审查全部子菜单图标的 SVG 路径，剔除"双重嵌套轮廓"（同一形状描边两遍）、"碎片化"
-  （大小悬殊的多个小碎片）及跨模块重复共用同一图标的问题，逐一替换为单一连贯复杂路径
-  的图标：
-  PF.Application.Base（CommonParamView）、PF.Modules.Alarm（报警中心）、
-  PF.Modules.Debug（通讯/硬件/设备模组/流程工站四个调试页）、
-  PF.Modules.Halcon（视觉调试面板）、PF.Modules.Identity（权限获取/窗体权限更改/用户管理）、
-  PF.Modules.Logging（日志查询）、PF.Modules.Parameter（系统配置/硬件参数）、
-  PF.Modules.ProductionRecord（生产历史，此前与日志查询图标重复）、
-  PF.Modules.SecsGem（SECS/GEM 调试）。
+		v1.0.6 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效，全侧边栏图标审查替换
 
-[子包版本对照]
-PF.Application.Base 1.0.2→1.0.3，PF.Modules.Alarm 1.0.2→1.0.3，
-PF.Modules.Debug 1.0.2→1.0.3，PF.Modules.Halcon 1.0.1→1.0.2，
-PF.Modules.Identity 1.0.1→1.0.2，PF.Modules.Logging 1.0.1→1.0.2，
-PF.Modules.Parameter 1.0.2→1.0.3，PF.Modules.ProductionRecord 1.0.1→1.0.2，
-PF.Modules.SecsGem 1.0.3→1.0.4；其余子包本次无变化。
+		[新增]
+		- PF.Application.Base 1.0.2→1.0.3：新增框架级主显界面 MainView(Model)，左侧产品图片+
+		简介左右布局卡片（简介为自定义样式 ContentControl，带加载动效），右侧品牌信息+常用
+		操作区（"打开说明书"为真实功能，另 3 项为占位）；MainWindowViewModelBase 新增
+		ProductImagePath/ProductDescription/UserManualPath 三个虚属性，供 Shell 层子类按项目
+		重写后即可接入，不必再各自维护一份 MainView。同时绑定标题栏版本徽章
+		（SoftWareVersion/RuntimeVersion）。
 
-v1.0.5 (2026-07-07) — 紧急修复：老库升级启动崩溃（PF.Application.Base 1.0.1→1.0.2）
+		[改进 — 侧边栏悬停描边动画 + 全量图标审查]
+		- PF.Application.Base：子菜单图标鼠标进入时轻微放大并播放一次路径描边动画（先隐藏填充→
+		精确计算长度匀速描边→填充淡入复原），新增 ComputeStrokePathLength 替代控件库自带对
+		多段路径估算严重失真的长度算法，避免不同图标描边速度不一致。
+		- 审查全部子菜单图标的 SVG 路径，剔除"双重嵌套轮廓"（同一形状描边两遍）、"碎片化"
+		（大小悬殊的多个小碎片）及跨模块重复共用同一图标的问题，逐一替换为单一连贯复杂路径
+		的图标：
+		PF.Application.Base（CommonParamView）、PF.Modules.Alarm（报警中心）、
+		PF.Modules.Debug（通讯/硬件/设备模组/流程工站四个调试页）、
+		PF.Modules.Halcon（视觉调试面板）、PF.Modules.Identity（权限获取/窗体权限更改/用户管理）、
+		PF.Modules.Logging（日志查询）、PF.Modules.Parameter（系统配置/硬件参数）、
+		PF.Modules.ProductionRecord（生产历史，此前与日志查询图标重复）、
+		PF.Modules.SecsGem（SECS/GEM 调试）。
 
-[修复 — 关键，从 v1.0.4 升级的已部署机台必装]
-- PF.Application.Base 1.0.2：v1.0.1 为老库补建 CommunicationParams/HardwareParams 的
-  裸 SQL 漏掉 Remarks 列，导致所有已存在 SystemParamsCollection.db 的机台启动时参数
-  种子阶段即抛 "no such column: Remarks" 崩溃（全新数据库不受影响，开发机测不出）。
-  本版补齐建表 SQL 并新增幂等补列迁移，已建出缺列表的机器升级后自动修复。
-- 其余子包与 v1.0.4 完全一致。
+		[子包版本对照]
+		PF.Application.Base 1.0.2→1.0.3，PF.Modules.Alarm 1.0.2→1.0.3，
+		PF.Modules.Debug 1.0.2→1.0.3，PF.Modules.Halcon 1.0.1→1.0.2，
+		PF.Modules.Identity 1.0.1→1.0.2，PF.Modules.Logging 1.0.1→1.0.2，
+		PF.Modules.Parameter 1.0.2→1.0.3，PF.Modules.ProductionRecord 1.0.1→1.0.2，
+		PF.Modules.SecsGem 1.0.3→1.0.4；其余子包本次无变化。
 
-v1.0.4 (2026-07-07) — 通讯管理框架 + 内存泄漏修复 + 数据库工作单元重构（含破坏性变更）
+		v1.0.5 (2026-07-07) — 紧急修复：老库升级启动崩溃（PF.Application.Base 1.0.1→1.0.2）
 
-[破坏性变更]
-- PF.SecsGem.DataBase 1.0.2→1.0.3：ISecsGemDataBase.GetRepository()/SaveChangesAsync()
-  已删除，改为 BeginScope() 工作单元模式（返回 ISecsGemDbScope，含 GetRepository&lt;T&gt;()/
+		[修复 — 关键，从 v1.0.4 升级的已部署机台必装]
+		- PF.Application.Base 1.0.2：v1.0.1 为老库补建 CommunicationParams/HardwareParams 的
+		裸 SQL 漏掉 Remarks 列，导致所有已存在 SystemParamsCollection.db 的机台启动时参数
+		种子阶段即抛 "no such column: Remarks" 崩溃（全新数据库不受影响，开发机测不出）。
+		本版补齐建表 SQL 并新增幂等补列迁移，已建出缺列表的机器升级后自动修复。
+		- 其余子包与 v1.0.4 完全一致。
+
+		v1.0.4 (2026-07-07) — 通讯管理框架 + 内存泄漏修复 + 数据库工作单元重构（含破坏性变更）
+
+		[破坏性变更]
+		- PF.SecsGem.DataBase 1.0.2→1.0.3：ISecsGemDataBase.GetRepository()/SaveChangesAsync()
+		已删除，改为 BeginScope() 工作单元模式（返回 ISecsGemDbScope，含 GetRepository&lt;T&gt;()/
   SaveChangesAsync()，实现 IDisposable），每次 BeginScope 创建独立短生命周期 DbContext，
   多线程调用各自隔离。旧代码需改为：
     using var scope = db.BeginScope();
