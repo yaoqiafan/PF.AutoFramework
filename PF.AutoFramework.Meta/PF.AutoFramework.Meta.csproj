@@ -3,8 +3,37 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <PackageReleaseNotes>
+v1.0.7 (2026-07-09) — SECS/GEM 通讯链路修复：大帧拆包/粘包、字节序统一、并发死锁与数据正确性
+
+[修复]
+- PF.Core 1.0.3→1.0.4（[破坏性]）：DataType.I1/I2 格式码修正为符合 SECS-II 标准的值
+  （此前均是错误值）；SecsGemNodeMessage 构造函数统一大端字节序（此前 F4/F8/I8 漏转换、
+  I4 类型匹配错误、防呆校验是死代码，均已修复）。
+- PF.Infrastructure 1.0.3→1.0.4：
+  - 新增服务端下行数据帧缓冲区，修复 SECS/GEM 客户端收到超过单次读取缓冲区的大消息时
+    拆包丢失/误判连接状态的问题，同时处理粘包；TCPClient/TcpServer 默认接收缓冲区
+    8KB→64KB。
+  - TcpServer 新增每客户端发送锁 + Worker 发往主机方向改走单一发送通道串行化，修复并发
+    写同一连接导致的字节流交错/乱序。
+  - TcpServer 三个客户端事件（Connected/Disconnected/DataReceived）此前传参不一致
+    （GUID vs. remote endpoint），导致按 ClientId 维护状态的订阅方收不到数据、断开时
+    清不掉缓冲区、无法有效反馈客户端状态；统一改传 clientId。
+  - 修复命令重新加载（ReloadAllCommandsAsync 等 3 处）信号量重入必然死锁的问题（命令
+    构建界面"重新加载"按钮点击即可复现）。
+  - 修复"等待回复"实际取到请求自身、真实应答被顶掉且永久滞留缓存字典的逻辑错误，
+    并为回复缓存新增按时间自动清理，避免无人等待的应答造成内存无限增长。
+  - 修复解析器 ParseNumbers 就地反转 node.Data 导致"收到消息原样转发"场景数值被静默
+    改写的问题；修复 VID 变量更新（SecsGemMessageUpdater）与部分节点构造工具
+    （SecsGemMessageTools）写入小端字节、与大端线格式约定相悖的问题。
+  - 其余：旧序列化器长度字节数公式错误、SystemBytes 生成器改用线程安全的原子计数器、
+    命令查找子串误匹配、参数初始化返回值遗漏、接口/实现默认超时不一致等多处修复，
+    详见该包 changelog。
+
+本次改动集中在 SECS/GEM 通讯链路（PF.Core + PF.Infrastructure），未涉及 UI/业务模块，
+其余子包版本不变。使用元包的项目升级后无需改动代码，直接受益于上述修复。
+
 v1.0.6 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效，全侧边栏图标审查替换
 
 [新增]

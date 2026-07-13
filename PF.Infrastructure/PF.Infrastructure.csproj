@@ -31,8 +31,71 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-07-09) — SECS/GEM 大帧拆包/粘包处理 + 并发安全 + 多处数据正确性修复
+
+[新增]
+- InternalClient 新增服务端下行数据帧缓冲区（ServerFrameBuffer，仿照 Worker 既有的
+  LocationMessageBuffer 范式）：TCPClient 收到超过单次读取缓冲区的大消息时会被拆成多段
+  分别触发 DataReceived，此前 InternalClient 直接假设每次事件即完整帧，长度校验失败即
+  整段丢弃；后续分段的首字节若恰好是 0x02 还会被误判为连接状态变化事件。现统一先拼接
+  再按帧提取，同时处理拆包与粘包，断线/重连时清空缓冲区防止残留半帧污染新连接。
+- TCPClient/TcpServer 默认接收缓冲区从 8KB 统一提升为 64KB（新增
+  PF.Core.Constants.CommunicationConstants.TcpReceiveBufferSize 共享常量），降低大消息
+  拆包频率。
+- TcpServer 新增每客户端发送锁：此前并发 SendAsync 同一连接会导致 WriteAsync 交错写入、
+  破坏帧边界；配合 PF.SecsGem.Service.Worker 发往主机方向的数据统一改走单一发送通道
+  串行化，消除此前 fire-and-forget 连发导致的字节流乱序风险。
+
+[修复 — 并发/生命周期]
+- TcpServer：ClientConnected/ClientDisconnected/DataReceived 三个事件此前传参不一致
+  （Connected 传 GUID ClientId，Disconnected/DataReceived 却传 remote endpoint 字符串），
+  导致按 ClientId 维护状态的订阅方（如 SecsGem 服务端每客户端缓冲区）收不到数据、断开时
+  清不掉缓冲区、无法有效反馈客户端状态。三个事件统一改传 clientId。
+- InternalClient.InitializationClient：事件订阅此前在连接成功（接收循环已启动）之后才
+  完成，服务端在连接瞬间推送的 0x02 状态帧存在被漏订阅丢弃的竞态窗口，表现为偶发的
+  "已连接但 SecsGemStatus 仍为 false、发送被拒绝"。现改为先订阅再连接。
+- InternalClient.SendMessage/WaitForReplyAsync：此前发送请求后会把请求本体按 SystemBytes
+  存入 ReplyMessageInfo，WaitForReplyAsync 轮询同一键会立刻取到请求自己当作"回复"返回，
+  真实应答到达后被顶掉、永久滞留在字典中且不会被移除；现回复缓存只在收到真实应答时写入，
+  并新增按时间留存自动清理（默认 2 分钟），避免 S6F11 等无人等待应答的事务造成字典
+  无限增长。
+- SecsGemCommandManger.ReloadAllCommandsAsync / IncentiveCommand.Reload /
+  ResponseCommand.Reload：此前在持有非重入信号量的情况下调用了内部会再次获取同一信号量
+  的方法，构成必然死锁（命令构建界面"重新加载"按钮点击即可复现）。现收窄信号量保护范围，
+  消除嵌套获取。
+- PF.SecsGem.Service.Worker：
+  - 新主机连接到达时不再直接覆盖 SecsGemClientId 使旧连接变僵尸，改为先切换活跃连接
+    再主动断开旧连接，且旧连接的断开事件不会误将新连接标记为离线。
+  - 20 秒清空拼包缓冲区的判断此前是跨客户端共享的实例标志，且巨型帧传输超过 20 秒会被
+    误判为脏数据清空；现下沉为每客户端独立的滞留计时。
+  - _secsGemSystemParam 为空（数据库无系统配置）时此前直接空引用异常导致服务静默空转，
+    现在服务启动阶段检测并记录明确错误后退出。
+
+[修复 — 正确性]
+- SecsGemMessageProcessor.ParseNumbers：单值路径此前会原地反转（就地修改）node.Data
+  本体的字节序，导致同一条消息里"数组字段"与"单值字段"的 Data 字节序不一致；任何
+  "收到消息后原样再转发/重序列化"的场景会使单值数值被静默改写。现统一先拷贝再转换，
+  Data 字节序不再被解析过程破坏。
+- SecsGemMessageUpdater（VID 变量更新）：此前所有数值类型直接
+  `Data = BitConverter.GetBytes(value)` 写入主机序（小端），而序列化器按大端线格式原样
+  输出，变量值上报后在对端读出错误数值（如 1 读成 16777216）。统一改为转大端后写入。
+- SecsGemMessageTools：
+  - CreateI4Node/CreateU2Node/CreateU4Node/CreateU8Node/CreateF4Node 同上问题，统一
+    转大端。
+  - 旧版 ConvertTobyteSecsNodeMessage 序列化器的长度字节数公式 `Ceiling(len/256)` 有误
+    （len=256 算出错误的长度字节数，len>768 直接抛异常），改为与新版序列化器一致的标准
+    分级：≤255 用 1 字节、≤65535 用 2 字节、≤16777215 用 3 字节。
+  - GenerateSystemBytes 此前用共享的非线程安全 Random 生成，多线程并发调用有内部状态
+    损坏风险且随机值存在碰撞概率（导致应答错配）；改为原子递增计数器，保证唯一性。
+  - FindCommands 此前用键的子串匹配（"S1F1" 会误命中 "S1F13"、"S11F1"），改为按
+    Stream/Function 字段精确比较。
+- ParamsManger.InitializationParams：返回值遗漏了配方配置加载结果（res3），配方加载
+  失败时仍可能返回 true。
+- IinternalClient.WaitForReplyAsync 接口默认超时声明为 5000ms，实现却是 10000ms，
+  两者不一致；统一为 5000ms（对应 SECS 标准 T3）。
+
 v1.0.3 (2026-07-07) — 机构报警自动桥接 + 通讯管理框架 + 硬件SDK扩展 + 多轮健壮性修复
 
 [弃用]

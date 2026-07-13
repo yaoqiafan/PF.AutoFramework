@@ -249,7 +249,9 @@ namespace PF.Infrastructure.Communication.TCP
 
                         var receivedData = new byte[bytesRead];
                         Array.Copy(buffer, receivedData, bytesRead);
-                        OnDataReceived(clientEndPoint, receivedData);
+                        // 与 Connected/Disconnected 事件保持一致传 clientId（GUID）：
+                        // 此前传 endpoint 导致订阅方按 ClientId 维护的每客户端缓冲区永远不命中、断开时也删不掉
+                        OnDataReceived(clientId, receivedData);
                     }
                     catch (OperationCanceledException)
                     {
@@ -276,7 +278,7 @@ namespace PF.Infrastructure.Communication.TCP
                 // 确保只触发一次断开事件
                 if (_clients.TryRemove(clientId, out var removedClient))
                 {
-                    OnClientDisconnected(clientEndPoint, disconnectReason);
+                    OnClientDisconnected(clientId, disconnectReason);
                     removedClient.Dispose();
                 }
 

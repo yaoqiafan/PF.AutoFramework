@@ -3,8 +3,30 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-07-09) — SecsGemNodeMessage 大端字节序统一 + DataType 格式码修正（含破坏性变更）
+
+[破坏性变更]
+- DataType.I1（原值 6，非标准格式码）改为 0b01100100（0x64）；DataType.I2（原值
+  0b011000100，9 位数值已溢出字节范围）改为 0b01101000（0x68）。均修正为符合 SECS-II
+  标准的格式码——此前两个值本身就是错误的，用其构造/解析的 I1/I2 报文与遵循标准协议的
+  对端不兼容；修正后线格式才正确，但会改变此前"错误但已在跑"的现场行为，故按破坏性处理。
+
+[修复]
+- SecsGemNodeMessage 构造函数重写（SecsGemNodeMessage.cs）：
+  - F4/F8/I8(long) 分支此前遗漏大端转换，浮点与 long 值以主机序（小端）直接写入 Data，
+    对端解析出乱值；现与 I2/I4/U2/U4/U8 一致统一转大端序。
+  - I4 分支此前仅匹配 `is Int64`，传入最自然的 `int` 完全不命中；命中时又把 8 字节数据
+    错误标记为 4 字节 I4 类型，对端按声明长度解析会错位。改用 Convert.ToInt32 统一接受
+    任意可转换的数值输入。
+  - 构造函数末尾的防呆校验此前是死代码（SubNode 有属性初始化器恒不为 null，判断条件
+    永假），类型不匹配时会静默产出 Data=null 的空节点，序列化后对端收到长度为 0 的字段
+    且无任何报错；现改为在数据未成功构造时正确抛出 ArgumentException。
+  - 明确约定并落地：SecsGemNodeMessage.Data 一律存放大端序（SECS-II 线格式）字节，
+    序列化器原样输出、解析器不再修改 Data（配合 PF.Infrastructure 同版本的解析器/
+    VID 更新器修复，见该包 changelog）。
+
 v1.0.3 (2026-07-07) — 通讯契约 + HALCON 视觉数据模型 + 新增报警码
 
 [新增]
