@@ -11,21 +11,28 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
-v1.0.3 (2026-07-09) — 报警中心侧边栏图标调整
+			v1.0.4 (2026-07-13) — 报警弹窗界面图片显示异常
 
-[变更]
-- AlarmCenterView 侧边栏图标由 ErrorGeometry 改为 Pulse：原图标为碎片化线稿，配合
-  PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画时观感差，Pulse 描边路径连贯完整。
+			[变更]
+			Image Source="{Binding Alarm.ImagePath}" Stretch="Uniform"
+			
 
-v1.0.2 (2026-07-07) — 报警详情大图解码限制 + KeepAlive 适配
 
-[修复]
-- AlarmDetailCardView.xaml 报警详情图（部分报警码可配置的产品图，最大 8500x5000px）
-  无解码尺寸限制，改用显式 BitmapImage + DecodePixelHeight=900，单次解码内存开销从
-  约 150MB 降到几 MB。
-- AlarmCenterViewModel 补充 KeepAlive =&gt; true，配合 PF.UI.Infrastructure v1.0.2 的
+			v1.0.3 (2026-07-09) — 报警中心侧边栏图标调整
+
+			[变更]
+			- AlarmCenterView 侧边栏图标由 ErrorGeometry 改为 Pulse：原图标为碎片化线稿，配合
+			PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画时观感差，Pulse 描边路径连贯完整。
+
+			v1.0.2 (2026-07-07) — 报警详情大图解码限制 + KeepAlive 适配
+
+			[修复]
+			- AlarmDetailCardView.xaml 报警详情图（部分报警码可配置的产品图，最大 8500x5000px）
+			无解码尺寸限制，改用显式 BitmapImage + DecodePixelHeight=900，单次解码内存开销从
+			约 150MB 降到几 MB。
+			- AlarmCenterViewModel 补充 KeepAlive =&gt; true，配合 PF.UI.Infrastructure v1.0.2 的
   RegionMemberLifetime 默认值变更，保留"允许重复导航至本视图"的既有语义。
 
 v1.0.1 - 框架初始独立版本

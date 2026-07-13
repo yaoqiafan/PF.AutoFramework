@@ -108,8 +108,8 @@
                         Grid.Row="0"
                         Grid.RowSpan="2"
                         Grid.Column="1"
-                        Content="异常复位"
                         Command="{Binding ConfirmCommand}"
+                        Content="异常复位"
                         FontSize="{DynamicResource FontSize.H1.Large}"
                         Style="{StaticResource ButtonPrimary}"
                         Visibility="{Binding ResetButtonVisibility}" />
@@ -185,8 +185,8 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition  />
-                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="auto" />
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
@@ -206,14 +206,12 @@
                     </ScrollViewer>
 
 
-                    <Grid  Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"  Margin="15,0,0,0">
-                        <Image Stretch="Uniform">
-                            <Image.Source>
-                                <BitmapImage
-                                    DecodePixelHeight="900"
-                                    UriSource="{Binding Alarm.ImagePath}" />
-                            </Image.Source>
-                        </Image>
+                    <Grid
+                        Grid.Row="0"
+                        Grid.RowSpan="2"
+                        Grid.Column="1"
+                        Margin="15,0,0,0">
+                        <Image Source="{Binding Alarm.ImagePath}" Stretch="Uniform" />
                     </Grid>
                 </Grid>
             </Border>
