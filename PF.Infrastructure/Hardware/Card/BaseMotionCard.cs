@@ -206,6 +206,26 @@ namespace PF.Infrastructure.Hardware.Card
         #endregion 位置锁存
 
 
+        #region 任意速度规划 (PVT)
+
+        /// <summary>
+        /// 传送 PTT（位置-时间表）数据
+        /// </summary>
+        public abstract Task<bool> SetPttTableAsync(int axisIndex, double[] times, double[] positions, CancellationToken token = default);
+
+        /// <summary>
+        /// 传送 PTS（位置-时间-百分比表）数据
+        /// </summary>
+        public abstract Task<bool> SetPtsTableAsync(int axisIndex, double[] times, double[] positions, double[] percents, CancellationToken token = default);
+
+        /// <summary>
+        /// 启动 PVT 运动
+        /// </summary>
+        public abstract Task<bool> StartPvtMoveAsync(int[] axisIndexes, CancellationToken token = default);
+
+        #endregion 任意速度规划 (PVT)
+
+
 
         #region 辅助编码器功能
 

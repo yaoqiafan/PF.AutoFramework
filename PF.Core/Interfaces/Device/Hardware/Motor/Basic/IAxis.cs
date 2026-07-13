@@ -140,6 +140,35 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
 
         #endregion 位置锁存
 
+        #region 任意速度规划 (PVT)
+
+        /// <summary>
+        /// 按"位移分段占比 + 速度分段占比"自动规划 PTT（梯形速度）单轴任意速度运动，并启动执行。
+        /// 内部将 targetPosition 与当前实际位置的差值，按 segmentPercents 拆分为多段位移，
+        /// 每段速度取 standardVelocity * segmentVelocityPercents[i] / 100，据此推算各段耗时，
+        /// 再换算为 PTT 所需的 时间/位置 表并下发执行。
+        /// </summary>
+        /// <param name="targetPosition">绝对目标位置（工程单位）</param>
+        /// <param name="standardVelocity">标准/基准速度（100% 对应的速度，工程单位/s）</param>
+        /// <param name="segmentPercents">各段位移占总位移的百分比，总和须为 100</param>
+        /// <param name="segmentVelocityPercents">各段速度占 standardVelocity 的百分比，与 segmentPercents 等长</param>
+        /// <param name="token">取消令牌</param>
+        Task<bool> MoveVelocityProfileAsync(double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents, CancellationToken token = default);
+
+        /// <summary>
+        /// 按"位移分段占比 + 速度分段占比"自动规划 PTS（平滑速度）单轴任意速度运动，并启动执行。
+        /// 参数含义同 <see cref="MoveVelocityProfileAsync"/>，额外附加各转折点的加减速平滑占比。
+        /// </summary>
+        /// <param name="targetPosition">绝对目标位置（工程单位）</param>
+        /// <param name="standardVelocity">标准/基准速度（100% 对应的速度，工程单位/s）</param>
+        /// <param name="segmentPercents">各段位移占总位移的百分比，总和须为 100</param>
+        /// <param name="segmentVelocityPercents">各段速度占 standardVelocity 的百分比，与 segmentPercents 等长</param>
+        /// <param name="smoothPercent">各转折点加减速时间占比（%），默认 30</param>
+        /// <param name="token">取消令牌</param>
+        Task<bool> MoveVelocityProfileSmoothAsync(double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents, double smoothPercent = 30, CancellationToken token = default);
+
+        #endregion 任意速度规划 (PVT)
+
         #region 辅助编码器功能
 
         /// <summary>

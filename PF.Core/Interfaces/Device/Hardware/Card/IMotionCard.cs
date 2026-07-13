@@ -243,6 +243,37 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         #endregion 位置锁存
 
 
+        #region 任意速度规划 (PVT)
+
+        /// <summary>
+        /// 向指定轴传送 PTT（位置-时间表，梯形速度规划）数据
+        /// </summary>
+        /// <param name="axisIndex">板卡内物理轴索引</param>
+        /// <param name="times">各点时间序列（秒），首点须为 0</param>
+        /// <param name="positions">各点位置序列（工程单位，相对本次运动起点的位移），首点须为 0，与 times 等长</param>
+        /// <param name="token">取消令牌</param>
+        Task<bool> SetPttTableAsync(int axisIndex, double[] times, double[] positions, CancellationToken token = default);
+
+        /// <summary>
+        /// 向指定轴传送 PTS（位置-时间-百分比表，平滑速度规划）数据
+        /// </summary>
+        /// <param name="axisIndex">板卡内物理轴索引</param>
+        /// <param name="times">各点时间序列（秒），首点须为 0</param>
+        /// <param name="positions">各点位置序列（工程单位，相对本次运动起点的位移），首点须为 0，与 times 等长</param>
+        /// <param name="percents">各点加减速时间占比（%），与 times 等长，首点通常为 0</param>
+        /// <param name="token">取消令牌</param>
+        Task<bool> SetPtsTableAsync(int axisIndex, double[] times, double[] positions, double[] percents, CancellationToken token = default);
+
+        /// <summary>
+        /// 启动 PVT 运动（对已通过 SetPttTableAsync / SetPtsTableAsync 传入数据表的轴生效）
+        /// </summary>
+        /// <param name="axisIndexes">参与本次 PVT 运动的轴索引列表</param>
+        /// <param name="token">取消令牌</param>
+        Task<bool> StartPvtMoveAsync(int[] axisIndexes, CancellationToken token = default);
+
+        #endregion 任意速度规划 (PVT)
+
+
         #endregion 高级功能
 
 

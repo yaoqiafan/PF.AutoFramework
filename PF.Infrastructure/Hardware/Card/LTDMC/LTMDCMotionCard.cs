@@ -985,6 +985,109 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         #endregion 位置锁存
 
 
+        #region 任意速度规划 (PVT)
+
+        /// <summary>
+        /// 向指定轴传送 PTT（位置-时间表，梯形速度规划）数据
+        /// </summary>
+        public override Task<bool> SetPttTableAsync(int axisIndex, double[] times, double[] positions, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(true); }
+                if (times == null || positions == null || times.Length != positions.Length || times.Length < 2)
+                {
+                    throw new Exception("PTT 数据表参数错误：times 与 positions 长度须一致且不少于 2 个点");
+                }
+
+                double? equiv = this.GetCurEquiv(axisIndex);
+                if (!equiv.HasValue)
+                {
+                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
+                }
+
+                double[] pulsePositions = positions.Select(p => p / equiv.Value).ToArray();
+
+                short ret = CardAPI.LTDMC.dmc_ptt_table_unit((ushort)CardIndex, (ushort)axisIndex, (uint)times.Length, times, pulsePositions);
+                if (ret != 0)
+                {
+                    throw new Exception($"传送 PTT 数据表失败 函数名：dmc_ptt_table_unit  返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+        }
+
+        /// <summary>
+        /// 向指定轴传送 PTS（位置-时间-百分比表，平滑速度规划）数据
+        /// </summary>
+        public override Task<bool> SetPtsTableAsync(int axisIndex, double[] times, double[] positions, double[] percents, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(true); }
+                if (times == null || positions == null || percents == null
+                    || times.Length != positions.Length || times.Length != percents.Length || times.Length < 2)
+                {
+                    throw new Exception("PTS 数据表参数错误：times / positions / percents 长度须一致且不少于 2 个点");
+                }
+
+                double? equiv = this.GetCurEquiv(axisIndex);
+                if (!equiv.HasValue)
+                {
+                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
+                }
+
+                double[] pulsePositions = positions.Select(p => p / equiv.Value).ToArray();
+
+                short ret = CardAPI.LTDMC.dmc_pts_table_unit((ushort)CardIndex, (ushort)axisIndex, (uint)times.Length, times, pulsePositions, percents);
+                if (ret != 0)
+                {
+                    throw new Exception($"传送 PTS 数据表失败 函数名：dmc_pts_table_unit  返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+        }
+
+        /// <summary>
+        /// 启动 PVT 运动
+        /// </summary>
+        public override Task<bool> StartPvtMoveAsync(int[] axisIndexes, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(true); }
+                if (axisIndexes == null || axisIndexes.Length == 0)
+                {
+                    throw new Exception("启动 PVT 运动失败：轴索引列表为空");
+                }
+
+                ushort[] axisList = axisIndexes.Select(i => (ushort)i).ToArray();
+                short ret = CardAPI.LTDMC.dmc_pvt_move((ushort)CardIndex, (ushort)axisList.Length, axisList);
+                if (ret != 0)
+                {
+                    throw new Exception($"启动 PVT 运动失败 函数名：dmc_pvt_move  返回值：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
+            }
+        }
+
+        #endregion 任意速度规划 (PVT)
+
 
 
 

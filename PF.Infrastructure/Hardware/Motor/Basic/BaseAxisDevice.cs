@@ -3,6 +3,7 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -300,6 +301,101 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
         #endregion 位置锁存
 
+
+        #region 任意速度规划 (PVT)
+
+        /// <summary>
+        /// 按"位移分段占比 + 速度分段占比"自动规划 PTT（梯形速度）单轴任意速度运动，并启动执行
+        /// </summary>
+        public virtual async Task<bool> MoveVelocityProfileAsync(double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents, CancellationToken token = default)
+        {
+            EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
+            var (times, positions) = BuildVelocityProfileTable(targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
+
+            if (!await ParentCard!.SetPttTableAsync(AxisIndex, times, positions, token).ConfigureAwait(false))
+            {
+                return false;
+            }
+            return await ParentCard!.StartPvtMoveAsync(new[] { AxisIndex }, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 按"位移分段占比 + 速度分段占比"自动规划 PTS（平滑速度）单轴任意速度运动，并启动执行
+        /// </summary>
+        public virtual async Task<bool> MoveVelocityProfileSmoothAsync(double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents, double smoothPercent = 30, CancellationToken token = default)
+        {
+            EnsureCardAttached();
+            if (IsSimulated) { await Task.Delay(1000); return true; }
+
+            var (times, positions) = BuildVelocityProfileTable(targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
+
+            var percents = new double[times.Length];
+            for (int i = 1; i < percents.Length; i++)
+            {
+                percents[i] = smoothPercent;
+            }
+
+            if (!await ParentCard!.SetPtsTableAsync(AxisIndex, times, positions, percents, token).ConfigureAwait(false))
+            {
+                return false;
+            }
+            return await ParentCard!.StartPvtMoveAsync(new[] { AxisIndex }, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// 将"目标位置 + 位移分段占比 + 速度分段占比"换算为 PTT/PTS 所需的 时间/位置 表。
+        /// 各段位移 = 总位移(targetPosition - 当前实际位置) * segmentPercents[i] / 100；
+        /// 各段速度 = standardVelocity * segmentVelocityPercents[i] / 100；
+        /// 各段耗时 = |段位移| / 段速度；位置表以当前实际位置为 0 点累加，供板卡侧作为相对位移下发。
+        /// </summary>
+        private (double[] times, double[] positions) BuildVelocityProfileTable(double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents)
+        {
+            if (segmentPercents == null || segmentVelocityPercents == null
+                || segmentPercents.Length == 0 || segmentPercents.Length != segmentVelocityPercents.Length)
+            {
+                throw new ArgumentException($"[{DeviceName}] segmentPercents 与 segmentVelocityPercents 长度须一致且不为空");
+            }
+            if (standardVelocity <= 0)
+            {
+                throw new ArgumentException($"[{DeviceName}] standardVelocity 必须大于 0");
+            }
+            if (Math.Abs(segmentPercents.Sum() - 100.0) > 0.01)
+            {
+                throw new ArgumentException($"[{DeviceName}] segmentPercents 总和须为 100，当前为 {segmentPercents.Sum():F2}");
+            }
+
+            double? start = CurrentPosition;
+            if (!start.HasValue)
+            {
+                throw new InvalidOperationException($"[{DeviceName}] 无法读取轴当前位置，无法规划速度曲线");
+            }
+
+            double totalDisp = targetPosition - start.Value;
+            int n = segmentPercents.Length;
+            var times = new double[n + 1];
+            var positions = new double[n + 1];
+
+            for (int i = 0; i < n; i++)
+            {
+                if (segmentVelocityPercents[i] <= 0)
+                {
+                    throw new ArgumentException($"[{DeviceName}] segmentVelocityPercents[{i}] 必须大于 0");
+                }
+
+                double segDisp = totalDisp * segmentPercents[i] / 100.0;
+                double segVel = standardVelocity * segmentVelocityPercents[i] / 100.0;
+                double segTime = Math.Abs(segDisp) / segVel;
+
+                positions[i + 1] = positions[i] + segDisp;
+                times[i + 1] = times[i] + segTime;
+            }
+
+            return (times, positions);
+        }
+
+        #endregion 任意速度规划 (PVT)
 
 
         #region 辅助编码器功能
