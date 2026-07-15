@@ -613,14 +613,14 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 {
                     token.ThrowIfCancellationRequested(); // 【新增】外部通道循环取消检查
 
-                    int latchCount = await _zAxis.GetLatchNumber(latchId, token);
+                    int latchCount = await _zAxis.GetLatchNumber(latchId, token:token);
                     _logger.Info($"[{MechanismName}] 锁存通道 {latchId} 共捕获到 {latchCount} 个信号点。");
 
                     for (int i = 0; i < latchCount; i++)
                     {
                         token.ThrowIfCancellationRequested(); // 【新增】内部读取循环细粒度取消检查，确保硬件读取不卡死
 
-                        double? pos = await _zAxis.GetLatchPos(latchId, token);
+                        double? pos = await _zAxis.GetLatchPos(latchId, token: token);
                         if (pos.HasValue) resultMap[latchId].Add(pos.Value);
                         else _logger.Warn($"[{MechanismName}] 通道 {latchId} 读取第 {i + 1} 个位置失败。");
                     }
