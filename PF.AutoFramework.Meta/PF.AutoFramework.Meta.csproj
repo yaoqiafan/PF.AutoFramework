@@ -3,8 +3,37 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.8</Version>
+    <Version>1.0.9</Version>
     <PackageReleaseNotes>
+		v1.0.9 (2026-07-15) — 框架层并发/异步/契约修复合集（P1~P3 全量审查产出）
+
+		[修复]
+		- PF.Infrastructure 1.0.4→1.0.5：
+		- [关键] LTDMCMotionCard 锁存位置读取失败返回 null Task，await 时抛
+		NullReferenceException（寻层扫描以一条莫名 NRE 失败）；
+		- [关键] BaseMasterController.ResetAllAsync 缺失败子站检查——子站复位失败被吞掉后
+		主控照常清空活跃报警并回 Idle，后续 Start 时故障子站静默不启动；
+		- BaseIODevice.WaitInputAsync 模拟模式恒失败 → 立即满足；外部取消由返回 false 改为
+		上抛 OperationCanceledException（此前用户暂停会被误判为 IO 超时触发假报警）；
+		- BaseMechanism 初始化异常残留 IsInitialized、内部硬件列表并发保护；
+		- StationBase 业务异常报警派发在 Pause/Stop 竞态下被静默跳过；
+		- BaseAxisDevice 模拟保真度（虚拟轴位置替代随机数、模拟延时可取消）；
+		- BaseMasterController.Dispose 漏退订、SecsGemManger.Dispose 死锁风险。
+		- PF.Services 1.0.3→1.0.4：HardwareInputMonitor"安全门检测失效"自警形同虚设
+		（读卡失败返回 null 的路径不计数）；TowerLightService UI 线程 sync-over-async
+		死锁；StationSyncService 复位时旧广播令牌过早 Dispose 的竞态。
+		- PF.UI.Infrastructure 1.0.2→1.0.3：MessageService 线程感知调度——后台线程
+		（如工站循环）调用弹窗不再被模态对话框同步卡死。
+
+		[行为变更]
+		- PF.Core 1.0.4→1.0.5：IAxis/IMotionCard 锁存配置的 LtcMode 可选参数默认值 0→1，
+		与实现层及现有生产调用对齐；经接口调用且省略该参数的下游代码重编译后默认值变化，
+		显式传参不受影响。
+
+		[子包版本对照]
+		PF.Core 1.0.4→1.0.5，PF.Infrastructure 1.0.4→1.0.5，PF.Services 1.0.3→1.0.4，
+		PF.UI.Infrastructure 1.0.2→1.0.3；其余子包本次无变化。
+
 		v1.0.8 (2026-07-13) — 现场报警，报警弹窗报错，显示异常
 
 

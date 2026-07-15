@@ -3,8 +3,17 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-07-15) — 锁存接口 LtcMode 默认值对齐（行为变更）
+
+[行为变更]
+- IAxis.SetLatchMode 与 IMotionCard.SetSoftWareLatchMode/SetLtcLatchMode 的可选参数
+  LtcMode 默认值由 0 改为 1，与实现层（BaseAxisDevice/LTDMCMotionCard 均默认 1）及
+  现有生产调用对齐——此前经接口调用与经类调用会取到不同默认值（C# 可选参数按调用点
+  静态类型在编译期固化）。下游若有经接口调用且省略 LtcMode 的代码，重编译后默认值
+  从 0 变为 1；显式传参的调用不受影响。
+
 v1.0.4 (2026-07-09) — SecsGemNodeMessage 大端字节序统一 + DataType 格式码修正（含破坏性变更）
 
 [破坏性变更]

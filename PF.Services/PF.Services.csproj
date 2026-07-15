@@ -16,8 +16,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-07-15) — 安全监控自警/三色灯死锁/同步服务竞态修复
+
+[修复]
+- HardwareInputMonitor：底层 ReadInput 出错返回 null（板卡封装不抛异常的路径）现计入
+  连续失败计数，连续 5 次触发 MonitorFailure 自警、恢复后自动清警——此前该自警只在
+  异常路径累加，实际永远不会触发，安全门 IO 持续读取失败时既无检测也无报警。
+- TowerLightService：IsBuzzerMuted 写入与构造函数读取由 GetAwaiter().GetResult()
+  改为后台任务 + ConfigureAwait(false)，消除从 UI 线程设置静音开关时的
+  sync-over-async 死锁风险。
+- StationSyncService：ResetScope/ResetSingleSignal 的旧广播令牌由"取消后立即 Dispose"
+  改为 Drain 屏障归零后再释放（Drain 超时则交 GC），消除飞行中的 WaitAsync 恰好在用
+  旧令牌构建 linked token 时的 ObjectDisposedException 竞态。
+
 v1.0.3 (2026-07-07) — 通讯管理服务 + 日志/硬件服务健壮性修复
 
 [新增]

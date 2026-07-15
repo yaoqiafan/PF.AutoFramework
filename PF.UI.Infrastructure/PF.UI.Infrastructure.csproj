@@ -30,8 +30,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-07-15) — MessageService 线程感知调度（后台线程不再被模态弹窗卡死）
+
+[修复]
+- ShowMessageAsync/ShowInputAsync/ExecuteWithWaitAsync/ShowMessage 新增线程感知调度：
+  UI 线程调用保持原有的内联模态行为（返回时对话框已关闭、Task 已完成，兼容启动路径等
+  对 GetAwaiter().GetResult() 不死锁的既有依赖）；后台线程调用改为 Dispatcher.InvokeAsync
+  排队到 UI 线程，调用方立即拿到未完成的 Task——原 Dispatcher.Invoke + 模态 ShowDialog
+  会把后台调用线程（如工站循环线程）同步卡住直到操作员关闭弹窗，且不响应取消令牌。
+- TaskCompletionSource 统一 TrySetResult + RunContinuationsAsynchronously，防止重复完成
+  与续体在 UI 线程内联执行。
+
 v1.0.2 (2026-07-07) — 修复区域视图导航内存泄漏（行为变更）+ 弹窗交互修复
 
 [行为变更 — RegionViewModelBase]

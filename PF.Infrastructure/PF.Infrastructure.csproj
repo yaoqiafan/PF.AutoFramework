@@ -31,8 +31,42 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-07-15) — 运动/机构/工站/主控并发与契约修复（P1~P3）
+
+[修复 — 关键]
+- LTDMCMotionCard.GetSoftWareLatchPos/GetLtcLatchPos：catch 分支 return null 返回的是
+  null 的 Task 对象，上层 await 时抛 NullReferenceException（锁存读取失败会以一条
+  莫名的 NRE 让寻层扫描失败）；改返回携带 null 值的 Task。
+- BaseMasterController.ResetAllAsync：并行复位后补充 hasFailedStation 检查（与
+  InitializeAllAsync 对称）。此前子站复位失败被吞掉后主控照常清空活跃报警并回 Idle，
+  后续 Start 时故障子站静默不启动，整线"看着在跑"实际缺站。
+
+[修复]
+- BaseIODevice.WaitInputAsync：模拟模式由恒返回 false 改为立即满足（与轴设备模拟语义
+  一致）；外部取消由返回 false 改为上抛 OperationCanceledException（与
+  WaitAxisMoveDoneAsync 对齐——此前用户暂停会被业务层误判为 IO 超时并触发假报警），
+  超时才返回 false。
+- BaseMasterController.Dispose：补退订 HardwareInputRestored（原仅退订
+  HardwareInputTriggered，释放后仍会收到安全门恢复回调）。
+- StationBase.ProcessWrapperAsync：派发 Fire(Error) 的 Task.Run 改传
+  CancellationToken.None——Pause/Stop 竞态下 token 已取消会导致委托被直接跳过、
+  业务异常的报警静默丢失。
+- BaseMechanism：InitializeAsync 异常时清 IsInitialized（防复位清警后 CheckReady 放行
+  半初始化机构）；_internalHardwares 补并发保护（锁内注册/快照遍历，注册线程与设备
+  健康监控线程并发时可能撞车）。
+- BaseAxisDevice 模拟保真度：新增虚拟轴位置（绝对运动置目标值/相对运动累加/回零清零），
+  CurrentPosition 不再返回随机数（IsAtPoint/IsInSafePosition 在模拟下结果确定），
+  GetLatchPos 模拟返回虚拟位置而非 0 哨兵值；全部模拟延时接受取消令牌（模拟运动可被
+  暂停/停止打断）。
+- SecsGemManger.Dispose：DisconnectAsync 同步等待改 Task.Run 包装（与 TcpServer 同款
+  修复），消除有 SynchronizationContext 线程上的死锁风险。
+
+[行为变更]
+- BaseMotionCard.SetSoftWareLatchMode/SetLtcLatchMode 抽象声明的 LtcMode 默认值 0→1
+  （与 PF.Core 1.0.5 的接口默认值对齐）。
+
 v1.0.4 (2026-07-09) — SECS/GEM 大帧拆包/粘包处理 + 并发安全 + 多处数据正确性修复
 
 [新增]
