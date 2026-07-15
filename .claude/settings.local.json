@@ -88,7 +88,13 @@
       "PowerShell(cd \"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.StandardProject\"; dotnet pack PF.AutoFramework.Template.csproj -o \"$PWD\\\\nupkg\" -v detailed 2>&1 | Select-String \"Pack|nupkg|error|Error|warning|Content\" | Select-Object -First 30)",
       "PowerShell(dotnet new *)",
       "PowerShell(Copy-Item *)",
-      "Bash(dotnet pack *)"
+      "Bash(dotnet pack *)",
+      "Bash(sed 's/WS1/WSX/g; s/工位1/工位X/g; s/左/侧/g' \"PF.WorkStation.AutoOcr/Mechanisms/WS1FeedingModel.cs\")",
+      "Bash(sed 's/WS2/WSX/g; s/工位2/工位X/g; s/右/侧/g' \"PF.WorkStation.AutoOcr/Mechanisms/WS2FeedingModel.cs\")",
+      "Read(//tmp/**)",
+      "Read(//c/Users/12434/.nuget/packages/pf.ui.resources/**)",
+      "Read(//c/Users/12434/.nuget/packages/handycontrol/**)",
+      "Bash(unzip -l PF.AutoFramework.VsExtension.vsix)"
     ]
   }
 }
