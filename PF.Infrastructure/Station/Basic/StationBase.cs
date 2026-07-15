@@ -438,7 +438,9 @@ namespace PF.Infrastructure.Station.Basic
                     new StationAlarmEventArgs { ErrorCode = AlarmCodes.System.StationSyncError });
                 Interlocked.CompareExchange(ref _pendingAlarm, defaultAlarm, null);
 
-                // 在独立 Task 中触发状态机，避免在 workflowTask 上下文中回调 Fire 造成死锁
+                // 在独立 Task 中触发状态机，避免在 workflowTask 上下文中回调 Fire 造成死锁。
+                // 不能把 token 传给 Task.Run：Pause/Stop 竞态下 token 可能已被取消，
+                // Task.Run 会直接跳过委托执行，导致 Error 静默丢失
                 _ = Task.Run(() =>
                 {
                     try
@@ -451,7 +453,7 @@ namespace PF.Infrastructure.Station.Basic
                     {
                         _logger?.Fatal($"[{StationName}] 业务异常后触发报警状态失败: {fireEx.Message}");
                     }
-                }, token);
+                }, CancellationToken.None);
             }
         }
 

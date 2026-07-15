@@ -29,6 +29,8 @@ namespace PF.Infrastructure.Mechanisms
             _hardwareLogger ??= CategoryLoggerFactory.Hardware(_logger);
         private CategoryLogger _hardwareLogger;
         private readonly List<IHardwareDevice> _internalHardwares = [];
+        // _internalHardwares 并发保护锁：注册发生在初始化线程，报警/清警回调来自设备健康监控线程
+        private readonly object _hardwaresLock = new();
         /// <summary>获取硬件管理服务</summary>
         protected IHardwareManagerService HardwareManagerService { get; } = hardwareManagerService;
 
@@ -73,7 +75,10 @@ namespace PF.Infrastructure.Mechanisms
         {
             // 只有当模组确实处于报警状态，且所有内部硬件均已恢复时，才触发模组级清警
             if (!HasAlarm) return;
-            if (_internalHardwares.Any(h => h.HasAlarm)) return;
+            lock (_hardwaresLock)
+            {
+                if (_internalHardwares.Any(h => h.HasAlarm)) return;
+            }
 
             HasAlarm = false;
             _logger?.Info($"[模组 {MechanismName}] 所有内部硬件已自恢复，清除模组报警状态。");
@@ -111,7 +116,7 @@ namespace PF.Infrastructure.Mechanisms
             HasAlarm = false;
 
             // 初始化前：抑制所有已注册硬件的健康监控，防止瞬态信号级联中断初始化
-            foreach (var hw in _internalHardwares)
+            foreach (var hw in SnapshotHardwares())
                 hw.SuppressHealthMonitoring = true;
 
             try
@@ -119,7 +124,7 @@ namespace PF.Infrastructure.Mechanisms
                 IsInitialized = await InternalInitializeAsync(token);
 
                 // InternalInitializeAsync 可能注册新硬件，确保也被抑制
-                foreach (var hw in _internalHardwares)
+                foreach (var hw in SnapshotHardwares())
                     hw.SuppressHealthMonitoring = true;
 
                 if (IsInitialized)
@@ -132,6 +137,8 @@ namespace PF.Infrastructure.Mechanisms
             catch (Exception ex)
             {
                 HasAlarm = true;
+                // 重初始化中途异常时必须清掉旧的已初始化标记，否则复位清警后 CheckReady 会放行半初始化的机构
+                IsInitialized = false;
                 _logger?.Error($"[模组 {MechanismName}] 初始化过程发生异常: {ex.Message}");
                 return false;
             }
@@ -145,7 +152,7 @@ namespace PF.Infrastructure.Mechanisms
             _logger?.Info($"[模组 {MechanismName}] 正在复位清除报警...");
 
             bool allResetOk = true;
-            foreach (var hw in _internalHardwares)
+            foreach (var hw in SnapshotHardwares())
             {
                 if (!await hw.ResetAsync(token))
                     allResetOk = false;
@@ -169,7 +176,7 @@ namespace PF.Infrastructure.Mechanisms
         public virtual async Task<bool> ResetHardwareAlarmAsync(CancellationToken token = default)
         {
             bool allOk = true;
-            foreach (var hw in _internalHardwares)
+            foreach (var hw in SnapshotHardwares())
             {
                 if (!await hw.ResetHardwareAlarmAsync(token).ConfigureAwait(false))
                     allOk = false;
@@ -188,7 +195,7 @@ namespace PF.Infrastructure.Mechanisms
         /// </summary>
         public void ResumeHealthMonitoring()
         {
-            foreach (var hw in _internalHardwares)
+            foreach (var hw in SnapshotHardwares())
                 hw.SuppressHealthMonitoring = false;
         }
 
@@ -240,10 +247,20 @@ namespace PF.Infrastructure.Mechanisms
         /// </summary>
         protected void RegisterHardwareDevice(IHardwareDevice device)
         {
-            if (device == null || _internalHardwares.Contains(device)) return;
-            _internalHardwares.Add(device);
+            if (device == null) return;
+            lock (_hardwaresLock)
+            {
+                if (_internalHardwares.Contains(device)) return;
+                _internalHardwares.Add(device);
+            }
             device.AlarmTriggered += OnHardwareAlarmTriggered;
             device.HardwareAlarmAutoCleared += OnHardwareAlarmAutoCleared;
+        }
+
+        /// <summary>锁内复制内部硬件列表快照，供含 await 的遍历在锁外安全迭代。</summary>
+        private List<IHardwareDevice> SnapshotHardwares()
+        {
+            lock (_hardwaresLock) { return [.. _internalHardwares]; }
         }
 
         /// <summary>
@@ -251,7 +268,7 @@ namespace PF.Infrastructure.Mechanisms
         /// </summary>
         public virtual void Dispose()
         {
-            foreach (var hw in _internalHardwares)
+            foreach (var hw in SnapshotHardwares())
             {
                 if (hw == null) continue;
                 hw.AlarmTriggered -= OnHardwareAlarmTriggered;

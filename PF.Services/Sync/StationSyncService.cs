@@ -178,9 +178,10 @@ namespace PF.Services.Sync
             }
 
             // ─ 步骤 1：广播取消，通知所有飞行中的 WaitAsync 退出 ────────────
+            // 注意：此处只 Cancel 不 Dispose——飞行中的 WaitAsync 可能正用旧令牌构建
+            // linked token，提前 Dispose 会抛 ObjectDisposedException，须等 Drain 归零后释放
             var oldCts = Interlocked.Exchange(ref ctx.ResetCts, new CancellationTokenSource());
             oldCts.Cancel();
-            oldCts.Dispose();
 
             // ─ 步骤 2：Drain 屏障，等待 InFlightCount 归零 ───────────────────
             var sw = Stopwatch.StartNew();
@@ -198,9 +199,12 @@ namespace PF.Services.Sync
             }
 
             // ─ 步骤 3：按 Drain 结果决定是否 Dispose ──────────────────────────
-            // Drain 成功 → InFlightCount == 0 → 无线程持有旧信号量 → 可安全 Dispose
+            // Drain 成功 → InFlightCount == 0 → 无线程持有旧信号量/旧令牌 → 可安全 Dispose
             // Drain 超时 → 仍有线程在旧 SemaphoreSlim 内 → 跳过 Dispose，由 GC 回收
             bool drainSucceeded = Volatile.Read(ref ctx.InFlightCount) == 0;
+            if (drainSucceeded)
+                oldCts.Dispose();
+
             foreach (var name in ctx.Signals.Keys)
             {
                 var old = ctx.Signals[name];
@@ -233,9 +237,9 @@ namespace PF.Services.Sync
             }
 
             // 步骤 1：广播取消（同一 scope 内所有 WaitAsync 均被唤醒，代价可接受）
+            // 与 ResetScope 相同：只 Cancel 不 Dispose，等 Drain 归零后再释放旧令牌
             var oldCts = Interlocked.Exchange(ref ctx.ResetCts, new CancellationTokenSource());
             oldCts.Cancel();
-            oldCts.Dispose();
 
             // 步骤 2：Drain 屏障，等待此 scope 的飞行计数归零
             var sw = Stopwatch.StartNew();
@@ -254,6 +258,9 @@ namespace PF.Services.Sync
 
             // 步骤 3：按 Drain 结果决定是否 Dispose，仅重建目标信号量
             bool drainSucceeded = Volatile.Read(ref ctx.InFlightCount) == 0;
+            if (drainSucceeded)
+                oldCts.Dispose();
+
             var old = ctx.Signals[name];
             if (drainSucceeded)
                 old.Sem.Dispose();

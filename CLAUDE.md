@@ -148,7 +148,7 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 | 服务 | 关键特性 |
 |------|---------|
 | **HardwareManagerService** | `RegisterFactory(className, factory)` 注册，`LoadAndInitializeAsync()` 拓扑排序（父卡优先），`SetGlobalSimulationModeAsync()` 原子切换仿真模式，需配合 `ReloadAllAsync()` 热重载生效 |
-| **ParamService** | `RegisterParamType<TDomain, TEntity>()` 显式类型映射；值未变更跳过写库；`ParamChanged` 事件携带审计信息（旧值/新值/用户/时间）；泛型约束 `where T : class`，不可直接用值类型 |
+| **ParamService** | `RegisterParamType<TEntity, TModel>()` 显式类型映射（注意泛型顺序：实体在前、模型在后）；值未变更跳过写库；`ParamChanged` 事件携带审计信息（旧值/新值/用户/时间）；泛型约束 `where T : class`，不可直接用值类型 |
 | **AlarmService** | 复合键 `(Source, ErrorCode)` 幂等触发；`Channel<PersistJob>`（容量 10000）异步持久化；按年动态路由表 `AlarmRecord_{Year}` |
 | **LogService** | 内存循环缓冲 1000 条；`Channel` 异步文件写入；按小时滚动，30 天自动清理 |
 | **StationSyncService** | 命名信号量跨工站协同：`WaitAsync(name, token)` / `Release(name)` / `ResetSingleSignal(name, initialCount)` |

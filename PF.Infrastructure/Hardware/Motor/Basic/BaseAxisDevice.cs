@@ -35,6 +35,10 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         private readonly List<AxisPoint> _pointTable = new();
         private readonly string _pointTableFilePath;
 
+        // 模拟模式下的虚拟轴位置：由运动指令更新，替代真实板卡的位置反馈，
+        // 保证 IsAtPoint / IsInSafePosition 等位置判断在模拟模式下结果确定
+        private double _simulatedPosition;
+
         #region IAttachedDevice 实现
 
         /// <inheritdoc/>
@@ -134,7 +138,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
             _logger?.Info($"[{DeviceName}] MoveToPoint '{pointName}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
 
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = point.TargetPosition; return true; }
 
 
             return await MoveAbsoluteAsync(point.TargetPosition, point.Speed, point.Acc, point.Dec, point.STime, token).ConfigureAwait(false);
@@ -162,7 +166,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             get
             {
                 EnsureCardAttached();
-                if (IsSimulated) { return (double)Random.Shared.Next(1, 100) + Random.Shared.NextDouble(); }
+                if (IsSimulated) { return _simulatedPosition; }
                 return ParentCard!.GetAxisCurrentPosition(AxisIndex);
             }
         }
@@ -194,7 +198,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> EnableAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); return true; }
 
             return await ParentCard!.EnableAxisAsync(AxisIndex).ConfigureAwait(false);
         }
@@ -203,7 +207,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> DisableAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); return true; }
 
             return await ParentCard!.DisableAxisAsync(AxisIndex).ConfigureAwait(false);
         }
@@ -212,7 +216,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> StopAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); return true; }
 
             return await ParentCard!.StopAxisAsync(AxisIndex).ConfigureAwait(false);
         }
@@ -221,7 +225,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> HomeAsync(CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = 0; return true; }
 
             return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffset, token).ConfigureAwait(false);
         }
@@ -231,7 +235,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         {
             EnsureCardAttached();
 
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = targetPosition; return true; }
 
             return await ParentCard!.MoveAbsoluteAsync(AxisIndex, targetPosition, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
         }
@@ -240,7 +244,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> MoveRelativeAsync(double distance, double velocity, double Acc, double Dec, double STime, CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition += distance; return true; }
 
             return await ParentCard!.MoveRelativeAsync(AxisIndex, distance, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
         }
@@ -269,7 +273,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true; }
+            if (IsSimulated) { await Task.Delay(1000, token); return true; }
             return LatchType == 0 ? await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token) : await ParentCard!.SetLtcLatchMode(LatchNo, this.AxisIndex,  LtcMode, LtcLogic, Filter, LatchSource, token);
         }
 
@@ -282,7 +286,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<int> GetLatchNumber(int LatchNo,int LatchType=0, CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return 1; }
+            if (IsSimulated) { await Task.Delay(1000, token); return 1; }
             return  LatchType ==0 ? await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchNumber(LatchNo, this.AxisIndex, token);
         }
 
@@ -294,7 +298,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return 0; }
+            // 模拟模式返回当前虚拟位置（锁存语义即"捕获触发瞬间的轴位置"），不再返回 0 哨兵值
+            if (IsSimulated) { await Task.Delay(1000, token); return _simulatedPosition; }
             return LatchType == 0 ? await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchPos(LatchNo, this.AxisIndex, token);
         }
 
@@ -405,7 +410,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public virtual async   Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000); return true ; }
+            if (IsSimulated) { await Task.Delay(1000, token); return true ; }
             return await ParentCard!.SetExtraPos(Channel , Pos, token);
         }
 

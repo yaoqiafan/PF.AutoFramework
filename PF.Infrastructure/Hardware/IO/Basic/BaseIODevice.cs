@@ -22,7 +22,7 @@ namespace PF.Infrastructure.Hardware.IO.Basic
     ///
     /// WaitInputAsync 轮询策略：
     ///   每 20ms 采样一次 ReadInput，使用 Task.Delay + ConfigureAwait(false) 避免死锁；
-    ///   若超时或取消令牌触发则返回 false 并记录警告日志。
+    ///   超时返回 false 并记录警告日志；外部取消令牌触发时上抛 OperationCanceledException。
     ///   若板卡 SDK 提供原生等待机制，子类可 override 此方法以获得更低延迟。
     /// </summary>
     public abstract class BaseIODevice : BaseDevice, IIOController, IAttachedDevice
@@ -152,7 +152,7 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         ///
         /// 实现策略：每 20ms 轮询一次 ReadInput，使用非阻塞 Task.Delay 避免占用线程，
         /// ConfigureAwait(false) 防止同步上下文死锁。
-        /// 超时或取消令牌触发时返回 false 并记录警告日志。
+        /// 超时返回 false 并记录警告日志；外部取消令牌触发时上抛 OperationCanceledException。
         /// 若板卡 SDK 提供原生等待机制，子类可 override 此方法以获得更低延迟。
         /// </summary>
         /// <param name="portIndex">端口号（板卡内物理端口索引）</param>
@@ -167,30 +167,31 @@ namespace PF.Infrastructure.Hardware.IO.Basic
             CancellationToken token = default)
         {
             EnsureCardAttached();
+
+            // 模拟模式：与轴设备的模拟语义一致（动作视为成功），等待视为立即满足，
+            // 否则模拟运行时所有依赖 IO 的流程都会以超时失败
             if (IsSimulated)
             {
-                return false;
+                return true;
             }
+
             const int PollingIntervalMs = 20;
             var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
 
-            while (!token.IsCancellationRequested && DateTime.UtcNow < deadline)
+            // 外部取消（Stop/Pause）直接上抛 OperationCanceledException，与 WaitAxisMoveDoneAsync 语义对齐；
+            // 若吞掉取消并返回 false，调用方会把"用户暂停"误判为"IO 超时"而触发假报警
+            while (DateTime.UtcNow < deadline)
             {
+                token.ThrowIfCancellationRequested();
+
                 if (ReadInput(portIndex) == targetState)
                     return true;
 
-                try
-                {
-                    await Task.Delay(PollingIntervalMs, token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
+                await Task.Delay(PollingIntervalMs, token).ConfigureAwait(false);
             }
 
             _logger?.Warn(
-                $"[{DeviceName}] WaitInputAsync 超时或已取消：" +
+                $"[{DeviceName}] WaitInputAsync 超时：" +
                 $"端口 {portIndex} 未在 {timeoutMs}ms 内达到目标状态 {targetState}");
             return false;
         }

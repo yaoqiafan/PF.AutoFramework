@@ -59,16 +59,20 @@ namespace PF.Services.Hardware
 
                 _isBuzzerMuted = value;
 
-                // 1. 异步将设置持久化到数据库
-                try
+                // 1. 后台持久化到数据库，不阻塞调用线程
+                //   （原 GetAwaiter().GetResult() 从 UI 线程调用时是 sync-over-async 死锁模型）
+                _ = Task.Run(async () =>
                 {
-                    _ = _paramService.SetParamAsync(EParamsTypeName, BuzzerMutedParamKey, value)
-                        .GetAwaiter().GetResult();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Warn($"【三色灯】保存蜂鸣器屏蔽参数失败：{ex.Message}");
-                }
+                    try
+                    {
+                        await _paramService.SetParamAsync(EParamsTypeName, BuzzerMutedParamKey, value)
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn($"【三色灯】保存蜂鸣器屏蔽参数失败：{ex.Message}");
+                    }
+                });
 
                 // 2. 立即在硬件上生效（需持锁以防此时有其他线程修改蜂鸣器状态）
                 lock (_lock)
@@ -96,21 +100,25 @@ namespace PF.Services.Hardware
             _logger = logger;
             _paramService = paramService;
 
-            // 初始化：从数据库同步加载初始屏蔽状态
-            try
+            // 初始化：后台加载初始屏蔽状态，不在构造函数中同步阻塞等待数据库
+            // （与 HardwareInputMonitor 的屏蔽状态加载方式一致，加载完成前按默认值 false 运行）
+            _ = Task.Run(async () =>
             {
-                _isBuzzerMuted = _paramService.GetParamAsync<bool>(
-                    BuzzerMutedParamKey,
-                    false).GetAwaiter().GetResult();
+                try
+                {
+                    _isBuzzerMuted = await _paramService.GetParamAsync<bool>(
+                        BuzzerMutedParamKey,
+                        false).ConfigureAwait(false);
 
-                if (_isBuzzerMuted)
-                    _logger.Info("【三色灯】蜂鸣器已屏蔽（调试模式）。");
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn($"【三色灯】读取蜂鸣器屏蔽参数失败，使用默认值 false：{ex.Message}");
-                _isBuzzerMuted = false;
-            }
+                    if (_isBuzzerMuted)
+                        _logger.Info("【三色灯】蜂鸣器已屏蔽（调试模式）。");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"【三色灯】读取蜂鸣器屏蔽参数失败，使用默认值 false：{ex.Message}");
+                    _isBuzzerMuted = false;
+                }
+            });
 
             // 订阅参数变更事件，实现 UI 修改参数后自动同步到本服务
             _paramService.ParamChanged += OnParamChanged;

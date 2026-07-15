@@ -222,10 +222,11 @@ namespace PF.Infrastructure.SecsGem
                     // 释放托管资源
                     try
                     {
-                        // 断开连接
+                        // 断开连接。Task.Run 包装：在有 SynchronizationContext 的线程（如 UI）上
+                        // 直接 GetResult 会与续体互相等待死锁（与 TcpServer.Dispose 的修复方式一致）
                         if (IsConnected)
                         {
-                            DisconnectAsync().GetAwaiter().GetResult();
+                            Task.Run(() => DisconnectAsync()).GetAwaiter().GetResult();
                         }
 
                         // 检查并释放客户端资源

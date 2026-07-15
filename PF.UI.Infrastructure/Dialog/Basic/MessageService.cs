@@ -32,22 +32,37 @@ namespace PF.UI.Infrastructure.Dialog.Basic
         }
 
         /// <summary>
+        /// 线程感知的对话框调度：
+        ///   · UI 线程调用 → 内联模态显示（方法返回时对话框已关闭、Task 已完成，
+        ///     兼容启动路径等对"GetAwaiter().GetResult() 不死锁"的既有依赖）；
+        ///   · 后台线程调用 → InvokeAsync 排队到 UI 线程，调用方立即拿到未完成的 Task，
+        ///     不再被模态对话框同步阻塞（原 Dispatcher.Invoke 会卡住后台线程直到用户关闭弹窗）。
+        /// </summary>
+        private static void DispatchToUi(Action showDialogAction)
+        {
+            var dispatcher = Application.Current.Dispatcher;
+            if (dispatcher.CheckAccess())
+                showDialogAction();
+            else
+                dispatcher.InvokeAsync(showDialogAction);
+        }
+
+        /// <summary>
         /// ShowMessageAsync异步操作
         /// </summary>
         public Task<ButtonResult> ShowMessageAsync(string message, string title = "提示", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.Information)
         {
-            var tcs = new TaskCompletionSource<ButtonResult>();
+            var tcs = new TaskCompletionSource<ButtonResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             var parameters = new DialogParameters
             {
                 { "Title", title }, { "Message", message }, { "Buttons", buttons }, { "Image", image }
             };
 
-            // 确保在 UI 线程调用
-            Application.Current.Dispatcher.Invoke(() =>
+            DispatchToUi(() =>
             {
                 _dialogService.ShowDialog("MessageDialog", parameters, result =>
                 {
-                    tcs.SetResult(result.Result);
+                    tcs.TrySetResult(result.Result);
                 });
             });
 
@@ -64,10 +79,10 @@ namespace PF.UI.Infrastructure.Dialog.Basic
                 { "Title", title }, { "Message", message }, { "Buttons", buttons }, { "Image", image }
             };
 
-            Application.Current.Dispatcher.Invoke(() =>
+            DispatchToUi(() =>
             {
                 // 注意：这里仍然使用 ShowDialog 以保证它是模态的（禁止点击后面内容）
-                // 但由于没有 await，后面的代码会立刻执行，结果通过 callback 返回
+                // 结果通过 callback 返回
                 _dialogService.ShowDialog("MessageDialog", parameters, result =>
                 {
                     callback?.Invoke(result.Result);
@@ -80,13 +95,13 @@ namespace PF.UI.Infrastructure.Dialog.Basic
         /// </summary>
         public Task<string?> ShowInputAsync(string message, string title = "输入", string defaultText = "")
         {
-            var tcs = new TaskCompletionSource<string?>();
+            var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
             var parameters = new DialogParameters
             {
                 { "Title", title }, { "Message", message }, { "DefaultText", defaultText }
             };
 
-            Application.Current.Dispatcher.Invoke(() =>
+            DispatchToUi(() =>
             {
                 _dialogService.ShowDialog("InputDialog", parameters, result =>
                 {
@@ -94,11 +109,11 @@ namespace PF.UI.Infrastructure.Dialog.Basic
                     {
                         var res = result.Parameters.GetValue<string>("InputText");
 
-                        tcs.SetResult(res);
+                        tcs.TrySetResult(res);
                     }
                     else
                     {
-                        tcs.SetResult(null); // 用户点击了取消
+                        tcs.TrySetResult(null); // 用户点击了取消
                     }
                 });
             });
@@ -111,7 +126,7 @@ namespace PF.UI.Infrastructure.Dialog.Basic
         /// </summary>
         public async Task ExecuteWithWaitAsync(Func<Task> action, string message = "请稍候，正在处理中...", string title = "请稍候")
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var parameters = new DialogParameters
             {
                 { "Title", title },
@@ -119,11 +134,11 @@ namespace PF.UI.Infrastructure.Dialog.Basic
                 { "WorkAction", action } // 将任务直接传给弹窗
             };
 
-            Application.Current.Dispatcher.Invoke(() =>
+            DispatchToUi(() =>
             {
                 _dialogService.ShowDialog("WaitDialog", parameters, result =>
                 {
-                    tcs.SetResult(true);
+                    tcs.TrySetResult(true);
                 });
             });
 

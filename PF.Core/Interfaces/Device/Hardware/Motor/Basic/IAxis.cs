@@ -107,7 +107,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default);
+        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default);
 
 
 

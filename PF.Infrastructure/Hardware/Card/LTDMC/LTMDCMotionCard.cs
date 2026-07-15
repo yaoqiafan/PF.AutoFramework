@@ -871,7 +871,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             catch (Exception ex)
             {
                 HardwareLogger.Debug(ex.Message, ex);
-                return null;
+                // 必须返回携带 null 值的 Task，直接 return null 返回的是 null 的 Task 对象，await 时抛 NRE
+                return Task.FromResult<double?>(null);
             }
         }
 
@@ -974,7 +975,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             catch (Exception ex)
             {
                 HardwareLogger.Debug(ex.Message, ex);
-                return null;
+                // 必须返回携带 null 值的 Task，直接 return null 返回的是 null 的 Task 对象，await 时抛 NRE
+                return Task.FromResult<double?>(null);
             }
         }
 

@@ -746,6 +746,19 @@ namespace PF.Infrastructure.Station
                 return;
             }
 
+            // 检查是否有子站复位失败（与 InitializeAllAsync 的 hasFailedStation 检查对称）：
+            // 子站 ExecuteResetAsync 的异常在上方 lambda 中被吞掉仅记日志，且失败子站重新进入
+            // 报警态时携带的是无码 CascadeAlarm（会被 OnSubStationAlarm 过滤），若不在此检查，
+            // 主控会带着仍在报警的子站清空活跃报警并回到 Idle，后续 Start 时该子站静默不启动。
+            bool hasFailedStation = _subStations.Any(s =>
+                s.CurrentState == MachineState.InitAlarm || s.CurrentState == MachineState.RunAlarm);
+            if (hasFailedStation)
+            {
+                _logger.Error("【主控】部分工站复位失败，系统重新回到报警状态。");
+                Fire(MachineTrigger.Error);
+                return;
+            }
+
             OnAfterResetSuccess();
             _alarmService?.ClearAllActiveAlarms();
 
@@ -944,7 +957,10 @@ namespace PF.Infrastructure.Station
 
             // 注销硬件输入总线订阅，防止 Dispose 后仍收到硬件事件
             if (_hardwareEventBus != null)
+            {
                 _hardwareEventBus.HardwareInputTriggered -= OnHardwareInputReceived;
+                _hardwareEventBus.HardwareInputRestored  -= OnHardwareInputRestored;
+            }
 
             // 注销所有子工站事件，防止子站报警事件触发已释放主控的回调
             foreach (var station in _subStations)

@@ -165,7 +165,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="LatchSource">锁存源</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort,int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+        Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort,int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
 
 
@@ -209,7 +209,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="LatchSource">锁存源</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder,  int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+        Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder,  int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
 
 

@@ -238,13 +238,26 @@ namespace PF.Services.Hardware
 
                 try
                 {
+                    bool allReadsOk = true;
                     foreach (var state in _standardInputs)
-                        await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
+                        allReadsOk &= await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
 
-                    // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
-                    int prev = Interlocked.Exchange(ref _consecutiveStandardReadFails, 0);
-                    if (prev >= MonitorFailThreshold)
-                        _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+                    if (allReadsOk)
+                    {
+                        // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
+                        int prev = Interlocked.Exchange(ref _consecutiveStandardReadFails, 0);
+                        if (prev >= MonitorFailThreshold)
+                            _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+                    }
+                    else
+                    {
+                        // 底层 ReadInput 出错时返回 null 而非抛异常，读取失败必须在此计数，
+                        // 否则监控失效自警永远不会触发
+                        int fails = Interlocked.Increment(ref _consecutiveStandardReadFails);
+                        if (fails == MonitorFailThreshold)
+                            _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
+                                $"Standard 监控 IO 连续读取失败 {fails} 次，操作面板检测可能已失效");
+                    }
 
                     await Task.Delay(30, token).ConfigureAwait(false);
                 }
@@ -276,13 +289,26 @@ namespace PF.Services.Hardware
 
                 try
                 {
+                    bool allReadsOk = true;
                     foreach (var state in _safetyInputs)
-                        await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
+                        allReadsOk &= await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
 
-                    // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
-                    int prev = Interlocked.Exchange(ref _consecutiveSafetyReadFails, 0);
-                    if (prev >= MonitorFailThreshold)
-                        _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+                    if (allReadsOk)
+                    {
+                        // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
+                        int prev = Interlocked.Exchange(ref _consecutiveSafetyReadFails, 0);
+                        if (prev >= MonitorFailThreshold)
+                            _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+                    }
+                    else
+                    {
+                        // 底层 ReadInput 出错时返回 null 而非抛异常，读取失败必须在此计数，
+                        // 否则监控失效自警永远不会触发
+                        int fails = Interlocked.Increment(ref _consecutiveSafetyReadFails);
+                        if (fails == MonitorFailThreshold)
+                            _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
+                                $"Safety 监控 IO 连续读取失败 {fails} 次，安全门检测可能已失效");
+                    }
 
                     await Task.Delay(10, token).ConfigureAwait(false);
                 }
@@ -373,10 +399,11 @@ namespace PF.Services.Hardware
         /// 触发条件统一为：上一次未处于激活态 且 本次进入激活态。
         /// 激活态定义：当前值 == NormallyOpen（NC激活=false，NO激活=true）。
         /// </summary>
-        private async Task ProcessSingleInputAsync(InputScanState state, CancellationToken token)
+        /// <returns>true = 本次 IO 读取正常；false = 底层读取失败（ReadInput 返回 null），由调用方计入连续失败自警计数。</returns>
+        private async Task<bool> ProcessSingleInputAsync(InputScanState state, CancellationToken token)
         {
             bool? raw = _ioCard.ReadInput(state.Config.Port);
-            if (raw == null) return;
+            if (raw == null) return false;
 
             bool current = raw.Value;
             bool no = state.Config.NormallyOpen;
@@ -393,11 +420,16 @@ namespace PF.Services.Hardware
                     await Task.Delay(state.Config.DebounceMs, token).ConfigureAwait(false);
 
                     bool? confirmed = _ioCard.ReadInput(state.Config.Port);
-                    // 防抖后若已不再处于激活态，丢弃本次触发
-                    if (confirmed == null || confirmed.Value != no)
+                    if (confirmed == null)
                     {
                         state.LastValue = current;
-                        return;
+                        return false;
+                    }
+                    // 防抖后若已不再处于激活态，丢弃本次触发
+                    if (confirmed.Value != no)
+                    {
+                        state.LastValue = current;
+                        return true;
                     }
                 }
 
@@ -416,6 +448,7 @@ namespace PF.Services.Hardware
             }
 
             state.LastValue = current;
+            return true;
         }
 
         private class InputScanState

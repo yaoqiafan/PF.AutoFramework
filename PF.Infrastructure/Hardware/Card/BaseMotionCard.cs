@@ -163,7 +163,7 @@ namespace PF.Infrastructure.Hardware.Card
         /// <summary>
         /// 设置软件锁存模式
         /// </summary>
-        public abstract Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+        public abstract Task<bool> SetSoftWareLatchMode(int LatchNo, int AxisNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
 
 
@@ -187,7 +187,7 @@ namespace PF.Infrastructure.Hardware.Card
         /// <summary>
         /// 设置高速锁存模式
         /// </summary>
-        public abstract Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder,  int LtcMode = 0, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
+        public abstract Task<bool> SetLtcLatchMode(int LatchNo, int AuxiliaryEncoder,  int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, CancellationToken token = default);
 
 
 
@@ -234,6 +234,7 @@ namespace PF.Infrastructure.Hardware.Card
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="token">取消令牌</param>
         /// <returns></returns>
       public abstract   Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default);
 
