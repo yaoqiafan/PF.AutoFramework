@@ -63,11 +63,15 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterForNavigation<TcpServerDebugView, TcpServerDebugViewModel>(NavigationConstants.Views.TcpServerDebugView);
             containerRegistry.RegisterForNavigation<TcpClientDebugView, TcpClientDebugViewModel>(NavigationConstants.Views.TcpClientDebugView);
             containerRegistry.RegisterForNavigation<FileTransferDebugView, FileTransferDebugViewModel>(NavigationConstants.Views.FileTransferDebugView);
+            containerRegistry.RegisterForNavigation<ModbusRtuDebugView, ModbusRtuDebugViewModel>(NavigationConstants.Views.ModbusRtuDebugView);
+            containerRegistry.RegisterForNavigation<ModbusTcpDebugView, ModbusTcpDebugViewModel>(NavigationConstants.Views.ModbusTcpDebugView);
 
             // 6. 注册三个通讯实例参数修改对话框
             containerRegistry.RegisterDialog<TcpServerParamDialog, TcpServerParamDialogViewModel>(nameof(TcpServerParamDialog));
             containerRegistry.RegisterDialog<TcpClientParamDialog, TcpClientParamDialogViewModel>(nameof(TcpClientParamDialog));
             containerRegistry.RegisterDialog<FileTransferParamDialog, FileTransferParamDialogViewModel>(nameof(FileTransferParamDialog));
+            containerRegistry.RegisterDialog<ModbusRtuParamDialog, ModbusRtuParamDialogViewModel>(nameof(ModbusRtuParamDialog));
+            containerRegistry.RegisterDialog<ModbusTcpParamDialog, ModbusTcpParamDialogViewModel>(nameof(ModbusTcpParamDialog));
         }
     }
 }

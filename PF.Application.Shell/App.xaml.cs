@@ -115,6 +115,22 @@ namespace PF.Application.Shell
                 };
                 return new PF.Infrastructure.Communication.FileTransfer.FileTransferChannel(options, cfg.InstanceId);
             });
+
+            commManager.RegisterFactory("ModbusRtuMaster", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("PortName", out var portName);
+                int baudRate = cfg.ConnectionParameters.TryGetValue("BaudRate", out var br) ? int.Parse(br) : 9600;
+                return new PF.Infrastructure.Communication.Modbus.ModbusRtuMaster(
+                    portName ?? string.Empty, baudRate, cfg.InstanceId);
+            });
+
+            commManager.RegisterFactory("ModbusTcpMaster", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
+                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 502;
+                return new PF.Infrastructure.Communication.Modbus.ModbusTcpMaster(
+                    ip ?? string.Empty, port, cfg.InstanceId);
+            });
         }
 
         #endregion

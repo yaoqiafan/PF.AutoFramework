@@ -1515,7 +1515,7 @@ await _hwManager.ReloadAllAsync();
 | **机器视觉** | 框架已内置 Halcon HDevEngine 集成（`PF.Vision.Halcon` + `PF.Modules.Halcon`）；扩展算法可直接编写 `.hdev`/`.hdvp` 过程或 JSON 管线配置 |
 | **条码扫描** | 已实现 `IBarcodeScan`：海康 `MvCodeReaderBarcodeScan` / 基恩士 `KeyenceBarcodeScan`；新厂商继承 `BaseBarcodeScan` |
 | **工业标签打印** | 接入 BarTender SDK，隔离在独立打印模块 |
-| **PLC 通信** | 基于 `TCPClient` / Modbus 协议实现 `ICommunication`，注册到 `CommunicationManagerService` |
+| **PLC 通信** | 已实现 `IModbusMaster`：`ModbusRtuMaster` / `ModbusTcpMaster`（`ICommunication`，注册到 `CommunicationManagerService`，仅 Master 角色，覆盖功能码 01/02/03/04/05/06/0F/10）；自定义协议可参照其"直接持有底层传输原语"的做法基于 `TCPClient`/`ISerialCommunication` 实现 |
 | **运动控制卡** | 继承 `BaseMotionCard`，封装厂商 SDK（已实现雷赛 `LTDMC`） |
 | **报警管理** | 框架已内置 `PF.Modules.Alarm`；通过 `IAlarmService` 触发，`[AlarmInfo]` 特性声明报警元数据 |
 
@@ -1613,7 +1613,7 @@ await _hwManager.ReloadAllAsync();
 | `LightControllerDebugView` | `LightControllerDebugViewModel` | 光源控制器调试 |
 | `MechanismDebugView` | `MechanismDebugViewModel` | 机构调试（自动发现 `[MechanismUI]`） |
 | `StationDebugView` | `StationDebugViewModel` | 工站调试（自动发现 `[StationUI]`） |
-| `TcpServerDebugView` / `TcpClientDebugView` / `FileTransferDebugView` | — | **通讯综合调试面板（v1.0.4 新增，自动发现 `[CommunicationUI]`）** |
+| `TcpServerDebugView` / `TcpClientDebugView` / `FileTransferDebugView` / `ModbusRtuDebugView` / `ModbusTcpDebugView` | — | **通讯综合调试面板（v1.0.4 新增，自动发现 `[CommunicationUI]`；Modbus 两个调试视图 v1.0.5 新增）** |
 | `AxisParamDialog` | `AxisParamDialogViewModel` | 轴参数编辑对话框 |
 
 ### PF.Modules.Halcon — Halcon 视觉调试模块（v1.0.2）

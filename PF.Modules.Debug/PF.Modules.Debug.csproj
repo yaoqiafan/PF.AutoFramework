@@ -11,8 +11,16 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-07-16) — Modbus RTU/TCP 主站调试视图
+
+[新增]
+- ModbusRtuDebugView/ModbusRtuDebugViewModel + ModbusTcpDebugView/ModbusTcpDebugViewModel：
+  形态对齐既有 TcpClientDebugView（连接/打开状态、事件日志），另加一个按功能码测试
+  读写的面板（覆盖全部 8 个功能码），随 CommunicationDebugViewModel 的 Category/Role
+  树自动接入，无需改动该类。
+
 v1.0.3 (2026-07-09) — 调试面板侧边栏图标调整
 
 [变更]

@@ -3,8 +3,29 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.9</Version>
+    <Version>1.0.10</Version>
     <PackageReleaseNotes>
+		v1.0.10 (2026-07-16) — 新增 Modbus RTU/TCP 主站通讯
+
+		[新增]
+		- PF.Core 1.0.5→1.0.6：IModbusMaster 共享操作契约（8 个功能码 01/02/03/04/05/06/0F/10）+
+		IModbusRtuMaster/IModbusTcpMaster；CommunicationCategory 新增 Modbus 成员；
+		ModbusExceptionCode/ModbusException。
+		- PF.Infrastructure 1.0.5→1.0.6：ModbusRtuMaster/ModbusTcpMaster 实现，均为 ICommunication，
+		注册到 CommunicationManagerService，仅 Master 角色。协议核心（PDU/CRC16/MBAP）RTU、TCP
+		共用，避免两份协议逻辑；TCP 侧每次响应校验 MBAP TransactionId/UnitId 防串包。
+		- PF.Modules.Debug 1.0.3→1.0.4：ModbusRtuDebugView/ModbusTcpDebugView 两个调试视图
+		（连接状态 + 按功能码读写测试面板）。
+
+		[修复]
+		- PF.Infrastructure：ModbusRtuMaster 发起新请求前遗漏丢弃串口驱动接收缓冲区残留字节，
+		上一笔超时请求的迟到响应可能被误当作新事务响应前缀，导致真实的从站异常响应被误判为
+		超时静默吞掉；改为 DiscardInBuffer 与请求登记同锁原子完成。
+
+		[子包版本对照]
+		PF.Core 1.0.5→1.0.6，PF.Infrastructure 1.0.5→1.0.6，PF.Modules.Debug 1.0.3→1.0.4；
+		其余子包本次无变化。
+
 		v1.0.9 (2026-07-15) — 框架层并发/异步/契约修复合集（P1~P3 全量审查产出）
 
 		[修复]

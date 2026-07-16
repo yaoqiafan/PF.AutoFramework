@@ -117,6 +117,10 @@ namespace PF.Core.Constants
             public const string TcpClientDebugView = nameof(TcpClientDebugView);
             /// <summary>文件传输通道调试视图</summary>
             public const string FileTransferDebugView = nameof(FileTransferDebugView);
+            /// <summary>Modbus RTU 主站调试视图</summary>
+            public const string ModbusRtuDebugView = nameof(ModbusRtuDebugView);
+            /// <summary>Modbus TCP 主站调试视图</summary>
+            public const string ModbusTcpDebugView = nameof(ModbusTcpDebugView);
 
             #endregion
 

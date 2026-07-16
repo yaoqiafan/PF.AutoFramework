@@ -31,8 +31,28 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-07-16) — 新增 Modbus RTU/TCP 主站实现
+
+[新增]
+- PF.Infrastructure.Communication.Modbus：ModbusRtuMaster（直接持有 SerialPort）/
+  ModbusTcpMaster（直接持有 TcpClient/NetworkStream），均实现 PF.Core 新增的
+  IModbusRtuMaster/IModbusTcpMaster + ICommunication，注册到 CommunicationManagerService。
+  协议核心（PDU 构建/解析、CRC16、MBAP 头）下沉到 Internal 命名空间下的
+  ModbusPduCodec/ModbusCrc16/ModbusTcpFrameCodec，RTU/TCP 共用，8 个功能码的读写方法
+  由内部的 ModbusMasterBase 统一实现，两个传输实现只需各自补一个"发请求收一帧"的
+  传输原语。
+- ModbusTcpMaster 每次响应校验 MBAP 头 TransactionId/UnitId 与本次请求一致，不匹配
+  （网络抖动/上一次超时请求的迟到响应等场景下的串包）直接丢弃、继续等待下一帧。
+
+[修复]
+- ModbusRtuMaster.ExecuteAsync：发起新请求前遗漏丢弃串口驱动接收缓冲区里的残留字节——
+  上一笔超时请求的迟到响应若恰好在这个窗口到达，会被误当作新事务的响应前缀拼进
+  _buffer，轻则 CRC 校验失败报错，重则残片恰好落在"未置异常位"的分支，让本该抛
+  ModbusException 的真实异常响应被误判为超时静默吞掉。修正为 DiscardInBuffer() 与
+  _buffer.Clear()/挂起请求登记在同一把锁内原子完成。
+
 v1.0.5 (2026-07-15) — 运动/机构/工站/主控并发与契约修复（P1~P3）
 
 [修复 — 关键]

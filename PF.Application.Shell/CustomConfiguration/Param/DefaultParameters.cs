@@ -43,8 +43,14 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         /// （通讯管理器只负责按配置实例化，不抢先连接，避免和硬件自己的 InternalConnectAsync 冲突）。
         /// IP/端口必须和 GetHardwareDefaults() 里 scancode1/scancode2/camera1 展示用的 IP/Port 保持一致。
         ///
-        /// 最后一条是 FileTransferChannel 服务端示例——AutoStart=true，独立运行，不依附任何硬件，
+        /// 中间的 FileTransferChannel 服务端/客户端两条——AutoStart=true，独立运行，不依附任何硬件，
         /// 通讯调试面板可以直接点开验证收发。
+        ///
+        /// 最后两条是 Modbus RTU/TCP 主站示例——不依附任何硬件工厂，纯粹演示 ConnectionParameters
+        /// 该怎么填。AutoStart=false：开发机通常既没有接真实 RTU 从站的串口，也没有能连通的 Modbus TCP
+        /// 从站，若设为 true 每次启动都会在日志里报一次连接失败。真机联调时把对应 PortName/BaudRate
+        /// 或 IP/Port 改成实际值，需要的话再把 AutoStart 改 true，或者直接在通讯调试面板里手动
+        /// 打开/连接测试。
         /// </summary>
         public Dictionary<string, CommunicationParam> GetCommunicationDefaults()
         {
@@ -166,7 +172,42 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "FileTransferChannel 客户端示例配置，连接本机 10000 端口，与 fileTransferServer 配对做本地回环测试"
             };
 
-            var configs = new[] { scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger, Severtest, fileTransferServer, fileTransferClient };
+            // Modbus RTU 主站示例：ConnectionParameters 只认 PortName/BaudRate，Parity/DataBits/StopBits
+            // 沿用 ModbusRtuMaster 构造函数的默认值（None/8/One），如需非默认校验位等需改工厂注册代码。
+            CommunicationConfig modbusRtuExample = new()
+            {
+                InstanceId = "ModbusRtu_Example",
+                DisplayName = "Modbus RTU 主站(示例)",
+                Category = CommunicationCategory.Modbus,
+                Role = CommunicationRole.None,
+                ImplementationClassName = "ModbusRtuMaster",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["PortName"] = "COM1", ["BaudRate"] = "9600" },
+                Remarks = "Modbus RTU 主站示例配置，PortName/BaudRate 改成实际串口参数后可用；" +
+                          "AutoStart 默认 false，避免开发机没接真实从站时启动报连接失败"
+            };
+
+            // Modbus TCP 主站示例：ConnectionParameters 只认 IP/Port，未配置时 Port 兜底取 502（Modbus TCP 标准端口）。
+            CommunicationConfig modbusTcpExample = new()
+            {
+                InstanceId = "ModbusTcp_Example",
+                DisplayName = "Modbus TCP 主站(示例)",
+                Category = CommunicationCategory.Modbus,
+                Role = CommunicationRole.Client,
+                ImplementationClassName = "ModbusTcpMaster",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["IP"] = "192.168.1.100", ["Port"] = "502" },
+                Remarks = "Modbus TCP 主站示例配置，IP/Port 改成实际从站地址后可用；" +
+                          "AutoStart 默认 false，避免开发机连不到从站时启动报连接失败"
+            };
+
+            var configs = new[]
+            {
+                scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger,
+                Severtest, fileTransferServer, fileTransferClient, modbusRtuExample, modbusTcpExample
+            };
 
             return configs.ToDictionary(c => c.InstanceId, c => new CommunicationParam
             {

@@ -3,8 +3,18 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-07-16) — 新增 Modbus 主站通讯契约
+
+[新增]
+- ICommunication 通讯管理框架新增 Modbus 支持：IModbusMaster（共享操作契约，8 个功能码
+  01/02/03/04/05/06/0F/10）+ IModbusRtuMaster/IModbusTcpMaster（分别对齐 ISerialCommunication/
+  IClient 的既定拆分方式，只做 Master/客户端角色）。
+- CommunicationCategory 新增 Modbus 成员。
+- 新增 ModbusExceptionCode 枚举（标准异常码 0x01~0x0B）与 ModbusException（携带 UnitId/
+  FunctionCode/ExceptionCode），从站返回异常响应时抛出。
+
 v1.0.5 (2026-07-15) — 锁存接口 LtcMode 默认值对齐（行为变更）
 
 [行为变更]

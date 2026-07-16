@@ -1,0 +1,206 @@
+<UserControl
+    x:Class="PF.Modules.Debug.Views.Communication.ModbusRtuDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="640"
+    d:DesignWidth="900"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  头部信息卡  -->
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,15"
+                Padding="15"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="{DynamicResource FontSize.H2.Title}"
+                            FontWeight="Bold"
+                            Text="{Binding PortName, StringFormat='Modbus RTU：{0}'}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            FontSize="13"
+                            Text="{Binding BaudRate, StringFormat='波特率：{0} bps'}" />
+                    </StackPanel>
+                    <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                        <TextBlock
+                            Margin="0,0,15,0"
+                            VerticalAlignment="Center"
+                            FontSize="{DynamicResource FontSize.Body.Standard}"
+                            FontWeight="SemiBold"
+                            Text="{Binding StatusText, StringFormat='状态：{0}'}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding OpenCommand}"
+                            Content="打开"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            Command="{Binding CloseCommand}"
+                            Content="关闭"
+                            Style="{DynamicResource ButtonWarning}" />
+                        <Button
+                            Height="32"
+                            Command="{Binding ShowParamDialogCommand}"
+                            Content="参数设置"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--  读写测试面板  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,15"
+                Padding="12"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,8" FontWeight="SemiBold" Text="读写测试" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="功能码" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="从站地址" />
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="起始地址" />
+                        <!--  标签随功能码变化：读时显示"读取个数"，写多个时显示"写入个数"，写单个时显示"单写不使用"，避免误导  -->
+                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding QuantityLabel}" />
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="4"
+                            Text="写入值"
+                            Visibility="{Binding IsSingleWriteFunction, Converter={StaticResource BoolToVis}}" />
+
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Margin="0,4,10,0"
+                            ItemsSource="{Binding FunctionCodes}"
+                            SelectedItem="{Binding SelectedFunctionCode, Mode=TwoWay}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,10,0" Text="{Binding UnitId, Mode=TwoWay}" />
+                        <TextBox Grid.Row="1" Grid.Column="2" Margin="0,4,10,0" Text="{Binding Address, Mode=TwoWay}" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,10,0" Text="{Binding Quantity, Mode=TwoWay}" />
+                        <!--  写单个线圈/寄存器：单值输入框  -->
+                        <TextBox
+                            Grid.Row="1"
+                            Grid.Column="4"
+                            Margin="0,4,10,0"
+                            Text="{Binding WriteValue, Mode=TwoWay}"
+                            Visibility="{Binding IsSingleWriteFunction, Converter={StaticResource BoolToVis}}" />
+                        <Button
+                            Grid.Row="1"
+                            Grid.Column="6"
+                            Width="100"
+                            Margin="0,4,0,0"
+                            Command="{Binding ExecuteTestCommand}"
+                            Content="执行"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </Grid>
+
+                    <!--  写多个线圈/寄存器：每个位置独立填值，随"写入个数"自动增删，不再是"全部写同一个值"  -->
+                    <Border
+                        Margin="0,10,0,0"
+                        Padding="8"
+                        Background="#F8FAFC"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Visibility="{Binding IsMultiWriteFunction, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,6"
+                                FontSize="12"
+                                Foreground="#64748B"
+                                Text="逐位置填值（线圈填 0/1，寄存器填 0~65535）：" />
+                            <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding MultiWriteValues}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,10,6" Orientation="Horizontal">
+                                                <TextBlock
+                                                    MinWidth="28"
+                                                    VerticalAlignment="Center"
+                                                    Text="{Binding Index, StringFormat='[{0}]'}" />
+                                                <TextBox Width="70" Text="{Binding Value, Mode=TwoWay}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!--  日志：只读多行文本框，支持鼠标框选 + Ctrl+C 复制（含每次事务的原始报文十六进制）  -->
+            <Border
+                Grid.Row="2"
+                Padding="10"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <DockPanel>
+                    <TextBlock
+                        Margin="0,0,0,8"
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Text="事件日志（含收发报文，可框选复制）" />
+                    <TextBox
+                        FontFamily="Consolas"
+                        HorizontalScrollBarVisibility="Auto"
+                        IsReadOnly="True"
+                        Text="{Binding LogText, Mode=OneWay}"
+                        TextWrapping="NoWrap"
+                        VerticalScrollBarVisibility="Auto" />
+                </DockPanel>
+            </Border>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

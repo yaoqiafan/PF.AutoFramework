@@ -10,5 +10,8 @@ public enum CommunicationCategory
     FileTransfer,
 
     /// <summary>串口通讯</summary>
-    Serial
+    Serial,
+
+    /// <summary>Modbus 主站（RTU/TCP）</summary>
+    Modbus
 }
