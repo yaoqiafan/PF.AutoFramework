@@ -28,8 +28,12 @@ namespace PF.Services.Params
         /// <summary>日志服务</summary>
         private readonly CategoryLogger _dbLogger;
 
-        /// <summary>领域模型类型与数据库实体类型（Entity）的映射字典，用于避免反射开销</summary>
-        private readonly Dictionary<Type, Type> _paramTypeMapping;
+        /// <summary>
+        /// 领域模型类型与数据库实体类型（Entity）的映射字典，用于避免反射开销。
+        /// ConcurrentDictionary：RegisterParamType 是公开 API，运行期注册与
+        /// Get/SetParam 的读取、GetAllParamsAsync 的枚举可能并发。
+        /// </summary>
+        private readonly ConcurrentDictionary<Type, Type> _paramTypeMapping;
 
         /// <summary>
         /// 当任何参数成功保存或删除，且实际值发生改变时触发的全局事件。
@@ -50,11 +54,9 @@ namespace PF.Services.Params
             _dbLogger = CategoryLoggerFactory.Database(logService);
 
             // 初始化默认的类型映射关系
-            _paramTypeMapping = new Dictionary<Type, Type>
-            {
-                { typeof(UserLoginParam), typeof(UserLoginParam) },
-                { typeof(SystemConfigParam), typeof(SystemConfigParam) }
-            };
+            _paramTypeMapping = new ConcurrentDictionary<Type, Type>();
+            _paramTypeMapping[typeof(UserLoginParam)] = typeof(UserLoginParam);
+            _paramTypeMapping[typeof(SystemConfigParam)] = typeof(SystemConfigParam);
         }
 
         /// <summary>
@@ -667,10 +669,7 @@ namespace PF.Services.Params
             var entityType = typeof(TEntity);
             var modelType = typeof(TModel);
 
-            if (!_paramTypeMapping.ContainsKey(modelType))
-            {
-                _paramTypeMapping[modelType] = entityType;
-            }
+            _paramTypeMapping.TryAdd(modelType, entityType);
         }
 
         /// <summary>

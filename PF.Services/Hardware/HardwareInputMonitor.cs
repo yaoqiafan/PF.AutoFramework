@@ -25,7 +25,8 @@ namespace PF.Services.Hardware
         private readonly ILogService _logger;
         private readonly IAlarmService _alarmService;
 
-        private IIOController _ioCard;
+        // volatile：热重载时由 DeviceRemoved/DeviceAdded 事件线程写入，扫描线程读取
+        private volatile IIOController? _ioCard;
 
         private readonly List<InputScanState> _standardInputs;
         private readonly List<InputScanState> _safetyInputs;
@@ -73,8 +74,28 @@ namespace PF.Services.Hardware
 
             _paramService.ParamChanged += OnParamChanged;
 
+            // 热重载（ReloadAllAsync / 切换模拟模式）会 Dispose 并重建设备实例：
+            // 若不跟随刷新 _ioCard，扫描线程将永远持有旧实例（IsConnected=false），
+            // 安全门/面板按钮检测静默失效且无任何报警
+            _hardwareManager.DeviceRemoved += OnDeviceRemoved;
+            _hardwareManager.DeviceAdded += OnDeviceAdded;
+
             // 构造时立即加载一次屏蔽状态，使 IsMuted 在 StartSafetyMonitoring 之前就已就绪
             _ = LoadSafetyMuteStatesAsync();
+        }
+
+        private void OnDeviceRemoved(object? sender, string deviceId)
+        {
+            if (deviceId != _config.IoDeviceId) return;
+            _ioCard = null;
+            _logger.Warn($"【硬件输入监控】IO 板卡 '{deviceId}' 已被移除（热重载），扫描暂停，等待设备重新注册...");
+        }
+
+        private void OnDeviceAdded(object? sender, IHardwareDevice device)
+        {
+            if (device.DeviceId != _config.IoDeviceId || device is not IIOController ioCard) return;
+            _ioCard = ioCard;
+            _logger.Info($"【硬件输入监控】IO 板卡 '{device.DeviceId}' 已重新注册，扫描自动恢复。");
         }
 
         /// <summary>
@@ -223,6 +244,9 @@ namespace PF.Services.Hardware
         /// </summary>
         public void Dispose()
         {
+            _hardwareManager.DeviceRemoved -= OnDeviceRemoved;
+            _hardwareManager.DeviceAdded -= OnDeviceAdded;
+            _paramService.ParamChanged -= OnParamChanged;
             StopAll();
         }
 
@@ -230,7 +254,9 @@ namespace PF.Services.Hardware
         {
             while (!token.IsCancellationRequested)
             {
-                if (_ioCard == null || !_ioCard.IsConnected)
+                // 局部快照：_ioCard 可能被热重载事件线程置 null，两次读取之间不做快照会 NRE
+                var io = _ioCard;
+                if (io == null || !io.IsConnected)
                 {
                     await Task.Delay(500, token).ConfigureAwait(false);
                     continue;
@@ -240,7 +266,7 @@ namespace PF.Services.Hardware
                 {
                     bool allReadsOk = true;
                     foreach (var state in _standardInputs)
-                        allReadsOk &= await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
+                        allReadsOk &= await ProcessSingleInputAsync(io, state, token).ConfigureAwait(false);
 
                     if (allReadsOk)
                     {
@@ -281,7 +307,9 @@ namespace PF.Services.Hardware
 
             while (!token.IsCancellationRequested)
             {
-                if (_ioCard == null || !_ioCard.IsConnected)
+                // 局部快照：_ioCard 可能被热重载事件线程置 null，两次读取之间不做快照会 NRE
+                var io = _ioCard;
+                if (io == null || !io.IsConnected)
                 {
                     await Task.Delay(500, token).ConfigureAwait(false);
                     continue;
@@ -291,7 +319,7 @@ namespace PF.Services.Hardware
                 {
                     bool allReadsOk = true;
                     foreach (var state in _safetyInputs)
-                        allReadsOk &= await ProcessSingleInputAsync(state, token).ConfigureAwait(false);
+                        allReadsOk &= await ProcessSingleInputAsync(io, state, token).ConfigureAwait(false);
 
                     if (allReadsOk)
                     {
@@ -400,9 +428,9 @@ namespace PF.Services.Hardware
         /// 激活态定义：当前值 == NormallyOpen（NC激活=false，NO激活=true）。
         /// </summary>
         /// <returns>true = 本次 IO 读取正常；false = 底层读取失败（ReadInput 返回 null），由调用方计入连续失败自警计数。</returns>
-        private async Task<bool> ProcessSingleInputAsync(InputScanState state, CancellationToken token)
+        private async Task<bool> ProcessSingleInputAsync(IIOController io, InputScanState state, CancellationToken token)
         {
-            bool? raw = _ioCard.ReadInput(state.Config.Port);
+            bool? raw = io.ReadInput(state.Config.Port);
             if (raw == null) return false;
 
             bool current = raw.Value;
@@ -419,7 +447,7 @@ namespace PF.Services.Hardware
                 {
                     await Task.Delay(state.Config.DebounceMs, token).ConfigureAwait(false);
 
-                    bool? confirmed = _ioCard.ReadInput(state.Config.Port);
+                    bool? confirmed = io.ReadInput(state.Config.Port);
                     if (confirmed == null)
                     {
                         state.LastValue = current;

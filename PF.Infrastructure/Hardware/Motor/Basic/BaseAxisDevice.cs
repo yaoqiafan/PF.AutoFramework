@@ -87,6 +87,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             {
                 existing.TargetPosition = point.TargetPosition;
                 existing.Speed = point.Speed;
+                existing.Acc = point.Acc;
+                existing.Dec = point.Dec;
+                existing.STime = point.STime;
                 existing.Description = point.Description;
                 existing.SortOrder = point.SortOrder;
                 _logger?.Info($"[{DeviceName}] 更新点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");

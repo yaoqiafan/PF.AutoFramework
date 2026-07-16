@@ -238,7 +238,13 @@ namespace PF.Services.Hardware
                 // 等待下一个周期，如果 token 被取消则退出循环
                 while (await timer.WaitForNextTickAsync(token))
                 {
-                    _writer.Write(tag, phase);
+                    // 写入必须持锁并复查 token：ApplyEffectiveStateCore 在 lock 内先 Cancel 再写新状态，
+                    // 若此处锁外写入，已被取消的循环可能再落一拍，把刚设置的"常亮/关闭"覆盖成错误电平
+                    lock (_lock)
+                    {
+                        if (token.IsCancellationRequested) break;
+                        _writer.Write(tag, phase);
+                    }
                     phase = !phase; // 切换状态
                 }
             }

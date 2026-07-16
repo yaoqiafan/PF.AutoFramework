@@ -656,6 +656,10 @@ namespace PF.Infrastructure.Station
             // 使用 Fire 返回值原子判断：在锁内完成 CanFire + Fire，消除 TOCTOU 竞态
             if (!Fire(MachineTrigger.Initialize)) return;
 
+            // 清零上一轮可能残留的中止标志（如 StopAllAsync 与上一轮初始化的异常退出路径竞态时未被消费），
+            // 否则本轮初始化成功后会跳过 InitializeDone，主控永久卡在 Initializing
+            _abortInitRequested = false;
+
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
             // 原子替换 _initCts，取消并释放上次遗留的（若有）
             var oldCts = Interlocked.Exchange(ref _initCts, cts);
@@ -675,6 +679,8 @@ namespace PF.Infrastructure.Station
             catch (Exception ex)
             {
                 _logger.Error($"【主控】初始化异常: {ex.Message}");
+                // 提前 return 也必须消费中止标志，防止残留污染下一轮初始化
+                _abortInitRequested = false;
                 _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout, "设备复位时间过长，请调整复位参数！");
                 Fire(MachineTrigger.Error);
                 return;

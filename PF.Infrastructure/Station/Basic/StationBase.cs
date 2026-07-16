@@ -211,8 +211,9 @@ namespace PF.Infrastructure.Station.Basic
 
         /// <summary>
         /// 原子报警快照：将 ErrorCode 与 <see cref="StationAlarmEventArgs"/> 封装为不可变对。
-        /// 写端使用 <see cref="System.Threading.Volatile.Write"/> 保证写入可见性；
-        /// 读端使用 <see cref="Interlocked.Exchange"/> 原子取走，杜绝并发下 Code/Context 来自不同报警源的撕裂。
+        /// 写端使用 <see cref="Interlocked.CompareExchange{T}(ref T, T, T)"/> 仅在槽位为空时写入（保留首发报警，
+        /// 槽位被占的并发报警直接派发）；读端使用 <see cref="Interlocked.Exchange"/> 原子取走，
+        /// 杜绝并发下 Code/Context 来自不同报警源的撕裂或覆盖丢失。
         /// </summary>
         private sealed record PendingAlarm(string Code, StationAlarmEventArgs Context);
 
@@ -343,16 +344,33 @@ namespace PF.Infrastructure.Station.Basic
             var code = pending?.Code ?? AlarmCodes.System.CascadeAlarm;
             var context = pending?.Context ?? new StationAlarmEventArgs { ErrorCode = code };
 
-            // 异步派发：避免订阅者在事件回调中同步调用 Fire，导致 _stateLock 死锁
+            DispatchAlarmEvent(context, "状态变迁");
+        }
+
+        /// <summary>
+        /// 在独立线程派发 <see cref="StationAlarmTriggered"/>，
+        /// 避免订阅者在回调中同步调用 Fire 导致 _stateLock 死锁。
+        /// </summary>
+        private void DispatchAlarmEvent(StationAlarmEventArgs context, string logTag)
+        {
             var handler = StationAlarmTriggered;
-            if (handler != null)
+            if (handler == null) return;
+            _ = Task.Run(() =>
             {
-                _ = Task.Run(() =>
-                {
-                    try { handler.Invoke(this, context); }
-                    catch (Exception ex) { _logger?.Error($"[{StationName}] StationAlarmTriggered 订阅者异常: {ex.Message}"); }
-                });
-            }
+                try { handler.Invoke(this, context); }
+                catch (Exception ex) { _logger?.Error($"[{StationName}] StationAlarmTriggered({logTag}) 订阅者异常: {ex.Message}"); }
+            });
+        }
+
+        /// <summary>
+        /// 尝试将报警快照写入待派发槽位（CompareExchange，仅当槽位为空时写入，保留首发报警）。
+        /// 槽位已被并发的另一条报警占用时，本条报警直接派发到上层——
+        /// 若改用覆盖写，两条几乎同时触发的不同报警只有后写的会上报，先写的彻底丢失。
+        /// </summary>
+        private void SetPendingAlarm(PendingAlarm alarm)
+        {
+            if (Interlocked.CompareExchange(ref _pendingAlarm, alarm, null) == null) return;
+            DispatchAlarmEvent(alarm.Context, "并发报警");
         }
 
         #endregion
@@ -762,15 +780,7 @@ namespace PF.Infrastructure.Station.Basic
             var pending = Interlocked.Exchange(ref _pendingAlarm, null);
             if (pending == null) return;  // 级联/无码报警，不重复上报，抑制噪音
 
-            var handler = StationAlarmTriggered;
-            if (handler == null) return;
-
-            var context = pending.Context;
-            _ = Task.Run(() =>
-            {
-                try { handler.Invoke(this, context); }
-                catch (Exception ex) { _logger?.Error($"[{StationName}] StationAlarmTriggered(并发报警) 订阅者异常: {ex.Message}"); }
-            });
+            DispatchAlarmEvent(pending.Context, "并发报警");
         }
 
         /// <summary>
@@ -780,8 +790,7 @@ namespace PF.Infrastructure.Station.Basic
         /// <param name="errorCode">预定义报警码（见 <see cref="AlarmCodes"/>）。</param>
         public void TriggerAlarm(string errorCode)
         {
-            Volatile.Write(ref _pendingAlarm,
-                new PendingAlarm(errorCode, new StationAlarmEventArgs { ErrorCode = errorCode }));
+            SetPendingAlarm(new PendingAlarm(errorCode, new StationAlarmEventArgs { ErrorCode = errorCode }));
             TriggerAlarm();
         }
 
@@ -794,7 +803,7 @@ namespace PF.Infrastructure.Station.Basic
         public void TriggerAlarm(string errorCode, string? runtimeMessage)
         {
             var ctx = new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage };
-            Volatile.Write(ref _pendingAlarm, new PendingAlarm(errorCode, ctx));
+            SetPendingAlarm(new PendingAlarm(errorCode, ctx));
             TriggerAlarm();
         }
 
@@ -806,8 +815,7 @@ namespace PF.Infrastructure.Station.Basic
         protected void RaiseAlarm(string errorCode)
         {
             if (_stopRequested) return;  // 仅 Stop 抑制；Pause 不抑制运行期硬件异常
-            Volatile.Write(ref _pendingAlarm,
-                new PendingAlarm(errorCode, new StationAlarmEventArgs { ErrorCode = errorCode }));
+            SetPendingAlarm(new PendingAlarm(errorCode, new StationAlarmEventArgs { ErrorCode = errorCode }));
             TriggerAlarm();
         }
 
@@ -819,8 +827,8 @@ namespace PF.Infrastructure.Station.Basic
         protected void RaiseAlarm(string errorCode, string runtimeMessage)
         {
             if (_stopRequested) return;
-            Volatile.Write(ref _pendingAlarm,
-                new PendingAlarm(errorCode, new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage }));
+            SetPendingAlarm(new PendingAlarm(errorCode,
+                new StationAlarmEventArgs { ErrorCode = errorCode, RuntimeMessage = runtimeMessage }));
             TriggerAlarm();
         }
 
@@ -832,7 +840,7 @@ namespace PF.Infrastructure.Station.Basic
         protected void RaiseAlarm(StationAlarmEventArgs context)
         {
             if (_stopRequested) return;
-            Volatile.Write(ref _pendingAlarm, new PendingAlarm(context.ErrorCode, context));
+            SetPendingAlarm(new PendingAlarm(context.ErrorCode, context));
             TriggerAlarm();
         }
 
@@ -1087,7 +1095,11 @@ namespace PF.Infrastructure.Station.Basic
                     var deserialized = JsonSerializer.Deserialize<T>(json);
                     if (deserialized != null)
                     {
-                        deserialized.IsWrite = false;
+                        // IsWrite=false 表示最后一次落盘来自运行期 FlushMemory（未走优雅退出路径），
+                        // 即上次会话以崩溃/断电结束——数据本身有效，但断点步序需人工核对
+                        if (!deserialized.IsWrite)
+                            _logger?.Warn($"[{StationName}] 记忆参数标记为非优雅写入（IsWrite=false），" +
+                                          "上次会话可能崩溃或断电，续跑前请核对断点步序。");
                         MemoryParam = deserialized;
                         return;
                     }
@@ -1104,9 +1116,13 @@ namespace PF.Infrastructure.Station.Basic
 
         /// <summary>
         /// 将当前记忆参数原子写回磁盘（先写临时文件，再 File.Replace，防止崩溃时损坏 JSON）。
-        /// 在 <see cref="DisposeAsync"/> / <see cref="Dispose"/> 时调用。
         /// </summary>
-        private void WriteMemoryParam()
+        /// <param name="graceful">
+        /// true = 优雅退出写入（Dispose 路径）；false = 运行期快照写入（FlushMemory 路径）。
+        /// 两阶段标记使 <see cref="ReadMemoryParam"/> 能通过文件中的 IsWrite 判断上次会话是否正常关闭——
+        /// 若统一写 true，磁盘上永远是 true，崩溃检测形同虚设。
+        /// </param>
+        private void WriteMemoryParam(bool graceful)
         {
             // 快照引用：防止 ClearMemory() 在序列化过程中将 MemoryParam 替换为新实例
             var snapshot = MemoryParam;
@@ -1114,7 +1130,7 @@ namespace PF.Infrastructure.Station.Basic
             try
             {
                 Directory.CreateDirectory(MemoryFileDir);
-                snapshot.IsWrite = true;
+                snapshot.IsWrite = graceful;
                 snapshot.LastWriteTime = DateTime.Now;
 
                 // 原子写入：先写 .tmp 临时文件，成功后 Replace 正式文件，
@@ -1136,10 +1152,10 @@ namespace PF.Infrastructure.Station.Basic
         }
 
         /// <summary>
-        /// 将当前记忆参数立即持久化到磁盘。
+        /// 将当前记忆参数立即持久化到磁盘（运行期快照，IsWrite=false）。
         /// 供子工站在关键状态变迁节点（如取料完成、退料完成）主动调用，防止崩溃导致状态丢失。
         /// </summary>
-        protected void FlushMemory() => WriteMemoryParam();
+        protected void FlushMemory() => WriteMemoryParam(graceful: false);
 
         /// <summary>
         /// 清空工站记忆参数：将内存参数重置为默认值，并删除磁盘上的 JSON 持久化文件。
@@ -1182,7 +1198,7 @@ namespace PF.Infrastructure.Station.Basic
                 catch { }
             }
 
-            WriteMemoryParam();
+            WriteMemoryParam(graceful: true);
 
             UnwireMechanismAlarms();
             try { _runCts?.Dispose(); } catch { }
@@ -1200,7 +1216,7 @@ namespace PF.Infrastructure.Station.Basic
             if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0) return;
 
             try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
-            WriteMemoryParam();
+            WriteMemoryParam(graceful: true);
             UnwireMechanismAlarms();
             try { _runCts?.Dispose(); } catch { }
             try { _stateLock.Dispose(); } catch { }
@@ -1217,9 +1233,10 @@ namespace PF.Infrastructure.Station.Basic
     public class StationMemoryBaseParam
     {
         /// <summary>
-        /// 标记本次是否为主动写入（由框架内部管理，子类不应手动修改）。
-        /// 正常写入时由框架置 <c>true</c>；读取后置 <c>false</c>。
-        /// 若文件中此值为 <c>false</c>，说明上次是崩溃或断电写入，数据可能不完整。
+        /// 标记最后一次落盘是否来自优雅退出（由框架内部管理，子类不应手动修改）。
+        /// Dispose 路径写 <c>true</c>；运行期 FlushMemory 快照写 <c>false</c>。
+        /// 启动读取时若文件中此值为 <c>false</c>，说明上次会话以崩溃或断电结束
+        /// （数据本身有效，但断点步序需人工核对），框架会记录警告日志。
         /// </summary>
         public bool IsWrite { get; set; }
 

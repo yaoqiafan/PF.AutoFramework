@@ -98,26 +98,42 @@ namespace PF.Services.Sync
                                     string scope = DefaultScope)
         {
             var ctx = GetScope(scope);
-            var entry = GetEntry(ctx, name, scope);
 
-            _systemLogger.Debug($"[SyncService] [{scope}/{name}] 等待中" +
-                           $" (当前计数={entry.Sem.CurrentCount})");
-
-            // 进入飞行区：原子递增，确保 ResetScope 能感知到此线程尚在执行
-            Interlocked.Increment(ref ctx.InFlightCount);
-            try
+            // 一致性重试循环：捕获的 (信号量, 复位令牌) 必须来自同一"复位代"。
+            // 否则 Reset 与本方法交错时可能拿到"旧信号量 + 新令牌"——旧信号量随后被
+            // Dispose/遗弃，而新令牌不会被取消，等待者将永久挂起（Drain 屏障超时也救不回）。
+            while (true)
             {
-                // 合并业务令牌与 scope 复位广播令牌：任意一个触发均可立即打断等待
-                using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                    token, ctx.ResetCts.Token);
+                token.ThrowIfCancellationRequested();
 
-                await entry.Sem.WaitAsync(linked.Token).ConfigureAwait(false);
-                _systemLogger.Debug($"[SyncService] [{scope}/{name}] 已获取");
-            }
-            finally
-            {
-                // 离开飞行区：无论成功、被取消还是异常，均原子递减
-                Interlocked.Decrement(ref ctx.InFlightCount);
+                // 进入飞行区：原子递增，确保 ResetScope 在 Dispose 旧资源前必须等待本线程退出
+                Interlocked.Increment(ref ctx.InFlightCount);
+                try
+                {
+                    // 飞行区内捕获复位令牌与信号量，再反向校验两者仍是当前代；
+                    // 任一在捕获期间被 Reset 替换 → 重试（finally 先归还飞行计数）
+                    var resetCts = ctx.ResetCts;
+                    var entry = GetEntry(ctx, name, scope);
+                    if (!ReferenceEquals(ctx.ResetCts, resetCts)
+                        || !ReferenceEquals(GetEntry(ctx, name, scope).Sem, entry.Sem))
+                        continue;
+
+                    _systemLogger.Debug($"[SyncService] [{scope}/{name}] 等待中" +
+                                   $" (当前计数={entry.Sem.CurrentCount})");
+
+                    // 合并业务令牌与 scope 复位广播令牌：任意一个触发均可立即打断等待
+                    using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                        token, resetCts.Token);
+
+                    await entry.Sem.WaitAsync(linked.Token).ConfigureAwait(false);
+                    _systemLogger.Debug($"[SyncService] [{scope}/{name}] 已获取");
+                    return;
+                }
+                finally
+                {
+                    // 离开飞行区：无论成功、被取消、重试还是异常，均原子递减
+                    Interlocked.Decrement(ref ctx.InFlightCount);
+                }
             }
         }
 

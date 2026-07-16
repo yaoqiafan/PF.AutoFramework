@@ -735,6 +735,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
+            // 模拟模式下无真实板卡，禁止 P/Invoke（无卡环境 ret != 0 甚至 DllNotFoundException 会误报总线错误）
+            if (IsSimulated) return Task.CompletedTask;
+
             ushort errcode = 0;
             short ret = CardAPI.LTDMC.nmc_get_errcode((ushort)CardIndex, 2, ref errcode);
             if ((ret != 0 || errcode != 0) && !HasAlarm)
@@ -1112,7 +1115,10 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
-                short ret = CardAPI.LTDMC.dmc_set_extra_encoder ((ushort)CardIndex, (ushort)Channel ,(ushort )Pos );
+                if (IsSimulated) { return Task.FromResult(true); }
+
+                // dmc_set_extra_encoder 的 pos 参数是 int，不可强转 ushort（负数/大于 65535 会被截断）
+                short ret = CardAPI.LTDMC.dmc_set_extra_encoder ((ushort)CardIndex, (ushort)Channel , Pos );
                 if (ret != 0)
                 {
                     throw new Exception($"设置辅助编码器位置失败, dmc_set_extra_encoder返回值：{ret}");
