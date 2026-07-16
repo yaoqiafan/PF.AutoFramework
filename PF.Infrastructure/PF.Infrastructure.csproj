@@ -31,8 +31,25 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-07-16) — 通讯层统一补齐日志（接入既有 Communication 分类）
+
+[新增]
+- TCPClient/TcpServer/SerialPortCommunication/FileTransferChannel/ModbusRtuMaster/
+  ModbusTcpMaster 构造函数新增可选 ILogService 参数（缺省 null，不写日志，兼容既有调用点），
+  内部统一经 CategoryLoggerFactory.Communication(logger) 包装成 CategoryLogger 使用——
+  对齐 BaseDevice/InternalClient/Worker 已有的"构造函数收 ILogService、内部按自身分类
+  自包装"惯例，落到 LogConfiguration 里早已注册好的 Communication 专属日志类别/文件
+  （此前误用未分类的裸 ILogService 调用，会落进默认分类而非 Communication 分类）。
+  此前只有 CommunicationManagerService（编排层）落日志，底层收发实现完全靠事件，
+  没人订阅时运行期的断线/超时/协议校验失败在日志文件里没有任何痕迹。
+  记录策略：连接/断开/启动/停止等生命周期事件记 Info（TCPClient 的意外断开、
+  Modbus 的连接异常断开记 Warn）；异常/失败记 Error 或 Warn 并带上异常对象；
+  高频数据不记（TCP 收发字节、Modbus 单次成功事务），避免正常轮询把日志刷屏——
+  Modbus 只记失败事务，成功报文的实时查看走已有的 FrameExchanged 事件订阅。
+  App.xaml.cs 的 RegisterCommunicationFactories 统一解析一次 ILogService 传给全部工厂。
+
 v1.0.6 (2026-07-16) — 新增 Modbus RTU/TCP 主站实现
 
 [新增]

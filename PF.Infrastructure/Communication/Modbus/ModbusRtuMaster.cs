@@ -5,7 +5,9 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.Modbus;
+using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Communication.Modbus.Internal;
+using PF.Infrastructure.Logging;
 
 namespace PF.Infrastructure.Communication.Modbus;
 
@@ -22,6 +24,7 @@ public sealed class ModbusRtuMaster : ModbusMasterBase, IModbusRtuMaster, ICommu
 {
     private readonly SerialPort _port;
     private readonly string _instanceId;
+    private readonly CategoryLogger? _logger;
     private readonly SemaphoreSlim _openLock = new(1, 1);
     private readonly SemaphoreSlim _requestLock = new(1, 1);
 
@@ -66,12 +69,14 @@ public sealed class ModbusRtuMaster : ModbusMasterBase, IModbusRtuMaster, ICommu
     /// <param name="parity">校验位，默认 None</param>
     /// <param name="dataBits">数据位，默认 8</param>
     /// <param name="stopBits">停止位，默认 One</param>
+    /// <param name="logger">日志服务，缺省时不记录日志</param>
     public ModbusRtuMaster(string portName, int baudRate, string instanceId,
-        Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One)
+        Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One, ILogService? logger = null)
     {
         PortName = portName;
         BaudRate = baudRate;
         _instanceId = instanceId;
+        _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
 
         _port = new SerialPort(portName, baudRate, parity, dataBits, stopBits);
         _port.DataReceived += OnPortDataReceived;
@@ -91,6 +96,7 @@ public sealed class ModbusRtuMaster : ModbusMasterBase, IModbusRtuMaster, ICommu
                 Status = ClientStatus.Connecting;
                 _port.Open();
                 Status = ClientStatus.Connected;
+                _logger?.Info($"[ModbusRtu:{_instanceId}] 串口已打开 ({PortName} {BaudRate}bps)");
                 Opened?.Invoke(this, EventArgs.Empty);
                 return true;
             }
@@ -117,6 +123,7 @@ public sealed class ModbusRtuMaster : ModbusMasterBase, IModbusRtuMaster, ICommu
 
             if (_port.IsOpen) _port.Close();
             Status = ClientStatus.Disconnected;
+            _logger?.Info($"[ModbusRtu:{_instanceId}] 串口已关闭");
             Closed?.Invoke(this, "主动关闭");
         }
         catch (Exception ex)
@@ -208,7 +215,11 @@ public sealed class ModbusRtuMaster : ModbusMasterBase, IModbusRtuMaster, ICommu
     }
 
     private void RaiseFrameExchanged(byte unitId, byte[] request, byte[]? response, bool success, string? errorMessage)
-        => FrameExchanged?.Invoke(this, new ModbusFrameExchangedEventArgs(unitId, request, response, success, errorMessage));
+    {
+        // 只记失败事务，避免正常轮询在日志里刷屏；成功报文的实时查看走调试面板订阅本事件
+        if (!success) _logger?.Warn($"[ModbusRtu:{_instanceId}] 从站{unitId} 事务失败：{errorMessage}");
+        FrameExchanged?.Invoke(this, new ModbusFrameExchangedEventArgs(unitId, request, response, success, errorMessage));
+    }
 
     private void OnPortDataReceived(object sender, SerialDataReceivedEventArgs e)
     {
@@ -258,7 +269,10 @@ public sealed class ModbusRtuMaster : ModbusMasterBase, IModbusRtuMaster, ICommu
         => RaiseError($"串口错误: {e.EventType}", null);
 
     private void RaiseError(string message, Exception? ex)
-        => ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(_instanceId, message, ex));
+    {
+        _logger?.Error($"[ModbusRtu:{_instanceId}] {message}", ex);
+        ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(_instanceId, message, ex));
+    }
 
     /// <inheritdoc/>
     public void Dispose()

@@ -4,6 +4,8 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using System;
 using System.IO;
 using System.Net.Sockets;
@@ -38,6 +40,7 @@ namespace PF.Infrastructure.Communication.TCP
 
         /// <summary>供 ICommunicationManagerService 统一调度的停止入口</summary>
         public Task StopAsync() => DisconnectAsync();
+        private readonly CategoryLogger _logger;
         private System.Net.Sockets.TcpClient _tcpClient;
         private NetworkStream _stream;
         private CancellationTokenSource _receiveCancellationTokenSource;
@@ -152,10 +155,16 @@ namespace PF.Infrastructure.Communication.TCP
         /// <summary>
         /// 构造TCP客户端
         /// </summary>
-        public TCPClient(string displayName = null, string clientId = null)
+        /// <param name="displayName">显示名称</param>
+        /// <param name="clientId">客户端标识</param>
+        /// <param name="logger">日志服务，缺省时不记录日志（保持与既有调用点兼容）</param>
+        public TCPClient(string displayName = null, string clientId = null, ILogService logger = null)
         {
             _clientId = clientId ?? Guid.NewGuid().ToString();
             _displayName = displayName ?? $"{_clientId}";
+            // 通讯层日志统一走 Communication 分类（对齐 CategoryLoggerFactory 既有约定，
+            // 落到 LogConfiguration 已注册的 Communication 专属日志文件，而不是默认分类）
+            _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
         }
 
         /// <summary>
@@ -488,7 +497,7 @@ namespace PF.Infrastructure.Communication.TCP
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Trace.WriteLine($"[TCPClient] 重连失败: {ex.Message}");
+                            _logger?.Warn($"[TCPClient:{_clientId}] 重连失败: {ex.Message}", ex);
                             // 重连失败，继续尝试
                         }
                     }
@@ -513,7 +522,7 @@ namespace PF.Infrastructure.Communication.TCP
             catch (Exception ex)
             {
                 // 释放路径异常不应向上抛（掩盖原始错误），但需留痕便于排查连接关闭失败。
-                System.Diagnostics.Debug.WriteLine($"[TCPClient] CleanupConnection 异常: {ex.Message}");
+                _logger?.Warn($"[TCPClient:{_clientId}] CleanupConnection 异常: {ex.Message}", ex);
             }
         }
 
@@ -522,6 +531,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         protected virtual void OnConnected(string message)
         {
+            _logger?.Info($"[TCPClient:{_clientId}] {message}");
             Connected?.Invoke(this, new ClientConnectedEventArgs(_clientId, $"{_serverIp}:{_serverPort}"));
         }
 
@@ -535,6 +545,9 @@ namespace PF.Infrastructure.Communication.TCP
                 Status = ClientStatus.Disconnected;
             }
             if (Interlocked.Exchange(ref _disconnectNotified, 1) == 1) return;
+            // 手动断开是预期操作记 Info；非手动（对端关闭/IO异常/Socket异常）记 Warn，便于在日志里筛出异常掉线
+            if (isManual) _logger?.Info($"[TCPClient:{_clientId}] 手动断开: {reason}");
+            else _logger?.Warn($"[TCPClient:{_clientId}] 意外断开: {reason}");
             Disconnected?.Invoke(this, new ClientDisconnectedEventArgs(_clientId, isManual ? $"手动断开: {reason}" : reason));
         }
 
@@ -551,6 +564,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         protected virtual void OnErrorOccurred(string errorMessage, Exception exception)
         {
+            _logger?.Error($"[TCPClient:{_clientId}] {errorMessage}", exception);
             ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(_clientId, errorMessage, exception));
         }
 

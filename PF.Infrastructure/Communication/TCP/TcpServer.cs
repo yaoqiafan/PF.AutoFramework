@@ -4,6 +4,8 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.TCP;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,6 +23,7 @@ namespace PF.Infrastructure.Communication.TCP
     [CommunicationUI(NavigationConstants.Views.TcpServerDebugView)]
     public class TcpServer : IServer, ICommunication
     {
+        private readonly CategoryLogger _logger;
         private TcpListener _listener;
         private CancellationTokenSource _cancellationTokenSource;
         private readonly ConcurrentDictionary<string, ClientConnection> _clients;
@@ -127,11 +130,15 @@ namespace PF.Infrastructure.Communication.TCP
         /// <summary>
         /// 构造TCP服务器
         /// </summary>
-        public TcpServer(string displayName = null, string serverName = "Default TcpServer")
+        /// <param name="displayName">显示名称</param>
+        /// <param name="serverName">服务器名称</param>
+        /// <param name="logger">日志服务，缺省时不记录日志（保持与既有调用点兼容）</param>
+        public TcpServer(string displayName = null, string serverName = "Default TcpServer", ILogService logger = null)
         {
             ServerName = serverName;
             _clients = new ConcurrentDictionary<string, ClientConnection>();
             _displayName = displayName ?? $"{ServerName}";
+            _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
         }
 
         /// <summary>
@@ -173,6 +180,7 @@ namespace PF.Infrastructure.Communication.TCP
             catch (Exception ex)
             {
                 Status = ServerStatus.Error;
+                _logger?.Error($"[TcpServer:{ServerName}] 启动失败: {ex.Message}", ex);
                 OnServerStopped($"服务器启动失败: {ex.Message}");
                 await StopAsync();
                 return false;
@@ -344,6 +352,7 @@ namespace PF.Infrastructure.Communication.TCP
             catch (Exception ex)
             {
                 Status = ServerStatus.Error;
+                _logger?.Error($"[TcpServer:{ServerName}] 停止时发生错误: {ex.Message}", ex);
                 OnServerStopped($"停止服务器时发生错误: {ex.Message}");
             }
         }
@@ -417,6 +426,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         protected virtual void OnServerStarted(string message)
         {
+            _logger?.Info($"[TcpServer:{ServerName}] {message}");
             ServerStarted?.Invoke(this, new ServerEventArgs(message));
         }
 
@@ -425,6 +435,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         protected virtual void OnServerStopped(string message)
         {
+            _logger?.Info($"[TcpServer:{ServerName}] {message}");
             ServerStopped?.Invoke(this, new ServerEventArgs(message));
         }
 
@@ -434,6 +445,7 @@ namespace PF.Infrastructure.Communication.TCP
         protected virtual void OnClientConnected(IClientConnection client)
         {
             ClientStatue = ClientStatus.Connected;
+            _logger?.Info($"[TcpServer:{ServerName}] 客户端接入: {client.ClientId} ({client.RemoteEndPoint})");
             ClientConnected?.Invoke(this, new ClientConnectedEventArgs(client.ClientId, this.IP));
         }
 
@@ -443,6 +455,7 @@ namespace PF.Infrastructure.Communication.TCP
         protected virtual void OnClientDisconnected(string clientId, string reason)
         {
             ClientStatue = ClientStatus.Disconnected;
+            _logger?.Info($"[TcpServer:{ServerName}] 客户端断开: {clientId} ({reason})");
             ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(clientId, reason));
         }
 
@@ -459,6 +472,7 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         protected virtual void OnErrorOccurred(string errorMessage, Exception exception)
         {
+            _logger?.Error($"[TcpServer:{ServerName}] {errorMessage}", exception);
             ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(ServerName, errorMessage, exception));
         }
 

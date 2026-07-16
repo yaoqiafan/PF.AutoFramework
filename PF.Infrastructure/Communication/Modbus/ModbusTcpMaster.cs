@@ -5,7 +5,9 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.Modbus;
+using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Communication.Modbus.Internal;
+using PF.Infrastructure.Logging;
 
 namespace PF.Infrastructure.Communication.Modbus;
 
@@ -25,6 +27,7 @@ namespace PF.Infrastructure.Communication.Modbus;
 public sealed class ModbusTcpMaster : ModbusMasterBase, IModbusTcpMaster, ICommunication
 {
     private readonly string _instanceId;
+    private readonly CategoryLogger? _logger;
     private TcpClient? _tcpClient;
     private NetworkStream? _stream;
     private readonly SemaphoreSlim _connectLock = new(1, 1);
@@ -62,11 +65,13 @@ public sealed class ModbusTcpMaster : ModbusMasterBase, IModbusTcpMaster, ICommu
     /// <param name="serverIp">目标从站服务端 IP</param>
     /// <param name="serverPort">目标从站服务端端口（Modbus TCP 标准端口 502）</param>
     /// <param name="instanceId">通讯实例唯一标识</param>
-    public ModbusTcpMaster(string serverIp, int serverPort, string instanceId)
+    /// <param name="logger">日志服务，缺省时不记录日志</param>
+    public ModbusTcpMaster(string serverIp, int serverPort, string instanceId, ILogService? logger = null)
     {
         ServerIp = serverIp;
         ServerPort = serverPort;
         _instanceId = instanceId;
+        _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
     }
 
     /// <inheritdoc/>
@@ -86,6 +91,7 @@ public sealed class ModbusTcpMaster : ModbusMasterBase, IModbusTcpMaster, ICommu
             _stream = _tcpClient.GetStream();
             ConnectTime = DateTime.Now;
             Status = ClientStatus.Connected;
+            _logger?.Info($"[ModbusTcp:{_instanceId}] 已连接到 {serverIp}:{serverPort}");
             Connected?.Invoke(this, new ClientConnectedEventArgs(_instanceId, $"{serverIp}:{serverPort}"));
             return true;
         }
@@ -112,6 +118,7 @@ public sealed class ModbusTcpMaster : ModbusMasterBase, IModbusTcpMaster, ICommu
 
             CleanupConnection();
             Status = ClientStatus.Disconnected;
+            _logger?.Info($"[ModbusTcp:{_instanceId}] 已主动断开");
             Disconnected?.Invoke(this, new ClientDisconnectedEventArgs(_instanceId, "主动断开"));
         }
         finally
@@ -184,6 +191,7 @@ public sealed class ModbusTcpMaster : ModbusMasterBase, IModbusTcpMaster, ICommu
                 RaiseFrameExchanged(unitId, adu, null, false, $"连接异常: {ex.Message}");
                 Status = ClientStatus.Error;
                 CleanupConnection();
+                _logger?.Warn($"[ModbusTcp:{_instanceId}] 连接异常断开: {ex.Message}", ex);
                 Disconnected?.Invoke(this, new ClientDisconnectedEventArgs(_instanceId, $"连接异常: {ex.Message}"));
                 throw;
             }
@@ -206,10 +214,17 @@ public sealed class ModbusTcpMaster : ModbusMasterBase, IModbusTcpMaster, ICommu
     }
 
     private void RaiseError(string message, Exception? ex)
-        => ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(_instanceId, message, ex));
+    {
+        _logger?.Error($"[ModbusTcp:{_instanceId}] {message}", ex);
+        ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(_instanceId, message, ex));
+    }
 
     private void RaiseFrameExchanged(byte unitId, byte[] request, byte[]? response, bool success, string? errorMessage)
-        => FrameExchanged?.Invoke(this, new ModbusFrameExchangedEventArgs(unitId, request, response, success, errorMessage));
+    {
+        // 只记失败事务，避免正常轮询在日志里刷屏；成功报文的实时查看走调试面板订阅本事件
+        if (!success) _logger?.Warn($"[ModbusTcp:{_instanceId}] 从站{unitId} 事务失败：{errorMessage}");
+        FrameExchanged?.Invoke(this, new ModbusFrameExchangedEventArgs(unitId, request, response, success, errorMessage));
+    }
 
     /// <inheritdoc/>
     public void Dispose()

@@ -2,6 +2,8 @@ using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.Serial;
+using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Logging;
 using System.IO.Ports;
 using System.Text;
 
@@ -19,6 +21,7 @@ namespace PF.Infrastructure.Communication.Serial
         private readonly SemaphoreSlim _openLock = new(1, 1);
         private readonly SemaphoreSlim _sendLock = new(1, 1);
         private readonly string _instanceId;
+        private readonly CategoryLogger _logger;
         private ClientStatus _status = ClientStatus.None;
 
         /// <inheritdoc/>
@@ -63,13 +66,15 @@ namespace PF.Infrastructure.Communication.Serial
         /// <param name="dataBits">数据位，默认 8</param>
         /// <param name="stopBits">停止位，默认 One</param>
         /// <param name="instanceId">通讯实例唯一标识，缺省时使用 portName</param>
+        /// <param name="logger">日志服务，缺省时不记录日志（保持与既有调用点兼容）</param>
         public SerialPortCommunication(string portName, int baudRate = 9600,
             Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One,
-            string? instanceId = null)
+            string? instanceId = null, ILogService? logger = null)
         {
             PortName = portName;
             BaudRate = baudRate;
             _instanceId = instanceId ?? portName;
+            _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
 
             _port = new SerialPort(portName, baudRate, parity, dataBits, stopBits);
             _port.DataReceived += OnPortDataReceived;
@@ -89,12 +94,14 @@ namespace PF.Infrastructure.Communication.Serial
                     Status = ClientStatus.Connecting;
                     _port.Open();
                     Status = ClientStatus.Connected;
+                    _logger?.Info($"[Serial:{_instanceId}] 串口已打开 ({PortName} {BaudRate}bps)");
                     Opened?.Invoke(this, EventArgs.Empty);
                     return true;
                 }
                 catch (Exception ex)
                 {
                     Status = ClientStatus.Error;
+                    _logger?.Error($"[Serial:{_instanceId}] 打开串口失败: {ex.Message}", ex);
                     ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(PortName, $"打开串口失败: {ex.Message}", ex));
                     return false;
                 }
@@ -115,10 +122,12 @@ namespace PF.Infrastructure.Communication.Serial
 
                 if (_port.IsOpen) _port.Close();
                 Status = ClientStatus.Disconnected;
+                _logger?.Info($"[Serial:{_instanceId}] 串口已关闭");
                 Closed?.Invoke(this, "主动关闭");
             }
             catch (Exception ex)
             {
+                _logger?.Error($"[Serial:{_instanceId}] 关闭串口失败: {ex.Message}", ex);
                 ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(PortName, $"关闭串口失败: {ex.Message}", ex));
             }
             finally
@@ -143,6 +152,7 @@ namespace PF.Infrastructure.Communication.Serial
             }
             catch (Exception ex)
             {
+                _logger?.Error($"[Serial:{_instanceId}] 发送数据失败: {ex.Message}", ex);
                 ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(PortName, $"发送数据失败: {ex.Message}", ex));
                 return false;
             }
@@ -175,12 +185,16 @@ namespace PF.Infrastructure.Communication.Serial
             }
             catch (Exception ex)
             {
+                _logger?.Error($"[Serial:{_instanceId}] 接收数据时发生错误: {ex.Message}", ex);
                 ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(PortName, $"接收数据时发生错误: {ex.Message}", ex));
             }
         }
 
         private void OnPortErrorReceived(object sender, SerialErrorReceivedEventArgs e)
-            => ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(PortName, $"串口错误: {e.EventType}", null));
+        {
+            _logger?.Warn($"[Serial:{_instanceId}] 串口错误: {e.EventType}");
+            ErrorOccurred?.Invoke(this, new ErrorOccurredEventArgs(PortName, $"串口错误: {e.EventType}", null));
+        }
 
         // ── ICommunication 生命周期 ──────────────────────────────────────────
 

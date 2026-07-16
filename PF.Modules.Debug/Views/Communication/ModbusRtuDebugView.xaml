@@ -143,8 +143,8 @@
                     <Border
                         Margin="0,10,0,0"
                         Padding="8"
-                        Background="#F8FAFC"
-                        BorderBrush="#E2E8F0"
+                        Background="{DynamicResource ThirdlyRegionBrush}"
+
                         BorderThickness="1"
                         CornerRadius="4"
                         Visibility="{Binding IsMultiWriteFunction, Converter={StaticResource BoolToVis}}">

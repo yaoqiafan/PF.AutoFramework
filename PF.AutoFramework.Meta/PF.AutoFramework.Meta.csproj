@@ -3,8 +3,23 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.10</Version>
+    <Version>1.0.11</Version>
     <PackageReleaseNotes>
+		v1.0.11 (2026-07-16) — 通讯层统一补齐日志（接入既有 Communication 分类）
+
+		[新增]
+		- PF.Infrastructure 1.0.6→1.0.7：TCPClient/TcpServer/SerialPortCommunication/
+		FileTransferChannel/ModbusRtuMaster/ModbusTcpMaster 构造函数新增可选 ILogService
+		参数（缺省 null，兼容既有调用点），内部统一经 CategoryLoggerFactory.Communication
+		包装，落到 LogConfiguration 早已注册好的 Communication 专属日志分类/文件（对齐
+		BaseDevice/InternalClient/Worker 已有的自包装惯例）。此前底层收发实现完全靠事件
+		通知，没人订阅时运行期断线/超时/协议校验失败在日志文件里毫无痕迹；现补齐连接/
+		断开/启动/停止（Info）、异常/失败（Error/Warn）记录，高频数据（TCP 字节流、
+		Modbus 单次成功事务）不记，避免正常轮询刷屏日志。
+
+		[子包版本对照]
+		PF.Infrastructure 1.0.6→1.0.7；其余子包本次无变化。
+
 		v1.0.10 (2026-07-16) — 新增 Modbus RTU/TCP 主站通讯
 
 		[新增]

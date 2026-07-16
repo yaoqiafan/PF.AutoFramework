@@ -13,6 +13,7 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Device.Mechanisms;
+using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Recipe;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Timer;
@@ -64,12 +65,18 @@ namespace PF.Application.Shell
         /// </summary>
         protected override void RegisterCommunicationFactories(ICommunicationManagerService commManager)
         {
+            // 通讯层此前只有 CommunicationManagerService 自身记日志（注册/启动/reload 等编排事件），
+            // 底层收发实现（TcpServer/TCPClient/SerialPortCommunication/FileTransferChannel/Modbus 两个
+            // Master）完全没有落盘日志，只靠事件——没人订阅时运行期的断线/超时/CRC 失败在日志文件里
+            // 找不到任何痕迹。统一在此解析一次 ILogService 传给全部工厂。
+            var logger = Container.Resolve<ILogService>();
+
             commManager.RegisterFactory("TcpServer", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
                 int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 0;
                 int backlog = cfg.ConnectionParameters.TryGetValue("Backlog", out var bl) ? int.Parse(bl) : 10;
-                return new PF.Infrastructure.Communication.TCP.TcpServer(cfg.DisplayName, cfg.InstanceId)
+                return new PF.Infrastructure.Communication.TCP.TcpServer(cfg.DisplayName, cfg.InstanceId, logger)
                 {
                     BindIp = ip ?? "0.0.0.0",
                     BindPort = port,
@@ -81,7 +88,7 @@ namespace PF.Application.Shell
             {
                 cfg.ConnectionParameters.TryGetValue("ServerIp", out var serverIp);
                 int serverPort = cfg.ConnectionParameters.TryGetValue("ServerPort", out var sp) ? int.Parse(sp) : 0;
-                return new PF.Infrastructure.Communication.TCP.TCPClient(cfg.DisplayName, cfg.InstanceId)
+                return new PF.Infrastructure.Communication.TCP.TCPClient(cfg.DisplayName, cfg.InstanceId, logger)
                 {
                     TargetServerIp = serverIp ?? string.Empty,
                     TargetServerPort = serverPort
@@ -113,7 +120,7 @@ namespace PF.Application.Shell
                     ReceiveDirectory = string.IsNullOrWhiteSpace(receiveDirectory) ? optionDefaults.ReceiveDirectory : receiveDirectory,
                     InMemoryReceiveThresholdBytes = thresholdBytes
                 };
-                return new PF.Infrastructure.Communication.FileTransfer.FileTransferChannel(options, cfg.InstanceId);
+                return new PF.Infrastructure.Communication.FileTransfer.FileTransferChannel(options, cfg.InstanceId, logger);
             });
 
             commManager.RegisterFactory("ModbusRtuMaster", cfg =>
@@ -121,7 +128,7 @@ namespace PF.Application.Shell
                 cfg.ConnectionParameters.TryGetValue("PortName", out var portName);
                 int baudRate = cfg.ConnectionParameters.TryGetValue("BaudRate", out var br) ? int.Parse(br) : 9600;
                 return new PF.Infrastructure.Communication.Modbus.ModbusRtuMaster(
-                    portName ?? string.Empty, baudRate, cfg.InstanceId);
+                    portName ?? string.Empty, baudRate, cfg.InstanceId, logger: logger);
             });
 
             commManager.RegisterFactory("ModbusTcpMaster", cfg =>
@@ -129,7 +136,7 @@ namespace PF.Application.Shell
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
                 int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 502;
                 return new PF.Infrastructure.Communication.Modbus.ModbusTcpMaster(
-                    ip ?? string.Empty, port, cfg.InstanceId);
+                    ip ?? string.Empty, port, cfg.InstanceId, logger);
             });
         }
 

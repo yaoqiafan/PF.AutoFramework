@@ -11,7 +11,9 @@ using PF.Core.Enums.FileTransfer;
 using PF.Core.Events.FileTransfer;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.FileTransfer;
+using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Communication.FileTransfer.Internal;
+using PF.Infrastructure.Logging;
 
 namespace PF.Infrastructure.Communication.FileTransfer;
 
@@ -73,6 +75,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
     public event EventHandler<ChunkTransferredEventArgs>? ChunkTransferred;
 
     private readonly FileTransferOptions _options;
+    private readonly CategoryLogger? _logger;
     private readonly Dictionary<int, TransferLane> _lanes = new();
     private readonly ConcurrentDictionary<Guid, InFlightTransfer> _inboundTransfers = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<AckResult>> _pendingAcks = new();
@@ -103,11 +106,15 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
     private readonly record struct AckResult(bool Success, FileTransferFailureReason Reason);
 
     /// <summary>按配置创建通道实例。配置非法（Links 为空/LaneId 重复/Client 缺 RemoteIp）时同步抛出 <see cref="ArgumentException"/></summary>
-    public FileTransferChannel(FileTransferOptions options, string channelName)
+    /// <param name="options">通道配置</param>
+    /// <param name="channelName">通道名称</param>
+    /// <param name="logger">日志服务，缺省时不记录日志（保持与既有调用点兼容）</param>
+    public FileTransferChannel(FileTransferOptions options, string channelName, ILogService? logger = null)
     {
         ValidateOptions(options);
         _options = options;
         ChannelName = channelName;
+        _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
 
         foreach (var link in options.Links)
         {
@@ -154,6 +161,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         foreach (var lane in _lanes.Values) lane.Start();
         RecomputeAggregateStatus();
 
+        _logger?.Info($"[FileTransfer:{ChannelName}] 通道已启动（{Role}，{_lanes.Count} 条 Lane）");
         return Task.FromResult(true);
     }
 
@@ -180,6 +188,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         _sweepCts = null;
 
         SetStatus(FileTransferStatus.Stopped);
+        _logger?.Info($"[FileTransfer:{ChannelName}] 通道已停止");
     }
 
     private void ThrowIfDisposed()
@@ -799,6 +808,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
 
     private void RaiseTransferCompleted(FileTransferMetadata metadata, TransferDirection direction, byte[]? data, string? filePath, FileTransferResult result)
     {
+        _logger?.Info($"[FileTransfer:{ChannelName}] 传输完成 {metadata.TransferId}（{direction}，{result.Elapsed.TotalSeconds:F1}s，{result.ThroughputMBps:F1}MB/s）");
         try
         {
             TransferCompleted?.Invoke(this, new FileTransferCompletedEventArgs
@@ -811,6 +821,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
 
     private void RaiseTransferFailed(Guid transferId, FileTransferFailureReason reason, string message)
     {
+        _logger?.Warn($"[FileTransfer:{ChannelName}] 传输失败 {transferId}（{reason}）：{message}");
         try
         {
             TransferFailed?.Invoke(this, new FileTransferFailedEventArgs { TransferId = transferId, Reason = reason, Message = message });
@@ -847,6 +858,9 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
 
     private void OnLaneStatusChangedInternal(LaneStatus status, bool isReconnect)
     {
+        if (isReconnect) _logger?.Info($"[FileTransfer:{ChannelName}] Lane {status.LaneId} 已重连");
+        else if (!status.IsConnected) _logger?.Warn($"[FileTransfer:{ChannelName}] Lane {status.LaneId} 已断开");
+
         // 本回调在 Lane 的连接守护/收尾路径上同步执行，订阅者异常同样不能外传
         try { LaneStatusChanged?.Invoke(this, new LaneStatusChangedEventArgs { Status = status }); } catch { }
         if (isReconnect)
