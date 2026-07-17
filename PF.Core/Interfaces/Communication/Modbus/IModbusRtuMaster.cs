@@ -18,6 +18,16 @@ public interface IModbusRtuMaster : IModbusMaster, IDisposable
     /// <summary>打开状态</summary>
     ClientStatus Status { get; }
 
+    /// <summary>
+    /// 串口意外失效（USB 转串被拔出、驱动报错等）后是否自动重连，默认 true。
+    /// 失效检测发生在事务执行/收发出错时——串口空闲期间被拔出要等到下一次请求才会被发现。
+    /// 主动 <see cref="CloseAsync"/> 不触发自动重连。
+    /// </summary>
+    bool AutoReconnect { get; set; }
+
+    /// <summary>自动重连尝试间隔（毫秒），必须为正数，默认 5000</summary>
+    int ReconnectIntervalMs { get; set; }
+
     /// <summary>串口打开成功事件</summary>
     event EventHandler? Opened;
 

@@ -11,8 +11,39 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-07-17) — Modbus 调试面板：报文预览 + 十六进制输入 + 原始报文直发 + 修复
+
+[新增]
+- 读写测试面板新增"报文预览"：按当前功能码/地址/值实时生成与实际发送帧逐字节一致的
+  完整请求帧（RTU 含从站地址+CRC16，TCP 含 MBAP 头），通过
+  IModbusMaster.BuildFrame + ModbusPduCodec 构建，参数无效时显示原因。TCP 固定事务号
+  模式下，预览帧的事务号位会反映填写的固定值（递增模式仍占位 0000——发送时才分配，预览不消耗计数器）。
+- 地址/写入值默认按十六进制填写，可勾选切换十进制：切换时已填的值在两种进制的字符串
+  表示间自动换算（解析失败的文本原样保留）；从站地址与数量始终十进制，不受开关影响。
+- 新增"原始报文直发"区域：直接发送十六进制 PDU 字符串（如 03 00 00 00 02，可含空格/
+  短横线分隔），经 IModbusMaster.SendRawAsync 透传（不校验功能码回显，从站异常响应原样
+  返回并在日志中标注），从站地址/CRC/MBAP 头由框架自动补全，并实时显示完整帧预览。
+  用于测试框架未覆盖的功能码或自定义诊断报文。
+- ModbusTcpDebugView 新增"事务号递增"勾选：递增模式下显示"重置事务号"按钮（计数器归零，
+  下一笔请求从 1 开始）；不勾选（固定模式）下显示"事务号(HEX)"输入框，直接填写每次请求
+  使用的事务号（0~FFFF，发送时生效；固定模式下预览帧事务号位反映填写的值，递增模式仍占位 0000）。
+  便于与抓包比对、兼容固定事务号网关。
+- ModbusRtuParamDialog 新增校验位/数据位/停止位三项（按 System.IO.Ports 枚举名解析，
+  非法值回退 None/8/One），配合 Shell 工厂新增的 Parity/DataBits/StopBits 配置键，
+  非默认帧格式（如 8E1）从站不再只能改代码。
+- ModbusRtuParamDialog/ModbusTcpParamDialog 新增"响应超时(ms)/断线自动重连/重连间隔(ms)"
+  三项，对应 Shell 工厂已支持的 TimeoutMs/AutoReconnect/ReconnectIntervalMs 配置键——
+  此前这三个键只能手编配置文件，现可在参数面板直接调整（保存后重载全部通讯实例生效）。
+
+[修复]
+- ModbusRtuDebugViewModel/ModbusTcpDebugViewModel 的参数保存回调（async void）补
+  try/catch：SaveConfigAsync/ReloadAllAsync 抛异常此前会直接崩掉进程，现兜住落到
+  面板日志。
+- 写多个线圈/寄存器的数量钳制到功能码上限（线圈 1968/寄存器 123）：此前误输大数
+  会在 UI 线程逐个生成上万行输入项卡死界面。
+
 v1.0.4 (2026-07-16) — Modbus RTU/TCP 主站调试视图
 
 [新增]

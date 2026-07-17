@@ -3,8 +3,53 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.11</Version>
+    <Version>1.0.12</Version>
     <PackageReleaseNotes>
+		v1.0.12 (2026-07-17) — Modbus 主站健壮性修复合集 + 断线自动重连 + 原始报文透传（含接口破坏性变更）
+
+		[新增]
+		- PF.Core 1.0.6→1.0.7 / PF.Infrastructure 1.0.7→1.0.8：Modbus RTU/TCP 主站断线自动重连——
+		AutoReconnect 默认 true、ReconnectIntervalMs 默认 5000ms，意外断开/连接失败后按间隔后台
+		重试直至成功，主动关闭不触发；RTU 失效检测发生在事务执行时（空闲期拔出要到下一次请求
+		才被发现）。工厂配置键 TimeoutMs/AutoReconnect/ReconnectIntervalMs 两主站通用，RTU 另支持
+		Parity/DataBits/StopBits（缺省 N81）。
+		- PF.Core / PF.Infrastructure：IModbusMaster.SendRawAsync/BuildFrame 原始 PDU 透传与帧预览——
+		直发功能码+数据（1~253 字节）并等待一帧响应，不校验功能码回显、从站异常响应原样返回；
+		RTU 改用报文间静默判帧（CRC 兜底），TCP 沿用 MBAP 定界。用于框架未覆盖的功能码或诊断报文。
+		- PF.Core / PF.Infrastructure：IModbusTcpMaster.TransactionIdAutoIncrement/FixedTransactionId/ResetTransactionId，
+		MBAP 事务号可逐请求递增、固定为指定值或随时重置（计数器改为每实例独立），便于与抓包比对、兼容固定事务号网关。
+		- PF.Modules.Debug 1.0.4→1.0.5：读写测试面板新增报文预览（与实发帧逐字节一致，TCP 固定事务号模式下反映填写值）；
+		地址/写入值默认十六进制可勾选切十进制（切换时已填值自动换算）；新增"原始报文直发"区域（十六进制 PDU 透传
+		+ 完整帧预览）；TCP 面板新增事务号递增勾选/固定事务号输入框/重置按钮；RTU/TCP 参数对话框新增响应超时/断线自动重连/重连间隔三项。
+
+		[破坏性变更]
+		- PF.Core：IModbusRtuMaster/IModbusTcpMaster 新增 AutoReconnect/ReconnectIntervalMs 属性，
+		IModbusTcpMaster.ConnectAsync 新增可选 CancellationToken 参数，IModbusMaster 新增
+		SendRawAsync/BuildFrame 方法，IModbusTcpMaster 新增 TransactionIdAutoIncrement/
+		FixedTransactionId/ResetTransactionId——下游若有自定义实现类需补齐成员；框架内置实现已同步，仅经接口调用的
+		代码重编译即可。
+
+		[修复]
+		- PF.Infrastructure 1.0.8（详见该包 changelog）：RTU 迟到响应污染竞态补全（_port.Read 移入
+		帧缓冲锁内，此前 v1.0.6 的 DiscardInBuffer 防线可被交错绕过）；外部取消不再被误包装成
+		TimeoutException（工站取消式暂停不再被上层判成通讯故障）；TCP MBAP 长度上限 253 校验 +
+		半帧中断主动废弃连接 + MBAP 帧头滑动重新同步（从站多发字节/流内脏数据就地恢复而不断开），
+		帧失步不再连环超时无法自愈；TCP StartAsync 透传 token（此前目标
+		不可达时阻塞约 21s 不可取消）；请求流锁内获取 + ObjectDisposedException 兜底；功能码回显
+		集中校验（同长度错帧不再被当正常数据接受）；RTU 写超时兜底；TimeoutMs 拒绝非正数。
+		- PF.Modules.Debug 1.0.5：参数保存 async void 回调异常此前直接崩进程，现兜住落面板日志；
+		写多个数量钳制到功能码上限（1968/123）防 UI 冻结。
+
+		[行为变更]
+		- 从站异常响应在 FrameExchanged 事件中按失败事务记录并落 Warn 日志（此前记为成功，面板上
+		看不出是从站拒绝）；RTU 串口意外失效后 Status 置 Error 并触发 Closed（此前一直停留在
+		Connected）。升级后自动重连默认开启，不需要的实例在 ConnectionParameters 加
+		AutoReconnect=false。
+
+		[子包版本对照]
+		PF.Core 1.0.6→1.0.7，PF.Infrastructure 1.0.7→1.0.8，PF.Modules.Debug 1.0.4→1.0.5；
+		其余子包本次无变化。
+
 		v1.0.11 (2026-07-16) — 通讯层统一补齐日志（接入既有 Communication 分类）
 
 		[新增]

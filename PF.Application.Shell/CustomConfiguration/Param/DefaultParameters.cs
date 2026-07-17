@@ -172,8 +172,9 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "FileTransferChannel 客户端示例配置，连接本机 10000 端口，与 fileTransferServer 配对做本地回环测试"
             };
 
-            // Modbus RTU 主站示例：ConnectionParameters 只认 PortName/BaudRate，Parity/DataBits/StopBits
-            // 沿用 ModbusRtuMaster 构造函数的默认值（None/8/One），如需非默认校验位等需改工厂注册代码。
+            // Modbus RTU 主站示例：ConnectionParameters 必填 PortName/BaudRate；可选键
+            // Parity(None/Odd/Even/Mark/Space)/DataBits(5~8)/StopBits(One/Two/OnePointFive) 缺省 N81，
+            // TimeoutMs 缺省 1000，AutoReconnect 缺省 true，ReconnectIntervalMs 缺省 5000。
             CommunicationConfig modbusRtuExample = new()
             {
                 InstanceId = "ModbusRtu_Example",
@@ -188,7 +189,8 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                           "AutoStart 默认 false，避免开发机没接真实从站时启动报连接失败"
             };
 
-            // Modbus TCP 主站示例：ConnectionParameters 只认 IP/Port，未配置时 Port 兜底取 502（Modbus TCP 标准端口）。
+            // Modbus TCP 主站示例：ConnectionParameters 必填 IP/Port（未配置时 Port 兜底取 502，Modbus TCP 标准端口）；
+            // 可选键 TimeoutMs 缺省 1000，AutoReconnect 缺省 true，ReconnectIntervalMs 缺省 5000。
             CommunicationConfig modbusTcpExample = new()
             {
                 InstanceId = "ModbusTcp_Example",

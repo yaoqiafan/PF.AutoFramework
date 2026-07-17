@@ -126,18 +126,47 @@ namespace PF.Application.Shell
             commManager.RegisterFactory("ModbusRtuMaster", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("PortName", out var portName);
-                int baudRate = cfg.ConnectionParameters.TryGetValue("BaudRate", out var br) ? int.Parse(br) : 9600;
-                return new PF.Infrastructure.Communication.Modbus.ModbusRtuMaster(
-                    portName ?? string.Empty, baudRate, cfg.InstanceId, logger: logger);
+                int baudRate = cfg.ConnectionParameters.TryGetValue("BaudRate", out var br) && int.TryParse(br, out var brv) ? brv : 9600;
+                // 可选串口帧参数（缺省 N81）：Parity=None/Odd/Even/Mark/Space，DataBits=5~8，StopBits=One/Two/OnePointFive
+                var parity = cfg.ConnectionParameters.TryGetValue("Parity", out var pa)
+                    && Enum.TryParse<System.IO.Ports.Parity>(pa, true, out var pav) ? pav : System.IO.Ports.Parity.None;
+                int dataBits = cfg.ConnectionParameters.TryGetValue("DataBits", out var db) && int.TryParse(db, out var dbv) ? dbv : 8;
+                var stopBits = cfg.ConnectionParameters.TryGetValue("StopBits", out var sb)
+                    && Enum.TryParse<System.IO.Ports.StopBits>(sb, true, out var sbv) ? sbv : System.IO.Ports.StopBits.One;
+                var master = new PF.Infrastructure.Communication.Modbus.ModbusRtuMaster(
+                    portName ?? string.Empty, baudRate, cfg.InstanceId, parity, dataBits, stopBits, logger);
+                var (timeoutMs, autoReconnect, reconnectIntervalMs) = ParseModbusCommonOptions(cfg.ConnectionParameters);
+                if (timeoutMs is int t1) master.TimeoutMs = t1;
+                if (autoReconnect is bool a1) master.AutoReconnect = a1;
+                if (reconnectIntervalMs is int r1) master.ReconnectIntervalMs = r1;
+                return master;
             });
 
             commManager.RegisterFactory("ModbusTcpMaster", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
-                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 502;
-                return new PF.Infrastructure.Communication.Modbus.ModbusTcpMaster(
+                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) && int.TryParse(p, out var pv) ? pv : 502;
+                var master = new PF.Infrastructure.Communication.Modbus.ModbusTcpMaster(
                     ip ?? string.Empty, port, cfg.InstanceId, logger);
+                var (timeoutMs, autoReconnect, reconnectIntervalMs) = ParseModbusCommonOptions(cfg.ConnectionParameters);
+                if (timeoutMs is int t2) master.TimeoutMs = t2;
+                if (autoReconnect is bool a2) master.AutoReconnect = a2;
+                if (reconnectIntervalMs is int r2) master.ReconnectIntervalMs = r2;
+                return master;
             });
+        }
+
+        /// <summary>
+        /// 解析 Modbus 主站的可选公共配置键（TimeoutMs / AutoReconnect / ReconnectIntervalMs）。
+        /// 缺省或解析失败返回 null，保留实现内的默认值（1000ms / true / 5000ms）。
+        /// </summary>
+        private static (int? TimeoutMs, bool? AutoReconnect, int? ReconnectIntervalMs) ParseModbusCommonOptions(
+            Dictionary<string, string> parameters)
+        {
+            int? timeout = parameters.TryGetValue("TimeoutMs", out var to) && int.TryParse(to, out var tov) && tov > 0 ? tov : null;
+            bool? autoReconnect = parameters.TryGetValue("AutoReconnect", out var ar) && bool.TryParse(ar, out var arv) ? arv : null;
+            int? interval = parameters.TryGetValue("ReconnectIntervalMs", out var ri) && int.TryParse(ri, out var riv) && riv > 0 ? riv : null;
+            return (timeout, autoReconnect, interval);
         }
 
         #endregion

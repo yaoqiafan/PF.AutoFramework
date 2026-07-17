@@ -5,8 +5,10 @@ namespace PF.Infrastructure.Communication.Modbus.Internal;
 /// <summary>
 /// Modbus PDU（Protocol Data Unit）构建/解析，RTU 与 TCP 共用——两者的功能码/数据模型完全一致，
 /// 只有外层成帧方式（RTU：地址+PDU+CRC16；TCP：MBAP 头+PDU）不同，协议本体只写一份，避免跑偏。
+/// 公开（public）供两类场景复用：为 IModbusMaster.SendRawAsync 构建标准功能码的原始 PDU、
+/// 调试面板的报文预览——PDU 构建逻辑只此一份，预览与实际发送不会跑偏。
 /// </summary>
-internal static class ModbusPduCodec
+public static class ModbusPduCodec
 {
     private const int MaxReadBitQuantity = 2000;
     private const int MaxReadRegisterQuantity = 125;

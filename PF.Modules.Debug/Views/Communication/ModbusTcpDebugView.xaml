@@ -20,6 +20,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -86,7 +87,46 @@
                 BorderThickness="1"
                 CornerRadius="6">
                 <StackPanel>
-                    <TextBlock Margin="0,0,0,8" FontWeight="SemiBold" Text="读写测试" />
+                    <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="读写测试" />
+                        <!--  勾选切换进制时，已填的地址/写入值自动在两种进制表示间换算；从站地址与数量始终十进制  -->
+                        <CheckBox
+                            Margin="15,0,0,0"
+                            VerticalAlignment="Center"
+                            Content="地址/写入值按十六进制填写"
+                            IsChecked="{Binding UseHexInput}" />
+                        <!--  MBAP 事务号控制：递增模式显示"重置事务号"，固定模式显示事务号输入框（互斥）  -->
+                        <CheckBox
+                            Margin="20,0,0,0"
+                            VerticalAlignment="Center"
+                            Content="事务号递增"
+                            IsChecked="{Binding TransactionIdIncrement}" />
+                        <!--  递增模式：计数器归零，下一笔请求从 1 开始  -->
+                        <Button
+                            Height="26"
+                            Margin="12,0,0,0"
+                            Padding="10,0"
+                            VerticalAlignment="Center"
+                            Command="{Binding ResetTransactionIdCommand}"
+                            Content="重置事务号"
+                            Style="{DynamicResource ButtonDefault}"
+                            Visibility="{Binding TransactionIdIncrement, Converter={StaticResource BoolToVis}}" />
+                        <!--  固定模式：手动填写事务号（十六进制 0~FFFF，发送时生效）  -->
+                        <TextBlock
+                            Margin="12,0,4,0"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="#64748B"
+                            Text="事务号(HEX):"
+                            Visibility="{Binding IsTransactionIdFixed, Converter={StaticResource BoolToVis}}" />
+                        <TextBox
+                            Width="64"
+                            VerticalAlignment="Center"
+                            FontFamily="Consolas"
+                            Text="{Binding FixedTransactionIdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            ToolTip="固定模式下每次请求使用的事务号（十六进制，0~FFFF），递增模式下被忽略"
+                            Visibility="{Binding IsTransactionIdFixed, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200" />
@@ -119,15 +159,15 @@
                             Margin="0,4,10,0"
                             ItemsSource="{Binding FunctionCodes}"
                             SelectedItem="{Binding SelectedFunctionCode, Mode=TwoWay}" />
-                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,10,0" Text="{Binding UnitId, Mode=TwoWay}" />
-                        <TextBox Grid.Row="1" Grid.Column="2" Margin="0,4,10,0" Text="{Binding Address, Mode=TwoWay}" />
-                        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,10,0" Text="{Binding Quantity, Mode=TwoWay}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,10,0" Text="{Binding UnitId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Grid.Row="1" Grid.Column="2" Margin="0,4,10,0" Text="{Binding AddressText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,10,0" Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <!--  写单个线圈/寄存器：单值输入框  -->
                         <TextBox
                             Grid.Row="1"
                             Grid.Column="4"
                             Margin="0,4,10,0"
-                            Text="{Binding WriteValue, Mode=TwoWay}"
+                            Text="{Binding WriteValueText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             Visibility="{Binding IsSingleWriteFunction, Converter={StaticResource BoolToVis}}" />
                         <Button
                             Grid.Row="1"
@@ -153,7 +193,7 @@
                                 Margin="0,0,0,6"
                                 FontSize="12"
                                 Foreground="#64748B"
-                                Text="逐位置填值（线圈填 0/1，寄存器填 0~65535）：" />
+                                Text="逐位置填值（线圈填 0/1，寄存器按所选进制填写）：" />
                             <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding MultiWriteValues}">
                                     <ItemsControl.ItemsPanel>
@@ -168,7 +208,7 @@
                                                     MinWidth="28"
                                                     VerticalAlignment="Center"
                                                     Text="{Binding Index, StringFormat='[{0}]'}" />
-                                                <TextBox Width="70" Text="{Binding Value, Mode=TwoWay}" />
+                                                <TextBox Width="70" Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -176,12 +216,75 @@
                             </ScrollViewer>
                         </StackPanel>
                     </Border>
+
+                    <!--  报文预览：TransactionId 以 00 00 占位（发送时才分配），其余与实际发送帧逐字节一致  -->
+                    <DockPanel Margin="0,10,0,0">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            DockPanel.Dock="Left"
+                            FontSize="12"
+                            Foreground="#64748B"
+                            Text="报文预览：" />
+                        <TextBox
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontFamily="Consolas"
+                            IsReadOnly="True"
+                            Text="{Binding FramePreview, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  原始报文直发：PDU 透传（不校验功能码回显，从站异常响应原样返回），MBAP 头自动补全  -->
+            <Border
+                Grid.Row="2"
+                Margin="0,0,0,15"
+                Padding="12"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="6">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,8" FontWeight="SemiBold" Text="原始报文直发（PDU 透传，复用上方从站地址）" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            Grid.Column="0"
+                            Margin="0,0,10,0"
+                            FontFamily="Consolas"
+                            Text="{Binding RawPduText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            ToolTip="PDU＝功能码+数据，十六进制字符串（如 03 00 00 00 02，可含空格/短横线分隔），MBAP 头由框架自动补全" />
+                        <Button
+                            Grid.Column="1"
+                            Width="100"
+                            Command="{Binding SendRawCommand}"
+                            Content="发送"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </Grid>
+                    <DockPanel Margin="0,8,0,0">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            DockPanel.Dock="Left"
+                            FontSize="12"
+                            Foreground="#64748B"
+                            Text="完整帧预览：" />
+                        <TextBox
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontFamily="Consolas"
+                            IsReadOnly="True"
+                            Text="{Binding RawFramePreview, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </DockPanel>
                 </StackPanel>
             </Border>
 
             <!--  日志：只读多行文本框，支持鼠标框选 + Ctrl+C 复制（含每次事务的原始报文十六进制）  -->
             <Border
-                Grid.Row="2"
+                Grid.Row="3"
                 Padding="10"
                 BorderBrush="#E2E8F0"
                 BorderThickness="1"

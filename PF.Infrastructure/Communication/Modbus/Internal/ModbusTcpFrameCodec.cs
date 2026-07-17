@@ -9,14 +9,11 @@ internal static class ModbusTcpFrameCodec
     /// <summary>MBAP 头固定长度（不含 PDU）</summary>
     public const int MbapHeaderLength = 7;
 
-    private static int _transactionIdCounter;
+    /// <summary>Modbus 规范的 PDU 上限（253 字节），响应声明超过它即视为帧失步/非法</summary>
+    public const int MaxPduLength = 253;
 
-    /// <summary>
-    /// 生成下一个事务号。用原子递增计数器而非共享 Random——
-    /// 共享 Random 并发调用会损坏内部状态且存在撞号概率，本仓库
-    /// SecsGemMessageTools.GenerateSystemBytes（PF.Infrastructure/SecsGem/Tools/SecsGemMessageTools.cs）已踩过这个坑。
-    /// </summary>
-    public static ushort NextTransactionId() => (ushort)Interlocked.Increment(ref _transactionIdCounter);
+    // 事务号计数器不放在这里：它必须每 ModbusTcpMaster 实例独立（支持按实例暂停递增/重置），
+    // 见 ModbusTcpMaster.NextTransactionId
 
     /// <summary>构建完整 ADU（MBAP 头 + PDU）</summary>
     public static byte[] BuildAdu(ushort transactionId, byte unitId, byte[] pdu)
@@ -45,8 +42,10 @@ internal static class ModbusTcpFrameCodec
         var length = (ushort)((header[4] << 8) | header[5]);
         var unitId = header[6];
         var pduLength = length - 1; // Length 覆盖 UnitId(1) + PDU
-        if (pduLength < 0)
-            throw new IOException("Modbus TCP 响应 MBAP Length 字段非法");
+        // 上限校验防帧失步雪崩：若前一笔事务超时在半帧处，残留字节会被错位解析成 MBAP 头，
+        // Length 字段此时可能是任意值（最大 65534）——不设上限就会按错误长度等着收满，连环超时且永远无法重新对齐
+        if (pduLength is < 0 or > MaxPduLength)
+            throw new IOException($"Modbus TCP 响应 MBAP Length 字段非法（PDU 长度 {pduLength}），帧可能已失步");
 
         return (transactionId, unitId, pduLength);
     }

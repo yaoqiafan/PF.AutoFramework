@@ -3,8 +3,33 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-07-17) — Modbus 主站契约补强：自动重连 + 可取消连接 + 原始报文透传（含破坏性变更）
+
+[破坏性变更]
+- IModbusRtuMaster/IModbusTcpMaster 新增 AutoReconnect（意外断开后是否自动重连）与
+  ReconnectIntervalMs（重连间隔）两个属性；IModbusTcpMaster.ConnectAsync 签名新增
+  可选 CancellationToken 参数（此前无 token 的连接尝试在目标不可达时按 OS 默认超时
+  阻塞约 21s，外部编排无法打断）；IModbusMaster 新增 SendRawAsync（原始 PDU 透传）
+  与 BuildFrame（构建完整请求帧供预览）两个方法；IModbusTcpMaster 新增
+  TransactionIdAutoIncrement（MBAP 事务号是否逐请求递增）、FixedTransactionId（固定模式下
+  使用的事务号）属性与 ResetTransactionId() 方法。下游若有这些接口的自定义实现类需补齐成员后才能编译；框架内置实现
+  （PF.Infrastructure 1.0.8 的 ModbusRtuMaster/ModbusTcpMaster）已同步，仅经接口
+  调用的代码源码级兼容、重编译即可。
+
+[新增]
+- IModbusMaster.SendRawAsync：发送原始 PDU（功能码+数据，1~253 字节）并等待一帧响应，
+  返回原始响应 PDU。与 8 个内置读写方法不同——不校验功能码回显，也不把从站异常响应
+  解包成 ModbusException，异常响应原样返回（首字节最高位置 1）。用于框架未覆盖的
+  功能码或自定义诊断报文。
+- IModbusMaster.BuildFrame：构建与实际发送帧逐字节一致的完整请求帧（RTU 含从站地址
+  +CRC16，TCP 含 MBAP 头，TransactionId 以 0x0000 占位），仅供报文预览/记录，不产生 IO。
+- IModbusTcpMaster.TransactionIdAutoIncrement/FixedTransactionId/ResetTransactionId：MBAP
+  事务号是否逐请求递增（默认 true）、固定模式下使用的事务号、重置计数器；固定事务号模式
+  （FixedTransactionId）用于兼容个别按固定事务号应答的网关或与抓包比对（会削弱靠事务号
+  识别迟到/串包响应的能力，仅建议调试场景）。
+
 v1.0.6 (2026-07-16) — 新增 Modbus 主站通讯契约
 
 [新增]

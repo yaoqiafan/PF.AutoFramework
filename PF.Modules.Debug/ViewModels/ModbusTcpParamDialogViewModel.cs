@@ -41,7 +41,8 @@ namespace PF.Modules.Debug.ViewModels
             if (ParamInstance == null) return;
 
             LogService.Info(
-                $"[Modbus TCP 参数] 用户[{CurrentUserName}] 确认修改 | IP:{ParamInstance.IP} Port:{ParamInstance.Port}",
+                $"[Modbus TCP 参数] 用户[{CurrentUserName}] 确认修改 | IP:{ParamInstance.IP} Port:{ParamInstance.Port} " +
+                $"TimeoutMs:{ParamInstance.TimeoutMs} AutoReconnect:{ParamInstance.AutoReconnect} ReconnectIntervalMs:{ParamInstance.ReconnectIntervalMs}",
                 "操作日志");
 
             var paras = new DialogParameters();
@@ -71,5 +72,26 @@ namespace PF.Modules.Debug.ViewModels
         [DisplayName("目标从站端口")]
         [Browsable(true)]
         public int Port { get => _port; set => SetProperty(ref _port, value); }
+
+        private int _timeoutMs = 1000;
+        /// <summary>单次请求响应超时（毫秒），必须为正数</summary>
+        [Category("Modbus TCP 参数")]
+        [DisplayName("响应超时(ms)")]
+        [Browsable(true)]
+        public int TimeoutMs { get => _timeoutMs; set => SetProperty(ref _timeoutMs, value); }
+
+        private bool _autoReconnect = true;
+        /// <summary>连接意外断开/连接失败后是否自动重连（主动断开不触发）</summary>
+        [Category("Modbus TCP 参数")]
+        [DisplayName("断线自动重连")]
+        [Browsable(true)]
+        public bool AutoReconnect { get => _autoReconnect; set => SetProperty(ref _autoReconnect, value); }
+
+        private int _reconnectIntervalMs = 5000;
+        /// <summary>自动重连尝试间隔（毫秒），必须为正数</summary>
+        [Category("Modbus TCP 参数")]
+        [DisplayName("重连间隔(ms)")]
+        [Browsable(true)]
+        public int ReconnectIntervalMs { get => _reconnectIntervalMs; set => SetProperty(ref _reconnectIntervalMs, value); }
     }
 }

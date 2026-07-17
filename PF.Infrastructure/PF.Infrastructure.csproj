@@ -31,8 +31,74 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.7</Version>
+		<Version>1.0.8</Version>
 		<PackageReleaseNotes>
+v1.0.8 (2026-07-17) — Modbus 主站健壮性修复合集 + 断线自动重连 + 原始报文透传
+
+[新增 — 断线自动重连]
+- ModbusRtuMaster/ModbusTcpMaster 新增 AutoReconnect（默认 true）/ReconnectIntervalMs
+  （默认 5000ms）：连接/串口意外失效后按间隔后台重试直至成功，CAS 防重入保证只存在
+  一个重连循环；主动 CloseAsync/DisconnectAsync 先取消重连、先置状态再拆连接，不会被
+  重连回去。TCP 侧连接失败（含首次 StartAsync）同样进入重连；RTU 侧失效检测发生在
+  事务执行/收发出错时，串口空闲期间被拔出要到下一次请求才会被发现。
+- Demo Shell 工厂新增可选配置键（缺省保留实现默认值）：TimeoutMs/AutoReconnect/
+  ReconnectIntervalMs 两个主站通用；RTU 另支持 Parity/DataBits/StopBits（缺省 N81）——
+  此前构造函数支持这三项但工厂不读，遇 8E1 等非默认帧格式从站无法配置。
+
+[修复]
+- ModbusRtuMaster 迟到响应污染竞态（v1.0.6 修复的补全）：OnPortDataReceived 的
+  _port.Read 此前在 _bufferLock 之外执行，存在"脏字节已读进本地缓冲、尚未进锁，
+  新事务在锁内 DiscardInBuffer（驱动缓冲已被读空、丢弃无效）并登记挂起请求，处理
+  线程随后进锁把脏字节追加进帧缓冲"的交错，恰好绕过 DiscardInBuffer 防线；读取移入
+  同一把锁后两种加锁顺序都安全。
+- ModbusRtuMaster 外部取消误报超时：调用方 token 主动取消（如工站取消式暂停）此前
+  被包装成 TimeoutException("等待响应超时")，上层会把一次正常暂停当成通讯故障处理；
+  现按 OperationCanceledException 原样传播，仅真正的响应超时抛 TimeoutException
+  （TCP 侧同步收紧了同一判断）。
+- ModbusTcpMaster 帧失步防护：MBAP Length 声明的 PDU 长度超过协议上限 253 视为失步、
+  抛 IOException 并废弃连接；帧读取在半途被超时/取消打断（流内残留半帧，后续事务把
+  残帧错位解析成 MBAP 头，永远无法重新对齐）时同样主动废弃连接，交给自动重连恢复——
+  此前两种情形都会陷入连环超时且无法自愈。
+- ModbusTcpMaster MBAP 帧头重新同步：从站多发字节、连接混入非 Modbus 数据、迟到响应残片等
+  会让字节流错位，按错位头解析会得到荒诞 Length（实测从站会触发"PDU 长度 24939"这类异常）
+  并误判失步断开。改为读 MBAP 头时校验 ProtocolId==0 且 Length∈[2,254]，不满足则滑动窗口
+  向前扫描重新对齐（最多 64 字节），就地恢复而不断开；误同步读出的帧会被事务号/从站地址
+  匹配兜住不会错当响应。连续滑动仍无合法头才判定严重失步、走断开重连兜底。
+- ModbusTcpMaster：ICommunication.StartAsync 此前丢弃编排层传入的 token；ConnectAsync
+  新增可选 token 并全程透传（接口签名变化见 PF.Core 1.0.7）。
+- ModbusTcpMaster：请求用的流改为拿到请求锁之后再取——等锁期间发生断线重连换流会
+  拿到已 Dispose 的旧流；补 ObjectDisposedException 分支翻译成 IOException 维持接口
+  契约，不再把原始异常裸抛给调用方。
+- ModbusMasterBase 功能码回显集中校验：读响应此前只校验 ByteCount 不校验功能码回显
+  （写回显校验里有），长度恰好相同的错帧会被当正常数据接受；异常响应携带的原功能码
+  也一并校验，不一致按串包错帧处理而非从站异常。
+- ModbusRtuMaster：串口写入设 WriteTimeout=TimeoutMs 兜底（SerialPort 默认无限，硬件
+  流控挂死时同步写会永久阻塞且 token 打不断）；写入失败清理挂起请求并触发失效处理。
+- TimeoutMs/ReconnectIntervalMs 拒绝 0/负数（0 会让每次请求立即超时，负数会让
+  CancellationTokenSource 构造直接抛异常）。
+
+[新增 — 原始报文透传与帧预览]
+- IModbusMaster.SendRawAsync/BuildFrame 实现：SendRawAsync 直发原始 PDU、不校验功能码回显、
+  从站异常响应原样返回；RTU 因无法预知响应长度改用报文间静默判帧（窗口取 10 个字符时间
+  与 30ms 的较大者，低波特率按字符时间放大），响应完整性仍由 CRC 校验兜底，并加最短帧
+  防护拦截噪声碎帧；TCP 沿用 MBAP 定界。BuildFrame 供调试面板报文预览复用，预览帧与实发
+  帧逐字节一致。
+- IModbusTcpMaster.TransactionIdAutoIncrement/FixedTransactionId/ResetTransactionId 实现：MBAP
+  事务号计数器改为每实例独立（此前 ModbusTcpFrameCodec 的静态计数器会跨实例共享，无法按实例
+  重置）；固定模式下取 FixedTransactionId（volatile int 字段，保证 UI 线程设置与请求线程读取
+  间的可见性，读时强转取低 16 位），递增模式原子自增。响应校验始终按本次请求实际发出的事务号匹配。
+- ModbusPduCodec 由 internal 改 public（仍在 Modbus.Internal 命名空间，类名访问性提升），
+  供调试面板构建标准功能码 PDU 做报文预览——PDU 构建逻辑只此一份，预览与实际发送不跑偏。
+- ModbusMasterBase 新增 protected UnknownResponseLength 哨兵常量，ExecuteAsync 收到它表示
+  响应长度未知（原始透传），RTU 据此切换为静默判帧、TCP 不受影响。
+
+[行为变更]
+- 从站异常响应在 FrameExchanged 事件中按失败事务记录（Success=false、errorMessage
+  携带异常码）并记一条 Warn 日志——此前记为成功事务，调试面板/日志上看不出这笔是
+  从站拒绝。Success 语义（收到有效的"正常"响应）与事件文档一致。
+- RTU 串口意外失效后 Status 置 Error 并触发 Closed("意外断开")——此前 Status 一直
+  停留在 Connected，面板显示与实际不符。
+
 v1.0.7 (2026-07-16) — 通讯层统一补齐日志（接入既有 Communication 分类）
 
 [新增]

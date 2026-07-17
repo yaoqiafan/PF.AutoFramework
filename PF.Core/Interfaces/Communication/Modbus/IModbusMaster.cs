@@ -39,4 +39,19 @@ public interface IModbusMaster
 
     /// <summary>写多个寄存器（功能码 10）</summary>
     Task WriteMultipleRegistersAsync(byte unitId, ushort startAddress, ushort[] values, CancellationToken token = default);
+
+    /// <summary>
+    /// 构建与实际发送完全一致的完整请求帧（RTU：从站地址+PDU+CRC16；TCP：MBAP 头+PDU，
+    /// 其中 TransactionId 以 0x0000 占位、实际发送时才分配），仅供报文预览/记录，不产生任何 IO。
+    /// </summary>
+    byte[] BuildFrame(byte unitId, byte[] requestPdu);
+
+    /// <summary>
+    /// 发送原始 PDU（功能码+数据，1~253 字节，不含从站地址/CRC/MBAP 头，成帧由传输层自动完成）
+    /// 并等待一帧响应，返回原始响应 PDU。与 8 个内置读写方法不同：不校验功能码回显，也不把从站
+    /// 异常响应解包成 ModbusException——异常响应原样返回（首字节最高位置 1），适用于框架未覆盖的
+    /// 功能码或自定义诊断报文。RTU 侧因无法预知响应长度，改用报文间静默判帧（响应完整性仍由 CRC
+    /// 校验兜底）；TCP 侧仍按 MBAP 头定界并校验 TransactionId/UnitId。超时抛 TimeoutException。
+    /// </summary>
+    Task<byte[]> SendRawAsync(byte unitId, byte[] requestPdu, CancellationToken token = default);
 }
