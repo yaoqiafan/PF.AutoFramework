@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
 {
-    internal class KeyenceIntelligent_IVCamera : BaseIntelligentCamera
+    public  class KeyenceIntelligent_IVCamera : BaseIntelligentCamera
     {
         /// <summary>
         /// 构造基恩士IV系列智能相机。IP/端口不再单独传入——直接读取注入客户端的 TargetServerIp/TargetServerPort，
@@ -121,7 +121,7 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
                 {
                     throw new ArgumentException($"切换程序编号错误: {programid}");
                 }
-                var cmd = $"PW,{ProgramID:D4}\r";
+                var cmd = $"PW,{ProgramID}\r";
                 var resp = await SendCommandAsync(cmd, token);
                 if (!resp.Trim().Contains("PW"))
                 {
@@ -237,12 +237,8 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
                 }
 
                 // 触发后在时间窗口内收取识别结果
-                var data = await _triggerClient.ReceiveAllDataInTimeWindowAsync(1000).WaitAsync(token);
-                if (data is null || data.Length == 0)
-                {
-                    throw new InvalidOperationException("基恩士智能相机触发后未在时间窗口内返回识别结果");
-                }
-                var res = Encoding.ASCII.GetString(data).Split(',');
+               
+                var res = resp .Split(',');
                 return res[res.Length - 1];
             }
             catch (OperationCanceledException) { throw; }
