@@ -3,8 +3,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.7</Version>
+		<Version>1.0.8</Version>
 		<PackageReleaseNotes>
+v1.0.8 (2026-07-21) — 新增 HardwareUIAttribute（硬件调试界面路由特性）
+
+[新增]
+- HardwareUIAttribute：与 CommunicationUIAttribute/StationUIAttribute 同一约定，供 HardwareDebugView
+  按设备运行时类型反射发现自定义调试视图（ViewName），作为项目自定义硬件设备调试页的路由扩展点。
+  纯新增、无破坏性变更；配合 PF.Modules.Debug 1.0.6 的硬件调试路由改造使用。
+
 v1.0.7 (2026-07-17) — Modbus 主站契约补强：自动重连 + 可取消连接 + 原始报文透传（含破坏性变更）
 
 [破坏性变更]

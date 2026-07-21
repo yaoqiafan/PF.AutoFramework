@@ -1,3 +1,4 @@
+using PF.Core.Attributes;
 using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
@@ -12,6 +13,7 @@ using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace PF.Modules.Debug.ViewModels
@@ -209,6 +211,20 @@ namespace PF.Modules.Debug.ViewModels
         private void ExecuteNavigateToDebug(object payload)
         {
             if (payload == null) return;
+
+            // 设备类型自带 [HardwareUI] → 用它声明的视图（项目自定义设备的调试页扩展点，
+            // 与 [CommunicationUI]/[StationUI] 同一约定；统一以 "Device" 作为导航参数键）。
+            // 未标注的内置设备（轴/IO/卡/相机/条码/光源）继续走下方硬编码分发，向后兼容。
+            var customViewName = payload.GetType().GetCustomAttribute<HardwareUIAttribute>()?.ViewName;
+            if (!string.IsNullOrEmpty(customViewName))
+            {
+                RegionManager.RequestNavigate(
+                    NavigationConstants.Regions.DebugViewRegion,
+                    customViewName,
+                    new NavigationParameters { { "Device", payload } });
+                return;
+            }
+
             var parameters = new NavigationParameters();
 
             if (payload is IMotionCard card)

@@ -11,8 +11,16 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-07-21) — 硬件调试支持 [HardwareUI] 自定义设备路由
+
+[新增]
+- HardwareDebugViewModel.ExecuteNavigateToDebug 增加特性优先分支：设备类型标注 [HardwareUI("视图名")]
+  时，按其 ViewName 导航到项目自定义调试视图（导航参数键统一为 "Device"），优先于内置类型的硬编码
+  分发；未标注的内置设备（轴/IO/卡/相机/条码/光源）行为完全不变，向后兼容。
+  依赖 PF.Core 1.0.8 的 HardwareUIAttribute。
+
 v1.0.5 (2026-07-17) — Modbus 调试面板：报文预览 + 十六进制输入 + 原始报文直发 + 修复
 
 [新增]
