@@ -94,7 +94,13 @@
       "Read(//tmp/**)",
       "Read(//c/Users/12434/.nuget/packages/pf.ui.resources/**)",
       "Read(//c/Users/12434/.nuget/packages/handycontrol/**)",
-      "Bash(unzip -l PF.AutoFramework.VsExtension.vsix)"
+      "Bash(unzip -l PF.AutoFramework.VsExtension.vsix)",
+      "Bash(python -c \"import pypdf; print\\('pypdf ok'\\)\")",
+      "Bash(python -c \"import PyPDF2; print\\('PyPDF2 ok'\\)\")",
+      "PowerShell($w = New-Object -ComObject Word.Application -ErrorAction SilentlyContinue; if \\($w\\) { \"Word COM available: $\\($w.Version\\)\"; $w.Quit\\(\\) } else { \"No Word COM\" })",
+      "Read(//d/VSprojects/Work/PF/PF.AutoFramework/Standard Project/EnvAlign/DOCS/资料/物料开发资料/无线三色灯/**)",
+      "Bash(pdftotext -layout -enc UTF-8 \"产品规格说明书-NI4-智能WiFi信号灯-20251210.pdf\" \"C:/Users/12434/AppData/Local/Temp/claude/D--VSprojects-Work-PF-PF-AutoFramework-Standard-Library-PF-AutoFramework/f0334cd4-2d24-4e64-be97-83fd8d2cda3b/scratchpad/light.txt\")",
+      "Bash(xargs grep -n \"AutoStart\" -B4 -A8)"
     ]
   }
 }

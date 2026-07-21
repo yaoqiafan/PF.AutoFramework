@@ -3,8 +3,21 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.12</Version>
+    <Version>1.0.13</Version>
     <PackageReleaseNotes>
+		v1.0.13 (2026-07-21) — 硬件调试新增 [HardwareUI] 自定义设备路由扩展点
+
+		[新增]
+		- PF.Core 1.0.7→1.0.8：新增 HardwareUIAttribute，与 CommunicationUIAttribute/StationUIAttribute
+		同一约定——设备类型标注 [HardwareUI("视图名")] 即可声明其硬件调试视图。
+		- PF.Modules.Debug 1.0.5→1.0.6：硬件综合调试的设备点击路由改造——优先读取设备类型上的
+		[HardwareUI] 特性导航到项目自定义调试视图（导航参数键 "Device"），未标注的内置设备
+		（轴/IO/卡/相机/条码/光源）仍走原硬编码分发，行为不变、向后兼容。补齐了此前硬件层缺失的
+		调试页扩展点（对齐通讯层 [CommunicationUI]/工站层 [StationUI] 的既有能力）。
+
+		[子包版本对照]
+		PF.Core 1.0.7→1.0.8，PF.Modules.Debug 1.0.5→1.0.6；其余子包本次无变化。
+
 		v1.0.12 (2026-07-17) — Modbus 主站健壮性修复合集 + 断线自动重连 + 原始报文透传（含接口破坏性变更）
 
 		[新增]
