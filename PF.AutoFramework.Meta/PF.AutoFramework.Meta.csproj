@@ -3,8 +3,19 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.13</Version>
+    <Version>1.0.14</Version>
     <PackageReleaseNotes>
+		v1.0.14 (2026-07-27) — 状态栏设备项支持三态显示（PF.Application.Base 1.0.3→1.0.4）
+
+		[新增]
+		- PF.Application.Base 1.0.3→1.0.4：DeviceStatusItem 新增 StatusText/StatusBrush/UseCustomStatus，
+		状态栏设备项可从 IsConnected 二值灯切换为「自定义文本+颜色」的多态显示，承载三态及以上枚举
+		状态（如 SECS 控制状态：离线/本地/远程）；枚举→文本/色的转换由消费方外接转换器负责。
+		MainWindow 状态栏 ItemTemplate 同步支持，现有二值灯项向后兼容。
+
+		[子包版本对照]
+		PF.Application.Base 1.0.3→1.0.4；其余子包本次无变化。
+
 		v1.0.13 (2026-07-21) — 硬件调试新增 [HardwareUI] 自定义设备路由扩展点
 
 		[新增]

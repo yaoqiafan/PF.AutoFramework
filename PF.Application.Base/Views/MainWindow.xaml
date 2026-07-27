@@ -368,15 +368,37 @@
                             <StatusBarItem>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Label}" />
+                                    <!--  灯：UseCustomStatus 为真时用外接转换器提供的 StatusBrush，否则回退 IsConnected 二值灯  -->
                                     <Ellipse
                                         Width="8"
                                         Height="8"
-                                        Margin="0,0,4,0"
-                                        Fill="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
-                                    <TextBlock
-                                        FontWeight="SemiBold"
-                                        Foreground="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}"
-                                        Text="{Binding IsConnected, Converter={StaticResource DeviceConnectedTextConverter}}" />
+                                        Margin="0,0,4,0">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UseCustomStatus}" Value="True">
+                                                        <Setter Property="Fill" Value="{Binding StatusBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <!--  文本：UseCustomStatus 为真时显示 StatusText，否则回退 IsConnected 已连接/未连接  -->
+                                    <TextBlock FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                                                <Setter Property="Text" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedTextConverter}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UseCustomStatus}" Value="True">
+                                                        <Setter Property="Foreground" Value="{Binding StatusBrush}" />
+                                                        <Setter Property="Text" Value="{Binding StatusText}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
                             </StatusBarItem>
                         </StackPanel>

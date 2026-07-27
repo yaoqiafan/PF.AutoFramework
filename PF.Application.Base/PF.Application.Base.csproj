@@ -3,8 +3,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-07-27) — 状态栏设备项支持多态（三态及以上）显示
+
+[新增]
+- DeviceStatusItem 新增 StatusText / StatusBrush / UseCustomStatus 三个成员：设置 StatusText
+  后状态栏该项自动从 IsConnected 二值灯切换为「自定义文本 + 颜色」的多态显示，用于承载三态
+  及以上的枚举状态（如 SECS 控制状态：离线/本地/远程）。枚举→文本/颜色的映射由消费方
+  （外接转换器）负责，框架只承载结果、不感知具体业务枚举，保持通用。
+- MainWindow 状态栏 ItemTemplate 相应改造：UseCustomStatus 为真时灯用 StatusBrush、文本用
+  StatusText，否则回退原 IsConnected（已连接/未连接）二值灯。现有仅用 Label/IsConnected 的
+  设备项行为完全不变，向后兼容。
+
 v1.0.3 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效 + 版本徽章
 
 [新增]
