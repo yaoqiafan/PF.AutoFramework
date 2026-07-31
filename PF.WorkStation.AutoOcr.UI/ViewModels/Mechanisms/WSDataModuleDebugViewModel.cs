@@ -1,4 +1,3 @@
-using NPOI.SS.UserModel.Charts;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.UI.Infrastructure.PrismBase;
 using PF.Workstation.AutoOcr.CostParam;

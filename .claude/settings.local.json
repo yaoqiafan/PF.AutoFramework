@@ -100,7 +100,21 @@
       "PowerShell($w = New-Object -ComObject Word.Application -ErrorAction SilentlyContinue; if \\($w\\) { \"Word COM available: $\\($w.Version\\)\"; $w.Quit\\(\\) } else { \"No Word COM\" })",
       "Read(//d/VSprojects/Work/PF/PF.AutoFramework/Standard Project/EnvAlign/DOCS/资料/物料开发资料/无线三色灯/**)",
       "Bash(pdftotext -layout -enc UTF-8 \"产品规格说明书-NI4-智能WiFi信号灯-20251210.pdf\" \"C:/Users/12434/AppData/Local/Temp/claude/D--VSprojects-Work-PF-PF-AutoFramework-Standard-Library-PF-AutoFramework/f0334cd4-2d24-4e64-be97-83fd8d2cda3b/scratchpad/light.txt\")",
-      "Bash(xargs grep -n \"AutoStart\" -B4 -A8)"
+      "Bash(xargs grep -n \"AutoStart\" -B4 -A8)",
+      "Read(//c/Users/12434/.nuget/packages/**)",
+      "Read(//c/Users/12434/.nuget/packages/prism.dryioc/9.0.537/lib/**)",
+      "PowerShell($root=\"D:\\\\VSprojects\\\\Work\\\\PF\\\\PF.AutoFramework\\\\Standard Library\\\\PF.AutoFramework\\\\DLL\"; foreach\\($f in @\\(\"Communication.dll\",\"Keyence.AutoID.SDK.dll\",\"MvCodeReaderSDK.Net.dll\",\"CommonToolDll.dll\",\"ControllerDllCSharp.dll\",\"HALCON\\\\halcondotnet.dll\",\"HALCON\\\\hdevenginedotnet.dll\"\\)\\){ $p=Join-Path $root $f; if\\(Test-Path $p\\){ $b=[IO.File]::ReadAllBytes\\($p\\); $s=[Text.Encoding]::ASCII.GetString\\($b\\); $rt=[regex]::Matches\\($s,'v[24]\\\\.0\\\\.\\\\d{5}'\\) | %{$_.Value} | Select-Object -Unique; $tfm=[regex]::Matches\\($s,'\\\\.NET\\(Framework|Standard|CoreApp\\)?,Version=v[\\\\d\\\\.]+'\\) | %{$_.Value} | Select-Object -Unique; $pe = if\\($s -match 'PE..d'\\){''}else{''}; \"{0,-32} runtime={1,-14} tfm={2}\" -f $f,\\($rt -join ','\\),\\($tfm -join ','\\) } })",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet list *)",
+      "Bash(dotnet package *)",
+      "Bash(echo \"RESTORE_EXIT=$?\")",
+      "Bash(grep -E \"error|警告$|错误$|个警告|个错误|生成成功|生成失败|warning :\")",
+      "Bash(dotnet --list-sdks)",
+      "Read(//c/Program Files/dotnet/sdk/10.0.302/Sdks/**)",
+      "Bash(curl -s \"https://api.nuget.org/v3-flatcontainer/prism.dryioc/9.0.537/prism.dryioc.nuspec\")",
+      "Bash(curl -s \"https://nuget.powerfocus.com.cn/v3-flatcontainer/pf.ui.resources/1.1.1/pf.ui.resources.nuspec\")",
+      "Bash(curl -s \"https://api.nuget.org/v3-flatcontainer/prism.container.dryioc/9.0.106/prism.container.dryioc.nuspec\")",
+      "Bash(grep -vE \"^\\\\s*$\" \"C:/Users/12434/AppData/Local/Temp/claude/D--VSprojects-Work-PF-PF-AutoFramework-Standard-Library-PF-AutoFramework/4b26edd6-7c46-4046-9266-bef0a6a42f30/tasks/bxljzc41p.output\")"
     ]
   }
 }

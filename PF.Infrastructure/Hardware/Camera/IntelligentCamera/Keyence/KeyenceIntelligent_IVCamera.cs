@@ -12,7 +12,8 @@ using System.Threading.Tasks;
 
 namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
 {
-    public  class KeyenceIntelligent_IVCamera : BaseIntelligentCamera
+    ///基恩士智能相机SDK
+    public class KeyenceIntelligent_IVCamera : BaseIntelligentCamera
     {
         /// <summary>
         /// 构造基恩士IV系列智能相机。IP/端口不再单独传入——直接读取注入客户端的 TargetServerIp/TargetServerPort，
@@ -237,8 +238,8 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
                 }
 
                 // 触发后在时间窗口内收取识别结果
-               
-                var res = resp .Split(',');
+
+                var res = resp.Split(',');
                 return res[res.Length - 1];
             }
             catch (OperationCanceledException) { throw; }
@@ -347,7 +348,7 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
                 {
                     XSSFWorkbook wk = new XSSFWorkbook(fs);
                     ISheet sheet = wk.GetSheet("IV");
-                   
+
                     for (int i = 1; i < sheet.LastRowNum + 1; i++)
                     {
                         string kk = sheet.GetRow(i).GetCell(0).ToString() ?? "";

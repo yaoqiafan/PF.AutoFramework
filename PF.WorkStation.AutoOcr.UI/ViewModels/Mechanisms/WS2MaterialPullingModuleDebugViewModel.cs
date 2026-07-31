@@ -1,5 +1,4 @@
 using log4net.Util;
-using NPOI.SS.UserModel.Charts;
 using PF.Core.Entities.Configuration;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Configuration;

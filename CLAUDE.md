@@ -16,7 +16,7 @@ dotnet build -c Release --no-restore
 dotnet pack  -c Release --no-build -o nupkg   # 打包为 NuGet
 
 publish-only.bat   # Clean → Restore → Build → Pack（三步自动化）
-push-only.bat      # 推送 nupkg 到私有 BaGet 服务器 101.43.39.163:8081（API Key: Gll1243411723）
+push-only.bat      # 推送 nupkg 到私有 BaGet 服务器 https://nuget.powerfocus.com.cn/api/v2/package（推送地址与 API Key 见脚本内 $PUSH_URL / $API_KEY，勿在此重复记录以免失步）
 ```
 
 无单元测试项目，运行验证依赖 Shell 启动 + Debug/Logging 模块。
@@ -192,10 +192,14 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 
 ## NuGet 配置
 
-两个包源（`nuget.config`）：`nuget.org`（公共）+ 私有 BaGet `101.43.39.163:8081`。
+两个包源（`nuget.config`）：`nuget.org`（公共）+ 私有 BaGet `https://nuget.powerfocus.com.cn/v3/index.json`（源名 `PowerFocus_NuGet`）。
 **所有包版本在 `Directory.Packages.props` 中央管理，各 `.csproj` 不得指定版本号。**
 
-核心版本：Prism 9.0.537 / DryIoc 6.2.0 / EF Core 9.0.12 / Stateless 5.20.1 / log4net 3.3.0 / NPOI 2.7.5 / Microsoft.Extensions.Hosting 10.0.2 / System.ServiceProcess.ServiceController 10.0.2
+核心版本：Prism 9.0.537（其容器实现 `DryIoc.dll` 5.4.3 由 Prism.DryIoc 传递引入，无需显式声明）/ EF Core 9.0.18 / Stateless 5.20.1 / log4net 3.3.2 / NPOI 2.7.6 / Microsoft.Extensions.* 10.0.10 / System.Drawing.Common、System.IO.Ports、System.IO.Hashing、System.ServiceProcess.ServiceController 10.0.10
+
+两处版本天花板（升级时注意）：
+- **EF Core 停在 9.x**：10.0.x 起 lib 仅 `net10.0`，当前 `net8.0` 目标无法引用，要升 EF 10 必须先改 TFM。
+- **NPOI 停在 2.7.6**：2.8.0 起二进制包改用 OSMF EULA（年营收 ≥ 1 万美元的商业用户需按月付维护费，且须在 csproj 显式写 `AcceptNPOIOSMFLicense=true`），2.7.6 是最后的纯 Apache-2.0 稳定版。
 
 全局编译配置（`Directory.Build.props`）：`net8.0` / `Nullable=enable` / `ImplicitUsings=enable` / 抑制 ~30 个 CS8xxx + CA1416 告警。WPF 项目额外继承 `Common.Desktop.props`（`net8.0-windows` / `UseWPF=true`）。
 

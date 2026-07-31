@@ -21,7 +21,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PF.Core.Constants;
-using SixLabors.ImageSharp.Formats;
 
 namespace PF.WorkStation.AutoOcr.Mechanisms
 {

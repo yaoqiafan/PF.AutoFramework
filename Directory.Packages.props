@@ -6,23 +6,24 @@
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="DryIoc.Microsoft.DependencyInjection" Version="6.2.0" />
-    <PackageVersion Include="log4net" Version="3.3.0" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.12" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.2" />
-    <PackageVersion Include="PF.UI.Resources" Version="1.1.1" />
+    <PackageVersion Include="log4net" Version="3.3.2" />
+    <!-- EF Core 停留在 9.x 最新补丁：10.0.x 起 lib 仅 net10.0，当前 TFM(net8.0) 无法引用 -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.18" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.18" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
+    <PackageVersion Include="PF.UI.Fonts.LXGW" Version="1.0.0" />
+    <PackageVersion Include="PF.UI.Resources" Version="2.1.0" />
     <PackageVersion Include="Prism.Core" Version="9.0.537" />
     <PackageVersion Include="Prism.DryIoc" Version="9.0.537" />
     <PackageVersion Include="Prism.Wpf" Version="9.0.537" />
-    <PackageVersion Include="NPOI" Version="2.7.5" />
+    <!-- NPOI 停留在 2.7.6：2.8.0 起二进制包改用 OSMF EULA（商业用户按月付维护费），2.7.6 是最后的纯 Apache-2.0 稳定版 -->
+    <PackageVersion Include="NPOI" Version="2.7.6" />
     <PackageVersion Include="Stateless" Version="5.20.1" />
-    <PackageVersion Include="System.Drawing.Common" Version="8.0.11" />
-    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
-    <PackageVersion Include="System.IO.Ports" Version="9.0.0" />
-    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.2" />
-    <PackageVersion Include="XAMLTools.MSBuild" Version="1.0.0-alpha0178" />
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.10" />
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.10" />
+    <PackageVersion Include="System.IO.Ports" Version="10.0.10" />
+    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.10" />
   </ItemGroup>
 </Project>

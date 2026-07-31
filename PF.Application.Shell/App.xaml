@@ -16,6 +16,8 @@
                         <ResourceDictionary Source="pack://application:,,,/PF.UI.Resources;component/Themes/Default.xaml" />
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
+
+                <ResourceDictionary Source="pack://application:,,,/PF.UI.Fonts.LXGW;component/Fonts/LXGW.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
