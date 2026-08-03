@@ -1,4 +1,4 @@
-# PF.AutoFramework
+﻿# PF.AutoFramework
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
 [![WPF](https://img.shields.io/badge/UI-WPF-lightgrey.svg)]()
@@ -222,8 +222,8 @@ PF.AutoFramework.slnx
 - `GenericRepository<T>` — 通用 CRUD 仓储
 - `ParamRepository<T>` — 参数专用仓储（带变更追踪）
 - `IDefaultParam` — 默认参数契约接口（`GetUserDefaults` / `GetSystemDefaults` / `GetHardwareDefaults` / `GetCommunicationDefaults`），项目侧实现
-- 数据库路径：`%APPDATA%\PFAutoFrameWork\SystemParamsCollection.db`
-- 生产数据库：`%APPDATA%\PFAutoFrameWork\ProductionHistory.db`
+- 数据库路径：`D:\PFConfig\PFAutoFrameWork\{项目名}\SystemParamsCollection.db`
+- 生产数据库：`D:\PFConfig\PFAutoFrameWork\{项目名}\ProductionHistory.db`
 
 ### PF.Services — 业务逻辑层
 

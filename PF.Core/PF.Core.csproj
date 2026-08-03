@@ -3,8 +3,32 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.8</Version>
+		<Version>1.0.9</Version>
 		<PackageReleaseNotes>
+v1.0.9 (2026-08-03) — 配置路径按项目隔离（破坏性变更，升级前必须执行现场迁移）
+
+[破坏性变更 — 配置路径]
+- ConstGlobalParam.ConfigPath 由固定的 D:\PFConfig\PFAutoFrameWork 改为
+  D:\PFConfig\PFAutoFrameWork\{项目名}\。新增 ConfigRoot（共享根目录）、ProjectName、
+  IsInitialized、Initialize(string) 四个成员。
+- ConfigPath 在未调用 Initialize 时【直接抛 InvalidOperationException】，不回退根目录：
+  漏调初始化的宿主必须在首次运行时暴露，而不是静默地把配置写到共享根目录。
+  WPF 主程序由 PFApplicationBase 构造函数自动完成，项目侧无需改动；自建宿主
+  （工具、测试宿主）必须显式调用 Initialize。
+- 因此【禁止】在静态字段初始化器中捕获 ConfigPath，否则会先于 Initialize 求值并抛
+  TypeInitializationException。本次已将 SecsGemSystemParam.filepath 与
+  ValidateConfiguration.filePath 由静态字段改为表达式属性。
+
+[背景]
+AppParamDbContext.EnsureDefaultParametersCreatedAsync 会删除"不在本项目默认参数集里"
+的参数行（废弃参数清理）。同一台机器上换项目运行时，A 项目的参数在 B 项目眼里全是废弃行，
+参数/用户/硬件/通讯四张表会被整批清空。Recipe\、AxisPoints\、user.config 等同样存在
+同名互相覆盖问题。
+
+[升级须知]
+已部署机台必须先执行 Installer\Migrate-Config.ps1 将旧布局搬到项目子目录，
+详见 Installer\现场升级迁移说明.md。
+
 v1.0.8 (2026-07-21) — 新增 HardwareUIAttribute（硬件调试界面路由特性）
 
 [新增]

@@ -1,4 +1,4 @@
-# PF.Modules.Alarm
+﻿# PF.Modules.Alarm
 
 PF.AutoFramework 报警管理 Prism 模块，提供报警触发面板、活跃报警看板、历史查询及 SOP 排故引导界面。以插件 DLL 方式加载，无需在 Shell 中显式引用类型。
 
@@ -56,4 +56,4 @@ await _alarmService.ClearAsync("FeedStation", 1001);
 
 ## SOP 配置
 
-在 `%APPDATA%\PFAutoFrameWork\SOP\` 目录下放置 `{ErrorCode}.md` 文件，即可在 SOP 面板中自动显示对应处置步骤。
+在 `D:\PFConfig\PFAutoFrameWork\{项目名}\SOP\` 目录下放置 `{ErrorCode}.md` 文件，即可在 SOP 面板中自动显示对应处置步骤。

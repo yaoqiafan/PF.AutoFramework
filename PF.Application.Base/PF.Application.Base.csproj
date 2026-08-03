@@ -3,8 +3,33 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-08-03) — 配置路径按项目隔离（破坏性变更，升级前必须执行现场迁移）
+
+[破坏性变更 — 升级前必读]
+配置目录由 D:\PFConfig\PFAutoFrameWork\ 改为 D:\PFConfig\PFAutoFrameWork\{项目名}\。
+已部署机台【必须】先执行 Installer\Migrate-Config.ps1 把旧布局搬进项目子目录，
+否则升级后参数、硬件配置、通讯配置、配方、点表全部回到默认值，SecsGem 服务拒绝启动。
+详见 Installer\现场升级迁移说明.md。
+
+[新增]
+- PFApplicationBase.ProjectName 虚属性：默认取入口程序集名，作为配置隔离子目录名。
+  新增实例构造函数，在其中调用 ConstGlobalParam.Initialize(ProjectName)——必须放构造函数
+  而非 OnStartup/CreateShell/RegisterTypes：C# 中派生类字段初始化器先于基类构造函数体执行，
+  子类以 => "XXX" 形式重写是安全的；其余入口都晚于 App 实例构造，期间已可能有类型触碰
+  ConfigPath 并抛 TypeInitializationException。
+  重写该属性的项目必须同步设置 installer.conf 的 PROJECT_NAME。
+- PFApplicationBase.VerifySecsServiceProjectBinding 虚方法：Splash 阶段校验当前注册的
+  SECS/GEM 服务是否属于本项目，不一致时写日志并弹窗告警（只告警不阻断——产线上因配置
+  不一致导致软件起不来，代价比让人看见告警更大）。未部署该服务的项目自动跳过。
+  校验放主程序而非服务：服务运行在 Session 0 弹不出对话框，且它没有参照物、只能发现
+  "没配 ProjectName"，发现不了"配的是别的项目"。
+
+[背景]
+AppParamDbContext.EnsureDefaultParametersCreatedAsync 会删除"不在本项目默认参数集里"的
+参数行。同机换项目运行时，A 的参数在 B 眼里全是废弃行，四张表被整批清空。
+
 v1.0.4 (2026-07-27) — 状态栏设备项支持多态（三态及以上）显示
 
 [新增]

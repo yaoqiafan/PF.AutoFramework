@@ -1,4 +1,4 @@
-# PF.Data
+﻿# PF.Data
 
 PF.AutoFramework 通用数据访问层，基于 EF Core + SQLite，提供参数、生产数据、报警三个独立数据库的 DbContext 工厂、实体定义及泛型仓储实现。
 
@@ -6,9 +6,9 @@ PF.AutoFramework 通用数据访问层，基于 EF Core + SQLite，提供参数�
 
 | 文件 | DbContext | 用途 |
 |---|---|---|
-| `%APPDATA%\PFAutoFrameWork\SystemParamsCollection.db` | `AppParamDbContext` | 参数、用户凭证、硬件配置（JSON 字段） |
-| `%APPDATA%\PFAutoFrameWork\ProductionHistory.db` | `ProductionDbContext` | 生产数据记录 |
-| `%APPDATA%\PFAutoFrameWork\AlarmHistory.db` | `AlarmDbContext` | 报警历史（年度分表 `AlarmRecord_{YYYY}`） |
+| `D:\PFConfig\PFAutoFrameWork\{项目名}\SystemParamsCollection.db` | `AppParamDbContext` | 参数、用户凭证、硬件配置（JSON 字段） |
+| `D:\PFConfig\PFAutoFrameWork\{项目名}\ProductionHistory.db` | `ProductionDbContext` | 生产数据记录 |
+| `D:\PFConfig\PFAutoFrameWork\{项目名}\AlarmHistory.db` | `AlarmDbContext` | 报警历史（年度分表 `AlarmRecord_{YYYY}`） |
 
 ## DbContext 工厂
 

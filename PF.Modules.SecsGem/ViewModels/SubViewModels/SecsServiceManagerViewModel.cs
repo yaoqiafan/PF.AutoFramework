@@ -1,7 +1,6 @@
-using Microsoft.Win32;
 using PF.CommonTools.ServeTool;
+using PF.Core.Constants;
 using PF.UI.Infrastructure.PrismBase;
-using System.IO;
 using System.Runtime.Versioning;
 using System.ServiceProcess;
 using System.Windows;
@@ -13,9 +12,6 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
     /// </summary>
     public class SecsServiceManagerViewModel : ViewModelBase
     {
-        private const string DefaultServiceName = "SecsGemService";
-        private const string DefaultServiceExeName = "PF.SecsGem.Service.exe";
-
         private readonly SecsLogViewModel _log;
 
         /// <summary>初始化实例</summary>
@@ -23,8 +19,9 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             _log = log;
 
-            _serviceNameForManagement = DefaultServiceName;
-            _serviceExePath           = ResolveServiceExePath();
+            // 服务名带项目后缀，与安装器和服务自身的命名规则同源（均由项目名推导）
+            _serviceNameForManagement = ServicePathResolver.SecsServiceName;
+            _serviceExePath           = ServicePathResolver.ResolveSecsServiceExePath();
 
             RefreshServiceStatusCommand = new DelegateCommand(ExecuteRefreshServiceStatus);
             InstallServiceCommand       = new DelegateCommand(ExecuteInstallService);
@@ -118,6 +115,15 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 MessageBox.Show("需要管理员权限才能安装服务，请以管理员身份运行程序。", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            // 这条安装路径绕过了安装器，服务目录里的 appsettings.json 可能没有 ProjectName
+            // （或来自别的项目的拷贝）。此处按当前主程序的项目名写入，保证两侧指向同一个
+            // SecsGemConfig.db；服务缺少该键会直接拒绝启动。
+            var settingsPath = ServicePathResolver.GetSecsServiceSettingsPath(ServiceExePath);
+            if (ServicePathResolver.TryWriteServiceProjectName(settingsPath, ConstGlobalParam.ProjectName))
+                _log.Append(null, $"已将项目名 [{ConstGlobalParam.ProjectName}] 写入 {settingsPath}", isSystem: true);
+            else
+                _log.Append(null, $"写入项目名失败：{settingsPath}，服务可能无法启动，请检查文件权限", isSystem: true);
+
             bool ok = ServerMangerTool.InstallService(ServiceNameForManagement, ServiceNameForManagement, ServiceExePath);
             _log.Append(null, ok ? $"服务 [{ServiceNameForManagement}] 安装成功" : $"服务 [{ServiceNameForManagement}] 安装失败", isSystem: true);
             ExecuteRefreshServiceStatus();
@@ -166,23 +172,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             ExecuteRefreshServiceStatus();
         }
 
-        // ── 路径解析 ───────────────────────────────────────────────────────────
-
-        private static string ResolveServiceExePath()
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                try
-                {
-                    using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\PowerFocus\PFAutoFramework");
-                    if (key?.GetValue("InstallPath") is string installPath && !string.IsNullOrEmpty(installPath))
-                        return Path.Combine(installPath, "SecsGemService", DefaultServiceExeName);
-                }
-                catch { }
-            }
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                "PowerFocus", "PFAutoFramework", "SecsGemService", DefaultServiceExeName);
-        }
+        // 路径与服务名解析已统一到 PF.CommonTools\ServeTool\ServicePathResolver.cs，
+        // 供本面板与 PFApplicationBase 的启动校验共用一份实现。
     }
 }

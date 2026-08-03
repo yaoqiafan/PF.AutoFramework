@@ -1,4 +1,4 @@
-# PF.Modules.Logging
+﻿# PF.Modules.Logging
 
 PF.AutoFramework 日志查看 Prism 模块，提供实时日志滚动显示、分类过滤及历史文件浏览。以插件 DLL 方式加载。
 
@@ -12,7 +12,7 @@ PF.AutoFramework 日志查看 Prism 模块，提供实时日志滚动显示、�
 ## 日志文件位置
 
 ```
-%APPDATA%\PFAutoFrameWork\Log\
+D:\PF_Logs\
     ├── 2025\
     │   ├── 06\
     │   │   ├── 16\

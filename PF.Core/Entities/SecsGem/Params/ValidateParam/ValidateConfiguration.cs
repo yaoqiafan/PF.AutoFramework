@@ -8,8 +8,12 @@ namespace PF.Core.Entities.SecsGem.Params.ValidateParam
     /// </summary>
     public class ValidateConfiguration
     {
-        /// <summary>配置文件路径</summary>
-        public static readonly string filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemInformationConfig.xlsx");
+        /// <summary>
+        /// 配置文件路径。
+        /// 必须是属性而非静态只读字段：ConfigPath 依赖运行期设置的项目名，
+        /// 静态字段初始化器会在 ConstGlobalParam.Initialize 之前求值并抛 TypeInitializationException。
+        /// </summary>
+        public static string filePath => Path.Combine(ConstGlobalParam.ConfigPath, "SecsGemInformationConfig.xlsx");
         private static readonly object _lock = new object();
 
         /// <summary>CEID集合</summary>

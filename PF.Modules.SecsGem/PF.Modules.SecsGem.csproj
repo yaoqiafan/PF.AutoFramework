@@ -14,8 +14,23 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-08-03) — 服务管理适配配置路径项目隔离
+
+[变更]
+- SecsServiceManagerViewModel 的服务 exe 路径解析下沉到 PF.CommonTools 的
+  ServicePathResolver（同一份实现供本面板与 PFApplicationBase 启动校验共用），
+  原私有 ResolveServiceExePath 删除。解析优先读 SCM 中实际注册的 ImagePath，
+  修复了此前注册表键名与 Setup.iss 写入值不一致（带/不带空格）导致查找恒失败、
+  静默回退到 Program Files 默认路径的问题。
+- "安装服务"按钮在注册服务前，先把当前主程序的项目名写入服务目录的 appsettings.json。
+  这条安装路径绕过安装器，服务缺少 ProjectName 键会直接拒绝启动。
+
+[说明]
+服务名仍为 SecsGemService，不按项目区分：其本机通道端口 6800 在 Worker.LocationServer
+与 InternalClient 两端硬编码，HSMS 被动端口也唯一，全机只能有一个实例真正工作。
+
 v1.0.4 (2026-07-09) — SECS/GEM 调试侧边栏图标调整
 
 [变更]

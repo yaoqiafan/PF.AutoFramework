@@ -8,7 +8,9 @@ namespace PF.Core.Entities.SecsGem.Params
     /// </summary>
     public class SecsGemSystemParam
     {
-        private static string filepath = $"{ConstGlobalParam.ConfigPath}\\SecsGemSysytem.json";
+        // 必须是属性而非静态字段：ConfigPath 依赖运行期设置的项目名，
+        // 静态字段初始化器会在 ConstGlobalParam.Initialize 之前求值并抛 TypeInitializationException。
+        private static string filepath => $"{ConstGlobalParam.ConfigPath}\\SecsGemSysytem.json";
 
         /// <summary>服务名称</summary>
         public string ServiceName { get; set; } = "SecsGemService";

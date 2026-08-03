@@ -88,14 +88,24 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"
 
 ; =============================================================================
 [Registry]
+; 键名固定为 PFAutoFramework（不含空格）并按项目名分子键：
+;   · AppName 含空格（如 "PF AutoFramework"），是显示名，不适合做键名——
+;     此前写入 {#AppName} 而代码按 PFAutoFramework 读取，键名对不上，
+;     InstallPath 查找恒失败并静默回退到 Program Files 默认路径。
+;   · 按项目名分子键，一机多项目时各自的 InstallPath 互不覆盖。
+; 读取方：PF.CommonTools\ServeTool\ServicePathResolver.cs
 Root: HKLM; \
-  Subkey: "SOFTWARE\{#AppPublisher}\{#AppName}"; \
+  Subkey: "SOFTWARE\{#AppPublisher}\PFAutoFramework\{#ProjectName}"; \
   ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; \
   Flags: uninsdeletekey
 
 Root: HKLM; \
-  Subkey: "SOFTWARE\{#AppPublisher}\{#AppName}"; \
+  Subkey: "SOFTWARE\{#AppPublisher}\PFAutoFramework\{#ProjectName}"; \
   ValueType: string; ValueName: "Version"; ValueData: "{#AppVersion}"
+
+Root: HKLM; \
+  Subkey: "SOFTWARE\{#AppPublisher}\PFAutoFramework\{#ProjectName}"; \
+  ValueType: string; ValueName: "ConfigPath"; ValueData: "D:\PFConfig\PFAutoFrameWork\{#ProjectName}"
 
 ; =============================================================================
 [Code]

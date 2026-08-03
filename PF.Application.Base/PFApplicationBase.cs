@@ -3,6 +3,7 @@ using PF.Application.Base.Configuration;
 using PF.Application.Base.Services;
 using PF.Application.Base.ViewModels;
 using PF.Application.Base.Views;
+using PF.CommonTools.ServeTool;
 using PF.Core.Constants;
 using PF.Core.Entities.Communication;
 using PF.Core.Entities.Hardware;
@@ -86,6 +87,34 @@ namespace PF.Application.Base
                 var path = Path.Combine(AppContext.BaseDirectory, shortName + ".dll");
                 return File.Exists(path) ? Assembly.LoadFrom(path) : null;
             };
+        }
+
+        #endregion
+
+        #region 实例构造：项目配置路径隔离
+
+        /// <summary>
+        /// 项目名，作为 <c>D:\PFConfig\PFAutoFrameWork\</c> 下的隔离子目录名。
+        /// 默认取入口程序集名（如 <c>PF.Application.Shell</c>）。
+        ///
+        /// 重写此属性的项目，<b>必须</b>在 <c>Installer\installer.conf</c> 中同步设置
+        /// <c>PROJECT_NAME</c> 为相同的值，否则 PF.SecsGem.Service 会指向另一个目录的
+        /// SecsGemConfig.db（启动时 <see cref="VerifySecsServiceProjectBinding"/> 会弹窗告警）。
+        /// </summary>
+        protected virtual string ProjectName =>
+            Assembly.GetEntryAssembly()?.GetName().Name ?? "Default";
+
+        /// <summary>
+        /// 在任何配置读写之前完成项目名初始化。
+        ///
+        /// 必须放在实例构造函数而非 OnStartup/CreateShell/RegisterTypes：
+        /// C# 中派生类字段初始化器先于基类构造函数体执行，因此子类以
+        /// <c>=&gt; "XXX"</c> 形式重写 <see cref="ProjectName"/> 是安全的；
+        /// 而其余入口都晚于 App 实例构造，期间已可能有类型触碰 ConfigPath。
+        /// </summary>
+        protected PFApplicationBase()
+        {
+            ConstGlobalParam.Initialize(ProjectName);
         }
 
         #endregion
@@ -186,6 +215,58 @@ namespace PF.Application.Base
 
         /// <summary>注册项目特有每日定时任务（默认空实现）</summary>
         protected virtual void RegisterProjectDailyTasks() { }
+
+        /// <summary>
+        /// 校验 PF.SecsGem.Service 的项目绑定与主程序是否一致。未部署该服务的项目自动跳过。
+        ///
+        /// 为什么校验放在主程序而不是服务里：
+        /// <list type="number">
+        /// <item>服务运行在 Session 0（Vista 之后的会话隔离），弹不出对话框；且 start= auto
+        /// 开机自启时可能根本没有用户登录。</item>
+        /// <item>服务只能发现"没配 ProjectName"，发现不了"配错了值"——它没有参照物。
+        /// 主程序两种故障都能查出，后者更隐蔽：服务照常启动、照常运行，只是读了
+        /// 另一个项目的 SecsGemConfig.db。</item>
+        /// </list>
+        ///
+        /// 一机多项目场景：服务全机唯一（本机通道端口 6800 两端硬编码），归属最后安装的项目。
+        /// 因此这里解析的是 SCM 中<b>实际注册</b>的 ImagePath 而非本项目安装目录，
+        /// 才能查出"当前生效的服务是别的项目装的"。
+        ///
+        /// 只告警不阻断：产线上因配置不一致导致软件起不来，代价比让人看见告警更大，
+        /// 日志里留证即可。
+        /// </summary>
+        protected virtual void VerifySecsServiceProjectBinding(Action<string, MsgType> updateStage)
+        {
+            try
+            {
+                var exePath = ServicePathResolver.ResolveSecsServiceExePath();
+                if (!File.Exists(exePath)) return;            // 项目未部署该服务，静默跳过
+
+                var settingsPath = ServicePathResolver.GetSecsServiceSettingsPath(exePath);
+                var svcProject   = ServicePathResolver.TryReadServiceProjectName(settingsPath);
+
+                if (string.Equals(svcProject, ConstGlobalParam.ProjectName, StringComparison.Ordinal))
+                    return;
+
+                var detail = svcProject is null
+                    ? "当前部署的 SECS/GEM 服务未配置项目名，服务将拒绝启动。"
+                    : $"当前注册的 SECS/GEM 服务属于项目「{svcProject}」，而本程序是「{ConstGlobalParam.ProjectName}」。" +
+                      "服务会读取另一个项目的 SecsGemConfig.db（设备号、Host 地址、CEID/VID 均不同）。";
+
+                var msg = $"{detail}\n\n服务位置：{settingsPath}\n" +
+                          "处理方式：重新运行本项目的安装包以接管服务，或联系工程人员修正后重启服务。";
+
+                LogService?.Error(msg, "Startup");
+                updateStage("SECS/GEM 服务项目绑定校验未通过", MsgType.Warning);
+                Container.Resolve<IMessageService>().ShowMessage(
+                    msg, "配置校验", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                // 校验本身失败不得阻断启动
+                LogService?.Warn($"SECS/GEM 服务项目绑定校验异常：{ex.Message}", "Startup");
+            }
+        }
 
         #endregion
 
@@ -652,6 +733,7 @@ namespace PF.Application.Base
             UpdateStage("程序加载中。。。");
             try
             {
+                VerifySecsServiceProjectBinding((status, msgType) => UpdateStage(status, msgType));
 
                 await Task.Delay(500);
                 UpdateStage("配置文件加载中。。。");

@@ -1,11 +1,11 @@
-# PF.SecsGem.DataBase
+﻿# PF.SecsGem.DataBase
 
 PF.AutoFramework SECS/GEM 协议专用数据库层，基于 EF Core + SQLite，提供 SECS/GEM 配置数据的实体、DbContext 及仓储。主程序与后台 Windows 服务（`PF.SecsGem.Service`）**共享同一数据库文件**。
 
 ## 数据库文件位置
 
 ```
-%APPDATA%\PFAutoFrameWork\SecsGemConfig.db
+D:\PFConfig\PFAutoFrameWork\{项目名}\SecsGemConfig.db
 ```
 
 ## 主要类型

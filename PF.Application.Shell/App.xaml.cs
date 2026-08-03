@@ -48,6 +48,9 @@ namespace PF.Application.Shell
         /// <summary>AutoOCR 应用全局互斥体唯一标识。</summary>
         protected override string AppMutexId => "OCRAppID-12345678-ABCD-EFGH-IJKL-1234567890AB";
 
+        /// <summary> 项目名称 </summary>
+        protected override string ProjectName => "FrameWork";
+
         /// <summary>返回 AutoOCR 项目默认参数集。</summary>
         protected override IDefaultParam CreateDefaultParameters() => new DefaultParameters();
 

@@ -1,4 +1,4 @@
-# PF.Modules.ProductionRecord
+﻿# PF.Modules.ProductionRecord
 
 PF.AutoFramework 生产数据 Prism 模块，提供历史生产数据浏览、多条件查询及 Excel / CSV 导出功能。以插件 DLL 方式加载。
 
@@ -73,4 +73,4 @@ await _productionDataService.ExportToCsvAsync(
 
 ## 数据库说明
 
-生产数据存储于 `%APPDATA%\PFAutoFrameWork\ProductionHistory.db`，按 `RecordType`（POCO 类型名）索引，不同类型的生产数据共用同一表结构（JSON 字段存储 POCO 内容）。
+生产数据存储于 `D:\PFConfig\PFAutoFrameWork\{项目名}\ProductionHistory.db`，按 `RecordType`（POCO 类型名）索引，不同类型的生产数据共用同一表结构（JSON 字段存储 POCO 内容）。

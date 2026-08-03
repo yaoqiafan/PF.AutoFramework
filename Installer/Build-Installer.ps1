@@ -76,11 +76,16 @@ $appIconRel       = $env:APP_ICON          # kept as relative path, written as-i
 $mainExe          = $env:MAIN_EXE
 $mainCsprojRel    = $env:MAIN_CSPROJ
 $versionSource    = if ($env:VERSION_SOURCE) { ($env:VERSION_SOURCE).ToLower() } else { '' }
-$versionPropsFileRel = $env:VERSION_PROPS_FILE
+# 留空时回退到主程序 .csproj：本仓库的版本号是各项目在自己 .csproj 中独立声明的
+# （Directory.Build.props 自 62978be 起已不含 <Version>），安装包版本应取被打包的主程序。
+$versionPropsFileRel = if ($env:VERSION_PROPS_FILE) { $env:VERSION_PROPS_FILE } else { $env:MAIN_CSPROJ }
 $versionValue     = $env:VERSION_VALUE
 $buildRid         = $env:BUILD_RID
 $buildSC          = if ($env:BUILD_SELF_CONTAINED) { ($env:BUILD_SELF_CONTAINED).ToLower() } else { '' }
 $serviceCountRaw  = $env:SERVICE_COUNT
+$projectNameConf  = if ($env:PROJECT_NAME) { $env:PROJECT_NAME } else { '' }
+
+# (project name is resolved in section 1c, after MAIN_CSPROJ has been validated)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1b. Validate all configuration (moved here from bat for reliability)
@@ -93,6 +98,7 @@ if (-not $appPublisher) { Fail "APP_PUBLISHER is empty" }
 if (-not $appId)      { Fail "APP_ID is empty" }
 if (-not $mainExe)    { Fail "MAIN_EXE is empty" }
 if (-not $buildRid)   { Fail "BUILD_RID is empty" }
+
 
 # GUID format
 try   { [System.Guid]::Parse($appId) | Out-Null }
@@ -162,6 +168,76 @@ for ($i = 1; $i -le $serviceCount; $i++) {
 Write-Host "[CHECK] All configuration OK"
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 1c. Resolve config isolation directory name
+#
+# The main app resolves it from PFApplicationBase.ProjectName (default: entry
+# assembly name); PF.SecsGem.Service reads it from the appsettings.json we inject
+# below. Both must agree or they open different SecsGemConfig.db files.
+#
+# Rather than asking the integrator to keep installer.conf in sync with a
+# ProjectName override in code -- a duplication that silently rots -- read the
+# override straight out of the main app's source. Priority:
+#   1. PROJECT_NAME in installer.conf (explicit wins, e.g. non-literal overrides)
+#   2. `override string ProjectName => "..."` found in the main app's sources
+#   3. MAIN_EXE without .exe (== entry assembly name == the framework default)
+# ─────────────────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "[Project] Resolving config isolation name..."
+
+$mainProjDir       = Split-Path $mainCsproj -Parent
+$overrideName      = ''
+$overrideFile      = ''
+$overrideNonLiteral = $false
+
+foreach ($cs in @(Get-ChildItem $mainProjDir -Filter '*.cs' -Recurse -File -ErrorAction SilentlyContinue |
+                  Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
+    $csText = Get-Content -Raw $cs.FullName
+    if ($csText -notmatch 'override\s+string\s+ProjectName') { continue }
+
+    $lit = [regex]::Match($csText, 'override\s+string\s+ProjectName\s*=>\s*"([^"]*)"')
+    if ($lit.Success) {
+        $overrideName = $lit.Groups[1].Value
+        $overrideFile = $cs.Name
+        break
+    }
+    # 重写了但不是简单字符串字面量（表达式/常量引用等），脚本无法安全求值
+    $overrideNonLiteral = $true
+    $overrideFile       = $cs.Name
+}
+
+if ($projectNameConf) {
+    $projectName = $projectNameConf
+    Write-Host "          from installer.conf PROJECT_NAME : $projectName"
+    if ($overrideName -and $overrideName -ne $projectName) {
+        Fail ("PROJECT_NAME mismatch.`n" +
+              "        installer.conf PROJECT_NAME = '$projectName'`n" +
+              "        $overrideFile  ProjectName  = '$overrideName'`n" +
+              "        The main app would use '$overrideName' while PF.SecsGem.Service`n" +
+              "        would be configured for '$projectName' -- they would open different`n" +
+              "        SecsGemConfig.db files. Fix one of the two, or clear PROJECT_NAME`n" +
+              "        to adopt the value from source automatically.")
+    }
+}
+elseif ($overrideName) {
+    $projectName = $overrideName
+    Write-Host "          from $overrideFile override        : $projectName"
+}
+elseif ($overrideNonLiteral) {
+    Fail ("$overrideFile overrides ProjectName with a non-literal expression,`n" +
+          "        which this script cannot evaluate. Set PROJECT_NAME in installer.conf`n" +
+          "        to the exact value that override resolves to at runtime.")
+}
+else {
+    $projectName = [System.IO.Path]::GetFileNameWithoutExtension($mainExe)
+    Write-Host "          from MAIN_EXE (framework default) : $projectName"
+}
+
+if (-not $projectName) { Fail "PROJECT_NAME is empty and cannot be derived" }
+if ($projectName -match '[\\/:*?"<>|]') {
+    Fail "PROJECT_NAME contains invalid path characters: '$projectName'"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 2. Resolve version number
 # ─────────────────────────────────────────────────────────────────────────────
 if ($versionSource -eq 'auto') {
@@ -171,7 +247,11 @@ if ($versionSource -eq 'auto') {
     $raw = Get-Content -Raw $versionPropsFile
     $m   = [regex]::Match($raw, '<Version>([^<]+)</Version>')
     if (-not $m.Success) {
-        Fail "<Version> tag not found in $(Split-Path $versionPropsFile -Leaf)"
+        Fail ("<Version> tag not found in $(Split-Path $versionPropsFile -Leaf)`n" +
+              "        VERSION_PROPS_FILE must point at a file that declares <Version>x.y.z</Version>.`n" +
+              "        This repo declares versions per project, not in Directory.Build.props --`n" +
+              "        leave VERSION_PROPS_FILE empty to fall back to MAIN_CSPROJ, or set`n" +
+              "        VERSION_SOURCE=manual and fill in VERSION_VALUE.")
     }
     $version = $m.Groups[1].Value.Trim()
     Write-Host "[Version] Read from props file: $version"
@@ -252,6 +332,7 @@ Write-Host "  App name   : $appName"
 Write-Host "  Publisher  : $appPublisher"
 Write-Host "  Version    : $version  (VersionInfo: $v4)"
 Write-Host "  Main exe   : $mainExe"
+Write-Host "  Project    : $projectName   (config dir: D:\PFConfig\PFAutoFrameWork\$projectName\)"
 Write-Host "  RID        : $buildRid  SelfContained=$buildSC"
 Write-Host "  Services   : $serviceCount"
 Write-Host "================================================================"
@@ -312,6 +393,29 @@ for ($i = 1; $i -le $serviceCount; $i++) {
     if ($LASTEXITCODE -ne 0) { Fail "Service $sName publish failed (exit code $LASTEXITCODE)" }
     Write-Host "       -> publish\$sSubdir\"
 
+    # Inject the project name into the service's appsettings.json.
+    # The service is an independent process (start= auto, may boot before the main
+    # app ever runs), so it cannot ask anyone at runtime which project it belongs
+    # to -- the value must be baked in at build/install time. It resolves
+    # D:\PFConfig\PFAutoFrameWork\{ProjectName}\SecsGemConfig.db from this key and
+    # refuses to start if the key is missing.
+    $svcSettings = Join-Path $svcOut 'appsettings.json'
+    if (Test-Path $svcSettings) {
+        $svcJson = Get-Content $svcSettings -Raw -Encoding UTF8 | ConvertFrom-Json
+        $svcJson | Add-Member -NotePropertyName 'ProjectName' -NotePropertyValue $projectName -Force
+        $svcJson | ConvertTo-Json -Depth 20 | Set-Content $svcSettings -Encoding utf8
+    }
+    else {
+        @{ ProjectName = $projectName } | ConvertTo-Json | Set-Content $svcSettings -Encoding utf8
+    }
+    Write-Host "       -> appsettings.json  ProjectName = $projectName"
+
+    # Service name is intentionally NOT project-suffixed. PF.SecsGem.Service binds
+    # 127.0.0.1:6800 (hardcoded on both ends) plus a single HSMS passive port, so only
+    # one instance can ever serve on a machine. Registering one 'start= auto' service
+    # per project would make them race for 6800 at boot with a nondeterministic winner.
+    # Installing a second project therefore deliberately overwrites the registration
+    # (sc delete + sc create); the main app validates ownership at startup.
     $serviceInfos.Add([PSCustomObject]@{
         Exe         = $sExe
         Subdir      = $sSubdir
@@ -344,6 +448,7 @@ $cfg = [System.Text.StringBuilder]::new()
 [void]$cfg.AppendLine("#define AppVersion      `"$version`"")
 [void]$cfg.AppendLine("#define VersionInfo4    `"$v4`"")
 [void]$cfg.AppendLine("#define AppExeName      `"$mainExe`"")
+[void]$cfg.AppendLine("#define ProjectName     `"$projectName`"")
 [void]$cfg.AppendLine("#define DotNetMajorVer  $appDotNetMajor")
 [void]$cfg.AppendLine("#define SetupIconPath   `"$appIconRel`"")
 [void]$cfg.AppendLine("#define OutputBaseName  `"${safeName}_Setup_$version`"")
@@ -404,7 +509,8 @@ else {
         [void]$svcCode.AppendLine("  { Service: $($svc.Name) }")
         # BinPath includes double-quotes so sc.exe handles paths with spaces
         [void]$svcCode.AppendLine("  BinPath := ExpandConstant('${dq}{app}\$($svc.Subdir)\$($svc.Exe)${dq}');")
-        # Delete any previous registration (upgrade scenario)
+        # Delete any previous registration (upgrade scenario, and takeover when another
+        # project previously owned this service -- see the $serviceInfos comment above)
         [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\sc.exe'), 'delete $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
         [void]$svcCode.AppendLine('  Sleep(500);')
         # Register service

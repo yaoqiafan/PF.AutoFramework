@@ -1,4 +1,4 @@
-# PF.Services
+﻿# PF.Services
 
 PF.AutoFramework 核心业务服务实现层，包含 8 个服务的具体实现。所有服务均以单例注册，通过 DI 注入使用。
 
@@ -88,7 +88,7 @@ var active = await _alarmService.GetActiveAlarmsAsync();
 
 - 内存循环缓冲 1000 条（UI 实时绑定）
 - `Channel` 异步文件写入，按小时滚动，30 天自动清理
-- 路径：`%APPDATA%\PFAutoFrameWork\Log\`
+- 路径：`D:\PF_Logs\`
 
 ```csharp
 _log.Info("初始化完成");

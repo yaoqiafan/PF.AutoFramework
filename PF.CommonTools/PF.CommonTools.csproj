@@ -13,8 +13,27 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageReleaseNotes>
+v1.0.3 (2026-08-03) — 新增 ServicePathResolver（SECS/GEM 服务定位与项目绑定校验）
+
+[新增]
+- ServeTool\ServicePathResolver：统一 PF.SecsGem.Service 的定位与项目归属解析，
+  供 PF.Application.Base 的启动校验与 PF.Modules.SecsGem 的服务管理面板共用。
+  · ResolveSecsServiceExePath 优先读 SCM 中【实际注册】的 ImagePath
+    （HKLM\SYSTEM\CurrentControlSet\Services\SecsGemService），而非本项目安装目录——
+    服务全机唯一（本机通道端口 6800 两端硬编码），一机多项目时它可能是别的项目装的，
+    只有读实际注册项才能查出归属不符。
+  · TryReadServiceProjectName / TryWriteServiceProjectName：读写服务 appsettings.json
+    的 ProjectName 键，服务据此定位自己的配置目录。
+
+[修复]
+- 注册表键名订正：此前 Setup.iss 写入 SOFTWARE\{Publisher}\{AppName}（AppName 含空格，
+  如 "PF AutoFramework"），而代码读取 SOFTWARE\PowerFocus\PFAutoFramework（无空格），
+  键名对不上导致 InstallPath 查找恒失败并静默回退到 Program Files 默认路径。
+  现统一为 SOFTWARE\{Publisher}\PFAutoFramework\{项目名}，并按项目名分子键，
+  一机多项目时各自的 InstallPath 互不覆盖。
+
 v1.0.2 (2026-07-07) — 修复 Release 下诊断日志被裁剪问题
 
 [修复]

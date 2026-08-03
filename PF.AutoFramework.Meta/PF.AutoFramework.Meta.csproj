@@ -3,8 +3,77 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.14</Version>
+    <Version>1.0.15</Version>
     <PackageReleaseNotes>
+		v1.0.15 (2026-08-03) — 配置路径按项目隔离（破坏性变更，已部署机台升级前必须执行现场迁移）
+
+		[破坏性变更 — 升级前必读]
+		配置目录由共享的 D:\PFConfig\PFAutoFrameWork\ 改为按项目分子目录
+		D:\PFConfig\PFAutoFrameWork\{项目名}\。已部署机台必须先执行安装包内的
+		Installer\Migrate-Config.ps1 把旧布局整体搬进项目子目录，否则升级后参数、硬件配置、
+		通讯配置、配方、点表全部回到默认值，PF.SecsGem.Service 拒绝启动。
+		详见 Installer\现场升级迁移说明.md。
+
+		[背景 — 为什么要改]
+		AppParamDbContext.EnsureDefaultParametersCreatedAsync 会删除"不在本项目默认参数集里"
+		的参数行（废弃参数清理，设计如此）。同一台机器上换项目运行时，A 项目的参数在 B 项目
+		眼里全是废弃行，UserLoginParams/SystemConfigParams/HardwareParams/CommunicationParams
+		四张表会被整批清空。Recipe\、AxisPoints\、DataMemory\、user.config 等同样存在同名互相
+		覆盖问题。
+
+		[新增 — PF.Core 1.0.8→1.0.9]
+		- ConstGlobalParam 新增 ConfigRoot（共享根目录）/ ProjectName / IsInitialized /
+		Initialize(string)；ConfigPath 变为 {ConfigRoot}\{项目名}\。
+		- ConfigPath 在未初始化时【直接抛 InvalidOperationException】，不回退根目录：
+		漏调 Initialize 的宿主必须在首次运行时暴露，而不是静默把配置写到共享根目录。
+		WPF 主程序由 PFApplicationBase 自动完成；自建宿主（工具、测试宿主）需显式调用。
+		- 因此【禁止】在静态字段初始化器中捕获 ConfigPath（会先于 Initialize 求值并抛
+		TypeInitializationException）。框架内 SecsGemSystemParam.filepath 与
+		ValidateConfiguration.filePath 已由静态字段改为表达式属性。
+
+		[新增 — PF.Application.Base 1.0.4→1.0.5]
+		- ProjectName 虚属性（默认取入口程序集名）+ 实例构造函数中调用 Initialize。
+		放构造函数而非 OnStartup/CreateShell/RegisterTypes：C# 中派生类字段初始化器先于基类
+		构造函数体执行，子类以 => "XXX" 形式重写安全；其余入口都晚于 App 实例构造。
+		- VerifySecsServiceProjectBinding 虚方法：Splash 阶段校验 SCM 中【实际注册】的
+		SecsGemService 是否属于本项目，不一致时写日志并弹窗告警（只告警不阻断）。
+		未部署该服务的项目自动跳过。
+
+		[新增 — PF.CommonTools 1.0.2→1.0.3]
+		- ServeTool\ServicePathResolver：统一服务定位与项目归属解析，供启动校验与服务管理
+		面板共用。优先读 SCM 注册的 ImagePath 而非本项目安装目录——一机多项目时服务可能是
+		别的项目装的，只有这样才能查出归属不符。
+		- [修复] 注册表键名订正：安装器此前写 SOFTWARE\{Publisher}\{AppName}（AppName 含空格，
+		如 "PF AutoFramework"），代码读 SOFTWARE\PowerFocus\PFAutoFramework（无空格），
+		键名对不上导致 InstallPath 查找恒失败、静默回退到 Program Files 默认路径。
+		现统一为 SOFTWARE\{Publisher}\PFAutoFramework\{项目名}，按项目分子键互不覆盖。
+
+		[变更 — PF.Modules.SecsGem 1.0.4→1.0.5]
+		- 服务 exe 路径解析下沉到 ServicePathResolver，原私有 ResolveServiceExePath 删除。
+		- "安装服务"按钮在注册服务前先把当前项目名写入服务目录的 appsettings.json
+		（该路径绕过安装器，服务缺 ProjectName 键会拒绝启动）。
+
+		[SECS/GEM 服务侧（PF.SecsGem.Service，不随元包分发）]
+		- 从自身 appsettings.json 的 ProjectName 键定位配置目录，该键由 Build-Installer.ps1
+		在构建安装包时注入；读不到时拒绝启动并写 EventLog + D:\PF_Logs\SecsGem\Service\
+		startup-error.log（不回退根目录：各设备 SecsGemConfig.db 内容不同，回退会让服务用空库
+		与 Host 建链，外部看是"正常运行"，实际设备号/CEID/VID 全错）。
+		- 服务名仍为 SecsGemService，不按项目区分：其本机通道端口 6800 在 Worker.LocationServer
+		与 InternalClient 两端硬编码，HSMS 被动端口也唯一，全机只能有一个实例真正工作；
+		按项目注册多个 start= auto 服务只会让它们开机争抢 6800。
+
+		[安装器（Installer\，不随元包分发）]
+		- 项目名解析顺序：installer.conf 的 PROJECT_NAME → 主程序源码里
+		override string ProjectName => "xxx" 的字面量 → MAIN_EXE 去掉 .exe。
+		重写了 ProjectName 的项目无需再改 installer.conf；两者都填且不一致时构建期直接失败。
+		- [修复] VERSION_PROPS_FILE 留空时回退到 MAIN_CSPROJ。此前默认指向
+		Directory.Build.props，而该文件自"各项目独立版本"改造起已不含 &lt;Version&gt; 标签，
+		VERSION_SOURCE=auto 一直无法出包。
+
+		[子包版本对照]
+		PF.Core 1.0.8→1.0.9，PF.Application.Base 1.0.4→1.0.5，PF.CommonTools 1.0.2→1.0.3，
+		PF.Modules.SecsGem 1.0.4→1.0.5；其余子包本次无变化。
+
 		v1.0.14 (2026-07-27) — 状态栏设备项支持三态显示（PF.Application.Base 1.0.3→1.0.4）
 
 		[新增]

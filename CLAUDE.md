@@ -156,18 +156,44 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 
 ---
 
-## 数据库与存储
+## 配置路径与项目隔离
 
-**4 个独立 SQLite 库**，位于 `%APPDATA%\PFAutoFrameWork\`：
+配置根目录 `D:\PFConfig\PFAutoFrameWork\`（`ConstGlobalParam.ConfigRoot`），实际配置全部落在**项目子目录** `{ConfigRoot}\{ProjectName}\`（`ConstGlobalParam.ConfigPath`）下。
+
+```
+D:\PFConfig\PFAutoFrameWork\
+├─ PF.Application.Shell\        ← 项目 A（= 入口程序集名）
+│   ├─ SystemParamsCollection.db / ProductionHistory.db / AlarmHistory.db / SecsGemConfig.db
+│   ├─ user.config / timer_schedule.json / log_config.json / SecsGem*.xlsx
+│   └─ Recipe\ AxisPoints\ DataMemory\ Vision\ StationMemoryParam\
+└─ ProjectB.Shell\              ← 项目 B
+```
+
+**为什么要隔离**：`AppParamDbContext.EnsureDefaultParametersCreatedAsync` 会删除"不在本项目默认参数集里"的参数行（废弃参数清理）。同机换项目运行时，A 的参数在 B 眼里全是废弃行，四张表会被整批清空。`Recipe\` / `AxisPoints\` / `user.config` 同样存在同名互相覆盖问题。
+
+**项目名来源**：
+- 主程序：`PFApplicationBase.ProjectName` 虚属性，默认取入口程序集名，在**实例构造函数**中调用 `ConstGlobalParam.Initialize()`（必须早于任何触碰 `ConfigPath` 的代码）
+- `PF.SecsGem.Service`：独立进程，从自身 `appsettings.json` 的 `ProjectName` 键读取，该键由 `Build-Installer.ps1` 在构建安装包时注入
+- 安装器解析顺序（`Build-Installer.ps1` 第 1c 节）：`installer.conf` 的 `PROJECT_NAME` → **主程序源码里 `override string ProjectName => "xxx"` 的字面量** → `MAIN_EXE` 去掉 `.exe`。重写了 `ProjectName` 的项目**无需**再改 `installer.conf`；若两者都填且不一致，构建期直接失败并指出两边的值
+
+**关键约束**：
+- `ConstGlobalParam.ConfigPath` 未初始化时**直接抛 `InvalidOperationException`**，不回退根目录——漏调 `Initialize` 的宿主必须在首次运行时暴露
+- 因此**禁止**在静态字段初始化器中捕获 `ConfigPath`（会先于 `Initialize` 求值抛 `TypeInitializationException`），必须写成 `=>` 表达式属性
+- 项目若重写 `ProjectName`，必须同步设置 `installer.conf` 的 `PROJECT_NAME`，否则服务指向另一个目录的 `SecsGemConfig.db`（启动时 `VerifySecsServiceProjectBinding` 会弹窗告警）
+- SECS 服务名固定为 `SecsGemService`，**不按项目区分**：本机通道端口 6800 在 `Worker.LocationServer` 与 `InternalClient` 两端硬编码，HSMS 被动端口也只有一个，全机只能有一个实例真正工作；按项目注册多个 `start= auto` 服务只会让它们开机争抢 6800。一机多项目时服务归属最后安装的项目，主程序启动时解析 SCM 中**实际注册**的 `ImagePath`（而非本项目安装目录）来校验归属
+- 服务读不到 `ProjectName` 时**拒绝启动**并写 EventLog + `D:\PF_Logs\SecsGem\Service\startup-error.log`（不回退根目录：各设备 `SecsGemConfig.db` 内容不同，回退会让服务用空库与 Host 建链，外部看是"正常运行"）
+- 老版本升级必须先执行 `Installer\Migrate-Config.ps1`，详见 `Installer\现场升级迁移说明.md`
+
+**4 个独立 SQLite 库**（均位于项目子目录下）：
 
 | 文件 | DbContext | 用途 |
 |------|-----------|------|
-| `SystemParamsCollection.db` | `AppParamDbContext` | 参数、用户凭证、硬件配置（JSON 字段） |
+| `SystemParamsCollection.db` | `AppParamDbContext` | 参数、用户凭证、硬件配置、通讯配置（JSON 字段） |
 | `ProductionHistory.db` | `ProductionDbContext` | 生产数据记录（按 RecordType 索引） |
 | `AlarmHistory.db` | `AlarmDbContext` | 报警历史（年度分表 `AlarmRecord_{YYYY}`，`AlarmModelCacheKeyFactory` 驱动 EF Core 模型缓存） |
-| `SecsGemConfig.db` | `SecsGemDbContext` | SECS/GEM 配置（主程序 + Windows 服务共享） |
+| `SecsGemConfig.db` | `SecsGemDbContext` | SECS/GEM 配置（主程序 + Windows 服务共享同一文件） |
 
-**日志路径**：`%APPDATA%\PFAutoFrameWork\Log\`（小时滚动）| SECS/GEM 服务：`D:\SWLog\SecsGemService\`（年月日目录，十六进制报文）
+**日志路径**（与配置路径无关，不按项目隔离）：主程序 `D:\PF_Logs\`（`LogConfiguration.CreateDefault`）| SECS/GEM 服务 `D:\PF_Logs\SecsGem\Service\`（报文日志在其下 `Protocol\`）
 
 ---
 
@@ -242,6 +268,10 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 | 点表丢失 | 未调用 EnsurePointsExist | `InternalInitializeAsync` 末尾调用 `EnsurePointsExist<TEnum>(axis)` |
 | `IParamService` 参数读取返回 null | 直接用值类型泛型参数 | 封装为 POCO 类（泛型约束 `where T : class`） |
 | 工站抽象方法找不到 | API 已更新 | `ProcessLoopAsync` → `ProcessNormalLoopAsync` / `ProcessDryRunLoopAsync` |
+| 启动抛 `TypeInitializationException` | 静态字段初始化器捕获了 `ConfigPath` | 改成 `=>` 表达式属性，延迟到 `Initialize` 之后求值 |
+| `ConfigPath` 抛"尚未初始化" | 宿主没继承 `PFApplicationBase`（工具、测试宿主） | 显式调用 `ConstGlobalParam.Initialize(项目名)` |
+| 换项目后参数全没了 | 老布局未迁移，或两个项目共用了同一个配置目录 | 执行 `Installer\Migrate-Config.ps1`，确认各项目 `ProjectName` 不同 |
+| SecsGem 服务起不来 | `appsettings.json` 缺 `ProjectName` 键 | 看 `D:\PF_Logs\SecsGem\Service\startup-error.log`，补键后重启服务 |
 | 重写了 `ExecuteInitializeAsync` 手动调 `Fire` | 应重写钩子不是入口 | 改为重写 `OnInitializeAsync` / `OnResetAsync`，基类自动管理状态机 |
 | 复位后状态机不前进 | 在 `OnResetAsync` 里调了 `ResetAlarm()` / `Fire` | `OnResetAsync` 内只做硬件动作，基类自动路由 `ResetDone` / `ResetDoneUninitialized` |
 | 暂停后循环无法被打断 | 使用了不存在的 `_pauseEvent` | 暂停是 CancellationToken 取消式，循环用 `while (!token.IsCancellationRequested)` |
