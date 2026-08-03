@@ -114,7 +114,9 @@
       "Bash(curl -s \"https://api.nuget.org/v3-flatcontainer/prism.dryioc/9.0.537/prism.dryioc.nuspec\")",
       "Bash(curl -s \"https://nuget.powerfocus.com.cn/v3-flatcontainer/pf.ui.resources/1.1.1/pf.ui.resources.nuspec\")",
       "Bash(curl -s \"https://api.nuget.org/v3-flatcontainer/prism.container.dryioc/9.0.106/prism.container.dryioc.nuspec\")",
-      "Bash(grep -vE \"^\\\\s*$\" \"C:/Users/12434/AppData/Local/Temp/claude/D--VSprojects-Work-PF-PF-AutoFramework-Standard-Library-PF-AutoFramework/4b26edd6-7c46-4046-9266-bef0a6a42f30/tasks/bxljzc41p.output\")"
+      "Bash(grep -vE \"^\\\\s*$\" \"C:/Users/12434/AppData/Local/Temp/claude/D--VSprojects-Work-PF-PF-AutoFramework-Standard-Library-PF-AutoFramework/4b26edd6-7c46-4046-9266-bef0a6a42f30/tasks/bxljzc41p.output\")",
+      "PowerShell(dotnet clean -c Release --nologo -v quiet 2>&1)",
+      "PowerShell(dotnet restore --nologo -v quiet 2>&1)"
     ]
   }
 }

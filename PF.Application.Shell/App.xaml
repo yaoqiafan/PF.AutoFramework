@@ -17,7 +17,7 @@
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
 
-                <ResourceDictionary Source="pack://application:,,,/PF.UI.Fonts.LXGW;component/Fonts/LXGW.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/PF.UI.Fonts.SourceHanSerif;component/Fonts/SourceHanSerif.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

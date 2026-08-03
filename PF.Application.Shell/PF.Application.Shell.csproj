@@ -12,7 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PF.UI.Fonts.LXGW" />
+		<PackageReference Include="PF.UI.Fonts.SourceHanSerif" />
 		<PackageReference Include="Prism.DryIoc" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" />
 	</ItemGroup>

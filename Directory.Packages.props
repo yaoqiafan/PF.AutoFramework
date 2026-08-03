@@ -13,10 +13,11 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
-    <PackageVersion Include="PF.UI.Fonts.LXGW" Version="1.0.0" />
+    <PackageVersion Include="PF.UI.Fonts.SourceHanSerif" Version="1.0.0" />
     <PackageVersion Include="PF.UI.Resources" Version="2.1.0" />
     <PackageVersion Include="Prism.Core" Version="9.0.537" />
     <PackageVersion Include="Prism.DryIoc" Version="9.0.537" />
+
     <PackageVersion Include="Prism.Wpf" Version="9.0.537" />
     <!-- NPOI 停留在 2.7.6：2.8.0 起二进制包改用 OSMF EULA（商业用户按月付维护费），2.7.6 是最后的纯 Apache-2.0 稳定版 -->
     <PackageVersion Include="NPOI" Version="2.7.6" />
