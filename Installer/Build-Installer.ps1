@@ -76,8 +76,8 @@ $appIconRel       = $env:APP_ICON          # kept as relative path, written as-i
 $mainExe          = $env:MAIN_EXE
 $mainCsprojRel    = $env:MAIN_CSPROJ
 $versionSource    = if ($env:VERSION_SOURCE) { ($env:VERSION_SOURCE).ToLower() } else { '' }
-# 留空时回退到主程序 .csproj：本仓库的版本号是各项目在自己 .csproj 中独立声明的
-# （Directory.Build.props 自 62978be 起已不含 <Version>），安装包版本应取被打包的主程序。
+# 留空时回退到主程序 .csproj：若版本号改为各项目在自己 .csproj 中独立声明
+# （Directory.Build.props 不再含 <Version>），安装包版本应取被打包的主程序。
 $versionPropsFileRel = if ($env:VERSION_PROPS_FILE) { $env:VERSION_PROPS_FILE } else { $env:MAIN_CSPROJ }
 $versionValue     = $env:VERSION_VALUE
 $buildRid         = $env:BUILD_RID
@@ -99,7 +99,6 @@ if (-not $appId)      { Fail "APP_ID is empty" }
 if (-not $mainExe)    { Fail "MAIN_EXE is empty" }
 if (-not $buildRid)   { Fail "BUILD_RID is empty" }
 
-
 # GUID format
 try   { [System.Guid]::Parse($appId) | Out-Null }
 catch { Fail "APP_ID is not a valid GUID: '$appId'`nExpected: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`nGenerate: [guid]::NewGuid() in PowerShell" }
@@ -110,9 +109,13 @@ if (-not [int]::TryParse($appDotNetMajorRaw, [ref]$appDotNetMajor) -or $appDotNe
     Fail "APP_DOTNET_VERSION must be a positive integer (current: '$appDotNetMajorRaw')"
 }
 
-# APP_ICON file must exist
-$appIconAbs = Join-Path $scriptDir $appIconRel
-if (-not (Test-Path $appIconAbs)) { Fail "Icon file not found: $appIconRel" }
+# APP_ICON file (optional): skip check if not specified
+$appIconAbs = if ($appIconRel) { Join-Path $scriptDir $appIconRel } else { $null }
+if ($appIconRel -and -not (Test-Path $appIconAbs)) {
+    Write-Warning "[WARN] Icon file not found: $appIconRel -- building without icon"
+    $appIconRel = $null
+    $appIconAbs = $null
+}
 
 # MAIN_CSPROJ must exist
 $mainCsproj = Join-Path $scriptDir $mainCsprojRel
@@ -249,7 +252,7 @@ if ($versionSource -eq 'auto') {
     if (-not $m.Success) {
         Fail ("<Version> tag not found in $(Split-Path $versionPropsFile -Leaf)`n" +
               "        VERSION_PROPS_FILE must point at a file that declares <Version>x.y.z</Version>.`n" +
-              "        This repo declares versions per project, not in Directory.Build.props --`n" +
+              "        If versions are declared per project rather than in Directory.Build.props,`n" +
               "        leave VERSION_PROPS_FILE empty to fall back to MAIN_CSPROJ, or set`n" +
               "        VERSION_SOURCE=manual and fill in VERSION_VALUE.")
     }
@@ -450,7 +453,7 @@ $cfg = [System.Text.StringBuilder]::new()
 [void]$cfg.AppendLine("#define AppExeName      `"$mainExe`"")
 [void]$cfg.AppendLine("#define ProjectName     `"$projectName`"")
 [void]$cfg.AppendLine("#define DotNetMajorVer  $appDotNetMajor")
-[void]$cfg.AppendLine("#define SetupIconPath   `"$appIconRel`"")
+if ($appIconRel) { [void]$cfg.AppendLine("#define SetupIconPath   `"$appIconRel`"") }
 [void]$cfg.AppendLine("#define OutputBaseName  `"${safeName}_Setup_$version`"")
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_config.iss'), $cfg.ToString(), $utf8NoBom)
 

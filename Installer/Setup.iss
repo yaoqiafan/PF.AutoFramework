@@ -39,8 +39,10 @@ LanguageDetectionMethod=locale
 
 OutputDir=Output
 OutputBaseFilename={#OutputBaseName}
+#ifdef SetupIconPath
 SetupIconFile={#SetupIconPath}
 UninstallDisplayIcon={#SetupIconPath}
+#endif
 
 Compression=lzma2/ultra64
 SolidCompression=yes
