@@ -367,3 +367,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# 大文件二进制资源（超过 GitHub 100MB 限制，不入库；如需分发请用 Git LFS 或 Release 附件）
+DLL/PF.UI.Resources.dll
