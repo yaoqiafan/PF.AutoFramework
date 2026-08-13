@@ -9,8 +9,8 @@ using Prism.Commands;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
@@ -23,8 +23,8 @@ namespace PF.Modules.Debug.ViewModels
     ///
     /// <para><b>这个面板真正的价值在"边填边算"</b>：线扫的帧长、行频、曝光上限、加减速余量
     /// 是互相牵制的，任何一个填错，症状都只是"图不对"，而原因分别落在轴、相机、光学三处。
-    /// 面板把 <see cref="ScanProfile"/> 的换算结果与校验问题实时显示出来，
-    /// 让参数在**按下扫描之前**就能看出是否自洽。</para>
+    /// 配方每改一次就重算换算结果并跑一次校验，让参数在**按下扫描之前**就能看出是否自洽；
+    /// 校验不过时「开始扫描」直接禁用。</para>
     ///
     /// <para>模组实例通过 <see cref="IMechanism"/> 集合按类型筛选获得，而不是按 DryIoc 服务键解析——
     /// 一台设备上可能有多条扫描线，各自是一个 LineScanDetectionModule 实例，
@@ -35,16 +35,8 @@ namespace PF.Modules.Debug.ViewModels
         private readonly CategoryLogger _logger;
         private readonly DispatcherTimer _statusTimer;
 
-        /// <summary>正在编辑的扫描配方。界面属性直接读写它，换算与校验由它自己负责。</summary>
-        private readonly ScanProfile _profile = new()
-        {
-            ScanStartMm = 0,
-            ScanEndMm = 100,
-            ScanVelocityMmPerSec = 50,
-            AccelerationMmPerSec2 = 500,
-            LineSpacingUm = 10,
-            ExposureTimeUs = 50,
-        };
+        /// <summary>由 <see cref="Profile"/> 换算出的配方快照，供只读展示属性读取。</summary>
+        private ScanProfile _derived = new();
 
         private CancellationTokenSource? _scanCts;
 
@@ -57,6 +49,9 @@ namespace PF.Modules.Debug.ViewModels
                 Modules.Add(m);
 
             SelectedModule = Modules.FirstOrDefault();
+
+            // PropertyGrid 改任何一项都要重算派生量与校验，故订阅整个视图对象的属性变更
+            Profile.PropertyChanged += OnProfileChanged;
 
             InitializeCommands();
 
@@ -80,7 +75,11 @@ namespace PF.Modules.Debug.ViewModels
             set { if (SetProperty(ref _selectedModule, value)) RefreshModuleInfo(); }
         }
 
-        private string _moduleInfo = "未找到线扫检测模组";
+        private string _moduleName = "未找到线扫检测模组";
+        /// <summary>当前模组名称（顶部状态栏显示）。</summary>
+        public string ModuleName { get => _moduleName; set => SetProperty(ref _moduleName, value); }
+
+        private string _moduleInfo = "-";
         /// <summary>模组信息（轴与相机的解析结果）。</summary>
         public string ModuleInfo { get => _moduleInfo; set => SetProperty(ref _moduleInfo, value); }
 
@@ -91,6 +90,10 @@ namespace PF.Modules.Debug.ViewModels
         private bool _hasAlarm;
         /// <summary>模组是否报警。</summary>
         public bool HasAlarm { get => _hasAlarm; set => SetProperty(ref _hasAlarm, value); }
+
+        private string _debugMessage = "就绪";
+        /// <summary>最后反馈（顶部状态栏显示，与其他模组调试页一致）。</summary>
+        public string DebugMessage { get => _debugMessage; set => SetProperty(ref _debugMessage, value); }
 
         private bool _isScanning;
         /// <summary>是否正在扫描（扫描期间禁掉重复触发）。</summary>
@@ -106,147 +109,39 @@ namespace PF.Modules.Debug.ViewModels
 
         #endregion
 
-        #region 【配方 —— 运动】
+        #region 【扫描配方】
 
-        /// <summary>扫描起点（mm）：图像第一行对应的轴位置。</summary>
-        public double ScanStartMm
-        {
-            get => _profile.ScanStartMm;
-            set => SetProfile(v => _profile.ScanStartMm = v, _profile.ScanStartMm, value);
-        }
-
-        /// <summary>扫描终点（mm）：小于起点即反向扫描。</summary>
-        public double ScanEndMm
-        {
-            get => _profile.ScanEndMm;
-            set => SetProfile(v => _profile.ScanEndMm = v, _profile.ScanEndMm, value);
-        }
-
-        /// <summary>扫描速度（mm/s）。</summary>
-        public double ScanVelocityMmPerSec
-        {
-            get => _profile.ScanVelocityMmPerSec;
-            set => SetProfile(v => _profile.ScanVelocityMmPerSec = v, _profile.ScanVelocityMmPerSec, value);
-        }
-
-        /// <summary>定位速度（mm/s）：回起点等非扫描移动用，0 表示取扫描速度。</summary>
-        public double PositioningVelocityMmPerSec
-        {
-            get => _profile.PositioningVelocityMmPerSec;
-            set => SetProfile(v => _profile.PositioningVelocityMmPerSec = v, _profile.PositioningVelocityMmPerSec, value);
-        }
-
-        /// <summary>加速度（mm/s²）。</summary>
-        public double AccelerationMmPerSec2
-        {
-            get => _profile.AccelerationMmPerSec2;
-            set => SetProfile(v => _profile.AccelerationMmPerSec2 = v, _profile.AccelerationMmPerSec2, value);
-        }
-
-        /// <summary>减速度（mm/s²）：0 表示取加速度。</summary>
-        public double DecelerationMmPerSec2
-        {
-            get => _profile.DecelerationMmPerSec2;
-            set => SetProfile(v => _profile.DecelerationMmPerSec2 = v, _profile.DecelerationMmPerSec2, value);
-        }
-
-        /// <summary>S 曲线时间（ms）。</summary>
-        public double SCurveTimeMs
-        {
-            get => _profile.SCurveTimeMs;
-            set => SetProfile(v => _profile.SCurveTimeMs = v, _profile.SCurveTimeMs, value);
-        }
-
-        /// <summary>加速余量（mm）：0 表示按理论加速距离自动取值。</summary>
-        public double ApproachMarginMm
-        {
-            get => _profile.ApproachMarginMm;
-            set => SetProfile(v => _profile.ApproachMarginMm = v, _profile.ApproachMarginMm, value);
-        }
-
-        /// <summary>减速余量（mm）：0 表示按理论减速距离自动取值。</summary>
-        public double OvertravelMarginMm
-        {
-            get => _profile.OvertravelMarginMm;
-            set => SetProfile(v => _profile.OvertravelMarginMm = v, _profile.OvertravelMarginMm, value);
-        }
-
-        #endregion
-
-        #region 【配方 —— 成像】
-
-        /// <summary>行间距（μm/行）= 编码器当量 × 分频系数。</summary>
-        public double LineSpacingUm
-        {
-            get => _profile.LineSpacingUm;
-            set => SetProfile(v => _profile.LineSpacingUm = v, _profile.LineSpacingUm, value);
-        }
-
-        /// <summary>曝光时间（μs）。</summary>
-        public double ExposureTimeUs
-        {
-            get => _profile.ExposureTimeUs;
-            set => SetProfile(v => _profile.ExposureTimeUs = v, _profile.ExposureTimeUs, value);
-        }
-
-        /// <summary>相机最大行频（行/秒），0 表示不校验。</summary>
-        public int MaxLineRate
-        {
-            get => _profile.MaxLineRate;
-            set
-            {
-                if (_profile.MaxLineRate == value) return;
-                _profile.MaxLineRate = value;
-                RaisePropertyChanged();
-                RefreshDerived();
-            }
-        }
-
-        /// <summary>是否用帧触发起帧。</summary>
-        public bool UseFrameTrigger
-        {
-            get => _profile.UseFrameTrigger;
-            set
-            {
-                if (_profile.UseFrameTrigger == value) return;
-                _profile.UseFrameTrigger = value;
-                RaisePropertyChanged();
-                RefreshDerived();
-            }
-        }
-
-        /// <summary>帧超时相对理论帧时间的倍数。</summary>
-        public double FrameTimeoutRatio
-        {
-            get => _profile.FrameTimeoutRatio;
-            set => SetProfile(v => _profile.FrameTimeoutRatio = v, _profile.FrameTimeoutRatio, value);
-        }
+        /// <summary>
+        /// 扫描配方编辑对象，绑给 pf:PropertyGrid。
+        /// 带 [Category]/[DisplayName]/[Description]，属性说明直接在网格里可见。
+        /// </summary>
+        public ScanProfileParamView Profile { get; } = new();
 
         #endregion
 
         #region 【换算结果 —— 只读】
 
         /// <summary>扫描行程（mm）。</summary>
-        public string ScanLengthText => $"{_profile.ScanLengthMm:F2} mm";
+        public string ScanLengthText => $"{_derived.ScanLengthMm:F2} mm";
 
         /// <summary>帧长（行）= 行程 ÷ 行间距。</summary>
-        public string FrameHeightText => $"{_profile.FrameHeightLines} 行";
+        public string FrameHeightText => $"{_derived.FrameHeightLines} 行";
 
         /// <summary>实际行频（行/秒）= 速度 ÷ 行间距。</summary>
-        public string ActualLineRateText => $"{_profile.ActualLineRate:F0} 行/秒";
+        public string ActualLineRateText => $"{_derived.ActualLineRate:F0} 行/秒";
 
         /// <summary>行周期，即单行可用的最长曝光时间。</summary>
-        public string MaxExposureText => $"{_profile.MaxExposureTimeUs:F1} μs";
+        public string MaxExposureText => $"{_derived.MaxExposureTimeUs:F1} μs";
 
         /// <summary>理论加减速距离。</summary>
         public string AccelDistanceText
-            => $"加速 {_profile.TheoreticalAccelDistanceMm:F2} / 减速 {_profile.TheoreticalDecelDistanceMm:F2} mm";
+            => $"加速 {_derived.TheoreticalAccelDistanceMm:F2} / 减速 {_derived.TheoreticalDecelDistanceMm:F2} mm";
 
         /// <summary>轴实际要走的起止位置（含加减速余量）。</summary>
-        public string MoveRangeText => $"{_profile.MoveStartMm:F2} → {_profile.MoveEndMm:F2} mm";
+        public string MoveRangeText => $"{_derived.MoveStartMm:F2} → {_derived.MoveEndMm:F2} mm";
 
         /// <summary>理论帧时间与据此推出的帧超时。</summary>
-        public string FrameTimeText => $"{_profile.EstimatedFrameTimeMs} ms（帧超时 {_profile.FrameTimeoutMs} ms）";
+        public string FrameTimeText => $"{_derived.EstimatedFrameTimeMs} ms（帧超时 {_derived.FrameTimeoutMs} ms）";
 
         private string _validationText = string.Empty;
         /// <summary>配方校验问题清单；为空表示通过。</summary>
@@ -287,11 +182,11 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【命令】
 
-        /// <summary>初始化模组</summary>
-        public DelegateCommand InitializeCommand { get; private set; } = null!;
-        /// <summary>复位模组</summary>
-        public DelegateCommand ResetCommand { get; private set; } = null!;
-        /// <summary>停止模组</summary>
+        /// <summary>初始化模组（命名与其他模组调试页保持一致）</summary>
+        public DelegateCommand InitializeModuleCommand { get; private set; } = null!;
+        /// <summary>报警复位</summary>
+        public DelegateCommand ResetModuleCommand { get; private set; } = null!;
+        /// <summary>模组停止</summary>
         public DelegateCommand StopCommand { get; private set; } = null!;
         /// <summary>执行一次扫描</summary>
         public DelegateCommand ScanCommand { get; private set; } = null!;
@@ -302,10 +197,10 @@ namespace PF.Modules.Debug.ViewModels
 
         private void InitializeCommands()
         {
-            InitializeCommand = new DelegateCommand(() => RunAsync("初始化模组",
-                async () => { if (SelectedModule != null) await SelectedModule.InitializeAsync(); }));
+            InitializeModuleCommand = new DelegateCommand(() => RunAsync("初始化模组",
+                async () => { if (SelectedModule != null) await SelectedModule.InitializeAsync(); RefreshModuleInfo(); }));
 
-            ResetCommand = new DelegateCommand(() => RunAsync("复位模组",
+            ResetModuleCommand = new DelegateCommand(() => RunAsync("复位模组",
                 async () => { if (SelectedModule != null) await SelectedModule.ResetAsync(); }));
 
             StopCommand = new DelegateCommand(() => RunAsync("停止模组",
@@ -317,10 +212,10 @@ namespace PF.Modules.Debug.ViewModels
                 if (axis == null) { LogWarn("模组未初始化，取不到扫描轴。"); return; }
 
                 // 走到含加速余量的实际起点，与扫描时的起始位置完全一致，便于目视对位
-                await axis.MoveAbsoluteAsync(_profile.MoveStartMm, _profile.EffectivePositioningVelocity,
-                    _profile.AccelerationMmPerSec2, _profile.EffectiveDeceleration, _profile.SCurveTimeMs);
+                await axis.MoveAbsoluteAsync(_derived.MoveStartMm, _derived.EffectivePositioningVelocity,
+                    _derived.AccelerationMmPerSec2, _derived.EffectiveDeceleration, _derived.SCurveTimeMs);
 
-                Log($"扫描轴移动到起始位 {_profile.MoveStartMm:F2}mm。");
+                Log($"扫描轴移动到起始位 {_derived.MoveStartMm:F2}mm。");
             }));
 
             ScanCommand = new DelegateCommand(ExecuteScan, () => !IsScanning && IsProfileValid);
@@ -346,7 +241,7 @@ namespace PF.Modules.Debug.ViewModels
             var startedAt = DateTime.Now;
             try
             {
-                var frame = await SelectedModule.ScanAsync(_profile, null, cts.Token);
+                var frame = await SelectedModule.ScanAsync(Profile.ToProfile(), null, cts.Token);
 
                 double elapsed = (DateTime.Now - startedAt).TotalMilliseconds;
                 ResultText = $"{frame.Width}×{frame.Height}，{frame.SizeBytes / 1024.0 / 1024.0:F2}MB，"
@@ -369,16 +264,7 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【私有辅助】
 
-        /// <summary>写入配方字段并刷新全部换算结果。值未变时不做任何事。</summary>
-        private void SetProfile(Action<double> setter, double current, double value,
-            [CallerMemberName] string? propertyName = null)
-        {
-            if (Math.Abs(current - value) < 1e-9) return;
-
-            setter(value);
-            RaisePropertyChanged(propertyName);
-            RefreshDerived();
-        }
+        private void OnProfileChanged(object? sender, PropertyChangedEventArgs e) => RefreshDerived();
 
         /// <summary>
         /// 重算全部派生量并跑一次校验。
@@ -387,6 +273,8 @@ namespace PF.Modules.Debug.ViewModels
         /// </summary>
         private void RefreshDerived()
         {
+            _derived = Profile.ToProfile();
+
             RaisePropertyChanged(nameof(ScanLengthText));
             RaisePropertyChanged(nameof(FrameHeightText));
             RaisePropertyChanged(nameof(ActualLineRateText));
@@ -395,7 +283,7 @@ namespace PF.Modules.Debug.ViewModels
             RaisePropertyChanged(nameof(MoveRangeText));
             RaisePropertyChanged(nameof(FrameTimeText));
 
-            var problems = _profile.Validate();
+            var problems = _derived.Validate();
             IsProfileValid = problems.Count == 0;
             ValidationText = problems.Count == 0
                 ? "配方校验通过。"
@@ -406,9 +294,12 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (SelectedModule == null)
             {
-                ModuleInfo = "未找到线扫检测模组。请确认已在 App.xaml.cs 中注册 LineScanDetectionModule。";
+                ModuleName = "未找到线扫检测模组";
+                ModuleInfo = "请确认已在 App.xaml.cs 中注册 LineScanDetectionModule。";
                 return;
             }
+
+            ModuleName = SelectedModule.MechanismName;
 
             string axis = SelectedModule.ScanAxis != null ? "已解析" : "未解析（需先初始化）";
             string cam = SelectedModule.Camera != null
@@ -430,31 +321,47 @@ namespace PF.Modules.Debug.ViewModels
             AxisPosition = pos.HasValue ? $"{pos.Value:F3} mm" : "-";
         }
 
-        /// <summary>统一的异步命令外壳：吞掉异常并落到日志栏，不让 async void 击穿进程。</summary>
+        /// <summary>统一的异步命令外壳：吞掉异常并落到日志栏与顶部反馈，不让 async void 击穿进程。</summary>
         private async void RunAsync(string opName, Func<Task> action)
         {
             try
             {
+                DebugMessage = $"{opName}中...";
                 await action();
+                DebugMessage = $"{opName}完成";
             }
             catch (OperationCanceledException)
             {
+                DebugMessage = $"{opName}已取消";
                 LogWarn($"{opName}已取消。");
             }
             catch (Exception ex)
             {
                 // 配方校验失败会带整段问题清单，原样输出比截断更有用
-                _logger.Error($"[线扫检测模组] {opName}失败：{ex.Message}");
+                DebugMessage = $"{opName}失败：{ex.Message}";
+                _logger.Error($"[{ModuleName}] {opName}失败：{ex.Message}");
                 PreviewHint = $"{opName}失败：{ex.Message}";
             }
         }
 
-        private void Log(string message) => _logger.Info($"[线扫检测模组] {message}");
+        private void Log(string message)
+        {
+            DebugMessage = message;
+            _logger.Info($"[{ModuleName}] {message}");
+        }
 
-        private void LogWarn(string message) => _logger.Warn($"[线扫检测模组] {message}");
+        private void LogWarn(string message)
+        {
+            DebugMessage = message;
+            _logger.Warn($"[{ModuleName}] {message}");
+        }
 
-        /// <summary>视图销毁时停掉轮询。</summary>
-        public override void Destroy() => _statusTimer.Stop();
+        /// <summary>视图销毁时停掉轮询并退订配方变更。</summary>
+        public override void Destroy()
+        {
+            _statusTimer.Stop();
+            Profile.PropertyChanged -= OnProfileChanged;
+        }
 
         #endregion
     }
