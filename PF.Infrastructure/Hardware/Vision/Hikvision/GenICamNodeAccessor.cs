@@ -298,6 +298,9 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                     ? null
                     : GetNode(name);
 
+                // 中文释义优先，查不到再退回设备 XML 自带的英文 ToolTip
+                string? chinese = GenICamNodeGlossary.Describe(name);
+
                 result.Add(new GenICamNode
                 {
                     Name = name,
@@ -307,7 +310,8 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                     AccessMode = access,
                     Value = value,
                     EnumEntries = type == GenICamNodeType.Enumeration ? GetEnumEntries(name) : Array.Empty<string>(),
-                    Description = desc,
+                    Description = chinese ?? desc,
+                    IsDescriptionLocalized = chinese != null,
                 });
             }
 
@@ -319,41 +323,71 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
         /// 从 GenApi XML 解析出所有可取值节点，并建立"节点 → 所属分类"映射。
         /// XML 带命名空间，统一按元素本地名匹配。
         /// </summary>
-        private static List<(string, string, string, GenICamNodeType)> ParseDeclaredNodes(
+        private List<(string, string, string, GenICamNodeType)> ParseDeclaredNodes(
             string xml, out Dictionary<string, string> categoryOf)
         {
             var doc = XDocument.Parse(xml);
             var nodes = new List<(string, string, string, GenICamNodeType)>();
             categoryOf = new Dictionary<string, string>(StringComparer.Ordinal);
 
+            // ── 第 1 遍：建立"特征 → 所属分类"映射 ──────────────────────────────
+            // Category 元素可能出现在被它引用的特征**之后**，所以必须先单独扫一遍，
+            // 不能在同一次遍历里边建边用。
+            int categoryCount = 0;
+            foreach (var element in doc.Descendants().Where(e => e.Name.LocalName == "Category"))
+            {
+                string? catName = element.Attribute("Name")?.Value;
+                if (string.IsNullOrEmpty(catName)) continue;
+
+                categoryCount++;
+
+                // pFeature 一般是 Category 的直接子元素，个别 XML 会多包一层，
+                // 用 Descendants 兜住两种写法。
+                foreach (var feature in element.Descendants().Where(e => e.Name.LocalName == "pFeature"))
+                {
+                    string featureName = feature.Value.Trim();
+
+                    // 一个特征可能被多个分类引用；Root 只是顶层容器，遇到更具体的分类要让位
+                    if (featureName.Length == 0) continue;
+                    if (categoryOf.TryGetValue(featureName, out var existing)
+                        && !string.Equals(existing, "Root", StringComparison.Ordinal))
+                        continue;
+
+                    categoryOf[featureName] = catName;
+                }
+            }
+
+            // ── 第 2 遍：收集可取值节点 ────────────────────────────────────────
             foreach (var element in doc.Descendants())
             {
                 string tag = element.Name.LocalName;
+                if (!_valueTagMap.TryGetValue(tag, out var type)) continue;
+
                 string? name = element.Attribute("Name")?.Value;
                 if (string.IsNullOrEmpty(name)) continue;
-
-                // 分类节点：把它列出的 pFeature 子项归到自己名下。
-                // 一个特征可能被多个分类引用，取先遇到的即可——分类只用于分组展示。
-                if (tag == "Category")
-                {
-                    foreach (var feature in element.Elements().Where(e => e.Name.LocalName == "pFeature"))
-                    {
-                        string featureName = feature.Value.Trim();
-                        if (featureName.Length > 0 && !categoryOf.ContainsKey(featureName))
-                            categoryOf[featureName] = name;
-                    }
-                    continue;
-                }
-
-                if (!_valueTagMap.TryGetValue(tag, out var type)) continue;
 
                 string display = element.Elements().FirstOrDefault(e => e.Name.LocalName == "DisplayName")?.Value ?? name;
                 string desc = element.Elements().FirstOrDefault(e => e.Name.LocalName == "ToolTip")?.Value
                               ?? element.Elements().FirstOrDefault(e => e.Name.LocalName == "Description")?.Value
                               ?? string.Empty;
 
+                // pFeature 没覆盖到的节点，退回它所在 <Group Comment="..."> 的注释，
+                // 总比空白强——GenApi XML 普遍用 Group 给节点分段
+                if (!categoryOf.ContainsKey(name))
+                {
+                    string? group = element.Ancestors()
+                        .FirstOrDefault(a => a.Name.LocalName == "Group")?
+                        .Attribute("Comment")?.Value;
+
+                    if (!string.IsNullOrWhiteSpace(group))
+                        categoryOf[name] = group.Trim();
+                }
+
                 nodes.Add((name, display.Trim(), desc.Trim(), type));
             }
+
+            _logger.Debug($"[{_owner}] 属性树解析：Category {categoryCount} 个，"
+                + $"分类映射 {categoryOf.Count} 条，可取值节点 {nodes.Count} 个。");
 
             return nodes;
         }

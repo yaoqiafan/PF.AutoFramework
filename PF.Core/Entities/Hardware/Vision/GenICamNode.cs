@@ -35,8 +35,17 @@ namespace PF.Core.Entities.Hardware.Vision
         /// <summary>枚举节点的可选项（symbolic 名）。非枚举节点为空列表。</summary>
         public IReadOnlyList<string> EnumEntries { get; init; } = Array.Empty<string>();
 
-        /// <summary>设备 XML 中的节点说明，可用作提示文本。</summary>
+        /// <summary>
+        /// 节点说明。优先为框架内置的中文释义，没有对应条目时回退设备 XML 自带的英文 ToolTip。
+        /// </summary>
         public string Description { get; init; } = string.Empty;
+
+        /// <summary>
+        /// <see cref="Description"/> 是否来自框架的中文释义表。
+        /// false 表示是设备自带的英文原文——界面可据此区别显示，
+        /// 也便于发现哪些节点还缺中文条目。
+        /// </summary>
+        public bool IsDescriptionLocalized { get; init; }
 
         /// <summary>当前是否可写。</summary>
         public bool IsWritable => AccessMode is GenICamAccessMode.ReadWrite or GenICamAccessMode.WriteOnly;

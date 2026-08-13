@@ -818,19 +818,37 @@
                                         <DataGridTextColumn
                                             Binding="{Binding Category}"
                                             Header="分类"
-                                            Width="150" />
+                                            Width="130" />
                                         <DataGridTextColumn
                                             Binding="{Binding Name}"
                                             Header="节点名"
-                                            Width="*" />
+                                            Width="200" />
+                                        <!--  中文释义直接成列：节点上千个，靠悬停一个个看太慢  -->
+                                        <DataGridTextColumn
+                                            Binding="{Binding Description}"
+                                            Header="说明"
+                                            Width="*">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                                    <Style.Triggers>
+                                                        <!--  英文原文（缺中文条目）压暗，与中文释义区分  -->
+                                                        <DataTrigger Binding="{Binding IsDescriptionLocalized}" Value="False">
+                                                            <Setter Property="Foreground" Value="#A8B3C2" />
+                                                            <Setter Property="FontStyle" Value="Italic" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
                                         <DataGridTextColumn
                                             Binding="{Binding NodeType}"
                                             Header="类型"
-                                            Width="100" />
+                                            Width="90" />
                                         <DataGridTextColumn
                                             Binding="{Binding Value}"
                                             Header="当前值"
-                                            Width="160" />
+                                            Width="140" />
                                         <DataGridTextColumn
                                             Binding="{Binding AccessText}"
                                             Header="权限"

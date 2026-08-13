@@ -475,6 +475,12 @@
 
                         <StackPanel Grid.Row="5">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding NodeName, StringFormat='选中节点：{0}'}" />
+                            <!--  选中节点的中文释义。右列窄，放不下"说明"列，改为选中后单独显示  -->
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                Foreground="#0284C7"
+                                Style="{StaticResource Hint}"
+                                Text="{Binding SelectedNode.Description}" />
                             <!--  可编辑下拉框：数值/字符串直接输入，枚举节点从选中行带出的可选项里挑  -->
                             <ComboBox
                                 IsEditable="True"
