@@ -45,6 +45,8 @@ namespace PF.Modules.Parameter
             ViewFactory.RegisterHardwareConfigType<KeyenceSdkBarcodeScanParamView, KeyenceSdkBarcodeScanParamViewMapper>("KeyenceBarcodeScan");
             ViewFactory.RegisterHardwareConfigType<KeyenceIntelligentCameraParamView, KeyenceIntelligentCameraParamViewMapper>("KeyenceIntelligentCamera");
             ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightControoller");
+            ViewFactory.RegisterHardwareConfigType<HikFrameGrabberCardParamView,      HikFrameGrabberCardParamViewMapper>     ("HikFrameGrabberCard");
+            ViewFactory.RegisterHardwareConfigType<HikLineScanCameraParamView,        HikLineScanCameraParamViewMapper>       ("HikLineScanCamera");
         }
     }
 }

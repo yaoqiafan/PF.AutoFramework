@@ -27,6 +27,13 @@
 	  <Reference Include="Communication">
 	    <HintPath>..\DLL\Communication.dll</HintPath>
 	  </Reference>
+	  <!-- 海康工业相机 SDK（MVS）托管封装 V2。取自 SDK 安装目录 Development\DotNet\AnyCpu\netstandard2.0。
+	       ⚠️ 部署要求：托管层内部仍会 P/Invoke 原生 MvCameraControl.dll，
+	       需将 SDK 的 Libraries\win64 下原生库一并复制到程序输出目录；
+	       CameraLink/CXP/XoF 链路还需另行安装采集卡驱动(MVFG)。 -->
+	  <Reference Include="MvCameraControl.Net">
+	    <HintPath>..\DLL\MvCameraControl.Net.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 
 	<PropertyGroup>

@@ -1,28 +1,44 @@
-using PF.Core.Interfaces.Device.Hardware.Card;
-
 namespace PF.Core.Interfaces.Device.Hardware
 {
     /// <summary>
-    /// 挂载设备接口 — 表示该设备依附于某块运动控制卡
+    /// 挂载设备接口（非泛型契约）— 表示该设备依附于另一台父设备。
     ///
     /// 低耦合父子注入方案：
-    ///   · 轴/IO 等子设备实现此接口，声明自己"可被挂载"
-    ///   · HardwareManagerService 初始化完父板卡后，调用子设备的 AttachToCard(card)
-    ///   · 服务层只依赖接口，不引用任何具体设备类，符合依赖倒置原则
-    ///   · 子设备通过 ParentCard 属性在运行时访问父板卡的资源（如 SDK 句柄）
+    ///   · 轴/IO 挂运动控制卡，线扫相机挂采集卡，均实现本接口声明自己"可被挂载"
+    ///   · HardwareManagerService 初始化完父设备后，调用 <see cref="TryAttachTo"/> 完成注入
+    ///   · 服务层只依赖本非泛型接口，不需要知道父设备的具体类型，新增父设备种类时注入点无需改动
+    ///   · 设备实现方与业务代码应使用强类型的 <see cref="IAttachedDevice{TParent}"/>
     /// </summary>
     public interface IAttachedDevice
     {
         /// <summary>
-        /// 归属的父运动控制卡实例。
-        /// 在 HardwareManagerService 调用 AttachToCard 之前为 null。
+        /// 归属的父设备实例（运动控制卡、采集卡等）。
+        /// 在 HardwareManagerService 完成挂载之前为 null。
         /// </summary>
-        IMotionCard? ParentCard { get; }
+        IHardwareDevice? ParentDevice { get; }
 
         /// <summary>
-        /// 将父板卡实例绑定到本子设备（由 HardwareManagerService 在子设备实例化后调用）
+        /// 尝试挂载到父设备。
+        /// 父设备类型与本设备期望的类型不匹配时返回 false（由调用方记录警告），不抛异常。
         /// </summary>
-        /// <param name="card">已初始化的父板卡实例</param>
-        void AttachToCard(IMotionCard card);
+        /// <param name="parent">已实例化的父设备</param>
+        /// <returns>true = 挂载成功</returns>
+        bool TryAttachTo(IHardwareDevice parent);
+    }
+
+    /// <summary>
+    /// 挂载设备接口（强类型版本）— 子设备实现本接口以声明自己期望的父设备类型。
+    /// <para>子设备通过 <see cref="Parent"/> 在运行时访问父设备资源（如 SDK 句柄），
+    /// 无需转型，编译期即可确定类型。</para>
+    /// </summary>
+    /// <typeparam name="TParent">父设备类型，如 IMotionCard、IFrameGrabberCard</typeparam>
+    public interface IAttachedDevice<TParent> : IAttachedDevice
+        where TParent : class, IHardwareDevice
+    {
+        /// <summary>归属的父设备实例。挂载前为 null。</summary>
+        TParent? Parent { get; }
+
+        /// <summary>将父设备绑定到本子设备。</summary>
+        void AttachTo(TParent parent);
     }
 }

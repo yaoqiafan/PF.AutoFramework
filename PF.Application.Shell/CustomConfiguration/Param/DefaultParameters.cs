@@ -136,7 +136,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Role = CommunicationRole.Server,
                 ImplementationClassName = "FileTransferChannel",
                 IsEnabled = true,
-                AutoStart = true,
+                AutoStart = false,
                 ConnectionParameters = new Dictionary<string, string>
                 {
                     ["Role"] = nameof(FileTransferRole.Server),
@@ -159,7 +159,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Role = CommunicationRole.Client,
                 ImplementationClassName = "FileTransferChannel",
                 IsEnabled = true,
-                AutoStart = true,
+                AutoStart = false,
                 ConnectionParameters = new Dictionary<string, string>
                 {
                     ["Role"] = nameof(FileTransferRole.Client),
@@ -241,7 +241,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "雷赛运动控制卡[0]",
                 Category = "MotionCard",
                 ImplementationClassName = "LTDMCMotionCard",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
                 ConnectionParameters = new Dictionary<string, string> { ["CardIndex"] = "0"},
@@ -254,7 +254,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "OCR模块Y轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "0" ,["AxisParam"]=System .Text .Json .JsonSerializer .Serialize (new AxisParam ())},
@@ -266,7 +266,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "OCR模块X轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "1", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -278,7 +278,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "OCR模块Z轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "2", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -291,7 +291,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位2上料Z轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "3", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -303,7 +303,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位2晶圆拉料Y轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "4", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -317,7 +317,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位1上料Z轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "5", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -329,7 +329,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位1晶圆拉料Y轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "6", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -341,7 +341,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位1挡料X轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "7", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -353,7 +353,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位2挡料X轴",
                 Category = "Axis",
                 ImplementationClassName = "EtherCatAxis",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "8", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
@@ -368,7 +368,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "IO模块",
                 Category = "IOController",
                 ImplementationClassName = "EtherCatIO",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = "LTDMC_Card_0",
                 ConnectionParameters = new Dictionary<string, string>
@@ -386,7 +386,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位1扫码枪",
                 Category = "ScanCode",
                 ImplementationClassName = "HKBarcodeScan",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
                 // IP/端口不再由硬件配置提供——由下面两个 CommInstanceId 对应的 CommunicationConfig 决定，
@@ -404,7 +404,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "工位2扫码枪",
                 Category = "ScanCode",
                 ImplementationClassName = "KeyenceBarcodeScan",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
                 ConnectionParameters = new Dictionary<string, string>
@@ -422,7 +422,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "基恩士OCR智能相机",
                 Category = "Canera",
                 ImplementationClassName = "KeyenceIntelligentCamera",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
                 ConnectionParameters = new Dictionary<string, string>
@@ -439,11 +439,84 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceName = "康视达Com口光源控制器",
                 Category = "Light",
                 ImplementationClassName = "CTS_LightControoller",
-                IsSimulated = false,
+                IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
                 ConnectionParameters = new Dictionary<string, string> { ["COM"] = "COM1" },
                 Remarks = "康视达光源控制器，用于开发/调试"
+            };
+
+            // ── 线阵相机示例（AutoOCR Demo 本身不使用，默认 IsEnabled=false，只作为配置样板）──────
+            //
+            // 两台设备演示的是"经采集卡"这一种拓扑：采集卡是顶级设备，相机把 ParentDeviceId
+            // 指向卡的 DeviceId 挂在其下。若改为 GigE/USB 直连，把相机的 ParentDeviceId 留空、
+            // 并删掉采集卡这条即可——设备层不需要任何"链路类型"开关，拓扑本身就表达了链路。
+            //
+            // 启用前须先确认：采集卡驱动(MVFG)已装、序列号填对（留空则按枚举索引选定）。
+            HardwareConfig lineScanGrabber = new HardwareConfig
+            {
+                DeviceId = "LineScan_Grabber_0",
+                DeviceName = "海康图像采集卡",
+                Category = "FrameGrabber",
+                ImplementationClassName = "HikFrameGrabberCard",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    // 序列号优先；留空时回退按 Index 选定（插拔顺序变化会失配，正式部署建议填序列号）
+                    ["SerialNumber"] = string.Empty,
+                    ["Index"] = "0"
+                },
+                Remarks = "线阵相机采集卡示例（默认禁用）。CameraLink 的切帧发生在卡上，故建成独立顶级设备"
+            };
+
+            HardwareConfig lineScanCamera = new HardwareConfig
+            {
+                DeviceId = "LineScan_Camera_0",
+                DeviceName = "海康线阵相机 MV-CL162-91F2M",
+                Category = "Camera",
+                ImplementationClassName = "HikLineScanCamera",
+                IsSimulated = true,
+                IsEnabled = true,
+                // 指向采集卡 = CameraLink 链路；留空 = GigE/USB 直连
+                ParentDeviceId = lineScanGrabber.DeviceId,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["SerialNumber"] = string.Empty,
+                    ["Index"] = "0",
+                    // SDK 图像缓存节点数：占用 ≈ 单帧字节数 × 本值。
+                    // 16K 宽 × 10000 行 Mono8 单帧就约 160MB，大帧场景必须下调到 2
+                    ["ImageNodeNum"] = "3"
+                },
+                Remarks = "线阵相机示例（默认禁用）。曝光/行触发/编码器等运行期参数不在此配置，由机构层按扫描任务下发"
+            };
+
+            // ── 直连拓扑示例：同一个工厂，ParentDeviceId 留空即为顶级设备 ─────────────
+            //
+            // 与上面那台的差别只有 ParentDeviceId 一项。没有采集卡时，
+            // 帧长回到相机自身的 Height 节点、帧触发回到相机的帧触发节点，
+            // 由设备层的帧控制策略自动切换——配置里不需要、也不存在"链路类型"字段。
+            //
+            // 注意：直连时相机侧没有与采集卡 FrameTimeoutTime 对应的节点，
+            // "行数攒不满一帧"只能靠 WaitFrameAsync 的等待超时兜底。
+            HardwareConfig lineScanCameraStandalone = new HardwareConfig
+            {
+                DeviceId = "LineScan_Camera_1",
+                DeviceName = "海康线阵相机(网口直连)",
+                Category = "Camera",
+                ImplementationClassName = "HikLineScanCamera",
+                IsSimulated = true,
+                IsEnabled = true,
+                // 留空 = 不挂任何父设备，作为顶级设备在第 1 层初始化
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["SerialNumber"] = string.Empty,
+                    ["Index"] = "0",
+                    ["ImageNodeNum"] = "3"
+                },
+                Remarks = "线阵相机直连示例（默认禁用）。GigE 链路，打开后会自动探测并设置网络最佳包大小"
             };
 
 
@@ -615,6 +688,41 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = light.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(light),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                // 采集卡必须排在相机之前只是可读性考虑：真正的"父先于子"由
+                // HardwareManagerService 按 ParentDeviceId 分层保证，与本字典的顺序无关
+                {
+                    lineScanGrabber.DeviceId, new HardwareParam
+                    {
+                        Name         = lineScanGrabber.DeviceId,
+                        Description  = lineScanGrabber.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(lineScanGrabber),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    lineScanCamera.DeviceId, new HardwareParam
+                    {
+                        Name         = lineScanCamera.DeviceId,
+                        Description  = lineScanCamera.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(lineScanCamera),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    lineScanCameraStandalone.DeviceId, new HardwareParam
+                    {
+                        Name         = lineScanCameraStandalone.DeviceId,
+                        Description  = lineScanCameraStandalone.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(lineScanCameraStandalone),
                         Category     = "Hardware",
                         Version      = 1
                     }

@@ -1,0 +1,812 @@
+<UserControl
+    x:Class="PF.Modules.Debug.Views.Hardware.LineScanCameraDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="900"
+    d:DesignWidth="1400"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <Style x:Key="GroupBorder" TargetType="Border">
+            <Setter Property="Padding" Value="15" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.H2.Title}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#475569" />
+        </Style>
+        <Style x:Key="SubTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,8,0,8" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.H3.Subtitle}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#475569" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,8,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Small}" />
+        </Style>
+        <Style
+            x:Key="FieldBox"
+            BasedOn="{StaticResource TextBoxBaseStyle}"
+            TargetType="TextBox">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style
+            x:Key="FieldCombo"
+            BasedOn="{StaticResource ComboBoxBaseStyle}"
+            TargetType="ComboBox">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption.Mini}" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="StatePill" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </UserControl.Resources>
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  ══ 头部：设备信息与状态 ══  -->
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,12"
+                Style="{StaticResource GroupBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Grid.Column="0"
+                        Margin="4,0,16,0"
+                        VerticalAlignment="Center"
+                        FontSize="28"
+                        Foreground="{DynamicResource TextIconBrush}"
+                        Text="📷" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="{DynamicResource FontSize.H1.Large}"
+                            FontWeight="Bold"
+                            Text="{Binding DeviceName}" />
+                        <TextBlock Margin="0,4,0,0" FontSize="{DynamicResource FontSize.Body.Small}">
+                            <Run Text="{Binding DeviceDescription, Mode=OneWay}" />
+                            <Run Text="  |  " />
+                            <Run Text="{Binding CameraInfo, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock
+                            Margin="0,2,0,0"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            Foreground="#0284C7"
+                            Text="{Binding FrameControlTarget}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                Text="取流:" />
+                            <Border>
+                                <Border.Style>
+                                    <Style BasedOn="{StaticResource StatePill}" TargetType="Border">
+                                        <Setter Property="Background" Value="#94A3B8" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsGrabbing}" Value="True">
+                                                <Setter Property="Background" Value="#0284C7" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    Text="{Binding IsGrabbing}" />
+                            </Border>
+
+                            <TextBlock
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                Text="报警:" />
+                            <Border>
+                                <Border.Style>
+                                    <Style BasedOn="{StaticResource StatePill}" TargetType="Border">
+                                        <Setter Property="Background" Value="#02AD8B" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsAlarm}" Value="True">
+                                                <Setter Property="Background" Value="#EF4444" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    Text="{Binding IsAlarm}" />
+                            </Border>
+
+                            <TextBlock
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                Text="连接:" />
+                            <Border>
+                                <Border.Style>
+                                    <Style BasedOn="{StaticResource StatePill}" TargetType="Border">
+                                        <Setter Property="Margin" Value="0" />
+                                        <Setter Property="Background" Value="#EF4444" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                                <Setter Property="Background" Value="#02AD8B" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    Text="{Binding IsConnected}" />
+                            </Border>
+                        </StackPanel>
+
+                        <!--  帧统计紧跟在取流状态下方：判断"在取流"和"取到了什么"是同一件事，放一起才好对照  -->
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Right"
+                            FontFamily="Consolas"
+                            FontSize="{DynamicResource FontSize.Body.Small}"
+                            Foreground="#0284C7"
+                            Text="{Binding FrameStats}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <TabControl Grid.Row="1">
+
+                <!--  ══════════ 操作页：连接 → 采集 → 预览 → 存盘 ══════════  -->
+                <TabItem FontSize="{DynamicResource FontSize.H3.Subtitle}" Header="  操 作  ">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  ── 左列：设备启停 + 在线相机 ──  -->
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="12" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Style="{StaticResource GroupBorder}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GroupTitle}" Text="设备启停" />
+                                    <UniformGrid Columns="2">
+                                        <Button
+                                            Height="34"
+                                            Margin="0,0,4,8"
+                                            Command="{Binding ConnectCommand}"
+                                            Content="打开相机"
+                                            Style="{DynamicResource ButtonDefault}" />
+                                        <Button
+                                            Height="34"
+                                            Margin="4,0,0,8"
+                                            Command="{Binding DisconnectCommand}"
+                                            Content="关闭相机"
+                                            Style="{DynamicResource ButtonDefault}" />
+                                    </UniformGrid>
+                                    <Button
+                                        Height="34"
+                                        Margin="0,0,0,8"
+                                        Command="{Binding ResetCommand}"
+                                        Content="复位 (RESET)"
+                                        Style="{DynamicResource ButtonWarning}" />
+                                    <Button
+                                        Height="34"
+                                        Command="{Binding SimulateAlarmCommand}"
+                                        Content="模拟报警测试"
+                                        Style="{DynamicResource ButtonDanger}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Style="{StaticResource GroupBorder}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock
+                                        Grid.Row="0"
+                                        Style="{StaticResource GroupTitle}"
+                                        Text="在线相机" />
+                                    <Button
+                                        Grid.Row="1"
+                                        Height="32"
+                                        Margin="0,0,0,10"
+                                        Command="{Binding DiscoverCommand}"
+                                        Content="枚举在线相机"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <ListBox
+                                        Grid.Row="2"
+                                        FontFamily="Consolas"
+                                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                        ItemsSource="{Binding DiscoveredCameras}" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!--  ── 右列：采集控制 + 图像预览 + 存盘 ──  -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="12" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Style="{StaticResource GroupBorder}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="auto" />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Style="{StaticResource GroupTitle}" Text="图像采集" />
+
+
+                                    </Grid>
+
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Button
+                                            Grid.Column="0"
+                                            Height="38"
+                                            Margin="5,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding StartGrabCommand}"
+                                            Content="开始采集"
+                                            FontWeight="Bold"
+                                            Style="{DynamicResource ButtonSuccess}" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Height="38"
+                                            Margin="5,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding StopGrabCommand}"
+                                            Content="停止采集"
+                                            Style="{DynamicResource ButtonWarning}" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Height="38"
+                                            Margin="5,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding SoftwareTriggerCommand}"
+                                            Content="帧软触发"
+                                            Style="{DynamicResource ButtonPrimary}" />
+                                        <Button
+                                            Grid.Column="3"
+                                            Height="38"
+                                            Margin="5,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding GrabOneCommand}"
+                                            Content="取一帧"
+                                            Style="{DynamicResource ButtonDefault}" />
+
+                                        <StackPanel
+                                            Grid.Column="4"
+                                            Margin="0,0,0,0"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            Orientation="Horizontal">
+                                            <TextBlock VerticalAlignment="Center" Text="取帧超时(ms)：" />
+                                            <TextBox
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource TextBoxBaseStyle}"
+                                                Text="{Binding WaitTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        </StackPanel>
+                                    </Grid>
+
+
+
+                                    <Separator Margin="0,12,0,10" />
+
+                                    <!--  存盘属于采集动线的最后一步，与开流/触发放同一栏  -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center"
+                                            Text="存盘目录：" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Height="32"
+                                            VerticalContentAlignment="Center"
+                                            Style="{StaticResource TextBoxBaseStyle}"
+                                            Text="{Binding SaveDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                            ToolTip="文件名按 时间戳_宽_高 自动生成，目录不存在会自动创建" />
+
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                            <Button
+                                                Width="88"
+                                                Height="32"
+                                                Margin="0,0,6,0"
+                                                Command="{Binding SaveImageCommand}"
+                                                CommandParameter="Bmp"
+                                                Content="存 BMP"
+                                                Style="{DynamicResource ButtonDefault}" />
+                                            <Button
+                                                Width="88"
+                                                Height="32"
+                                                Margin="0,0,6,0"
+                                                Command="{Binding SaveImageCommand}"
+                                                CommandParameter="Jpeg"
+                                                Content="存 JPG"
+                                                Style="{DynamicResource ButtonDefault}" />
+                                            <Button
+                                                Width="88"
+                                                Height="32"
+                                                Margin="0,0,6,0"
+                                                Command="{Binding SaveImageCommand}"
+                                                CommandParameter="Tiff"
+                                                Content="存 TIFF"
+                                                Style="{DynamicResource ButtonDefault}" />
+                                            <Button
+                                                Width="88"
+                                                Height="32"
+                                                Command="{Binding SaveImageCommand}"
+                                                CommandParameter="Png"
+                                                Content="存 PNG"
+                                                Style="{DynamicResource ButtonDefault}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border
+                                Grid.Row="2"
+                                Background="{DynamicResource  ThirdlyRegionBrush}"
+                                Style="{StaticResource GroupBorder}">
+                                <Grid>
+                                    <Image
+                                        RenderOptions.BitmapScalingMode="LowQuality"
+                                        Source="{Binding PreviewImage}"
+                                        Stretch="Uniform" />
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                                        Foreground="#94A3B8"
+                                        Text="{Binding PreviewHint}"
+                                        TextWrapping="Wrap" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
+                <!--  ══════════ 参数页：相机本体 / 行触发 / 帧控制 + 底部节点条 ══════════  -->
+                <TabItem FontSize="{DynamicResource FontSize.H3.Subtitle}" Header="  参 数  ">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="12" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  ── 相机本体参数 ──  -->
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Style="{StaticResource GroupBorder}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GroupTitle}" Text="相机参数" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="扫描模式" />
+                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding ScanMode, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="像素格式（选中即下发）" />
+                                    <ComboBox
+                                        ItemsSource="{Binding PixelFormats}"
+                                        SelectedItem="{Binding SelectedPixelFormat}"
+                                        Style="{StaticResource FieldCombo}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="无损压缩模式（选中即下发）" />
+                                    <ComboBox
+                                        ItemsSource="{Binding ImageCompressionModes}"
+                                        SelectedItem="{Binding SelectedImageCompressionMode}"
+                                        Style="{StaticResource FieldCombo}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="模拟增益档位（选中即下发）" />
+                                    <ComboBox
+                                        ItemsSource="{Binding PreampGains}"
+                                        SelectedItem="{Binding SelectedPreampGain}"
+                                        Style="{StaticResource FieldCombo}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="曝光时间(μs)" />
+                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding ExposureTimeUs, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="数字增益" />
+                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding DigitalShift, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <Button
+                                        Height="32"
+                                        Command="{Binding RefreshParamsCommand}"
+                                        Content="读取相机当前参数"
+                                        Style="{DynamicResource ButtonDefault}" />
+
+                                    <TextBlock
+                                        Margin="0,12,0,0"
+                                        Style="{StaticResource Hint}"
+                                        Text="三个下拉框为「选中即下发」：设置失败会自动回退到相机的实际值，并在底部日志栏说明原因——避免界面档位与相机实际档位不一致这种最容易误导现场的假象。" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!--  ── 行触发与编码器 ──  -->
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="2"
+                            Style="{StaticResource GroupBorder}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GroupTitle}" Text="行触发 —— 每扫一行由谁驱动" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="行触发方式" />
+                                    <ComboBox
+                                        ItemsSource="{Binding LineTriggerModes}"
+                                        SelectedItem="{Binding SelectedLineTriggerMode}"
+                                        Style="{StaticResource FieldCombo}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabel}" Text="行触发源（留空按方式取默认）" />
+                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding LineTriggerSource, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <CheckBox
+                                        Margin="0,0,0,8"
+                                        Content="启用内部行频（行/秒）"
+                                        IsChecked="{Binding LineRateEnable}" />
+                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding AcquisitionLineRate, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <StackPanel IsEnabled="{Binding IsEncoderMode}">
+                                        <TextBlock Style="{StaticResource SubTitle}" Text="外置编码器（磁栅读数头直连相机 IO）" />
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldLabel}"
+                                                Text="选择器" />
+                                            <TextBox
+                                                Grid.Row="1"
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding EncoderSelector, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="2"
+                                                Style="{StaticResource FieldLabel}"
+                                                Text="A 相信号源" />
+                                            <TextBox
+                                                Grid.Row="1"
+                                                Grid.Column="2"
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding EncoderSourceA, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock
+                                                Grid.Row="2"
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldLabel}"
+                                                Text="B 相信号源" />
+                                            <TextBox
+                                                Grid.Row="3"
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding EncoderSourceB, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock
+                                                Grid.Row="2"
+                                                Grid.Column="2"
+                                                Style="{StaticResource FieldLabel}"
+                                                Text="当量(μm/脉冲)" />
+                                            <TextBox
+                                                Grid.Row="3"
+                                                Grid.Column="2"
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding PulseEquivalentUm, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock
+                                                Grid.Row="4"
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldLabel}"
+                                                Text="分频/倍频系数" />
+                                            <TextBox
+                                                Grid.Row="5"
+                                                Grid.Column="0"
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding DividerRatio, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock
+                                                Grid.Row="4"
+                                                Grid.Column="2"
+                                                Style="{StaticResource FieldLabel}"
+                                                Text="换算行间距" />
+                                            <TextBlock
+                                                Grid.Row="5"
+                                                Grid.Column="2"
+                                                Margin="0,0,0,10"
+                                                VerticalAlignment="Center"
+                                                FontWeight="SemiBold"
+                                                Foreground="#0284C7"
+                                                Text="{Binding LineSpacingText}" />
+                                        </Grid>
+
+                                        <TextBlock Style="{StaticResource Hint}" Text="分频、方向反转、单/双向触发等节点因型号而异，不做成固定字段——用下方的节点读写条按 MVS 属性树里的实际节点名设置，验证后填进配置的 ExtraNodes。" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!--  ── 帧控制 ──  -->
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="4"
+                            Style="{StaticResource GroupBorder}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource GroupTitle}" Text="帧控制 —— 一帧多少行、从哪起帧" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="帧长(行)" />
+                                        <TextBox
+                                            Grid.Row="1"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding ImageHeight, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="帧超时(ms)" />
+                                        <TextBox
+                                            Grid.Row="1"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding FrameTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="帧触发源" />
+                                        <TextBox
+                                            Grid.Row="3"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding FrameTriggerSource, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="有效边沿" />
+                                        <TextBox
+                                            Grid.Row="3"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding FrameTriggerActivation, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Grid.Row="4"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="流选择器(卡)" />
+                                        <TextBox
+                                            Grid.Row="5"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding StreamSelector, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Grid.Row="4"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="相机类型(卡)" />
+                                        <TextBox
+                                            Grid.Row="5"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding CameraType, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+
+                                    <CheckBox
+                                        Margin="0,0,0,12"
+                                        Content="启用帧触发（不勾选 = 连续，攒满帧长即出图）"
+                                        IsChecked="{Binding FrameTriggerEnable}" />
+
+                                    <TextBlock Style="{StaticResource Hint}" Text="流选择器与相机类型仅在经采集卡时生效；相机直连时帧超时没有对应节点，只能由取帧等待超时兜底。留空的项不下发，沿用设备当前值。" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!--  ── 底部：节点读写条 + 下发完整配置 ──  -->
+                        <Border
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="5"
+                            Style="{StaticResource GroupBorder}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="190" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="210" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Text="节点名" />
+                                <TextBox
+                                    Grid.Column="1"
+                                    Height="32"
+                                    VerticalContentAlignment="Center"
+                                    Style="{StaticResource TextBoxBaseStyle}"
+                                    Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}"
+                                    ToolTip="面板固定字段之外的相机节点走这里：先用 MVS 客户端属性树查到节点名，在此试值验证，确认可用后填进配置的 ExtraNodes 由框架自动下发。写的是相机自身节点树，与采集卡节点树不通用。" />
+
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Text="节点值" />
+                                <!--  可编辑下拉框把「值输入框 + 可选项列表」合成一个控件：数值/字符串直接输入，枚举节点读取后从下拉里挑  -->
+                                <ComboBox
+                                    Grid.Column="4"
+                                    Height="32"
+                                    VerticalContentAlignment="Center"
+                                    IsEditable="True"
+                                    ItemsSource="{Binding NodeEnumEntries}"
+                                    Style="{StaticResource ComboBoxBaseStyle}"
+                                    Text="{Binding NodeValue, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <StackPanel
+                                    Grid.Column="6"
+                                    Margin="0,0,16,0"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Width="70"
+                                        Height="32"
+                                        Margin="0,0,6,0"
+                                        Command="{Binding ReadNodeCommand}"
+                                        Content="读取"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                    <Button
+                                        Width="70"
+                                        Height="32"
+                                        Margin="0,0,6,0"
+                                        Command="{Binding WriteNodeCommand}"
+                                        Content="写入"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                    <Button
+                                        Width="70"
+                                        Height="32"
+                                        Command="{Binding ExecuteNodeCommand}"
+                                        Content="执行"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="7"
+                                    Margin="0,0,16,0"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource Hint}"
+                                    Text="读取 = 读当前值并把枚举可选项灌进下拉框；写入 = 按 枚举→整数→浮点→布尔→字符串 依次尝试；执行 = 无参命令节点（值留空）。" />
+
+                                <Button
+                                    Grid.Column="8"
+                                    Width="180"
+                                    Height="40"
+                                    Command="{Binding ApplyConfigCommand}"
+                                    Content="下发完整配置"
+                                    FontWeight="Bold"
+                                    Style="{DynamicResource ButtonPrimary}" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

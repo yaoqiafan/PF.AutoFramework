@@ -30,7 +30,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
     ///
     /// 点表存储路径：{dataDirectory}/AxisPoints/{DeviceId}.json
     /// </summary>
-    public abstract class BaseAxisDevice : BaseDevice, IAxis, IAttachedDevice
+    public abstract class BaseAxisDevice : AttachedDeviceBase<IMotionCard>, IAxis
     {
         private readonly List<AxisPoint> _pointTable = new();
         private readonly string _pointTableFilePath;
@@ -39,16 +39,21 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         // 保证 IsAtPoint / IsInSafePosition 等位置判断在模拟模式下结果确定
         private double _simulatedPosition;
 
-        #region IAttachedDevice 实现
+        #region 板卡挂载
+
+        /// <summary>
+        /// 归属的父运动控制卡（<see cref="AttachedDeviceBase{TParent}.Parent"/> 的领域别名，
+        /// 保持既有调用点与日志语义不变）。
+        /// </summary>
+        public IMotionCard? ParentCard => Parent;
+
+        /// <summary>将本轴挂载到运动控制卡。等价于 <see cref="AttachedDeviceBase{TParent}.AttachTo"/>。</summary>
+        public void AttachToCard(IMotionCard card) => AttachTo(card);
 
         /// <inheritdoc/>
-        public IMotionCard? ParentCard { get; private set; }
-
-        /// <inheritdoc/>
-        public void AttachToCard(IMotionCard card)
+        protected override void OnAttached(IMotionCard parent)
         {
-            ParentCard = card;
-            _logger?.Info($"[{DeviceName}] 已挂载到板卡: '{card.DeviceName}' (CardIndex={card.CardIndex})");
+            _logger?.Info($"[{DeviceName}] 已挂载到板卡: '{parent.DeviceName}' (CardIndex={parent.CardIndex})");
         }
 
         #endregion

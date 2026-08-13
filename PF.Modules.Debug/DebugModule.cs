@@ -56,6 +56,11 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterForNavigation<CameraDebugView, CameraDebugViewModel>(NavigationConstants.Views.CameraDebugView);
 
             containerRegistry.RegisterForNavigation<LightControllerDebugView, LightControllerDebugViewModel >(NavigationConstants.Views.LightControllerDebugView);
+
+            // 线阵相机与其采集卡各自一个调试页：采集卡是独立设备（切帧发生在卡上），不是相机的附属面板
+            containerRegistry.RegisterForNavigation<LineScanCameraDebugView, LineScanCameraDebugViewModel>(NavigationConstants.Views.LineScanCameraDebugView);
+            containerRegistry.RegisterForNavigation<FrameGrabberDebugView, FrameGrabberDebugViewModel>(NavigationConstants.Views.FrameGrabberDebugView);
+
             containerRegistry.RegisterDialog<AxisParamDialog, AxisParamDialogViewModel>(nameof(AxisParamDialog));
 
             // 5. 注册通讯综合调试容器视图 + 三个叶子调试视图

@@ -25,18 +25,23 @@ namespace PF.Infrastructure.Hardware.IO.Basic
     ///   超时返回 false 并记录警告日志；外部取消令牌触发时上抛 OperationCanceledException。
     ///   若板卡 SDK 提供原生等待机制，子类可 override 此方法以获得更低延迟。
     /// </summary>
-    public abstract class BaseIODevice : BaseDevice, IIOController, IAttachedDevice
+    public abstract class BaseIODevice : AttachedDeviceBase<IMotionCard>, IIOController
     {
-        #region IAttachedDevice 实现
+        #region 板卡挂载
+
+        /// <summary>
+        /// 归属的父运动控制卡（<see cref="AttachedDeviceBase{TParent}.Parent"/> 的领域别名，
+        /// 保持既有调用点与日志语义不变）。
+        /// </summary>
+        public IMotionCard? ParentCard => Parent;
+
+        /// <summary>将本 IO 设备挂载到运动控制卡。等价于 <see cref="AttachedDeviceBase{TParent}.AttachTo"/>。</summary>
+        public void AttachToCard(IMotionCard card) => AttachTo(card);
 
         /// <inheritdoc/>
-        public IMotionCard? ParentCard { get; private set; }
-
-        /// <inheritdoc/>
-        public void AttachToCard(IMotionCard card)
+        protected override void OnAttached(IMotionCard parent)
         {
-            ParentCard = card;
-            _logger?.Info($"[{DeviceName}] 已挂载到板卡: '{card.DeviceName}' (CardIndex={card.CardIndex})");
+            _logger?.Info($"[{DeviceName}] 已挂载到板卡: '{parent.DeviceName}' (CardIndex={parent.CardIndex})");
         }
 
         #endregion

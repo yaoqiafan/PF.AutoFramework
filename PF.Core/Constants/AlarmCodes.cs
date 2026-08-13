@@ -105,6 +105,38 @@ namespace PF.Core.Constants
     50007, "Camera heartbeat timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
             public const string CameraHeartbeatTimeout = "HW_CAM_002";
+
+            /// <summary>线阵相机取帧超时</summary>
+            [AlarmInfo("硬件异常", "线阵相机取帧超时（未在预期时间内收满一帧）", "Line scan frame timeout", AlarmSeverity.Error,
+    "1. 确认扫描轴是否已运动，线阵相机无位移即无行触发;\n" +
+                "2. 编码器模式下检查读数头信号线与相机 IO 接线（A/B 相）;\n" +
+                "3. 检查帧长设置是否远大于实际扫描行程对应的行数;\n" +
+                "4. 检查帧触发信号是否已发出;\n" +
+                "5. 经采集卡时确认帧超时(FrameTimeoutTime)配置是否合理;",
+    50010, "Line scan frame timeout",
+    "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
+            public const string LineScanFrameTimeout = "HW_CAM_003";
+            #endregion
+
+            #region 采集卡 (FG)
+            /// <summary>采集卡初始化失败</summary>
+            [AlarmInfo("硬件异常", "采集卡打开失败", "Frame grabber open failed", AlarmSeverity.Error,
+    "1. 确认采集卡驱动(MVFG)已正确安装;\n" +
+                "2. 在设备管理器中确认采集卡已被系统识别;\n" +
+                "3. 确认采集卡未被其他程序(如 MVS 客户端)占用;\n" +
+                "4. 重启工控机后重试;",
+    50011, "Frame grabber open failed",
+    "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
+            public const string FrameGrabberOpenFailed = "HW_FG_001";
+
+            /// <summary>采集卡连接中断</summary>
+            [AlarmInfo("硬件异常", "采集卡连接中断", "Frame grabber disconnected", AlarmSeverity.Error,
+    "1. 检查采集卡与相机之间的线缆是否松动;\n" +
+                "2. 确认采集卡供电正常;\n" +
+                "3. 点击【复位】重新打开采集卡;",
+    50012, "Frame grabber disconnected",
+    "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
+            public const string FrameGrabberDisconnected = "HW_FG_002";
             #endregion
 
             #region 条码扫描 (BCR)

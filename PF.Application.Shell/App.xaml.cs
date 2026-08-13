@@ -256,6 +256,47 @@ namespace PF.Application.Shell
                 return new Infrastructure.Hardware.LightController.CTS.CTSLightController(
                     com, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
+
+            // ── 线阵相机 + 图像采集卡 ─────────────────────────────────────────────
+            //
+            // 设备实例的示例配置见 CustomConfiguration/Param/DefaultParameters.cs
+            // （三条，默认启用+仿真，无硬件也能在硬件调试树里点开）：
+            //   lineScanGrabber          采集卡
+            //   lineScanCamera           挂在采集卡下 → CameraLink 链路
+            //   lineScanCameraStandalone ParentDeviceId 留空 → GigE/USB 直连，独立顶级设备
+            //
+            // 两种拓扑都由这两个工厂支持，靠相机配置的 ParentDeviceId 区分，无需链路开关：
+            //   经采集卡(CameraLink/CXP/XoF)：采集卡为顶级设备 → 相机 ParentDeviceId = 采集卡 DeviceId
+            //   相机直连(GigE/USB)          ：相机自身即顶级设备 → 相机 ParentDeviceId 留空
+            //
+            // ConnectionParameters：
+            //   采集卡 SerialNumber / Index
+            //   相机   SerialNumber / Index / ImageNodeNum
+
+            // 海康图像采集卡：CameraLink 相机的帧长/帧触发落在卡上，故卡必须建成独立的顶级设备，
+            // 由拓扑初始化保证"卡先于相机"
+            hwManager.RegisterFactory("HikFrameGrabberCard", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("SerialNumber", out var sn);
+                int index = cfg.ConnectionParameters.TryGetValue("Index", out var idx) ? int.Parse(idx) : 0;
+                return new Infrastructure.Hardware.FrameGrabber.Hikvision.HikFrameGrabberCard(
+                    sn, index, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+            });
+
+            // 海康线阵相机：ParentDeviceId 填采集卡则走 CameraLink，留空则为 GigE/USB 直连，
+            // 两种拓扑共用本工厂，无需额外的链路开关参数
+            hwManager.RegisterFactory("HikLineScanCamera", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("SerialNumber", out var sn);
+                int index = cfg.ConnectionParameters.TryGetValue("Index", out var idx) ? int.Parse(idx) : 0;
+
+                // 缓存节点数直接决定 SDK 侧内存占用（≈ 单帧字节数 × 本值），
+                // 线扫大帧下必须按实际帧长下调，故做成可配置项而非固定值
+                int nodeNum = cfg.ConnectionParameters.TryGetValue("ImageNodeNum", out var nn) ? int.Parse(nn) : 3;
+
+                return new Infrastructure.Hardware.Camera.LineScan.Hikvision.HikLineScanCamera(
+                    sn, index, nodeNum, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+            });
         }
 
         #endregion

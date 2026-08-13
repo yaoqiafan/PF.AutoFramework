@@ -4,6 +4,7 @@ using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
+using PF.Core.Interfaces.Device.Hardware.Camera.LineScan;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.LightController;
@@ -155,12 +156,24 @@ namespace PF.Modules.Debug.ViewModels
         private void BuildTree()
         {
             var allDevices = _hardwareManager.ActiveDevices.ToList();
-            var cards      = allDevices.OfType<IMotionCard>().OrderBy(c => c.CardIndex).ToList();
 
+            // 树根不再等同于运动控制卡：图像采集卡同样是"下面挂子设备"的宿主
+            // （线阵相机挂在采集卡下），两类宿主一起构成第一层
+            var hosts = allDevices.OfType<IMotionCard>()
+                .OrderBy(c => c.CardIndex)
+                .Cast<IHardwareDevice>()
+                .Concat(allDevices.OfType<IFrameGrabberCard>()
+                    .OrderBy(c => c.DeviceName)
+                    .Cast<IHardwareDevice>())
+                .ToList();
+
+            var hostIds = hosts.Select(h => h.DeviceId).ToHashSet();
+
+            // 按 ParentDevice 分组而非 ParentCard：父设备类型由子设备自己声明
             var childMap = allDevices
                 .OfType<IAttachedDevice>()
-                .Where(d => d.ParentCard != null)
-                .GroupBy(d => d.ParentCard!.DeviceId)
+                .Where(d => d.ParentDevice != null)
+                .GroupBy(d => d.ParentDevice!.DeviceId)
                 .ToDictionary(g => g.Key, g => g.Cast<IHardwareDevice>().ToList());
 
             var attachedIds = childMap.Values
@@ -168,15 +181,17 @@ namespace PF.Modules.Debug.ViewModels
                 .Select(d => d.DeviceId)
                 .ToHashSet();
 
-            foreach (var card in cards)
+            foreach (var host in hosts)
             {
                 var cardNode = new DebugTreeNode
                 {
-                    NodeName = $"[卡{card.CardIndex}] {card.DeviceName}",
-                    Payload  = card
+                    NodeName = host is IMotionCard motionCard
+                        ? $"[卡{motionCard.CardIndex}] {host.DeviceName}"
+                        : $"[采集卡] {host.DeviceName}",
+                    Payload  = host
                 };
 
-                if (childMap.TryGetValue(card.DeviceId, out var children))
+                if (childMap.TryGetValue(host.DeviceId, out var children))
                 {
                     foreach (var child in children.OrderBy(c => c.Category.ToString()).ThenBy(c => c.DeviceName))
                     {
@@ -192,7 +207,7 @@ namespace PF.Modules.Debug.ViewModels
             }
 
             var orphans = allDevices
-                .Where(d => d is not IMotionCard && !attachedIds.Contains(d.DeviceId))
+                .Where(d => !hostIds.Contains(d.DeviceId) && !attachedIds.Contains(d.DeviceId))
                 .OrderBy(d => d.Category.ToString())
                 .ThenBy(d => d.DeviceName)
                 .ToList();
@@ -250,6 +265,18 @@ namespace PF.Modules.Debug.ViewModels
                 parameters.Add("Device", barcodeScan);
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.BarcodeScanDebugView, parameters);
+            }
+            else if (payload is IFrameGrabberCard frameGrabber)
+            {
+                parameters.Add("Device", frameGrabber);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.FrameGrabberDebugView, parameters);
+            }
+            else if (payload is ILineScanCamera lineScanCamera)
+            {
+                parameters.Add("Device", lineScanCamera);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.LineScanCameraDebugView, parameters);
             }
             else if (payload is IIntelligentCamera intelligentCamera)
             {

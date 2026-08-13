@@ -31,10 +31,15 @@ namespace PF.Services.Hardware
     ///   · Value = HardwareConfig 对象的 JSON 序列化
     ///
     /// 初始化顺序（拓扑分层）：
-    ///   · 第1层：ParentDeviceId 为空的顶级设备（运动控制卡）
-    ///   · 第2层：ParentDeviceId 非空的子设备（轴、IO）
-    ///   若父设备连接失败，依赖它的子设备直接跳过并记录警告。
-    ///   子设备实例化后，若实现 IAttachedDevice，自动注入父板卡实例引用。
+    ///   · 第1层：ParentDeviceId 为空的顶级设备（运动控制卡、图像采集卡，以及不挂任何父设备的
+    ///            独立设备——扫码枪、光源、直连的线阵/智能相机等）
+    ///   · 第2层：ParentDeviceId 非空的子设备（挂卡的轴与 IO、挂采集卡的线阵相机等）
+    ///   若父设备连接失败，依赖它的子设备仍会实例化并记录警告（保证 UI 可见）。
+    ///   子设备实例化后，若实现 IAttachedDevice，自动注入父设备实例引用。
+    ///
+    ///   注意：分层只看 ParentDeviceId 是否为空，与设备类型无关——本服务不认识
+    ///   IMotionCard / IFrameGrabberCard 等具体接口，"能不能当父设备"由子设备自己的
+    ///   IAttachedDevice&lt;TParent&gt; 声明决定（TryAttachTo 类型不匹配时只记警告，不中断初始化）。
     /// </summary>
     public sealed class HardwareManagerService : IHardwareManagerService, IDisposable
     {
@@ -197,11 +202,12 @@ namespace PF.Services.Hardware
 
         /// <summary>
         /// 从数据库加载配置，然后拓扑分层初始化所有已启用设备：
-        ///   第1层 → ParentDeviceId 为空（板卡等顶级设备）
-        ///   第2层 → ParentDeviceId 非空（轴、IO 等子设备）
+        ///   第1层 → ParentDeviceId 为空（运动控制卡、图像采集卡等宿主设备，以及独立设备）
+        ///   第2层 → ParentDeviceId 非空（挂卡的轴/IO、挂采集卡的线阵相机等子设备）
         ///
+        /// 分层只看 ParentDeviceId 是否为空，与设备类型无关。
         /// 无论父设备是否连接成功，子设备均会被实例化并加入活跃列表，确保 UI 可见。
-        /// 子设备实例化完成后，若实现 IAttachedDevice，自动绑定父板卡引用。
+        /// 子设备实例化完成后，若实现 IAttachedDevice，自动绑定父设备引用。
         /// </summary>
         public async Task LoadAndInitializeAsync(IProgress<SplashProgressPayload>? progress = null)
         {
@@ -224,44 +230,43 @@ namespace PF.Services.Hardware
                 MsgType = MsgType.Info
             });
 
-            // ── 第1层：顶级设备（板卡，ParentDeviceId 为空）────────────────────
-            _logger.Info($"[HardwareManager] 第1层：初始化 {topLevel.Count} 个顶级设备...");
+            // ── 第1层：顶级设备（ParentDeviceId 为空：运动控制卡/采集卡等宿主设备 + 独立设备）──
+            _logger.Info($"[HardwareManager] 第1层：初始化 {topLevel.Count} 个顶级设备"
+                + $"（{DescribeConfigs(topLevel)}）...");
 
             progress?.Report(new SplashProgressPayload
             {
-                Status = $"[第1层] 初始化 {topLevel.Count} 个顶级设备（板卡）...",
+                Status = $"[第1层] 初始化 {topLevel.Count} 个顶级设备（板卡/采集卡/独立设备）...",
                 MsgType = MsgType.Info
             });
             foreach (var config in topLevel)
-                await ActivateDeviceAsync(config, parentCard: null, progress);
+                await ActivateDeviceAsync(config, parent: null, progress);
 
-            // ── 第2层：子设备（轴/IO，ParentDeviceId 非空）──────────────────────
-            _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备...");
+            // ── 第2层：子设备（ParentDeviceId 非空：挂卡的轴/IO、挂采集卡的相机等）────────
+            _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备"
+                + $"（{DescribeConfigs(children)}）...");
 
             progress?.Report(new SplashProgressPayload
             {
-                Status = $"[第2层] 初始化 {children.Count} 个子设备（轴/IO）...",
+                Status = $"[第2层] 初始化 {children.Count} 个子设备（轴/IO/挂卡相机）...",
                 MsgType = MsgType.Info
             });
             foreach (var config in children)
             {
-                IMotionCard? parentCard = null;
-
+                // 父设备不再窄化为 IMotionCard：轴/IO 挂运动控制卡，线阵相机挂采集卡，
+                // 挂载对象的具体类型由子设备自己声明（IAttachedDevice<TParent>），本层只负责传递
                 if (!_activeDevices.TryGetValue(config.ParentDeviceId, out var parentDevice))
                 {
                     _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
                                  $"'{config.ParentDeviceId}' 未被激活，仍强制实例化子设备以供 UI 显示。");
                 }
-                else
+                else if (!parentDevice.IsConnected)
                 {
-                    if (!parentDevice.IsConnected)
-                        _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父板卡 " +
-                                     $"'{config.ParentDeviceId}' 未连接，子设备将以离线状态加入活跃列表。");
-
-                    parentCard = parentDevice as IMotionCard;
+                    _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
+                                 $"'{config.ParentDeviceId}' 未连接，子设备将以离线状态加入活跃列表。");
                 }
 
-                await ActivateDeviceAsync(config, parentCard, progress);
+                await ActivateDeviceAsync(config, parentDevice, progress);
             }
 
             _logger.Success($"[HardwareManager] 初始化完成，活跃设备数: {_activeDevices.Count}");
@@ -332,6 +337,16 @@ namespace PF.Services.Hardware
         // ── 私有工具 ────────────────────────────────────────────────────────────
 
         /// <summary>
+        /// 把一层的设备列成 "DeviceId(实现类)" 供日志排查用。
+        /// <para>没有它时，"某设备没出现在调试树里"只能靠猜是配置没进库、还是 IsEnabled 没开、
+        /// 还是工厂没注册；有了这行日志，直接对比第1层/第2层的名单即可定位。</para>
+        /// </summary>
+        private static string DescribeConfigs(List<HardwareConfig> configs)
+            => configs.Count == 0
+                ? "无"
+                : string.Join(", ", configs.Select(c => $"{c.DeviceId}({c.ImplementationClassName})"));
+
+        /// <summary>
         /// 从数据库加载所有硬件配置到内存缓存。
         /// 若数据库为空，仅记录日志并保持 _configs 为空——
         /// 上层 Workstation 应在调用 LoadAndInitializeAsync 之前通过 ImportConfigsAsync 注入配置。
@@ -369,9 +384,9 @@ namespace PF.Services.Hardware
 
         /// <summary>
         /// 实例化并连接单个设备。
-        /// 若 parentCard 不为 null 且设备实现 IAttachedDevice，则自动绑定父板卡。
+        /// 若 parent 不为 null 且设备实现 IAttachedDevice，则自动绑定父设备。
         /// </summary>
-        private async Task ActivateDeviceAsync(HardwareConfig config, IMotionCard? parentCard = null,
+        private async Task ActivateDeviceAsync(HardwareConfig config, IHardwareDevice? parent = null,
             IProgress<SplashProgressPayload>? progress = null)
         {
             // 锁内：取工厂（_factories 读需保护）
@@ -403,8 +418,14 @@ namespace PF.Services.Hardware
             {
                 var device = factory(config);
 
-                if (parentCard != null && device is IAttachedDevice attachable)
-                    attachable.AttachToCard(parentCard);
+                // 类型不匹配（如把相机挂到了运动控制卡下）不抛异常：配置写错不该让整机初始化中断，
+                // 设备仍以未挂载状态进入活跃列表，由日志暴露问题
+                if (parent != null && device is IAttachedDevice attachable && !attachable.TryAttachTo(parent))
+                {
+                    _logger.Warn($"[HardwareManager] 设备 '{config.DeviceId}' 无法挂载到父设备 " +
+                                 $"'{parent.DeviceId}'（父设备类型 {parent.GetType().Name} 不被接受），" +
+                                 "请检查硬件配置中的父设备指向。");
+                }
 
                 // 先注册到活跃列表并通知 UI，确保设备无论连接结果如何均可在界面显示
                 _activeDevices[config.DeviceId] = device;
