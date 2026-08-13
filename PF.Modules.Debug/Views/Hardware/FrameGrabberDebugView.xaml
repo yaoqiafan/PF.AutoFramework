@@ -155,7 +155,7 @@
                     <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="330" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <!--  ── 左列：设备启停 + 本卡相机 ──  -->
