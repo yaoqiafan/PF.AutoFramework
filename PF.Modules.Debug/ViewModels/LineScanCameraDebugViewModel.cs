@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Device.Hardware.Camera.LineScan;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware;
 using PF.Infrastructure.Logging;
+using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using System;
@@ -37,9 +38,6 @@ namespace PF.Modules.Debug.ViewModels
     {
         /// <summary>预览刷新间隔（毫秒）。约 10fps，足够看清扫描效果又不至于抢占 UI 线程。</summary>
         private const int RenderIntervalMs = 100;
-
-        /// <summary>预览图的最大边长（像素）。超出则整数倍降采样。</summary>
-        private const int MaxPreviewEdge = 1200;
 
         private ILineScanCamera _camera;
         private BaseDevice _baseDevice;
@@ -350,9 +348,15 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置单次取帧的等待超时（毫秒）</summary>
         public string WaitTimeoutMs { get => _waitTimeoutMs; set => SetProperty(ref _waitTimeoutMs, value); }
 
-        private ImageSource _previewImage;
-        /// <summary>获取或设置预览图像</summary>
-        public ImageSource PreviewImage { get => _previewImage; set => SetProperty(ref _previewImage, value); }
+        private BitmapFrame _previewImage;
+        /// <summary>
+        /// 获取或设置预览图像。类型必须是 <see cref="BitmapFrame"/>——
+        /// pf:ImageViewer 的 ImageSource 依赖属性即为该类型。
+        /// </summary>
+        public BitmapFrame PreviewImage { get => _previewImage; set => SetProperty(ref _previewImage, value); }
+
+        /// <summary>是否已有可显示的预览图（用于在无图时让出位置给提示文本）。</summary>
+        public bool HasPreview => _previewImage != null;
 
         private string _previewHint = "尚未收到图像";
         /// <summary>获取或设置预览区提示文本（无图或格式不支持预览时显示）</summary>
@@ -857,49 +861,9 @@ namespace PF.Modules.Debug.ViewModels
 
             UpdateFrameStats(frame);
 
-            if (frame.PixelFormat != ImagePixelFormat.Mono8)
-            {
-                // 只对 Mono8 做预览：10/12bit 打包格式与 Bayer 需要解包/插值，
-                // 在调试面板里自造一套转换等于埋一个"看着对、其实错"的隐患，
-                // 这类格式请用存盘功能交给 SDK 转换
-                PreviewImage = null;
-                PreviewHint = $"当前像素格式 {frame.PixelFormat} 暂不支持面板预览，请存盘后查看。";
-                return;
-            }
-
-            PreviewImage = BuildPreview(frame);
-            PreviewHint = string.Empty;
-        }
-
-        /// <summary>整数倍降采样后生成 Gray8 位图。降采样在托管侧做，避免把上百 MB 直接交给 WPF 渲染。</summary>
-        private static BitmapSource BuildPreview(LineScanFrame frame)
-        {
-            if (frame.Width <= 0 || frame.Height <= 0) return null;
-
-            int step = 1;
-            while (frame.Width / step > MaxPreviewEdge || frame.Height / step > MaxPreviewEdge) step++;
-
-            int w = frame.Width / step;
-            int h = frame.Height / step;
-            if (w <= 0 || h <= 0) return null;
-
-            var pixels = new byte[w * h];
-            for (int y = 0; y < h; y++)
-            {
-                int srcRow = y * step * frame.Width;
-                int dstRow = y * w;
-                for (int x = 0; x < w; x++)
-                {
-                    int srcIndex = srcRow + x * step;
-                    pixels[dstRow + x] = srcIndex < frame.Data.Length ? frame.Data[srcIndex] : (byte)0;
-                }
-            }
-
-            // 全限定：本类有个同名的 PixelFormats 属性（像素格式下拉项），不限定会被解析成它
-            var bitmap = BitmapSource.Create(w, h, 96, 96,
-                System.Windows.Media.PixelFormats.Gray8, null, pixels, w);
-            bitmap.Freeze();   // 冻结后可跨线程安全使用，也省去 WPF 的变更通知开销
-            return bitmap;
+            PreviewImage = LineScanPreview.TryBuild(frame, out string hint);
+            PreviewHint = hint;
+            RaisePropertyChanged(nameof(HasPreview));
         }
 
         private void UpdateFrameStats(LineScanFrame frame)

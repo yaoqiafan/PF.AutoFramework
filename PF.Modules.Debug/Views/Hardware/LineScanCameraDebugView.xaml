@@ -412,17 +412,36 @@
                                 Background="{DynamicResource  ThirdlyRegionBrush}"
                                 Style="{StaticResource GroupBorder}">
                                 <Grid>
-                                    <Image
-                                        RenderOptions.BitmapScalingMode="LowQuality"
-                                        Source="{Binding PreviewImage}"
-                                        Stretch="Uniform" />
+                                    <!--
+                                        用控件库的 ImageViewer 而不是裸 Image：线扫图又高又窄，
+                                        Stretch=Uniform 缩到面板里基本看不清细节。ImageViewer 自带
+                                        滚轮缩放、拖拽平移、1:1 还原、旋转，以及右下角小地图（ShowImgMap）——
+                                        大图里定位当前视野全靠它。
+                                        注意 ImageSource 依赖属性是 BitmapFrame 类型，VM 侧已相应改类型。
+                                    -->
+                                    <pf:ImageViewer
+                                        ImageSource="{Binding PreviewImage}"
+                                        ShowImgMap="True"
+                                        ShowToolBar="True" />
+                                    <!--  无图或格式不支持预览时的提示；有图时让位，避免压在图像上  -->
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                         Foreground="#94A3B8"
+                                        IsHitTestVisible="False"
                                         Text="{Binding PreviewHint}"
-                                        TextWrapping="Wrap" />
+                                        TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasPreview}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </Grid>
                             </Border>
                         </Grid>

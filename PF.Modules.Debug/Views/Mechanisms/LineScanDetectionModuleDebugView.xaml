@@ -1,0 +1,619 @@
+<UserControl
+    x:Class="PF.Modules.Debug.Views.Mechanisms.LineScanDetectionModuleDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="900"
+    d:DesignWidth="1400"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <Style x:Key="GroupBorder" TargetType="Border">
+            <Setter Property="Padding" Value="15" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.H2.Title}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#475569" />
+        </Style>
+        <Style x:Key="SubTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,10,0,8" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.H3.Subtitle}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#475569" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,8,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Small}" />
+        </Style>
+        <Style
+            x:Key="FieldBox"
+            BasedOn="{StaticResource TextBoxBaseStyle}"
+            TargetType="TextBox">
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption.Mini}" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="DerivedLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,8,6" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Small}" />
+            <Setter Property="Foreground" Value="#64748B" />
+        </Style>
+        <Style x:Key="DerivedValue" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Small}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#0284C7" />
+        </Style>
+        <Style x:Key="StatePill" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  ══ 头部：模组选择与状态 ══  -->
+        <Border
+            Grid.Row="0"
+            Margin="0,0,0,12"
+            Style="{StaticResource GroupBorder}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="260" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Column="0"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    Text="模组：" />
+                <!--  一台设备上可能有多条扫描线，各自一个模组实例  -->
+                <ComboBox
+                    Grid.Column="1"
+                    Height="30"
+                    VerticalContentAlignment="Center"
+                    DisplayMemberPath="MechanismName"
+                    ItemsSource="{Binding Modules}"
+                    SelectedItem="{Binding SelectedModule}"
+                    Style="{StaticResource ComboBoxBaseStyle}" />
+
+                <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                    <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" Text="{Binding ModuleInfo}" />
+                    <TextBlock Margin="0,2,0,0" FontSize="{DynamicResource FontSize.Body.Small}">
+                        <Run Text="扫描轴当前位置：" />
+                        <Run
+                            FontFamily="Consolas"
+                            FontWeight="SemiBold"
+                            Foreground="#0284C7"
+                            Text="{Binding AxisPosition, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="4"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        Text="已初始化:" />
+                    <Border>
+                        <Border.Style>
+                            <Style BasedOn="{StaticResource StatePill}" TargetType="Border">
+                                <Setter Property="Background" Value="#94A3B8" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInitialized}" Value="True">
+                                        <Setter Property="Background" Value="#02AD8B" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            Text="{Binding IsInitialized}" />
+                    </Border>
+
+                    <TextBlock
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        Text="报警:" />
+                    <Border>
+                        <Border.Style>
+                            <Style BasedOn="{StaticResource StatePill}" TargetType="Border">
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="Background" Value="#02AD8B" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasAlarm}" Value="True">
+                                        <Setter Property="Background" Value="#EF4444" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            Text="{Binding HasAlarm}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="360" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!--  ── 左列：扫描配方（运动） ──  -->
+            <Border Grid.Column="0" Style="{StaticResource GroupBorder}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="扫描配方 —— 运动" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="扫描起点(mm)" />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding ScanStartMm, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldLabel}"
+                                Text="扫描终点(mm)" />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding ScanEndMm, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="扫描速度(mm/s)" />
+                            <TextBox
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding ScanVelocityMmPerSec, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldLabel}"
+                                Text="定位速度(0=同扫描)" />
+                            <TextBox
+                                Grid.Row="3"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding PositioningVelocityMmPerSec, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="加速度(mm/s²)" />
+                            <TextBox
+                                Grid.Row="5"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding AccelerationMmPerSec2, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldLabel}"
+                                Text="减速度(0=同加速)" />
+                            <TextBox
+                                Grid.Row="5"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding DecelerationMmPerSec2, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="加速余量(0=自动)" />
+                            <TextBox
+                                Grid.Row="7"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding ApproachMarginMm, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldLabel}"
+                                Text="减速余量(0=自动)" />
+                            <TextBox
+                                Grid.Row="7"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding OvertravelMarginMm, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="8"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="S曲线时间(ms)" />
+                            <TextBox
+                                Grid.Row="9"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding SCurveTimeMs, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Style="{StaticResource Hint}"
+                            Text="余量留的是加减速段。编码器同步下几何是位移锁定的，加减速不会让图像拉伸，但会让每行曝光时间不一致，表现为图像头尾亮度不均——所以扫描区必须完整落在匀速段内。" />
+
+                        <TextBlock Style="{StaticResource SubTitle}" Text="模组操作" />
+                        <UniformGrid Columns="3">
+                            <Button
+                                Height="32"
+                                Margin="0,0,4,0"
+                                Command="{Binding InitializeCommand}"
+                                Content="初始化"
+                                Style="{DynamicResource ButtonDefault}" />
+                            <Button
+                                Height="32"
+                                Margin="2,0"
+                                Command="{Binding ResetCommand}"
+                                Content="复位"
+                                Style="{DynamicResource ButtonWarning}" />
+                            <Button
+                                Height="32"
+                                Margin="4,0,0,0"
+                                Command="{Binding StopCommand}"
+                                Content="停止"
+                                Style="{DynamicResource ButtonDanger}" />
+                        </UniformGrid>
+                        <Button
+                            Height="32"
+                            Margin="0,8,0,0"
+                            Command="{Binding GotoStartCommand}"
+                            Content="移动到扫描起点（对位用）"
+                            Style="{DynamicResource ButtonDefault}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!--  ── 中列：成像参数 + 换算结果 + 校验 ──  -->
+            <Border Grid.Column="2" Style="{StaticResource GroupBorder}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="扫描配方 —— 成像" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="行间距(μm/行)" />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding LineSpacingUm, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="编码器当量 × 分频系数。填错的话图像 Y 向比例整体是错的" />
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldLabel}"
+                                Text="曝光时间(μs)" />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding ExposureTimeUs, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldLabel}"
+                                Text="相机最大行频(0=不校验)" />
+                            <TextBox
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding MaxLineRate, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldLabel}"
+                                Text="帧超时倍数" />
+                            <TextBox
+                                Grid.Row="3"
+                                Grid.Column="2"
+                                Style="{StaticResource FieldBox}"
+                                Text="{Binding FrameTimeoutRatio, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <CheckBox
+                            Margin="0,0,0,4"
+                            Content="用帧触发起帧（不勾 = 连续模式）"
+                            IsChecked="{Binding UseFrameTrigger}" />
+                        <TextBlock
+                            Style="{StaticResource Hint}"
+                            Text="连续模式下，开流到轴动之间的杂散编码器脉冲会被算进这一帧，图像整体偏移；帧触发在轴进入扫描区后才起帧，更可控。" />
+
+                        <!--  换算结果：边填边算，参数自不自洽在按下扫描之前就能看出来  -->
+                        <TextBlock Style="{StaticResource SubTitle}" Text="换算结果" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="扫描行程" />
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding ScanLengthText}" />
+
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="帧长 = 行程÷行间距" />
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding FrameHeightText}" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="实际行频 = 速度÷行间距" />
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding ActualLineRateText}" />
+
+                            <TextBlock
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="曝光上限 = 行周期" />
+                            <TextBlock
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding MaxExposureText}" />
+
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="理论加减速距离" />
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding AccelDistanceText}" />
+
+                            <TextBlock
+                                Grid.Row="5"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="轴实走范围" />
+                            <TextBlock
+                                Grid.Row="5"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding MoveRangeText}" />
+
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="理论帧时间" />
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="1"
+                                Style="{StaticResource DerivedValue}"
+                                Text="{Binding FrameTimeText}" />
+                        </Grid>
+
+                        <!--  校验结果：通过为绿，有问题逐条列出并转红  -->
+                        <Border
+                            Margin="0,10,0,0"
+                            Padding="10"
+                            CornerRadius="4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#FEF2F2" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsProfileValid}" Value="True">
+                                            <Setter Property="Background" Value="#F0FDF4" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock
+                                FontSize="{DynamicResource FontSize.Body.Small}"
+                                Text="{Binding ValidationText}"
+                                TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#B91C1C" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsProfileValid}" Value="True">
+                                                <Setter Property="Foreground" Value="#15803D" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!--  ── 右列：扫描与结果预览 ──  -->
+            <Grid Grid.Column="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Style="{StaticResource GroupBorder}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="0"
+                            Width="160"
+                            Height="42"
+                            Command="{Binding ScanCommand}"
+                            Content="开始扫描"
+                            FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                            FontWeight="Bold"
+                            Style="{DynamicResource ButtonSuccess}" />
+                        <Button
+                            Grid.Column="2"
+                            Width="110"
+                            Height="42"
+                            Command="{Binding AbortCommand}"
+                            Content="中止"
+                            Style="{DynamicResource ButtonWarning}" />
+
+                        <TextBlock
+                            Grid.Column="4"
+                            VerticalAlignment="Center"
+                            FontFamily="Consolas"
+                            FontSize="{DynamicResource FontSize.Body.Small}"
+                            Foreground="#0284C7"
+                            Text="{Binding ResultText}"
+                            TextWrapping="Wrap" />
+                    </Grid>
+                </Border>
+
+                <Border
+                    Grid.Row="2"
+                    Background="{DynamicResource ThirdlyRegionBrush}"
+                    Style="{StaticResource GroupBorder}">
+                    <Grid>
+                        <!--  线扫图又高又窄，缩到面板里看不清细节；ImageViewer 提供缩放/平移/小地图  -->
+                        <pf:ImageViewer
+                            ImageSource="{Binding PreviewImage}"
+                            ShowImgMap="True"
+                            ShowToolBar="True" />
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="{DynamicResource FontSize.H3.Subtitle}"
+                            Foreground="#94A3B8"
+                            IsHitTestVisible="False"
+                            Text="{Binding PreviewHint}"
+                            TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasPreview}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

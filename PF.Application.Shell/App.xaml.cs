@@ -20,6 +20,7 @@ using PF.Core.Interfaces.Timer;
 using PF.Core.Interfaces.TowerLight;
 using PF.Core.Models;
 using PF.Data.Entity.Category.Basic;
+using PF.Infrastructure.Mechanisms.Vision;
 using PF.Infrastructure.Station.Basic;
 using PF.Modules.Alarm;
 using PF.Modules.Debug;
@@ -356,6 +357,32 @@ namespace PF.Application.Shell
                 [typeof(WS2MaterialPullingModule), typeof(IMechanism)],
                 typeof(WS2MaterialPullingModule), reuse: DryIoc.Reuse.Singleton,
                 serviceKey: nameof(WS2MaterialPullingModule));
+
+            // ── 线扫检测模组（框架级模组，示例注册）────────────────────────────
+            //
+            // 与上面几个模组的区别：LineScanDetectionModule 在 PF.Infrastructure 里，
+            // 是可复用的框架组件，不像 WSDetectionModule 那样把设备 ID 写死在自己的构造函数里。
+            // 扫描轴与相机的 DeviceId 由注册处传入，因此不能用 RegisterMany 让容器自动构造
+            // （容器解析不了 string 参数），必须用 RegisterDelegate 显式给出。
+            //
+            // 一台设备上有多条扫描线时，就在这里注册多个实例、各用不同的 serviceKey 和设备 ID；
+            // 模组调试面板按类型枚举 IMechanism，会把它们都列进下拉框。
+            container.RegisterDelegate(
+                r => new LineScanDetectionModule(
+                    name: "线扫检测模组",
+                    scanAxisDeviceId: E_AxisName.视觉X轴.ToString(),
+                    cameraDeviceId: "LineScan_Camera_0",
+                    r.Resolve<IHardwareManagerService>(),
+                    r.Resolve<IParamService>(),
+                    r.Resolve<ILogService>()),
+                reuse: DryIoc.Reuse.Singleton,
+                serviceKey: nameof(LineScanDetectionModule));
+
+            // 让它同时能以 IMechanism 被解析到——模组调试页拿的是 IEnumerable<IMechanism>，
+            // 只注册具体类型的话，这个模组不会出现在调试树里
+            container.RegisterMapping(typeof(IMechanism), typeof(LineScanDetectionModule),
+                registeredServiceKey: nameof(LineScanDetectionModule),
+                serviceKey: nameof(LineScanDetectionModule));
 
             container.RegisterMany(
                 [typeof(WS1FeedingStation), typeof(IStation)],

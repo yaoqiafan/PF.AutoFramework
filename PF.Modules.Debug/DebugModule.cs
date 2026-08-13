@@ -5,6 +5,7 @@ using PF.Modules.Debug.ViewModels;
 using PF.Modules.Debug.Views;
 using PF.Modules.Debug.Views.Communication;
 using PF.Modules.Debug.Views.Hardware;
+using PF.Modules.Debug.Views.Mechanisms;
 using PF.UI.Infrastructure.Navigation;
 using Prism.Ioc;
 using Prism.Modularity;
@@ -37,6 +38,11 @@ namespace PF.Modules.Debug
 
             // 2. 注册模组调试视图
             containerRegistry.RegisterForNavigation<MechanismDebugView, MechanismDebugViewModel>(NavigationConstants.Views.MechanismDebugView);
+
+            // 线扫检测模组是框架级模组（在 PF.Infrastructure 里），其调试视图随框架一起提供，
+            // 不必每个项目自己写一份。key 必须与 [MechanismUI] 的 MechanismViewName 完全一致。
+            containerRegistry.RegisterForNavigation<LineScanDetectionModuleDebugView, LineScanDetectionModuleDebugViewModel>(
+                nameof(LineScanDetectionModuleDebugView));
 
 
             containerRegistry.RegisterForNavigation<AxisDebugView, AxisDebugViewModel>(NavigationConstants.Views.AxisDebugView);
