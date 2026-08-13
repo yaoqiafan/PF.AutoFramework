@@ -203,8 +203,12 @@ namespace PF.Infrastructure.Hardware.FrameGrabber.Hikvision
                 // 提前探测并明说，免得对着一串"下发失败"去查节点名。
                 if (config.ImageHeight > 0 && !acc.IsNodeWritable("ImageHeight"))
                 {
-                    HardwareLogger.Warn($"[{DeviceName}] 流参数当前不可写——通常是本卡上已有相机处于打开状态。"
-                        + "请先关闭相机再下发帧控制；工站流程下由相机连接时自动按正确顺序下发，无需手动干预。");
+                    // 把卡当前的流状态一并打出来：ImageHeight 属于某一路流，
+                    // 只报"不可写"没法判断是没选中流、流没绑定相机，还是别的前置条件没满足。
+                    HardwareLogger.Warn($"[{DeviceName}] ImageHeight 当前不可写。"
+                        + $"流状态：StreamSelector='{acc.GetNode("StreamSelector") ?? "?"}', "
+                        + $"CurrentStreamDevice='{acc.GetNode("CurrentStreamDevice") ?? "?"}', "
+                        + $"当前 ImageHeight='{acc.GetNode("ImageHeight") ?? "?"}'。");
                 }
 
                 // 流选择与相机类型需先于其余流参数设置（CameraLink 位宽配置必须与相机侧匹配，
@@ -230,13 +234,22 @@ namespace PF.Infrastructure.Hardware.FrameGrabber.Hikvision
                     acc.SetIfPresent(node, config.PartialImageControl);
                 }
 
-                // 帧触发
-                acc.SetNode("StreamTriggerEnable", config.TriggerEnable ? "true" : "false");
-                if (config.TriggerEnable)
+                // 帧触发：StreamTrigger* 是 CameraLink/CXP 卡的节点，XoF 卡没有这一组。
+                // 先探测再决定写不写——否则连续模式下每次下发都会白刷一条"节点不存在"。
+                if (acc.IsNodeAvailable("StreamTriggerEnable"))
                 {
-                    acc.SetIfPresent("StreamTriggerSource", config.TriggerSource);
-                    acc.SetIfPresent("StreamTriggerActivation", config.TriggerActivation);
-                    _frameTriggerSource = config.TriggerSource ?? _frameTriggerSource;
+                    acc.SetNode("StreamTriggerEnable", config.TriggerEnable ? "true" : "false");
+                    if (config.TriggerEnable)
+                    {
+                        acc.SetIfPresent("StreamTriggerSource", config.TriggerSource);
+                        acc.SetIfPresent("StreamTriggerActivation", config.TriggerActivation);
+                        _frameTriggerSource = config.TriggerSource ?? _frameTriggerSource;
+                    }
+                }
+                else if (config.TriggerEnable)
+                {
+                    HardwareLogger.Warn($"[{DeviceName}] 本卡型无 StreamTriggerEnable 节点（XoF 卡即无此组），"
+                        + "卡侧帧触发已跳过。此类卡的起帧应配在相机侧，或改用连续模式按帧长自动出图。");
                 }
 
                 acc.ApplyExtraNodes(config.ExtraNodes);

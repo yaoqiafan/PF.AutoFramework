@@ -27,9 +27,11 @@ namespace PF.Modules.Debug.ViewModels
     /// 每帧都在 UI 线程转 BitmapSource 会直接卡死界面。这里的做法是：SDK 回调只把最新帧
     /// 塞进一个字段（旧的直接丢弃），由 UI 侧的定时器按固定节奏取走并降采样后渲染。</para>
     ///
-    /// <para><b>为什么必须在 OnNavigatedFrom 退订</b>：RegionViewModelBase 的 KeepAlive 恒为 false、
-    /// IsNavigationTarget 恒为 false，每次导航都会新建 ViewModel 实例。不退订的话，
-    /// 相机的 FrameReceived 会一直握着历史实例，反复进出调试页会持续泄漏且重复渲染。</para>
+    /// <para><b>实例按相机复用</b>：基类默认每次导航都新建 ViewModel，调试面板不适用——
+    /// 填好的帧长/编码器接线、读回来的参数、枚举结果，一离开页面就全丢了。
+    /// 这里重写 IsNavigationTarget/KeepAlive，同一台相机复用同一实例、换相机才新建。
+    /// 但仍必须在 OnNavigatedFrom 退订 FrameReceived：页面不可见时没必要跑渲染，
+    /// 且换相机后旧实例若还挂着订阅就是纯泄漏。</para>
     /// </summary>
     public class LineScanCameraDebugViewModel : RegionViewModelBase
     {
@@ -79,6 +81,19 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>
+        /// 同一台相机复用已有实例，换相机才新建。
+        /// <para>基类默认恒为 false（每次导航都新建实例），对调试面板不合适：
+        /// 填好的帧长、编码器接线、读取回来的参数、枚举结果，一离开页面就全没了。
+        /// 复用实例后这些状态跨导航保留，代价是每台相机常驻一个 ViewModel——数量有界，可接受。</para>
+        /// </summary>
+        public override bool IsNavigationTarget(NavigationContext navigationContext)
+            => navigationContext.Parameters.ContainsKey("Device")
+               && ReferenceEquals(navigationContext.Parameters.GetValue<object>("Device"), _camera);
+
+        /// <summary>配合 <see cref="IsNavigationTarget"/>：实例要留在 Region 中才谈得上复用。</summary>
+        public override bool KeepAlive => true;
+
         /// <summary>导航进入时绑定相机、订阅帧事件并启动轮询</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
@@ -86,24 +101,37 @@ namespace PF.Modules.Debug.ViewModels
 
             if (!navigationContext.Parameters.ContainsKey("Device")) return;
 
-            _camera = navigationContext.Parameters.GetValue<ILineScanCamera>("Device");
-            _baseDevice = _camera as BaseDevice;
+            var camera = navigationContext.Parameters.GetValue<ILineScanCamera>("Device");
 
-            if (_baseDevice != null)
+            // 复用实例时是同一台相机，不重置任何已填参数，只把事件与轮询重新挂上
+            if (!ReferenceEquals(camera, _camera))
             {
-                DeviceName = _baseDevice.DeviceName;
-                DeviceDescription = $"设备类别: {_baseDevice.Category} | 模拟状态: {_baseDevice.IsSimulated}";
-            }
-            else
-            {
-                DeviceName = "未知线阵相机设备";
-                DeviceDescription = "无法获取底层设备信息";
+                _camera = camera;
+                _baseDevice = _camera as BaseDevice;
+
+                if (_baseDevice != null)
+                {
+                    DeviceName = _baseDevice.DeviceName;
+                    DeviceDescription = $"设备类别: {_baseDevice.Category} | 模拟状态: {_baseDevice.IsSimulated}";
+                }
+                else
+                {
+                    DeviceName = "未知线阵相机设备";
+                    DeviceDescription = "无法获取底层设备信息";
+                }
             }
 
             if (_camera != null)
             {
+                // 先退再订：OnNavigatedFrom 已退过一次，这里保证无论走哪条路径都只有一份订阅
+                _camera.FrameReceived -= OnFrameReceived;
                 _camera.FrameReceived += OnFrameReceived;
-                RefreshCameraInfo();
+
+                // 进页面就把设备真实状态读回来。
+                // 不依赖"ViewModel 实例能活到下次导航"——DebugViewRegion 嵌在硬件调试页里，
+                // 外层页面一旦被回收，内层实例连同填写的值一起没了；而且显示设备的实际值
+                // 本来就比显示"上次谁填了什么"更可信。
+                RunAsync("加载相机状态", LoadFromCameraAsync);
             }
 
             _statusTimer.Start();
@@ -343,10 +371,53 @@ namespace PF.Modules.Debug.ViewModels
 
         #endregion
 
-        #region 【通用节点读写】
+        #region 【属性树】
+
+        /// <summary>
+        /// 设备属性树的全部节点（名称/分类/类型/权限/当前值）。
+        /// 从相机的 GenICam XML 枚举而来，等价于 MVS 客户端的属性树，不必再手填节点名。
+        /// </summary>
+        public ObservableCollection<GenICamNode> Nodes { get; } = new();
+
+        private GenICamNode _selectedNode;
+        /// <summary>当前选中的节点。选中即把节点名/当前值/可选项填进编辑区。</summary>
+        public GenICamNode SelectedNode
+        {
+            get => _selectedNode;
+            set
+            {
+                if (!SetProperty(ref _selectedNode, value) || value == null) return;
+
+                NodeName = value.Name;
+                NodeValue = value.Value ?? string.Empty;
+
+                NodeEnumEntries.Clear();
+                foreach (var e in value.EnumEntries) NodeEnumEntries.Add(e);
+            }
+        }
+
+        private string _nodeFilter = string.Empty;
+        /// <summary>节点过滤关键字（按名称/显示名/分类匹配）。</summary>
+        public string NodeFilter
+        {
+            get => _nodeFilter;
+            set { if (SetProperty(ref _nodeFilter, value)) ApplyNodeFilter(); }
+        }
+
+        private bool _writableNodesOnly;
+        /// <summary>只看当前可写的节点。排查"为什么改不了"时特别有用。</summary>
+        public bool WritableNodesOnly
+        {
+            get => _writableNodesOnly;
+            set { if (SetProperty(ref _writableNodesOnly, value)) ApplyNodeFilter(); }
+        }
+
+        private string _nodeSummary = "尚未枚举";
+        /// <summary>属性树统计说明。</summary>
+        public string NodeSummary { get => _nodeSummary; set => SetProperty(ref _nodeSummary, value); }
 
         private string _nodeName = string.Empty;
-        /// <summary>获取或设置待读写的 GenICam 节点名</summary>
+        /// <summary>当前操作的 GenICam 节点名（由属性树选中填入，也可手工修改）</summary>
         public string NodeName { get => _nodeName; set => SetProperty(ref _nodeName, value); }
 
         private string _nodeValue = string.Empty;
@@ -390,14 +461,15 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand WriteNodeCommand { get; private set; }
         /// <summary>执行命令节点命令</summary>
         public DelegateCommand ExecuteNodeCommand { get; private set; }
+        /// <summary>枚举设备属性树命令</summary>
+        public DelegateCommand EnumerateNodesCommand { get; private set; }
 
         private void InitializeCommands()
         {
             ConnectCommand = new DelegateCommand(() => RunAsync("连接", async () =>
             {
                 if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None);
-                RefreshCameraInfo();
-                await LoadParameterOptionsAsync();
+                await LoadFromCameraAsync();
             }));
 
             DisconnectCommand = new DelegateCommand(() => RunAsync("断开连接", async () =>
@@ -408,7 +480,7 @@ namespace PF.Modules.Debug.ViewModels
             ResetCommand = new DelegateCommand(() => RunAsync("复位", async () =>
             {
                 if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None);
-                RefreshCameraInfo();
+                await LoadFromCameraAsync();
             }));
 
             SimulateAlarmCommand = new DelegateCommand(() =>
@@ -425,7 +497,16 @@ namespace PF.Modules.Debug.ViewModels
                 Log($"发现 {list.Count} 台在线相机。");
             }));
 
-            RefreshParamsCommand = new DelegateCommand(() => RunAsync("读取相机参数", LoadParameterOptionsAsync));
+            RefreshParamsCommand = new DelegateCommand(() => RunAsync("读取相机参数", LoadFromCameraAsync));
+
+            EnumerateNodesCommand = new DelegateCommand(() => RunAsync("枚举属性树", async () =>
+            {
+                if (_camera == null) return;
+
+                NodeSummary = "正在枚举...";
+                _allNodes = await _camera.EnumerateNodesAsync();
+                ApplyNodeFilter();
+            }));
 
             ApplyConfigCommand = new DelegateCommand(() => RunAsync("下发配置", async () =>
             {
@@ -551,6 +632,82 @@ namespace PF.Modules.Debug.ViewModels
             Log("已读取相机当前参数。");
         }
 
+        /// <summary>
+        /// 把相机与其采集卡的当前状态整体读回界面：型号/链路、相机侧参数、行触发、帧控制。
+        /// 未连接时只刷新型号/链路信息，不去读节点。
+        /// </summary>
+        private async Task LoadFromCameraAsync()
+        {
+            RefreshCameraInfo();
+
+            if (_camera == null || !_camera.IsConnected) return;
+
+            await LoadParameterOptionsAsync();
+            await LoadLineTriggerAsync();
+            await LoadFrameControlAsync();
+        }
+
+        /// <summary>读回行触发方式与编码器接线。新旧固件节点树不同，两组都试。</summary>
+        private async Task LoadLineTriggerAsync()
+        {
+            string? v;
+            if ((v = await _camera.GetNodeAsync("ScanMode")) != null) ScanMode = v;
+
+            // 新节点树：LineTriggerMode(bool) + LineTriggerSource；老节点树退回 TriggerSource
+            string? mode = await _camera.GetNodeAsync("LineTriggerMode");
+            string? source = await _camera.GetNodeAsync("LineTriggerSource") ?? await _camera.GetNodeAsync("TriggerSource");
+
+            if (source != null) LineTriggerSource = source;
+
+            if (mode != null)
+            {
+                bool lineTriggerOn = string.Equals(mode, "true", StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(mode, "On", StringComparison.OrdinalIgnoreCase);
+
+                SelectedLineTriggerMode = !lineTriggerOn
+                    ? LineTriggerMode.InternalRate
+                    : source != null && source.Contains("Encoder", StringComparison.OrdinalIgnoreCase)
+                        ? LineTriggerMode.Encoder
+                        : LineTriggerMode.ExternalLine;
+            }
+
+            if ((v = await _camera.GetNodeAsync("AcquisitionLineRateEnable")) != null)
+                LineRateEnable = string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+            if ((v = await _camera.GetNodeAsync("AcquisitionLineRate")) != null) AcquisitionLineRate = v;
+
+            if ((v = await _camera.GetNodeAsync("EncoderSelector")) != null) EncoderSelector = v;
+            if ((v = await _camera.GetNodeAsync("EncoderSourceA")) != null) EncoderSourceA = v;
+            if ((v = await _camera.GetNodeAsync("EncoderSourceB")) != null) EncoderSourceB = v;
+        }
+
+        /// <summary>
+        /// 读回帧控制。挂了采集卡就读卡的节点树（ImageHeight/FrameTimeoutTime/...），
+        /// 直连则读相机自身的 Height。
+        /// </summary>
+        private async Task LoadFrameControlAsync()
+        {
+            string? v;
+
+            if (_camera.HasFrameGrabber && _camera is Infrastructure.Hardware.Camera.LineScan.BaseLineScanCamera { Parent: { } card })
+            {
+                if ((v = await card.GetNodeAsync("ImageHeight")) != null) ImageHeight = v;
+                if ((v = await card.GetNodeAsync("FrameTimeoutTime")) != null) FrameTimeoutMs = v;
+                if ((v = await card.GetNodeAsync("StreamSelector")) != null) StreamSelector = v;
+                if ((v = await card.GetNodeAsync("CameraType")) != null) CameraType = v;
+                if ((v = await card.GetNodeAsync("StreamTriggerSource")) != null) FrameTriggerSource = v;
+                if ((v = await card.GetNodeAsync("StreamTriggerActivation")) != null) FrameTriggerActivation = v;
+                if ((v = await card.GetNodeAsync("StreamTriggerEnable")) != null)
+                    FrameTriggerEnable = string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                if ((v = await _camera.GetNodeAsync("Height")) != null) ImageHeight = v;
+                if ((v = await _camera.GetNodeAsync("FrameTriggerSource")) != null) FrameTriggerSource = v;
+                if ((v = await _camera.GetNodeAsync("FrameTriggerMode")) != null)
+                    FrameTriggerEnable = string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
         /// <summary>重新加载一个枚举节点的可选项与当前值。节点不存在时清空列表并跳过。</summary>
         private async Task ReloadEnumNodeAsync(string node, ObservableCollection<string> entries,
             Action<string> applyCurrent)
@@ -635,6 +792,36 @@ namespace PF.Modules.Debug.ViewModels
         };
 
         private static string NullIfBlank(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
+        /// <summary>属性树枚举结果的全集，界面上按 <see cref="NodeFilter"/> / <see cref="WritableNodesOnly"/> 过滤后展示。</summary>
+        private IReadOnlyList<GenICamNode> _allNodes = Array.Empty<GenICamNode>();
+
+        /// <summary>按关键字与"只看可写"过滤属性树。</summary>
+        private void ApplyNodeFilter()
+        {
+            Nodes.Clear();
+
+            IEnumerable<GenICamNode> query = _allNodes;
+
+            if (WritableNodesOnly)
+                query = query.Where(n => n.IsWritable);
+
+            if (!string.IsNullOrWhiteSpace(NodeFilter))
+            {
+                string key = NodeFilter.Trim();
+                query = query.Where(n =>
+                    n.Name.Contains(key, StringComparison.OrdinalIgnoreCase)
+                    || n.DisplayName.Contains(key, StringComparison.OrdinalIgnoreCase)
+                    || n.Category.Contains(key, StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var n in query.OrderBy(n => n.Category).ThenBy(n => n.Name))
+                Nodes.Add(n);
+
+            NodeSummary = _allNodes.Count == 0
+                ? "尚未枚举"
+                : $"共 {_allNodes.Count} 个可用节点，其中可写 {_allNodes.Count(n => n.IsWritable)} 个；当前显示 {Nodes.Count} 个";
+        }
 
         private void RefreshCameraInfo()
         {

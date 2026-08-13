@@ -1,3 +1,5 @@
+using PF.Core.Entities.Hardware.Vision;
+
 namespace PF.Core.Interfaces.Device.Hardware
 {
     /// <summary>
@@ -32,5 +34,17 @@ namespace PF.Core.Interfaces.Device.Hardware
 
         /// <summary>执行命令节点（如 TriggerSoftware / StreamSoftwareTrigger）。</summary>
         Task<bool> ExecuteCommandAsync(string nodeName, CancellationToken token = default);
+
+        /// <summary>
+        /// 枚举设备的全部属性节点（名称 / 分类 / 类型 / 权限 / 当前值），供调试面板直接列出。
+        ///
+        /// <para>不必再靠手填节点名——现场排查最花时间的往往是先猜出节点叫什么，
+        /// 以及它此刻是不存在、还是存在但不可写。</para>
+        ///
+        /// <para>⚠️ 这是一次**主动扫描**：节点数可达上千，逐个读值会与设备来回通讯，
+        /// 耗时可能到秒级，只应由用户显式触发，不要放在轮询里。
+        /// 结果是取快照那一刻的状态，设备状态变化后需重新枚举。</para>
+        /// </summary>
+        Task<IReadOnlyList<GenICamNode>> EnumerateNodesAsync(CancellationToken token = default);
     }
 }

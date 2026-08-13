@@ -1,6 +1,9 @@
 using MvCameraControl;
+using PF.Core.Entities.Hardware.Vision;
+using PF.Core.Enums.Hardware.Vision;
 using PF.Infrastructure.Logging;
 using System.Globalization;
+using System.Xml.Linq;
 
 namespace PF.Infrastructure.Hardware.Vision.Hikvision
 {
@@ -219,6 +222,167 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                 return false;
             }
         }
+
+        #region 属性树枚举
+
+        /// <summary>GenApi XML 里代表"可取值节点"的元素名 → 框架节点类型。</summary>
+        private static readonly Dictionary<string, GenICamNodeType> _valueTagMap = new()
+        {
+            ["Integer"] = GenICamNodeType.Integer,
+            ["IntReg"] = GenICamNodeType.Integer,
+            ["IntConverter"] = GenICamNodeType.Integer,
+            ["IntSwissKnife"] = GenICamNodeType.Integer,
+            ["Float"] = GenICamNodeType.Float,
+            ["FloatReg"] = GenICamNodeType.Float,
+            ["Converter"] = GenICamNodeType.Float,
+            ["SwissKnife"] = GenICamNodeType.Float,
+            ["Boolean"] = GenICamNodeType.Boolean,
+            ["Enumeration"] = GenICamNodeType.Enumeration,
+            ["String"] = GenICamNodeType.String,
+            ["StringReg"] = GenICamNodeType.String,
+            ["Command"] = GenICamNodeType.Command,
+        };
+
+        /// <summary>
+        /// 枚举设备全部属性节点。
+        ///
+        /// <para>做法：先取设备的 GenICam XML（属性树的权威来源，MVS 客户端展示的就是它），
+        /// 从中解析出节点名、类型、显示名与所属分类；再对每个节点用 SDK 查一次实际访问模式并读值——
+        /// XML 只描述"设备有什么"，"此刻能不能读写"必须问设备本身。</para>
+        ///
+        /// <para>未实现/不可用的节点直接丢弃：设备 XML 通常是同系列通用的，
+        /// 列一堆本型号没有的节点只会淹没真正能调的那些。</para>
+        /// </summary>
+        public IReadOnlyList<GenICamNode> EnumerateNodes()
+        {
+            var p = _parameters();
+            if (p == null) return Array.Empty<GenICamNode>();
+
+            string? xml;
+            try
+            {
+                int ret = p.GetGenICamXML(out xml);
+                if (ret != MvError.MV_OK || string.IsNullOrEmpty(xml))
+                {
+                    _logger.Warn($"[{_owner}] 获取设备属性树 XML 失败，错误码=0x{ret:X8}。");
+                    return Array.Empty<GenICamNode>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{_owner}] 获取设备属性树 XML 异常：{ex.Message}", ex);
+                return Array.Empty<GenICamNode>();
+            }
+
+            List<(string Name, string Display, string Desc, GenICamNodeType Type)> declared;
+            Dictionary<string, string> categoryOf;
+            try
+            {
+                declared = ParseDeclaredNodes(xml, out categoryOf);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{_owner}] 解析设备属性树 XML 失败：{ex.Message}", ex);
+                return Array.Empty<GenICamNode>();
+            }
+
+            var result = new List<GenICamNode>(declared.Count);
+            foreach (var (name, display, desc, type) in declared)
+            {
+                GenICamAccessMode access = QueryAccessMode(p, name);
+                if (access is GenICamAccessMode.NotImplemented or GenICamAccessMode.NotAvailable)
+                    continue;
+
+                // 命令节点没有"当前值"，读它没有意义；只写节点读不出来
+                string? value = type == GenICamNodeType.Command || access == GenICamAccessMode.WriteOnly
+                    ? null
+                    : GetNode(name);
+
+                result.Add(new GenICamNode
+                {
+                    Name = name,
+                    DisplayName = string.IsNullOrWhiteSpace(display) ? name : display,
+                    Category = categoryOf.TryGetValue(name, out var cat) ? cat : string.Empty,
+                    NodeType = type,
+                    AccessMode = access,
+                    Value = value,
+                    EnumEntries = type == GenICamNodeType.Enumeration ? GetEnumEntries(name) : Array.Empty<string>(),
+                    Description = desc,
+                });
+            }
+
+            _logger.Info($"[{_owner}] 属性树枚举完成：XML 声明 {declared.Count} 个节点，本型号实际可用 {result.Count} 个。");
+            return result;
+        }
+
+        /// <summary>
+        /// 从 GenApi XML 解析出所有可取值节点，并建立"节点 → 所属分类"映射。
+        /// XML 带命名空间，统一按元素本地名匹配。
+        /// </summary>
+        private static List<(string, string, string, GenICamNodeType)> ParseDeclaredNodes(
+            string xml, out Dictionary<string, string> categoryOf)
+        {
+            var doc = XDocument.Parse(xml);
+            var nodes = new List<(string, string, string, GenICamNodeType)>();
+            categoryOf = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var element in doc.Descendants())
+            {
+                string tag = element.Name.LocalName;
+                string? name = element.Attribute("Name")?.Value;
+                if (string.IsNullOrEmpty(name)) continue;
+
+                // 分类节点：把它列出的 pFeature 子项归到自己名下。
+                // 一个特征可能被多个分类引用，取先遇到的即可——分类只用于分组展示。
+                if (tag == "Category")
+                {
+                    foreach (var feature in element.Elements().Where(e => e.Name.LocalName == "pFeature"))
+                    {
+                        string featureName = feature.Value.Trim();
+                        if (featureName.Length > 0 && !categoryOf.ContainsKey(featureName))
+                            categoryOf[featureName] = name;
+                    }
+                    continue;
+                }
+
+                if (!_valueTagMap.TryGetValue(tag, out var type)) continue;
+
+                string display = element.Elements().FirstOrDefault(e => e.Name.LocalName == "DisplayName")?.Value ?? name;
+                string desc = element.Elements().FirstOrDefault(e => e.Name.LocalName == "ToolTip")?.Value
+                              ?? element.Elements().FirstOrDefault(e => e.Name.LocalName == "Description")?.Value
+                              ?? string.Empty;
+
+                nodes.Add((name, display.Trim(), desc.Trim(), type));
+            }
+
+            return nodes;
+        }
+
+        /// <summary>查询节点当前访问模式并翻译为框架枚举。</summary>
+        private static GenICamAccessMode QueryAccessMode(IParameters p, string nodeName)
+        {
+            try
+            {
+                if (p.GetNodeAccessMode(nodeName, out XmlAccessMode mode) != MvError.MV_OK)
+                    return GenICamAccessMode.NotImplemented;
+
+                return mode switch
+                {
+                    XmlAccessMode.RW => GenICamAccessMode.ReadWrite,
+                    XmlAccessMode.RO => GenICamAccessMode.ReadOnly,
+                    XmlAccessMode.WO => GenICamAccessMode.WriteOnly,
+                    XmlAccessMode.NA => GenICamAccessMode.NotAvailable,
+                    XmlAccessMode.NI => GenICamAccessMode.NotImplemented,
+                    _ => GenICamAccessMode.Unknown,
+                };
+            }
+            catch
+            {
+                return GenICamAccessMode.Unknown;
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 批量下发附加节点表。逐条尝试，失败只记警告不中断，返回成功条数。

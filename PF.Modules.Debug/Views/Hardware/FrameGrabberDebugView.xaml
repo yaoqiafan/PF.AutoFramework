@@ -90,6 +90,12 @@
                             <Run Text="  |  SN: " />
                             <Run Text="{Binding SerialNumber, Mode=OneWay}" />
                         </TextBlock>
+                        <!--  流绑定了哪台相机——流参数可不可写取决于它  -->
+                        <TextBlock
+                            Margin="0,2,0,0"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            Foreground="#0284C7"
+                            Text="{Binding CurrentStreamDevice, StringFormat='当前流绑定：{0}'}" />
                     </StackPanel>
 
                     <StackPanel
@@ -185,9 +191,15 @@
                                 Style="{DynamicResource ButtonWarning}" />
                             <Button
                                 Height="34"
+                                Margin="0,0,0,8"
                                 Command="{Binding SimulateAlarmCommand}"
                                 Content="模拟报警测试"
                                 Style="{DynamicResource ButtonDanger}" />
+                            <Button
+                                Height="32"
+                                Command="{Binding RefreshStateCommand}"
+                                Content="刷新状态（读回卡上实际值）"
+                                Style="{DynamicResource ButtonDefault}" />
                         </StackPanel>
                     </Border>
 
@@ -363,72 +375,133 @@
                     </Grid>
                 </Border>
 
-                <!--  ── 右列：高级节点读写 ──  -->
+                <!--  ── 右列：属性树 ──  -->
                 <Border Grid.Column="4" Style="{StaticResource GroupBorder}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock
                             Grid.Row="0"
                             Style="{StaticResource GroupTitle}"
-                            Text="高级节点读写" />
+                            Text="属性树（采集卡节点）" />
 
-                        <TextBlock
-                            Grid.Row="1"
-                            Style="{StaticResource FieldLabel}"
-                            Text="节点名（如 ImageHeight）" />
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button
+                                Grid.Column="0"
+                                Height="32"
+                                Command="{Binding EnumerateNodesCommand}"
+                                Content="枚举全部节点"
+                                Style="{DynamicResource ButtonPrimary}" />
+                            <CheckBox
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Content="只看可写"
+                                IsChecked="{Binding WritableNodesOnly}" />
+                        </Grid>
+
                         <TextBox
                             Grid.Row="2"
-                            Style="{StaticResource FieldBox}"
-                            Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}" />
+                            Height="30"
+                            Margin="0,0,0,8"
+                            VerticalContentAlignment="Center"
+                            Style="{StaticResource TextBoxBaseStyle}"
+                            Text="{Binding NodeFilter, UpdateSourceTrigger=PropertyChanged}"
+                            ToolTip="按节点名 / 显示名 / 分类过滤" />
 
-                        <TextBlock
+                        <DataGrid
                             Grid.Row="3"
-                            Style="{StaticResource FieldLabel}"
-                            Text="节点值（枚举节点读取后可直接下拉选）" />
-                        <!--  可编辑下拉框把"值输入框 + 可选项列表"合成一个控件：数值/字符串节点直接输入，枚举节点读取后从下拉里挑  -->
-                        <ComboBox
-                            Grid.Row="4"
-                            IsEditable="True"
-                            ItemsSource="{Binding NodeEnumEntries}"
-                            Style="{StaticResource FieldCombo}"
-                            Text="{Binding NodeValue, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <UniformGrid Grid.Row="5" Columns="3">
-                            <Button
-                                Height="32"
-                                Margin="0,0,4,0"
-                                Command="{Binding ReadNodeCommand}"
-                                Content="读取"
-                                Style="{DynamicResource ButtonDefault}" />
-                            <Button
-                                Height="32"
-                                Margin="2,0"
-                                Command="{Binding WriteNodeCommand}"
-                                Content="写入"
-                                Style="{DynamicResource ButtonDefault}" />
-                            <Button
-                                Height="32"
-                                Margin="4,0,0,0"
-                                Command="{Binding ExecuteNodeCommand}"
-                                Content="执行"
-                                Style="{DynamicResource ButtonDefault}" />
-                        </UniformGrid>
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            FontSize="{DynamicResource FontSize.Caption.Mini}"
+                            GridLinesVisibility="Horizontal"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding Nodes}"
+                            SelectedItem="{Binding SelectedNode}"
+                            SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Binding="{Binding Name}"
+                                    Header="节点"
+                                    Width="*" />
+                                <DataGridTextColumn
+                                    Binding="{Binding Value}"
+                                    Header="当前值"
+                                    Width="90" />
+                                <DataGridTextColumn
+                                    Binding="{Binding AccessText}"
+                                    Header="权限"
+                                    Width="52" />
+                            </DataGrid.Columns>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="ToolTip">
+                                        <Setter.Value>
+                                            <MultiBinding StringFormat="{}{0}&#x0a;分类：{1}&#x0a;类型：{2}&#x0a;{3}">
+                                                <Binding Path="DisplayName" />
+                                                <Binding Path="Category" />
+                                                <Binding Path="NodeType" />
+                                                <Binding Path="Description" />
+                                            </MultiBinding>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <!--  只读节点压暗，一眼看出哪些现在改不了  -->
+                                        <DataTrigger Binding="{Binding IsWritable}" Value="False">
+                                            <Setter Property="Foreground" Value="#94A3B8" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                        </DataGrid>
 
                         <TextBlock
-                            Grid.Row="6"
-                            Margin="0,12,0,0"
-                            VerticalAlignment="Top"
+                            Grid.Row="4"
+                            Margin="0,6,0,8"
                             Style="{StaticResource Hint}"
-                            Text="面板固定字段之外的采集卡节点走这里：先用 MVS 客户端属性树查到节点名，在此试值验证，确认可用后填进配置的 ExtraNodes 由框架自动下发。&#x0a;&#x0a;读取：读当前值，枚举节点会把可选项灌进上面的下拉框。&#x0a;写入：按 枚举→整数→浮点→布尔→字符串 依次尝试。&#x0a;执行：给无参命令节点用（如 DeviceReset / UserSetLoad），值留空。&#x0a;&#x0a;注意：本面板写的是采集卡节点树（IInterface），与相机自身的节点树不通用。" />
+                            Text="{Binding NodeSummary}" />
+
+                        <StackPanel Grid.Row="5">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding NodeName, StringFormat='选中节点：{0}'}" />
+                            <!--  可编辑下拉框：数值/字符串直接输入，枚举节点从选中行带出的可选项里挑  -->
+                            <ComboBox
+                                IsEditable="True"
+                                ItemsSource="{Binding NodeEnumEntries}"
+                                Style="{StaticResource FieldCombo}"
+                                Text="{Binding NodeValue, UpdateSourceTrigger=PropertyChanged}" />
+                            <UniformGrid Columns="3">
+                                <Button
+                                    Height="32"
+                                    Margin="0,0,4,0"
+                                    Command="{Binding ReadNodeCommand}"
+                                    Content="读取"
+                                    Style="{DynamicResource ButtonDefault}" />
+                                <Button
+                                    Height="32"
+                                    Margin="2,0"
+                                    Command="{Binding WriteNodeCommand}"
+                                    Content="写入"
+                                    Style="{DynamicResource ButtonDefault}" />
+                                <Button
+                                    Height="32"
+                                    Margin="4,0,0,0"
+                                    Command="{Binding ExecuteNodeCommand}"
+                                    Content="执行"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </UniformGrid>
+                        </StackPanel>
                     </Grid>
                 </Border>
             </Grid>

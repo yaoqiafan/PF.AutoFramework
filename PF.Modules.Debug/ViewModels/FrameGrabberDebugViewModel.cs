@@ -1,6 +1,8 @@
 using PF.Core.Constants;
 using PF.Core.Entities.Hardware.Vision;
 using PF.Core.Interfaces.Device.Hardware.Card;
+using System.Collections.Generic;
+using System.Linq;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Hardware;
 using PF.Infrastructure.Logging;
@@ -48,6 +50,18 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【Prism 导航生命周期】
 
+        /// <summary>
+        /// 同一张卡复用已有实例，换卡才新建。
+        /// <para>基类默认恒为 false（每次导航都新建实例），调试面板不适用：
+        /// 填好的帧长、触发源、节点名一离开页面就没了。</para>
+        /// </summary>
+        public override bool IsNavigationTarget(NavigationContext navigationContext)
+            => navigationContext.Parameters.ContainsKey("Device")
+               && ReferenceEquals(navigationContext.Parameters.GetValue<object>("Device"), _card);
+
+        /// <summary>配合 <see cref="IsNavigationTarget"/>：实例要留在 Region 中才谈得上复用。</summary>
+        public override bool KeepAlive => true;
+
         /// <summary>导航进入时绑定采集卡设备</summary>
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
@@ -55,19 +69,31 @@ namespace PF.Modules.Debug.ViewModels
 
             if (!navigationContext.Parameters.ContainsKey("Device")) return;
 
-            _card = navigationContext.Parameters.GetValue<IFrameGrabberCard>("Device");
-            _baseDevice = _card as BaseDevice;
+            var card = navigationContext.Parameters.GetValue<IFrameGrabberCard>("Device");
 
-            if (_baseDevice != null)
+            // 复用实例时是同一张卡，不重置任何已填参数
+            if (!ReferenceEquals(card, _card))
             {
-                DeviceName = _baseDevice.DeviceName;
-                DeviceDescription = $"设备类别: {_baseDevice.Category} | 模拟状态: {_baseDevice.IsSimulated}";
+                _card = card;
+                _baseDevice = _card as BaseDevice;
+
+                if (_baseDevice != null)
+                {
+                    DeviceName = _baseDevice.DeviceName;
+                    DeviceDescription = $"设备类别: {_baseDevice.Category} | 模拟状态: {_baseDevice.IsSimulated}";
+                }
+                else
+                {
+                    DeviceName = "未知采集卡设备";
+                    DeviceDescription = "无法获取底层设备信息";
+                }
             }
-            else
-            {
-                DeviceName = "未知采集卡设备";
-                DeviceDescription = "无法获取底层设备信息";
-            }
+
+            // 进页面就把设备真实状态读回来。
+            // 不依赖"ViewModel 实例能活到下次导航"——DebugViewRegion 嵌在硬件调试页里，
+            // 外层页面一旦被回收，内层实例连同填写的值一起没了；而且显示设备的实际值
+            // 本来就比显示"上次谁填了什么"更可信。
+            RunAsync("加载采集卡状态", LoadFromCardAsync);
 
             _statusTimer.Start();
         }
@@ -107,6 +133,13 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置采集卡序列号</summary>
         public string SerialNumber { get => _serialNumber; set => SetProperty(ref _serialNumber, value); }
 
+        private string _currentStreamDevice = "-";
+        /// <summary>
+        /// 当前流绑定的相机（卡节点 CurrentStreamDevice）。
+        /// 为空说明流上没有相机，此时 ImageHeight 等流参数不可写。
+        /// </summary>
+        public string CurrentStreamDevice { get => _currentStreamDevice; set => SetProperty(ref _currentStreamDevice, value); }
+
         #endregion
 
         #region 【帧控制参数】
@@ -145,17 +178,60 @@ namespace PF.Modules.Debug.ViewModels
 
         #endregion
 
-        #region 【通用节点读写】
+        #region 【属性树】
+
+        /// <summary>
+        /// 设备属性树的全部节点（名称/分类/类型/权限/当前值）。
+        /// 从卡的 GenICam XML 枚举而来，等价于 MVS 客户端的属性树，不必再手填节点名。
+        /// </summary>
+        public ObservableCollection<GenICamNode> Nodes { get; } = new();
+
+        private GenICamNode _selectedNode;
+        /// <summary>当前选中的节点。选中即把节点名/当前值/可选项填进编辑区。</summary>
+        public GenICamNode SelectedNode
+        {
+            get => _selectedNode;
+            set
+            {
+                if (!SetProperty(ref _selectedNode, value) || value == null) return;
+
+                NodeName = value.Name;
+                NodeValue = value.Value ?? string.Empty;
+
+                NodeEnumEntries.Clear();
+                foreach (var e in value.EnumEntries) NodeEnumEntries.Add(e);
+            }
+        }
+
+        private string _nodeFilter = string.Empty;
+        /// <summary>节点过滤关键字（按名称/显示名/分类匹配）。</summary>
+        public string NodeFilter
+        {
+            get => _nodeFilter;
+            set { if (SetProperty(ref _nodeFilter, value)) ApplyNodeFilter(); }
+        }
+
+        private bool _writableNodesOnly;
+        /// <summary>只看当前可写的节点。排查"为什么改不了"时特别有用。</summary>
+        public bool WritableNodesOnly
+        {
+            get => _writableNodesOnly;
+            set { if (SetProperty(ref _writableNodesOnly, value)) ApplyNodeFilter(); }
+        }
+
+        private string _nodeSummary = "尚未枚举";
+        /// <summary>属性树统计说明。</summary>
+        public string NodeSummary { get => _nodeSummary; set => SetProperty(ref _nodeSummary, value); }
 
         private string _nodeName = string.Empty;
-        /// <summary>获取或设置待读写的 GenICam 节点名</summary>
+        /// <summary>当前操作的 GenICam 节点名（由属性树选中填入，也可手工修改）</summary>
         public string NodeName { get => _nodeName; set => SetProperty(ref _nodeName, value); }
 
         private string _nodeValue = string.Empty;
         /// <summary>获取或设置节点值</summary>
         public string NodeValue { get => _nodeValue; set => SetProperty(ref _nodeValue, value); }
 
-        /// <summary>枚举节点的可选项（读取后填充，绑到可编辑下拉框，省掉单独的列表控件）</summary>
+        /// <summary>选中节点的枚举可选项（绑到可编辑下拉框）</summary>
         public ObservableCollection<string> NodeEnumEntries { get; } = new();
 
         /// <summary>枚举到的本卡相机列表</summary>
@@ -185,6 +261,10 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand WriteNodeCommand { get; private set; }
         /// <summary>执行命令节点命令</summary>
         public DelegateCommand ExecuteNodeCommand { get; private set; }
+        /// <summary>刷新采集卡状态命令（型号/SN/流参数/相机列表）</summary>
+        public DelegateCommand RefreshStateCommand { get; private set; }
+        /// <summary>枚举设备属性树命令</summary>
+        public DelegateCommand EnumerateNodesCommand { get; private set; }
 
         private void InitializeCommands()
         {
@@ -193,8 +273,10 @@ namespace PF.Modules.Debug.ViewModels
             ConnectCommand = new DelegateCommand(() => RunAsync("连接", async () =>
             {
                 if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None);
-                RefreshCardInfo();
+                await LoadFromCardAsync();
             }));
+
+            RefreshStateCommand = new DelegateCommand(() => RunAsync("刷新采集卡状态", LoadFromCardAsync));
 
             DisconnectCommand = new DelegateCommand(() => RunAsync("断开连接", async () =>
             {
@@ -204,7 +286,7 @@ namespace PF.Modules.Debug.ViewModels
             ResetCommand = new DelegateCommand(() => RunAsync("复位", async () =>
             {
                 if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None);
-                RefreshCardInfo();
+                await LoadFromCardAsync();
             }));
 
             SimulateAlarmCommand = new DelegateCommand(() =>
@@ -273,6 +355,15 @@ namespace PF.Modules.Debug.ViewModels
                 if (ok) Log($"命令节点 '{NodeName}' 已执行。");
                 else LogWarn($"命令节点 '{NodeName}' 执行失败。");
             }));
+
+            EnumerateNodesCommand = new DelegateCommand(() => RunAsync("枚举属性树", async () =>
+            {
+                if (_card == null) return;
+
+                NodeSummary = "正在枚举...";
+                _allNodes = await _card.EnumerateNodesAsync();
+                ApplyNodeFilter();
+            }));
         }
 
         #endregion
@@ -292,10 +383,73 @@ namespace PF.Modules.Debug.ViewModels
             PartialImageControl = PartialImageControl,
         };
 
+        /// <summary>属性树枚举结果的全集，界面上按 <see cref="NodeFilter"/> / <see cref="WritableNodesOnly"/> 过滤后展示。</summary>
+        private IReadOnlyList<GenICamNode> _allNodes = Array.Empty<GenICamNode>();
+
+        /// <summary>按关键字与"只看可写"过滤属性树。</summary>
+        private void ApplyNodeFilter()
+        {
+            Nodes.Clear();
+
+            IEnumerable<GenICamNode> query = _allNodes;
+
+            if (WritableNodesOnly)
+                query = query.Where(n => n.IsWritable);
+
+            if (!string.IsNullOrWhiteSpace(NodeFilter))
+            {
+                string key = NodeFilter.Trim();
+                query = query.Where(n =>
+                    n.Name.Contains(key, StringComparison.OrdinalIgnoreCase)
+                    || n.DisplayName.Contains(key, StringComparison.OrdinalIgnoreCase)
+                    || n.Category.Contains(key, StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var n in query.OrderBy(n => n.Category).ThenBy(n => n.Name))
+                Nodes.Add(n);
+
+            NodeSummary = _allNodes.Count == 0
+                ? "尚未枚举"
+                : $"共 {_allNodes.Count} 个可用节点，其中可写 {_allNodes.Count(n => n.IsWritable)} 个；当前显示 {Nodes.Count} 个";
+        }
+
         private void RefreshCardInfo()
         {
             ModelName = string.IsNullOrEmpty(_card?.ModelName) ? "-" : _card.ModelName;
             SerialNumber = string.IsNullOrEmpty(_card?.SerialNumber) ? "-" : _card.SerialNumber;
+        }
+
+        /// <summary>
+        /// 从卡上读回型号/序列号、当前流参数与本卡相机列表，回填到界面。
+        /// 未连接时只刷新型号/SN（都会是 "-"），不去读节点。
+        /// </summary>
+        private async Task LoadFromCardAsync()
+        {
+            RefreshCardInfo();
+
+            if (_card == null || !_card.IsConnected) return;
+
+            string? v;
+            if ((v = await _card.GetNodeAsync("ImageHeight")) != null) ImageHeight = v;
+            if ((v = await _card.GetNodeAsync("FrameTimeoutTime")) != null) FrameTimeoutMs = v;
+            if ((v = await _card.GetNodeAsync("StreamSelector")) != null) StreamSelector = v;
+            if ((v = await _card.GetNodeAsync("CameraType")) != null) CameraType = v;
+            if ((v = await _card.GetNodeAsync("StreamTriggerSource")) != null) TriggerSource = v;
+            if ((v = await _card.GetNodeAsync("StreamTriggerActivation")) != null) TriggerActivation = v;
+
+            if ((v = await _card.GetNodeAsync("StreamTriggerEnable")) != null)
+                TriggerEnable = string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+
+            // 残帧策略：CameraLink 卡叫 StreamPartialImageControl，XoF 卡叫 PartialImageOutputMode
+            v = await _card.GetNodeAsync("StreamPartialImageControl")
+                ?? await _card.GetNodeAsync("PartialImageOutputMode");
+            if (v != null) PartialImageControl = v;
+
+            CurrentStreamDevice = await _card.GetNodeAsync("CurrentStreamDevice") ?? "（未绑定相机）";
+
+            // 相机列表也一并刷新：打开这个页面十有八九就是想看卡上挂了什么
+            DiscoveredCameras.Clear();
+            foreach (var d in await _card.DiscoverCamerasAsync()) DiscoveredCameras.Add(d.DisplayName);
         }
 
         /// <summary>统一的异步命令外壳：吞掉异常并落到日志栏，不让 async void 击穿进程。</summary>

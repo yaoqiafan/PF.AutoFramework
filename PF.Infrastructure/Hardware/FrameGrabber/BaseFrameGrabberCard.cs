@@ -63,6 +63,16 @@ namespace PF.Infrastructure.Hardware.FrameGrabber
         public Task<bool> ExecuteCommandAsync(string nodeName, CancellationToken token = default)
             => Task.FromResult(NodeAccessor?.ExecuteCommand(nodeName) ?? false);
 
+        /// <inheritdoc/>
+        public Task<IReadOnlyList<GenICamNode>> EnumerateNodesAsync(CancellationToken token = default)
+        {
+            var acc = NodeAccessor;
+            if (acc == null) return Task.FromResult<IReadOnlyList<GenICamNode>>(Array.Empty<GenICamNode>());
+
+            // 上千个节点逐个查权限+读值，耗时可到秒级，必须离开 UI 线程
+            return Task.Run(() => acc.EnumerateNodes(), token);
+        }
+
         #endregion
     }
 }
