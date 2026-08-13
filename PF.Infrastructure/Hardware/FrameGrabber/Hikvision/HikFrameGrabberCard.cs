@@ -198,6 +198,15 @@ namespace PF.Infrastructure.Hardware.FrameGrabber.Hikvision
 
             return Task.Run(() =>
             {
+                // 流参数只在流尚未绑定相机时可写。相机一旦 Open，ImageHeight/StreamTrigger* 全变只读，
+                // 写入会返回 MV_E_GC_ACCESS(0x80000106)——"节点访问条件有误"，不是节点名错。
+                // 提前探测并明说，免得对着一串"下发失败"去查节点名。
+                if (config.ImageHeight > 0 && !acc.IsNodeWritable("ImageHeight"))
+                {
+                    HardwareLogger.Warn($"[{DeviceName}] 流参数当前不可写——通常是本卡上已有相机处于打开状态。"
+                        + "请先关闭相机再下发帧控制；工站流程下由相机连接时自动按正确顺序下发，无需手动干预。");
+                }
+
                 // 流选择与相机类型需先于其余流参数设置（CameraLink 位宽配置必须与相机侧匹配，
                 // 不匹配的典型表现是出不了图或图像横向错位）
                 acc.SetIfPresent("StreamSelector", config.StreamSelector);
@@ -211,7 +220,15 @@ namespace PF.Infrastructure.Hardware.FrameGrabber.Hikvision
                 if (config.FrameTimeoutMs > 0)
                     acc.SetIfPresent("FrameTimeoutTime", config.FrameTimeoutMs.ToString());
 
-                acc.SetIfPresent("StreamPartialImageControl", config.PartialImageControl);
+                // 残帧策略的节点名随卡型而异：CameraLink 卡叫 StreamPartialImageControl，
+                // XoF 卡叫 PartialImageOutputMode。探测哪个在，就写哪个。
+                if (!string.IsNullOrWhiteSpace(config.PartialImageControl))
+                {
+                    string node = acc.IsNodeAvailable("StreamPartialImageControl")
+                        ? "StreamPartialImageControl"
+                        : "PartialImageOutputMode";
+                    acc.SetIfPresent(node, config.PartialImageControl);
+                }
 
                 // 帧触发
                 acc.SetNode("StreamTriggerEnable", config.TriggerEnable ? "true" : "false");

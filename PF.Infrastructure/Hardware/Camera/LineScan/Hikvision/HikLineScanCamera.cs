@@ -71,6 +71,12 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         private LineScanCameraConfig? _lastConfig;
 
         /// <summary>
+        /// 最近一次**成功写进采集卡**的帧控制快照。用来判断新配置是否真的动了流参数——
+        /// 只改曝光/增益时不该为此付一次重连的代价。
+        /// </summary>
+        private FrameControlConfig? _appliedFrameControl;
+
+        /// <summary>
         /// 构造海康线阵相机。
         /// </summary>
         /// <param name="serialNumber">
@@ -116,11 +122,20 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         #region BaseDevice 钩子
 
         /// <summary>
-        /// 内部连接：初始化 SDK → 枚举相机（挂卡时只枚举本卡下的）→ 按序列号/索引选定
-        /// → 创建实例并打开 → GigE 探测最佳包大小 → 建立节点通道与帧控制策略。
+        /// 内部连接：**先在采集卡上写流参数** → 初始化 SDK → 枚举相机（挂卡时只枚举本卡下的）
+        /// → 按序列号/索引选定 → 创建实例并打开 → GigE 探测最佳包大小 → 建立节点通道与帧控制策略。
+        ///
+        /// <para><b>为什么帧控制必须先于开相机</b>：采集卡的流参数（ImageHeight / FrameTimeoutTime /
+        /// StreamTrigger*）只在流尚未绑定相机时可写。相机一旦 Open，流即绑定，这些节点转为只读，
+        /// 再写会返回 MV_E_GC_ACCESS(0x80000106)「节点访问条件有误」——注意不是「节点不存在」，
+        /// 光看错误码很容易误判成节点名写错。流参数没写进去的直接后果是
+        /// StartGrabbing 返回 MV_E_SUPPORT(0x80000001)。
+        /// 官方 ParameterInterface_SoftwareTrigger 示例也是这个顺序：开卡 → 配流 → 枚举 → 开相机。</para>
         /// </summary>
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
         {
+            await ApplyFrameControlToCardAsync(token);
+
             return await Task.Run(() =>
             {
                 MvSdkLifetime.Acquire();
@@ -207,6 +222,8 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// <summary>
         /// 内部复位：相机无机械动作，重新打开并把最近一次配置补发一遍
         /// （相机断电重启后参数会回到设备默认值，不补发会静默地按错误参数扫描）。
+        /// <para>只补发相机侧参数——帧控制已由 <see cref="InternalConnectAsync"/> 在开相机前写入采集卡，
+        /// 这里再调 <see cref="ApplyConfigAsync"/> 会触发一次多余的重连。</para>
         /// </summary>
         protected override async Task InternalResetAsync(CancellationToken token)
         {
@@ -215,7 +232,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             if (!await InternalConnectAsync(token)) return;
 
             if (_lastConfig != null)
-                await ApplyConfigAsync(_lastConfig, token);
+                await ApplyCameraSideAsync(_lastConfig, token);
         }
 
         /// <summary>
@@ -259,29 +276,142 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 return;
             }
 
-            var acc = NodeAccessor;
-            if (acc == null)
+            // 经采集卡且相机已打开：卡上的流参数此刻是只读的，只能先放开相机再写。
+            // 重连由本方法自动完成，调用方无需关心顺序（工站流程不可能让人手动排序）。
+            if (HasFrameGrabber && _device != null && !IsSameFrameControl(_appliedFrameControl, config.FrameControl))
             {
-                HardwareLogger.Warn($"[{DeviceName}] 相机未连接，跳过配置下发。");
+                await ReopenForFrameControlAsync(config, token);
                 return;
             }
 
-            await Task.Run(() =>
-            {
-                ApplyBodyParameters(acc, config);
-                ApplyLineTrigger(acc, config.LineTrigger);
-                acc.ApplyExtraNodes(config.ExtraNodes);
-            }, token);
-
-            // 帧控制交给策略：挂卡时写采集卡节点树，直连时写相机节点树
-            if (_frameControl != null)
-                await _frameControl.ApplyAsync(config.FrameControl, token);
+            await ApplyCameraSideAsync(config, token);
+            await ApplyFrameControlCoreAsync(config.FrameControl, token);
 
             WarnIfFrameMemoryHeavy(config.FrameControl.ImageHeight);
 
             HardwareLogger.Info($"[{DeviceName}] 配置已下发：行触发={config.LineTrigger.Mode}, "
                 + $"帧长={config.FrameControl.ImageHeight}行, 行间距={_lineSpacingUm:F3}μm/行。");
         }
+
+        /// <summary>
+        /// 下发相机自身节点树上的参数（本体参数 + 行触发 + 附加节点）。
+        /// 这些节点在相机打开状态下始终可写，与采集卡的流参数不同，不需要重连。
+        /// </summary>
+        private Task ApplyCameraSideAsync(LineScanCameraConfig config, CancellationToken token)
+        {
+            var acc = NodeAccessor;
+            if (acc == null)
+            {
+                HardwareLogger.Warn($"[{DeviceName}] 相机未连接，跳过相机侧参数下发。");
+                return Task.CompletedTask;
+            }
+
+            return Task.Run(() =>
+            {
+                ApplyBodyParameters(acc, config);
+                ApplyLineTrigger(acc, config.LineTrigger);
+                acc.ApplyExtraNodes(config.ExtraNodes);
+            }, token);
+        }
+
+        /// <summary>
+        /// 下发帧控制配置到当前可用的节点树。
+        /// <para>相机已连接时走帧控制策略；未连接但挂了采集卡时直接写卡
+        /// ——这正是卡上流参数唯一可写的时机，不能因为"相机没连"就跳过。</para>
+        /// </summary>
+        private async Task ApplyFrameControlCoreAsync(FrameControlConfig frameControl, CancellationToken token)
+        {
+            if (_frameControl != null)
+            {
+                await _frameControl.ApplyAsync(frameControl, token);
+            }
+            else if (Parent != null)
+            {
+                await Parent.ApplyFrameControlAsync(frameControl, token);
+            }
+            else
+            {
+                // 直连且未连接：帧控制落在相机自身节点树上，此刻无处可写
+                HardwareLogger.Debug($"[{DeviceName}] 相机未连接且无采集卡，帧控制配置已缓存，将在连接时下发。");
+                return;
+            }
+
+            _appliedFrameControl = Clone(frameControl);
+        }
+
+        /// <summary>
+        /// 在打开相机之前把帧控制配置写进采集卡。由 <see cref="InternalConnectAsync"/> 调用。
+        /// 首次连接前若从未下发过配置，则跳过——此时卡沿用自身当前值。
+        /// </summary>
+        private async Task ApplyFrameControlToCardAsync(CancellationToken token)
+        {
+            if (IsSimulated || Parent == null || _lastConfig == null) return;
+
+            HardwareLogger.Info($"[{DeviceName}] 开相机前先写采集卡流参数（此刻流未绑定相机，节点可写）。");
+            await Parent.ApplyFrameControlAsync(_lastConfig.FrameControl, token);
+            _appliedFrameControl = Clone(_lastConfig.FrameControl);
+        }
+
+        /// <summary>
+        /// 关相机 → 重连（连接过程中会把新的帧控制写进卡）→ 补发相机侧参数 → 恢复取流状态。
+        /// </summary>
+        private async Task ReopenForFrameControlAsync(LineScanCameraConfig config, CancellationToken token)
+        {
+            bool wasGrabbing = _isGrabbing;
+
+            HardwareLogger.Info($"[{DeviceName}] 帧控制有变更，需在相机关闭状态下写入采集卡，正在重连相机...");
+
+            await DisconnectAsync();
+
+            if (!await ConnectAsync(token))
+            {
+                HardwareLogger.Error($"[{DeviceName}] 为下发帧控制而重连失败，配置未生效。");
+                return;
+            }
+
+            await ApplyCameraSideAsync(config, token);
+
+            WarnIfFrameMemoryHeavy(config.FrameControl.ImageHeight);
+
+            HardwareLogger.Info($"[{DeviceName}] 配置已下发（经重连）：行触发={config.LineTrigger.Mode}, "
+                + $"帧长={config.FrameControl.ImageHeight}行, 行间距={_lineSpacingUm:F3}μm/行。");
+
+            if (wasGrabbing) await ArmAsync(token);
+        }
+
+        /// <summary>
+        /// 判断两份帧控制配置是否等价。等价则不必为它付一次重连的代价
+        /// （只改曝光/增益时尤其重要——那些是相机侧参数，本来就不需要重连）。
+        /// </summary>
+        private static bool IsSameFrameControl(FrameControlConfig? a, FrameControlConfig? b)
+        {
+            if (a == null || b == null) return false;
+
+            return a.ImageHeight == b.ImageHeight
+                && a.FrameTimeoutMs == b.FrameTimeoutMs
+                && a.TriggerEnable == b.TriggerEnable
+                && a.TriggerSource == b.TriggerSource
+                && a.TriggerActivation == b.TriggerActivation
+                && a.PartialImageControl == b.PartialImageControl
+                && a.StreamSelector == b.StreamSelector
+                && a.CameraType == b.CameraType
+                && a.ExtraNodes.Count == b.ExtraNodes.Count
+                && a.ExtraNodes.All(kv => b.ExtraNodes.TryGetValue(kv.Key, out var v) && v == kv.Value);
+        }
+
+        /// <summary>浅拷贝一份帧控制配置作为"已下发"快照，避免调用方后续改动同一对象导致比对失真。</summary>
+        private static FrameControlConfig Clone(FrameControlConfig source) => new()
+        {
+            ImageHeight = source.ImageHeight,
+            FrameTimeoutMs = source.FrameTimeoutMs,
+            TriggerEnable = source.TriggerEnable,
+            TriggerSource = source.TriggerSource,
+            TriggerActivation = source.TriggerActivation,
+            PartialImageControl = source.PartialImageControl,
+            StreamSelector = source.StreamSelector,
+            CameraType = source.CameraType,
+            ExtraNodes = new Dictionary<string, string>(source.ExtraNodes),
+        };
 
         /// <summary>相机本体参数：扫描模式、像素格式、压缩、曝光、增益。</summary>
         private void ApplyBodyParameters(GenICamNodeAccessor acc, LineScanCameraConfig config)
@@ -405,6 +535,15 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             if (dev == null)
             {
                 HardwareLogger.Error($"[{DeviceName}] 相机未连接，无法开流。");
+                return Task.FromResult(false);
+            }
+
+            // 挂了卡但卡没连上时，相机仍可能被全局枚举找到并打开，但流在卡侧从未就绪，
+            // StartGrabbing 只会返回一个含糊的 MV_E_SUPPORT。在这里先把原因讲清楚。
+            if (Parent != null && !Parent.IsConnected)
+            {
+                HardwareLogger.Error($"[{DeviceName}] 父采集卡 '{Parent.DeviceName}' 未连接，"
+                    + "流在卡侧未就绪，无法开流。请先打开采集卡（确认其未处于仿真模式）。");
                 return Task.FromResult(false);
             }
 

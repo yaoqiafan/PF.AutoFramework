@@ -57,6 +57,26 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
             }
         }
 
+        /// <summary>探测节点当前是否可写。节点不存在或只读均返回 false。</summary>
+        public bool IsNodeWritable(string nodeName)
+        {
+            var p = _parameters();
+            if (p == null || string.IsNullOrWhiteSpace(nodeName)) return false;
+
+            try
+            {
+                if (p.GetNodeAccessMode(nodeName, out XmlAccessMode mode) != MvError.MV_OK)
+                    return false;
+
+                return mode is XmlAccessMode.RW or XmlAccessMode.WO;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"[{_owner}] 探测节点 '{nodeName}' 可写性异常：{ex.Message}", ex);
+                return false;
+            }
+        }
+
         /// <summary>读取节点当前值（枚举返回 symbolic 名）。不可读返回 null。</summary>
         public string? GetNode(string nodeName)
         {
@@ -116,13 +136,42 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                 if (p.SetStringValue(nodeName, value) == MvError.MV_OK)
                     return true;
 
-                _logger.Debug($"[{_owner}] 写入节点 '{nodeName}' = '{value}' 失败（节点不存在、不可写或值非法）。");
+                // 失败原因回读一次访问模式再报：SDK 对"节点不存在"和"此刻不可写"给的是两个
+                // 不同错误码（MV_E_GC_NODE_NOT_FOUND / MV_E_GC_ACCESS），但都表现为写入返回非 OK。
+                // 只说"失败"会让人一路去查节点名有没有写错，而真正的原因往往是时序——
+                // 例如采集卡的流参数在相机 Open 之后就变成只读了。
+                _logger.Debug($"[{_owner}] 写入节点 '{nodeName}' = '{value}' 失败（{DescribeAccess(p, nodeName)}）。");
                 return false;
             }
             catch (Exception ex)
             {
                 _logger.Debug($"[{_owner}] 写入节点 '{nodeName}' 异常：{ex.Message}", ex);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 描述节点当前的访问状态，用于把"写失败"的原因讲清楚：
+        /// 是节点根本不存在，还是存在但此刻只读/不可访问。
+        /// </summary>
+        private static string DescribeAccess(IParameters p, string nodeName)
+        {
+            try
+            {
+                if (p.GetNodeAccessMode(nodeName, out XmlAccessMode mode) != MvError.MV_OK)
+                    return "本设备不存在该节点";
+
+                return mode switch
+                {
+                    XmlAccessMode.RO => "节点当前为只读（多为时序问题：某些参数只在特定状态下可写）",
+                    XmlAccessMode.NA => "节点当前不可访问",
+                    XmlAccessMode.RW or XmlAccessMode.WO => "节点可写，但值非法或超出范围",
+                    _ => $"节点访问模式={mode}",
+                };
+            }
+            catch
+            {
+                return "无法读取节点访问模式";
             }
         }
 
