@@ -301,11 +301,15 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                 // 中文释义优先，查不到再退回设备 XML 自带的英文 ToolTip
                 string? chinese = GenICamNodeGlossary.Describe(name);
 
+                // 分类：设备 XML 的 pFeature/Group 优先；都没有时退回官方节点表的功能分类
+                if (!categoryOf.TryGetValue(name, out var cat) || string.IsNullOrWhiteSpace(cat))
+                    cat = GenICamNodeGlossary.DescribeCategory(name) ?? string.Empty;
+
                 result.Add(new GenICamNode
                 {
                     Name = name,
                     DisplayName = string.IsNullOrWhiteSpace(display) ? name : display,
-                    Category = categoryOf.TryGetValue(name, out var cat) ? cat : string.Empty,
+                    Category = cat,
                     NodeType = type,
                     AccessMode = access,
                     Value = value,

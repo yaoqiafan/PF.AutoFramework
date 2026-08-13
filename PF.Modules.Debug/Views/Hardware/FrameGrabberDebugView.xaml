@@ -29,12 +29,18 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Small}" />
         </Style>
-        <Style x:Key="FieldBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxBaseStyle}">
+        <Style
+            x:Key="FieldBox"
+            BasedOn="{StaticResource TextBoxBaseStyle}"
+            TargetType="TextBox">
             <Setter Property="Margin" Value="0,0,0,10" />
             <Setter Property="Height" Value="30" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style x:Key="FieldCombo" TargetType="ComboBox" BasedOn="{StaticResource ComboBoxBaseStyle}">
+        <Style
+            x:Key="FieldCombo"
+            BasedOn="{StaticResource ComboBoxBaseStyle}"
+            TargetType="ComboBox">
             <Setter Property="Margin" Value="0,0,0,10" />
             <Setter Property="Height" Value="30" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -151,7 +157,7 @@
             <!--  ══ 主体：上半区三列（启停 / 本卡相机 / 帧控制），下半区属性树占满全宽 ══  -->
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="250" />
                     <RowDefinition Height="12" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
@@ -231,146 +237,150 @@
 
                     <!--  ── 帧控制 ──  -->
                     <Border Grid.Column="4" Style="{StaticResource GroupBorder}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock
-                            Grid.Row="0"
-                            Style="{StaticResource GroupTitle}"
-                            Text="帧控制 —— CameraLink 的切帧发生在采集卡上" />
-
-                        <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
+                        <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+
                             </Grid.RowDefinitions>
 
                             <TextBlock
                                 Grid.Row="0"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldLabel}"
-                                Text="帧长(行)" />
-                            <TextBox
-                                Grid.Row="1"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding ImageHeight, UpdateSourceTrigger=PropertyChanged}" />
+                                Style="{StaticResource GroupTitle}"
+                                Text="帧控制 —— CameraLink 的切帧发生在采集卡上" />
 
-                            <TextBlock
-                                Grid.Row="0"
-                                Grid.Column="2"
-                                Style="{StaticResource FieldLabel}"
-                                Text="帧超时(ms)" />
-                            <TextBox
-                                Grid.Row="1"
-                                Grid.Column="2"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding FrameTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
+                            <ScrollViewer Grid.Row="1"   VerticalScrollBarVisibility="Auto">
+                                <StackPanel Orientation="Vertical">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
 
-                            <TextBlock
-                                Grid.Row="2"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldLabel}"
-                                Text="帧触发源" />
-                            <TextBox
-                                Grid.Row="3"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding TriggerSource, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="帧长(行)" />
+                                        <TextBox
+                                            Grid.Row="1"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding ImageHeight, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock
-                                Grid.Row="2"
-                                Grid.Column="2"
-                                Style="{StaticResource FieldLabel}"
-                                Text="有效边沿" />
-                            <TextBox
-                                Grid.Row="3"
-                                Grid.Column="2"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding TriggerActivation, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock
+                                            Grid.Row="0"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="帧超时(ms)" />
+                                        <TextBox
+                                            Grid.Row="1"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding FrameTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock
-                                Grid.Row="4"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldLabel}"
-                                Text="流选择器" />
-                            <TextBox
-                                Grid.Row="5"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding StreamSelector, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="帧触发源" />
+                                        <TextBox
+                                            Grid.Row="3"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding TriggerSource, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock
-                                Grid.Row="4"
-                                Grid.Column="2"
-                                Style="{StaticResource FieldLabel}"
-                                Text="相机类型(位宽)" />
-                            <TextBox
-                                Grid.Row="5"
-                                Grid.Column="2"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding CameraType, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="有效边沿" />
+                                        <TextBox
+                                            Grid.Row="3"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding TriggerActivation, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock
-                                Grid.Row="6"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldLabel}"
-                                Text="残帧策略" />
-                            <TextBox
-                                Grid.Row="7"
-                                Grid.Column="0"
-                                Style="{StaticResource FieldBox}"
-                                Text="{Binding PartialImageControl, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock
+                                            Grid.Row="4"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="流选择器" />
+                                        <TextBox
+                                            Grid.Row="5"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding StreamSelector, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <CheckBox
-                                Grid.Row="7"
-                                Grid.Column="2"
-                                Margin="0,0,0,10"
-                                VerticalAlignment="Center"
-                                Content="启用帧触发"
-                                IsChecked="{Binding TriggerEnable}" />
+                                        <TextBlock
+                                            Grid.Row="4"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="相机类型(位宽)" />
+                                        <TextBox
+                                            Grid.Row="5"
+                                            Grid.Column="2"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding CameraType, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock
+                                            Grid.Row="6"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldLabel}"
+                                            Text="残帧策略" />
+                                        <TextBox
+                                            Grid.Row="7"
+                                            Grid.Column="0"
+                                            Style="{StaticResource FieldBox}"
+                                            Text="{Binding PartialImageControl, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <CheckBox
+                                            Grid.Row="7"
+                                            Grid.Column="2"
+                                            Margin="0,0,0,10"
+                                            VerticalAlignment="Center"
+                                            Content="启用帧触发"
+                                            IsChecked="{Binding TriggerEnable}" />
+                                    </Grid>
+
+                                    <TextBlock
+                                        Grid.Row="3"
+                                        Margin="0,0,0,12"
+                                        Style="{StaticResource Hint}"
+                                        Text="留空的项不下发，沿用采集卡当前值；不勾选帧触发即连续模式，攒满帧长自动出图。不同卡型节点集不同，单项失败只记警告——操作结果统一写入底部日志栏。" />
+
+                                    <UniformGrid Grid.Row="4" Columns="2">
+                                        <Button
+                                            Height="38"
+                                            Margin="0,0,6,0"
+                                            Command="{Binding ApplyFrameControlCommand}"
+                                            Content="下发帧控制配置"
+                                            FontWeight="Bold"
+                                            Style="{DynamicResource ButtonPrimary}" />
+                                        <Button
+                                            Height="38"
+                                            Margin="6,0,0,0"
+                                            Command="{Binding SoftwareTriggerCommand}"
+                                            Content="发送帧软触发"
+                                            FontWeight="Bold"
+                                            Style="{DynamicResource ButtonSuccess}" />
+                                    </UniformGrid>
+                                </StackPanel>
+
+                            </ScrollViewer>
+
                         </Grid>
-
-                        <TextBlock
-                            Grid.Row="3"
-                            Margin="0,0,0,12"
-                            Style="{StaticResource Hint}"
-                            Text="留空的项不下发，沿用采集卡当前值；不勾选帧触发即连续模式，攒满帧长自动出图。不同卡型节点集不同，单项失败只记警告——操作结果统一写入底部日志栏。" />
-
-                        <UniformGrid Grid.Row="4" Columns="2">
-                            <Button
-                                Height="38"
-                                Margin="0,0,6,0"
-                                Command="{Binding ApplyFrameControlCommand}"
-                                Content="下发帧控制配置"
-                                FontWeight="Bold"
-                                Style="{DynamicResource ButtonPrimary}" />
-                            <Button
-                                Height="38"
-                                Margin="6,0,0,0"
-                                Command="{Binding SoftwareTriggerCommand}"
-                                Content="发送帧软触发"
-                                FontWeight="Bold"
-                                Style="{DynamicResource ButtonSuccess}" />
-                        </UniformGrid>
-                    </Grid>
                     </Border>
                 </Grid>
 
