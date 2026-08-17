@@ -195,10 +195,9 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         public static extern int SetDigitalValue(int connectType, int ChannelIndex, int intensity, long controllerHandle);
 
 
-        //////////////////////////////////////////////ControllerDll//////////////////////////////////////////////////////
-        //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
-        //public static extern
-        //int GetDigitalValue(int connectType, ref int intensity, int ChannelIndex, ControllerHandleType controllerHandle);
+        
+        [DllImport("ControllerDll.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern  int GetDigitalValue(int connectType, ref int intensity, int ChannelIndex, ControllerHandleType controllerHandle);
 
 
         //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]

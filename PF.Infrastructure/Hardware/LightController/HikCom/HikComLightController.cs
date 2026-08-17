@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static NPOI.HSSF.Util.HSSFColor;
 
 namespace PF.Infrastructure.Hardware.LightController.HikCom
 {
@@ -92,7 +93,52 @@ namespace PF.Infrastructure.Hardware.LightController.HikCom
         }
 
 
+        public override async Task <int > GetLightValue(int Channel,CancellationToken token =default )
+        {
+            if (IsSimulated)
+            {
+                return 0;
+            }
 
+            try
+            {
+                if (Channel < 1 || Channel > 4)
+                {
+                    throw new Exception($"{this.DeviceName}光源控制器通道数输入错误");
+                }
+                if (lightSerial.Status != Core.Enums.ClientStatus.Connected)
+                {
+                    throw new Exception($"{this.DeviceName}光源控制器未连接");
+                }
+                string send = $"S{(char)('A' + Channel - 1)}#";
+                lightEvent.Reset();
+                await lightSerial.SendStringAsync(send);
+                Task a = Task.Run(() => lightEvent.Wait(), token);
+                Task b = Task.Run(() => Thread.Sleep(3000), token);
+                Task result = await Task.WhenAny(a, b);
+                if (result.Equals(a))
+                {
+                    HardwareLogger.Debug($"{this.DeviceName} 光源控制器 发送数据{send} ,接收数据{receivestr}");
+                    if (int .TryParse (receivestr,out int value ))
+                    {
+                        return value;
+                    }
+
+                    throw new Exception($"{this.DeviceName} 光源控制器读取光源亮度失败，发送数据{send} ,接收数据{receivestr}");
+                }
+                else
+                {
+                  throw new Exception  ($"{this.DeviceName} 光源控制器 接收数据超时，发送数据为{send}");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return 0;
+            }
+
+        }
 
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
         {

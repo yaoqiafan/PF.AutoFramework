@@ -32,6 +32,14 @@ namespace PF.Infrastructure.Hardware.LightController
         public abstract Task SetLightValue(int Channel, int LightValue,CancellationToken token =default );
 
 
+        /// <summary>
+        /// 获取指定通道的光源亮度
+        /// </summary>
+        /// <param name="Channel"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public abstract Task <int > GetLightValue(int Channel, CancellationToken token =default );
+
 
         /// <summary>
         /// 串口名称

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static NPOI.HSSF.Util.HSSFColor;
 
 namespace PF.Infrastructure.Hardware.LightController.CTS
 {
@@ -155,6 +156,38 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
             }
                 
             return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// 获取指定通道的光源亮度
+        /// </summary>
+        /// <param name="Channel"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public override async  Task<int> GetLightValue(int Channel, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated)
+                {
+                    return 0;
+                }
+                int value =0;
+                if (CtsAPI.GetDigitalValue(CtsAPI.Rs232Mode,  ref value , Channel, controllerHandle) == CtsAPI.SUCCESS)
+                {
+                    return value ;
+                }
+                else
+                {
+                    throw new Exception($"获取康视达光源控制器亮度失败，Channel：{Channel}");
+                }
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return 0;
+            }
         }
     }
 }

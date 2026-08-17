@@ -23,12 +23,18 @@ namespace PF.Infrastructure.Hardware.LightController.OPT
 
         public override int Port { get; }
 
-
+        public override Task<int> GetLightValue(int Channel, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
 
         public override Task SetLightValue(int Channel, int LightValue, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }
+
+
+       
 
         protected override Task<bool> InternalConnectAsync(CancellationToken token)
         {
