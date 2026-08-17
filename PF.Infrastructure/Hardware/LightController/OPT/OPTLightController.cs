@@ -25,7 +25,7 @@ namespace PF.Infrastructure.Hardware.LightController.OPT
 
 
 
-        public override Task SetLightValue(int Channel, int LightValue)
+        public override Task SetLightValue(int Channel, int LightValue, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }

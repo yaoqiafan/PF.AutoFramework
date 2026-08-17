@@ -44,7 +44,7 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         /// <summary>
         /// 设置光源亮度值
         /// </summary>
-        public override Task SetLightValue(int Channel, int LightValue)
+        public override Task SetLightValue(int Channel, int LightValue, CancellationToken token = default)
         {
             try
             {

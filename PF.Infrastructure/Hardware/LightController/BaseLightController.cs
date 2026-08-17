@@ -29,7 +29,7 @@ namespace PF.Infrastructure.Hardware.LightController
         /// <summary>
         /// 设置光源亮度值
         /// </summary>
-        public abstract Task SetLightValue(int Channel, int LightValue);
+        public abstract Task SetLightValue(int Channel, int LightValue,CancellationToken token =default );
 
 
 

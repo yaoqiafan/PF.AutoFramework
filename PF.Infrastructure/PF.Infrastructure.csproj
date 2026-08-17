@@ -229,7 +229,7 @@ v1.0.4 (2026-07-09) — SECS/GEM 大帧拆包/粘包处理 + 并发安全 + 多�
   - CreateI4Node/CreateU2Node/CreateU4Node/CreateU8Node/CreateF4Node 同上问题，统一
     转大端。
   - 旧版 ConvertTobyteSecsNodeMessage 序列化器的长度字节数公式 `Ceiling(len/256)` 有误
-    （len=256 算出错误的长度字节数，len>768 直接抛异常），改为与新版序列化器一致的标准
+    （len=256 算出错误的长度字节数，len&gt;768 直接抛异常），改为与新版序列化器一致的标准
     分级：≤255 用 1 字节、≤65535 用 2 字节、≤16777215 用 3 字节。
   - GenerateSystemBytes 此前用共享的非线程安全 Random 生成，多线程并发调用有内部状态
     损坏风险且随机值存在碰撞概率（导致应答错配）；改为原子递增计数器，保证唯一性。
