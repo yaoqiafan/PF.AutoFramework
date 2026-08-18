@@ -3,8 +3,16 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.11</Version>
+		<Version>1.0.12</Version>
 		<PackageReleaseNotes>
+v1.0.12 (2026-08-18) — 新增串口调试视图导航常量
+
+[新增]
+- NavigationConstants.Views.SerialPortDebugView。
+  PF.Infrastructure 的 SerialPortCommunication 用它打 [CommunicationUI] 特性，
+  PF.Modules.Debug 用它注册导航，两边必须引用同一个常量，故放在 PF.Core。
+  纯新增，无破坏性变更。
+
 v1.0.11 (2026-08-18) — ILightController 光源亮度读写完善（破坏性变更）
 
 [破坏性变更 — ILightController]

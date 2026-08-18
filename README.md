@@ -1613,7 +1613,7 @@ await _hwManager.ReloadAllAsync();
 | `LightControllerDebugView` | `LightControllerDebugViewModel` | 光源控制器调试 |
 | `MechanismDebugView` | `MechanismDebugViewModel` | 机构调试（自动发现 `[MechanismUI]`） |
 | `StationDebugView` | `StationDebugViewModel` | 工站调试（自动发现 `[StationUI]`） |
-| `TcpServerDebugView` / `TcpClientDebugView` / `FileTransferDebugView` / `ModbusRtuDebugView` / `ModbusTcpDebugView` | — | **通讯综合调试面板（v1.0.4 新增，自动发现 `[CommunicationUI]`；Modbus 两个调试视图 v1.0.5 新增）** |
+| `TcpServerDebugView` / `TcpClientDebugView` / `FileTransferDebugView` / `ModbusRtuDebugView` / `ModbusTcpDebugView` / `SerialPortDebugView` | — | **通讯综合调试面板（v1.0.4 新增，自动发现 `[CommunicationUI]`；Modbus 两个调试视图 v1.0.5 新增；串口调试视图 v1.0.9 新增，收发各带独立十六进制开关）** |
 | `AxisParamDialog` | `AxisParamDialogViewModel` | 轴参数编辑对话框 |
 
 ### PF.Modules.Halcon — Halcon 视觉调试模块（v1.0.2）

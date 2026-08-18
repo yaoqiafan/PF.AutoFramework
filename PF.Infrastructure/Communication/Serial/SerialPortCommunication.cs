@@ -1,3 +1,5 @@
+using PF.Core.Attributes;
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Communication;
@@ -13,8 +15,8 @@ namespace PF.Infrastructure.Communication.Serial
     /// 串口通讯实现，基于 <see cref="System.IO.Ports.SerialPort"/> 封装。
     /// 串口是点对点物理连接，没有服务端/客户端概念，<see cref="ICommunication.Role"/> 固定为 None——
     /// 在通讯调试树里会直接扁平挂在 Serial 分类节点下，不会像 TCP 那样再分"服务端/客户端"一层。
-    /// 暂未接入任何具体硬件，供后续需要串口通讯的设备复用。
     /// </summary>
+    [CommunicationUI(NavigationConstants.Views.SerialPortDebugView)]
     public sealed class SerialPortCommunication : ISerialCommunication, ICommunication
     {
         private readonly SerialPort _port;

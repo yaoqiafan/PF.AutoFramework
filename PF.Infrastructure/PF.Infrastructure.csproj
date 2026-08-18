@@ -38,8 +38,17 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.10</Version>
+		<Version>1.0.11</Version>
 		<PackageReleaseNotes>
+v1.0.11 (2026-08-18) — 串口通讯实例接入调试面板
+
+[修复]
+- SerialPortCommunication 补上 [CommunicationUI(SerialPortDebugView)] 特性。
+  此前该类是唯一没打这个特性的通讯实现：串口实例在通讯调试树里【看得见、选得中、点了没反应】——
+  CommunicationDebugViewModel.ExecuteNavigateToDebug 取不到 ViewName 就直接 return，
+  既不导航也不报错。配套调试页见 PF.Modules.Debug 1.0.9。
+  （树本身一直是支持串口的：BuildTree 对 Role=None 有专门分支，扁平挂在 Serial 分类节点下。）
+
 v1.0.10 (2026-08-18) — 新增海康串口光源控制器 + 光源亮度读写完善
 
 [新增]

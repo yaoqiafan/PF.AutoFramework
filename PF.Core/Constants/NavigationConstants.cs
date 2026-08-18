@@ -125,6 +125,8 @@ namespace PF.Core.Constants
             public const string ModbusRtuDebugView = nameof(ModbusRtuDebugView);
             /// <summary>Modbus TCP 主站调试视图</summary>
             public const string ModbusTcpDebugView = nameof(ModbusTcpDebugView);
+            /// <summary>串口调试视图</summary>
+            public const string SerialPortDebugView = nameof(SerialPortDebugView);
 
             #endregion
 

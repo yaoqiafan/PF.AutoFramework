@@ -222,11 +222,37 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "海康串口光源控制器底层串口连接，PortName 改成实际串口号后可用"
             };
 
+            // 裸串口示例：不挂任何设备，专供串口调试页试手用。
+            // 上面那条 HikLight_Serial 虽然也是串口，但它归海康光源设备驱动开关，
+            // 在调试页上手动开合会跟设备层抢串口；这条是独立的，随便开随便发。
+            // 用法：通讯调试 → Serial 分类 → 本实例 → 参数设置里改成实际串口号 → 打开串口 → 收发。
+            // 手上没有串口设备时，可用 com0com 之类的虚拟串口对（如 COM3↔COM4）自发自收验证。
+            CommunicationConfig serialPortExample = new()
+            {
+                InstanceId = "SerialPort_Example",
+                DisplayName = "串口(示例)",
+                Category = CommunicationCategory.Serial,
+                Role = CommunicationRole.None,
+                ImplementationClassName = "SerialPort",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["PortName"] = "COM3",
+                    ["BaudRate"] = "9600",
+                    ["Parity"] = "None",
+                    ["DataBits"] = "8",
+                    ["StopBits"] = "One"
+                },
+                Remarks = "裸串口示例配置，供串口调试页收发原始字节用；PortName 改成实际串口号后可用。" +
+                          "AutoStart 默认 false，避免开发机上没有该串口时启动报错"
+            };
+
             var configs = new[]
             {
                 scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger,
                 Severtest, fileTransferServer, fileTransferClient, modbusRtuExample, modbusTcpExample,
-                hikLightSerial
+                hikLightSerial, serialPortExample
             };
 
             return configs.ToDictionary(c => c.InstanceId, c => new CommunicationParam

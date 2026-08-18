@@ -11,8 +11,42 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.8</Version>
+		<Version>1.0.9</Version>
 		<PackageReleaseNotes>
+v1.0.9 (2026-08-18) — 新增串口调试页
+
+[新增]
+- SerialPortDebugView + SerialPortDebugViewModel（注册键 SerialPortDebugView）：
+  打开/关闭串口、原始字节收发、收发记录（最多 200 条，最新在前）。
+  此前 5 个通讯调试页覆盖 TCP 服务端/客户端、文件传输、Modbus RTU/TCP，唯独没有裸串口。
+- SerialPortParamDialog + ViewModel：串口名称 / 波特率 / 校验位 / 数据位 / 停止位，
+  沿用其它通讯页"改参数 → 存库 → ReloadAllAsync → 重新绑定刷新后的实例"的流程。
+
+[为什么需要它]
+- 串口设备（如海康串口光源）出问题时，故障可能在链路本身（串口没开、线接错、波特率或校验位
+  不匹配），也可能在设备协议层。设备调试页只能报"指令失败"，分不清是哪一层。
+  这一页直接对着链路收发原始字节，先把物理链路择干净。
+- Modbus RTU 页虽然也走串口，但它收发的是 Modbus 语义的报文，替代不了裸串口收发。
+
+[实现要点]
+- 收、发各有一个独立的十六进制开关：串口设备的协议既有 ASCII 文本型的（如海康光源的
+  "SA0500#"），也有纯二进制型的。二进制报文按文本显示是一堆乱码和不可见字符没法核对，
+  文本协议按十六进制看又很费劲，因此两个方向分开控制。
+- 十六进制输入容忍空格/逗号/连字符/换行分隔与 0x 前缀；位数为奇数或含非法字符时
+  【只提示不发送】——把半截报文丢给设备比不发更糟。
+- 文本模式下把不可打印字符替换成 '.'，避免控制字符把日志行搅乱。
+- 串口事件在 SerialPort 的接收线程上触发，统一转回 UI 线程再更新绑定属性。
+
+[消费项目怎么让这一页有东西可点]
+- 调试页只列出【已配置的】串口实例，装上包不会凭空多出串口节点。需要两步：
+  ① App.xaml.cs 的 RegisterCommunicationFactories 里注册 "SerialPort" 工厂
+    （配置键：必填 PortName，可选 BaudRate 缺省 9600、Parity/DataBits/StopBits 缺省 N81）；
+  ② 默认参数或参数界面里加一条 Category=Serial、ImplementationClassName="SerialPort" 的通讯配置。
+- 建议 AutoStart=false：串口的打开时机交给调试页或设备层驱动，避免通讯层与设备层抢着开口，
+  也避免开发机上没有该串口时启动报错。
+- 框架 Demo Shell 里有现成两条可参照：SerialPort_Example（裸串口，专供本页试手）
+  与 HikLight_Serial（挂在海康光源设备下）。
+
 v1.0.8 (2026-08-18) — 光源控制器调试页修复合集 + 亮度读回
 
 [修复 — 关键]

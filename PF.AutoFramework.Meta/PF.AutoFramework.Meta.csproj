@@ -3,8 +3,34 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.17</Version>
+    <Version>1.0.18</Version>
     <PackageReleaseNotes>
+		v1.0.18 (2026-08-18) — 新增串口调试页
+
+		[新增 — PF.Modules.Debug 1.0.8→1.0.9]
+		- 串口调试页：打开/关闭串口、原始字节收发、收发记录，收发各带独立的十六进制开关；
+		  配套串口参数对话框（串口名称/波特率/校验位/数据位/停止位）。
+		- 此前 5 个通讯调试页覆盖 TCP 服务端/客户端、文件传输、Modbus RTU/TCP，唯独没有裸串口。
+		  串口设备出问题时分不清故障在链路还是在设备协议层，这一页用来先把物理链路择干净。
+
+		[消费项目接入]
+		- 调试页只列出已配置的串口实例，装上包不会凭空多出串口节点。需要：
+		  ① RegisterCommunicationFactories 里注册 "SerialPort" 工厂（必填 PortName，
+		    可选 BaudRate 缺省 9600、Parity/DataBits/StopBits 缺省 N81）；
+		  ② 加一条 Category=Serial、ImplementationClassName="SerialPort" 的通讯配置，建议 AutoStart=false。
+		- Demo Shell 里有 SerialPort_Example（裸串口）与 HikLight_Serial（挂光源设备）两条可参照。
+
+		[修复 — PF.Infrastructure 1.0.10→1.0.11]
+		- SerialPortCommunication 补上 [CommunicationUI] 特性。此前它是唯一没打这个特性的通讯实现，
+		  串口实例在调试树里看得见、选得中、点了没反应（取不到 ViewName 就静默 return）。
+
+		[新增 — PF.Core 1.0.11→1.0.12]
+		- NavigationConstants.Views.SerialPortDebugView（Infrastructure 打特性、Debug 注册导航
+		  都要引用同一个常量）。纯新增，无破坏性变更。
+
+		子包版本对照：PF.Core 1.0.11→1.0.12，PF.Infrastructure 1.0.10→1.0.11，
+		PF.Modules.Debug 1.0.8→1.0.9；其余子包本次无变化。
+
 		v1.0.17 (2026-08-18) — 新增海康串口光源控制器 + 光源亮度读写完善（含接口破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.10→1.0.11]
