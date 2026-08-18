@@ -17,6 +17,7 @@ namespace PF.Core.Interfaces.Device.Hardware.LightController
         /// </summary>
         /// <param name="Channel">通道号</param>
         /// <param name="LightValue">光源亮度值</param>
+        /// <param name="token">取消令牌</param>
         /// <returns></returns>
 
         Task SetLightValue(int Channel, int LightValue,CancellationToken token =default );

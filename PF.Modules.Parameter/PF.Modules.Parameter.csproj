@@ -13,8 +13,45 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-08-17) — 新增海康串口光源控制器的硬件参数视图
+
+[新增]
+- HikComLightControllerParamView + Mapper，注册键 "HikComLightController"：
+  设备基本信息 + 连接参数（串口通讯实例ID）。
+  串口参数（波特率/校验位/数据位/停止位）不在硬件参数里配——该设备复用通讯层的串口实例，
+  这里只填指向那条通讯配置的 InstanceId，串口本身在「通讯配置」里改。
+  没有这一条时，该实现类的硬件配置在参数界面上打不开（ViewFactory 按
+  ImplementationClassName 路由，未注册直接返回 null）。
+
+[破坏性变更 — 康视达光源注册键拼写订正]
+- 旧注册键 "CTS_LightControoller"（多一个 o）订正为 "CTS_LightController"，不保留兼容键。
+- 起因是一个必现故障：CTSLightControllerParamViewMapper.ExtractSpecificData 写回的
+  ImplementationClassName 一直是拼写正确的 "CTS_LightController"，而注册键与现场配置是
+  拼错的那个，两者对不上——在参数界面编辑并保存一次康视达光源，保存后的配置就再也匹配不到
+  硬件工厂，重启后该设备实例化不出来。修的方向是统一到正确拼写，而不是把映射器改成错的。
+- 【升级须知】现场库里已有的硬件配置行仍带旧串，必须同步订正，否则该光源实例化不出来：
+  · 消费项目的 App.xaml.cs：RegisterFactory 的键改成 "CTS_LightController"；
+  · 现场数据库：把该设备配置的 ImplementationClassName 改成 "CTS_LightController"
+    （或在硬件参数界面重建一次该设备）。
+- Category 由 "LightController" 改为 "Light"，与默认配置一致，编辑保存不再翻转该字段。
+
+v1.0.4 (2026-08-17) — 新增海康线阵相机 / 图像采集卡的硬件参数视图
+
+[新增]
+- HikFrameGrabberCardParamView + Mapper，注册键 "HikFrameGrabberCard"：
+  设备基本信息 + 设备选定（序列号优先，留空按枚举索引选定）。采集卡是顶级设备，无父设备。
+- HikLineScanCameraParamView + Mapper，注册键 "HikLineScanCamera"：
+  设备基本信息（含"父设备ID(采集卡)"）+ 设备选定（序列号/枚举索引）+ 采集（图像缓存节点数）。
+  · 父设备ID填采集卡的设备ID = 经采集卡取流（CameraLink/CXP/XoF），帧长与帧触发下发到采集卡
+    节点树；留空 = GigE/USB 直连，下发到相机自身节点树。配置拓扑本身即表达链路类型，
+    因此【没有】单独的"链路类型"字段。
+  · 图像缓存节点数直接决定 SDK 侧内存占用（≈ 单帧字节数 × 本值），线扫大帧下必须按实际帧长
+    下调，故做成配置项；小于 2 由设备层按 2 处理。
+- 曝光、增益、行触发、编码器等【不在硬件参数里配】：它们随配方变化，由机构层按扫描任务下发，
+  调试阶段用线阵相机调试面板逐项试（见 PF.Modules.Debug 1.0.7）。
+
 v1.0.3 (2026-07-09) — 参数模块侧边栏图标调整
 
 [变更]

@@ -1,10 +1,134 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.15</Version>
+    <Version>1.0.17</Version>
     <PackageReleaseNotes>
+		v1.0.17 (2026-08-18) — 新增海康串口光源控制器 + 光源亮度读写完善（含接口破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.10→1.0.11]
+		- ILightController.SetLightValue(int Channel, int LightValue) 新增
+		  CancellationToken token = default 参数（调用方源码级兼容，既有调用点不必改）。
+		- ILightController 新增 Task&lt;int&gt; GetLightValue(int Channel, CancellationToken token = default)
+		  （调用方不受影响）。
+		- 项目自写的光源控制器实现类必须同步修改 SetLightValue 的 override 签名、
+		  并补齐 GetLightValue 的 override，否则不能编译。
+		- 语义约定：GetLightValue 读取失败抛异常、不要返回 0（返回 0 会让"亮度确实是 0"与
+		  "根本没读到"无法区分，界面会把滑块悄悄归零）；SetLightValue 反过来，失败不外抛，
+		  它在工站流程里被直接 await，抛出会带停产线。
+
+		[新增 — PF.Infrastructure 1.0.9→1.0.10]
+		- HikComLightController（海康串口光源控制器，基于 ISerialCommunication）：
+		  写 S{通道字母}{4 位亮度}#、读 S{通道字母}#，通道 1~4；
+		  健康检查按串口连接状态走 LightControllerError，恢复后自动清警。
+		  类型为 public，消费项目可直接在硬件工厂中实例化，构造参数 ISerialCommunication
+		  由项目侧按实际串口配置注入（Demo Shell 的 RegisterHardwareFactories 中有示例注册）。
+		- BaseLightController 抽象签名与 CTS / OPT / 海康三个实现已同步；
+		  CtsAPI.GetDigitalValue 启用此前被注释掉的 P/Invoke 声明。
+
+		[修复 — PF.Infrastructure 1.0.9→1.0.10：海康串口光源链路]
+		- 读写共用同一对应答字段（lightEvent / receivestr）却不互斥，并发时互相抢走对方的应答
+		  → 整笔"发送→等应答"事务串行化。
+		- 应答是带帧字符串（形如 SA0500#），对整串做 int.TryParse 必然失败、真机上读取恒不成功
+		  → 改为取应答中的数字段解析。
+		- 等待写法（等事件 / Thread.Sleep 两个任务比谁先到）在超时后遗留孤儿等待，
+		  会吃掉下一笔应答，错位一次后每次读写都错 → 改为单线程 Wait(超时, 令牌)。
+		- 重连后 DataReceived 重复订阅 → 先减后加，断开时退订。
+		- 设置亮度失败的日志级别 Debug → Error。
+
+		[新增 — PF.Modules.Parameter 1.0.4→1.0.5]
+		- HikComLightControllerParamView + Mapper（注册键 "HikComLightController"）：
+		  只填串口通讯实例ID，串口参数在通讯配置里改。缺这一条时该设备的硬件配置在参数界面打不开。
+
+		[破坏性变更 — PF.Modules.Parameter 1.0.4→1.0.5：康视达光源注册键拼写订正]
+		- "CTS_LightControoller"（多一个 o）订正为 "CTS_LightController"，不保留兼容键。
+		- 起因是必现故障：映射器写回的 ImplementationClassName 一直是拼写正确的那个，与注册键
+		  对不上——在参数界面编辑并保存一次康视达光源，该设备重启后就再也实例化不出来。
+		- 【升级须知】现场必须同步订正，否则该光源起不来：消费项目 App.xaml.cs 的
+		  RegisterFactory 键改成 "CTS_LightController"，现场数据库里该设备配置的
+		  ImplementationClassName 一并改（或在硬件参数界面重建一次该设备）。
+
+		[修复与新增 — PF.Modules.Debug 1.0.7→1.0.8：光源控制器调试页]
+		- 状态轮询定时器从未 Start，连接/报警两盏灯一直停在初始值；
+		- 亮度下发是 fire-and-forget，失败在界面和日志里都没有痕迹；
+		- COMAdress 在设备未注入时空引用、且无变更通知，导航进来不刷新；
+		- 新增亮度下发防抖(150ms)与串行化，避免拖动滑块把串口打满；
+		- 页面级取消令牌真正接入 SetLightValue(token)，离开页面即取消在途下发；
+		- 新增「读取亮度」按钮 + 进页面（已连接时）自动读一次，显示设备实测值而非最近下发值。
+		  有意不做轮询：一次读取是一笔串口问答，四通道轮询会占满串口并把用户正在拖的滑块拽回去。
+
+		[子包版本对照]
+		PF.Core 1.0.10→1.0.11，PF.Infrastructure 1.0.9→1.0.10，PF.Modules.Parameter 1.0.4→1.0.5，
+		PF.Modules.Debug 1.0.7→1.0.8；其余子包本次无变化
+		（PF.Services 1.0.5 随上一版线扫已发布，本次无改动）。
+
+		v1.0.16 (2026-08-17) — 线扫视觉全链路接入：海康线阵相机 + 图像采集卡 + 线扫检测模组 + 三个调试页（含接口破坏性变更）
+
+		[本次做了什么]
+		把"线阵相机 + 图像采集卡"这条链路完整接进框架：契约在 PF.Core、厂商实现与编排模组在
+		PF.Infrastructure、拓扑挂载在 PF.Services、调试页在 PF.Modules.Debug、硬件配置界面在
+		PF.Modules.Parameter。项目侧只需在硬件配置里加两台设备、在 RegisterTypes 注册两个工厂
+		和一个模组实例，即可跑通"轴走一趟、出一张图"。
+
+		[破坏性变更 — PF.Core 1.0.9→1.0.10 的 IAttachedDevice]
+		- IMotionCard? ParentCard → IHardwareDevice? ParentDevice；
+		  void AttachToCard(IMotionCard) → bool TryAttachTo(IHardwareDevice)（类型不匹配返回 false，不抛异常）。
+		- 新增泛型 IAttachedDevice&lt;TParent&gt;（Parent / AttachTo），子设备自己声明期望的父设备类型。
+		- 起因：线阵相机要挂在图像采集卡下，而原契约把父设备写死成运动控制卡，每加一种宿主都得改服务层。
+		- 升级影响：
+		  · 只继承 BaseAxisDevice / BaseIODevice 的项目设备类【无需改动】，两个基类保留了
+		    ParentCard / AttachToCard 别名，重编译即可。
+		  · 直接实现 IAttachedDevice 的自定义设备类需改继承 AttachedDeviceBase&lt;TParent&gt; 或补齐新成员。
+		  · 直接读 device.ParentCard 的界面/业务代码改读 ParentDevice。
+
+		[部署要求 — 用到线扫时]
+		- PF.Infrastructure 新增对海康 MVS 托管封装 MvCameraControl.Net.dll 的引用（与既有
+		  Communication.dll / Keyence SDK 同样随 DLL 目录分发，不打进 nupkg）。现场还需把 SDK
+		  Libraries\win64 的原生库复制到输出目录；CameraLink/CXP/XoF 链路另装采集卡驱动 MVFG。
+		- 不接线扫的项目不受影响：设备不在硬件配置里就不会被实例化，也不会加载 SDK。
+
+		[新增 — PF.Core 1.0.9→1.0.10]
+		- ILineScanCamera / IFrameGrabberCard / IGenICamNodeAccess 三个契约；
+		  线扫实体（ScanProfile、LineScanCameraConfig、LineTriggerConfig、EncoderConfig、
+		  FrameControlConfig、LineScanFrame、GenICamNode、DiscoveredDeviceInfo）与 6 个视觉枚举。
+		- ScanProfile 是这批里最该先看的一个：帧长取决于行程与行间距、行频取决于速度与行间距、
+		  曝光上限又反受行频限制，任一项填错症状都是"图不对"。它把换算和约束集中起来，
+		  由 Validate() 在扫描开始前拦住非法组合。
+		- HardwareCategory 追加 FrameGrabber；NavigationConstants 追加两个调试视图 key；
+		  AlarmCodes 追加 HW_CAM_003（取帧超时 50010）/ HW_FG_001（采集卡打开失败 50011）/
+		  HW_FG_002（采集卡连接中断 50012）。
+
+		[新增 — PF.Infrastructure 1.0.8→1.0.9]
+		- AttachedDeviceBase&lt;TParent&gt; 挂载基类；BaseAxisDevice / BaseIODevice 改继承之并保留原别名。
+		- BaseLineScanCamera / HikLineScanCamera、BaseFrameGrabberCard / HikFrameGrabberCard；
+		  GenICam 支撑（节点访问器、类型映射、中文释义表、SDK 生命周期引用计数）。
+		- LineScanDetectionModule（框架级可复用模组，标注 [MechanismUI]）：ScanAsync 一次完成
+		  校验配方 → 移到加速余量位 → 开流武装 → 启动扫描运动 → 到起点发帧触发 → 等一帧 →
+		  等轴走完 → 停流。开流必须早于轴运动，扫描区必须完整落在匀速段内。
+		  设备层刻意不引用 IAxis，轴与相机的时序职责收敛在这一层。
+
+		[变更 — PF.Services 1.0.4→1.0.5]
+		- HardwareManagerService 的父设备引用由 IMotionCard 放宽为 IHardwareDevice，挂载改走
+		  TryAttachTo。分层规则不变（只看 ParentDeviceId 是否为空），挂载类型不匹配只记警告不中断初始化。
+		- 每层初始化前把该层设备列成 "DeviceId(实现类名)" 记一条日志——"设备没出现在调试树里"
+		  不用再猜是没进库、没启用还是工厂没注册。
+
+		[新增 — PF.Modules.Debug 1.0.6→1.0.7]
+		- 线阵相机调试页、图像采集卡调试页、线扫检测模组调试页（模组页随框架提供，项目不必自写）。
+		  三页均带 GenICam 属性树（一键枚举全部节点、按分类显示类型/权限/当前值 + 中文释义、
+		  单节点读写与命令执行），面板状态从设备读回而非回显输入值。
+		- 硬件综合调试树的第一层由"运动控制卡"扩展为"运动控制卡 + 图像采集卡"两类宿主，
+		  子设备按 ParentDevice 分组；点击路由新增采集卡与线阵相机两个分支。
+
+		[新增 — PF.Modules.Parameter 1.0.3→1.0.4]
+		- "HikFrameGrabberCard" / "HikLineScanCamera" 两个硬件参数视图与映射器。
+		  相机的父设备ID填采集卡即走采集卡链路、留空即 GigE/USB 直连——不设"链路类型"字段。
+
+		[子包版本对照]
+		PF.Core 1.0.9→1.0.10，PF.Infrastructure 1.0.8→1.0.9，PF.Services 1.0.4→1.0.5，
+		PF.Modules.Debug 1.0.6→1.0.7，PF.Modules.Parameter 1.0.3→1.0.4；其余子包本次无变化。
+
 		v1.0.15 (2026-08-03) — 配置路径按项目隔离（破坏性变更，已部署机台升级前必须执行现场迁移）
 
 		[破坏性变更 — 升级前必读]

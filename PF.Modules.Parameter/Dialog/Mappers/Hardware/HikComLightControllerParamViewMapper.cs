@@ -5,14 +5,14 @@ using PF.UI.Infrastructure.Mappers;
 namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
 {
     /// <summary>
-    /// 康视达光源控制器参数映射器（ImplementationClassName = "CTS_LightController"）
+    /// 海康串口光源控制器参数映射器（ImplementationClassName = "HikComLightController"）。
     /// </summary>
-    public class CTSLightControllerParamViewMapper : ViewDataMapperBase
+    public class HikComLightControllerParamViewMapper : ViewDataMapperBase
     {
         /// <summary>检查是否有特定映射</summary>
         protected override bool HasSpecificMapping(object viewInstance, object data)
         {
-            if (viewInstance is CTSLightControllerParamView view && data is HardwareConfig config)
+            if (viewInstance is HikComLightControllerParamView view && data is HardwareConfig config)
             {
                 view.DeviceId    = config.DeviceId;
                 view.DeviceName  = config.DeviceName;
@@ -20,8 +20,8 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 view.IsSimulated = config.IsSimulated;
                 view.Remarks     = config.Remarks;
 
-                config.ConnectionParameters.TryGetValue("COM", out var com);
-                view.Com = com ?? string.Empty;
+                config.ConnectionParameters.TryGetValue("CommInstanceId", out var commInstanceId);
+                view.CommInstanceId = commInstanceId ?? string.Empty;
 
                 return true;
             }
@@ -32,7 +32,7 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
         /// <summary>提取特定数据</summary>
         protected override object ExtractSpecificData(object viewInstance)
         {
-            if (viewInstance is CTSLightControllerParamView view)
+            if (viewInstance is HikComLightControllerParamView view)
             {
                 return new HardwareConfig
                 {
@@ -40,14 +40,15 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     DeviceName            = view.DeviceName,
                     IsEnabled             = view.IsEnabled,
                     IsSimulated           = view.IsSimulated,
+                    // 光源直接挂在通讯实例上，不依附任何父设备
                     ParentDeviceId        = string.Empty,
                     Remarks               = view.Remarks,
                     Category              = "Light",
-                    // 必须与硬件工厂注册键逐字一致，否则保存后设备再也实例化不出来
-                    ImplementationClassName = "CTS_LightController",
+                    // 必须与硬件工厂注册键一致，否则保存后设备再也实例化不出来
+                    ImplementationClassName = "HikComLightController",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["COM"] = view.Com ?? string.Empty
+                        ["CommInstanceId"] = view.CommInstanceId ?? string.Empty
                     }
                 };
             }

@@ -40,7 +40,7 @@
                             VerticalAlignment="Center"
                             FontSize="24"
                             Foreground="{DynamicResource TextIconBrush}"
-                            Text="📷" />
+                            Text="💡" />
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -135,6 +135,12 @@
                                 Content="断开连接"
                                 Style="{DynamicResource ButtonDefault}" />
                         </UniformGrid>
+                        <Button
+                            Height="36"
+                            Margin="0,5"
+                            Command="{Binding ReadLightValueCommand}"
+                            Content="读取亮度"
+                            Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="36"
                             Margin="0,5"

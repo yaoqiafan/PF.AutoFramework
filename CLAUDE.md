@@ -121,7 +121,10 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
    - `EtherCatIO` — EtherCAT 数字 IO（`InPutCount` / `OutPutCount`）
    - `HKBarcodeScan` — 海康条码扫描仪（`IP` / `TiggerPort` / `UserPort` / `TimeOutMs`）
    - `KeyenceIntelligentCamera` — 基恩士 OCR 相机（`IP` / `TiggerPort` / `TimeOutms`）
-   - `CTS_LightControoller` — CTS 三色灯（`COM` 串口）
+   - `CTS_LightController` — CTS 三色灯（`COM` 串口）。旧键拼错成 `CTS_LightControoller`，已订正且不保留兼容；现场老配置的 `ImplementationClassName` 必须同步改，否则该设备实例化不出来
+   - `HikComLightController` — 海康串口光源控制器（`CommInstanceId` 指向一条 `SerialPort` 通讯实例）
+   - `HikFrameGrabberCard` — 海康图像采集卡（`SerialNumber` / `Index`）
+   - `HikLineScanCamera` — 海康线阵相机（`SerialNumber` / `Index` / `ImageNodeNum`；`ParentDeviceId` 指向采集卡则走采集卡链路，留空为 GigE/USB 直连）
 
    **机构**（7 个，DryIoc 多键注册）：`WS1FeedingModel` / `WS2FeedingModel` / `WSDetectionModule` / `WS1MaterialPullingModule` / `WS2MaterialPullingModule` / `WSDataModule` / `WSSecsGemModule`
 

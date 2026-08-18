@@ -16,8 +16,26 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-08-17) — HardwareManagerService 父设备泛化：宿主不再窄化为运动控制卡
+
+[变更 — 拓扑挂载]
+- 第 2 层子设备的父设备引用由 IMotionCard 放宽为 IHardwareDevice，挂载改调用
+  IAttachedDevice.TryAttachTo（配合 PF.Core 1.0.10 的契约泛化）。此前父设备被 as IMotionCard
+  窄化，采集卡这类新宿主的子设备（线阵相机）永远拿不到父引用；现在"能不能当父设备"由子设备
+  自己的 IAttachedDevice&lt;TParent&gt; 声明决定，本服务不认识任何具体设备接口，再加宿主种类无需改此处。
+- 分层规则未变，仍只看 ParentDeviceId 是否为空：第 1 层是运动控制卡、图像采集卡等宿主设备，
+  以及不挂父设备的独立设备（扫码枪、光源、GigE/USB 直连相机）；第 2 层是挂卡的轴/IO、
+  挂采集卡的线阵相机等。父设备未激活或未连接时，子设备仍会实例化并进入活跃列表（保证 UI 可见）。
+- 挂载类型不匹配（如把相机的父设备错填成运动控制卡）只记 Warn 并说明父设备实际类型，
+  设备以未挂载状态进入活跃列表，不抛异常、不中断整机初始化——配置写错不该让设备全都起不来。
+
+[新增 — 可诊断性]
+- 每层初始化前把该层设备列成 "DeviceId(实现类名)" 记一条 Info 日志。此前"某设备没出现在调试
+  树里"只能靠猜是配置没进库、IsEnabled 没开、还是工厂没注册；现在对比两层名单即可定位。
+- Splash 进度文案同步更新为"板卡/采集卡/独立设备"与"轴/IO/挂卡相机"。
+
 v1.0.4 (2026-07-15) — 安全监控自警/三色灯死锁/同步服务竞态修复
 
 [修复]

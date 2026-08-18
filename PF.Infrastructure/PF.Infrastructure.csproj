@@ -38,8 +38,100 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.8</Version>
+		<Version>1.0.10</Version>
 		<PackageReleaseNotes>
+v1.0.10 (2026-08-18) — 新增海康串口光源控制器 + 光源亮度读写完善
+
+[新增]
+- HikComLightController（海康串口光源控制器，基于 ISerialCommunication）：指令格式
+  写 S{通道字母}{4 位亮度}#、读 S{通道字母}#，通道 1~4；健康检查按串口连接状态走
+  AlarmCodes.Hardware.LightControllerError，恢复后自动清警。
+  类型访问性为 public（与 CTSLightController 一致），消费项目可直接在硬件工厂中实例化；
+  构造参数 ISerialCommunication 由项目侧按实际串口配置注入。
+- BaseLightController.GetLightValue 抽象成员；CTSLightController / HikComLightController
+  给出实现，OPTLightController 仍为未实现占位。
+- CtsAPI.GetDigitalValue：启用此前被注释掉的 P/Invoke 声明（ControllerDll.dll）。
+
+[破坏性变更]
+- BaseLightController 的 SetLightValue 抽象签名新增 CancellationToken token = default，
+  并新增抽象成员 GetLightValue（契约变更见 PF.Core 1.0.11）。CTS / OPT / 海康三个实现已同步；
+  项目自写的光源控制器子类需同步修改 override 签名并补齐 GetLightValue 后才能编译。
+
+[修复 — 关键，海康串口光源]
+- 读写抢应答：读(SA#)与写(SA0500#)共用 lightEvent + receivestr 这一对字段却互不排斥，
+  并发时一条应答会同时唤醒两个等待方，读到的可能是写的回执、写等到的可能是读的回复。
+  现整笔"发送→等应答"事务由信号量串行化。
+- 应答解析恒失败：读回来的是带帧字符串（形如 SA0500#，可能还跟 CR/LF），
+  对整串做 int.TryParse 必然失败，真机上读取恒不成功。改为按"取应答中的数字段"解析，
+  裸数字与带帧两种回复都能认。
+- 超时留孤儿等待：原写法起两个任务（一个等事件、一个 Thread.Sleep(3000)）比谁先到，
+  一笔事务占两个线程池线程；且超时胜出后，等事件那个任务并不会消失，它继续挂着，
+  下一笔应答到达时被唤醒并吃掉——错位一次之后每次读写都是错的。
+  改用 ManualResetEventSlim.Wait(超时, 令牌) 单线程等待，超时与取消一次覆盖，不留孤儿。
+- 重连后回调重复订阅：InternalConnectAsync 里只有 DataReceived += 没有 -=，
+  断开再连接会挂多份回调。现改为先减后加，并在 InternalDisconnectAsync 中退订。
+- 设置亮度失败的日志级别由 Debug 改为 Error（原先实际等于看不见）。
+
+[变更]
+- CTSLightController / HikComLightController 的 GetLightValue 读取失败抛异常、不返回 0，
+  理由见 PF.Core 1.0.11。该方法为本次新增、无既有调用方，不影响现网代码。
+- 清理 CTSLightController / HikComLightController 中误自动引入的
+  using static NPOI.HSSF.Util.HSSFColor。
+
+v1.0.9 (2026-08-17) — 海康线阵相机 / 图像采集卡接入 + 线扫检测模组 + 挂载基类下沉
+
+[部署要求 — 先看这条]
+- 本版新增对海康工业相机 SDK（MVS）托管封装 MvCameraControl.Net.dll 的引用（编译期引用随包
+  分发的 DLL 目录，不打进 nupkg，与既有 Communication.dll / Keyence SDK 同一处理方式）。
+  运行现场还需：① 把 SDK Libraries\win64 下的原生库复制到程序输出目录（托管层内部仍 P/Invoke
+  原生 MvCameraControl.dll）；② CameraLink/CXP/XoF 链路另装采集卡驱动 MVFG。
+  不接线扫的项目不受影响——设备不在硬件配置里就不会被实例化，也不会去加载 SDK。
+
+[新增 — 挂载基类]
+- AttachedDeviceBase&lt;TParent&gt; : BaseDevice, IAttachedDevice&lt;TParent&gt;（PF.Infrastructure.Hardware）：
+  统一实现 Parent / AttachTo / TryAttachTo（类型不匹配返回 false 不抛异常），子类只需按需重写
+  protected virtual OnAttached(TParent) 记日志或做初始化。对应 PF.Core 1.0.10 的契约泛化。
+- BaseAxisDevice / BaseIODevice 改为继承 AttachedDeviceBase&lt;IMotionCard&gt;，并保留
+  ParentCard（=&gt; Parent）与 AttachToCard(card)（=&gt; AttachTo）两个领域别名——既有工站/机构
+  代码与日志语义完全不变，重编译即可，无需改动调用点。
+
+[新增 — 线阵相机]
+- BaseLineScanCamera : AttachedDeviceBase&lt;IFrameGrabberCard&gt;, ILineScanCamera：线阵相机公共基类，
+  HasFrameGrabber 直接由 Parent 是否为空判定（挂卡=经采集卡取流，未挂=直连），
+  GenICam 节点访问与帧事件分发在基类内收敛，厂商子类只补 SDK 相关部分。
+- HikLineScanCamera：海康线阵相机实现。按序列号优先、枚举索引兜底选定设备；
+  ApplyConfigAsync 一次下发相机本体参数 + 行触发 + 编码器（单个节点失败只记警告不中断整体）；
+  ArmAsync 开流武装、WaitFrameAsync 主动等帧、FrameReceived 连续预览；
+  取帧超时按 HW_CAM_003 报警；SaveLastImageAsync 支持存盘；DiscoverAsync 枚举在线相机。
+  SDK 图像缓存节点数（ImageNodeNum）做成可配置项——占用 ≈ 单帧字节数 × 节点数，线扫大帧
+  （16K 宽 × 上万行可达数百 MB）下必须按实际帧长下调；小于 2 按 2 处理。
+- 帧控制策略对象 IFrameControl + DeviceFrameControl / InterfaceFrameControl：帧长与帧触发
+  该写到相机节点树还是采集卡节点树，由链路形态在连接时选定，业务侧无感。
+
+[新增 — 图像采集卡]
+- BaseFrameGrabberCard : BaseDevice, IFrameGrabberCard（GenICam 通道在基类实现）。
+- HikFrameGrabberCard：海康采集卡实现。序列号/索引选定；ApplyFrameControlAsync 下发帧长、
+  帧超时、帧触发源、残帧策略等（≤0 的字段视为不下发、沿用当前值）；SoftwareTriggerFrameAsync
+  按最近一次下发的触发源自动选用 StreamSoftwareTrigger / QuickSoftwareTrigger0；
+  DiscoverCamerasAsync 枚举挂在本卡上的相机。打开失败 / 连接中断分别对应 HW_FG_001 / HW_FG_002。
+
+[新增 — GenICam 支撑（Hardware\Vision\Hikvision）]
+- GenICamNodeAccessor：节点读写/枚举项/命令执行/全量节点扫描的统一实现，相机与采集卡共用。
+- MvTypeMapper：SDK 节点类型与框架 GenICamNodeType / GenICamAccessMode 的映射。
+- GenICamNodeGlossary：常用节点名的中文释义与分类表，供调试面板的属性树直接显示——
+  现场排查最花时间的往往是先猜出节点叫什么、以及它此刻是不存在还是存在但不可写。
+- MvSdkLifetime：SDK 初始化/反初始化引用计数，多设备共存时不会被先关闭的那个拖垮。
+
+[新增 — 线扫检测模组]
+- LineScanDetectionModule : BaseMechanism（标注 [MechanismUI("线扫检测模组",
+  "LineScanDetectionModuleDebugView", 20)]，调试页随 PF.Modules.Debug 1.0.7 一起提供）。
+  框架级可复用模组：扫描轴与相机的 DeviceId 由注册处传入（不像项目自写模组那样写死），
+  一台设备多条扫描线时注册多个实例、各用不同 serviceKey 即可，模组调试面板会全部列出。
+  ScanAsync(profile, baseConfig, token) 完成一次完整扫描：校验配方 → 移到起点前的加速余量位 →
+  开流武装 → 启动扫描运动（不等待）→ 到达扫描起点时发帧触发 → 等一帧 → 等轴走完 → 停流。
+  开流必须早于轴运动（否则丢起始行），扫描区必须完整落在匀速段内（加减速段留在余量里）。
+  编码器假定直连相机 IO（非从轴卡取信号），故模组只保证"匀速走过扫描区"，不参与逐行同步。
+
 v1.0.8 (2026-07-17) — Modbus 主站健壮性修复合集 + 断线自动重连 + 原始报文透传
 
 [新增 — 断线自动重连]

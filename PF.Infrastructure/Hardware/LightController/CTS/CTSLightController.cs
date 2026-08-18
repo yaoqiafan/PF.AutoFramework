@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static NPOI.HSSF.Util.HSSFColor;
 
 namespace PF.Infrastructure.Hardware.LightController.CTS
 {
@@ -160,34 +159,34 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
 
 
         /// <summary>
-        /// 获取指定通道的光源亮度
+        /// 读取指定通道的当前光源亮度。
         /// </summary>
-        /// <param name="Channel"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        public override async  Task<int> GetLightValue(int Channel, CancellationToken token = default)
+        /// <param name="Channel">通道号</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns>设备返回的亮度值</returns>
+        /// <remarks>
+        /// 与 <see cref="SetLightValue"/> 不同，读取失败时【抛出异常】而不是返回 0：
+        /// 返回 0 的话，"读到亮度确实是 0" 与 "根本没读到" 在调用方看来完全一样，
+        /// 界面会把滑块悄悄归零、误导现场以为光源已关。
+        /// </remarks>
+        public override Task<int> GetLightValue(int Channel, CancellationToken token = default)
         {
-            try
+            if (IsSimulated)
             {
-                if (IsSimulated)
-                {
-                    return 0;
-                }
-                int value =0;
-                if (CtsAPI.GetDigitalValue(CtsAPI.Rs232Mode,  ref value , Channel, controllerHandle) == CtsAPI.SUCCESS)
-                {
-                    return value ;
-                }
-                else
-                {
-                    throw new Exception($"获取康视达光源控制器亮度失败，Channel：{Channel}");
-                }
+                return Task.FromResult(0);
             }
-            catch (Exception ex)
+
+            token.ThrowIfCancellationRequested();
+
+            int value = 0;
+            int ret = CtsAPI.GetDigitalValue(CtsAPI.Rs232Mode, ref value, Channel, controllerHandle);
+            if (ret != CtsAPI.SUCCESS)
             {
-                HardwareLogger.Debug(ex.Message, ex);
-                return 0;
+                throw new InvalidOperationException(
+                    $"获取康视达光源控制器亮度失败，Channel：{Channel}，返回码：{ret}");
             }
+
+            return Task.FromResult(value);
         }
     }
 }

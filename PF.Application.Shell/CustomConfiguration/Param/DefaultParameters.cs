@@ -205,10 +205,28 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                           "AutoStart 默认 false，避免开发机连不到从站时启动报连接失败"
             };
 
+            // 海康串口光源控制器的底层串口通道（示例）。ImplementationClassName = "SerialPort"，
+            // 必填 PortName，可选 BaudRate（缺省 9600）与 Parity/DataBits/StopBits（缺省 N81）。
+            // AutoStart=false：串口的打开时机交给光源设备的 InternalConnectAsync 驱动，
+            // 与扫码枪/相机那几条 TCP 通道同一处理，避免通讯层与设备层抢着开口。
+            CommunicationConfig hikLightSerial = new()
+            {
+                InstanceId = "HikLight_Serial",
+                DisplayName = "海康光源控制器-串口通道",
+                Category = CommunicationCategory.Serial,
+                Role = CommunicationRole.None,
+                ImplementationClassName = "SerialPort",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["PortName"] = "COM2", ["BaudRate"] = "9600" },
+                Remarks = "海康串口光源控制器底层串口连接，PortName 改成实际串口号后可用"
+            };
+
             var configs = new[]
             {
                 scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger,
-                Severtest, fileTransferServer, fileTransferClient, modbusRtuExample, modbusTcpExample
+                Severtest, fileTransferServer, fileTransferClient, modbusRtuExample, modbusTcpExample,
+                hikLightSerial
             };
 
             return configs.ToDictionary(c => c.InstanceId, c => new CommunicationParam
@@ -420,7 +438,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
             {
                 DeviceId = E_Camera.OCR相机.ToString(),
                 DeviceName = "基恩士OCR智能相机",
-                Category = "Canera",
+                Category = "Camera",
                 ImplementationClassName = "KeyenceIntelligentCamera",
                 IsSimulated = true,
                 IsEnabled = true,
@@ -438,7 +456,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 DeviceId = E_LightController.康视达_COM.ToString(),
                 DeviceName = "康视达Com口光源控制器",
                 Category = "Light",
-                ImplementationClassName = "CTS_LightControoller",
+                ImplementationClassName = "CTS_LightController",
                 IsSimulated = true,
                 IsEnabled = true,
                 ParentDeviceId = string.Empty,
@@ -517,6 +535,24 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                     ["ImageNodeNum"] = "3"
                 },
                 Remarks = "线阵相机直连示例（默认禁用）。GigE 链路，打开后会自动探测并设置网络最佳包大小"
+            };
+
+            // ── 海康串口光源控制器示例 ─────────────────────────────────────────────
+            //
+            // 与上面康视达那条（CTS_LightController）的差别：串口不写在硬件配置里，
+            // 而是用 CommInstanceId 指向一条通讯配置（见 GetCommunicationDefaults 的
+            // HikLight_Serial）。波特率、校验位这些串口参数改通讯侧，硬件侧只留设备语义。
+            HardwareConfig hikLight = new HardwareConfig
+            {
+                DeviceId = "HikLight_0",
+                DeviceName = "海康Com口光源控制器",
+                Category = "Light",
+                ImplementationClassName = "HikComLightController",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["CommInstanceId"] = "HikLight_Serial" },
+                Remarks = "海康串口光源控制器示例，通道 1~4，指令 S{通道字母}{4位亮度}#；串口参数见通讯配置 HikLight_Serial"
             };
 
 
@@ -723,6 +759,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = lineScanCameraStandalone.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(lineScanCameraStandalone),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    hikLight.DeviceId, new HardwareParam
+                    {
+                        Name         = hikLight.DeviceId,
+                        Description  = hikLight.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(hikLight),
                         Category     = "Hardware",
                         Version      = 1
                     }

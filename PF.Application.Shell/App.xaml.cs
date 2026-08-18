@@ -7,6 +7,7 @@ using PF.Core.Entities.Communication.FileTransfer;
 using PF.Core.Enums;
 using PF.Core.Enums.FileTransfer;
 using PF.Core.Interfaces.Communication;
+using PF.Core.Interfaces.Communication.Serial;
 using PF.Core.Interfaces.Communication.TCP;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -62,7 +63,7 @@ namespace PF.Application.Shell
         #region 通讯工厂
 
         /// <summary>
-        /// 注册通讯实例工厂（TCP Server/Client、FileTransfer 通道）。
+        /// 注册通讯实例工厂（TCP Server/Client、FileTransfer 通道、串口、Modbus 主站）。
         /// 硬件工厂如需引用某个通讯实例，在 RegisterHardwareFactories 的闭包里通过
         /// hwManager 捕获的 ICommunicationManagerService.GetCommunication&lt;T&gt;(InstanceId) 查找即可，
         /// 此方法固定在硬件工厂注册之前执行，届时实例还未 StartAsync，但已可被引用。
@@ -127,6 +128,24 @@ namespace PF.Application.Shell
                 return new PF.Infrastructure.Communication.FileTransfer.FileTransferChannel(options, cfg.InstanceId, logger);
             });
 
+            // 通用串口通讯实例。与 ModbusRtuMaster 同样直接持有 SerialPort，区别是本类只做
+            // 透明收发、不解析任何协议，协议语义留给消费方（如海康串口光源控制器）。
+            // 串口交给通讯层持有而非设备自己 new，好处是能在通讯调试面板里单独收发验证，
+            // 与基恩士相机复用 TCP 通讯实例是同一套做法。
+            commManager.RegisterFactory("SerialPort", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("PortName", out var portName);
+                int baudRate = cfg.ConnectionParameters.TryGetValue("BaudRate", out var br) && int.TryParse(br, out var brv) ? brv : 9600;
+                // 可选串口帧参数（缺省 N81）：Parity=None/Odd/Even/Mark/Space，DataBits=5~8，StopBits=One/Two/OnePointFive
+                var parity = cfg.ConnectionParameters.TryGetValue("Parity", out var pa)
+                    && Enum.TryParse<System.IO.Ports.Parity>(pa, true, out var pav) ? pav : System.IO.Ports.Parity.None;
+                int dataBits = cfg.ConnectionParameters.TryGetValue("DataBits", out var db) && int.TryParse(db, out var dbv) ? dbv : 8;
+                var stopBits = cfg.ConnectionParameters.TryGetValue("StopBits", out var sb)
+                    && Enum.TryParse<System.IO.Ports.StopBits>(sb, true, out var sbv) ? sbv : System.IO.Ports.StopBits.One;
+                return new PF.Infrastructure.Communication.Serial.SerialPortCommunication(
+                    portName ?? string.Empty, baudRate, parity, dataBits, stopBits, cfg.InstanceId, logger);
+            });
+
             commManager.RegisterFactory("ModbusRtuMaster", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("PortName", out var portName);
@@ -177,7 +196,10 @@ namespace PF.Application.Shell
 
         #region 硬件工厂
 
-        /// <summary>注册 6 种硬件工厂（运动控制卡、轴、IO、条码枪、OCR 相机、三色灯）。</summary>
+        /// <summary>
+        /// 注册硬件工厂（运动控制卡、轴、IO、条码枪、OCR 相机、康视达三色灯、
+        /// 海康串口光源、海康图像采集卡、海康线阵相机）。
+        /// </summary>
         protected override void RegisterHardwareFactories(IHardwareManagerService hwManager, ICommunicationManagerService commManager)
         {
             var dataDirectory = ConstGlobalParam.ConfigPath;
@@ -251,11 +273,25 @@ namespace PF.Application.Shell
                     triggerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
-            hwManager.RegisterFactory("CTS_LightControoller", cfg =>
+            hwManager.RegisterFactory("CTS_LightController", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("COM", out var com);
                 return new Infrastructure.Hardware.LightController.CTS.CTSLightController(
                     com, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+            });
+
+            // 海康串口光源控制器（示例）。与康视达那条的区别：串口不由设备自己按 COM 名打开，
+            // 而是从通讯层按 CommInstanceId 取一个已实例化的 SerialPort 通讯实例——
+            // 串口参数（波特率/校验位等）改在通讯配置里，设备侧只管协议语义（S{通道字母}{4位亮度}#）。
+            // 示例配置见 CustomConfiguration/Param/DefaultParameters.cs：
+            //   通讯 HikLight_Serial（ImplementationClassName = "SerialPort"）
+            //   硬件 HikLight_0（ConnectionParameters["CommInstanceId"] = "HikLight_Serial"）
+            hwManager.RegisterFactory("HikComLightController", cfg =>
+            {
+                var serial = commManager.GetCommunication<ISerialCommunication>(
+                    cfg.ConnectionParameters["CommInstanceId"]);
+                return new Infrastructure.Hardware.LightController.HikCom.HikComLightController(
+                    serial, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
             // ── 线阵相机 + 图像采集卡 ─────────────────────────────────────────────

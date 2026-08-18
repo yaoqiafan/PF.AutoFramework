@@ -1,10 +1,91 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.9</Version>
+		<Version>1.0.11</Version>
 		<PackageReleaseNotes>
+v1.0.11 (2026-08-18) — ILightController 光源亮度读写完善（破坏性变更）
+
+[破坏性变更 — ILightController]
+- SetLightValue(int Channel, int LightValue)
+  → SetLightValue(int Channel, int LightValue, CancellationToken token = default)。
+  调用方源码级兼容（新参数带默认值，既有调用点不必改）。
+- 新增 Task&lt;int&gt; GetLightValue(int Channel, CancellationToken token = default)。
+  调用方不受影响。
+- 【实现方】以上两项都要跟：框架内 BaseLightController 抽象声明与 CTS/OPT/海康实现已同步
+  （PF.Infrastructure 1.0.10），项目里自写的光源控制器子类必须补齐 SetLightValue 的新签名、
+  并新增 GetLightValue 的 override，否则不能编译。
+
+[语义约定]
+- GetLightValue 读取失败【抛异常】，不要返回 0。返回 0 会让"亮度确实是 0"与"根本没读到"
+  在调用方看来完全一样，界面会把滑块悄悄归零、误导现场以为光源已关。
+- SetLightValue 反过来，失败【不外抛】只记 Error 日志：它在工站流程里被直接 await，
+  抛出会把整条产线带停。
+
+v1.0.10 (2026-08-17) — 线扫视觉契约（线阵相机 / 图像采集卡 / GenICam 节点通道）+ IAttachedDevice 泛化（含破坏性变更）
+
+[破坏性变更 — IAttachedDevice]
+- 挂载契约由"只能挂运动控制卡"泛化为"可挂任意父设备"（线阵相机需要挂在图像采集卡下，
+  原接口把父设备写死成 IMotionCard，新增一种宿主就得改服务层）：
+  · IMotionCard? ParentCard          → IHardwareDevice? ParentDevice
+  · void AttachToCard(IMotionCard)   → bool TryAttachTo(IHardwareDevice)
+    （父设备类型与本设备期望不符时返回 false 由调用方记警告，不抛异常——配置写错父设备
+      指向不该让整机初始化中断）
+- 新增泛型 IAttachedDevice&lt;TParent&gt; : IAttachedDevice（Parent 属性 + AttachTo(TParent)），
+  子设备实现它来声明自己期望的父设备类型（轴/IO → IMotionCard，线阵相机 → IFrameGrabberCard），
+  服务层只依赖非泛型接口，今后再加宿主种类不必再改注入点。
+- 影响面：
+  · 只继承 BaseAxisDevice / BaseIODevice 的项目设备类【无需改动】——两个基类已保留
+    ParentCard / AttachToCard 领域别名转发到 Parent / AttachTo（见 PF.Infrastructure 1.0.9）。
+  · 直接实现 IAttachedDevice 的自定义设备类需改为继承 AttachedDeviceBase&lt;TParent&gt;
+    或自行补齐 ParentDevice / TryAttachTo。
+  · 直接读 device.ParentCard 的调用点（如自写的硬件树/调试页）需改读 ParentDevice。
+
+[新增 — 线阵相机契约]
+- ILineScanCamera（PF.Core.Interfaces.Device.Hardware.Camera.LineScan）：与 IIntelligentCamera
+  刻意不复用同一接口——智能相机是"触发→相机内部跑算法→返回结果串"，线阵相机吐的是原始图像、
+  算法在上位机侧。成员：ApplyConfigAsync（整份配置下发，null 字段视为不下发）/ ArmAsync（开流并
+  武装，必须早于轴运动）/ StopAsync / SoftwareTriggerFrameAsync / WaitFrameAsync（主动等一帧，
+  超时抛 TimeoutException）/ FrameReceived 事件（连续取流预览，在 SDK 回调线程触发）/
+  SaveLastImageAsync / DiscoverAsync；只读态 ModelName、SerialNumber、TransportLayer、
+  HasFrameGrabber、LineSpacingUm、IsGrabbing、LastImage*。
+  接口【不引用 IAxis】：线扫的第二个维度由运动提供，但"轴与相机的时序编排"属机构层职责。
+- IFrameGrabberCard（...Device.Hardware.Card）：与 IMotionCard 并列的宿主类设备。职责边界——
+  采集卡管"流怎么切帧"（帧长/帧起点/帧超时），相机管逐行曝光（行触发与编码器始终配在相机上）。
+  成员：ApplyFrameControlAsync / SoftwareTriggerFrameAsync / DiscoverCamerasAsync。
+  拓扑约定：卡的 ParentDeviceId 为空（第 1 层），相机的 ParentDeviceId 填卡的 DeviceId（第 2 层）；
+  相机 ParentDeviceId 留空即 GigE/USB 直连、帧控制回落到相机自身节点树——配置拓扑本身表达链路
+  类型，不再需要额外的"链路开关"字段。
+- IGenICamNodeAccess：相机与采集卡共用的 GenICam 节点通用读写通道（IsNodeAvailableAsync /
+  GetNodeAsync / SetNodeAsync / GetEnumEntriesAsync / ExecuteCommandAsync / EnumerateNodesAsync）。
+  存在意义：可配节点因型号、固件而异（同为采集卡，CameraLink 卡有 ImageHeight/FrameTimeoutTime，
+  CXP 卡却是 IspGamma/BayerCFAEnable），强类型配置覆盖不到的部分走本通道，换型号改配置即可，
+  不必改代码重新发版。值一律以字符串传递（枚举用 symbolic 名、数值用不变文化格式）。
+  ⚠️ EnumerateNodesAsync 是主动扫描，节点数可达上千、耗时秒级，只应由用户显式触发，勿放轮询里。
+
+[新增 — 实体 PF.Core.Entities.Hardware.Vision]
+- ScanProfile：线扫扫描配方，把"轴怎么走"和"相机怎么拍"绑在一起。线扫相机单独配是配不出正确
+  图像的——帧长取决于行程与行间距，行频取决于速度与行间距，曝光上限又反受行频限制，任一项填错
+  症状都是"图不对"但原因分散在轴/相机/光学。本类集中换算与约束：Direction / ScanLengthMm /
+  TheoreticalAccel|DecelDistanceMm / EffectiveApproach|OvertravelMarginMm / MoveStartMm / MoveEndMm /
+  FrameHeightLines / ActualLineRate / MaxExposureTimeUs / EstimatedFrameTimeMs / FrameTimeoutMs，
+  并由 Validate() 在扫描【开始前】拦住非法组合。
+- LineScanCameraConfig / LineTriggerConfig / EncoderConfig / FrameControlConfig：相机本体参数、
+  行触发、编码器、帧控制四组配置。
+- LineScanFrame（一帧图像及其元数据）/ GenICamNode（节点名/分类/类型/权限/当前值）/
+  DiscoveredDeviceInfo（枚举到的在线设备）。
+
+[新增 — 枚举 PF.Core.Enums.Hardware.Vision]
+- CameraTransportLayer / LineTriggerMode / ImagePixelFormat / ImageFileFormat /
+  GenICamNodeType / GenICamAccessMode。
+
+[新增 — 常量]
+- HardwareCategory 新增 FrameGrabber（追加在枚举末尾，既有成员数值不变）。
+- NavigationConstants.Views 新增 LineScanCameraDebugView / FrameGrabberDebugView。
+- AlarmCodes.Hardware 新增三条：HW_CAM_003 线阵相机取帧超时（50010）、
+  HW_FG_001 采集卡打开失败（50011）、HW_FG_002 采集卡连接中断（50012），均带 SOP 排故步骤。
+
 v1.0.9 (2026-08-03) — 配置路径按项目隔离（破坏性变更，升级前必须执行现场迁移）
 
 [破坏性变更 — 配置路径]

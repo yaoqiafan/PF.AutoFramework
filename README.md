@@ -1780,8 +1780,8 @@ PF.Core（零外部依赖，54 接口）
 3. **未处理异常兜底**：接线 `DispatcherUnhandledException` / `AppDomain.UnhandledException` / `TaskScheduler.UnobservedTaskException`
 4. **Prism 配置 + DI 注册**（`RegisterTypes`，框架级统一注册）：日志（`log4net`）→ 参数/生产/SECS-GEM/报警数据库 → 视觉服务（子类重写 `RegisterVisionServices` 注入 Halcon）→ SECS/GEM 服务 → 通讯管理器（先于硬件）→ 硬件管理器 → 对话框/导航/报警/定时器/三色灯服务
 5. **项目级钩子**（由 `PF.Application.Shell` 实现）：
-   - **通讯工厂**（3 种）：`TcpServer` / `TcpClient` / `FileTransferChannel`
-   - **硬件工厂**（8 种）：`LTDMCMotionCard` / `EtherCatAxis` / `EtherCatIO` / `HKBarcodeScan`（已弃用，透传协议版）/ `MvCodeReaderBarcodeScan`（海康 SDK，推荐）/ `KeyenceBarcodeScan` / `KeyenceIntelligentCamera` / `CTS_LightControoller`
+   - **通讯工厂**（6 种）：`TcpServer` / `TcpClient` / `FileTransferChannel` / `SerialPort` / `ModbusRtuMaster` / `ModbusTcpMaster`
+   - **硬件工厂**（11 种）：`LTDMCMotionCard` / `EtherCatAxis` / `EtherCatIO` / `HKBarcodeScan`（已弃用，透传协议版）/ `MvCodeReaderBarcodeScan`（海康 SDK，推荐）/ `KeyenceBarcodeScan` / `KeyenceIntelligentCamera` / `CTS_LightController`（旧拼写 `CTS_LightControoller` 已订正）/ `HikComLightController` / `HikFrameGrabberCard` / `HikLineScanCamera`
    - **机制**（7 个 Singleton）：`WS1FeedingModel` / `WS2FeedingModel` / `WSDetectionModule` / `WS1MaterialPullingModule` / `WS2MaterialPullingModule` / `WSDataModule` / `WSSecsGemModule`
    - **工站**（5 个 Singleton）：`WS1FeedingStation` / `WS2FeedingStation` / `WSDetectionStation` / `WS1MaterialPullingStation` / `WS2MaterialPullingStation`
    - **主控**：`AutoOCRMachineController` Singleton

@@ -195,9 +195,9 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         public static extern int SetDigitalValue(int connectType, int ChannelIndex, int intensity, long controllerHandle);
 
 
-        
+        /// <summary>读取数字量值（指定通道的当前亮度）</summary>
         [DllImport("ControllerDll.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern  int GetDigitalValue(int connectType, ref int intensity, int ChannelIndex, ControllerHandleType controllerHandle);
+        public static extern int GetDigitalValue(int connectType, ref int intensity, int ChannelIndex, ControllerHandleType controllerHandle);
 
 
         //[DllImport(ControllerDll, CallingConvention = CallingConvention.Cdecl)]
