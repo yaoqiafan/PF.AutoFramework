@@ -183,6 +183,7 @@ D:\PFConfig\PFAutoFrameWork\
 - `ConstGlobalParam.ConfigPath` 未初始化时**直接抛 `InvalidOperationException`**，不回退根目录——漏调 `Initialize` 的宿主必须在首次运行时暴露
 - 因此**禁止**在静态字段初始化器中捕获 `ConfigPath`（会先于 `Initialize` 求值抛 `TypeInitializationException`），必须写成 `=>` 表达式属性
 - 项目若重写 `ProjectName`，必须同步设置 `installer.conf` 的 `PROJECT_NAME`，否则服务指向另一个目录的 `SecsGemConfig.db`（启动时 `VerifySecsServiceProjectBinding` 会弹窗告警）
+- **不用 SECS/GEM 的项目**：在 App 中重写 `protected override bool UsesSecsGemService => false;`（`PFApplicationBase`，默认 `true`）。关闭后跳过 SECS/GEM 的 DI 注册与 `SecsGemConfig.db` 创建、跳过服务绑定校验，并拦下命名空间以 `PF.Modules.SecsGem.` 开头的模块（`ConfigureModuleCatalog` 里仍写着 `AddModule` 也不会加载）。**必须关**：绑定校验解析的是 SCM 中实际注册的 ImagePath，而服务全机唯一，一机多项目时只要有任一项目装过该服务，不用 SECS 的项目启动也会弹告警，并建议"接管服务"——照做就抢走了别人正在用的服务
 - SECS 服务名固定为 `SecsGemService`，**不按项目区分**：本机通道端口 6800 在 `Worker.LocationServer` 与 `InternalClient` 两端硬编码，HSMS 被动端口也只有一个，全机只能有一个实例真正工作；按项目注册多个 `start= auto` 服务只会让它们开机争抢 6800。一机多项目时服务归属最后安装的项目，主程序启动时解析 SCM 中**实际注册**的 `ImagePath`（而非本项目安装目录）来校验归属
 - 服务读不到 `ProjectName` 时**拒绝启动**并写 EventLog + `D:\PF_Logs\SecsGem\Service\startup-error.log`（不回退根目录：各设备 `SecsGemConfig.db` 内容不同，回退会让服务用空库与 Host 建链，外部看是"正常运行"）
 - 老版本升级必须先执行 `Installer\Migrate-Config.ps1`，详见 `Installer\现场升级迁移说明.md`

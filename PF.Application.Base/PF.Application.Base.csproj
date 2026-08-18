@@ -1,10 +1,52 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-08-18) — 新增 UsesSecsGemService 开关：不用 SECS/GEM 的项目可整体关闭
+
+[新增]
+- PFApplicationBase.UsesSecsGemService（protected virtual，默认 true）。
+  默认值保持既有行为，既有项目升级后无需任何改动。
+  不需要 SECS/GEM 的项目在自己的 App 中写一行 override 即可整体关闭：
+      protected override bool UsesSecsGemService => false;
+
+[关闭后跳过的三处]
+- RegisterSecsGemServices 整段 DI 注册（ISecsGemManager / ICommandManager / IinternalClient 等），
+  同时不再在项目配置目录下创建空的 SecsGemConfig.db。
+  门开在调用点而非方法体内：子类即便整体重写了 RegisterSecsGemServices，也保证一行都不执行。
+- VerifySecsServiceProjectBinding 服务项目绑定校验。
+- 模块目录中命名空间以 "PF.Modules.SecsGem." 开头的模块。即便子类的 ConfigureModuleCatalog
+  里仍写着 AddModule&lt;SecsGemModule&gt;()，也会被拦下不加载——SECS/GEM 模块启动时要解析
+  ISecsGemManager，而开关关闭后这些服务根本没注册，模块一旦加载就是崩在启动阶段。
+  与其要求每个项目记得同时改两处，不如在目录层兜住。
+
+[消费项目还要自己做的事 — 重要]
+- 本开关只管框架自己那部分，管不到项目在 RegisterMechanismsAndStations / RegisterTypes 里
+  写的注册。项目若注册了依赖 ISecsGemManager 的机构，关掉开关后启动会崩在解析 MainWindow 上：
+  MainWindow 构造注入的是 IEnumerable&lt;IMechanism&gt;，DryIoc 会把【每一个】已注册机构都构造出来，
+  其中一个依赖解析不到，整个 MainWindow 就解析失败（DryIoc 报 UnableToResolveUnknownService）。
+  这类注册要用 if (UsesSecsGemService) 包起来。
+- 构造注入了 ISecsGemManager 的 ViewModel 不会在启动时崩，而是导航到该页时才崩。
+  改为注入 IContainerProvider、先 IsRegistered&lt;ISecsGemManager&gt;() 判断再 Resolve 即可
+  （与 MainWindowViewModelBase 的既有做法一致）。
+- 框架 Demo Shell 的 App.xaml.cs 里三处都有现成示例：机构注册、机构初始化名单、模块目录。
+
+[修复了什么实际问题]
+- 服务项目绑定校验此前是无条件执行的，唯一的跳过条件是"服务 exe 不存在"。但它解析的是
+  SCM 中【实际注册】的 ImagePath，而该服务全机唯一、不按项目区分——一机多项目时，
+  只要有任何一个项目装过该服务，这个判断就不成立。
+- 后果：一个压根不用 SECS/GEM 的项目，在装过该服务的机器上启动会弹模态告警，
+  说"当前注册的服务属于项目 X，而本程序是 Y"，并建议"重新运行本项目的安装包以接管服务"。
+  而真按提示做，就把项目 X 正在用的服务抢走了。
+- 现在该校验只在 UsesSecsGemService=true 时执行。
+
+[备注]
+- MainWindowViewModelBase 早已用 IsRegistered&lt;ISecsGemManager&gt;() 判断后再解析，
+  开关关闭时 SecsGemManager 属性为 null，基类自身不再有其它引用点，无需额外处理。
+
 v1.0.5 (2026-08-03) — 配置路径按项目隔离（破坏性变更，升级前必须执行现场迁移）
 
 [破坏性变更 — 升级前必读]

@@ -1,4 +1,4 @@
-using PF.Core.Constants;
+﻿using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -29,7 +29,12 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
     {
         // 核心修改：改用接口抽象，不依赖具体实现类
         private readonly IRecipeService<OCRRecipeParam> _recipeService;
-        private readonly ISecsGemManager _secsGemManger;
+        /// <summary>
+        /// SECS/GEM 管理器。UsesSecsGemService=false 的项目根本不注册该服务，
+        /// 故这里允许为 null——配方上传按钮的 CanExecute 已经按 null 判过（见 CanExecuteUPLoadRecipe），
+        /// 关闭 SECS/GEM 后按钮恒置灰，页面其余功能照常可用。
+        /// </summary>
+        private readonly ISecsGemManager? _secsGemManger;
         private readonly IHardwareManagerService _hardwareManagerService;
         private readonly IIntelligentCamera _camera;
 
@@ -72,10 +77,16 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
         /// <summary>
         /// OcrRecipeManageViewModel 构造函数
         /// </summary>
-        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService, ISecsGemManager secsGemManger, IHardwareManagerService hardwareManagerService)
+        public OcrRecipeManageViewModel(IRecipeService<OCRRecipeParam> recipeService, IHardwareManagerService hardwareManagerService, IContainerProvider containerProvider)
         {
             _recipeService = recipeService ?? throw new ArgumentNullException(nameof(recipeService));
-            _secsGemManger = secsGemManger ?? throw new ArgumentNullException(nameof(secsGemManger));
+
+            // 不用构造注入 ISecsGemManager：UsesSecsGemService=false 时该服务未注册，
+            // 构造注入会让本页在导航的那一刻直接抛 UnableToResolveUnknownService。
+            // 这里沿用 MainWindowViewModelBase 的做法，先判断已注册再解析。
+            _secsGemManger = containerProvider.IsRegistered<ISecsGemManager>()
+                ? containerProvider.Resolve<ISecsGemManager>()
+                : null;
             _hardwareManagerService = hardwareManagerService;
             _camera = hardwareManagerService?.ActiveDevices.OfType<IIntelligentCamera>().FirstOrDefault();
 

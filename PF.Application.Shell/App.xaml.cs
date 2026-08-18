@@ -1,4 +1,4 @@
-using PF.Application.Base;
+﻿using PF.Application.Base;
 using PF.Application.Base.ViewModels;
 using PF.Application.Shell.CustomConfiguration.Param;
 using PF.Application.Shell.ViewModels;
@@ -52,6 +52,9 @@ namespace PF.Application.Shell
 
         /// <summary> 项目名称 </summary>
         protected override string ProjectName => "FrameWork";
+
+        /// <summary>  是否使用SecsGem服务 </summary>
+        protected override bool UsesSecsGemService => true;
 
         /// <summary>返回 AutoOCR 项目默认参数集。</summary>
         protected override IDefaultParam CreateDefaultParameters() => new DefaultParameters();
@@ -379,10 +382,17 @@ namespace PF.Application.Shell
                 typeof(WSDataModule), reuse: DryIoc.Reuse.Singleton,
                 serviceKey: nameof(WSDataModule));
 
-            container.RegisterMany(
-                [typeof(WSSecsGemModule), typeof(IMechanism)],
-                typeof(WSSecsGemModule), reuse: DryIoc.Reuse.Singleton,
-                serviceKey: nameof(WSSecsGemModule));
+            // WSSecsGemModule 的构造函数依赖 ISecsGemManager，而 UsesSecsGemService=false 时
+            // 框架不会注册该服务。这里必须一起关掉——MainWindow 的构造函数注入的是
+            // IEnumerable<IMechanism>，DryIoc 会把【每一个】已注册的机构都构造出来，
+            // 只要这条注册还在，启动时就会以 UnableToResolveUnknownService 崩在解析 MainWindow 上。
+            if (UsesSecsGemService)
+            {
+                container.RegisterMany(
+                    [typeof(WSSecsGemModule), typeof(IMechanism)],
+                    typeof(WSSecsGemModule), reuse: DryIoc.Reuse.Singleton,
+                    serviceKey: nameof(WSSecsGemModule));
+            }
 
             container.RegisterMany(
                 [typeof(WS2FeedingModel), typeof(IMechanism)],
@@ -468,8 +478,20 @@ namespace PF.Application.Shell
         {
             var c = this.Container;
 
-            // 机构名称与显示名对应，便于进度反馈
-            var mechanismNames = new[] { nameof(WS1FeedingModel), nameof(WS1MaterialPullingModule), nameof(WS2FeedingModel), nameof(WS2MaterialPullingModule), nameof(WSDetectionModule), nameof(WSDataModule), nameof(WSSecsGemModule) };
+            // 机构名称与显示名对应，便于进度反馈。
+            // WSSecsGemModule 只在启用 SECS/GEM 时才注册，名单要跟着走，
+            // 否则这里会去 Resolve 一个没注册的 ServiceKey。
+            var names = new List<string>
+            {
+                nameof(WS1FeedingModel), nameof(WS1MaterialPullingModule),
+                nameof(WS2FeedingModel), nameof(WS2MaterialPullingModule),
+                nameof(WSDetectionModule), nameof(WSDataModule)
+            };
+            if (UsesSecsGemService)
+            {
+                names.Add(nameof(WSSecsGemModule));
+            }
+            var mechanismNames = names.ToArray();
 
             for (int i = 0; i < mechanismNames.Length; i++)
             {
@@ -537,7 +559,11 @@ namespace PF.Application.Shell
             moduleCatalog.AddModule<ParameterModule>();
             moduleCatalog.AddModule<DebugModule>();
             moduleCatalog.AddModule<ProductionRecordModule>();
-            moduleCatalog.AddModule<SecsGemModule>();
+            // 显式加门表达意图；即便这里漏了，框架的模块目录也会按 UsesSecsGemService 兜底拦下
+            if (UsesSecsGemService)
+            {
+                moduleCatalog.AddModule<SecsGemModule>();
+            }
             moduleCatalog.AddModule<AutoOcrUIModule>();
             moduleCatalog.AddModule<HalconModule>();
         }

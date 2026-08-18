@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PF.Application.Base.Configuration;
 using PF.Application.Base.Services;
 using PF.Application.Base.ViewModels;
@@ -103,6 +103,38 @@ namespace PF.Application.Base
         /// </summary>
         protected virtual string ProjectName =>
             Assembly.GetEntryAssembly()?.GetName().Name ?? "Default";
+
+        /// <summary>
+        /// 本项目是否使用 SECS/GEM。默认 <c>true</c>，保持既有项目的行为不变；
+        /// 不需要 SECS/GEM 的项目在自己的 App 中重写为 <c>false</c> 即可整体关闭。
+        ///
+        /// <para>关闭后跳过的内容：</para>
+        /// <list type="bullet">
+        /// <item><see cref="RegisterSecsGemServices"/> 整段 DI 注册（ISecsGemManager /
+        /// ICommandManager / IinternalClient 等），同时不再在项目配置目录下创建
+        /// 空的 SecsGemConfig.db。</item>
+        /// <item><see cref="VerifySecsServiceProjectBinding"/> 服务项目绑定校验。</item>
+        /// <item>模块目录里命名空间以 <c>PF.Modules.SecsGem</c> 开头的模块——
+        /// 即便子类的 ConfigureModuleCatalog 里仍写着 AddModule，也会被拦下不加载。</item>
+        /// </list>
+        ///
+        /// <para><b>项目自己的 SECS 相关注册也必须跟着关</b>：本开关只管框架自己那部分，
+        /// 管不到项目在 RegisterMechanismsAndStations / RegisterTypes 里写的注册。
+        /// 若项目注册了依赖 ISecsGemManager 的机构（如 Demo 的 WSSecsGemModule），
+        /// 关掉开关后启动会崩在解析 MainWindow 上——MainWindow 构造注入的是
+        /// IEnumerable&lt;IMechanism&gt;，DryIoc 会把<b>每一个</b>已注册机构都构造出来，
+        /// 其中一个依赖解析不到，整个 MainWindow 就解析失败。
+        /// 同理，构造注入了 ISecsGemManager 的 ViewModel 会在导航到该页时才崩；
+        /// 这类 ViewModel 应改为先 IsRegistered&lt;ISecsGemManager&gt;() 判断再 Resolve。
+        /// Demo Shell 的 App.xaml.cs 里有完整示例。</para>
+        ///
+        /// <para><b>为什么校验必须跟着一起关</b>：该校验解析的是 SCM 中<b>实际注册</b>的
+        /// 服务 ImagePath，而服务全机唯一、不按项目区分。一机多项目时，只要有<b>任何一个</b>
+        /// 项目装过该服务，<c>File.Exists</c> 就成立，于是不用 SECS/GEM 的项目也会被判为
+        /// "服务属于别的项目"并弹窗，还会建议它"重新运行本项目的安装包以接管服务"——
+        /// 而真按提示做，就把别的项目正在用的服务抢走了。</para>
+        /// </summary>
+        protected virtual bool UsesSecsGemService => true;
 
         /// <summary>
         /// 在任何配置读写之前完成项目名初始化。
@@ -479,7 +511,12 @@ namespace PF.Application.Base
             containerRegistry.AddParameterServices(CreateDefaultParameters());
 
             RegisterProductionDataService(containerRegistry);
-            RegisterSecsGemServices(containerRegistry);
+            // 门开在调用点而不是方法体内：子类整体重写 RegisterSecsGemServices 时，
+            // UsesSecsGemService=false 依然能保证一行 SECS/GEM 注册都不执行
+            if (UsesSecsGemService)
+            {
+                RegisterSecsGemServices(containerRegistry);
+            }
             // 必须先于 RegisterHardwareTypes：硬件工厂闭包可能要捕获 ICommunicationManagerService 引用
             RegisterCommunicationTypes(containerRegistry);
             RegisterHardwareTypes(containerRegistry);
@@ -504,8 +541,80 @@ namespace PF.Application.Base
             RegisterVisionServices(containerRegistry);
         }
 
-        /// <summary>创建空 ModuleCatalog，由 ConfigureModuleCatalog 通过 AddModule&lt;T&gt;() 显式注册模块。</summary>
-        protected override IModuleCatalog CreateModuleCatalog() => new ModuleCatalog();
+        /// <summary>
+        /// 创建 ModuleCatalog，由 ConfigureModuleCatalog 通过 AddModule&lt;T&gt;() 显式注册模块。
+        /// <see cref="UsesSecsGemService"/> 为 false 时返回会拦截 SECS/GEM 模块的目录，
+        /// 这样消费项目不必为了关闭 SECS/GEM 而去改自己的 ConfigureModuleCatalog。
+        /// </summary>
+        protected override IModuleCatalog CreateModuleCatalog()
+            => new SecsGemAwareModuleCatalog(this);
+
+        /// <summary>
+        /// 按 <see cref="UsesSecsGemService"/> 过滤 SECS/GEM 模块的模块目录。
+        ///
+        /// 之所以在目录层拦而不是让各项目自己少写一行 AddModule：SECS/GEM 模块启动时要解析
+        /// ISecsGemManager 等服务，而关闭开关后这些服务根本没注册，模块一旦被加载就是
+        /// 解析失败崩在启动阶段。与其依赖每个项目都记得同时改两处，不如在这里兜住。
+        ///
+        /// 用命名空间前缀而非类型引用来识别：PF.Application.Base 不引用 PF.Modules.SecsGem，
+        /// 硬引一个 UI 模块会把分层反过来。
+        /// </summary>
+        private sealed class SecsGemAwareModuleCatalog : ModuleCatalog
+        {
+            /// <summary>
+            /// SECS/GEM 模块的命名空间前缀。带末尾的点，避免误伤将来可能出现的
+            /// PF.Modules.SecsGemXxx 这类同前缀但不同命名空间的模块。
+            /// </summary>
+            private const string SecsGemModuleNamespacePrefix = "PF.Modules.SecsGem.";
+
+            private readonly PFApplicationBase _owner;
+
+            public SecsGemAwareModuleCatalog(PFApplicationBase owner) => _owner = owner;
+
+            /// <summary>加入模块。开关关闭时直接拦下 SECS/GEM 模块，不进目录。</summary>
+            public override IModuleCatalog AddModule(IModuleInfo moduleInfo)
+            {
+                if (!_owner.UsesSecsGemService && IsSecsGemModule(moduleInfo))
+                {
+                    LogSkipped(moduleInfo);
+                    return this;
+                }
+                return base.AddModule(moduleInfo);
+            }
+
+            /// <summary>
+            /// 目录初始化。ModuleManager 加载模块前必定先调这里，因此在这一步再清扫一次，
+            /// 作为 <see cref="AddModule"/> 那道拦截的兜底——Prism 的 AddModule&lt;T&gt;() 等重载
+            /// 将来若不再经由本方法收口，这里仍能保证 SECS/GEM 模块不会被加载。
+            /// </summary>
+            public override void Initialize()
+            {
+                if (!_owner.UsesSecsGemService)
+                {
+                    var leaked = Items.OfType<IModuleInfo>().Where(IsSecsGemModule).ToList();
+                    foreach (var moduleInfo in leaked)
+                    {
+                        LogSkipped(moduleInfo);
+                        Items.Remove(moduleInfo);
+                    }
+                }
+                base.Initialize();
+            }
+
+            private void LogSkipped(IModuleInfo moduleInfo) =>
+                _owner.LogService?.Info(
+                    $"[启动] UsesSecsGemService=false，已跳过 SECS/GEM 模块 '{moduleInfo?.ModuleName}'",
+                    "Startup");
+
+            private static bool IsSecsGemModule(IModuleInfo moduleInfo)
+            {
+                // ModuleType 是程序集限定名字符串，形如
+                // "PF.Modules.SecsGem.SecsGemModule, PF.Modules.SecsGem, Version=..."
+                var moduleType = moduleInfo?.ModuleType;
+                return !string.IsNullOrEmpty(moduleType)
+                       && moduleType.StartsWith(SecsGemModuleNamespacePrefix, StringComparison.Ordinal);
+            }
+        }
 
         /// <summary>基类默认为空实现，子类 override 后调用 AddModule&lt;T&gt;() 注册项目所需 Prism 模块。</summary>
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog) { }
@@ -733,7 +842,15 @@ namespace PF.Application.Base
             UpdateStage("程序加载中。。。");
             try
             {
-                VerifySecsServiceProjectBinding((status, msgType) => UpdateStage(status, msgType));
+                if (UsesSecsGemService)
+                {
+                    VerifySecsServiceProjectBinding((status, msgType) => UpdateStage(status, msgType));
+                }
+                else
+                {
+                    await Task.Delay(500);
+                    UpdateStage("本项目不使用SecsGem服务，跳过服务检查。。。");
+                }
 
                 await Task.Delay(500);
                 UpdateStage("配置文件加载中。。。");
