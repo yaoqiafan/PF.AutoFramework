@@ -277,6 +277,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="12" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -532,6 +534,55 @@
                         Foreground="{DynamicResource PrimaryTextBrush}"
                         Text="{Binding ServerStatus}"
                         TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!--  引擎耦合自检  -->
+                <StackPanel Grid.Row="20">
+                    <Button
+                        MinWidth="130"
+                        Padding="14,7"
+                        HorizontalAlignment="Left"
+                        Command="{Binding SelfCheckCommand}"
+                        Content="引擎耦合自检"
+                        IsEnabled="{Binding IsNotBusy}">
+                        <Button.ToolTip>
+                            <TextBlock>
+                                <Run FontWeight="SemiBold" Text="验证调试服务与 Debug 引擎是否真正解耦：" />
+                                <LineBreak />
+                                <Run Text="① 释放引擎后 IsDebugServerActive 能否回落" />
+                                <LineBreak />
+                                <Run Text="② 过程枚举 / 签名解析会不会把引擎重新拉起来" />
+                                <LineBreak />
+                                <Run Text="③ 子目录里的过程能否取到签名（递归查找）" />
+                                <LineBreak />
+                                <Run FontWeight="SemiBold" Text="注意：自检会停止调试服务器并释放 Debug 引擎。" />
+                            </TextBlock>
+                        </Button.ToolTip>
+                    </Button>
+                    <Border
+                        Margin="0,10,0,0"
+                        Padding="10,8"
+                        Background="{DynamicResource RegionBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="3">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSelfCheckReport}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock
+                            FontFamily="Consolas, Courier New"
+                            FontSize="12"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Text="{Binding SelfCheckReport}"
+                            TextWrapping="Wrap" />
+                    </Border>
                 </StackPanel>
             </Grid>
         </ScrollViewer>

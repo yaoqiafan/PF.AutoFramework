@@ -3,8 +3,37 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.19</Version>
+    <Version>1.0.20</Version>
     <PackageReleaseNotes>
+		v1.0.20 (2026-08-21) — 视觉调试服务与 Debug 引擎解耦（含接口破坏性变更）
+
+		[修复了什么实际问题 — PF.Vision.Halcon 1.0.1→1.0.2]
+		- 读一个过程签名会顺带起一台 Debug 引擎：GetProcedureSignatureAsync 全程只是 XML 解析，却为了
+		  拿过程目录这一个字符串走了 GetOrCreate(EngineMode.Debug)。生产机上每次开机因此凭空多出一个
+		  HDevEngine + 一条 LongRunning 专用系统线程 + 一个递归 FileSystemWatcher，永不使用。
+		  GetAvailableProcedures / LaunchHDevelop 同样中招，现已一并摘掉。
+		- 该 Debug 引擎的配置是 WaitForDebugConnection=true + 无限超时：一旦有人往它投作业，过程会在
+		  入口等待一个永远不会到来的 HDevelop 连接且无超时兜底，Worker 线程永久卡死。现加门控，
+		  调试服务器未启动时正常执行。
+		- 子目录里的过程取不到签名：过程枚举是递归的而查找只看顶层，列表里选得中、参数解析不出来。
+		- IsDebugServerActive 在 ReleaseAsync(Debug) 之后仍报 true，LaunchHDevelop 会去连一个已经不
+		  存在的调试服务器。
+
+		[破坏性变更 — PF.Core 1.0.12→1.0.13]
+		- IVisionContextManager 新增 TryGet(EngineMode)，IHalconDebugService 新增 ProcedureDirectory。
+		  调用方不受影响；项目里若自写了这两个接口的实现，必须补齐成员才能编译。
+
+		[破坏性变更 — PF.Vision.Halcon 1.0.1→1.0.2]
+		- HalconDebugService 构造函数新增第三参 procedureDirectory。走 AddVisionServices 注册的项目
+		  不受影响（扩展方法对外签名未变）；手动 new 的地方要补参数。
+
+		[新增 — PF.Modules.Halcon 1.0.2→1.0.3]
+		- 调试面板新增「引擎耦合自检」按钮：现场一键验证上述解耦是否成立（引擎是否被凭空拉起、
+		  释放后状态是否回落、子目录过程能否取到签名）。
+
+		子包版本对照：PF.Core 1.0.12→1.0.13，PF.Vision.Halcon 1.0.1→1.0.2，
+		PF.Modules.Halcon 1.0.2→1.0.3；其余子包本次无变化。
+
 		v1.0.19 (2026-08-18) — 不用 SECS/GEM 的项目可整体关闭
 
 		[新增 — PF.Application.Base 1.0.5→1.0.6]

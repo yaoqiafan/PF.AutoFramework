@@ -33,10 +33,13 @@ public static class VisionServiceExtensions
             return new VisionContextManager(procedureDirectory, logService);
         });
 
+        // 显式传入过程目录：签名解析 / 过程枚举 / HDevelop 启动参数都只需要这个字符串，
+        // 让调试服务自己持有，避免为取目录而拉起一个永不使用的 Debug 引擎
         containerRegistry.RegisterSingleton<IHalconDebugService>(cp =>
             new HalconDebugService(
                 cp.Resolve<IVisionContextManager>(),
-                cp.Resolve<ILogService>()));
+                cp.Resolve<ILogService>(),
+                procedureDirectory));
 
         var pipelineDir = pipelineDirectory
                        ?? Path.Combine(procedureDirectory, "..", "Workflows");

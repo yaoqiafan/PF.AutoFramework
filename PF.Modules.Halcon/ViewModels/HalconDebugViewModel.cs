@@ -1,4 +1,5 @@
 using HalconDotNet;
+using PF.Core.Enums;
 using PF.Core.Interfaces.Vision;
 using PF.Core.Interfaces.Vision.Pipeline;
 using PF.Modules.Halcon.Controls;
@@ -6,6 +7,8 @@ using PF.UI.Infrastructure.PrismBase;
 using PF.Vision.Halcon.Internal;
 using Prism.Commands;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
 
 namespace PF.Modules.Halcon.ViewModels;
 
@@ -17,8 +20,9 @@ namespace PF.Modules.Halcon.ViewModels;
 /// </summary>
 public class HalconDebugViewModel : RegionViewModelBase
 {
-    private readonly IHalconDebugService _debugService;
-    private readonly IDialogService      _dialogService;
+    private readonly IHalconDebugService   _debugService;
+    private readonly IDialogService        _dialogService;
+    private readonly IVisionContextManager _contextManager;
 
     // ── 过程文件 ──────────────────────────────────────────────────────────────
 
@@ -78,6 +82,7 @@ public class HalconDebugViewModel : RegionViewModelBase
             RaisePropertyChanged(nameof(CanLaunchHDevelop));
             LaunchCommand.RaiseCanExecuteChanged();
             CancelDebugCommand.RaiseCanExecuteChanged();
+            SelfCheckCommand.RaiseCanExecuteChanged();
         }
     }
 
@@ -130,6 +135,7 @@ public class HalconDebugViewModel : RegionViewModelBase
             RaisePropertyChanged(nameof(IsNotBusy));
             EnableCommand.RaiseCanExecuteChanged();
             DisableCommand.RaiseCanExecuteChanged();
+            SelfCheckCommand.RaiseCanExecuteChanged();
         }
     }
 
@@ -145,6 +151,21 @@ public class HalconDebugViewModel : RegionViewModelBase
     /// <summary>已启动服务器 + 已选过程 + 未在调试中，供 XAML IsEnabled 双保险绑定</summary>
     public bool CanLaunchHDevelop => IsActive && SelectedProcedure is not null && !IsDebugging;
 
+    // ── 引擎耦合自检 ──────────────────────────────────────────────────────────
+
+    private string _selfCheckReport = string.Empty;
+    public string SelfCheckReport
+    {
+        get => _selfCheckReport;
+        private set
+        {
+            SetProperty(ref _selfCheckReport, value);
+            RaisePropertyChanged(nameof(HasSelfCheckReport));
+        }
+    }
+
+    public bool HasSelfCheckReport => !string.IsNullOrEmpty(_selfCheckReport);
+
     // ── 命令 ──────────────────────────────────────────────────────────────────
 
     public DelegateCommand RefreshCommand     { get; }
@@ -152,13 +173,16 @@ public class HalconDebugViewModel : RegionViewModelBase
     public DelegateCommand DisableCommand     { get; }
     public DelegateCommand LaunchCommand      { get; }
     public DelegateCommand CancelDebugCommand { get; }
+    public DelegateCommand SelfCheckCommand    { get; }
 
     // ── 构造 ──────────────────────────────────────────────────────────────────
 
-    public HalconDebugViewModel(IHalconDebugService debugService, IDialogService dialogService) : base()
+    public HalconDebugViewModel(IHalconDebugService debugService, IDialogService dialogService,
+                                IVisionContextManager contextManager) : base()
     {
-        _debugService  = debugService;
-        _dialogService = dialogService;
+        _debugService   = debugService;
+        _dialogService  = dialogService;
+        _contextManager = contextManager;
 
         RefreshCommand = new DelegateCommand(RefreshProcedures);
         EnableCommand  = new DelegateCommand(async () => await OnEnableAsync(),
@@ -168,6 +192,8 @@ public class HalconDebugViewModel : RegionViewModelBase
         LaunchCommand  = new DelegateCommand(async () => await OnLaunchAsync(),
                              () => IsActive && SelectedProcedure is not null && !IsDebugging);
         CancelDebugCommand = new DelegateCommand(OnCancelDebug, () => IsDebugging);
+        SelfCheckCommand   = new DelegateCommand(async () => await OnSelfCheckAsync(),
+                                 () => !IsBusy && !IsDebugging);
 
         RefreshProcedures();
     }
@@ -431,6 +457,97 @@ public class HalconDebugViewModel : RegionViewModelBase
             IsBusy = false;
         }
     }
+
+    // ── 引擎耦合自检 ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 验证调试服务与 Debug 引擎的解耦是否成立，三项断言：
+    /// <list type="number">
+    /// <item>释放 Debug 引擎后 <c>IsDebugServerActive</c> 能跟着回落（曾用本地字段缓存，会失步）</item>
+    /// <item>过程枚举 / 签名解析这两个只读 API 不会把 Debug 引擎重新拉起来</item>
+    /// <item>列表里的每个过程都能取到签名（子目录里的过程要求递归查找生效）</item>
+    /// </list>
+    /// <para>
+    /// 为构造可复现的干净起点，自检会先停止调试服务器并释放 Debug 引擎，
+    /// 结束后保持关闭状态——需要继续调试请重新点「启动调试服务器」。
+    /// </para>
+    /// </summary>
+    private async Task OnSelfCheckAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            var sb   = new StringBuilder();
+            var pass = true;
+
+            sb.AppendLine($"自检时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"过程目录：{_debugService.ProcedureDirectory}");
+            sb.AppendLine();
+
+            // 干净起点：先停服务器（引擎仍在），再释放引擎槽位
+            if (_debugService.IsDebugServerActive)
+                await _debugService.DisableDebugServerAsync();
+            await _contextManager.ReleaseAsync(EngineMode.Debug);
+            IsActive     = false;
+            ServerStatus = "调试服务器未启动（自检已释放 Debug 引擎）";
+
+            // ① 引擎释放后，服务器状态必须跟着回落
+            var engineUp   = _contextManager.IsActive(EngineMode.Debug);
+            var serverFlag = _debugService.IsDebugServerActive;
+            var ok1 = !engineUp && !serverFlag;
+            pass &= ok1;
+            sb.AppendLine($"{Mark(ok1)} ① 释放 Debug 引擎后状态回落");
+            sb.AppendLine($"     引擎已拉起 = {engineUp}，IsDebugServerActive = {serverFlag}（两者均应为 False）");
+            sb.AppendLine();
+
+            // ②③ 走一遍只读 API：枚举全部过程并逐个解析签名
+            var names  = _debugService.GetAvailableProcedures();
+            var failed = new List<string>();
+            foreach (var name in names)
+            {
+                if (await _debugService.GetProcedureSignatureAsync(name) is null)
+                    failed.Add(name);
+            }
+
+            // ② 只读 API 不得拉起引擎
+            var engineUpAfter = _contextManager.IsActive(EngineMode.Debug);
+            var ok2 = !engineUpAfter;
+            pass &= ok2;
+            sb.AppendLine($"{Mark(ok2)} ② 只读 API 不拉起 Debug 引擎");
+            sb.AppendLine($"     GetAvailableProcedures + {names.Count} 次 GetProcedureSignatureAsync 之后，"
+                        + $"引擎已拉起 = {engineUpAfter}（应为 False）");
+            sb.AppendLine();
+
+            // ③ 签名解析覆盖率；子目录数量决定本项对「递归查找」是否具备证伪能力
+            var dir = _debugService.ProcedureDirectory;
+            var subDirCount = Directory.Exists(dir)
+                ? Directory.GetDirectories(dir, "*", SearchOption.AllDirectories).Length
+                : 0;
+            var ok3 = failed.Count == 0;
+            pass &= ok3;
+            sb.AppendLine($"{Mark(ok3)} ③ 过程签名解析覆盖率");
+            sb.AppendLine($"     {names.Count - failed.Count} / {names.Count} 解析成功，过程目录下有 {subDirCount} 个子目录");
+            if (failed.Count > 0)
+                sb.AppendLine($"     解析失败：{string.Join("，", failed)}"
+                            + "（若这些过程位于子目录，说明递归查找未生效）");
+            else if (subDirCount == 0)
+                sb.AppendLine("     注：过程全部位于根目录，本项无法证伪子目录递归查找");
+            sb.AppendLine();
+
+            sb.Append(pass ? "结论：全部通过" : "结论：存在失败项，见上方 ✗ 条目");
+            SelfCheckReport = sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            SelfCheckReport = $"自检异常中断：{ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static string Mark(bool ok) => ok ? "✓" : "✗";
 
     // ── 导航生命周期 ──────────────────────────────────────────────────────────
 

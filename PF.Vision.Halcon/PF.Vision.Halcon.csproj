@@ -3,8 +3,43 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <PackageReleaseNotes>
+v1.0.2 (2026-08-21) — 调试服务与 Debug 引擎解耦（含构造函数破坏性变更）
+
+[破坏性变更 — HalconDebugService]
+- 构造函数新增第三参 string procedureDirectory。走 AddVisionServices 注册的项目不受影响
+  （扩展方法已同步传入，其对外签名未变）；手动 new HalconDebugService(...) 的地方必须补参数。
+
+[修复 — 只读 API 不再凭空拉起 Debug 引擎]
+- GetProcedureSignatureAsync / GetAvailableProcedures / LaunchHDevelop 原先都走
+  GetOrCreate(EngineMode.Debug)，只为拿过程目录这一个字符串。代价是生产机上每次开机多出一个
+  HDevEngine + 一条 LongRunning 专用系统线程 + 一个递归 FileSystemWatcher，永不使用。
+  现在三者只用注入的目录，GetDebugEngine() 仅剩 EnableDebugServerAsync / ForceReloadAsync /
+  RunTestAsync 三个真正需要引擎的调用点。
+- 目录在构造函数中 Path.GetFullPath 规范化：LaunchHDevelop 会把它拼进 HDevelop.exe 的
+  -external_proc_path 命令行，HALCON C 层不保证处理双斜杠/混合斜杠。
+
+[修复 — 子目录里的过程取不到签名]
+- 过程查找原先只看顶层，而过程枚举是 AllDirectories 递归的：子目录里的过程能出现在列表中，
+  选中却解析不出参数。新增 Internal/HdevProcedureCatalog 统一两侧规则，查找优先级为
+  顶层 .hdvp → 子目录 .hdvp → 顶层 .hdev → 子目录 .hdev（.hdvp 全局优先，与枚举去重规则一致）。
+  过程名里的 * 和 ? 不再被当通配符解释；多处同名时按路径排序取首个，结果可复现。
+
+[修复 — 未启动调试服务器时投作业会永久挂起]
+- Debug 引擎配置为 WaitForDebugConnection=true + InfiniteTimeSpan。原先只要向 Debug 引擎投作业
+  就会调 SetWaitForDebugConnection(true)，在过程入口等待一个永远不会到来的 HDevelop 连接，
+  又没有超时兜底，Worker 线程永久卡死。现加 DebugServerStarted 门控，服务器未启动时正常执行。
+
+[修复 — IsDebugServerActive 在引擎释放后失步]
+- 状态原先缓存在 HalconDebugService 本地字段，ReleaseAsync(EngineMode.Debug) 释放引擎后仍报
+  true，LaunchHDevelop 会去连一个已经不存在的调试服务器。改为以引擎上的 DebugServerStarted
+  为唯一真相，ActivePort / Password 一并跟随回落。
+- DisableDebugServerAsync 的守卫同步改写：引擎已释放时直接返回，不再为了停一个不存在的服务器
+  而把引擎重新拉起来。
+
+依赖：需 PF.Core 1.0.13+。
+
 v1.0.1 (2026-07-07) — 视觉引擎核心健壮性修复（7 项）
 
 [修复 — 严重]

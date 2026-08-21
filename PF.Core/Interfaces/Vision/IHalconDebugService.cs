@@ -26,6 +26,9 @@ public interface IHalconDebugService
     /// <summary>停止调试服务器，恢复 JIT 编译（不释放 Debug 引擎）</summary>
     Task DisableDebugServerAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>过程文件所在目录（已规范化的完整路径）</summary>
+    string ProcedureDirectory { get; }
+
     /// <summary>返回过程目录中可用的 .hdev 文件名列表（不含扩展名）</summary>
     IReadOnlyList<string> GetAvailableProcedures();
 

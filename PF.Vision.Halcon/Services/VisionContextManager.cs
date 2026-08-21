@@ -43,6 +43,10 @@ public sealed class VisionContextManager : IVisionContextManager, IDisposable
 
     public bool IsActive(EngineMode mode) => _engines[(int)mode] != null;
 
+    // 与 IsActive 同构的无锁读：数组元素读写是原子的，Release/Dispose 会把槽位置 null，
+    // 因此引擎释放后此处自然返回 null——不加锁是为了能在属性 getter 中安全调用
+    public IVisionService? TryGet(EngineMode mode) => _engines[(int)mode];
+
     public IVisionService GetOrCreate(EngineMode mode)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

@@ -3,6 +3,7 @@ using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Vision;
+using PF.Vision.Halcon.Internal;
 using System.Diagnostics;
 using System.Xml.Linq;
 
@@ -22,18 +23,30 @@ public sealed class HalconDebugService : IHalconDebugService
     private readonly IVisionContextManager _contextManager;
     private readonly ILogService           _logger;
 
-    private volatile bool _isActive;
-    private int           _activePort;
-    private string        _password = string.Empty;
+    // 过程目录直接持有：签名解析、过程枚举、HDevelop 启动参数都只需要这个字符串，
+    // 不得为了取它而 GetOrCreate(EngineMode.Debug)——那会在生产机上凭空拉起一个
+    // HDevEngine + 专用系统线程 + FileSystemWatcher，且永不使用
+    private readonly string _procedureDirectory;
 
-    public bool   IsDebugServerActive => _isActive;
-    public int    ActivePort          => _activePort;
-    public string Password            => _password;
+    private int    _activePort;
+    private string _password = string.Empty;
 
-    public HalconDebugService(IVisionContextManager contextManager, ILogService logger)
+    // 唯一真相在引擎上：调用方若 ReleaseAsync(EngineMode.Debug) 释放了引擎，
+    // 调试服务器随之消失，这里必须跟着回落，不能靠本地 _isActive 字段自说自话
+    public string ProcedureDirectory   => _procedureDirectory;
+
+    public bool   IsDebugServerActive => TryGetDebugEngine()?.DebugServerStarted == true;
+    public int    ActivePort          => IsDebugServerActive ? _activePort : 0;
+    public string Password            => IsDebugServerActive ? _password : string.Empty;
+
+    public HalconDebugService(IVisionContextManager contextManager, ILogService logger,
+                              string procedureDirectory)
     {
         _contextManager = contextManager;
         _logger         = logger;
+        // 与 HalconVisionService 一致地规范化：LaunchHDevelop 会把该路径拼进 HDevelop.exe 的
+        // -external_proc_path 命令行，HALCON C 层不保证处理双斜杠/混合斜杠
+        _procedureDirectory = Path.GetFullPath(procedureDirectory);
     }
 
     public async Task<bool> EnableDebugServerAsync(int port = 9999, string password = "",
@@ -54,9 +67,10 @@ public sealed class HalconDebugService : IHalconDebugService
 
         if (ok)
         {
-            _isActive   = true;
             _activePort = port;
             _password   = password;
+            // 最后置位：IsDebugServerActive 以此为准，端口/密码须先就位
+            engine.DebugServerStarted = true;
             _logger.Info(
                 $"[Vision] 调试服务器已启动，端口: {port}，密码: {(string.IsNullOrEmpty(password) ? "（无）" : "***")}",
                 LogCategories.Vision);
@@ -66,9 +80,8 @@ public sealed class HalconDebugService : IHalconDebugService
 
     public async Task DisableDebugServerAsync(CancellationToken cancellationToken = default)
     {
-        if (!_isActive) return;
-
-        var engine = GetDebugEngine();
+        // 引擎已被释放时同样直接返回：没有服务器可停，也不该为此重新拉起引擎
+        if (TryGetDebugEngine() is not { DebugServerStarted: true } engine) return;
 
         await engine.ScheduleEngineActionAsync(e =>
         {
@@ -78,14 +91,14 @@ public sealed class HalconDebugService : IHalconDebugService
             return true;
         }, cancellationToken);
 
-        _isActive   = false;
+        engine.DebugServerStarted = false;
         _activePort = 0;
         _password   = string.Empty;
         _logger.Info("[Vision] 调试服务器已停止，JIT 编译已恢复", LogCategories.Vision);
     }
 
     public IReadOnlyList<string> GetAvailableProcedures()
-        => GetDebugEngine().GetAvailableProcedures();
+        => HdevProcedureCatalog.Scan(_procedureDirectory);
 
     public Task ForceReloadAsync(string procedureName, CancellationToken cancellationToken = default)
         => GetDebugEngine().UnloadProcedureAsync(procedureName, cancellationToken);
@@ -116,8 +129,7 @@ public sealed class HalconDebugService : IHalconDebugService
     public async Task<ProcedureSignature?> GetProcedureSignatureAsync(string procedureName,
         CancellationToken cancellationToken = default)
     {
-        var procDir  = GetDebugEngine().ProcedureDirectory;
-        var filePath = FindProcedureFile(procDir, procedureName);
+        var filePath = HdevProcedureCatalog.FindProcedureFile(_procedureDirectory, procedureName);
 
         if (filePath is null) return null;
 
@@ -126,7 +138,7 @@ public sealed class HalconDebugService : IHalconDebugService
 
     public bool LaunchHDevelop(string? procedureName = null, bool runImmediately = false)
     {
-        if (!_isActive)
+        if (!IsDebugServerActive)
         {
             _logger.Warn("[Vision] 未启动调试服务器，请先启动 Level 2 调试服务器", LogCategories.Vision);
             return false;
@@ -139,12 +151,12 @@ public sealed class HalconDebugService : IHalconDebugService
             return true;
         }
 
-        var procDir = GetDebugEngine().ProcedureDirectory;
+        var procDir = _procedureDirectory;
         var args    = new System.Text.StringBuilder();
 
         if (!string.IsNullOrEmpty(procedureName))
         {
-            var procFile = FindProcedureFile(procDir, procedureName);
+            var procFile = HdevProcedureCatalog.FindProcedureFile(procDir, procedureName);
             if (procFile is not null)
                 args.Append($"\"{procFile}\" ");
             else
@@ -179,17 +191,9 @@ public sealed class HalconDebugService : IHalconDebugService
 
     // ── 私有 ─────────────────────────────────────────────────────────────────
 
-    /// <summary>.hdvp 优先，fallback 到 .hdev；两者均不存在时返回 null。</summary>
-    private static string? FindProcedureFile(string directory, string procedureName)
-    {
-        var hdvp = Path.Combine(directory, procedureName + ".hdvp");
-        if (File.Exists(hdvp)) return hdvp;
-
-        var hdev = Path.Combine(directory, procedureName + ".hdev");
-        if (File.Exists(hdev)) return hdev;
-
-        return null;
-    }
+    /// <summary>取已拉起的 Debug 引擎；未拉起时返回 null（不创建）。</summary>
+    private HalconVisionService? TryGetDebugEngine()
+        => _contextManager.TryGet(EngineMode.Debug) as HalconVisionService;
 
     private HalconVisionService GetDebugEngine()
     {

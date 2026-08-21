@@ -3,8 +3,28 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.12</Version>
+		<Version>1.0.13</Version>
 		<PackageReleaseNotes>
+		v1.0.13 (2026-08-21) — 视觉调试契约解耦（含接口破坏性变更）
+
+		[破坏性变更 — IVisionContextManager]
+		- 新增 IVisionService? TryGet(EngineMode mode)：取已拉起的引擎，未拉起或已释放返回 null，
+		  与 GetOrCreate 的区别是绝不创建。
+		- 【实现方】框架内唯一实现 PF.Vision.Halcon 的 VisionContextManager 已同步；项目里若自写了
+		  IVisionContextManager 实现，必须补齐该成员，否则不能编译。调用方不受影响。
+
+		[破坏性变更 — IHalconDebugService]
+		- 新增 string ProcedureDirectory { get; }：过程文件所在目录（已规范化的完整路径）。
+		  同样只影响自写实现方，调用方不受影响。
+
+		[为什么加这两个成员]
+		- ProcedureDirectory：GetProcedureSignatureAsync 原先为了取这一个字符串而 GetOrCreate(Debug)，
+		  于是生产机上每次开机凭空多出一个永不使用的 HDevEngine。目录暴露出来后，签名解析、过程枚举、
+		  HDevelop 启动参数三处彻底不碰引擎。
+		- TryGet：IsDebugServerActive 原先缓存在本地字段里，调用方 ReleaseAsync(Debug) 释放引擎后仍报
+		  true。改为以引擎为唯一真相后，需要一个"不创建引擎"的取法——属性 getter 里既不能建引擎，
+		  也不该靠类型 cast 兜底。
+
 v1.0.12 (2026-08-18) — 新增串口调试视图导航常量
 
 [新增]

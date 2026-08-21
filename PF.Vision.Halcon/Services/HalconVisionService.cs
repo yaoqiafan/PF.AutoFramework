@@ -99,6 +99,16 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     internal string ProcedureDirectory => _procedureDirectory;
 
+    /// <summary>
+    /// 调试服务器是否已通过 <c>StartDebugServer()</c> 启动，由 HalconDebugService 维护。
+    /// <para>
+    /// 用于给 <see cref="VisionEngineConfig.WaitForDebugConnection"/> 加门：未启动服务器时
+    /// 若仍调用 SetWaitForDebugConnection(true)，过程会在入口无限等待一个永远不会到来的
+    /// HDevelop 连接，而 Debug 引擎超时为 InfiniteTimeSpan，Worker 线程将永久卡死。
+    /// </para>
+    /// </summary>
+    internal volatile bool DebugServerStarted;
+
     // ── IVisionService ────────────────────────────────────────────────────────
 
     public IReadOnlyList<string> GetAvailableProcedures()
@@ -404,8 +414,9 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
             if (_config.VerboseLogging)
                 _logger.Info($"[Vision][Debug] → {request.ProcedureName} | ctrl-in={request.ControlInputs.Count} iconic-in={request.IconicInputs.Count}", LogCategories.Vision);
 
-            // Debug 模式：在过程入口暂停，等待 HDevelop 连接后再继续执行
-            if (_config.WaitForDebugConnection)
+            // Debug 模式：在过程入口暂停，等待 HDevelop 连接后再继续执行。
+            // 必须同时确认调试服务器已启动，否则等待的连接永远不会到来（见 DebugServerStarted）
+            if (_config.WaitForDebugConnection && DebugServerStarted)
                 call.SetWaitForDebugConnection(true);
 
             call.Execute();
@@ -689,19 +700,8 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     private void ScanAvailableProcedures()
     {
-        if (!Directory.Exists(_procedureDirectory)) return;
-
-        // .hdvp 优先（同名时覆盖 .hdev 条目）
-        var hdvp = Directory.GetFiles(_procedureDirectory, "*.hdvp", SearchOption.AllDirectories)
-            .Select(f => Path.GetFileNameWithoutExtension(f)!);
-        var hdev = Directory.GetFiles(_procedureDirectory, "*.hdev", SearchOption.AllDirectories)
-            .Select(f => Path.GetFileNameWithoutExtension(f)!);
-
-        var names = hdvp.Concat(hdev)
-            .Where(n => !string.IsNullOrEmpty(n))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n)
-            .ToList();
+        // 扫描规则与 HalconDebugService 共用，避免两侧 .hdvp/.hdev 优先级失步
+        var names = HdevProcedureCatalog.Scan(_procedureDirectory);
 
         _availableLock.EnterWriteLock();
         try

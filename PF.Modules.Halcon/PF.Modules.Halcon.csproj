@@ -4,8 +4,24 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <PackageReleaseNotes>
+v1.0.3 (2026-08-21) — 调试面板新增「引擎耦合自检」
+
+[新增]
+- HalconDebugView 底部新增「引擎耦合自检」按钮与报告框，三项断言：
+  ① 停止调试服务器并释放 Debug 引擎后，IsDebugServerActive 能否跟着回落；
+  ② 过程枚举 + 逐个签名解析这两个只读 API 会不会把 Debug 引擎重新拉起来；
+  ③ 过程签名解析覆盖率，并附带过程目录下的子目录数量——子目录数为 0 时明确标注本项无法证伪
+    子目录递归查找，不让报告假装证明了没证明的事。
+- 自检会先停服务器 + 释放引擎以构造可复现的干净起点，跑完保持关闭状态，需要继续调试请重新点
+  「启动调试服务器」。
+
+[变更]
+- HalconDebugViewModel 构造函数新增 IVisionContextManager 参数（由容器解析，消费项目无需改动）。
+
+依赖：需 PF.Core 1.0.13+ 与 PF.Vision.Halcon 1.0.2+。
+
 v1.0.2 (2026-07-09) — 视觉调试面板侧边栏图标调整
 
 [变更]
