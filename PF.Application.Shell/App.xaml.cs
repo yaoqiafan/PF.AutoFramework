@@ -279,8 +279,9 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("CTS_LightController", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("COM", out var com);
+                int channelCount = cfg.ConnectionParameters.TryGetValue("ChannelCount", out var cc) ? int.Parse(cc) : 4;
                 return new Infrastructure.Hardware.LightController.CTS.CTSLightController(
-                    com, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+                    com, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, channelCount);
             });
 
             // 海康串口光源控制器（示例）。与康视达那条的区别：串口不由设备自己按 COM 名打开，
@@ -289,12 +290,14 @@ namespace PF.Application.Shell
             // 示例配置见 CustomConfiguration/Param/DefaultParameters.cs：
             //   通讯 HikLight_Serial（ImplementationClassName = "SerialPort"）
             //   硬件 HikLight_0（ConnectionParameters["CommInstanceId"] = "HikLight_Serial"）
+            // ConnectionParameters["ChannelCount"] 不写则为 4，与 CTS_LightController 一致。
             hwManager.RegisterFactory("HikComLightController", cfg =>
             {
                 var serial = commManager.GetCommunication<ISerialCommunication>(
                     cfg.ConnectionParameters["CommInstanceId"]);
+                int channelCount = cfg.ConnectionParameters.TryGetValue("ChannelCount", out var cc) ? int.Parse(cc) : 4;
                 return new Infrastructure.Hardware.LightController.HikCom.HikComLightController(
-                    serial, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+                    serial, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, channelCount);
             });
 
             // ── 线阵相机 + 图像采集卡 ─────────────────────────────────────────────

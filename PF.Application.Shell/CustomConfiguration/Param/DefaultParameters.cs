@@ -222,6 +222,21 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "海康串口光源控制器底层串口连接，PortName 改成实际串口号后可用"
             };
 
+            // 第二台海康串口光源的底层串口通道，配合下面 hikLight2CH（2 通道示例）演示：
+            // ChannelCount 是硬件层的配置，不影响串口本身，故这里只是换个端口号，结构与 HikLight_Serial 完全一致。
+            CommunicationConfig hikLightSerial2 = new()
+            {
+                InstanceId = "HikLight_Serial2",
+                DisplayName = "海康光源控制器2-串口通道",
+                Category = CommunicationCategory.Serial,
+                Role = CommunicationRole.None,
+                ImplementationClassName = "SerialPort",
+                IsEnabled = true,
+                AutoStart = false,
+                ConnectionParameters = new Dictionary<string, string> { ["PortName"] = "COM5", ["BaudRate"] = "9600" },
+                Remarks = "第二台海康串口光源控制器底层串口连接（配合 2 通道示例），PortName 改成实际串口号后可用"
+            };
+
             // 裸串口示例：不挂任何设备，专供串口调试页试手用。
             // 上面那条 HikLight_Serial 虽然也是串口，但它归海康光源设备驱动开关，
             // 在调试页上手动开合会跟设备层抢串口；这条是独立的，随便开随便发。
@@ -252,7 +267,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
             {
                 scanCode1Trigger, scanCode1UserPower, scanCode2Trigger, scanCode2UserPower, camera1Trigger,
                 Severtest, fileTransferServer, fileTransferClient, modbusRtuExample, modbusTcpExample,
-                hikLightSerial, serialPortExample
+                hikLightSerial, hikLightSerial2, serialPortExample
             };
 
             return configs.ToDictionary(c => c.InstanceId, c => new CommunicationParam
@@ -490,6 +505,22 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "康视达光源控制器，用于开发/调试"
             };
 
+            // 康视达光源控制器示例二：显式指定 ChannelCount，演示通道数可配置——
+            // 上面那台没写 ChannelCount，走 CTS_LightController 工厂里的缺省值 4；
+            // 这台写 8，调试页会按 8 通道渲染滑块，不再是写死的 4 条。
+            HardwareConfig lightCts8Ch = new HardwareConfig
+            {
+                DeviceId = "CTS_Light_8CH",
+                DeviceName = "康视达光源控制器(8通道示例)",
+                Category = "Light",
+                ImplementationClassName = "CTS_LightController",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["COM"] = "COM3", ["ChannelCount"] = "8" },
+                Remarks = "康视达光源控制器示例，显式指定 8 通道，用于验证调试页滑块数量随 ChannelCount 变化"
+            };
+
             // ── 线阵相机示例（AutoOCR Demo 本身不使用，默认 IsEnabled=false，只作为配置样板）──────
             //
             // 两台设备演示的是"经采集卡"这一种拓扑：采集卡是顶级设备，相机把 ParentDeviceId
@@ -579,6 +610,21 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 ParentDeviceId = string.Empty,
                 ConnectionParameters = new Dictionary<string, string> { ["CommInstanceId"] = "HikLight_Serial" },
                 Remarks = "海康串口光源控制器示例，通道 1~4，指令 S{通道字母}{4位亮度}#；串口参数见通讯配置 HikLight_Serial"
+            };
+
+            // 海康串口光源控制器示例二：显式指定 ChannelCount=2，与上面康视达 8 通道那台一起
+            // 演示调试页滑块数量随设备而变，串口走独立的 HikLight_Serial2（见 GetCommunicationDefaults）。
+            HardwareConfig lightHik2Ch = new HardwareConfig
+            {
+                DeviceId = "HikLight_1",
+                DeviceName = "海康Com口光源控制器(2通道示例)",
+                Category = "Light",
+                ImplementationClassName = "HikComLightController",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string> { ["CommInstanceId"] = "HikLight_Serial2", ["ChannelCount"] = "2" },
+                Remarks = "海康串口光源控制器示例，显式指定 2 通道；串口参数见通讯配置 HikLight_Serial2"
             };
 
 
@@ -754,6 +800,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Version      = 1
                     }
                 },
+                {
+                    lightCts8Ch.DeviceId, new HardwareParam
+                    {
+                        Name         = lightCts8Ch.DeviceId,
+                        Description  = lightCts8Ch.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(lightCts8Ch),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
                 // 采集卡必须排在相机之前只是可读性考虑：真正的"父先于子"由
                 // HardwareManagerService 按 ParentDeviceId 分层保证，与本字典的顺序无关
                 {
@@ -796,6 +853,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = hikLight.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(hikLight),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    lightHik2Ch.DeviceId, new HardwareParam
+                    {
+                        Name         = lightHik2Ch.DeviceId,
+                        Description  = lightHik2Ch.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(lightHik2Ch),
                         Category     = "Hardware",
                         Version      = 1
                     }

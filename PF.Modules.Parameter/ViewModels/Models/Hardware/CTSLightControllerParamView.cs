@@ -57,6 +57,16 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
             set => SetProperty(ref _com, value);
         }
 
+        private int _channelCount = 4;
+        /// <summary>获取或设置通道数</summary>
+        [Category("连接参数")]
+        [DisplayName("通道数")]
+        public int ChannelCount
+        {
+            get => _channelCount;
+            set => SetProperty(ref _channelCount, value);
+        }
+
         private string _remarks;
         /// <summary>获取或设置备注</summary>
         [Category("设备基本信息")]

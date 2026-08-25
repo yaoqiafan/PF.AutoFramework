@@ -38,8 +38,25 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.11</Version>
+		<Version>1.0.12</Version>
 		<PackageReleaseNotes>
+v1.0.12 (2026-08-24) — 光源控制器通道数可配置
+
+[新增]
+- BaseLightController 构造函数新增可选 channelCount 参数（默认 4），并新增只读 ChannelCount
+  属性，实现 PF.Core 1.0.14 新增的 ILightController.ChannelCount。
+- CTSLightController / HikComLightController / OPTLightController 构造函数同步新增
+  channelCount 参数（默认 4）并透传给基类。
+
+[变更]
+- HikComLightController 的通道范围校验（EnsureReady）此前用私有 const ChannelCount=4，
+  现改读基类的 ChannelCount 属性，通道数不再硬编码、随构造参数变化。
+
+[破坏性变更]
+- 实现 PF.Core 1.0.14 新增的 ILightController.ChannelCount 成员（详见该包 changelog）。
+  项目内若有未继承 BaseLightController、直接实现 ILightController 的光源控制器类，
+  需自行补齐该属性才能编译。
+
 v1.0.11 (2026-08-18) — 串口通讯实例接入调试面板
 
 [修复]

@@ -26,7 +26,8 @@ namespace PF.Infrastructure.Hardware.LightController.HikCom
         /// <param name="deviceName"></param>
         /// <param name="isSimulated"></param>
         /// <param name="logger"></param>
-        public HikComLightController(ISerialCommunication serial, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
+        /// <param name="channelCount">通道数，默认 4</param>
+        public HikComLightController(ISerialCommunication serial, string deviceId, string deviceName, bool isSimulated, ILogService logger, int channelCount = 4) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger, channelCount: channelCount)
         {
 
             lightSerial = serial;
@@ -44,9 +45,6 @@ namespace PF.Infrastructure.Hardware.LightController.HikCom
         private ManualResetEventSlim lightEvent = new ManualResetEventSlim(false);
 
         private string receivestr = string.Empty;
-
-        /// <summary>光源通道数。指令用 A~D 表示 1~4 通道。</summary>
-        private const int ChannelCount = 4;
 
         /// <summary>单条指令等待应答的超时（毫秒）。</summary>
         private const int ReplyTimeoutMs = 3000;

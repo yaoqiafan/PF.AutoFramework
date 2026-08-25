@@ -19,7 +19,7 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
         /// <summary>
         /// 构造康视达光源控制器
         /// </summary>
-        public CTSLightController(string Com, string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
+        public CTSLightController(string Com, string deviceId, string deviceName, bool isSimulated, ILogService logger, int channelCount = 4) : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger, channelCount: channelCount)
         {
 
             this.ComName = Com;

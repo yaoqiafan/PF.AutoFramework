@@ -47,6 +47,10 @@ namespace PF.Core.Interfaces.Device.Hardware.LightController
         /// </summary>
         int Port { get; }
 
+        /// <summary>
+        /// 通道数。注册硬件时由 ConnectionParameters["ChannelCount"] 指定，不写则为 4。
+        /// </summary>
+        int ChannelCount { get; }
 
     }
 }

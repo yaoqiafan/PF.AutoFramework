@@ -3,8 +3,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.13</Version>
+		<Version>1.0.14</Version>
 		<PackageReleaseNotes>
+		v1.0.14 (2026-08-24) — 光源控制器通道数可配置（含接口破坏性变更）
+
+		[破坏性变更 — ILightController]
+		- 新增 int ChannelCount { get; }：光源通道数，注册硬件时由 ConnectionParameters["ChannelCount"]
+		  指定，不写则为 4。【实现方】框架内三个实现（CTS/HikCom/OPT LightController，见
+		  PF.Infrastructure 1.0.12）已同步；项目里若自写了 ILightController 实现，必须补齐该成员，
+		  否则不能编译。调用方不受影响。
+
+		[为什么加这个成员]
+		- 光源控制器调试页此前把通道数写死成 4（LightValue1~4 四个固定属性 + XAML 四行滑块），
+		  不同厂商/型号实际通道数并不一致，界面要么凑不够、要么用不完。通道数纳入契约后，
+		  调试页改为按设备实际 ChannelCount 动态渲染（见 PF.Modules.Debug 1.0.10）。
+
 		v1.0.13 (2026-08-21) — 视觉调试契约解耦（含接口破坏性变更）
 
 		[破坏性变更 — IVisionContextManager]

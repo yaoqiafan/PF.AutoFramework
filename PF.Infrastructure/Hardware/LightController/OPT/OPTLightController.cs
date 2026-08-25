@@ -9,7 +9,7 @@ namespace PF.Infrastructure.Hardware.LightController.OPT
 {
     internal class OPTLightController : BaseLightController
     {
-        public OPTLightController(string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId, deviceName, isSimulated, logger)
+        public OPTLightController(string deviceId, string deviceName, bool isSimulated, ILogService logger, int channelCount = 4) : base(deviceId, deviceName, isSimulated, logger, channelCount)
         {
         }
 

@@ -13,8 +13,17 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-08-24) — 光源控制器参数视图支持通道数配置
+
+[新增]
+- CTSLightControllerParamView / HikComLightControllerParamView 新增"通道数"字段
+  （Category=连接参数），对应 ConnectionParameters["ChannelCount"]；两个 Mapper 同步读写，
+  缺省 4，与 PF.Infrastructure 1.0.12 的工厂缺省值一致。
+- 配合 PF.Core 1.0.14 新增的 ILightController.ChannelCount：此前通道数只能手改配置 JSON，
+  现可在参数界面的硬件配置对话框直接填写。
+
 v1.0.5 (2026-08-17) — 新增海康串口光源控制器的硬件参数视图
 
 [新增]

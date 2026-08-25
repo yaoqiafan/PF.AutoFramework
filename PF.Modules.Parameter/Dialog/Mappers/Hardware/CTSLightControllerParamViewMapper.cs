@@ -23,6 +23,10 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 config.ConnectionParameters.TryGetValue("COM", out var com);
                 view.Com = com ?? string.Empty;
 
+                view.ChannelCount = config.ConnectionParameters.TryGetValue("ChannelCount", out var cc) && int.TryParse(cc, out var channelCount)
+                    ? channelCount
+                    : 4;
+
                 return true;
             }
 
@@ -47,7 +51,8 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ImplementationClassName = "CTS_LightController",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["COM"] = view.Com ?? string.Empty
+                        ["COM"] = view.Com ?? string.Empty,
+                        ["ChannelCount"] = view.ChannelCount.ToString()
                     }
                 };
             }

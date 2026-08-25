@@ -16,12 +16,18 @@ namespace PF.Infrastructure.Hardware.LightController
     public abstract class BaseLightController : BaseDevice, ILightController
     {
         /// <summary>
-        /// 构造光源控制器
+        /// 构造光源控制器。channelCount 为通道数，默认 4。
         /// </summary>
-        protected BaseLightController( string deviceId, string deviceName, bool isSimulated, ILogService logger) : base(deviceId:deviceName , deviceName:deviceName, isSimulated:isSimulated , logger:logger )
+        protected BaseLightController( string deviceId, string deviceName, bool isSimulated, ILogService logger, int channelCount = 4) : base(deviceId:deviceName , deviceName:deviceName, isSimulated:isSimulated , logger:logger )
         {
             Category = Core.Enums.HardwareCategory.LightController;
+            ChannelCount = channelCount;
         }
+
+        /// <summary>
+        /// 通道数
+        /// </summary>
+        public int ChannelCount { get; }
 
 
 

@@ -11,8 +11,26 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.9</Version>
+		<Version>1.0.10</Version>
 		<PackageReleaseNotes>
+v1.0.10 (2026-08-24) — 光源控制器调试页支持动态通道数（UI 结构调整）
+
+[变更 — LightControllerDebugViewModel]
+- 通道相关的四个固定属性（LightValue1~4）替换为 ObservableCollection&lt;LightChannelViewModel&gt;
+  Channels，数量随设备 ILightController.ChannelCount（PF.Core 1.0.14）变化，每次导航到新设备
+  都按其通道数重建；配套的待发值/脏标记数组同步改为动态长度数组。
+- 新增 LightChannelViewModel：承载单通道的 Value，ValueChangedByUser 事件把用户改动
+  （区别于读回赋值）转发给既有的防抖/下发逻辑；读回改走 ApplyReadValue 写入且不触发下发，
+  取代此前基于单个 _suppressWrite 标志位的做法。
+
+[变更 — LightControllerDebugView.xaml]
+- 通道区域由写死的 4 行 Grid 改为 ItemsControl 绑定 Channels：每行是一个带刻度的 Slider
+  （TickPlacement=BottomRight，仅作视觉刻度、未启用 IsSnapToTickEnabled）+ 一个可编辑 TextBox，
+  二者绑定同一个 Value 属性、天然双向联动——滑块拖动与文本框直接输入均可精确控制亮度。
+
+[依赖]
+- 依赖 PF.Core 1.0.14 的 ILightController.ChannelCount 与 PF.Infrastructure 1.0.12 的对应实现。
+
 v1.0.9 (2026-08-18) — 新增串口调试页
 
 [新增]

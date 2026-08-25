@@ -159,142 +159,51 @@
 
                 <Border
                     Grid.Column=" 1"
-                    Margin="0,0,0,15"
+                    Margin="10,0,0,15"
                     Padding="15"
                     BorderBrush="#E2E8F0"
                     BorderThickness="1"
                     CornerRadius="6">
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height=" *" />
-                            <RowDefinition Height=" *" />
-                            <RowDefinition Height=" *" />
-                            <RowDefinition Height=" *" />
-                        </Grid.RowDefinitions>
-
-                        <!--  通道1  -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width=" 100" />
-                                <ColumnDefinition Width=" *" />
-                                <ColumnDefinition Width="100" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="通道1" />
-                            <Slider
-                                Grid.Column=" 1"
-                                Height=" auto"
-                                VerticalAlignment="Center"
-                                Maximum=" 255"
-                                Minimum=" 0"
-                                Value="{Binding LightValue1, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock
-                                Grid.Column=" 2"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="{Binding LightValue1}" />
-                        </Grid>
-
-                        <Grid Grid.Row=" 1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width=" 100" />
-                                <ColumnDefinition Width=" *" />
-                                <ColumnDefinition Width="100" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="通道2" />
-                            <Slider
-                                Grid.Column=" 1"
-                                Height=" auto"
-                                VerticalAlignment="Center"
-                                Maximum=" 255"
-                                Minimum=" 0"
-                                Value="{Binding LightValue2, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock
-                                Grid.Column=" 2"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="{Binding LightValue2}" />
-                        </Grid>
-
-                        <Grid Grid.Row=" 2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width=" 100" />
-                                <ColumnDefinition Width=" *" />
-                                <ColumnDefinition Width="100" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="通道3" />
-                            <Slider
-                                Grid.Column=" 1"
-                                Height=" auto"
-                                VerticalAlignment="Center"
-                                Maximum=" 255"
-                                Minimum=" 0"
-                                Value="{Binding LightValue3, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock
-                                Grid.Column=" 2"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="{Binding LightValue3}" />
-                        </Grid>
-
-                        <Grid Grid.Row=" 3">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width=" 100" />
-                                <ColumnDefinition Width=" *" />
-                                <ColumnDefinition Width="100" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="通道4" />
-                            <Slider
-                                Grid.Column=" 1"
-                                Height=" auto"
-                                VerticalAlignment="Center"
-                                Maximum=" 255"
-                                Minimum=" 0"
-                                Value="{Binding LightValue4, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock
-                                Grid.Column=" 2"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="25 "
-                                FontWeight="SemiBold"
-                                Foreground="#475569"
-                                Text="{Binding LightValue4}" />
-                        </Grid>
-
-                    </Grid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Channels}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!--  通道行：左侧通道名，中间带刻度滑块，右侧文本框可直接输入数值，两者绑定同一个 Value 天然双向联动  -->
+                                    <Grid Margin="0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="70" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Height="100"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            FontSize="{DynamicResource FontSize.H2.Title}"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding DisplayName}" />
+                                        <Slider
+                                            Grid.Column="1"
+                                            Margin="10,0"
+                                            VerticalAlignment="Center"
+                                            IsSnapToTickEnabled="False"
+                                            Maximum="255"
+                                            Minimum="0"
+                                            TickFrequency="5"
+                                            TickPlacement="BottomRight"
+                                            Value="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Height="30"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center"
+                                            Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Border>
             </Grid>
 

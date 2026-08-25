@@ -24,7 +24,7 @@ namespace PF.Modules.Debug.ViewModels
     /// 停手 150ms 后只发最后一个值"，并用信号量保证同一时刻只有一笔在途。</para>
     ///
     /// <para><b>亮度读回是按钮触发、不是轮询</b>：<see cref="ILightController.GetLightValue"/> 每读一个
-    /// 通道就是一笔串口问答（海康那款等应答最长 3 秒），四个通道轮询一遍最坏要十几秒；
+    /// 通道就是一笔串口问答（海康那款等应答最长 3 秒），通道多的设备轮询一遍最坏要十几秒；
     /// 若按 200ms 轮询，串口会被读指令占满、下发亮度根本挤不进去，而且读回值会不停把用户
     /// 正在拖的滑块拽回去。因此改为：进页面时（且设备已连接）自动读一次对齐初值，
     /// 之后由"读取亮度"按钮显式触发。读与写共用同一把信号量，不会交叉占用链路。</para>
@@ -37,8 +37,8 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>亮度下发防抖窗口（毫秒）：停止拖动这么久之后才真正下发。</summary>
         private const int WriteDebounceMs = 150;
 
-        /// <summary>光源通道数。与界面上的四个滑块一致。</summary>
-        private const int ChannelCount = 4;
+        /// <summary>未选中设备时的兜底通道数，仅用于导航前的占位显示。</summary>
+        private const int DefaultChannelCount = 4;
 
         /// <summary>初始化光源控制器调试 ViewModel</summary>
         public LightControllerDebugViewModel(ILogService logService)
@@ -57,6 +57,8 @@ namespace PF.Modules.Debug.ViewModels
                 Interval = TimeSpan.FromMilliseconds(WriteDebounceMs)
             };
             _writeTimer.Tick += OnWriteTimerTick;
+
+            RebuildChannels(DefaultChannelCount);
         }
 
         private ILightController _lightController;
@@ -75,20 +77,14 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>页面级取消源：离开页面时取消尚未完成的亮度下发。</summary>
         private CancellationTokenSource _cts;
 
-        /// <summary>各通道待下发的最新值（索引 0 对应通道 1）。</summary>
-        private readonly int[] _pendingValues = new int[ChannelCount];
+        /// <summary>各通道待下发的最新值（索引 0 对应通道 1）。随 <see cref="RebuildChannels"/> 重建。</summary>
+        private int[] _pendingValues = new int[DefaultChannelCount];
 
-        /// <summary>各通道是否有未下发的改动。</summary>
-        private readonly bool[] _pendingDirty = new bool[ChannelCount];
+        /// <summary>各通道是否有未下发的改动。随 <see cref="RebuildChannels"/> 重建。</summary>
+        private bool[] _pendingDirty = new bool[DefaultChannelCount];
 
         /// <summary>串行化链路：同一时刻只允许一笔亮度事务（下发或读回）在途。</summary>
         private readonly SemaphoreSlim _writeGate = new(1, 1);
-
-        /// <summary>
-        /// 读回期间置位，防止"读到的值写进属性 → setter 触发 RequestWrite → 又把刚读到的值发回设备"
-        /// 这一圈自激。
-        /// </summary>
-        private bool _suppressWrite;
 
         #region 【Prism 导航生命周期】
         /// <summary>导航离开时停止轮询、取消在途下发</summary>
@@ -123,6 +119,9 @@ namespace PF.Modules.Debug.ViewModels
 
                 // 串口地址是取自设备实例的只读值，实例要到这一刻才有，必须显式通知界面刷新
                 RaisePropertyChanged(nameof(COMAdress));
+
+                // 通道数按设备实例注册时的配置来，每台光源控制器可以不一样，故每次导航都重建
+                RebuildChannels(_lightController?.ChannelCount ?? DefaultChannelCount);
             }
 
             _cts?.Dispose();
@@ -241,68 +240,33 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 光源控制器特有属性
 
-        private int _lightValue1;
+        /// <summary>
+        /// 各通道的滑块/文本框数据项，界面用 ItemsControl 渲染。数量随设备 <see cref="ILightController.ChannelCount"/> 变化，
+        /// 每次导航进页面（拿到新的 Device 参数）都会按当前设备的通道数重建。
+        /// </summary>
+        public ObservableCollection<LightChannelViewModel> Channels { get; } = new();
 
-        /// <summary>获取或设置光源通道1亮度值</summary>
-        public int LightValue1
+        /// <summary>
+        /// 按给定通道数重建 <see cref="Channels"/> 及配套的待发值/脏标记数组。
+        /// 旧通道项要先摘掉事件订阅，否则重建后旧项仍会被回调（虽然已经从集合里移除，但委托链不会自动断开）。
+        /// </summary>
+        private void RebuildChannels(int channelCount)
         {
-            get => _lightValue1;
-            set
+            foreach (var old in Channels)
             {
-                if (SetProperty(ref _lightValue1, value))
-                {
-                    RequestWrite(1, value);
-                }
+                old.ValueChangedByUser -= OnChannelValueChanged;
             }
-        }
+            Channels.Clear();
 
-
-        private int _lightValue2;
-
-        /// <summary>获取或设置光源通道2亮度值</summary>
-        public int LightValue2
-        {
-            get => _lightValue2;
-            set
+            for (int i = 1; i <= channelCount; i++)
             {
-                if (SetProperty(ref _lightValue2, value))
-                {
-                    RequestWrite(2, value);
-                }
+                var item = new LightChannelViewModel(i);
+                item.ValueChangedByUser += OnChannelValueChanged;
+                Channels.Add(item);
             }
-        }
 
-
-
-        private int _lightValue3;
-
-        /// <summary>获取或设置光源通道3亮度值</summary>
-        public int LightValue3
-        {
-            get => _lightValue3;
-            set
-            {
-                if (SetProperty(ref _lightValue3, value))
-                {
-                    RequestWrite(3, value);
-                }
-            }
-        }
-
-
-        private int _lightValue4;
-
-        /// <summary>获取或设置光源通道4亮度值</summary>
-        public int LightValue4
-        {
-            get => _lightValue4;
-            set
-            {
-                if (SetProperty(ref _lightValue4, value))
-                {
-                    RequestWrite(4, value);
-                }
-            }
+            _pendingValues = new int[channelCount];
+            _pendingDirty = new bool[channelCount];
         }
 
         #endregion 光源控制器特有属性
@@ -310,15 +274,16 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【亮度下发】
 
+        /// <summary>通道滑块/文本框的用户改动回调，转发给 <see cref="RequestWrite"/>。</summary>
+        private void OnChannelValueChanged(int channel, int value) => RequestWrite(channel, value);
+
         /// <summary>
         /// 登记一次亮度改动并重置防抖计时：拖动过程中只更新待发值，停手后才真正下发。
         /// </summary>
         private void RequestWrite(int channel, int value)
         {
             if (_lightController == null) return;
-
-            // 读回赋值触发的 setter 不算用户改动，不能反手再下发回去
-            if (_suppressWrite) return;
+            if (channel < 1 || channel > _pendingValues.Length) return;
 
             _pendingValues[channel - 1] = value;
             _pendingDirty[channel - 1] = true;
@@ -344,7 +309,7 @@ namespace PF.Modules.Debug.ViewModels
             if (light == null) return;
 
             var snapshot = new List<(int Channel, int Value)>();
-            for (int i = 0; i < ChannelCount; i++)
+            for (int i = 0; i < _pendingValues.Length; i++)
             {
                 if (!_pendingDirty[i]) continue;
                 _pendingDirty[i] = false;
@@ -394,14 +359,15 @@ namespace PF.Modules.Debug.ViewModels
             IsReading = true;
             try
             {
-                for (int channel = 1; channel <= ChannelCount; channel++)
+                for (int idx = 0; idx < Channels.Count; idx++)
                 {
+                    var item = Channels[idx];
                     token.ThrowIfCancellationRequested();
                     try
                     {
-                        int value = await light.GetLightValue(channel, token);
-                        ApplyReadValue(channel, value);
-                        _logger.Debug($"[{DeviceName}] 通道{channel} 亮度读回：{value}");
+                        int value = await light.GetLightValue(item.Channel, token);
+                        item.ApplyReadValue(value);
+                        _logger.Debug($"[{DeviceName}] 通道{item.Channel} 亮度读回：{value}");
                     }
                     catch (OperationCanceledException)
                     {
@@ -409,7 +375,7 @@ namespace PF.Modules.Debug.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"[{DeviceName}] 通道{channel} 亮度读取失败：{ex.Message}", ex);
+                        _logger.Error($"[{DeviceName}] 通道{item.Channel} 亮度读取失败：{ex.Message}", ex);
                     }
                 }
             }
@@ -417,26 +383,6 @@ namespace PF.Modules.Debug.ViewModels
             {
                 IsReading = false;
                 _writeGate.Release();
-            }
-        }
-
-        /// <summary>把读回值写进对应通道属性，期间抑制下发。</summary>
-        private void ApplyReadValue(int channel, int value)
-        {
-            _suppressWrite = true;
-            try
-            {
-                switch (channel)
-                {
-                    case 1: LightValue1 = value; break;
-                    case 2: LightValue2 = value; break;
-                    case 3: LightValue3 = value; break;
-                    case 4: LightValue4 = value; break;
-                }
-            }
-            finally
-            {
-                _suppressWrite = false;
             }
         }
 

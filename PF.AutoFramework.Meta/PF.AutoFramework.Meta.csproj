@@ -3,8 +3,38 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.20</Version>
+    <Version>1.0.21</Version>
     <PackageReleaseNotes>
+		v1.0.21 (2026-08-24) — 光源控制器通道数可配置（含接口破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.13→1.0.14]
+		- ILightController 新增 int ChannelCount { get; }：光源通道数，注册硬件时由
+		  ConnectionParameters["ChannelCount"] 指定，不写则为 4。调用方不受影响；项目里若自写了
+		  该接口的实现，必须补齐该成员才能编译。
+
+		[新增 — PF.Infrastructure 1.0.11→1.0.12]
+		- BaseLightController / CTSLightController / HikComLightController / OPTLightController
+		  构造函数新增可选 channelCount 参数（默认 4），实现新增的 ChannelCount 属性；
+		  HikComLightController 的通道范围校验改读该属性，不再硬编码为 4。
+
+		[新增 — PF.Modules.Parameter 1.0.5→1.0.6]
+		- CTSLightControllerParamView / HikComLightControllerParamView 新增"通道数"字段，
+		  两个 Mapper 同步读写 ConnectionParameters["ChannelCount"]，缺省 4——此前通道数
+		  只能手改配置 JSON，现可在参数界面直接填写。
+
+		[变更 — PF.Modules.Debug 1.0.9→1.0.10]
+		- 光源控制器调试页通道区域由写死 4 通道改为按设备 ChannelCount 动态渲染：新增
+		  LightChannelViewModel + ItemsControl 布局，每行为带刻度滑块 + 可编辑文本框，
+		  两者绑定同一个 Value 天然双向联动。
+
+		[为什么做这次改动]
+		- 不同厂商/型号的光源控制器实际通道数并不一致（4/8/2 等），此前调试页写死 4 个滑块，
+		  通道数对不上时界面要么凑不够、要么用不完。改为契约里显式声明通道数后，从注册配置到
+		  调试界面全链路按设备实际通道数走。
+
+		子包版本对照：PF.Core 1.0.13→1.0.14，PF.Infrastructure 1.0.11→1.0.12，
+		PF.Modules.Parameter 1.0.5→1.0.6，PF.Modules.Debug 1.0.9→1.0.10；其余子包本次无变化。
+
 		v1.0.20 (2026-08-21) — 视觉调试服务与 Debug 引擎解耦（含接口破坏性变更）
 
 		[修复了什么实际问题 — PF.Vision.Halcon 1.0.1→1.0.2]

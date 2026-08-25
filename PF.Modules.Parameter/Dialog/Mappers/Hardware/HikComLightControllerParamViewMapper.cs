@@ -23,6 +23,10 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 config.ConnectionParameters.TryGetValue("CommInstanceId", out var commInstanceId);
                 view.CommInstanceId = commInstanceId ?? string.Empty;
 
+                view.ChannelCount = config.ConnectionParameters.TryGetValue("ChannelCount", out var cc) && int.TryParse(cc, out var channelCount)
+                    ? channelCount
+                    : 4;
+
                 return true;
             }
 
@@ -48,7 +52,8 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ImplementationClassName = "HikComLightController",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["CommInstanceId"] = view.CommInstanceId ?? string.Empty
+                        ["CommInstanceId"] = view.CommInstanceId ?? string.Empty,
+                        ["ChannelCount"] = view.ChannelCount.ToString()
                     }
                 };
             }
