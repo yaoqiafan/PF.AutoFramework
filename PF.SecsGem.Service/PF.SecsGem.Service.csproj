@@ -4,19 +4,32 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- 单文件发布：make the service deployable as a single .exe -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
     <UserSecretsId>dotnet-PF.SecsGem.Service-25322c82-1873-4cb5-834d-d44dafcee1e6</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-	  <PackageReference Include="Microsoft.Extensions.Hosting" />
-	  <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\PF.Core\PF.Core.csproj" />
-    <ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
-    <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
-    <ProjectReference Include="..\PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
+  <!-- NuGet 模式 -->
+  <ItemGroup Condition="'$(PFLocalDev)' != 'true'">
+    <!-- 本项目直接使用 PF.Core（消息实体/枚举）与 PF.Infrastructure（TcpServer/SecsGemMessageTools 等），
+         且不经 Meta 元包，必须直接引用才能吃到 SECS/GEM 修复版本（见 Directory.Packages.props 注释）。 -->
+    <PackageReference Include="PF.Core" />
+    <PackageReference Include="PF.Infrastructure" />
+    <PackageReference Include="PF.SecsGem.DataBase" />
+    <PackageReference Include="PF.Services" />
   </ItemGroup>
+
+  <!-- 本地开发模式 -->
+  <ItemGroup Condition="'$(PFLocalDev)' == 'true'">
+    <ProjectReference Include="$(PFRoot)PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
+    <ProjectReference Include="$(PFRoot)PF.Services\PF.Services.csproj" />
+  </ItemGroup>
+
 </Project>

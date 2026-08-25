@@ -1,4 +1,4 @@
-﻿using PF.Core.Entities.SecsGem.Message;
+using PF.Core.Entities.SecsGem.Message;
 using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Enums;
 using PF.Core.Events;
@@ -49,9 +49,9 @@ namespace PF.SecsGem.Service
         private string LocationClientId = string.Empty;
 
         /// <summary>
-        /// SECSGEM服务器
+        /// 面向 Host 的 HSMS 监听。随主程序接入/断开本机回环通道而开关，详见 <see cref="HsmsListener"/>。
         /// </summary>
-        private TcpServer SecsGemServer;
+        private readonly HsmsListener _hsms;
 
         /// <summary>
         /// 本地交互服务器
@@ -284,22 +284,41 @@ namespace PF.SecsGem.Service
             }
         }
 
-        private void LocationServer_ClientConnected(object? sender, ClientConnectedEventArgs e)
+        private async void LocationServer_ClientConnected(object? sender, ClientConnectedEventArgs e)
         {
             this.LocationClientId = e.ClientId;
             // 为新客户端创建消息缓冲区
             _locationClientBuffers.TryAdd(e.ClientId, new LocationMessageBuffer());
 
-            _ = this.LocationServer.SendAsync(this.LocationClientId,
+            // 先推当前状态帧再开监听：顺序反过来的话，Host 有可能抢在状态帧之前接入并触发
+            // 0x02 Connected，随后这里推出的 Disconnected 会把已连接状态覆盖成陈旧值
+            await this.LocationServer.SendAsync(this.LocationClientId,
                 new byte[] { 0x02, (byte)(_SecsStatus ? SecsStatus.Connected : SecsStatus.Disconnected) });
+
+            // 主程序已接入，开启对 Host 的 HSMS 监听。
+            // 每次开启前重读系统配置：监听改为按需创建后，HSMS 的 IP/Port 变更只需主程序
+            // 断开重连一次即可生效，不必重启整个服务
+            await ReloadSystemParamAsync();
+            if (_secsGemSystemParam == null)
+            {
+                _commLogger.Error("系统配置为空（SystemConfigs 无记录），无法开启 HSMS 监听");
+                return;
+            }
+
+            await _hsms.StartAsync(_secsGemSystemParam.IPAddress, _secsGemSystemParam.Port);
         }
 
-        private void LocationServer_ClientDisconnected(object? sender, ClientDisconnectedEventArgs e)
+        private async void LocationServer_ClientDisconnected(object? sender, ClientDisconnectedEventArgs e)
         {
             _locationClientBuffers.TryRemove(e.ClientId, out _);
             if (this.LocationClientId == e.ClientId)
             {
                 this.LocationClientId = string.Empty;
+
+                // 主程序退出/崩溃/被强杀。没有消费方时不应继续对 Host 开放监听，
+                // 否则 Host 连得上却无人应答报文，只能干等 T3 超时。
+                // 外层的 ID 守卫同时保证：迟到的旧连接断开事件不会误关新会话刚开启的监听
+                await _hsms.StopAsync("主程序已断开本机通道");
             }
         }
 
@@ -316,7 +335,11 @@ namespace PF.SecsGem.Service
             if (!string.IsNullOrEmpty(oldClientId) && oldClientId != e.ClientId)
             {
                 _commLogger.Warn($"检测到新的主机连接 {e.ClientId}，主动断开旧连接 {oldClientId}");
-                await this.SecsGemServer.DisconnectClientAsync(oldClientId);
+                var hsmsServer = _hsms.Server;
+                if (hsmsServer != null)
+                {
+                    await hsmsServer.DisconnectClientAsync(oldClientId);
+                }
             }
 
             if (!string.IsNullOrEmpty(this.LocationClientId))
@@ -495,9 +518,11 @@ namespace PF.SecsGem.Service
                 {
                     try
                     {
-                        if (this.SecsGemServer != null && !string.IsNullOrEmpty(this.SecsGemClientId))
+                        // 取本地副本：监听可能在本次判断与发送之间被 LocationServer_ClientDisconnected 关闭
+                        var hsmsServer = _hsms.Server;
+                        if (hsmsServer != null && !string.IsNullOrEmpty(this.SecsGemClientId))
                         {
-                            bool success = await this.SecsGemServer.SendAsync(this.SecsGemClientId, data);
+                            bool success = await hsmsServer.SendAsync(this.SecsGemClientId, data);
                             if (!success)
                             {
                                 _commLogger.Warn("向主机发送数据失败（连接可能已断开），该条数据被丢弃");
@@ -505,7 +530,7 @@ namespace PF.SecsGem.Service
                         }
                         else
                         {
-                            _commLogger.Warn("主机未连接，丢弃一条待发送数据");
+                            _commLogger.Warn("主机未连接或 HSMS 监听未开启，丢弃一条待发送数据");
                         }
                     }
                     catch (Exception ex)
@@ -520,6 +545,38 @@ namespace PF.SecsGem.Service
             }
         }
 
+        /// <summary>
+        /// 从数据库重新加载 SecsGem 系统配置（设备号、HSMS 绑定地址与端口）。
+        ///
+        /// <para>每次开启 HSMS 监听前都会调用：监听自改为按需创建后，配置不再只在服务启动时读一次，
+        /// 因此现场改完 IP/Port 只需让主程序断开重连一次即可生效，无需重启服务。</para>
+        /// </summary>
+        private async Task ReloadSystemParamAsync()
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var secsGemDataBase = scope.ServiceProvider.GetRequiredService<ISecsGemDataBase>();
+                using var dbScope = secsGemDataBase.BeginScope();
+                var manger0 = dbScope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
+                var loaded = (await manger0.GetAllAsync())
+                    .Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
+
+                // 查询成功但表为空时不覆盖：与读库异常同理，一份可用配置不该被空结果清掉。
+                // 首次加载拿到 null 由 ExecuteAsync 判空后拒绝启动，不会走到这里的保留分支
+                if (loaded != null)
+                    _secsGemSystemParam = loaded;
+                else if (_secsGemSystemParam != null)
+                    _commLogger.Warn("SecsGem 系统配置表为空，沿用上一次加载的配置");
+            }
+            catch (Exception ex)
+            {
+                // 保留上一次成功加载的配置：读库失败不应把一份可用配置清成 null，
+                // 否则一次瞬时的数据库异常会连带让本已正常的监听再也开不起来
+                _commLogger.Error("重新加载 SecsGem 系统配置失败，沿用上一次的配置", ex);
+            }
+        }
+
         #endregion Methods
 
         /// <summary>
@@ -529,6 +586,7 @@ namespace PF.SecsGem.Service
         {
             _commLogger      = CategoryLoggerFactory.Communication(logService);
             _scopeFactory    = scopeFactory;
+            _hsms            = new HsmsListener(_commLogger);
             _protocolLogPath = Path.Combine(logService.GetConfiguration().BasePath, "Protocol");
             _processor       = new SecsGemMessageProcessor(logService);
         }
@@ -536,13 +594,7 @@ namespace PF.SecsGem.Service
         /// <summary>执行后台任务</summary>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var secsGemDataBase = scope.ServiceProvider.GetRequiredService<ISecsGemDataBase>();
-                using var dbScope = secsGemDataBase.BeginScope();
-                var manger0 = dbScope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
-                _secsGemSystemParam = (await manger0.GetAllAsync()).Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
-            }
+            await ReloadSystemParamAsync();
 
             _commLogger.Info("SecsGem 后台工作线程已启动");
 
@@ -561,11 +613,14 @@ namespace PF.SecsGem.Service
                 LocationServer.ClientConnected += LocationServer_ClientConnected;
                 LocationServer.ClientDisconnected += LocationServer_ClientDisconnected;
 
-                SecsGemServer = new TcpServer("SecsGem服务器");
-                await SecsGemServer.StartAsync(_secsGemSystemParam.IPAddress, _secsGemSystemParam.Port);
-                SecsGemServer.DataReceived += SecsGemServer_DataReceived;
-                SecsGemServer.ClientConnected += SecsGemServer_ClientConnected;
-                SecsGemServer.ClientDisconnected += SecsGemServer_ClientDisconnected;
+                // HSMS 监听不在此处开启：改由主程序接入回环通道时按需开启（见 LocationServer_ClientConnected）。
+                // 事件只订阅一次——HsmsListener 内部反复创建/销毁 TcpServer 实例对这里透明。
+                _hsms.DataReceived += SecsGemServer_DataReceived;
+                _hsms.ClientConnected += SecsGemServer_ClientConnected;
+                _hsms.ClientDisconnected += SecsGemServer_ClientDisconnected;
+
+                _commLogger.Info("HSMS 监听待命中，等待主程序接入本机通道后开启。" +
+                                 "若主程序已启动仍停留在此状态，请检查主程序 SECS/GEM 模组是否初始化成功。");
 
                 _ = ProcessSecsGemServiceInfo(stoppingToken);
                 _ = ProcessHostSendAsync(stoppingToken);
@@ -586,6 +641,8 @@ namespace PF.SecsGem.Service
             }
             finally
             {
+                // 服务停止时主动收掉监听，不依赖进程退出释放端口
+                await _hsms.DisposeAsync();
                 _commLogger.Info("SecsGem 后台工作线程已停止");
             }
         }
