@@ -4,7 +4,7 @@
 [![WPF](https://img.shields.io/badge/UI-WPF-lightgrey.svg)]()
 [![Prism](https://img.shields.io/badge/Framework-Prism%209-yellow.svg)](https://prismlibrary.com/)
 [![EF Core](https://img.shields.io/badge/ORM-EF%20Core%209-green.svg)]()
-[![DryIoc](https://img.shields.io/badge/DI-DryIoc%206-orange.svg)]()
+[![DryIoc](https://img.shields.io/badge/DI-DryIoc%205.4-orange.svg)]()
 [![Halcon](https://img.shields.io/badge/Vision-Halcon%20HDevEngine-purple.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -18,9 +18,12 @@
 
 * **🧩 极致的模块化架构**：基于 Prism 9 实现 UI、核心逻辑与数据层的彻底解耦。支持插件式开发，子模块动态加载。
 * **🏭 完整的工控生命周期**：内置标准化 8 状态机（含 `InitAlarm` / `RunAlarm` 分离），配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
-* **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase<T>`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice`）。
-* **👁️ 集成机器视觉**：通过 `PF.Vision.Halcon` 桥接 Halcon HDevEngine，提供 Halcon 无关的 `IVisionService` 抽象（生产 / 调试 / 离线三模式引擎）、过程执行引擎、ROI 管理、视觉工作流管线（JSON 配置 + 条件分支），并配套 `PF.Modules.Halcon` 调试 UI（HDevelop Level-2 联调、管线运行器、ROI 编辑器）。
-* **🌐 统一通讯管理框架**：`ICommunication` 抽象统一封装 TCP 服务端/客户端、串口、大文件传输通道（多 Lane 并行 + CRC32/xxHash64 校验 + 断线重连），`CommunicationManagerService` 与 `HardwareManagerService` 结构对齐。
+* **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase<T>`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice<TParent>`）与图像采集卡挂载链路（`IFrameGrabberCard` / `ILineScanCamera`）。
+* **👁️ 集成机器视觉**：通过 `PF.Vision.Halcon` 桥接 Halcon HDevEngine，提供 Halcon 无关的 `IVisionService` 抽象（生产 / 调试 / 离线三模式引擎）、过程执行引擎、ROI 管理、视觉工作流管线（JSON 配置 + 条件分支）、**ROI 形状模板建立/验证**（`.roipk` 打包格式，直调 HALCON SDK 不经 HDevEngine），并配套 `PF.Modules.Halcon` 调试 UI（HDevelop Level-2 联调、管线运行器、ROI 编辑器、形状模板弹窗）。
+* **📷 线扫视觉全链路**：`ILineScanCamera` / `IFrameGrabberCard` / `IGenICamNodeAccess` 契约 + 海康线阵相机/图像采集卡实现 + `LineScanDetectionModule`（框架级可复用扫描模组）+ 三个调试页（线阵相机 / 采集卡 / 扫描模组，均带 GenICam 属性树）。
+* **🌐 统一通讯管理框架**：`ICommunication` 抽象统一封装 TCP 服务端/客户端、串口、Modbus RTU/TCP 主站、大文件传输通道（多 Lane 并行 + CRC32/xxHash64 校验 + 断线重连），`CommunicationManagerService` 与 `HardwareManagerService` 结构对齐。
+* **🏭 SECS/GEM 全套支持**：内置协议管理、独立 Windows 后台服务、专用数据库与调试面板；不做半导体设备对接的项目可通过 `PFApplicationBase.UsesSecsGemService = false` 整体关闭，跳过相关 DI 注册、服务归属校验与模块加载。
+* **📁 配置路径按项目隔离**：`ConstGlobalParam` 按 `ProjectName`（默认取入口程序集名）把参数库/配方/点表/日志配置隔离到 `D:\PFConfig\PFAutoFrameWork\{项目名}\` 各自子目录下，同机部署多个项目不再互相清空参数。
 * **🎨 现代扁平化 UI**：内置高颜值自定义控件库（`Growl`、`Drawer`、步骤条等），支持深色/浅色主题。
 * **🔐 全局身份与权限管理**：内置完整身份认证模块，支持细粒度权限管控及多级用户角色。
 * **💾 动态参数与持久化系统**：基于 EF Core 9 + SQLite 提供强大的泛型参数服务，JSON 序列化存储，支持审计追踪。
@@ -41,6 +44,8 @@
 解决方案遵循严格的 **分层架构**，依赖方向单向不循环。状态机包含 **8 个状态**（含 `InitAlarm` / `RunAlarm` 分离）、**10 个触发器**。
 
 > **说明**：UI 组件库（`PF.UI.Controls` / `PF.UI.Resources` / `PF.UI.Shared`）已从本仓库独立为外部 NuGet 包维护，本解决方案仅保留 `PF.UI.Infrastructure`（UI 基础设施 + ViewModel 基类），通过 `<PackageReference Include="PF.UI.Resources" />` 消费外部资源包。
+>
+> **说明**：各项目的运行时配置（参数库、配方、点表、日志配置等）按 `ConstGlobalParam.ProjectName` 隔离到 `D:\PFConfig\PFAutoFrameWork\{项目名}\` 各自子目录下，避免同机部署多个项目时互相清空参数（详见下文"数据层"与"已知限制"）。
 
 ```
 PF.AutoFramework.slnx
@@ -56,20 +61,20 @@ PF.AutoFramework.slnx
 │   └── push-only.bat                # 一键推送 nupkg 到私有 BaGet 服务器
 │
 ├── /01. 基础层 (Foundation)
-│   ├── PF.Core                       # 核心契约层（54 接口、27 枚举、6 特性，零外部依赖）
-│   └── PF.Infrastructure             # 底层实现（硬件/模组/工站基类、TCP/串口/文件传输）
+│   ├── PF.Core                       # 核心契约层（61 接口、27+ 枚举、6 特性，零外部依赖）
+│   └── PF.Infrastructure             # 底层实现（硬件/模组/工站基类、TCP/串口/Modbus/文件传输）
 │
 ├── /02. UI 组件层 (UI)
 │   └── PF.UI.Infrastructure          # UI 基础设施（ViewModelBase、导航、权限、对话框服务）
-│       ↳ PackageReference: PF.UI.Resources（外部主题/控件资源包 1.1.1）
+│       ↳ PackageReference: PF.UI.Resources（外部主题/控件资源包 2.1.0）
 │
 ├── /03. 数据层 (Data)
 │   ├── PF.Data                       # EF Core 模型、DbContext、Repository
 │   └── PF.SecsGem.DataBase           # SECS/GEM 协议专用数据库（实体、DbContext、工作单元 Scope）
 │
 ├── /04. 工具与服务层 (Tools & Services)
-│   ├── PF.CommonTools                # 通用工具（枚举参数扩展、反射、JSON 辅助）
-│   ├── PF.Services                   # 业务服务（8 个实现：Param/Log/Alarm/Hardware/...）
+│   ├── PF.CommonTools                # 通用工具（枚举参数扩展、类型扫描、JSON 辅助、服务定位）
+│   ├── PF.Services                   # 业务服务（14 个实现：Param/Log/Alarm/Hardware/Communication/...）
 │   └── PF.Vision.Halcon              # ★ Halcon HDevEngine 视觉服务层（net8.0，零 WPF 依赖）
 │
 ├── /05. 业务模块层 (Modules)
@@ -94,7 +99,7 @@ PF.AutoFramework.slnx
 │   └── PF.SecsGem.Service            # SECS/GEM Windows 后台服务（独立进程，TCP 双服务器转发）
 │
 └── /09. 元包层 (Meta Package)
-    └── PF.AutoFramework.Meta         # NuGet 元包（当前 v1.0.8），聚合所有框架项目依赖
+    └── PF.AutoFramework.Meta         # NuGet 元包（当前 v1.0.22），聚合所有框架项目依赖
 ```
 
 ---
@@ -106,22 +111,23 @@ PF.AutoFramework.slnx
 | **平台** | .NET | 8.0 LTS |
 | **UI 框架** | WPF | Windows-only |
 | **应用框架** | Prism | 9.0.537 |
-| **DI 容器** | DryIoc | 6.2.0 |
-| **ORM** | Entity Framework Core | 9.0.12 |
+| **DI 容器** | DryIoc | 5.4.3（`DryIoc.dll`，由 `Prism.DryIoc` 9.0.537 传递引入） |
+| **ORM** | Entity Framework Core | 9.0.18（停留在 9.x：10.0.x 起仅 `net10.0`，当前 TFM 无法引用） |
 | **数据库** | SQLite | EF Core Provider |
 | **机器视觉** | MVTec Halcon HDevEngine | 厂商本地 DLL（`DLL/HALCON/`） |
-| **通讯** | TCP / 串口 / 文件传输 | 框架自研 `ICommunication` + xxHash64 |
-| **日志** | log4net | 3.3.0 |
-| **主机** | Microsoft.Extensions.Hosting | 10.0.2 |
+| **通讯** | TCP / 串口 / Modbus RTU-TCP / 文件传输 | 框架自研 `ICommunication` + xxHash64 |
+| **日志** | log4net | 3.3.2 |
+| **主机** | Microsoft.Extensions.Hosting | 10.0.10 |
 | **状态机** | Stateless | 5.20.1 |
-| **Excel** | NPOI | 2.7.5 |
+| **Excel** | NPOI | 2.7.6（停留在此版：2.8.0 起改用 OSMF EULA 商业授权） |
 | **JSON** | System.Text.Json | 内置 |
-| **哈希校验** | System.IO.Hashing | 9.0.0（CRC32 / xxHash64） |
-| **串口** | System.IO.Ports | 9.0.0 |
-| **Windows 服务** | Microsoft.Extensions.Hosting.WindowsServices | 10.0.2 |
-| **服务控制** | System.ServiceProcess.ServiceController | 10.0.2 |
+| **哈希校验** | System.IO.Hashing | 10.0.10（CRC32 / xxHash64） |
+| **串口** | System.IO.Ports | 10.0.10 |
+| **Windows 服务** | Microsoft.Extensions.Hosting.WindowsServices | 10.0.10 |
+| **服务控制** | System.ServiceProcess.ServiceController | 10.0.10 |
 | **XAML 编译** | XAMLTools.MSBuild | 1.0.0-alpha0178 |
-| **UI 资源包** | PF.UI.Resources | 1.1.1（外部 NuGet 包） |
+| **UI 资源包** | PF.UI.Resources | 2.1.0（外部 NuGet 包） |
+| **中文字体** | PF.UI.Fonts.SourceHanSerif | 1.0.0（外部 NuGet 包） |
 
 ---
 
@@ -129,9 +135,9 @@ PF.AutoFramework.slnx
 
 ### PF.Core — 核心契约层
 
-> 无任何外部依赖，所有项目均可安全引用。共定义 **54 个接口**、**27 个枚举**、**6 个特性**。
+> 无任何外部依赖，所有项目均可安全引用。共定义 **61 个接口**、**27+ 个枚举**、**6 个特性**。
 
-**硬件设备（13 接口）**：
+**硬件设备**：
 - `IHardwareDevice` — 硬件设备统一接口（7 个属性 + 4 个方法 + 3 个事件），继承 `IDisposable`
   - 属性：`DeviceId`、`DeviceName`、`IsConnected`、`HasAlarm`、`Category`、`IsSimulated`、`SuppressHealthMonitoring`
   - 方法：`ConnectAsync` / `DisconnectAsync` / `ResetAsync` / `ResetHardwareAlarmAsync`
@@ -143,13 +149,16 @@ PF.AutoFramework.slnx
   - 位置锁存（3）：`SetLatchMode` / `GetLatchNumber` / `GetLatchPos`
   - 板卡配置（1）：`LoadConfigAsync`
   - 属性：`CardIndex`、`AxisCount`、`InputCount`、`OutputCount`
-- `IAttachedDevice` — 子设备与父板卡绑定接口（`ParentCard` 属性 + `AttachToCard()`）
+- `IAttachedDevice` / `IAttachedDevice<TParent>` — 子设备与父设备挂载接口（`ParentDevice` 属性 + `TryAttachTo(IHardwareDevice)`，类型不匹配返回 `false` 不抛异常；泛型版本让子设备自己声明期望的父设备类型）。`BaseAxisDevice`/`BaseIODevice` 保留 `ParentCard`/`AttachToCard()` 别名以兼容旧代码
 - `IAxis` : `IHardwareDevice` — 单轴控制器接口（点表管理 + 运动控制 + 位置锁存）
 - `IIOController` : `IHardwareDevice` — 数字 IO 接口（含泛型枚举重载）
 - `IIOMappingService` — IO 映射服务接口（端口逻辑命名映射）
-- `ILightController` : `IHardwareDevice` — 光源控制器接口
+- `ILightController` : `IHardwareDevice` — 光源控制器接口（`ChannelCount` 通道数可配置，默认 4；`GetLightValue`/`SetLightValue` 均支持 `CancellationToken`）
 - `IBarcodeScan` : `IHardwareDevice` — 条码扫描器接口
 - `IIntelligentCamera` : `IHardwareDevice` — 智能相机接口
+- `ILineScanCamera` : `IHardwareDevice` — 线阵相机接口（本体参数 + 行触发 + 编码器配置，开流/停流/取帧）
+- `IFrameGrabberCard` : `IHardwareDevice` — 图像采集卡接口（帧长/帧超时/帧触发源/残帧策略下发，帧软触发）
+- `IGenICamNodeAccess` — GenICam 属性节点访问接口（枚举全部节点、按类型读写、命令执行），线阵相机与采集卡共用
 - `IHardwareManagerService` — 硬件生命周期管理接口（工厂注册、配置 CRUD、拓扑初始化、仿真模式）
 - `IHardwareInputMonitor` — 硬件输入监控接口（急停/启动/暂停按钮扫描）
 - `IHardwareInputConfig` / `IPanelIoConfig` — 物理面板 IO 配置接口
@@ -178,12 +187,13 @@ PF.AutoFramework.slnx
 
 **数据（4 接口）**：`IEntity` / `IDataBase` / `IGenericRepository<T>` / `IParamRepository<T>`
 
-**通讯（8 接口）**：
+**通讯**：
 - `ICommunication` — 通讯统一抽象（TCP/串口/文件传输共同基类）
 - `ICommunicationManagerService` — 通讯生命周期管理（结构对齐 `IHardwareManagerService`）
 - `ISerialCommunication` — 串口通讯接口
 - `IServer` / `IClient` / `IClientConnection` — TCP 服务端/客户端/连接接口
 - `IFileTransferChannel` / `IFileTransferChannelFactory` — 大文件传输通道接口（多 Lane 并行 + CRC32/xxHash64 校验 + 断线重连）
+- `IModbusMaster` / `IModbusRtuMaster` / `IModbusTcpMaster` — Modbus 主站接口（仅 Master 角色，覆盖功能码 01/02/03/04/05/06/0F/10，内置断线自动重连）
 
 **SECS/GEM（8 接口）**：
 - `ISecsGemManager` — SECS/GEM 协议管理接口（消息发送/接收/状态管理）
@@ -193,19 +203,20 @@ PF.AutoFramework.slnx
 - `ISecsGemDataBase` / `ISecsGemDbScope` — SECS/GEM 数据库 / 工作单元 Scope（短生命周期 DbContext）
 - `IParams` — SECS/GEM 参数接口
 
-**关键枚举（27 个）**：
+**关键枚举**：
 - `MachineState` — 8 状态：`Uninitialized` → `Initializing` → `Idle` → `Running` / `Paused`，异常分支 `InitAlarm` / `RunAlarm`，复位 `Resetting`
 - `MachineTrigger` — 10 触发：`Initialize` / `InitializeDone` / `Start` / `Pause` / `Resume` / `Stop` / `Error` / `Reset` / `ResetDone` / `ResetDoneUninitialized`
 - `OperationMode` — 运行模式：`Normal` / `DryRun`
-- `HardwareCategory` — 设备分类枚举（9 种）：`General` / `Axis` / `IOController` / `Camera` / `Robot` / `Scanner` / `Instrument` / `MotionCard` / `LightController`
+- `HardwareCategory` — 设备分类枚举（**10 种**）：`General` / `Axis` / `IOController` / `Camera` / `Robot` / `Scanner` / `Instrument` / `MotionCard` / `LightController` / `FrameGrabber`（图像采集卡，2026-08 新增）
 - `UserLevel` — 角色层级：`Null`(-1) → `Operator`(0) → `Engineer`(1) → `Administrator`(2) → `SuperUser`(3)
 - `EngineMode` — 视觉引擎模式：`Production` / `Debug` / `Offline`
-- `LogLevel`(7) / `AlarmSeverity`(4) / `BarcodeType`(26) / `DataType`(16，SECS-II) 等其余通讯、文件传输、报警、三色灯枚举
+- `LogLevel`(7) / `AlarmSeverity`(4) / `BarcodeType`(26) / `DataType`(16，SECS-II) 等其余通讯、文件传输、报警、三色灯、视觉枚举
 
-**特性（6 个）**：
+**特性（7 个）**：
 - `ModuleNavigationAttribute` — 声明式侧边栏菜单注册特性（ViewName / Title / GroupName / Icon / Order，`AllowMultiple=true`）
 - `MechanismUIAttribute` — 模组调试 UI 自动发现特性
 - `StationUIAttribute` — 工站调试 UI 自动发现特性
+- `HardwareUIAttribute` — 自定义硬件设备调试视图路由特性（标注在设备实现类上，优先于内置类型硬编码分发）
 - `CommunicationUIAttribute` — 通讯调试 UI 自动发现特性
 - `AlarmInfoAttribute` — 报警元数据注解特性
 - `ParamViewAttribute` — 参数视图路由特性
@@ -294,14 +305,15 @@ PF.AutoFramework.slnx
 
 > 独立 Windows 后台服务（`BackgroundService`），与主 WPF 进程解耦，作为 SECS/GEM 协议的专用转发代理。
 
-- **双 TCP 服务器架构**（`Worker` 私有字段）：
+- **双 TCP 服务器架构**（`Worker` 私有字段 + `HsmsListener`）：
   - `SecsGemServer`：对外监听，负责与设备主机（Host）的 SECS/GEM 报文收发
   - `LocationServer`：对内监听（`127.0.0.1:6800`），负责与 WPF 主程序交互
 - **消息缓冲区**（`MessageBuffer`，`Worker` 嵌套类）：内置粘包/半包处理，按 SECS 协议的 4 字节长度头解帧
 - **消息队列**：`ConcurrentQueue<byte[]>` + 独立消费任务，异步处理 S0F0（LinkTest）及业务报文转发
-- **状态同步**：连接/断连事件通过 `0x02` 状态帧实时通知本地客户端
-- **日志记录**：独立 `Channel` 异步写入十六进制报文日志，按年月日自动分目录，路径 `D:\SWLog\SecsGemService\`
-- **配置来源**：启动时从 `PF.SecsGem.DataBase` 读取 `SecsGemSystemParam`（IP/Port）
+- **状态同步**：连接/断连事件通过 `0x02` 状态帧实时通知本地客户端；服务生命周期跟随主程序启停
+- **服务名全机唯一**：`SecsGemService` **不按项目区分**，本机通道端口 6800 硬编码在服务端与 `InternalClient` 两端，一机多项目时只有最后安装的项目"拥有"该服务，`VerifySecsServiceProjectBinding` 会在归属不一致时告警
+- **日志记录**：独立 `Channel` 异步写入十六进制报文日志，路径 `D:\PF_Logs\SecsGem\Service\`（报文日志在其下 `Protocol\`），启动失败写 EventLog + `D:\PF_Logs\SecsGem\Service\startup-error.log`
+- **配置来源**：启动时从自身 `appsettings.json` 的 `ProjectName` 键定位 `D:\PFConfig\PFAutoFrameWork\{项目名}\SecsGemConfig.db`，读取 `SecsGemSystemParam`（IP/Port）；读不到 `ProjectName` 拒绝启动，不回退默认库
 
 ### PF.WorkStation.AutoOcr — AutoOCR Demo 工站
 
@@ -1097,8 +1109,9 @@ public class YourMasterController : BaseMasterController
     // 复位成功进入 Idle 之前执行（可选）：清理信号量、重置业务状态等
     protected override void OnAfterResetSuccess()
     {
-        _sync.ResetSingleSignal("SlotEmpty", initialCount: 1);
-        _sync.ResetSingleSignal("ProductReady", initialCount: 0);
+        // ResetSingleSignal 没有 initialCount 参数——复位到的是 Register() 时登记的初始计数，不是临时传入的值
+        _sync.ResetSingleSignal("SlotEmpty");
+        _sync.ResetSingleSignal("ProductReady");
     }
 }
 ```
@@ -1547,7 +1560,7 @@ await _hwManager.ReloadAllAsync();
 
 ## 12. UI 组件库详解
 
-> **架构变更**：`PF.UI.Controls`（自定义控件库）、`PF.UI.Resources`（主题资源字典）、`PF.UI.Shared`（底层 WPF 工具库）三个 UI 项目已从本仓库独立，作为外部 NuGet 包（`PF.UI.Resources`，当前 1.1.1）统一维护。本解决方案仅保留 `PF.UI.Infrastructure`。
+> **架构变更**：`PF.UI.Controls`（自定义控件库）、`PF.UI.Resources`（主题资源字典）、`PF.UI.Shared`（底层 WPF 工具库）三个 UI 项目已从本仓库独立，作为外部 NuGet 包（`PF.UI.Resources`，当前 2.1.0）统一维护。本解决方案仅保留 `PF.UI.Infrastructure`。
 
 ### PF.UI.Infrastructure — UI 基础设施
 
@@ -1610,23 +1623,31 @@ await _hwManager.ReloadAllAsync();
 | `CardDebugView` | `CardDebugViewModel` | 板卡状态 |
 | `CameraDebugView` | `CameraDebugViewModel` | 相机调试 |
 | `BarcodeScanDebugView` | `BarcodeScanDebugViewModel` | 条码扫描调试 |
-| `LightControllerDebugView` | `LightControllerDebugViewModel` | 光源控制器调试 |
-| `MechanismDebugView` | `MechanismDebugViewModel` | 机构调试（自动发现 `[MechanismUI]`） |
+| `LightControllerDebugView` | `LightControllerDebugViewModel` | 光源控制器调试（按 `ILightController.ChannelCount` 动态渲染通道数，v1.0.10） |
+| `FrameGrabberDebugView` | `FrameGrabberDebugViewModel` | 图像采集卡调试：帧控制下发、帧软触发、GenICam 属性树（v1.0.7 新增） |
+| `LineScanCameraDebugView` | `LineScanCameraDebugViewModel` | 线阵相机调试：连接/枚举/配置下发/开流停流/取一帧存盘/`pf:ImageViewer` 预览/GenICam 属性树（v1.0.7 新增） |
+| `MechanismDebugView` | `MechanismDebugViewModel` | 机构调试（自动发现 `[MechanismUI]`，含线扫检测模组调试页 `LineScanDetectionModuleDebugView`） |
 | `StationDebugView` | `StationDebugViewModel` | 工站调试（自动发现 `[StationUI]`） |
 | `TcpServerDebugView` / `TcpClientDebugView` / `FileTransferDebugView` / `ModbusRtuDebugView` / `ModbusTcpDebugView` / `SerialPortDebugView` | — | **通讯综合调试面板（v1.0.4 新增，自动发现 `[CommunicationUI]`；Modbus 两个调试视图 v1.0.5 新增；串口调试视图 v1.0.9 新增，收发各带独立十六进制开关）** |
 | `AxisParamDialog` | `AxisParamDialogViewModel` | 轴参数编辑对话框 |
 
-### PF.Modules.Halcon — Halcon 视觉调试模块（v1.0.2）
+标注 `[HardwareUI("视图名")]` 的自定义设备类优先于以上内置分发路由到项目自定义调试视图（v1.0.10 新增扩展点）。
 
-> `PF.Vision.Halcon` 服务层的 WPF 调试 UI 配套（Prism `IModule`），提供运行期过程/管线调试与 ROI 编辑。Shell 通过 `RegisterVisionServices` 钩子注入、`ConfigureModuleCatalog` 中 `AddModule<HalconModule>()` 加载。
+### PF.Modules.Halcon — Halcon 视觉调试模块（当前 v1.0.7）
+
+> `PF.Vision.Halcon` 服务层的 WPF 调试 UI 配套（Prism `IModule`），提供运行期过程/管线调试、ROI 编辑与 ROI 形状模板建立/验证。Shell 通过 `RegisterVisionServices` 钩子注入、`ConfigureModuleCatalog` 中 `AddModule<HalconModule>()` 加载。
 
 | 类 | 用途 |
 |----|------|
 | `HalconDashboardViewModel` | 视觉调试根页面，内部 Region 在「过程调试」与「管线运行」间切换，`KeepAlive=true` |
-| `HalconDebugViewModel` | HDevelop Level-2 联调：过程列表、参数签名解析、调试服务器启停、启动 HDevelop 进程、填充控制/图标参数后试运行、图标输出渲染、唤起 ROI 编辑器 |
+| `HalconDebugViewModel` | HDevelop Level-2 联调：过程列表、参数签名解析、调试服务器启停、启动 HDevelop 进程、填充控制/图标参数后试运行、图标输出渲染、唤起 ROI 编辑器、「引擎耦合自检」按钮（v1.0.3） |
 | `PipelineRunnerViewModel` | 管线运行器：列出 `VisionPipelineLoader` 管线，经生产引擎执行，按引擎所有权契约克隆 `HObject` 累积各步输出，分层渲染（图像背景 / 区域与 XLD 前景 / 缺陷红色） |
 | `RoiEditorDialogViewModel` | ROI 编辑对话框，经 `DialogParameters` 接收 `FilePath`/`Rois`，OK 返回编辑后的 `Rois` |
-| `HalconImageViewer` / `HalconRoiEditor` | 基于 `HWindowControlWPF` 的图像查看器 / 交互式 ROI 绘制控件 |
+| `ShapeTemplateEditorDialogViewModel`（v1.0.5 起） | ROI 形状模板**建立/编辑**：选参考图或按名字加载已有模板 → 画 ROI（复用 `HalconRoiEditor`）→「保存并关闭」一步完成建模型+写盘；改已有模板时名称锁定不可改，新建时校验名称合法性与唯一性 |
+| `ShapeTemplateVerifyDialogViewModel`（v1.0.6 起） | ROI 形状模板**只读验证**：按名字加载模板 → 在图上跑 `ShapeTemplateService.FindMatches` → `pf:PropertyGrid` 编辑 `ShapeMatchOptions` → 命中轮廓叠加显示，不改模板本身 |
+| `HalconImageViewer` / `HalconRoiEditor` | 基于 `HWindowControlWPF` 的图像查看器 / 交互式 ROI 绘制控件（工具栏 v1.0.7 起改用 `pf:PackIcon` 图标） |
+
+模板文件为 `.roipk`（zip 打包：`model.shm` 生产匹配模型 + `rois.json` ROI 绘制过程 + `reference.png` 参考图），生产路径 `LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
 
 ### PF.Modules.Identity — 身份认证
 
@@ -1704,15 +1725,17 @@ await _hwManager.ReloadAllAsync();
 | `SecsGemDataBaseManger` | 数据库管理门面类 |
 | `ISecsGemDbScope` | **工作单元 Scope（v1.0.3 破坏性新增）**：`BeginScope()` 创建独立短生命周期 DbContext，多线程调用各自隔离；取代旧 `GetRepository()`/`SaveChangesAsync()` 直连模式 |
 
-### PF.Vision.Halcon — Halcon 视觉服务层（v1.0.1，net8.0 零 WPF 依赖）
+### PF.Vision.Halcon — Halcon 视觉服务层（当前 v1.0.3，net8.0 零 WPF 依赖）
 
 > `PF.Core` 中 `IVisionService` / `IVisionContextManager` / `IVisionResult` / `IHalconDebugService` 抽象的 Halcon 实现。图片以 `object` 装箱透传，故接口本身 Halcon 无关；本层是桥接 HDevEngine 运行时的唯一实现。因目标 `net8.0`（非 WPF），可被无头自动化/批处理服务消费。
 
 | 类 | 用途 |
 |----|------|
 | `HalconVisionService`（`internal sealed`） | `IVisionService` 核心实现。专用 LongRunning Worker 线程独占所有 `HDevEngine`/`HDevProgram`/`HDevProcedure`（HDevEngine 非线程安全），外部经有界 `Channel` 提交 `VisionJob` 串行消费。支持 `.hdvp` / `.hdev`，单步执行 / 多步管线 / 引擎元操作 |
-| `VisionContextManager`（`public sealed`） | 按 `EngineMode`（Production/Debug/Offline）管理三个独立惰性引擎槽位，各持一份 `HalconVisionService` + `VisionEngineConfig`；`SemaphoreSlim(1,1)` 保护 |
-| `HalconDebugService`（`public sealed`） | Level-2 HDevelop 集成：调试服务器启停、启动 HDevelop 进程、解析 `.hdev` XML 过程签名、无超时试运行（便于断点附加） |
+| `VisionContextManager`（`public sealed`） | 按 `EngineMode`（Production/Debug/Offline）管理三个独立惰性引擎槽位，各持一份 `HalconVisionService` + `VisionEngineConfig`；`SemaphoreSlim(1,1)` 保护。`TryGet`（v1.0.2 起）供仅需读取已存在引擎的场景使用，不触发惰性创建 |
+| `HalconDebugService`（`public sealed`） | Level-2 HDevelop 集成：调试服务器启停、启动 HDevelop 进程、解析 `.hdev` XML 过程签名、无超时试运行（便于断点附加）。`ProcedureDirectory`（v1.0.2 起）暴露规范化后的过程目录，签名解析/过程枚举不再需要拉起 Debug 引擎 |
+| `HdevProcedureCatalog`（v1.0.2 起） | 过程枚举与文件查找统一规则，递归查找（此前枚举用 `AllDirectories` 而查找只看顶层，导致子目录过程选得中却解析不出参数） |
+| `ShapeTemplateService`（v1.0.5 起） | ROI 形状模板建立/查找，直调 HALCON SDK 不经 HDevEngine；模板打包为 `.roipk`（zip：`model.shm`+`rois.json`+`reference.png`），`AddShapeTemplateServices(templateDirectory)` 为 DI 入口 |
 | `VisionPipelineLoader`（`public sealed`） | 扫描 JSON 管线配置目录（`Devices/{Device}/Workflows/`），`FileSystemWatcher`（250ms 防抖）热更新；`JsonElement` 逐字段还原原生类型供引用解析 |
 | `AlgorithmVerifier`（`internal static`） | 启动期 `.hdev` 文件 MD5 完整性校验（对照 `algorithms.lock.json`），变更仅告警不阻断 |
 | `VisionEngineConfig`（record） | 各模式配置预设：Production（30s 超时，容量 100）/ Debug（无限超时，容量 10，等待 HDevelop 连接）/ Offline（120s，容量 500） |
@@ -1720,33 +1743,35 @@ await _hwManager.ReloadAllAsync();
 
 **HObject 所有权契约**（贯穿 `PF.Core` 接口文档与两个 Halcon 项目）：返回值归调用方所有、必须自行释放；事件参数仅回调期间有效，需保留须 `CopyObj` 克隆。
 
-### PF.Application.Base — 应用程序基础层（v1.0.3）
+### PF.Application.Base — 应用程序基础层（当前 v1.0.6）
 
 > 框架应用骨架。抽出 `PFApplicationBase`（`PrismApplication` 抽象基类）、主窗口、ViewModel 基类及公共服务。`PF.Application.Shell` 等消费项目继承基类并实现若干钩子即可接入，免手写 Splash / DI / Prism 事件桥接样板。
 
 | 类 | 用途 |
 |----|------|
-| `PFApplicationBase`（`public abstract`，~817 行） | 核心基类。抽象钩子：`AppMutexId` / `CreateDefaultParameters()` / `RegisterHardwareFactories` / `RegisterCommunicationFactories` / `RegisterMechanismsAndStations` / `RegisterRecipes` / `InitializeMechanismsAsync`。虚钩子（可重写，有默认实现）：`LoadConfigurationAsync` / `RegisterIOMappings` / `RegisterVisionServices`（Shell 重写以注入 Halcon）/ `RegisterSecsGemServices` / `RegisterProjectDailyTasks`。封装单实例互斥、Splash 进度序列、未处理异常兜底、全量 DI 注册、Prism 事件桥接、关闭释放顺序 |
+| `PFApplicationBase`（`public abstract`） | 核心基类。抽象钩子：`AppMutexId` / `CreateDefaultParameters()` / `RegisterHardwareFactories` / `RegisterCommunicationFactories` / `RegisterMechanismsAndStations` / `RegisterRecipes` / `InitializeMechanismsAsync`。虚钩子（可重写，有默认实现）：`LoadConfigurationAsync` / `RegisterIOMappings` / `RegisterVisionServices`（Shell 重写以注入 Halcon）/ `RegisterSecsGemServices` / `RegisterProjectDailyTasks`。封装单实例互斥、Splash 进度序列、未处理异常兜底、全量 DI 注册、Prism 事件桥接、关闭释放顺序 |
+| `ProjectName` / `ConstGlobalParam.Initialize()`（v1.0.5 起） | 虚属性，默认取入口程序集名，在实例构造函数中调用 `ConstGlobalParam.Initialize()`（早于任何触碰 `ConfigPath` 的代码），驱动配置路径按项目隔离 |
+| `UsesSecsGemService`（v1.0.6 起） | `protected virtual bool`，默认 `true`；关闭后跳过 SECS/GEM 相关 DI 注册、`VerifySecsServiceProjectBinding` 校验、以及命名空间以 `PF.Modules.SecsGem.` 开头的模块加载 |
 | `MainWindowViewModelBase` | 主窗口 ViewModel 基类。权限过滤的导航菜单、报警联动（订阅 `AlarmTriggeredEvent`/`AlarmClearedEvent`）、空闲降级（`IdleMonitorService`，超 `NoUseTime` 重置为 Operator）、500ms 轮询机器状态、版本徽章（`SoftWareVersion`/`RuntimeVersion`）、可重写的 `ProductImagePath`/`ProductDescription`/`UserManualPath` |
 | `MainWindow` | Shell 窗口：数据驱动状态栏、权限过滤侧边栏、主题切换（圆形揭示动画）、登录彩纸（7 种）、严谨的 `Window_Closing` 释放顺序（机构 → Alarm → Production → Log） |
-| `MainView`/`MainViewModel` | 框架级主显界面（v1.0.3 下沉）：左产品图+简介卡片、右品牌信息+常用操作（"打开说明书"为真实功能），消费项目重写三属性即接入 |
+| `MainView`/`MainViewModel` | 框架级主显界面（下沉自 Shell）：左产品图+简介卡片、右品牌信息+常用操作（"打开说明书"为真实功能），消费项目重写三属性即接入 |
 | `AppParamDbContext` | 统一参数库上下文（4 表：UserLogin/SystemConfig/Hardware/Communication），含幂等裸 SQL 建表与补列迁移逻辑（修复已部署老库） |
 | `IdleMonitorService` / `TowerLightManager` / `PrismAlarmEventPublisher` | 空闲检测 / 三色灯状态联动 / 报警事件 Prism 桥接（保持 `PF.Services` 零 Prism 依赖） |
 
-### PF.AutoFramework.Meta — NuGet 元包（当前 v1.0.8）
+### PF.AutoFramework.Meta — NuGet 元包（当前 v1.0.22）
 
-聚合全部框架项目的 NuGet 元包，引用后自动传递所有子项目依赖。各子包版本在各自 `.csproj` 独立声明（见 `Directory.Build.props` 顶部注释），元包仅在子包升级后重新打包发布一次以同步指针。发布历史见元包 `PackageReleaseNotes`（v1.0.1 初始 → v1.0.8 当前）。
+聚合全部框架项目的 NuGet 元包（用 `ProjectReference` 打包，不是 `PackageReference`），引用后自动传递所有子项目依赖；注意 `PF.Modules.Halcon` / `PF.Vision.Halcon` 不在元包内（含 HALCON 原生依赖，按需单独引用）。各子包版本在各自 `.csproj` 独立声明，元包版本与子包版本无算术对应关系，任一子包版本变化后元包必须重新打包发布一次、并在 `PackageReleaseNotes` 里补一条"子包版本对照"以同步指针。完整发布历史见元包 `PackageReleaseNotes`（v1.0.1 初始 → v1.0.22 当前），详见下文"版本与变更"小节的摘要。
 
 ---
 
 ## 15. 完整依赖关系图
 
 ```
-PF.Core（零外部依赖，54 接口）
+PF.Core（零外部依赖，61 接口）
   ← PF.CommonTools
   ← PF.Data（EF Core, Prism.Core）
   ← PF.SecsGem.DataBase（EF Core, PF.Core）
-  ← PF.Infrastructure（Stateless, log4net, NPOI, System.IO.Ports, System.IO.Hashing, PF.Core, PF.SecsGem.DataBase）
+  ← PF.Infrastructure（Stateless, log4net, NPOI, System.IO.Ports, System.IO.Hashing, PF.Core, PF.SecsGem.DataBase；线扫链路另引用海康 MVS 托管封装 `MvCameraControl.Net.dll`，随 DLL 目录分发不打进 nupkg）
   ← PF.Vision.Halcon（Prism.Core, PF.Core，通配引用 HALCON 原生 DLL）        ★ net8.0，零 WPF 依赖
   ← PF.UI.Infrastructure（Prism.Wpf, 外部 PF.UI.Resources NuGet 包）
   ← PF.Services（PF.Data, PF.Infrastructure, Prism.DryIoc）
@@ -1778,7 +1803,7 @@ PF.Core（零外部依赖，54 接口）
 1. **程序集解析兜底**：静态构造函数注册 `AssemblyResolve`，支持 DLL 并行加载
 2. **单实例检查**：`RunningInstance()` 命名 `Mutex`（由子类 `AppMutexId` 决定），防止多开
 3. **未处理异常兜底**：接线 `DispatcherUnhandledException` / `AppDomain.UnhandledException` / `TaskScheduler.UnobservedTaskException`
-4. **Prism 配置 + DI 注册**（`RegisterTypes`，框架级统一注册）：日志（`log4net`）→ 参数/生产/SECS-GEM/报警数据库 → 视觉服务（子类重写 `RegisterVisionServices` 注入 Halcon）→ SECS/GEM 服务 → 通讯管理器（先于硬件）→ 硬件管理器 → 对话框/导航/报警/定时器/三色灯服务
+4. **Prism 配置 + DI 注册**（`RegisterTypes`，框架级统一注册）：日志（`log4net`）→ 参数/生产/SECS-GEM/报警数据库 → 视觉服务（子类重写 `RegisterVisionServices` 注入 Halcon）→ SECS/GEM 服务（`UsesSecsGemService=false` 时整段跳过，含 DI 注册与 `SecsGemConfig.db` 创建）→ 通讯管理器（先于硬件）→ 硬件管理器 → 对话框/导航/报警/定时器/三色灯服务
 5. **项目级钩子**（由 `PF.Application.Shell` 实现）：
    - **通讯工厂**（6 种）：`TcpServer` / `TcpClient` / `FileTransferChannel` / `SerialPort` / `ModbusRtuMaster` / `ModbusTcpMaster`
    - **硬件工厂**（11 种）：`LTDMCMotionCard` / `EtherCatAxis` / `EtherCatIO` / `HKBarcodeScan`（已弃用，透传协议版）/ `MvCodeReaderBarcodeScan`（海康 SDK，推荐）/ `KeyenceBarcodeScan` / `KeyenceIntelligentCamera` / `CTS_LightController`（旧拼写 `CTS_LightControoller` 已订正）/ `HikComLightController` / `HikFrameGrabberCard` / `HikLineScanCamera`
@@ -1828,7 +1853,8 @@ AlarmService (IAlarmEventPublisher) → AlarmTriggeredEvent / AlarmClearedEvent 
 - **出站**（WPF → Host）：`LocationServer` 接收 → 去掉 0x00 命令字节 → `SecsGemServer.SendAsync()`
 - **入站**（Host → WPF）：`SecsGemServer` 接收 → `MessageBuffer` 粘包/半包处理 → S0F0 LinkTest 直接回复 → 其他报文 → `LocationServer` 转发
 - **状态同步**：Host 连接/断连 → `LocationServer` 发送 `[0x02, status]` 状态帧
-- **日志**：独立 `Channel` 异步写入十六进制报文日志 → `D:\SWLog\SecsGemService\{year}\{month}\{yyyy-MM-dd}.log`
+- **日志**：独立 `Channel` 异步写入十六进制报文日志 → `D:\PF_Logs\SecsGem\Service\Protocol\`
+- **服务归属**：服务名固定 `SecsGemService`、全机唯一、不按项目区分；一机多项目时主程序启动会解析 SCM 中实际注册的 `ImagePath` 校验归属，不一致只告警不阻断
 
 ---
 
@@ -1843,10 +1869,14 @@ AlarmService (IAlarmEventPublisher) → AlarmTriggeredEvent / AlarmClearedEvent 
 | `MvCodeReaderBarcodeScan` | 海康威视 | 条码扫描器（官方 `MvCodeReaderSDK.Net` 托管封装，支持图像采集，v1.0.4 新增） |
 | `KeyenceBarcodeScan` | 基恩士 | 条码扫描器（基恩士 SDK，v1.0.4 新增） |
 | `KeyenceIntelligentCamera` | 基恩士 | 视觉相机（OCR），继承 `BaseIntelligentCamera` |
-| `CTSLightController` | CTS | 光源控制器（COM 串口），继承 `BaseLightController` |
+| `KeyenceIntelligent_IVCamera` | 基恩士 IV 系列 | 视觉相机，继承 `BaseIntelligentCamera` |
+| `HikLineScanCamera` | 海康 MVS | 线阵相机，继承 `BaseLineScanCamera`；父设备填采集卡即走 CameraLink/CXP/XoF 链路，留空即 GigE/USB 直连（2026-08 新增） |
+| `HikFrameGrabberCard` | 海康 MVFG | 图像采集卡，继承 `BaseFrameGrabberCard`（2026-08 新增） |
+| `CTSLightController` | CTS | 光源控制器（COM 串口），继承 `BaseLightController`，`ChannelCount` 可配置（默认 4） |
+| `HikComLightController` | 海康串口光源 | 光源控制器（基于 `ISerialCommunication`），继承 `BaseLightController`，`ChannelCount` 可配置（2026-08 新增） |
 | `OPTLightController` | OPT | 光源控制器，继承 `BaseLightController`（`internal`，桩实现） |
 
-**通讯实现**（`ICommunication`，v1.0.4 新增）：`TcpServer` / `TCPClient` / `SerialPortCommunication` / `FileTransferChannel`（多 Lane 并行 + CRC32/xxHash64 校验 + 断线重连）。
+**通讯实现**（`ICommunication`，v1.0.4 新增）：`TcpServer` / `TCPClient` / `SerialPortCommunication` / `FileTransferChannel`（多 Lane 并行 + CRC32/xxHash64 校验 + 断线重连）/ `ModbusRtuMaster` / `ModbusTcpMaster`（v1.0.10 新增，仅 Master 角色，`AutoReconnect` 默认开启）。
 
 ---
 
@@ -1860,6 +1890,8 @@ AlarmService (IAlarmEventPublisher) → AlarmTriggeredEvent / AlarmClearedEvent 
 6. **日志 UI 线程安全**：需通过 `Dispatcher.Invoke` 确保线程安全
 7. **HALCON 运行时依赖**：视觉项目需 `DLL/HALCON/` 目录下放置正确的厂商托管 DLL 方可编译/运行
 8. **仅支持 Windows**：基于 WPF（`PF.Vision.Halcon` 例外，目标 `net8.0` 可跨平台引用）
+9. **同机多项目必须各自命名**：`ProjectName` 未正确区分时，`AppParamDbContext` 的废弃参数清理会把另一项目的参数当垃圾整批清空；`ConfigPath` 在 `ConstGlobalParam.Initialize()` 之前访问会直接抛异常，不回退到共享根目录
+10. **SECS/GEM 服务全机唯一**：`SecsGemService` 不按项目区分，本机 6800 端口硬编码，一机多项目时同一时刻只有一个项目的服务真正工作
 
 ---
 
@@ -1871,9 +1903,23 @@ AlarmService (IAlarmEventPublisher) → AlarmTriggeredEvent / AlarmClearedEvent 
 
 ## 📜 版本与变更
 
-各子包版本在各自 `.csproj` 独立声明，元包 `PF.AutoFramework.Meta`（当前 **v1.0.8**）聚合全部子包。完整发布历史见元包 `PackageReleaseNotes`，要点：
+各子包版本在各自 `.csproj` 独立声明，元包 `PF.AutoFramework.Meta`（当前 **v1.0.22**）聚合全部子包。完整发布历史见元包 `PackageReleaseNotes`，要点（新到旧）：
 
-- **v1.0.8 (2026-07-15)** — 现场报警弹窗显示异常修复
+- **v1.0.22 (2026-08-27)** — ROI 形状模板匹配能力补齐：验证弹窗 + 保存流程简化 + 查找模板修复
+- **v1.0.21 (2026-08-24)** — 光源控制器通道数可配置（含接口破坏性变更）
+- **v1.0.20 (2026-08-21)** — 视觉调试服务与 Debug 引擎解耦（含接口破坏性变更）
+- **v1.0.19 (2026-08-18)** — 不用 SECS/GEM 的项目可整体关闭（`UsesSecsGemService`）
+- **v1.0.18 (2026-08-18)** — 新增串口调试页
+- **v1.0.17 (2026-08-18)** — 新增海康串口光源控制器 + 光源亮度读写完善（含接口破坏性变更）
+- **v1.0.16 (2026-08-17)** — 线扫视觉全链路接入：海康线阵相机 + 图像采集卡 + 线扫检测模组 + 三个调试页（含接口破坏性变更）
+- **v1.0.15 (2026-08-03)** — 配置路径按项目隔离（破坏性变更，已部署机台升级前必须执行 `Installer\Migrate-Config.ps1`）
+- **v1.0.14 (2026-07-27)** — 状态栏设备项支持三态显示
+- **v1.0.13 (2026-07-21)** — 硬件调试新增 `[HardwareUI]` 自定义设备路由扩展点
+- **v1.0.12 (2026-07-17)** — Modbus 主站健壮性修复合集 + 断线自动重连 + 原始报文透传（含接口破坏性变更）
+- **v1.0.11 (2026-07-16)** — 通讯层统一补齐日志
+- **v1.0.10 (2026-07-16)** — 新增 Modbus RTU/TCP 主站通讯
+- **v1.0.9 (2026-07-15)** — 框架层并发/异步/契约修复合集（P1~P3 全量审查产出）
+- **v1.0.8 (2026-07-13)** — 现场报警弹窗显示异常修复
 - **v1.0.7 (2026-07-09)** — SECS/GEM 通讯链路修复（大帧拆包/粘包、字节序统一、并发死锁）
 - **v1.0.6 (2026-07-09)** — 主显界面下沉框架 + 侧边栏图标描边动效 + 全侧边栏图标审查
 - **v1.0.5 (2026-07-07)** — 紧急修复老库升级启动崩溃（建表 SQL 缺 `Remarks` 列）
