@@ -7,9 +7,9 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />  
+            <RowDefinition Height="Auto" />
             <!--  工具栏  -->
-            <RowDefinition Height="*" />     
+            <RowDefinition Height="*" />
             <!--  图像 + ROI 列表  -->
         </Grid.RowDefinitions>
 

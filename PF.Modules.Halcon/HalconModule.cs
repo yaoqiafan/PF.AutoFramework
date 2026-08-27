@@ -27,6 +27,10 @@ public class HalconModule : IModule
         // ROI 编辑弹窗
         containerRegistry.RegisterDialog<RoiEditorDialogView, RoiEditorDialogViewModel>(
             HalconNavigationConstants.Dialogs.RoiEditor);
+
+        // ROI 形状模板编辑弹窗（画 ROI → 建模板 → 按名字存盘，框架侧独立能力，消费方直接复用）
+        containerRegistry.RegisterDialog<ShapeTemplateEditorDialogView, ShapeTemplateEditorDialogViewModel>(
+            HalconNavigationConstants.Dialogs.ShapeTemplateEditor);
     }
 
     public void OnInitialized(IContainerProvider containerProvider)

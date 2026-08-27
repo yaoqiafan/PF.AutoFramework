@@ -21,5 +21,11 @@ public static class HalconNavigationConstants
     public static class Dialogs
     {
         public const string RoiEditor = "RoiEditorDialog";
+
+        /// <summary>
+        /// ROI 形状模板编辑弹窗：选参考图（或用 DialogParameters 的 "ImagePath" 注入）→ 画 ROI →
+        /// 建立模板 → 按名字存盘。范围到"存盘"为止，不含"在新图上查找/预览"——那是消费方自己的事。
+        /// </summary>
+        public const string ShapeTemplateEditor = "ShapeTemplateEditorDialog";
     }
 }

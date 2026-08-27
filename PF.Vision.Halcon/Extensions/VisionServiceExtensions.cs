@@ -49,4 +49,22 @@ public static class VisionServiceExtensions
 
         return containerRegistry;
     }
+
+    /// <summary>
+    /// 配置 <see cref="ShapeTemplateService"/> 的模板存放目录（消费项目启动时调用一次）。
+    /// 之后无论是框架侧的 ROI 模板编辑弹窗，还是消费方自己的代码，存/取模板都只需要传一个名字，
+    /// 不用互相传递完整路径——跟 <see cref="AddVisionServices"/> 里 <c>procedureDirectory</c>
+    /// 的思路一致。
+    /// </summary>
+    /// <param name="containerRegistry">Prism 容器注册器（<see cref="ShapeTemplateService"/> 本身是
+    /// 静态类，不需要真的注册进容器，这里只是保持跟 <see cref="AddVisionServices"/> 一致的调用手感）。</param>
+    /// <param name="templateDirectory">模板包（<c>.roipk</c>）存放目录，不存在会自动创建。</param>
+    public static IContainerRegistry AddShapeTemplateServices(
+        this IContainerRegistry containerRegistry,
+        string templateDirectory)
+    {
+        Directory.CreateDirectory(templateDirectory);
+        ShapeTemplateService.TemplateDirectory = Path.GetFullPath(templateDirectory);
+        return containerRegistry;
+    }
 }
