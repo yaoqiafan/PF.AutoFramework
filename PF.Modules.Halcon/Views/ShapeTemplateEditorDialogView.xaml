@@ -41,45 +41,39 @@
         <!--  ROI 编辑器占主体区域  -->
         <controls:HalconRoiEditor x:Name="RoiEditor" Grid.Row="1" />
 
-        <!--  建立模板 + 命名 + 保存 + 加载已有模板微调  -->
+        <!--  命名 + 加载已有模板微调——"建立模板"不再单独一步，已合并进底部「保存并关闭」
+             （见 ShapeTemplateEditorDialogViewModel.ExecuteSave 的文档注释）。  -->
         <Grid Grid.Row="2" Margin="0,8,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button
-                Grid.Column="0"
-                Padding="14,4"
-                Command="{Binding BuildTemplateCommand}"
-                Content="建立模板"
-                Style="{DynamicResource ButtonPrimary}" />
-
             <TextBlock
-                Grid.Column="2"
+                Grid.Column="0"
                 Margin="0,0,8,0"
                 VerticalAlignment="Center"
                 Text="模板名称：" />
 
             <TextBox
-                Grid.Column="3"
+                Grid.Column="1"
                 VerticalContentAlignment="Center"
-                Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}" />
+                IsEnabled="{Binding CanEditTemplateName}"
+                Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
+                ToolTip="新建模板时可填写；修改已有模板时名称锁定为原模板名，不可修改。" />
 
             <Button
-                Grid.Column="4"
+                Grid.Column="2"
                 Margin="8,0,0,0"
                 Padding="14,4"
                 Command="{Binding LoadTemplateFileCommand}"
                 Content="加载模板文件"
-                ToolTip="弹文件选择框选一个已存在的模板包（.roipk），把当初的参考图和 ROI 灌回编辑器，改完重新「建立模板」再保存即可覆盖" />
+                ToolTip="弹文件选择框选一个已存在的模板包（.roipk），把当初的参考图和 ROI 灌回编辑器供微调——名称随之锁定为该模板名，改完 ROI 直接保存即可覆盖" />
 
             <TextBlock
-                Grid.Column="5"
+                Grid.Column="3"
                 Margin="12,0,0,0"
                 VerticalAlignment="Center"
                 FontSize="12"

@@ -31,6 +31,10 @@ public class HalconModule : IModule
         // ROI 形状模板编辑弹窗（画 ROI → 建模板 → 按名字存盘，框架侧独立能力，消费方直接复用）
         containerRegistry.RegisterDialog<ShapeTemplateEditorDialogView, ShapeTemplateEditorDialogViewModel>(
             HalconNavigationConstants.Dialogs.ShapeTemplateEditor);
+
+        // ROI 形状模板验证弹窗（按名字加载模板 → 在一张图上查找匹配/调参 → 看叠加轮廓，纯只读）
+        containerRegistry.RegisterDialog<ShapeTemplateVerifyDialogView, ShapeTemplateVerifyDialogViewModel>(
+            HalconNavigationConstants.Dialogs.ShapeTemplateVerify);
     }
 
     public void OnInitialized(IContainerProvider containerProvider)

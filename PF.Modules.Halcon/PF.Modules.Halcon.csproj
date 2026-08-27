@@ -4,8 +4,53 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.0.3</Version>
+    <Version>1.0.7</Version>
     <PackageReleaseNotes>
+v1.0.7 (2026-08-27) — ROI 模板编辑弹窗："建立模板"合并进保存 + 改名时锁定名称
+
+[变更 — ShapeTemplateEditorDialogViewModel/View]
+- 去掉独立的"建立模板"按钮/命令：原来要先点「建立模板」建好 HALCON 形状模型、再填名字点
+  「保存并关闭」两步，现在合并成一步——画好 ROI、填好名字，点一次「保存并关闭」把建模型
+  （CreateShapeModel）和写盘（SaveTemplate）一起做了。v1.0.6 新加的名称合法性/唯一性校验
+  照常在保存前跑，顺序不变。
+- 新增 CanEditTemplateName：只有"建新模板"（未通过 LoadTemplateName/加载模板文件进入编辑）
+  时名称输入框才可编辑；"改已有模板"时名称锁定为加载进来时的那个模板名，不允许改名另存，
+  避免"到底是新建了一个模板还是覆盖了原模板"这件事变得含糊——原本 v1.0.6 里"改名撞了已有
+  模板要弹确认"这条分支因此不会再在编辑路径触发，只有新建模板才可能撞名。
+
+v1.0.6 (2026-08-27) — ROI 模板保存补充名称合法性/唯一性校验
+
+[变更 — ShapeTemplateEditorDialogViewModel]
+- 保存前新增两项校验，不通过就不落盘：①合法性——名字最终会拼进 .roipk 文件路径
+  （TemplateDirectory + name + ".roipk"），含 Windows 文件名非法字符（\ / : * ? " &lt; &gt; |）
+  时原先要等 ZipFile.CreateFromDirectory 抛异常才提示，现在保存前直接挡住给出明确说明；
+  ②唯一性——ShapeTemplateService.SaveTemplate 本身"同名已存在时整体覆盖"，此前 UI 侧没有
+  任何提示，输错/选错名字会悄悄覆盖别的模板；现在除非正是当初加载进来微调的那个模板
+  （改名重存除外），撞了已有名字会先弹「名称已存在，确认要覆盖吗？」二次确认。
+- 新增 _loadedTemplateName 字段记录本次编辑会话最初加载自哪个模板名，用来判断"微调后覆盖
+  保存同一个模板"（预期行为，不弹确认）与"新建/改名撞了别的模板"（需要确认）。
+
+v1.0.5 (2026-08-27) — 新增 ROI 形状模板验证弹窗 ShapeTemplateVerifyDialog
+
+[新增]
+- ShapeTemplateVerifyDialogViewModel/View：跟 ShapeTemplateEditorDialog（建模板，见提交
+  a731c976）配套的"只读验证"弹窗——按名字（DialogParameters 的 "TemplateName"，必需）加载一个已存在的
+  模板，在一张图（"ImagePath" 可选预注入，或弹窗里自己选，图片来源按钮始终可见、不因注入而
+  隐藏）上跑 ShapeTemplateService.FindMatches，pf:PropertyGrid 直接编辑 ShapeMatchOptions
+  （MinScore/AngleExtent/NumLevels 等），匹配结果列表可选中，选中即用 GetMatchedContour +
+  HalconImageViewer.DisplayOverlay 在图上叠加显示对应命中轮廓（lime green）。不建模板也不
+  改模板，纯验证，关闭即走（ConfirmCommand = CancelCommand，没有"确定"要提交）。
+- HalconModule 新增 RegisterDialog 注册（导航 key HalconNavigationConstants.Dialogs
+  .ShapeTemplateVerify = "ShapeTemplateVerifyDialog"），消费方直接按名字弹出即可。
+
+v1.0.4 (2026-08-27) — HalconRoiEditor 工具栏按钮改图标
+
+[变更]
+- HalconRoiEditor.xaml 顶部工具栏的操作模式（包含/排除）与形状选择（矩形/旋转矩/圆/椭圆/扇形）、
+  预览检测范围/退出预览/清空 ROI 共 10 个按钮，Content 由"emoji+文字"改为 pf:PackIcon 纯图标，
+  说明文字移到 ToolTip 里——按钮更紧凑，也不再依赖字体对那几个几何符号 emoji 的渲染支持。
+  "操作:"/"形状:" 分类标签保留文字，未受影响。
+
 v1.0.3 (2026-08-21) — 调试面板新增「引擎耦合自检」
 
 [新增]

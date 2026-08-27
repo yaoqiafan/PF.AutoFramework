@@ -1,0 +1,116 @@
+<UserControl
+    x:Class="PF.Modules.Halcon.Views.ShapeTemplateVerifyDialogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    FontSize="{DynamicResource FontSize.Body.Standard}">
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  右：调参 + 查找 + 结果（先声明在前面，视觉上放右边，Grid.Column 决定实际位置）  -->
+        <StackPanel Grid.Row="0" Grid.Column="2">
+            <TextBlock
+                Margin="0,0,0,4"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource PrimaryTextBrush}"
+                Text="匹配参数" />
+            <pf:PropertyGrid
+                Margin="0,0,0,10"
+                SelectedObject="{Binding MatchOptions}"
+                ShowSortButton="False" />
+
+            <Button
+                Margin="0,0,0,10"
+                Padding="10,5"
+                HorizontalAlignment="Stretch"
+                Command="{Binding FindMatchCommand}"
+                Content="▶ 查找匹配"
+                Style="{StaticResource ButtonPrimary}" />
+
+            <TextBlock
+                Margin="0,0,0,4"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource PrimaryTextBrush}"
+                Text="匹配结果" />
+            <ListBox
+                Height="160"
+                ItemsSource="{Binding MatchResults}"
+                SelectedItem="{Binding SelectedMatchResult}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock FontSize="12">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="Row={0:F1}  Col={1:F1}  Angle={2:F3}rad  Score={3:F3}">
+                                    <Binding Path="Row" />
+                                    <Binding Path="Column" />
+                                    <Binding Path="Angle" />
+                                    <Binding Path="Score" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+
+        <!--  左：图像预览 + 选图  -->
+        <Grid Grid.Row="0" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border
+                Grid.Row="0"
+                Padding="1"
+                Background="{DynamicResource RegionBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10">
+                <controls:HalconImageViewer x:Name="VerifyImageViewer" />
+            </Border>
+            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                <Button
+                    Margin="0,0,10,0"
+                    Padding="14,4"
+                    Command="{Binding SelectImageCommand}"
+                    Content="选图" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Text="{Binding VerifyImageName}" />
+            </StackPanel>
+        </Grid>
+
+        <!--  底部：状态反馈 + 关闭  -->
+        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{DynamicResource ThirdlyTextBrush}"
+                Text="{Binding StatusMessage}"
+                TextWrapping="Wrap" />
+            <Button
+                Grid.Column="1"
+                Padding="28,7"
+                Command="{Binding CancelCommand}"
+                Content="关 闭"
+                Style="{DynamicResource ButtonDefault}" />
+        </Grid>
+    </Grid>
+</UserControl>

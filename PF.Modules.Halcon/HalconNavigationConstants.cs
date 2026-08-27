@@ -27,5 +27,12 @@ public static class HalconNavigationConstants
         /// 建立模板 → 按名字存盘。范围到"存盘"为止，不含"在新图上查找/预览"——那是消费方自己的事。
         /// </summary>
         public const string ShapeTemplateEditor = "ShapeTemplateEditorDialog";
+
+        /// <summary>
+        /// ROI 形状模板验证弹窗：按名字加载一个已存在的模板 → 在一张图（DialogParameters 的
+        /// "ImagePath" 注入，或弹窗里自己选）上查找匹配、调 <c>ShapeMatchOptions</c>、看叠加轮廓。
+        /// 纯只读验证，不改模板本身，不写回任何状态。
+        /// </summary>
+        public const string ShapeTemplateVerify = "ShapeTemplateVerifyDialog";
     }
 }

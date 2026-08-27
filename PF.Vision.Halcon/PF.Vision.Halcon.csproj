@@ -3,8 +3,19 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <PackageReleaseNotes>
+v1.0.3 (2026-08-27) — 修复 ShapeTemplateService.FindMatches 找模板必报 HALCON #1208
+
+[修复 — 严重]
+- FindMatches 里 NumLevels==0 时错误地把控制参数传成字符串 "auto"，抄的是
+  CreateTemplate/CreateShapeModel 那边"NumLevels 默认值是 auto"的惯例。但
+  find_shape_model 算子的 NumLevels 参数默认值本来就是整数 0（0 本身就是"自动计算金字塔层数"
+  的哨兵值，算子文档没说它接受 "auto" 字符串），传字符串直接触发
+  "HALCON error #1208: Wrong type of control parameter 8 in operator find_shape_model"，
+  ROI 模板匹配（验证模板/联合试跑里调用 FindMatches 的地方）全部报错，无法找到任何模板。
+  改为直接传 options.NumLevels（int，隐式转 HTuple），0/非 0 都不再做字符串转换。
+
 v1.0.2 (2026-08-21) — 调试服务与 Debug 引擎解耦（含构造函数破坏性变更）
 
 [破坏性变更 — HalconDebugService]

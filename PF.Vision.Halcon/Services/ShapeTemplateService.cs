@@ -59,6 +59,24 @@ public static class ShapeTemplateService
     }
 
     /// <summary>
+    /// 列出 <see cref="TemplateDirectory"/> 下所有可用模板的名字（不含扩展名），供下拉选择控件用
+    /// （比如程式参数里"关联 ROI 模板"那个下拉框）。目录未配置/不存在时返回空列表，不抛异常——
+    /// 这是给 UI 展示用的只读查询，不该让调用方（往往是 PropertyGrid 的编辑器）因为目录没配就
+    /// 渲染失败。
+    /// </summary>
+    public static IReadOnlyList<string> GetAvailableTemplateNames()
+    {
+        if (string.IsNullOrWhiteSpace(TemplateDirectory) || !Directory.Exists(TemplateDirectory))
+            return [];
+
+        return Directory.GetFiles(TemplateDirectory, "*.roipk")
+            .Select(System.IO.Path.GetFileNameWithoutExtension)
+            .Where(n => !string.IsNullOrEmpty(n))
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList()!;
+    }
+
+    /// <summary>
     /// 用一张参考图 + ROI 区域建立形状模板。内部先 <c>ReduceDomain</c> 把图像限制到
     /// <paramref name="roiRegion"/>，再 <c>CreateShapeModel</c>——模板只认区域内的边缘特征。
     /// 返回的 <see cref="ShapeTemplateHandle"/> 用完必须 <see cref="ShapeTemplateHandle.Dispose"/>，
@@ -200,7 +218,6 @@ public static class ShapeTemplateService
         HObject image, ShapeTemplateHandle handle, ShapeMatchOptions? options = null)
     {
         options ??= new ShapeMatchOptions();
-        HTuple numLevels = options.NumLevels == 0 ? new HTuple("auto") : new HTuple(options.NumLevels);
 
         HOperatorSet.FindShapeModel(
             image,
@@ -211,7 +228,7 @@ public static class ShapeTemplateService
             options.NumMatches,
             options.MaxOverlap,
             options.SubPixel,
-            numLevels,
+            options.NumLevels,
             options.Greediness,
             out HTuple row, out HTuple column, out HTuple angle, out HTuple score);
 
