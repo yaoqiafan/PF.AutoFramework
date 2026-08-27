@@ -3,8 +3,27 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.21</Version>
+    <Version>1.0.22</Version>
     <PackageReleaseNotes>
+		v1.0.22 (2026-08-27) — ROI 形状模板匹配能力补齐：验证弹窗 + 保存流程简化 + 查找模板修复
+
+		[新增 — PF.Modules.Halcon 1.0.3→1.0.7]
+		- 新增 ShapeTemplateVerifyDialog：按名字加载已存在的 ROI 形状模板，在一张图上查找匹配、
+		  调 ShapeMatchOptions、叠加显示命中轮廓，纯只读验证，不改模板本身。
+		- ShapeTemplateEditorDialog（建模板弹窗）保存前补充名称合法性（文件名非法字符）与唯一性
+		  （撞已有模板名弹确认覆盖）校验；去掉独立的"建立模板"步骤，合并进"保存并关闭"一步
+		  完成建模型+写盘；改已有模板时名称锁定不可改，只有新建模板才能填/改名字。
+		- HalconRoiEditor 顶部工具栏按钮由"emoji+文字"改为 pf:PackIcon 纯图标，说明移到 ToolTip。
+
+		[修复 — PF.Vision.Halcon 1.0.2→1.0.3]
+		- ShapeTemplateService.FindMatches 的 NumLevels==0 时错误传成字符串 "auto"（抄自
+		  CreateShapeModel 的惯例，但 find_shape_model 的 NumLevels 默认值是整数 0，不接受该
+		  字符串），导致查找模板必现 HALCON #1208 Wrong type of control parameter 8。改为直接
+		  传整数，找模板功能此前实际上完全不可用。
+
+		子包版本对照：PF.Modules.Halcon 1.0.3→1.0.7，PF.Vision.Halcon 1.0.2→1.0.3；
+		其余子包本次无变化。
+
 		v1.0.21 (2026-08-24) — 光源控制器通道数可配置（含接口破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.13→1.0.14]
