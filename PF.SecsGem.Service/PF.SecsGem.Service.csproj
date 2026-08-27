@@ -16,20 +16,9 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
   </ItemGroup>
 
-  <!-- NuGet 模式 -->
-  <ItemGroup Condition="'$(PFLocalDev)' != 'true'">
-    <!-- 本项目直接使用 PF.Core（消息实体/枚举）与 PF.Infrastructure（TcpServer/SecsGemMessageTools 等），
-         且不经 Meta 元包，必须直接引用才能吃到 SECS/GEM 修复版本（见 Directory.Packages.props 注释）。 -->
-    <PackageReference Include="PF.Core" />
-    <PackageReference Include="PF.Infrastructure" />
-    <PackageReference Include="PF.SecsGem.DataBase" />
-    <PackageReference Include="PF.Services" />
-  </ItemGroup>
-
-  <!-- 本地开发模式 -->
-  <ItemGroup Condition="'$(PFLocalDev)' == 'true'">
-    <ProjectReference Include="$(PFRoot)PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
-    <ProjectReference Include="$(PFRoot)PF.Services\PF.Services.csproj" />
+  <ItemGroup>
+    <ProjectReference Include="..\PF.Services\PF.Services.csproj" />
+    <ProjectReference Include="..\PF.SecsGem.DataBase\PF.SecsGem.DataBase.csproj" />
   </ItemGroup>
 
 </Project>
