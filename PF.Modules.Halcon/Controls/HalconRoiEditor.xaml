@@ -3,6 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:PF.Modules.Halcon.Controls"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Halcon"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     FontSize="{DynamicResource FontSize.Body.Standard}">
 
@@ -31,6 +33,7 @@
                 Padding="8,3"
                 Checked="IncludeBtn_Checked"
                 IsChecked="True"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.SetIncludeMode}"
                 Style="{DynamicResource RadioButtonIcon}"
                 ToolTip="新增 ROI 作为包含区域">
                 <pf:PackIcon
@@ -42,6 +45,7 @@
                 x:Name="ExcludeBtn"
                 Padding="8,3"
                 Checked="ExcludeBtn_Checked"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.SetExcludeMode}"
                 Style="{DynamicResource RadioButtonIcon}"
                 ToolTip="新增 ROI 作为排除区域">
                 <pf:PackIcon
@@ -60,6 +64,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddRect_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddRect}"
                 ToolTip="矩形 ROI">
                 <pf:PackIcon
                     Width="16"
@@ -70,6 +75,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddRect2_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddRotatedRect}"
                 ToolTip="旋转矩形 ROI">
                 <pf:PackIcon
                     Width="16"
@@ -80,6 +86,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddCircle_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddCircle}"
                 ToolTip="圆形 ROI">
                 <pf:PackIcon
                     Width="16"
@@ -90,6 +97,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddEllipse_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddEllipse}"
                 ToolTip="椭圆 ROI">
                 <pf:PackIcon
                     Width="16"
@@ -100,6 +108,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddSector_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddSector}"
                 ToolTip="扇形 ROI">
                 <pf:PackIcon
                     Width="16"
@@ -112,6 +121,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="PreviewRegion_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.PreviewRegion}"
                 ToolTip="预览检测范围：隐藏工具框，叠层显示 Include − Exclude 的最终检测区域">
                 <pf:PackIcon
                     Width="16"
@@ -123,6 +133,7 @@
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="ExitPreview_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.ExitPreview}"
                 ToolTip="退出预览：清除预览区域，恢复显示工具框"
                 Visibility="Collapsed">
                 <pf:PackIcon
@@ -133,6 +144,7 @@
             <Button HorizontalAlignment="Right"
                 Padding="8,3"
                 Click="ClearRois_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.ClearRois}"
                 ToolTip="清空 ROI">
                 <pf:PackIcon
                     Width="16"
@@ -181,7 +193,8 @@
                         <DataGridTextColumn
                             Width="auto"
                             Binding="{Binding Name}"
-                            Header="名称" />
+                            Header="名称"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.RoiName}" />
                         <DataGridTextColumn
                             Width="auto"
                             Binding="{Binding TypeLabel}"
@@ -195,6 +208,7 @@
                                         BorderThickness="0"
                                         FontSize="11"
                                         ItemsSource="{x:Static local:HalconRoiEditor.OpLabels}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.RoiOperation}"
                                         SelectedValue="{Binding OpLabel, UpdateSourceTrigger=PropertyChanged}"
                                         SelectionChanged="OpComboBox_SelectionChanged" />
                                 </DataTemplate>
@@ -210,6 +224,7 @@
                                         Content="🗑️"
                                         FontSize="15"
                                         Foreground="{DynamicResource  NomalPrimaryBrush}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.DeleteRoi}"
                                         Tag="{Binding}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

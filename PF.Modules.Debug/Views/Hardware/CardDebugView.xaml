@@ -4,9 +4,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="CardDebugView"
     d:DesignHeight="500"
     d:DesignWidth="900"
     mc:Ignorable="d">
@@ -71,22 +74,26 @@
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding ConnectCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CardDebugView.Connect}"
                             Content="连接板卡"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding DisconnectCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CardDebugView.Disconnect}"
                             Content="断开连接"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Command="{Binding ResetCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CardDebugView.Reset}"
                             Content="板卡复位"
                             Style="{DynamicResource ButtonWarning}" />
                             <Button
                             Height="32"
                             Command="{Binding SimulateAlarmCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CardDebugView.SimulateAlarm}"
                             Content="模拟报警测试"
                             Style="{DynamicResource ButtonDanger}" />
                     </StackPanel>

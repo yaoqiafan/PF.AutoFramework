@@ -3,8 +3,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.14</Version>
+		<Version>1.0.15</Version>
 		<PackageReleaseNotes>
+v1.0.15 (2026-08-28) — 界面操作日志契约：两个特性 + 跨层开关接口
+
+[新增]
+- OperationLogKeyCatalogAttribute（Attributes/）：类级，标记"该静态类是操作日志键目录"——
+  内层嵌套静态类名 = 页面名、public const string 字段 = Key、DescriptionAttribute = 默认描述，
+  由 UI 层的 OperationLogKeyRegistry 反射扫描发现，用法对齐 [ModuleNavigation] 的注册套路。
+- OperationLogCriticalAttribute（Attributes/）：字段级，标记某 Key 属于"关键操作"
+  （启停/复位/保存/删除/确认/登录登出/下发指令等会改变状态或有留痕价值的动作），默认启用
+  记录；未标记的键默认不启用，由项目级配置按需打开。
+- IOperationLogSettings（Interfaces/Configuration/）：bool EnableOperationLog 总开关的跨层
+  接口——UI 基础设施层（02 层）不允许引用应用层（06 层），开关经此契约下探。
+
+
 		v1.0.14 (2026-08-24) — 光源控制器通道数可配置（含接口破坏性变更）
 
 		[破坏性变更 — ILightController]

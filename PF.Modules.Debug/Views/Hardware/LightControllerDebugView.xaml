@@ -5,9 +5,12 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.Debug.Views.Hardware"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     d:DesignHeight="450"
     d:DesignWidth="800"
+    oplog:OperationLog.PageName="LightControllerDebugView"
     mc:Ignorable="d">
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="15">
@@ -126,12 +129,14 @@
                                 Height="36"
                                 Margin="0,0,5,5"
                                 Command="{Binding ConnectCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.Connect}"
                                 Content="连接硬件"
                                 Style="{DynamicResource ButtonDefault}" />
                             <Button
                                 Height="36"
                                 Margin="5,0,0,5"
                                 Command="{Binding DisconnectCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.Disconnect}"
                                 Content="断开连接"
                                 Style="{DynamicResource ButtonDefault}" />
                         </UniformGrid>
@@ -139,18 +144,21 @@
                             Height="36"
                             Margin="0,5"
                             Command="{Binding ReadLightValueCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.ReadLightValue}"
                             Content="读取亮度"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="36"
                             Margin="0,5"
                             Command="{Binding ResetCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.Reset}"
                             Content="清除报警 (RESET)"
                             Style="{DynamicResource ButtonWarning}" />
                         <Button
                             Height="36"
                             Margin="0,5"
                             Command="{Binding SimulateAlarmCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.SimulateAlarm}"
                             Content="模拟报警测试"
                             Style="{DynamicResource ButtonDanger}" />
                     </StackPanel>
@@ -198,6 +206,7 @@
                                             Height="30"
                                             HorizontalContentAlignment="Center"
                                             VerticalContentAlignment="Center"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.ChannelValueText}"
                                             Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
                                     </Grid>
                                 </DataTemplate>

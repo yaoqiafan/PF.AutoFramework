@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="500"
     d:DesignWidth="900"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="SerialPortDebugView"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -56,17 +59,20 @@
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding OpenCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.Open}"
                             Content="打开串口"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding CloseCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.Close}"
                             Content="关闭串口"
                             Style="{DynamicResource ButtonWarning}" />
                         <Button
                             Height="32"
                             Command="{Binding ShowParamDialogCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.ShowParamDialog}"
                             Content="参数设置"
                             Style="{DynamicResource ButtonDefault}" />
                     </StackPanel>
@@ -92,18 +98,21 @@
                         Margin="0,0,10,0"
                         VerticalContentAlignment="Center"
                         FontFamily="Consolas"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.SendText}"
                         Text="{Binding SendText, UpdateSourceTrigger=PropertyChanged}" />
                     <CheckBox
                         Grid.Column="1"
                         Margin="0,0,12,0"
                         VerticalAlignment="Center"
                         Content="十六进制发送"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.SendAsHex}"
                         IsChecked="{Binding SendAsHex}"
                         ToolTip="勾选后按十六进制解析输入，如 53 41 30 35 30 30 23；空格/逗号/0x 前缀均可" />
                     <Button
                         Grid.Column="2"
                         Width="100"
                         Command="{Binding SendCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.Send}"
                         Content="发送"
                         Style="{DynamicResource ButtonDefault}" />
                 </Grid>
@@ -127,12 +136,14 @@
                                 Margin="0,0,12,0"
                                 VerticalAlignment="Center"
                                 Content="十六进制显示"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.DisplayAsHex}"
                                 IsChecked="{Binding DisplayAsHex}"
                                 ToolTip="二进制协议按文本显示会变成乱码，勾选后收发内容按十六进制展示" />
                             <Button
                                 Height="28"
                                 Padding="12,0"
                                 Command="{Binding ClearLogCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SerialPortDebugView.ClearLog}"
                                 Content="清空"
                                 Style="{DynamicResource ButtonDefault}" />
                         </StackPanel>

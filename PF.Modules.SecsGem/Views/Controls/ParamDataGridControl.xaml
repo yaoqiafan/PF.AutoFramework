@@ -5,6 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.SecsGem"
     d:DesignHeight="300"
     d:DesignWidth="600"
     mc:Ignorable="d">
@@ -20,12 +22,14 @@
                 Margin="0,0,4,0"
                 Command="{Binding AddCommand, ElementName=Root}"
                 Content="+ 新增行"
-                Style="{DynamicResource ToolbarButtonStyle}" />
+                Style="{DynamicResource ToolbarButtonStyle}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.AddParamRow}" />
             <Button
                 Margin="0,0,4,0"
                 Command="{Binding DeleteCommand, ElementName=Root}"
                 Content="- 删除选中"
-                Style="{DynamicResource ToolbarButtonStyle}" />
+                Style="{DynamicResource ToolbarButtonStyle}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.DeleteParamRow}" />
         </WrapPanel>
 
         <DataGrid

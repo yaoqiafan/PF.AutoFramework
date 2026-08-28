@@ -3,7 +3,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
     xmlns:prism="http://prismlibrary.com/"
+    oplog:OperationLog.PageName="{x:Static local:HalconNavigationConstants+Views.Dashboard}"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
@@ -45,7 +47,7 @@
             <StackPanel Orientation="Horizontal">
 
                 <!--  过程调试 Tab  -->
-                <Button Command="{Binding NavToDebugCommand}">
+                <Button Command="{Binding NavToDebugCommand}" oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+HalconDashboardView.NavToDebug}">
                     <Button.Style>
                         <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
                             <Style.Triggers>
@@ -71,7 +73,7 @@
                 </Button>
 
                 <!--  管线运行 Tab  -->
-                <Button Command="{Binding NavToPipelineCommand}">
+                <Button Command="{Binding NavToPipelineCommand}" oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+HalconDashboardView.NavToPipeline}">
                     <Button.Style>
                         <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
                             <Style.Triggers>

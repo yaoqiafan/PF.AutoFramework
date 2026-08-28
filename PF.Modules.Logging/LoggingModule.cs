@@ -5,6 +5,7 @@ using PF.Infrastructure.Logging;
 using PF.Modules.Logging.ViewModels;
 using PF.Modules.Logging.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using System.Reflection;
 
 namespace PF.Modules.Logging
@@ -44,6 +45,8 @@ namespace PF.Modules.Logging
             // 解析导航服务并扫描当前程序集自动注册菜单
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
         /// <summary>注册日志模块的视图</summary>

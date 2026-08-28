@@ -7,6 +7,7 @@ using PF.Modules.Alarm.Dialogs;
 using PF.Modules.Alarm.ViewModels;
 using PF.Modules.Alarm.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using System.Reflection;
 
 namespace PF.Modules.Alarm
@@ -63,6 +64,8 @@ namespace PF.Modules.Alarm
             // 扫描当前程序集，自动注册菜单导航项
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
     }
 }

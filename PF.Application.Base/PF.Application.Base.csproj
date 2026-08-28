@@ -3,8 +3,23 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-08-28) — 操作日志总开关 + 框架自身页面接入
+
+[新增]
+- CommonSettings 实现 IOperationLogSettings：新增 EnableOperationLog 总开关（参数界面
+  "A.系统参数" 分类第 8 项，PropertyGrid 可见，默认 true）。与项目级 Excel 的按 Key 开关
+  是两层粒度——总开关关闭时整个功能不生效，优先级更高。
+- PFApplicationBase：RegisterTypes 注册 IOperationLogSettings 单例；OnInitialized 里自动
+  OperationLogKeyRegistry.RegisterAssembly(框架目录) + OperationLogInterceptor.Attach()，
+  消费项目继承即得，无需任何接入代码。
+- OperationLogKeysBase 框架键目录：MainWindow（切换主题、侧边栏导航切换——关键）、
+  MainView（打开说明书/检查更新/联系技术支持/关于软件）、CommonParamView（保存公共参数——关键）。
+- MainWindow 的 pf:SideMenu 挂 Key 记录导航轨迹；MainView 四个常用操作按钮、
+  CommonParamView 保存按钮同步标记。
+
+
 v1.0.6 (2026-08-18) — 新增 UsesSecsGemService 开关：不用 SECS/GEM 的项目可整体关闭
 
 [新增]

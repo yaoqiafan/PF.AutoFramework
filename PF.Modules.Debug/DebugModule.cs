@@ -7,6 +7,7 @@ using PF.Modules.Debug.Views.Communication;
 using PF.Modules.Debug.Views.Hardware;
 using PF.Modules.Debug.Views.Mechanisms;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using Prism.Ioc;
 using Prism.Modularity;
 using System.Reflection;
@@ -25,6 +26,8 @@ namespace PF.Modules.Debug
             // 这样 DeviceDebugView 上的 [ModuleNavigation] 特性就会被识别，自动添加到系统侧边栏菜单中
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
 
             // 通讯综合调试视图跟硬件/工站调试一样，仅限工程师及以上权限可见
             DefaultPermissions.RegisterViews(UserLevel.Engineer, NavigationConstants.Views.CommunicationDebugView);

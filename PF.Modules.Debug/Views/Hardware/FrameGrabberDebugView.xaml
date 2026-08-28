@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="800"
     d:DesignWidth="1280"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="FrameGrabberDebugView"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -179,12 +182,14 @@
                                     Height="34"
                                     Margin="0,0,4,8"
                                     Command="{Binding ConnectCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.Connect}"
                                     Content="打开采集卡"
                                     Style="{DynamicResource ButtonDefault}" />
                                 <Button
                                     Height="34"
                                     Margin="4,0,0,8"
                                     Command="{Binding DisconnectCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.Disconnect}"
                                     Content="关闭采集卡"
                                     Style="{DynamicResource ButtonDefault}" />
                             </UniformGrid>
@@ -192,17 +197,20 @@
                                 Height="34"
                                 Margin="0,0,0,8"
                                 Command="{Binding ResetCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.Reset}"
                                 Content="复位 (RESET)"
                                 Style="{DynamicResource ButtonWarning}" />
                             <Button
                                 Height="34"
                                 Margin="0,0,0,8"
                                 Command="{Binding SimulateAlarmCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.SimulateAlarm}"
                                 Content="模拟报警测试"
                                 Style="{DynamicResource ButtonDanger}" />
                             <Button
                                 Height="32"
                                 Command="{Binding RefreshStateCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.RefreshState}"
                                 Content="刷新状态（读回卡上实际值）"
                                 Style="{DynamicResource ButtonDefault}" />
                         </StackPanel>
@@ -225,6 +233,7 @@
                                 Height="32"
                                 Margin="0,0,0,10"
                                 Command="{Binding DiscoverCamerasCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.DiscoverCameras}"
                                 Content="枚举本卡下的相机"
                                 Style="{DynamicResource ButtonPrimary}" />
                             <ListBox
@@ -277,6 +286,7 @@
                                             Grid.Row="1"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.ImageHeight}"
                                             Text="{Binding ImageHeight, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -288,6 +298,7 @@
                                             Grid.Row="1"
                                             Grid.Column="2"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.FrameTimeoutMs}"
                                             Text="{Binding FrameTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -299,6 +310,7 @@
                                             Grid.Row="3"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.TriggerSource}"
                                             Text="{Binding TriggerSource, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -310,6 +322,7 @@
                                             Grid.Row="3"
                                             Grid.Column="2"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.TriggerActivation}"
                                             Text="{Binding TriggerActivation, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -321,6 +334,7 @@
                                             Grid.Row="5"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.StreamSelector}"
                                             Text="{Binding StreamSelector, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -332,6 +346,7 @@
                                             Grid.Row="5"
                                             Grid.Column="2"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.CameraType}"
                                             Text="{Binding CameraType, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -343,6 +358,7 @@
                                             Grid.Row="7"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.PartialImageControl}"
                                             Text="{Binding PartialImageControl, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <CheckBox
@@ -351,6 +367,7 @@
                                             Margin="0,0,0,10"
                                             VerticalAlignment="Center"
                                             Content="启用帧触发"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.TriggerEnable}"
                                             IsChecked="{Binding TriggerEnable}" />
                                     </Grid>
 
@@ -365,6 +382,7 @@
                                             Height="38"
                                             Margin="0,0,6,0"
                                             Command="{Binding ApplyFrameControlCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.ApplyFrameControl}"
                                             Content="下发帧控制配置"
                                             FontWeight="Bold"
                                             Style="{DynamicResource ButtonPrimary}" />
@@ -372,6 +390,7 @@
                                             Height="38"
                                             Margin="6,0,0,0"
                                             Command="{Binding SoftwareTriggerCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.SoftwareTrigger}"
                                             Content="发送帧软触发"
                                             FontWeight="Bold"
                                             Style="{DynamicResource ButtonSuccess}" />
@@ -424,6 +443,7 @@
                                 Width="140"
                                 Height="32"
                                 Command="{Binding EnumerateNodesCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.EnumerateNodes}"
                                 Content="枚举全部节点"
                                 Style="{DynamicResource ButtonPrimary}" />
                             <TextBox
@@ -431,12 +451,14 @@
                                 Height="32"
                                 VerticalContentAlignment="Center"
                                 Style="{StaticResource TextBoxBaseStyle}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.NodeFilter}"
                                 Text="{Binding NodeFilter, UpdateSourceTrigger=PropertyChanged}"
                                 ToolTip="按节点名 / 显示名 / 分类过滤" />
                             <CheckBox
                                 Grid.Column="6"
                                 VerticalAlignment="Center"
                                 Content="只看可写"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.WritableNodesOnly}"
                                 IsChecked="{Binding WritableNodesOnly}" />
                         </Grid>
 
@@ -527,13 +549,14 @@
                             <TextBlock Style="{StaticResource GroupTitle}" Text="节点操作" />
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="节点名（选中左侧行自动填入）" />
-                            <TextBox Style="{StaticResource FieldBox}" Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.NodeName}" Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}" />
 
                             <TextBlock Style="{StaticResource FieldLabel}" Text="节点值" />
                             <!--  可编辑下拉框：数值/字符串直接输入，枚举节点从选中行带出的可选项里挑  -->
                             <ComboBox
                                 IsEditable="True"
                                 ItemsSource="{Binding NodeEnumEntries}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.NodeValue}"
                                 Style="{StaticResource FieldCombo}"
                                 Text="{Binding NodeValue, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -542,18 +565,21 @@
                                     Height="34"
                                     Margin="0,0,4,0"
                                     Command="{Binding ReadNodeCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.ReadNode}"
                                     Content="读取"
                                     Style="{DynamicResource ButtonDefault}" />
                                 <Button
                                     Height="34"
                                     Margin="2,0"
                                     Command="{Binding WriteNodeCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.WriteNode}"
                                     Content="写入"
                                     Style="{DynamicResource ButtonDefault}" />
                                 <Button
                                     Height="34"
                                     Margin="4,0,0,0"
                                     Command="{Binding ExecuteNodeCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.ExecuteNode}"
                                     Content="执行"
                                     Style="{DynamicResource ButtonDefault}" />
                             </UniformGrid>

@@ -5,12 +5,15 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:PF.Modules.Debug.Models"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     xmlns:vm="clr-namespace:PF.Modules.Debug.ViewModels"
     d:DesignHeight="600"
     d:DesignWidth="1000"
+    oplog:OperationLog.PageName="StationDebugView"
     mc:Ignorable="d">
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid Margin="5">
@@ -98,26 +101,31 @@
                             Margin="3"
                             HorizontalAlignment="Stretch"
                             Command="{Binding InitializeAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.InitializeAll}"
                             Content="全线初始化" />
                         <Button
                             Margin="3"
                             HorizontalAlignment="Stretch"
                             Command="{Binding StartAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.StartAll}"
                             Content="▶ 启动" />
                         <Button
                             Margin="3"
                             HorizontalAlignment="Stretch"
                             Command="{Binding PauseAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.PauseAll}"
                             Content="⏸ 暂停" />
                         <Button
                             Margin="3"
                             HorizontalAlignment="Stretch"
                             Command="{Binding ResumeAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.ResumeAll}"
                             Content="▶ 恢复" />
                         <Button
                             Margin="3"
                             HorizontalAlignment="Stretch"
                             Command="{Binding ResetAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.ResetAll}"
                             Content="⟳ 复位" />
                     </UniformGrid>
 
@@ -126,6 +134,7 @@
                         Margin="3"
                         HorizontalAlignment="Stretch"
                         Command="{Binding StopAllCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.StopAll}"
                         Content="⏹ 停止"
                         DockPanel.Dock="Top"
                         Style="{DynamicResource ButtonWarning}" />
@@ -259,14 +268,16 @@
                                         通过 PlacementTarget.DataContext 访问当前 SignalTreeNode 参数。
                                     -->
                                     <StackPanel.ContextMenu>
-                                        <ContextMenu>
+                                        <ContextMenu oplog:OperationLog.PageName="StationDebugView">
                                             <MenuItem
                                                 Command="{Binding PlacementTarget.Tag.ReleaseSignalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                 CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.ReleaseSignal}"
                                                 Header="释放（计数 +1）" />
                                             <MenuItem
                                                 Command="{Binding PlacementTarget.Tag.ResetSignalCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                 CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+StationDebugView.ResetSignal}"
                                                 Header="复位至初始值" />
                                         </ContextMenu>
                                     </StackPanel.ContextMenu>

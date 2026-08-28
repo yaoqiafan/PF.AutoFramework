@@ -5,8 +5,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.SecsGem.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.SecsGem"
     MinWidth="380"
    MaxHeight="600"
+    oplog:OperationLog.PageName="VidSelectDialog"
     mc:Ignorable="d" FontSize="{DynamicResource FontSize.Body.Standard}">
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -27,7 +30,8 @@
             BorderThickness="1"
             DisplayMemberPath="DisplayText"
             ItemsSource="{Binding VidItems}"
-            SelectedItem="{Binding SelectedVidItem}">
+            SelectedItem="{Binding SelectedVidItem}"
+            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+VidSelectDialog.SelectVid}">
             <ListBox.InputBindings>
                 <MouseBinding
                     Command="{Binding ConfirmCommand}"
@@ -46,13 +50,15 @@
                 Margin="0,0,8,0"
                 Command="{Binding ConfirmCommand}"
                 Content="确定 (OK)"
-                IsDefault="True" />
+                IsDefault="True"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+VidSelectDialog.Confirm}" />
             <Button
                 Width="90"
                 Height="32"
                 Command="{Binding CancelCommand}"
                 Content="取消"
-                IsCancel="True" />
+                IsCancel="True"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+VidSelectDialog.Cancel}" />
         </StackPanel>
     </Grid>
 </UserControl>

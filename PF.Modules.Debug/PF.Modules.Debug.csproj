@@ -11,8 +11,20 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.10</Version>
+		<Version>1.0.11</Version>
 		<PackageReleaseNotes>
+v1.0.11 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
+
+[新增]
+- OperationLogKeysDebug 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
+  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
+  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
+- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：24 个页面
+  226 个键，其中 120 个关键操作（硬件连接/断开、伺服使能、回零、急停、复位、模拟报警、绝对/相对/点动运动、点表增删改存、IO 翻转、相机采集启停/软触发/存图、GenICam 节点读写执行、全局与单设备仿真切换、工站全局启停/暂停/恢复/复位/停止、跨工站信号量操作、模组初始化/复位/停止、线扫启停、通讯连接/收发/清空、各参数对话框确认）默认启用记录；其余默认关闭，
+  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
+- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
+
+
 v1.0.10 (2026-08-24) — 光源控制器调试页支持动态通道数（UI 结构调整）
 
 [变更 — LightControllerDebugViewModel]

@@ -3,7 +3,10 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:halcon="clr-namespace:HalconDotNet;assembly=halcondotnet"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
     xmlns:prism="http://prismlibrary.com/"
+    oplog:OperationLog.PageName="{x:Static local:HalconNavigationConstants+Views.PipelineRunner}"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <Grid>
@@ -23,22 +26,26 @@
                 VerticalContentAlignment="Center"
                 DisplayMemberPath="Name"
                 ItemsSource="{Binding Pipelines}"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+PipelineRunnerView.SelectPipeline}"
                 SelectedItem="{Binding SelectedPipeline, Mode=TwoWay}" />
             <Separator />
             <Button
                 Padding="12,4"
                 Command="{Binding RunCommand}"
-                Content="执行管线" />
+                Content="执行管线"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+PipelineRunnerView.RunPipeline}" />
             <Button
                 Margin="4,0,0,0"
                 Padding="8,4"
                 Command="{Binding RefreshCommand}"
-                Content="刷新列表" />
+                Content="刷新列表"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+PipelineRunnerView.RefreshPipelineList}" />
             <Button
                 Margin="4,0,0,0"
                 Padding="8,4"
                 Command="{Binding ClearCommand}"
-                Content="清除图像" />
+                Content="清除图像"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+PipelineRunnerView.ClearImage}" />
             <Separator />
             <ProgressBar
                 Width="80"

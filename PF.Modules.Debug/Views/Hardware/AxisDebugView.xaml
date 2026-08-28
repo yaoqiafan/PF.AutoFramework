@@ -5,11 +5,14 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="800"
     d:DesignWidth="1100"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="AxisDebugView"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -42,6 +45,7 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Command="{Binding ShowAxisParamDialog}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.ShowAxisParamDialog}"
                             Content="⚙️"
                             FontSize="{DynamicResource FontSize.H1.Large}"
                             Foreground="{DynamicResource TextIconBrush}"
@@ -201,24 +205,28 @@
                                         Height="36"
                                         Margin="0,0,5,5"
                                         Command="{Binding ConnectCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Connect}"
                                         Content="连接硬件"
                                         Style="{DynamicResource ButtonDefault}" />
                                     <Button
                                         Height="36"
                                         Margin="5,0,0,5"
                                         Command="{Binding DisconnectCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Disconnect}"
                                         Content="断开连接"
                                         Style="{DynamicResource ButtonDefault}" />
                                     <Button
                                         Height="36"
                                         Margin="0,5,5,0"
                                         Command="{Binding EnableCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Enable}"
                                         Content="伺服使能 (ON)"
                                         Style="{DynamicResource ButtonPrimary}" />
                                     <Button
                                         Height="36"
                                         Margin="5,5,0,0"
                                         Command="{Binding DisableCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Disable}"
                                         Content="断开使能 (OFF)"
                                         Style="{DynamicResource ButtonWarning}" />
                                 </UniformGrid>
@@ -227,12 +235,14 @@
                                     Height="40"
                                     Margin="0,5"
                                     Command="{Binding HomeCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Home}"
                                     Content="执行回零 (HOME)"
                                     Style="{DynamicResource ButtonSuccess}" />
                                 <Button
                                     Height="45"
                                     Margin="0,5"
                                     Command="{Binding StopCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Stop}"
                                     Content="急 停 (E-STOP)"
                                     FontSize="{DynamicResource FontSize.H3.Subtitle}"
                                     FontWeight="Bold"
@@ -241,12 +251,14 @@
                                     Height="36"
                                     Margin="0,5"
                                     Command="{Binding ResetCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.Reset}"
                                     Content="报警复位 (RESET)"
                                     Style="{DynamicResource ButtonDefault}" />
                                 <Button
                                     Height="36"
                                     Margin="0,5"
                                     Command="{Binding SimulateAlarmCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.SimulateAlarm}"
                                     Content="模拟硬件报警"
                                     Style="{DynamicResource ButtonDanger}" />
                             </StackPanel>
@@ -286,6 +298,7 @@
                                     Height="36"
                                     Margin="0,0,20,0"
                                     VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.TargetPosition}"
                                     Text="{Binding TargetPosition}" />
                                 <TextBlock
                                     Grid.Column="2"
@@ -297,11 +310,13 @@
                                     Height="36"
                                     Margin="0,0,20,0"
                                     VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.AbsVelocity}"
                                     Text="{Binding AbsVelocity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
                                 <Button
                                     Grid.Column="4"
                                     Height="36"
                                     Command="{Binding MoveAbsoluteCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.MoveAbsolute}"
                                     Content="绝对运动"
                                     Style="{DynamicResource ButtonPrimary}" />
                             </Grid>
@@ -331,6 +346,7 @@
                                     Height="36"
                                     Margin="0,0,20,0"
                                     VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.RelativeDistance}"
                                     Text="{Binding RelativeDistance}" />
                                 <TextBlock
                                     Grid.Column="2"
@@ -342,11 +358,13 @@
                                     Height="36"
                                     Margin="0,0,20,0"
                                     VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.RelVelocity}"
                                     Text="{Binding RelVelocity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
                                 <Button
                                     Grid.Column="4"
                                     Height="36"
                                     Command="{Binding MoveRelativeCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.MoveRelative}"
                                     Content="相对运动"
                                     Style="{DynamicResource ButtonPrimary}" />
                             </Grid>
@@ -371,6 +389,7 @@
                                     Content="◀ JOG -"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.JogNegative}"
                                     Style="{DynamicResource ButtonDefault}">
 
                                     <i:Interaction.Triggers>
@@ -394,6 +413,7 @@
                                     Margin="0,0,20,0"
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.JogVelocity}"
                                     Text="{Binding JogVelocity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
                                 <Button
                                     Grid.Column="4"
@@ -401,6 +421,7 @@
                                     Content="JOG + ▶"
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.JogPositive}"
                                     Style="{DynamicResource ButtonDefault}">
                                     <i:Interaction.Triggers>
                                         <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
@@ -465,39 +486,47 @@
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding SortOrder, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="序号" />
+                                        Header="序号"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointSortOrder}" />
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="点位名称" />
+                                        Header="点位名称"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointName}" />
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding TargetPosition, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="目标位置(um)" />
+                                        Header="目标位置(um)"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointTargetPosition}" />
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding Speed, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="速度" />
+                                        Header="速度"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointSpeed}" />
 
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding Acc, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="加速度" />
+                                        Header="加速度"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointAcc}" />
 
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding Dec, StringFormat={}{0:F0}, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="减速度" />
+                                        Header="减速度"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointDec}" />
 
                                     <DataGridTextColumn
                                         Width="auto"
                                         Binding="{Binding STime, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="S段时间" />
+                                        Header="S段时间"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointSTime}" />
 
                                     <DataGridTextColumn
                                         Width="*"
                                         Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                                        Header="备注说明" />
+                                        Header="备注说明"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.PointDescription}" />
                                     <DataGridTemplateColumn Width="90" Header="快速移动">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
@@ -505,6 +534,7 @@
                                                     Width="70"
                                                     Height="26"
                                                     Command="{Binding DataContext.GoToPointCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.GoToPoint}"
                                                     Content="移动到"
                                                     Style="{DynamicResource ButtonPrimary}" />
                                             </DataTemplate>
@@ -523,6 +553,7 @@
                                     Margin="0,0,10,0"
                                     Padding="15,0"
                                     Command="{Binding AddPointCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.AddPoint}"
                                     Content="获取当前位置"
                                     Style="{DynamicResource ButtonSuccess}" />
                                 <Button
@@ -530,12 +561,14 @@
                                     Margin="0,0,10,0"
                                     Padding="15,0"
                                     Command="{Binding DeletePointCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.DeletePoint}"
                                     Content="删除选中"
                                     Style="{DynamicResource ButtonDanger}" />
                                 <Button
                                     Height="32"
                                     Padding="25,0"
                                     Command="{Binding SavePointsCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AxisDebugView.SavePoints}"
                                     Content="保存修改到本地"
                                     Style="{DynamicResource ButtonPrimary}" />
                             </StackPanel>

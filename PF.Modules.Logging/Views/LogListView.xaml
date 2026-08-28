@@ -6,12 +6,16 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:PF.Modules.Logging.Converter"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Logging"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     d:DesignHeight="200"
     d:DesignWidth="900"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    oplog:OperationLog.PageName="{x:Static tokens:NavigationConstants+Views.LoggingListView}">
 
     <UserControl.Resources>
         <local:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
@@ -34,24 +38,36 @@
             <Setter Property="ContextMenu">
                 <Setter.Value>
                     <ContextMenu>
-                        <MenuItem Command="{Binding PlacementTarget.Tag.CopySelectedCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}" Header="复制选中内容">
+                        <MenuItem
+                            Command="{Binding PlacementTarget.Tag.CopySelectedCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}"
+                            Header="复制选中内容"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.CopySelected}">
                             <MenuItem.Icon>
                                 <TextBlock Text="📋" />
                             </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Command="{Binding PlacementTarget.Tag.CopyAllCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}" Header="复制全部显示内容">
+                        <MenuItem
+                            Command="{Binding PlacementTarget.Tag.CopyAllCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}"
+                            Header="复制全部显示内容"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.CopyAll}">
                             <MenuItem.Icon>
                                 <TextBlock Text="📑" />
                             </MenuItem.Icon>
                         </MenuItem>
 
                         <Separator />
-                        <MenuItem Command="{Binding PlacementTarget.Tag.ClearLogsCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}" Header="清空日志">
+                        <MenuItem
+                            Command="{Binding PlacementTarget.Tag.ClearLogsCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}"
+                            Header="清空日志"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.ClearLogs}">
                             <MenuItem.Icon>
                                 <TextBlock Text="🆑" />
                             </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Command="{Binding PlacementTarget.Tag.RefreshCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}" Header="刷新">
+                        <MenuItem
+                            Command="{Binding PlacementTarget.Tag.RefreshCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ContextMenu}}}"
+                            Header="刷新"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.Refresh}">
                             <MenuItem.Icon>
                                 <TextBlock Text="🔄️" />
                             </MenuItem.Icon>
@@ -228,6 +244,7 @@
                                 Margin="0,0,12,0"
                                 VerticalAlignment="Center"
                                 ItemsSource="{Binding LogLevels}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.SelectedLogLevel}"
                                 SelectedItem="{Binding SelectedLogLevel}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
@@ -249,6 +266,7 @@
                                 VerticalAlignment="Center"
                                 DisplayMemberPath="Name"
                                 ItemsSource="{Binding DateRanges}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.SelectedDateRange}"
                                 SelectedItem="{Binding SelectedDateRange}" />
 
 
@@ -299,7 +317,8 @@
                             <CheckBox
                                 VerticalAlignment="Center"
                                 Content="自动滚动"
-                                IsChecked="{Binding AutoScroll}" />
+                                IsChecked="{Binding AutoScroll}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.AutoScroll}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -313,6 +332,7 @@
                             ItemContainerStyle="{StaticResource LogItemStyle}"
                             ItemTemplate="{StaticResource LogEntryTemplate}"
                             ItemsSource="{Binding LogEntriesView}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.SelectedLogEntry}"
                             ScrollViewer.CanContentScroll="True"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             ScrollViewer.VerticalScrollBarVisibility="Auto"

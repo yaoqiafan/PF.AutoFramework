@@ -12,6 +12,7 @@
 	  <None Remove="HardwareImage\驱动器.png" />
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="NPOI" />
 		<PackageReference Include="PF.UI.Resources" />
 		<PackageReference Include="Prism.Wpf" />
 	</ItemGroup>
@@ -30,8 +31,39 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-08-28) — 界面操作日志：控件级全局拦截 + 键目录注册表 + 项目级 Excel 配置
+
+[新增 — Operation/ 目录，共 5 个新文件]
+- OperationLog：两个附加属性。Key 挂在要记录的控件上（唯一标识，建议 {x:Static} 引用键目录
+  常量）；PageName 挂在页面根节点一次，FrameworkPropertyMetadataOptions.Inherits 让全部
+  子孙继承，不用逐控件写、也不用遍历可视树猜页面归属。
+- OperationLogInterceptor：EventManager.RegisterClassHandler 一次性挂载的全局拦截器，
+  只处理挂了 Key 的控件——未标记控件不产生任何日志与反射开销。覆盖五类交互：
+  · 点击类（Button/MenuItem/CheckBox/RadioButton/ToggleButton 的 ClickEvent 类处理器）；
+  · 选择类（Selector 派生：ComboBox/ListBox/ListView/TabControl 的 SelectionChanged）；
+  · 文本编辑类（TextBoxBase 派生含 pf:SearchBar：GotKeyboardFocus 存快照 →
+    LostKeyboardFocus 比对，值变了才记"描述：旧值 → 新值"）；
+  · 表格改值（DataGrid：Key 挂在列上；PreparingCellForEdit 存旧值快照 + CellEditEnding
+    取新值，模板列同样生效；经 Loaded 类处理器订阅一次 CLR 事件）；
+  · 侧边栏导航（pf:SideMenu 不是 Selector 派生、SelectionChanged 是 CLR 事件，同样经
+    Loaded 订阅；Info 给的是 SideMenuItem 容器，从 DataContext 解析 NavigationItem.Title）。
+- 行标识附加：DataGrid 模板列里的按钮/勾选框，点击时沿可视树找 DataGridRow、取行数据的
+  常见名称属性（Description/Title/Name/ViewName 等）追加进日志——"删除/授权"类操作不再
+  只有动作没有对象。
+- OperationLogKeyRegistry：反射扫描 [OperationLogKeyCatalog] 目录类，框架模块与消费项目
+  各自 RegisterAssembly 注册，结构对齐 NavigationMenuService。
+- OperationLogConfigStore：项目级配置 OperationLogConfig.xlsx（ConstGlobalParam.ConfigPath
+  下，天然按项目隔离）。一个工作表 = 一个页面，表头 Key|Description|Enabled；工程师直接编辑
+  Excel 定制，已存在的行永远优先于代码默认值；页面首次加载即把该页全部键整页预写（一页只
+  落一次盘），不用逐控件点击。NPOI 读写，文件被占用等 IO 异常降级跳过不阻塞主流程。
+- 记录经既有 ILogService 写入 LogCategories.UI 分类，格式 [用户名] 描述（值变化类追加
+  "：旧值 → 新值"）。密码框（PasswordBox）刻意不拦截，明文密码输入框刻意不标记。
+- 新增 NPOI 包引用（版本由 Directory.Packages.props 中央管理）；PF.UI.Controls 类型经
+  PF.UI.Resources 传递引用使用，未新增直接依赖。
+
+
 v1.0.3 (2026-07-15) — MessageService 线程感知调度（后台线程不再被模态弹窗卡死）
 
 [修复]

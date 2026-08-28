@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="640"
     d:DesignWidth="900"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="ModbusTcpDebugView"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -61,17 +64,20 @@
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding ConnectCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.Connect}"
                             Content="连接"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding DisconnectCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.Disconnect}"
                             Content="断开"
                             Style="{DynamicResource ButtonWarning}" />
                         <Button
                             Height="32"
                             Command="{Binding ShowParamDialogCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.ShowParamDialog}"
                             Content="参数设置"
                             Style="{DynamicResource ButtonDefault}" />
                     </StackPanel>
@@ -94,12 +100,14 @@
                             Margin="15,0,0,0"
                             VerticalAlignment="Center"
                             Content="地址/写入值按十六进制填写"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.UseHexInput}"
                             IsChecked="{Binding UseHexInput}" />
                         <!--  MBAP 事务号控制：递增模式显示"重置事务号"，固定模式显示事务号输入框（互斥）  -->
                         <CheckBox
                             Margin="20,0,0,0"
                             VerticalAlignment="Center"
                             Content="事务号递增"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.TransactionIdIncrement}"
                             IsChecked="{Binding TransactionIdIncrement}" />
                         <!--  递增模式：计数器归零，下一笔请求从 1 开始  -->
                         <Button
@@ -108,6 +116,7 @@
                             Padding="10,0"
                             VerticalAlignment="Center"
                             Command="{Binding ResetTransactionIdCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.ResetTransactionId}"
                             Content="重置事务号"
                             Style="{DynamicResource ButtonDefault}"
                             Visibility="{Binding TransactionIdIncrement, Converter={StaticResource BoolToVis}}" />
@@ -123,6 +132,7 @@
                             Width="64"
                             VerticalAlignment="Center"
                             FontFamily="Consolas"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.FixedTransactionIdText}"
                             Text="{Binding FixedTransactionIdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             ToolTip="固定模式下每次请求使用的事务号（十六进制，0~FFFF），递增模式下被忽略"
                             Visibility="{Binding IsTransactionIdFixed, Converter={StaticResource BoolToVis}}" />
@@ -158,15 +168,17 @@
                             Grid.Column="0"
                             Margin="0,4,10,0"
                             ItemsSource="{Binding FunctionCodes}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.FunctionCode}"
                             SelectedItem="{Binding SelectedFunctionCode, Mode=TwoWay}" />
-                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,10,0" Text="{Binding UnitId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBox Grid.Row="1" Grid.Column="2" Margin="0,4,10,0" Text="{Binding AddressText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,10,0" Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,10,0" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.UnitId}" Text="{Binding UnitId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Grid.Row="1" Grid.Column="2" Margin="0,4,10,0" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.AddressText}" Text="{Binding AddressText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,4,10,0" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.Quantity}" Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <!--  写单个线圈/寄存器：单值输入框  -->
                         <TextBox
                             Grid.Row="1"
                             Grid.Column="4"
                             Margin="0,4,10,0"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.WriteValueText}"
                             Text="{Binding WriteValueText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             Visibility="{Binding IsSingleWriteFunction, Converter={StaticResource BoolToVis}}" />
                         <Button
@@ -175,6 +187,7 @@
                             Width="100"
                             Margin="0,4,0,0"
                             Command="{Binding ExecuteTestCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.ExecuteTest}"
                             Content="执行"
                             Style="{DynamicResource ButtonDefault}" />
                     </Grid>
@@ -208,7 +221,7 @@
                                                     MinWidth="28"
                                                     VerticalAlignment="Center"
                                                     Text="{Binding Index, StringFormat='[{0}]'}" />
-                                                <TextBox Width="70" Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                <TextBox Width="70" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.MultiWriteValue}" Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -255,12 +268,14 @@
                             Grid.Column="0"
                             Margin="0,0,10,0"
                             FontFamily="Consolas"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.RawPduText}"
                             Text="{Binding RawPduText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             ToolTip="PDU＝功能码+数据，十六进制字符串（如 03 00 00 00 02，可含空格/短横线分隔），MBAP 头由框架自动补全" />
                         <Button
                             Grid.Column="1"
                             Width="100"
                             Command="{Binding SendRawCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+ModbusTcpDebugView.SendRaw}"
                             Content="发送"
                             Style="{DynamicResource ButtonDefault}" />
                     </Grid>

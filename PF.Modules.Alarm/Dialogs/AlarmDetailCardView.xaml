@@ -5,8 +5,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.Alarm.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Alarm"
     Height="450"
     FontSize="{DynamicResource FontSize.H1.Large}"
+    oplog:OperationLog.PageName="AlarmDetailCardView"
     mc:Ignorable="d">
     <UserControl.Resources>
         <Style x:Key="HeaderBorderStyle" TargetType="Border">
@@ -111,6 +114,7 @@
                         Command="{Binding ConfirmCommand}"
                         Content="异常复位"
                         FontSize="{DynamicResource FontSize.H1.Large}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmDetailCardView.ConfirmAlarm}"
                         Style="{StaticResource ButtonPrimary}"
                         Visibility="{Binding ResetButtonVisibility}" />
                 </Grid>

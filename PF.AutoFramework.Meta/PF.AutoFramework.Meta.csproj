@@ -3,8 +3,58 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.22</Version>
+    <Version>1.0.23</Version>
     <PackageReleaseNotes>
+		v1.0.23 (2026-08-28) — 界面操作日志：框架级控件拦截 + 键目录 + 项目级 Excel 配置，8 模块全量接入
+
+		[本次做了什么]
+		给全部框架界面补上操作审计：谁在什么时间对哪个界面做了什么操作（含改值类操作的
+		旧值 → 新值），统一落到既有 LogCategories.UI 日志分类。底层一次性挂载路由事件
+		类处理器，只处理挂了 OperationLog.Key 标记的控件，未标记控件零开销；页面归属靠
+		页面根挂一次 PageName（附加属性继承）解决，业务 ViewModel 一行代码都不用改。
+
+		[新增 — PF.Core 1.0.14→1.0.15]
+		- OperationLogKeyCatalogAttribute（类级，标记键目录静态类）+ OperationLogCriticalAttribute
+		  （字段级，标记关键操作默认启用）+ IOperationLogSettings（总开关跨层接口）。
+
+		[新增 — PF.UI.Infrastructure 1.0.3→1.0.4]
+		- Operation/ 全套：OperationLog 附加属性（Key + 继承式 PageName）、OperationLogInterceptor
+		  全局拦截器（按钮/菜单/勾选/单选/开关 Click；下拉/列表/Tab SelectionChanged；文本框焦点
+		  快照比对；DataGrid 列改值 PreparingCellForEdit+CellEditEnding；pf:SideMenu 导航切换）、
+		  OperationLogKeyRegistry 键目录注册表、OperationLogConfigStore 项目级 Excel 配置。
+		- DataGrid 模板列里的按钮/勾选框自动附加行标识，"删除/授权"类操作既有动作又有对象。
+		- 密码框刻意不拦截；明文密码输入框刻意不标记。
+
+		[新增 — PF.Application.Base 1.0.6→1.0.7]
+		- CommonSettings.EnableOperationLog 总开关（参数界面可见，默认开）。
+		- PFApplicationBase 自动挂拦截器并注册框架目录（MainWindow/MainView/CommonParamView，
+		  含侧边栏导航切换、主题切换、公共参数保存），消费项目继承即得。
+
+		[新增 — 8 个业务模块全量标记，共 48 页 / 409 键 / 202 个关键操作默认启用]
+		- PF.Modules.Alarm 1.0.4→1.0.5（清警/复位/确认）
+		- PF.Modules.Debug 1.0.10→1.0.11（24 页 226 键：连接/使能/运动/点表/采集/仿真/启停/收发）
+		- PF.Modules.Halcon 1.0.7→1.0.8（调试服务器启停/运行管线/ROI 与模板编辑保存）
+		- PF.Modules.Identity 1.0.2→1.0.3（登录/登出/授权/用户增删改）
+		- PF.Modules.Logging 1.0.2→1.0.3（清空/导出）
+		- PF.Modules.Parameter 1.0.6→1.0.7（保存/删除/恢复默认）
+		- PF.Modules.ProductionRecord 1.0.2→1.0.3（导出/清空）
+		- PF.Modules.SecsGem 1.0.5→1.0.6（连接/发送/命令与参数编辑/服务安装启动）
+
+		[启用规则]
+		- 关键操作（启停/复位/保存/删除/确认/登录登出/下发）默认启用；非关键（筛选/切 Tab 等）
+		  默认关闭。
+		- 项目级定制不改代码：配置目录下 OperationLogConfig.xlsx 一个页面一个工作表，
+		  改 Enabled 列即可，工程师改过的行永远优先；页面首次加载自动整页预写全部键。
+		- 消费项目扩展：自建 OperationLogKeysXxx 目录类 + UI 模块 OnInitialized 里
+		  RegisterAssembly 一行接入。
+
+		子包版本对照：PF.Core 1.0.14→1.0.15，PF.UI.Infrastructure 1.0.3→1.0.4，
+		PF.Application.Base 1.0.6→1.0.7，PF.Modules.Alarm 1.0.4→1.0.5，
+		PF.Modules.Debug 1.0.10→1.0.11，PF.Modules.Halcon 1.0.7→1.0.8，
+		PF.Modules.Identity 1.0.2→1.0.3，PF.Modules.Logging 1.0.2→1.0.3，
+		PF.Modules.Parameter 1.0.6→1.0.7，PF.Modules.ProductionRecord 1.0.2→1.0.3，
+		PF.Modules.SecsGem 1.0.5→1.0.6；其余子包本次无变化。
+
 		v1.0.22 (2026-08-27) — ROI 形状模板匹配能力补齐：验证弹窗 + 保存流程简化 + 查找模板修复
 
 		[新增 — PF.Modules.Halcon 1.0.3→1.0.7]

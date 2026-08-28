@@ -13,8 +13,20 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
+
+[新增]
+- OperationLogKeysParameter 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
+  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
+  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
+- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：2 个页面
+  11 个键，其中 6 个关键操作（恢复默认、修改参数数据类型、新增/删除/保存参数、对话框确认）默认启用记录；其余默认关闭，
+  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
+- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
+
+
 v1.0.6 (2026-08-24) — 光源控制器参数视图支持通道数配置
 
 [新增]

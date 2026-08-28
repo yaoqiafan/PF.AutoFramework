@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="800"
     d:DesignWidth="1100"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="CameraDebugView"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -148,12 +151,14 @@
                                     Height="36"
                                     Margin="0,0,5,5"
                                     Command="{Binding ConnectCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.Connect}"
                                     Content="连接硬件"
                                     Style="{DynamicResource ButtonDefault}" />
                                 <Button
                                     Height="36"
                                     Margin="5,0,0,5"
                                     Command="{Binding DisconnectCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.Disconnect}"
                                     Content="断开连接"
                                     Style="{DynamicResource ButtonDefault}" />
                             </UniformGrid>
@@ -161,12 +166,14 @@
                                 Height="36"
                                 Margin="0,5"
                                 Command="{Binding ResetCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.Reset}"
                                 Content="清除报警 (RESET)"
                                 Style="{DynamicResource ButtonWarning}" />
                             <Button
                                 Height="36"
                                 Margin="0,5"
                                 Command="{Binding SimulateAlarmCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.SimulateAlarm}"
                                 Content="模拟报警测试"
                                 Style="{DynamicResource ButtonDanger}" />
                         </StackPanel>
@@ -201,12 +208,14 @@
                                 Grid.Column="1"
                                 Margin="0,10,10,0"
                                 ItemsSource="{Binding CameraPrograms}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.TargetJob}"
                                 SelectedItem="{Binding TargetJob}" />
                             <Button
                                 Grid.Column="2"
                                 Height="32"
                                 Margin="0,10,0,0"
                                 Command="{Binding ChangeJobCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.ChangeJob}"
                                 Content="切换程序"
                                 Style="{DynamicResource ButtonPrimary}" />
                             <!--</Grid>-->
@@ -215,6 +224,7 @@
                                 Height="45"
                                 Margin="0,10,0,0"
                                 Command="{Binding TriggerCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+CameraDebugView.Trigger}"
                                 Content="触发 (TRIGGER)"
                                 FontSize="16"
                                 FontWeight="Bold"

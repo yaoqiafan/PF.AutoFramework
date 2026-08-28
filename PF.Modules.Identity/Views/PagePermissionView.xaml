@@ -4,8 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:conv="clr-namespace:PF.UI.Infrastructure.Converters;assembly=PF.UI.Infrastructure"
     xmlns:local="clr-namespace:PF.Modules.Identity.Views"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Identity"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
+    oplog:OperationLog.PageName="PagePermissionView"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
@@ -47,7 +50,8 @@
                             DockPanel.Dock="Right"
                             FontSize="{DynamicResource FontSize.Body.Standard}"
                             Style="{DynamicResource ButtonDefault}"
-                            ToolTip="刷新用户列表" />
+                            ToolTip="刷新用户列表"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+PagePermissionView.RefreshUsers}" />
                         <TextBlock
                             VerticalAlignment="Center"
                             FontSize="13"
@@ -67,7 +71,8 @@
                         BorderThickness="0"
                         ItemsSource="{Binding Users}"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        SelectedItem="{Binding SelectedUser, Mode=TwoWay}">
+                        SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+PagePermissionView.SelectUser}">
 
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -227,12 +232,14 @@
                                 <DataGridTemplateColumn Width="80" Header="授权">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
+                                            <!--  Key 挂在勾选框上而不是列上：模板内直改绑定不进编辑模式，CellEditEnding 不会触发；走 Click 类处理器并附加行标识  -->
                                             <CheckBox
                                                 Width="16"
                                                 Height="16"
                                                 HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
-                                                IsChecked="{Binding IsAuthorized, UpdateSourceTrigger=PropertyChanged}" />
+                                                IsChecked="{Binding IsAuthorized, UpdateSourceTrigger=PropertyChanged}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+PagePermissionView.Authorize}" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -288,7 +295,8 @@
                         BorderThickness="1"
                         Command="{Binding ApplyDefaultPermissionsCommand}"
                         Content="恢复等级默认权限"
-                        Cursor="Hand" />
+                        Cursor="Hand"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+PagePermissionView.ApplyDefaultPermissions}" />
                     <Button
                         Height="36"
                         Padding="30,0"
@@ -296,7 +304,8 @@
                         Command="{Binding SaveCommand}"
                         Content="保存权限配置"
                         Cursor="Hand"
-                        FontWeight="SemiBold" />
+                        FontWeight="SemiBold"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+PagePermissionView.SavePermissions}" />
                 </StackPanel>
             </Grid>
         </Grid>

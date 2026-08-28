@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:baseConverter="clr-namespace:PF.Application.Base.Converters"
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Application.Base"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
@@ -16,6 +18,7 @@
     FontSize="{DynamicResource FontSize.Body.Standard}"
     Icon="/PF.UI.Resources;component/Images/ICO/-pfico.ico"
     NonClientAreaHeight="80"
+    oplog:OperationLog.PageName="MainWindow"
     ShowNonClientArea="True"
     Style="{StaticResource WindowWin10}"
     UIIcon="/PF.UI.Resources;component/Images/PNG/聚力LOGOico.png"
@@ -223,6 +226,7 @@
                 BorderThickness="0"
                 Click="ToggleThemeBtn_Click"
                 Cursor="Hand"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysBase+MainWindow.ToggleTheme}"
                 ToolTip="切换深色/浅色主题">
                 <pf:Ripple
                     HorizontalContentAlignment="Center"
@@ -269,6 +273,7 @@
                         BorderThickness="1"
                         ExpandMode="Freedom"
                         ItemContainerStyle="{StaticResource SideMenuItemHeader}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysBase+MainWindow.SwitchNavigation}"
                         SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}">
                         <pf:Interaction.Triggers>
                             <pf:EventTrigger EventName="SelectionChanged">

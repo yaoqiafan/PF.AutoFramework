@@ -2,7 +2,10 @@
     x:Class="PF.Modules.Halcon.Views.RoiEditorDialogView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls">
+    xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    oplog:OperationLog.PageName="{x:Static local:HalconNavigationConstants+Dialogs.RoiEditor}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -24,11 +27,13 @@
                 Padding="28,7"
                 Command="{Binding ConfirmCommand}"
                 Content="确 认"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+RoiEditorDialog.Confirm}"
                 Style="{DynamicResource ButtonPrimary}" />
             <Button
                 Padding="28,7"
                 Command="{Binding CancelCommand}"
-                Content="取 消" />
+                Content="取 消"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+RoiEditorDialog.Cancel}" />
         </StackPanel>
     </Grid>
 </UserControl>

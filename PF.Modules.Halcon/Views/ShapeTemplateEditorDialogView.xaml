@@ -3,7 +3,10 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
-    FontSize="{DynamicResource FontSize.Body.Standard}">
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    FontSize="{DynamicResource FontSize.Body.Standard}"
+    oplog:OperationLog.PageName="{x:Static local:HalconNavigationConstants+Dialogs.ShapeTemplateEditor}">
 
     <!--
         用 WPF 内置转换器，不依赖消费项目是否合并了 PF.UI.Resources 的转换器字典——
@@ -31,6 +34,7 @@
                 Padding="14,4"
                 Command="{Binding SelectReferenceImageCommand}"
                 Content="选参考图"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateEditorDialog.SelectReferenceImage}"
                 Visibility="{Binding ShowSelectImageButton, Converter={StaticResource BoolToVis}}" />
             <TextBlock
                 VerticalAlignment="Center"
@@ -62,7 +66,8 @@
                 VerticalContentAlignment="Center"
                 IsEnabled="{Binding CanEditTemplateName}"
                 Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}"
-                ToolTip="新建模板时可填写；修改已有模板时名称锁定为原模板名，不可修改。" />
+                ToolTip="新建模板时可填写；修改已有模板时名称锁定为原模板名，不可修改。"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateEditorDialog.TemplateName}" />
 
             <Button
                 Grid.Column="2"
@@ -70,7 +75,8 @@
                 Padding="14,4"
                 Command="{Binding LoadTemplateFileCommand}"
                 Content="加载模板文件"
-                ToolTip="弹文件选择框选一个已存在的模板包（.roipk），把当初的参考图和 ROI 灌回编辑器供微调——名称随之锁定为该模板名，改完 ROI 直接保存即可覆盖" />
+                ToolTip="弹文件选择框选一个已存在的模板包（.roipk），把当初的参考图和 ROI 灌回编辑器供微调——名称随之锁定为该模板名，改完 ROI 直接保存即可覆盖"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateEditorDialog.LoadTemplateFile}" />
 
             <TextBlock
                 Grid.Column="3"
@@ -93,11 +99,13 @@
                 Padding="28,7"
                 Command="{Binding ConfirmCommand}"
                 Content="保存并关闭"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateEditorDialog.SaveAndClose}"
                 Style="{DynamicResource ButtonPrimary}" />
             <Button
                 Padding="28,7"
                 Command="{Binding CancelCommand}"
-                Content="取 消" />
+                Content="取 消"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateEditorDialog.Cancel}" />
         </StackPanel>
     </Grid>
 </UserControl>

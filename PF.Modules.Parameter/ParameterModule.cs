@@ -8,6 +8,7 @@ using PF.Modules.Parameter.ViewModels;
 using PF.Modules.Parameter.ViewModels.Models.Hardware;
 using PF.Modules.Parameter.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using System.Reflection;
 
 namespace PF.Modules.Parameter
@@ -24,6 +25,8 @@ namespace PF.Modules.Parameter
             // 解析导航服务并扫描当前程序集自动注册菜单
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
         /// <summary>注册参数模块的视图、对话框及硬件配置视图路���</summary>

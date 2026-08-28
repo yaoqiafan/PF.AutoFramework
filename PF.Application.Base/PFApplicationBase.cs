@@ -51,6 +51,7 @@ using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.Basic;
 using PF.UI.Infrastructure.Dialog.ViewModels;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using PF.UI.Infrastructure.PrismBase;
 using PF.UI.Resources;
 using PF.UI.Shared.Data;
@@ -451,6 +452,8 @@ namespace PF.Application.Base
             navMenuService.RegisterAssembly(Assembly.GetEntryAssembly());
             navMenuService.RegisterAssembly(typeof(PFApplicationBase).Assembly);
 
+            OperationLogKeyRegistry.RegisterAssembly(typeof(PFApplicationBase).Assembly);
+
 
             PermissionHelper.Initialize(navMenuService);
 
@@ -479,6 +482,8 @@ namespace PF.Application.Base
 
             RegisterProjectDailyTasks();
 
+            OperationLogInterceptor.Attach();
+
             base.OnInitialized();
             }
             catch (Exception ex)
@@ -497,6 +502,7 @@ namespace PF.Application.Base
             if (!File.Exists(CommonSettings.ConfigFilePath))
                 commonSettings.Save();
             containerRegistry.RegisterInstance<CommonSettings>(commonSettings);
+            containerRegistry.RegisterInstance<IOperationLogSettings>(commonSettings);
             containerRegistry.RegisterForNavigation<CommonParamView, BaseParamsViewModel>(
                NavigationConstants.Views.CommonParamView);
             containerRegistry.RegisterForNavigation<MainView, MainViewModel>(

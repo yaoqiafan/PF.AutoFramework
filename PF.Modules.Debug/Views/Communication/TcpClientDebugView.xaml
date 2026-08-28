@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="500"
     d:DesignWidth="900"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="TcpClientDebugView"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -56,17 +59,20 @@
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding ConnectCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpClientDebugView.Connect}"
                             Content="连接"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding DisconnectCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpClientDebugView.Disconnect}"
                             Content="断开"
                             Style="{DynamicResource ButtonWarning}" />
                         <Button
                             Height="32"
                             Command="{Binding ShowParamDialogCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpClientDebugView.ShowParamDialog}"
                             Content="参数设置"
                             Style="{DynamicResource ButtonDefault}" />
                     </StackPanel>
@@ -89,11 +95,13 @@
                     <TextBox
                         Grid.Column="0"
                         Margin="0,0,10,0"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpClientDebugView.SendText}"
                         Text="{Binding SendText, UpdateSourceTrigger=PropertyChanged}" />
                     <Button
                         Grid.Column="1"
                         Width="100"
                         Command="{Binding SendCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpClientDebugView.Send}"
                         Content="发送"
                         Style="{DynamicResource ButtonDefault}" />
                 </Grid>

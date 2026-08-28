@@ -1,4 +1,5 @@
 using PF.Core.Constants;
+using PF.Core.Interfaces.Configuration;
 using PF.UI.Shared.Data;
 using System.ComponentModel;
 using System.IO;
@@ -29,7 +30,7 @@ namespace PF.Application.Base.Configuration
     /// <summary>
     /// 系统公共参数设置（JSON 文件存储，支持 PropertyGrid 展示）
     /// </summary>
-    public class CommonSettings
+    public class CommonSettings : IOperationLogSettings
     {
         /// <summary>开机时自动启动软件。</summary>
         [CategoryAttribute("A.系统参数")]
@@ -72,6 +73,15 @@ namespace PF.Application.Base.Configuration
         [DisplayNameAttribute("7.启用加载界面详细日志")]
         [BrowsableAttribute(true)]
         public bool EnableDetailedLog { get; set; } = true;
+
+        /// <summary>
+        /// 是否记录详细界面操作日志（ViewModelBase.SetLoggedProperty / LoggedCommand 选择性埋点）。
+        /// 关闭后所有选择性操作日志埋点直接跳过，不产生反射与日志开销。
+        /// </summary>
+        [CategoryAttribute("A.系统参数")]
+        [DisplayNameAttribute("8.启用详细操作日志")]
+        [BrowsableAttribute(true)]
+        public bool EnableOperationLog { get; set; } = true;
 
         /// <summary>操作员登录时是否播放庆祝动画。</summary>
         [CategoryAttribute("B.登录参数")]

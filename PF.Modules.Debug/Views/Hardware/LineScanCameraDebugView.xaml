@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="900"
     d:DesignWidth="1400"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="LineScanCameraDebugView"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -213,12 +216,14 @@
                                             Height="34"
                                             Margin="0,0,4,8"
                                             Command="{Binding ConnectCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.Connect}"
                                             Content="打开相机"
                                             Style="{DynamicResource ButtonDefault}" />
                                         <Button
                                             Height="34"
                                             Margin="4,0,0,8"
                                             Command="{Binding DisconnectCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.Disconnect}"
                                             Content="关闭相机"
                                             Style="{DynamicResource ButtonDefault}" />
                                     </UniformGrid>
@@ -226,11 +231,13 @@
                                         Height="34"
                                         Margin="0,0,0,8"
                                         Command="{Binding ResetCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.Reset}"
                                         Content="复位 (RESET)"
                                         Style="{DynamicResource ButtonWarning}" />
                                     <Button
                                         Height="34"
                                         Command="{Binding SimulateAlarmCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SimulateAlarm}"
                                         Content="模拟报警测试"
                                         Style="{DynamicResource ButtonDanger}" />
                                 </StackPanel>
@@ -253,6 +260,7 @@
                                         Height="32"
                                         Margin="0,0,0,10"
                                         Command="{Binding DiscoverCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.Discover}"
                                         Content="枚举在线相机"
                                         Style="{DynamicResource ButtonPrimary}" />
                                     <ListBox
@@ -301,6 +309,7 @@
                                             Margin="5,0"
                                             HorizontalAlignment="Stretch"
                                             Command="{Binding StartGrabCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.StartGrab}"
                                             Content="开始采集"
                                             FontWeight="Bold"
                                             Style="{DynamicResource ButtonSuccess}" />
@@ -310,6 +319,7 @@
                                             Margin="5,0"
                                             HorizontalAlignment="Stretch"
                                             Command="{Binding StopGrabCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.StopGrab}"
                                             Content="停止采集"
                                             Style="{DynamicResource ButtonWarning}" />
                                         <Button
@@ -318,6 +328,7 @@
                                             Margin="5,0"
                                             HorizontalAlignment="Stretch"
                                             Command="{Binding SoftwareTriggerCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SoftwareTrigger}"
                                             Content="帧软触发"
                                             Style="{DynamicResource ButtonPrimary}" />
                                         <Button
@@ -326,6 +337,7 @@
                                             Margin="5,0"
                                             HorizontalAlignment="Stretch"
                                             Command="{Binding GrabOneCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.GrabOne}"
                                             Content="取一帧"
                                             Style="{DynamicResource ButtonDefault}" />
 
@@ -339,6 +351,7 @@
                                             <TextBox
                                                 VerticalContentAlignment="Center"
                                                 Style="{StaticResource TextBoxBaseStyle}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.WaitTimeoutMs}"
                                                 Text="{Binding WaitTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
 
                                         </StackPanel>
@@ -367,6 +380,7 @@
                                             Height="32"
                                             VerticalContentAlignment="Center"
                                             Style="{StaticResource TextBoxBaseStyle}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SaveDirectory}"
                                             Text="{Binding SaveDirectory, UpdateSourceTrigger=PropertyChanged}"
                                             ToolTip="文件名按 时间戳_宽_高 自动生成，目录不存在会自动创建" />
 
@@ -377,6 +391,7 @@
                                                 Margin="0,0,6,0"
                                                 Command="{Binding SaveImageCommand}"
                                                 CommandParameter="Bmp"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SaveImage}"
                                                 Content="存 BMP"
                                                 Style="{DynamicResource ButtonDefault}" />
                                             <Button
@@ -385,6 +400,7 @@
                                                 Margin="0,0,6,0"
                                                 Command="{Binding SaveImageCommand}"
                                                 CommandParameter="Jpeg"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SaveImage}"
                                                 Content="存 JPG"
                                                 Style="{DynamicResource ButtonDefault}" />
                                             <Button
@@ -393,6 +409,7 @@
                                                 Margin="0,0,6,0"
                                                 Command="{Binding SaveImageCommand}"
                                                 CommandParameter="Tiff"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SaveImage}"
                                                 Content="存 TIFF"
                                                 Style="{DynamicResource ButtonDefault}" />
                                             <Button
@@ -400,6 +417,7 @@
                                                 Height="32"
                                                 Command="{Binding SaveImageCommand}"
                                                 CommandParameter="Png"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.SaveImage}"
                                                 Content="存 PNG"
                                                 Style="{DynamicResource ButtonDefault}" />
                                         </StackPanel>
@@ -474,35 +492,39 @@
                                     <TextBlock Style="{StaticResource GroupTitle}" Text="相机参数" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="扫描模式" />
-                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding ScanMode, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ScanMode}" Text="{Binding ScanMode, UpdateSourceTrigger=PropertyChanged}" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="像素格式（选中即下发）" />
                                     <ComboBox
                                         ItemsSource="{Binding PixelFormats}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.PixelFormat}"
                                         SelectedItem="{Binding SelectedPixelFormat}"
                                         Style="{StaticResource FieldCombo}" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="无损压缩模式（选中即下发）" />
                                     <ComboBox
                                         ItemsSource="{Binding ImageCompressionModes}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ImageCompressionMode}"
                                         SelectedItem="{Binding SelectedImageCompressionMode}"
                                         Style="{StaticResource FieldCombo}" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="模拟增益档位（选中即下发）" />
                                     <ComboBox
                                         ItemsSource="{Binding PreampGains}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.PreampGain}"
                                         SelectedItem="{Binding SelectedPreampGain}"
                                         Style="{StaticResource FieldCombo}" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="曝光时间(μs)" />
-                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding ExposureTimeUs, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ExposureTimeUs}" Text="{Binding ExposureTimeUs, UpdateSourceTrigger=PropertyChanged}" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="数字增益" />
-                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding DigitalShift, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.DigitalShift}" Text="{Binding DigitalShift, UpdateSourceTrigger=PropertyChanged}" />
 
                                     <Button
                                         Height="32"
                                         Command="{Binding RefreshParamsCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.RefreshParams}"
                                         Content="读取相机当前参数"
                                         Style="{DynamicResource ButtonDefault}" />
 
@@ -526,17 +548,19 @@
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="行触发方式" />
                                     <ComboBox
                                         ItemsSource="{Binding LineTriggerModes}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.LineTriggerMode}"
                                         SelectedItem="{Binding SelectedLineTriggerMode}"
                                         Style="{StaticResource FieldCombo}" />
 
                                     <TextBlock Style="{StaticResource FieldLabel}" Text="行触发源（留空按方式取默认）" />
-                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding LineTriggerSource, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.LineTriggerSource}" Text="{Binding LineTriggerSource, UpdateSourceTrigger=PropertyChanged}" />
 
                                     <CheckBox
                                         Margin="0,0,0,8"
                                         Content="启用内部行频（行/秒）"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.LineRateEnable}"
                                         IsChecked="{Binding LineRateEnable}" />
-                                    <TextBox Style="{StaticResource FieldBox}" Text="{Binding AcquisitionLineRate, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.AcquisitionLineRate}" Text="{Binding AcquisitionLineRate, UpdateSourceTrigger=PropertyChanged}" />
 
                                     <StackPanel IsEnabled="{Binding IsEncoderMode}">
                                         <TextBlock Style="{StaticResource SubTitle}" Text="外置编码器（磁栅读数头直连相机 IO）" />
@@ -565,6 +589,7 @@
                                                 Grid.Row="1"
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldBox}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.EncoderSelector}"
                                                 Text="{Binding EncoderSelector, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <TextBlock
@@ -576,6 +601,7 @@
                                                 Grid.Row="1"
                                                 Grid.Column="2"
                                                 Style="{StaticResource FieldBox}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.EncoderSourceA}"
                                                 Text="{Binding EncoderSourceA, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <TextBlock
@@ -587,6 +613,7 @@
                                                 Grid.Row="3"
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldBox}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.EncoderSourceB}"
                                                 Text="{Binding EncoderSourceB, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <TextBlock
@@ -598,6 +625,7 @@
                                                 Grid.Row="3"
                                                 Grid.Column="2"
                                                 Style="{StaticResource FieldBox}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.PulseEquivalentUm}"
                                                 Text="{Binding PulseEquivalentUm, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <TextBlock
@@ -609,6 +637,7 @@
                                                 Grid.Row="5"
                                                 Grid.Column="0"
                                                 Style="{StaticResource FieldBox}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.DividerRatio}"
                                                 Text="{Binding DividerRatio, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <TextBlock
@@ -665,6 +694,7 @@
                                             Grid.Row="1"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ImageHeight}"
                                             Text="{Binding ImageHeight, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -676,6 +706,7 @@
                                             Grid.Row="1"
                                             Grid.Column="2"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FrameTimeoutMs}"
                                             Text="{Binding FrameTimeoutMs, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -687,6 +718,7 @@
                                             Grid.Row="3"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FrameTriggerSource}"
                                             Text="{Binding FrameTriggerSource, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -698,6 +730,7 @@
                                             Grid.Row="3"
                                             Grid.Column="2"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FrameTriggerActivation}"
                                             Text="{Binding FrameTriggerActivation, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -709,6 +742,7 @@
                                             Grid.Row="5"
                                             Grid.Column="0"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.StreamSelector}"
                                             Text="{Binding StreamSelector, UpdateSourceTrigger=PropertyChanged}" />
 
                                         <TextBlock
@@ -720,12 +754,14 @@
                                             Grid.Row="5"
                                             Grid.Column="2"
                                             Style="{StaticResource FieldBox}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.CameraType}"
                                             Text="{Binding CameraType, UpdateSourceTrigger=PropertyChanged}" />
                                     </Grid>
 
                                     <CheckBox
                                         Margin="0,0,0,12"
                                         Content="启用帧触发（不勾选 = 连续，攒满帧长即出图）"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FrameTriggerEnable}"
                                         IsChecked="{Binding FrameTriggerEnable}" />
 
                                     <TextBlock Style="{StaticResource Hint}" Text="流选择器与相机类型仅在经采集卡时生效；相机直连时帧超时没有对应节点，只能由取帧等待超时兜底。留空的项不下发，沿用设备当前值。" />
@@ -759,6 +795,7 @@
                                     Width="180"
                                     Height="40"
                                     Command="{Binding RefreshParamsCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.RefreshParams2}"
                                     Content="读回设备当前值"
                                     Style="{DynamicResource ButtonDefault}" />
 
@@ -767,6 +804,7 @@
                                     Width="180"
                                     Height="40"
                                     Command="{Binding ApplyConfigCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ApplyConfig}"
                                     Content="下发完整配置"
                                     FontWeight="Bold"
                                     Style="{DynamicResource ButtonPrimary}" />
@@ -806,6 +844,7 @@
                                         Width="140"
                                         Height="32"
                                         Command="{Binding EnumerateNodesCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.EnumerateNodes}"
                                         Content="枚举全部节点"
                                         Style="{DynamicResource ButtonPrimary}" />
                                     <TextBox
@@ -813,12 +852,14 @@
                                         Height="32"
                                         VerticalContentAlignment="Center"
                                         Style="{StaticResource TextBoxBaseStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.NodeFilter}"
                                         Text="{Binding NodeFilter, UpdateSourceTrigger=PropertyChanged}"
                                         ToolTip="按节点名 / 显示名 / 分类过滤" />
                                     <CheckBox
                                         Grid.Column="4"
                                         VerticalAlignment="Center"
                                         Content="只看可写"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.WritableNodesOnly}"
                                         IsChecked="{Binding WritableNodesOnly}" />
                                 </Grid>
 
@@ -906,13 +947,14 @@
                                 <TextBlock Style="{StaticResource GroupTitle}" Text="节点操作" />
 
                                 <TextBlock Style="{StaticResource FieldLabel}" Text="节点名（选中左侧行自动填入）" />
-                                <TextBox Style="{StaticResource FieldBox}" Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource FieldBox}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.NodeName}" Text="{Binding NodeName, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Style="{StaticResource FieldLabel}" Text="节点值" />
                                 <!--  可编辑下拉框：数值/字符串直接输入，枚举节点从选中行带出的可选项里挑  -->
                                 <ComboBox
                                     IsEditable="True"
                                     ItemsSource="{Binding NodeEnumEntries}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.NodeValue}"
                                     Style="{StaticResource FieldCombo}"
                                     Text="{Binding NodeValue, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -921,18 +963,21 @@
                                         Height="34"
                                         Margin="0,0,4,0"
                                         Command="{Binding ReadNodeCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ReadNode}"
                                         Content="读取"
                                         Style="{DynamicResource ButtonDefault}" />
                                     <Button
                                         Height="34"
                                         Margin="2,0"
                                         Command="{Binding WriteNodeCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.WriteNode}"
                                         Content="写入"
                                         Style="{DynamicResource ButtonDefault}" />
                                     <Button
                                         Height="34"
                                         Margin="4,0,0,0"
                                         Command="{Binding ExecuteNodeCommand}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ExecuteNode}"
                                         Content="执行"
                                         Style="{DynamicResource ButtonDefault}" />
                                 </UniformGrid>

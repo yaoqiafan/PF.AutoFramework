@@ -6,11 +6,14 @@
     xmlns:local="clr-namespace:PF.Modules.Debug.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:PF.Modules.Debug.Models"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     d:DesignHeight="450"
     d:DesignWidth="800"
+    oplog:OperationLog.PageName="HardwareDebugView"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -76,6 +79,7 @@
                                 <ToggleButton
                                     Grid.Column="1"
                                     Command="{Binding ToggleGlobalSimulationCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+HardwareDebugView.ToggleGlobalSimulation}"
                                     IsChecked="{Binding IsGlobalSimulated, Mode=OneWay}"
                                     IsEnabled="{Binding IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
                                     Style="{StaticResource ToggleButtonSwitch.Small}"
@@ -115,6 +119,7 @@
                                                 Margin="6,0,0,0"
                                                 Command="{Binding Source={StaticResource Proxy}, Path=Data.ToggleDeviceSimulationCommand}"
                                                 CommandParameter="{Binding}"
+                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+HardwareDebugView.ToggleDeviceSimulation}"
                                                 IsChecked="{Binding IsSimulated, Mode=TwoWay}"
                                                 IsEnabled="{Binding Source={StaticResource Proxy}, Path=Data.IsBusy, Converter={StaticResource Boolean2BooleanReConverter}}"
                                                 Style="{StaticResource ToggleButtonSwitch.Small}"

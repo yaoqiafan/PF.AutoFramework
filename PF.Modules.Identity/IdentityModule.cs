@@ -2,6 +2,7 @@
 using PF.Modules.Identity.ViewModels;
 using PF.Modules.Identity.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using System.Reflection;
 
 namespace PF.Modules.Identity
@@ -15,6 +16,7 @@ namespace PF.Modules.Identity
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
 
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
         /// <summary>注册身份模块的视图和服务</summary>

@@ -5,11 +5,14 @@
     xmlns:converters="clr-namespace:PF.Modules.Debug.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="800"
     d:DesignWidth="1100"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="BarcodeScanDebugView"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -105,10 +108,10 @@
                         <StackPanel>
                             <TextBlock Margin="0,0,0,10" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="基础设备控制" />
                             <UniformGrid Margin="0,0,0,10" Columns="2">
-                                <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" Content="连接硬件" Style="{DynamicResource ButtonDefault}" />
-                                <Button Height="36" Margin="5,0,0,5" Command="{Binding DisconnectCommand}" Content="断开连接" Style="{DynamicResource ButtonDefault}" />
-                                <Button Height="36" Margin="0,5,5,0" Command="{Binding ResetCommand}" Content="报警复位" Style="{DynamicResource ButtonWarning}" />
-                                <Button Height="36" Margin="5,5,0,0" Command="{Binding SimulateAlarmCommand}" Content="模拟报警测试" Style="{DynamicResource ButtonDanger}" />
+                                <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Connect}" Content="连接硬件" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="5,0,0,5" Command="{Binding DisconnectCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Disconnect}" Content="断开连接" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="0,5,5,0" Command="{Binding ResetCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Reset}" Content="报警复位" Style="{DynamicResource ButtonWarning}" />
+                                <Button Height="36" Margin="5,5,0,0" Command="{Binding SimulateAlarmCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.SimulateAlarm}" Content="模拟报警测试" Style="{DynamicResource ButtonDanger}" />
                             </UniformGrid>
 
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
@@ -139,8 +142,8 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" Height="32" Margin="0,0,10,0" Padding="5,0" VerticalContentAlignment="Center" Text="{Binding UserInfoInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="输入用户集索引或配置参数" />
-                                <Button Grid.Column="1" Width="80" Height="32" Command="{Binding ChangeUserParamCommand}" Content="应用修改" Style="{DynamicResource ButtonDefault}" />
+                                <TextBox Grid.Column="0" Height="32" Margin="0,0,10,0" Padding="5,0" VerticalContentAlignment="Center" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.UserInfoInput}" Text="{Binding UserInfoInput, UpdateSourceTrigger=PropertyChanged}" ToolTip="输入用户集索引或配置参数" />
+                                <Button Grid.Column="1" Width="80" Height="32" Command="{Binding ChangeUserParamCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.ChangeUserParam}" Content="应用修改" Style="{DynamicResource ButtonDefault}" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -154,7 +157,7 @@
                                 <TextBlock Text="等待扫码枪返回结果..." Foreground="#02AD8B" VerticalAlignment="Center" FontWeight="Medium"/>
                             </StackPanel>
 
-                            <Button Height="60" Margin="0,5" Command="{Binding TriggerScanCommand}" Content="触发扫码 (Trigger)" FontSize="18" FontWeight="Bold">
+                            <Button Height="60" Margin="0,5" Command="{Binding TriggerScanCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.TriggerScan}" Content="触发扫码 (Trigger)" FontSize="18" FontWeight="Bold">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource ButtonPrimary}">
                                         <Setter Property="Background" Value="#02AD8B" />
@@ -213,7 +216,7 @@
 
                             <Grid Grid.Row="0" Margin="0,0,0,10">
                                 <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="读取历史记录 (Read History)" />
-                                <Button HorizontalAlignment="Right" Height="28" Padding="15,0" Command="{Binding ClearHistoryCommand}" Content="清空历史" Style="{DynamicResource ButtonDefault}" />
+                                <Button HorizontalAlignment="Right" Height="28" Padding="15,0" Command="{Binding ClearHistoryCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.ClearHistory}" Content="清空历史" Style="{DynamicResource ButtonDefault}" />
                             </Grid>
 
                             <DataGrid

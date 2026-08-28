@@ -4,12 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Application.Base"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:vm="clr-namespace:PF.Application.Base.ViewModels"
     d:DataContext="{d:DesignInstance vm:MainViewModel, IsDesignTimeCreatable=False}"
     d:DesignHeight="600"
     d:DesignWidth="1000"
+    oplog:OperationLog.PageName="MainView"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Background="{DynamicResource BackgroundBrush}"
     mc:Ignorable="d">
@@ -145,6 +148,7 @@
                 <Button
                     Command="{Binding OpenManualCommand}"
                     IsEnabled="{Binding HasUserManual}"
+                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysBase+MainView.OpenManual}"
                     Style="{StaticResource MainActionButtonStyle}">
                     <StackPanel Orientation="Horizontal">
                         <pf:PackIcon
@@ -159,7 +163,10 @@
                     </StackPanel>
                 </Button>
 
-                <Button Command="{Binding CheckUpdateCommand}" Style="{StaticResource MainActionButtonStyle}">
+                <Button
+                    Command="{Binding CheckUpdateCommand}"
+                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysBase+MainView.CheckUpdate}"
+                    Style="{StaticResource MainActionButtonStyle}">
                     <StackPanel Orientation="Horizontal">
                         <pf:PackIcon
                             Width="16"
@@ -173,7 +180,10 @@
                     </StackPanel>
                 </Button>
 
-                <Button Command="{Binding ContactSupportCommand}" Style="{StaticResource MainActionButtonStyle}">
+                <Button
+                    Command="{Binding ContactSupportCommand}"
+                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysBase+MainView.ContactSupport}"
+                    Style="{StaticResource MainActionButtonStyle}">
                     <StackPanel Orientation="Horizontal">
                         <pf:PackIcon
                             Width="16"
@@ -187,7 +197,10 @@
                     </StackPanel>
                 </Button>
 
-                <Button Command="{Binding AboutCommand}" Style="{StaticResource MainActionButtonStyle}">
+                <Button
+                    Command="{Binding AboutCommand}"
+                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysBase+MainView.About}"
+                    Style="{StaticResource MainActionButtonStyle}">
                     <StackPanel Orientation="Horizontal">
                         <pf:PackIcon
                             Width="16"

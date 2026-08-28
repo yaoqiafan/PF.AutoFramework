@@ -3,6 +3,7 @@ using PF.Core.Interfaces.Production;
 using PF.Modules.Production.ViewModels;
 using PF.Modules.Production.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using System.Reflection;
 
 namespace PF.Modules.Production
@@ -35,6 +36,8 @@ namespace PF.Modules.Production
             // 扫描当前程序集自动注册菜单
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
     }
 }

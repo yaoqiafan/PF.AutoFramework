@@ -5,11 +5,14 @@
     xmlns:controls="clr-namespace:PF.Modules.SecsGem.Views.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.SecsGem"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:vm="clr-namespace:PF.Modules.SecsGem.ViewModels"
     d:DesignHeight="1080"
     d:DesignWidth="1920"
+    oplog:OperationLog.PageName="SecsGemDebugView"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
 
@@ -65,7 +68,8 @@
                         <MenuItem
                             Command="{Binding AddCommandCommand}"
                             FontWeight="SemiBold"
-                            Header="➕ 添加命令" />
+                            Header="➕ 添加命令"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.AddCommandGroupItem}" />
                     </ContextMenu>
                 </StackPanel.ContextMenu>
             </StackPanel>
@@ -79,7 +83,10 @@
                 ToolTip="{Binding DisplayName}">
                 <TextBlock.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Command="{Binding DeleteCommand}" Header="🗑 删除命令" />
+                        <MenuItem
+                            Command="{Binding DeleteCommand}"
+                            Header="🗑 删除命令"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.DeleteCommandLeaf}" />
                     </ContextMenu>
                 </TextBlock.ContextMenu>
             </TextBlock>
@@ -148,14 +155,16 @@
                         Margin="5"
                         Command="{Binding Connection.InitializeCommand}"
                         Content="⚙ 初始化"
-                        Style="{StaticResource ToolbarButtonStyle}" />
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.InitializeConnection}" />
 
                     <Button
                         Width="90"
                         Margin="5"
                         Command="{Binding Connection.DisconnectCommand}"
                         Content="✖ 断开"
-                        Style="{StaticResource DangerButtonStyle}" />
+                        Style="{StaticResource DangerButtonStyle}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.DisconnectConnection}" />
 
                     <!--  W-Bit 警告提示  -->
                     <Border
@@ -177,7 +186,10 @@
 
 
 
-            <TabControl Grid.Row="2" Margin="0,6,0,0">
+            <TabControl
+                Grid.Row="2"
+                Margin="0,6,0,0"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SwitchMainTab}">
 
                 <TabItem Header="报文命令管理">
 
@@ -208,27 +220,31 @@
                                         Margin="0,0,4,0"
                                         Command="{Binding CommandBuilder.ImportCommandsCommand}"
                                         Content="导入"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ImportCommands}" />
                                     <Button
                                         Width="72"
                                         Margin="0,0,4,0"
                                         Command="{Binding CommandBuilder.ExportCommandsCommand}"
                                         Content="导出"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ExportCommands}" />
                                     <Button
                                         Width="72"
                                         Command="{Binding CommandBuilder.ReloadCommandsCommand}"
                                         Content="重载"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ReloadCommands}" />
                                     <Button
                                         Margin="0,0,4,0"
                                         Command="{Binding CommandBuilder.AddNewCommandCommand}"
                                         Content="➕ 新建命令"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.AddNewCommand}" />
                                 </WrapPanel>
 
                                 <!--  主动/应答 Tab  -->
-                                <TabControl Grid.Row="1">
+                                <TabControl Grid.Row="1" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SwitchCommandLibraryTab}">
                                     <TabItem Header="主动命令">
                                         <TreeView
                                             Background="Transparent"
@@ -340,7 +356,8 @@
                                                         Padding="4,2"
                                                         VerticalContentAlignment="Center"
                                                         Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                        Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}">
+                                                        Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}"
+                                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditMessageNodeValue}">
                                                         <TextBox.Style>
                                                             <Style BasedOn="{StaticResource TextBoxBaseStyle}" TargetType="TextBox">
                                                                 <Style.Triggers>
@@ -373,7 +390,8 @@
                                                         VerticalAlignment="Center"
                                                         Content="绑定变量"
                                                         IsChecked="{Binding IsVariableNode}"
-                                                        Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}" />
+                                                        Visibility="{Binding IsListNode, Converter={StaticResource InverseBoolToVis}}"
+                                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ToggleVariableNode}" />
 
                                                     <!--  已绑定的 VID 说明  -->
 
@@ -393,9 +411,13 @@
                                                             <MenuItem
                                                                 Command="{Binding AddChildCommand}"
                                                                 Header="➕ 添加子节点 (LIST)"
-                                                                Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
+                                                                Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}"
+                                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.AddChildNode}" />
                                                             <Separator Visibility="{Binding IsListNode, Converter={StaticResource BoolToVis}}" />
-                                                            <MenuItem Command="{Binding RemoveNodeCommand}" Header="🗑 删除此节点" />
+                                                            <MenuItem
+                                                                Command="{Binding RemoveNodeCommand}"
+                                                                Header="🗑 删除此节点"
+                                                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.RemoveMessageNode}" />
                                                         </ContextMenu>
                                                     </StackPanel.ContextMenu>
                                                 </StackPanel>
@@ -421,25 +443,29 @@
                                         Margin="0,0,16,0"
                                         VerticalAlignment="Center"
                                         Content="等待回复 (W-Bit)"
-                                        IsChecked="{Binding CommandBuilder.WaitReply}" />
+                                        IsChecked="{Binding CommandBuilder.WaitReply}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ToggleWaitReply}" />
 
                                     <Button
                                         Margin="0,0,4,0"
                                         Command="{Binding CommandBuilder.SaveMessageCommand}"
                                         Content="💾 保存报文"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SaveMessage}" />
 
                                     <Button
                                         Command="{Binding CommandBuilder.UpdateVariablesCommand}"
                                         Content="🔄 更新变量节点"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.UpdateVariableNodes}" />
 
                                     <Button
                                         Width="120"
                                         Command="{Binding CommandBuilder.SendCommand}"
                                         Content="▶ 发送 (Send)"
                                         FontSize="13"
-                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SendMessage}" />
                                 </StackPanel>
                             </Grid>
                         </GroupBox>
@@ -461,6 +487,7 @@
                                     Grid.Row="0"
                                     BorderThickness="0"
                                     ItemsSource="{Binding Log.TransactionLogs}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SelectTransactionLog}"
                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
                                     VirtualizingStackPanel.IsVirtualizing="True"
@@ -538,7 +565,8 @@
                                     <Button
                                         Command="{Binding Log.ClearLogCommand}"
                                         Content="🗑 清空日志"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ClearTransactionLog}" />
                                 </StackPanel>
                             </Grid>
                         </GroupBox>
@@ -557,7 +585,10 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TabControl Grid.Row="0" SelectedIndex="{Binding Parameter.SelectedParamTabIndex}">
+                        <TabControl
+                            Grid.Row="0"
+                            SelectedIndex="{Binding Parameter.SelectedParamTabIndex}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SwitchParamSubTab}">
 
                             <!--  系统参数  -->
                             <TabItem Header="🖥 系统参数">
@@ -579,7 +610,8 @@
                                         <DataGridTextColumn
                                             Width="*"
                                             Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
-                                            Header="值" />
+                                            Header="值"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditSystemParamValue}" />
                                         <DataGridTextColumn
                                             Width="auto"
                                             Binding="{Binding DataType}"
@@ -606,11 +638,13 @@
                                         <DataGridTextColumn
                                             Width="80"
                                             Binding="{Binding DataType, UpdateSourceTrigger=LostFocus}"
-                                            Header="类型" />
+                                            Header="类型"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditVidDataType}" />
                                         <DataGridTextColumn
                                             Width="120"
                                             Binding="{Binding Value, UpdateSourceTrigger=LostFocus}"
-                                            Header="值" />
+                                            Header="值"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditVidValue}" />
                                     </controls:ParamDataGridControl.ExtraColumns>
                                 </controls:ParamDataGridControl>
                             </TabItem>
@@ -626,7 +660,8 @@
                                         <DataGridTextColumn
                                             Width="150"
                                             Binding="{Binding LinkReportIDs, UpdateSourceTrigger=LostFocus}"
-                                            Header="关联 ReportID" />
+                                            Header="关联 ReportID"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditCeidLinkReportIDs}" />
                                     </controls:ParamDataGridControl.ExtraColumns>
                                 </controls:ParamDataGridControl>
                             </TabItem>
@@ -642,7 +677,8 @@
                                         <DataGridTextColumn
                                             Width="150"
                                             Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
-                                            Header="关联 VID" />
+                                            Header="关联 VID"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditReportIdLinkVIDs}" />
                                     </controls:ParamDataGridControl.ExtraColumns>
                                 </controls:ParamDataGridControl>
                             </TabItem>
@@ -658,11 +694,13 @@
                                         <DataGridTextColumn
                                             Width="80"
                                             Binding="{Binding RCMD, UpdateSourceTrigger=LostFocus}"
-                                            Header="RCMD" />
+                                            Header="RCMD"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditCommandIdRcmd}" />
                                         <DataGridTextColumn
                                             Width="150"
                                             Binding="{Binding LinkVIDs, UpdateSourceTrigger=LostFocus}"
-                                            Header="关联 VID" />
+                                            Header="关联 VID"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditCommandIdLinkVIDs}" />
                                     </controls:ParamDataGridControl.ExtraColumns>
                                 </controls:ParamDataGridControl>
                             </TabItem>
@@ -678,22 +716,26 @@
                                 Margin="0,0,4,0"
                                 Command="{Binding Parameter.ImportSystemParamCommand}"
                                 Content="📂 导入系统参数(JSON)"
-                                Style="{StaticResource ToolbarButtonStyle}" />
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ImportSystemParam}" />
                             <Button
                                 Margin="0,0,4,0"
                                 Command="{Binding Parameter.ImportValidateParamCommand}"
                                 Content="📊 导入变量参数(Excel)"
-                                Style="{StaticResource ToolbarButtonStyle}" />
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ImportValidateParam}" />
                             <Button
                                 Width="70"
                                 Margin="0,0,4,0"
                                 Command="{Binding Parameter.ExportParamsCommand}"
                                 Content="导出"
-                                Style="{StaticResource ToolbarButtonStyle}" />
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.ExportParams}" />
                             <Button
                                 Command="{Binding Parameter.SaveParamCommand}"
                                 Content="💾 保存参数"
-                                Style="{StaticResource ToolbarButtonStyle}" />
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.SaveParam}" />
                         </WrapPanel>
                     </Grid>
                 </TabItem>
@@ -729,7 +771,8 @@
                                         Width="200"
                                         Margin="0,0,16,0"
                                         VerticalContentAlignment="Center"
-                                        Text="{Binding ServiceManager.ServiceNameForManagement, UpdateSourceTrigger=PropertyChanged}" />
+                                        Text="{Binding ServiceManager.ServiceNameForManagement, UpdateSourceTrigger=PropertyChanged}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditServiceName}" />
                                     <Ellipse
                                         Width="12"
                                         Height="12"
@@ -752,7 +795,8 @@
                                         Width="400"
                                         Margin="0,0,8,0"
                                         VerticalContentAlignment="Center"
-                                        Text="{Binding ServiceManager.ServiceExePath, UpdateSourceTrigger=PropertyChanged}" />
+                                        Text="{Binding ServiceManager.ServiceExePath, UpdateSourceTrigger=PropertyChanged}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.EditServiceExePath}" />
                                 </StackPanel>
 
                                 <!--  操作按钮  -->
@@ -761,21 +805,25 @@
                                         Margin="0,0,4,0"
                                         Command="{Binding ServiceManager.InstallServiceCommand}"
                                         Content="📥 安装服务"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.InstallService}" />
                                     <Button
                                         Margin="0,0,4,0"
                                         Command="{Binding ServiceManager.UninstallServiceCommand}"
                                         Content="🗑 卸载服务"
-                                        Style="{StaticResource DangerButtonStyle}" />
+                                        Style="{StaticResource DangerButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.UninstallService}" />
                                     <Button
                                         Margin="0,0,4,0"
                                         Command="{Binding ServiceManager.StartServiceCommand}"
                                         Content="▶ 启动服务"
-                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.StartService}" />
                                     <Button
                                         Command="{Binding ServiceManager.RefreshServiceStatusCommand}"
                                         Content="🔄 刷新状态"
-                                        Style="{StaticResource ToolbarButtonStyle}" />
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+SecsGemDebugView.RefreshServiceStatus}" />
                                 </WrapPanel>
                             </Grid>
                         </GroupBox>

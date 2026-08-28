@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="500"
     d:DesignWidth="900"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="TcpServerDebugView"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -67,17 +70,20 @@
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding StartCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.Start}"
                             Content="启动"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding StopCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.Stop}"
                             Content="停止"
                             Style="{DynamicResource ButtonWarning}" />
                         <Button
                             Height="32"
                             Command="{Binding ShowParamDialogCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.ShowParamDialog}"
                             Content="参数设置"
                             Style="{DynamicResource ButtonDefault}" />
                     </StackPanel>
@@ -102,12 +108,14 @@
                     <TextBox
                         Grid.Column="0"
                         Margin="0,0,10,0"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.SendText}"
                         Text="{Binding SendText, UpdateSourceTrigger=PropertyChanged}" />
                     <Button
                         Grid.Column="1"
                         Width="100"
                         Margin="0,0,10,0"
                         Command="{Binding BroadcastCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.Broadcast}"
                         Content="广播发送"
                         Style="{DynamicResource ButtonDefault}" />
                     <Button
@@ -115,12 +123,14 @@
                         Width="140"
                         Margin="0,0,10,0"
                         Command="{Binding SendToClientCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.SendToClient}"
                         Content="发送到选中客户端"
                         Style="{DynamicResource ButtonDefault}" />
                     <Button
                         Grid.Column="3"
                         Width="140"
                         Command="{Binding DisconnectClientCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.DisconnectClient}"
                         Content="断开选中客户端"
                         Style="{DynamicResource ButtonWarning}" />
                 </Grid>
@@ -146,7 +156,7 @@
                             DockPanel.Dock="Top"
                             FontWeight="SemiBold"
                             Text="已连接客户端" />
-                        <ListBox ItemsSource="{Binding Clients}" SelectedItem="{Binding SelectedClient, Mode=TwoWay}">
+                        <ListBox ItemsSource="{Binding Clients}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+TcpServerDebugView.SelectedClient}" SelectedItem="{Binding SelectedClient, Mode=TwoWay}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,3">

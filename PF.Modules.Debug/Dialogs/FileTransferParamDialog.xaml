@@ -5,10 +5,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.Debug.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     Width="800"
     MaxHeight="650"
     FontSize="{DynamicResource FontSize.H2.Title}"
+    oplog:OperationLog.PageName="FileTransferParamDialog"
     mc:Ignorable="d">
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -68,15 +71,20 @@
                             Margin="0,0,10,0"
                             Command="{Binding AddLaneCommand}"
                             Content="新增"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferParamDialog.AddLane}"
                             Style="{StaticResource ButtonPrimary}" />
                         <Button
                             Width="80"
                             Height="32"
                             Command="{Binding RemoveLaneCommand}"
                             Content="删除"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferParamDialog.RemoveLane}"
                             Style="{StaticResource ButtonWarning}" />
                     </StackPanel>
-                    <ListBox ItemsSource="{Binding Lanes}" SelectedItem="{Binding SelectedLane, Mode=TwoWay}">
+                    <ListBox
+                        ItemsSource="{Binding Lanes}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferParamDialog.SelectedLane}"
+                        SelectedItem="{Binding SelectedLane, Mode=TwoWay}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="0,3">
@@ -128,6 +136,7 @@
                 Command="{Binding CancelCommand}"
                 Content="取消"
                 FontSize="{DynamicResource FontSize.H2.Title}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferParamDialog.Cancel}"
                 Style="{StaticResource ButtonWarning}" />
             <Button
                 Width="80"
@@ -136,6 +145,7 @@
                 Command="{Binding ConfirmCommand}"
                 Content="确认"
                 FontSize="{DynamicResource FontSize.H2.Title}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferParamDialog.Confirm}"
                 Style="{StaticResource ButtonPrimary}" />
         </StackPanel>
     </Grid>

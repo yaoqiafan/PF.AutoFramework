@@ -14,8 +14,20 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
+
+[新增]
+- OperationLogKeysSecsGem 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
+  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
+  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
+- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：4 个页面
+  54 个键，其中 40 个关键操作（连接/断开、导入命令、命令树增删改、消息节点编辑与保存、发送命令、清空事务日志、系统参数编辑/导入/保存、服务的安装/卸载/启动、流函数命令名编辑、各对话框确认）默认启用记录；其余默认关闭，
+  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
+- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
+
+
 v1.0.5 (2026-08-03) — 服务管理适配配置路径项目隔离
 
 [变更]

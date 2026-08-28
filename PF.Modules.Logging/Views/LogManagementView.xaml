@@ -3,9 +3,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:PF.Modules.Logging.Converter"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Logging"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
+    oplog:OperationLog.PageName="{x:Static tokens:NavigationConstants+Views.LogManagementView}"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
@@ -70,6 +74,7 @@
                                 Command="{Binding QueryHistoryCommand}"
                                 Content="🔍 从磁盘读取"
                                 IsEnabled="{Binding IsQuerying, Converter={StaticResource Boolean2BooleanReConverter}}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.QueryHistory}"
                                 Style="{StaticResource ButtonPrimary}" />
                         </WrapPanel>
                     </Border>
@@ -93,6 +98,7 @@
                             <ComboBox
                                 Width="100"
                                 ItemsSource="{Binding FilterLevels}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.SelectedFilterLevel}"
                                 SelectedItem="{Binding SelectedFilterLevel}" />
                         </StackPanel>
 
@@ -107,6 +113,7 @@
                             <ComboBox
                                 Width="150"
                                 ItemsSource="{Binding FilterCategories}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.SelectedFilterCategory}"
                                 SelectedItem="{Binding SelectedFilterCategory}" />
                         </StackPanel>
 
@@ -125,6 +132,7 @@
                             Grid.Column="3"
                             Command="{Binding ExportLogsCommand}"
                             Content="📤 导出当前结果"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.ExportLogs}"
                             ToolTip="将当前筛选出的日志导出为 CSV" />
                     </Grid>
 
@@ -249,6 +257,7 @@
                                 Height="30"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.PageSize}"
                                 SelectedValue="{Binding PageSize}">
                                 <sys:Int32>20</sys:Int32>
                                 <sys:Int32>50</sys:Int32>

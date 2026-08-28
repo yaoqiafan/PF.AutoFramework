@@ -5,11 +5,14 @@
     xmlns:conv="clr-namespace:PF.Modules.Alarm.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Alarm"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:vm="clr-namespace:PF.Modules.Alarm.ViewModels"
     d:DesignHeight="900"
     d:DesignWidth="1280"
+    oplog:OperationLog.PageName="AlarmCenterView"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -161,6 +164,7 @@
                                     Width="80"
                                     Height="28"
                                     ItemsSource="{Binding SeverityOptions}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.SelectedSeverity}"
                                     SelectedItem="{Binding SelectedSeverity}" />
                             </StackPanel>
                             <StackPanel
@@ -175,6 +179,7 @@
                                     Width="110"
                                     Height="28"
                                     ItemsSource="{Binding AvailableCategories}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.SelectedCategory}"
                                     SelectedItem="{Binding SelectedCategory}" />
                             </StackPanel>
                             <StackPanel
@@ -189,6 +194,7 @@
                                     Width="110"
                                     Height="28"
                                     ItemsSource="{Binding AvailableSources}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.SelectedSource}"
                                     SelectedItem="{Binding SelectedSource}" />
                             </StackPanel>
                             <StackPanel
@@ -203,6 +209,7 @@
                                     Width="100"
                                     Height="28"
                                     VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.QueryErrorCode}"
                                     Text="{Binding QueryErrorCode, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
                             <StackPanel
@@ -216,6 +223,7 @@
                                 <pf:SearchBar
                                     Width="180"
                                     Height="28"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.QueryDescription}"
                                     pf:InfoElement.Placeholder="描述模糊搜索..."
                                     Text="{Binding QueryDescription, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
@@ -226,13 +234,15 @@
                                 Command="{Binding QueryHistoryCommand}"
                                 Content="🔍 查询"
                                 IsEnabled="{Binding IsQuerying, Converter={StaticResource Boolean2BooleanReConverter}}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.QueryHistory}"
                                 Style="{StaticResource ButtonPrimary}" />
                             <Button
                                 Width="70"
                                 Height="28"
                                 Margin="0,0,0,6"
                                 Command="{Binding ClearHistoryFiltersCommand}"
-                                Content="✕ 重置" />
+                                Content="✕ 重置"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearHistoryFilters}" />
                         </WrapPanel>
                     </Border>
 
@@ -344,6 +354,7 @@
                                 Height="30"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.HistoryPageSize}"
                                 SelectedValue="{Binding HistoryPageSize}">
                                 <sys:Int32>20</sys:Int32>
                                 <sys:Int32>50</sys:Int32>
@@ -395,6 +406,7 @@
                                 Content="⟳ 确认全部"
                                 FontWeight="Bold"
                                 Foreground="White"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearAllAlarms}"
                                 ToolTip="清除报警服务中所有活跃记录（软确认，不触发硬件复位）" />
                             <Button
                                 Width="100"
@@ -405,6 +417,7 @@
                                 Command="{Binding ClearSelectedCommand}"
                                 Content="✓ 确认/清除"
                                 Foreground="White"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearSelectedAlarm}"
                                 ToolTip="清除选中的单条报警记录（软确认）" />
                             <Button
                                 Width="110"
@@ -415,6 +428,7 @@
                                 Content="🔄 系统复位"
                                 FontWeight="Bold"
                                 Foreground="White"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.SystemReset}"
                                 ToolTip="触发全线系统复位：清除所有活跃报警并执行硬件回待机位（ResetAllAsync）" />
                         </StackPanel>
 
@@ -425,6 +439,7 @@
                             BorderThickness="0"
                             FocusVisualStyle="{x:Null}"
                             ItemsSource="{Binding ActiveAlarms}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.SelectActiveAlarm}"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             SelectedItem="{Binding SelectedAlarm}"
                             VirtualizingStackPanel.IsVirtualizing="True">
@@ -565,6 +580,7 @@
                                                     Content="×"
                                                     FontSize="20"
                                                     Foreground="#000000"
+                                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearSingleAlarm}"
                                                     ToolTip="清除此报警"
                                                     VerticalAlignment="Center" />
                                             </Grid>

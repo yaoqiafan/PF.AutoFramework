@@ -3,8 +3,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
-    FontSize="{DynamicResource FontSize.Body.Standard}">
+    FontSize="{DynamicResource FontSize.Body.Standard}"
+    oplog:OperationLog.PageName="{x:Static local:HalconNavigationConstants+Dialogs.ShapeTemplateVerify}">
 
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -35,6 +38,7 @@
                 HorizontalAlignment="Stretch"
                 Command="{Binding FindMatchCommand}"
                 Content="▶ 查找匹配"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateVerifyDialog.FindMatch}"
                 Style="{StaticResource ButtonPrimary}" />
 
             <TextBlock
@@ -45,7 +49,8 @@
             <ListBox
                 Height="160"
                 ItemsSource="{Binding MatchResults}"
-                SelectedItem="{Binding SelectedMatchResult}">
+                SelectedItem="{Binding SelectedMatchResult}"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateVerifyDialog.SelectMatchResult}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock FontSize="12">
@@ -84,7 +89,8 @@
                     Margin="0,0,10,0"
                     Padding="14,4"
                     Command="{Binding SelectImageCommand}"
-                    Content="选图" />
+                    Content="选图"
+                    oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateVerifyDialog.SelectImage}" />
                 <TextBlock
                     VerticalAlignment="Center"
                     Foreground="{DynamicResource SecondaryTextBrush}"
@@ -110,6 +116,7 @@
                 Padding="28,7"
                 Command="{Binding CancelCommand}"
                 Content="关 闭"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+ShapeTemplateVerifyDialog.Close}"
                 Style="{DynamicResource ButtonDefault}" />
         </Grid>
     </Grid>

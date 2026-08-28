@@ -8,6 +8,7 @@ using PF.Modules.SecsGem.Views;
 using PF.UI.Infrastructure.Dialog;
 using PF.UI.Infrastructure.Dialog.ViewModels;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using System.Reflection;
 
 namespace PF.Modules.SecsGem
@@ -37,6 +38,8 @@ namespace PF.Modules.SecsGem
             // 注册导航菜单（扫描 [ModuleNavigation] 特性）
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();
             navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
 
             Task.Run(async () =>
             {

@@ -4,11 +4,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
     d:DesignHeight="650"
     d:DesignWidth="950"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="FileTransferDebugView"
     mc:Ignorable="d">
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -60,17 +63,20 @@
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding StartCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.Start}"
                             Content="启动"
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
                             Command="{Binding StopCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.Stop}"
                             Content="停止"
                             Style="{DynamicResource ButtonWarning}" />
                         <Button
                             Height="32"
                             Command="{Binding ShowParamDialogCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.ShowParamDialog}"
                             Content="参数设置"
                             Style="{DynamicResource ButtonDefault}" />
                     </StackPanel>
@@ -115,6 +121,7 @@
                         <TextBox
                             Grid.Column="1"
                             VerticalAlignment="Center"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.TestTag}"
                             Text="{Binding TestTag, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock
                             Grid.Column="3"
@@ -123,12 +130,14 @@
                         <TextBox
                             Grid.Column="4"
                             VerticalAlignment="Center"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.TestSizeMb}"
                             Text="{Binding TestSizeMb, UpdateSourceTrigger=PropertyChanged}" />
                         <Button
                             Grid.Column="6"
                             Width="150"
                             VerticalAlignment="Center"
                             Command="{Binding SendTestDataCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.SendTestData}"
                             Content="生成并发送测试数据"
                             Style="{DynamicResource ButtonDefault}" />
                         <ProgressBar
@@ -166,12 +175,14 @@
                         <TextBox
                             Grid.Column="1"
                             VerticalAlignment="Center"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.SendFilePath}"
                             Text="{Binding SendFilePath, UpdateSourceTrigger=PropertyChanged}" />
                         <Button
                             Grid.Column="3"
                             Width="70"
                             VerticalAlignment="Center"
                             Command="{Binding BrowseFileCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.BrowseFile}"
                             Content="浏览..."
                             Style="{DynamicResource ButtonDefault}" />
                         <Button
@@ -179,12 +190,14 @@
                             Width="100"
                             VerticalAlignment="Center"
                             Command="{Binding SendFileCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.SendFile}"
                             Content="发送文件"
                             Style="{DynamicResource ButtonDefault}" />
                         <CheckBox
                             Grid.Column="7"
                             VerticalAlignment="Center"
                             Content="分片级诊断日志"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.ChunkDiagnosticsEnabled}"
                             IsChecked="{Binding ChunkDiagnosticsEnabled}" />
                     </Grid>
 
@@ -214,6 +227,7 @@
                             VerticalAlignment="Center"
                             Content="仅记录日志"
                             GroupName="ReceiveConsumeMode"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.ConsumeMode}"
                             IsChecked="{Binding ConsumeModeLogOnly}" />
                         <RadioButton
                             Grid.Column="2"
@@ -221,6 +235,7 @@
                             VerticalAlignment="Center"
                             Content="OpenReadStream 流式读取"
                             GroupName="ReceiveConsumeMode"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.ConsumeMode}"
                             IsChecked="{Binding ConsumeModeOpenStream}"
                             ToolTip="e.OpenReadStream()：拿到统一只读流按业务协议解析，大文件不整块占用内存" />
                         <RadioButton
@@ -229,6 +244,7 @@
                             VerticalAlignment="Center"
                             Content="SaveToFileAsync 保存为文件"
                             GroupName="ReceiveConsumeMode"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.ConsumeMode}"
                             IsChecked="{Binding ConsumeModeSaveToFile}"
                             ToolTip="e.SaveToFileAsync(path)：落盘模式同卷零拷贝改名且所有权转移，内存模式写盘" />
                         <RadioButton
@@ -236,6 +252,7 @@
                             VerticalAlignment="Center"
                             Content="GetBytesAsync 读回内存"
                             GroupName="ReceiveConsumeMode"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.ConsumeMode}"
                             IsChecked="{Binding ConsumeModeGetBytes}"
                             ToolTip="e.GetBytesAsync()：以字节数组取回，超过 512MB 拒绝以防误把大文件搬回内存" />
 
@@ -248,12 +265,14 @@
                             Grid.Column="7"
                             VerticalAlignment="Center"
                             IsEnabled="{Binding IsSaveModeSelected}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.SaveDirectory}"
                             Text="{Binding SaveDirectory, UpdateSourceTrigger=PropertyChanged}" />
                         <Button
                             Grid.Column="9"
                             Width="70"
                             VerticalAlignment="Center"
                             Command="{Binding BrowseSaveDirCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FileTransferDebugView.BrowseSaveDir}"
                             Content="浏览..."
                             IsEnabled="{Binding IsSaveModeSelected}"
                             Style="{DynamicResource ButtonDefault}" />

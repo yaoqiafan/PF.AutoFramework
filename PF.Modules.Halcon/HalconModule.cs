@@ -1,6 +1,7 @@
 ﻿using PF.Modules.Halcon.ViewModels;
 using PF.Modules.Halcon.Views;
 using PF.UI.Infrastructure.Navigation;
+using PF.UI.Infrastructure.Operation;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Ioc;
 using Prism.Modularity;
@@ -41,5 +42,7 @@ public class HalconModule : IModule
     {
         var navMenuService = containerProvider.Resolve<INavigationMenuService>();
         navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+
+        OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
     }
 }

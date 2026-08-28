@@ -4,8 +4,20 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
     <PackageReleaseNotes>
+v1.0.8 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
+
+[新增]
+- OperationLogKeysHalcon 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
+  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
+  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
+- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：6 个页面
+  57 个键，其中 14 个关键操作（调试服务器启停、启动 HDevelop、取消调试、引擎耦合自检、运行管线、ROI 清空/删除、模板保存并关闭、弹窗确认）默认启用记录；其余默认关闭，
+  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
+- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
+
+
 v1.0.7 (2026-08-27) — ROI 模板编辑弹窗："建立模板"合并进保存 + 改名时锁定名称
 
 [变更 — ShapeTemplateEditorDialogViewModel/View]

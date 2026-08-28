@@ -5,7 +5,10 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.SecsGem.Dialogs"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.SecsGem"
     MinWidth="360"
+    oplog:OperationLog.PageName="CommandEditDialog"
     mc:Ignorable="d" FontSize="{DynamicResource FontSize.Body.Standard}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -33,7 +36,8 @@
                 Width="80"
                 Padding="4,2"
                 IsEnabled="{Binding IsStreamEnabled}"
-                Text="{Binding Stream, UpdateSourceTrigger=PropertyChanged}" />
+                Text="{Binding Stream, UpdateSourceTrigger=PropertyChanged}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+CommandEditDialog.EditStream}" />
             <TextBlock
                 Width="80"
                 Margin="15,0,0,0"
@@ -43,7 +47,8 @@
                 Width="80"
                 Padding="4,2"
                 IsEnabled="{Binding IsFunctionEnabled}"
-                Text="{Binding Function, UpdateSourceTrigger=PropertyChanged}" />
+                Text="{Binding Function, UpdateSourceTrigger=PropertyChanged}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+CommandEditDialog.EditFunction}" />
         </StackPanel>
 
         <!--  IsReadOnly 提示（仅当 S/F 被锁定时显示）  -->
@@ -62,7 +67,8 @@
                 Text="命令名称 (如 Are You There Request):" />
             <TextBox
                 Padding="4,2"
-                Text="{Binding CommandName, UpdateSourceTrigger=PropertyChanged}" />
+                Text="{Binding CommandName, UpdateSourceTrigger=PropertyChanged}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+CommandEditDialog.EditCommandName}" />
         </StackPanel>
 
         <!--  操作按钮  -->
@@ -76,13 +82,15 @@
                 Margin="0,0,10,0"
                 Command="{Binding ConfirmCommand}"
                 Content="确定"
-                IsDefault="True" />
+                IsDefault="True"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+CommandEditDialog.Confirm}" />
             <Button
                 Width="80"
                 Height="30"
                 Command="{Binding CancelCommand}"
                 Content="取消"
-                IsCancel="True" />
+                IsCancel="True"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysSecsGem+CommandEditDialog.Cancel}" />
         </StackPanel>
     </Grid>
 </UserControl>

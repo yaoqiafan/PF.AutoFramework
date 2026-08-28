@@ -11,8 +11,20 @@
 		<PropertyGroup>
 			<IsModuleProject>true</IsModuleProject>
 			<IsPackable>true</IsPackable>
-			<Version>1.0.2</Version>
+			<Version>1.0.3</Version>
 			<PackageReleaseNotes>
+v1.0.3 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
+
+[新增]
+- OperationLogKeysIdentity 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
+  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
+  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
+- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：3 个页面
+  15 个键，其中 8 个关键操作（登录、登出、页面授权、应用默认权限、保存权限、新增/保存/删除用户）默认启用记录；其余默认关闭，
+  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
+- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
+
+
 v1.0.2 (2026-07-09) — 权限模块侧边栏图标调整
 
 [变更]

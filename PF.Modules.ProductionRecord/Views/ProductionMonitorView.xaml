@@ -2,8 +2,11 @@
     x:Class="PF.Modules.Production.Views.ProductionMonitorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Production"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:prism="http://prismlibrary.com/"
+    oplog:OperationLog.PageName="ProductionMonitorView"
     prism:ViewModelLocator.AutoWireViewModel="True">
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
         <Grid>
@@ -45,6 +48,7 @@
                         Background="{DynamicResource SecondaryRegionBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         Foreground="{DynamicResource PrimaryTextBrush}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysProduction+ProductionMonitorView.RecordTypeFilter}"
                         Text="{Binding FilterRecordType, UpdateSourceTrigger=PropertyChanged}" />
 
                     <Button
@@ -52,7 +56,8 @@
                         Padding="12,4"
                         Style="{DynamicResource ButtonDefault}"
                         Command="{Binding ClearCommand}"
-                        Content="清空" />
+                        Content="清空"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysProduction+ProductionMonitorView.Clear}" />
 
                     <Button
                         Margin="0,0,8,0"
@@ -60,14 +65,16 @@
                         Style="{DynamicResource ButtonSuccess}"
                         Command="{Binding ExportCommand}"
                         CommandParameter="excel"
-                        Content="导出 Excel" />
+                        Content="导出 Excel"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysProduction+ProductionMonitorView.ExportExcel}" />
 
                     <Button
                         Padding="12,4"
                         Style="{DynamicResource ButtonDefault}"
                         Command="{Binding ExportCommand}"
                         CommandParameter="csv"
-                        Content="导出 CSV" />
+                        Content="导出 CSV"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysProduction+ProductionMonitorView.ExportCsv}" />
                 </StackPanel>
             </Border>
 
@@ -78,6 +85,7 @@
                 BorderThickness="0"
                 Foreground="{DynamicResource SecondaryTextBrush}"
                 ItemsSource="{Binding RecentRecords}"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysProduction+ProductionMonitorView.RecordList}"
                 SelectionMode="Single">
                 <ListView.View>
                     <GridView>
