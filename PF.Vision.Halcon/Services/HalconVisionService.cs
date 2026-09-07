@@ -652,8 +652,10 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     /// <summary>
     /// 将 HTuple 转为 C# 原生类型，使 ToString() 直接可读。
-    /// 单元素：int（超 int 范围为 long）/ double / string；多元素：逗号分隔字符串。
-    /// 按 <see cref="HTuple.Type"/> 分派，不再以异常探测类型（原实现每个非 int 值都要吃 1~2 次异常）。
+    /// 单元素：int（超 int 范围为 long）/ double / string / dict（转 JSON 字符串）；多元素：逗号分隔字符串。
+    /// 按 <see cref="HTuple.Type"/> 分派，不再以异常探测类型（原实现每个非 int 值都要吃 1~2 次异常）；
+    /// HANDLE 分支例外——出现频率远低于数值/字符串这条热路径，且目前框架内 HANDLE 类型输出
+    /// 只有 dict 一种用法，用一次 <see cref="HandleToValue"/> 探测是否为 dict，不是的话退回原样 ToString()。
     /// </summary>
     private static object HTupleToValue(HTuple t)
     {
@@ -668,6 +670,7 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
                     => t.L is >= int.MinValue and <= int.MaxValue ? (int)t.L : t.L,
                 HTupleType.DOUBLE => t.D,
                 HTupleType.STRING => t.S,
+                HTupleType.HANDLE => HandleToValue(t),
                 _                 => t.ToString() ?? string.Empty,
             };
         }
@@ -681,10 +684,35 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
                 HTupleType.INTEGER or HTupleType.LONG => elem.L.ToString(),
                 HTupleType.DOUBLE                     => elem.D.ToString("G6"),
                 HTupleType.STRING                     => elem.S,
+                HTupleType.HANDLE                     => HandleToValue(elem)?.ToString() ?? "",
                 _                                     => elem.ToString() ?? "",
             };
         }
         return string.Join(", ", parts);
+    }
+
+    /// <summary>
+    /// 目前框架内唯一会作为 Control 输出出现的 handle 类型是 dict——转成 JSON 字符串交给上层，
+    /// 业务算法层自己按约定用 <c>System.Text.Json</c> 反序列化，不需要引用 HalconDotNet。
+    /// 不是 dict（万一以后出现别的 handle 输出）就退回原来的 ToString()，新分支只加不改，
+    /// 不影响现有任何过程的行为。
+    /// <para>
+    /// 用 <c>DictToJson</c> 探测而不是查询 handle 类型名，是因为 <see cref="HHandleBase"/>
+    /// 没有暴露"这个 handle 具体是什么类型"的查询——HALCON 官方给 dict 专门开的这个算子本身
+    /// 就是最直接的探测方式：是 dict 就转换成功，不是就抛异常回退。
+    /// </para>
+    /// </summary>
+    private static object HandleToValue(HTuple handle)
+    {
+        try
+        {
+            HOperatorSet.DictToJson(handle, new HTuple(), new HTuple(), out HTuple json);
+            return json.S;
+        }
+        catch
+        {
+            return handle.ToString() ?? string.Empty;
+        }
     }
 
     private void UpdateLoadedSnapshot()

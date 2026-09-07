@@ -33,7 +33,7 @@ HalconDashboardView（侧边栏根入口）
 
 **验证弹窗 `ShapeTemplateVerifyDialog`**：纯只读，不建模板也不改模板。打开时 `DialogParameters` 传 `"TemplateName"`（必需）+ `"ImagePath"`（可选，预填验证图）；图片来源按钮**始终可见**（不因预填而隐藏，验证场景本就需要随时换图测试鲁棒性）。在图上跑 `ShapeTemplateService.FindMatches`，通过 `pf:PropertyGrid` 直接编辑 `ShapeMatchOptions`（`MinScore`/`AngleExtent`/`NumLevels` 等），匹配结果列表可选中，选中即用 `GetMatchedContour` + `HalconImageViewer.DisplayOverlay` 叠加显示命中轮廓（lime green）。`ConfirmCommand = CancelCommand`，没有"确定"要提交，关闭即走。
 
-模板文件是 `.roipk`（zip 打包）：`model.shm`（生产匹配用的 HALCON 形状模型）+ `rois.json`（ROI 绘制过程，供再次打开微调）+ `reference.png`（参考图）。生产路径的 `ShapeTemplateService.LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
+模板文件是 `.roipk`（zip 打包）：`model.shm`（生产匹配用的 HALCON 形状模型）+ `rois.json`（ROI 绘制过程，供再次打开微调）+ `reference.jpg`（参考图，JPEG 有损压缩）。生产路径的 `ShapeTemplateService.LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
 
 > `FindMatches` 此前有一个必现 Bug：`NumLevels==0` 时被错误传成字符串 `"auto"`（抄自 `CreateShapeModel` 的惯例），但 `find_shape_model` 的 `NumLevels` 默认值是整数 0、不接受该字符串，导致查找模板必现 HALCON #1208。已在 `PF.Vision.Halcon` 1.0.3 修复为直接传整数，升级前"查找模板"功能实际上完全不可用。
 

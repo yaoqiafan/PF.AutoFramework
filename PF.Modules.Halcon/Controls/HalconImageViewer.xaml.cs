@@ -1,8 +1,22 @@
 using HalconDotNet;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace PF.Modules.Halcon.Controls;
+
+/// <summary>鼠标事件转发（已换算为图像坐标系的 Row/Column）</summary>
+public sealed class ImageMouseEventArgs : EventArgs
+{
+    public double      Row    { get; }
+    public double      Column { get; }
+    public MouseButton? Button { get; }
+
+    public ImageMouseEventArgs(double row, double column, MouseButton? button)
+    {
+        Row = row; Column = column; Button = button;
+    }
+}
 
 /// <summary>
 /// 通用 HALCON 图像显示控件。封装 HSmartWindowControlWPF。
@@ -20,11 +34,26 @@ public partial class HalconImageViewer : UserControl
         InitializeComponent();
         // 窗口（重新）创建时重绘底图；TabControl 切换 tab / 导航离开再返回会释放 HALCON 窗口
         HalconWindow.HInitWindow += OnHInitWindow;
+        HalconWindow.HMouseDown  += (_, e) => ImageMouseDown?.Invoke(this, new ImageMouseEventArgs(e.Row, e.Column, e.Button));
+        HalconWindow.HMouseMove  += (_, e) => ImageMouseMove?.Invoke(this, new ImageMouseEventArgs(e.Row, e.Column, e.Button));
+        HalconWindow.HMouseUp    += (_, e) => ImageMouseUp?.Invoke(this, new ImageMouseEventArgs(e.Row, e.Column, e.Button));
         Unloaded += (_, _) => { _currentImage?.Dispose(); _currentImage = null; _hasImage = false; };
     }
 
     /// <summary>HALCON 窗口（重新）初始化完成时触发，供宿主（如 ROI 编辑器）重挂载 DrawingObject</summary>
     public event EventHandler? WindowInitialized;
+
+    /// <summary>鼠标在 HALCON 窗口内按下/移动/抬起，坐标已换算为图像坐标系</summary>
+    public event EventHandler<ImageMouseEventArgs>? ImageMouseDown;
+    public event EventHandler<ImageMouseEventArgs>? ImageMouseMove;
+    public event EventHandler<ImageMouseEventArgs>? ImageMouseUp;
+
+    /// <summary>内置左键拖动平移的开关。交互式画图（拖拽新建 ROI）期间需要临时关闭，避免和平移抢左键</summary>
+    public bool PanEnabled
+    {
+        get => HalconWindow.HMoveContent;
+        set => HalconWindow.HMoveContent = value;
+    }
 
     private void OnHInitWindow(object sender, EventArgs e)
     {

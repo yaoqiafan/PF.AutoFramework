@@ -54,66 +54,88 @@
                     Kind="MinusBox" />
             </RadioButton>
             <Separator Margin="20,0" />
-            <!--  形状选择  -->
+            <!--
+                形状选择：点击＝武装绘制工具（按钮加高亮边框），在图像上拖拽（多边形为逐点点击+右键完成）
+                完成绘制；再点一次同一按钮或按 Esc 取消。高亮边框由代码后置手动设置，不依赖
+                ToggleButton 自身的选中态样式（曾用 ToggleButton + DynamicResource ToggleButtonIcon
+                样式，选中态下图标整体不可见，原因未查，改回 Button + 手动高亮规避）。
+            -->
             <TextBlock
                 Margin="0,0,4,0"
                 VerticalAlignment="Center"
                 Foreground="{DynamicResource PrimaryTextBrush}"
                 Text="形状:" />
             <Button
+                x:Name="RectToolBtn"
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddRect_Click"
                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddRect}"
-                ToolTip="矩形 ROI">
+                ToolTip="矩形 ROI：点击后在图像上拖拽绘制">
                 <pf:PackIcon
                     Width="16"
                     Height="16"
                     Kind="RectangleOutline" />
             </Button>
             <Button
+                x:Name="Rect2ToolBtn"
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddRect2_Click"
                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddRotatedRect}"
-                ToolTip="旋转矩形 ROI">
+                ToolTip="旋转矩形 ROI：拖拽画出水平框，画完可用手柄旋转">
                 <pf:PackIcon
                     Width="16"
                     Height="16"
                     Kind="CropRotate" />
             </Button>
             <Button
+                x:Name="CircleToolBtn"
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddCircle_Click"
                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddCircle}"
-                ToolTip="圆形 ROI">
+                ToolTip="圆形 ROI：从圆心拖拽到半径">
                 <pf:PackIcon
                     Width="16"
                     Height="16"
                     Kind="CircleOutline" />
             </Button>
             <Button
+                x:Name="EllipseToolBtn"
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddEllipse_Click"
                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddEllipse}"
-                ToolTip="椭圆 ROI">
+                ToolTip="椭圆 ROI：从中心拖拽到边缘">
                 <pf:PackIcon
                     Width="16"
                     Height="16"
                     Kind="Ellipse" />
             </Button>
             <Button
+                x:Name="SectorToolBtn"
                 Margin="0,0,5,0"
                 Padding="8,3"
                 Click="AddSector_Click"
                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddSector}"
-                ToolTip="扇形 ROI">
+                ToolTip="扇形 ROI：从中心拖拽到边缘，画完可用手柄调整起止角">
                 <pf:PackIcon
                     Width="16"
                     Height="16"
                     Kind="CircleEditOutline" />
+            </Button>
+            <Button
+                x:Name="PolygonToolBtn"
+                Margin="0,0,5,0"
+                Padding="8,3"
+                Click="AddPolygon_Click"
+                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysHalcon+RoiEditorDialog.AddPolygon}"
+                ToolTip="多边形 ROI：逐点点击添加顶点，右键完成（至少 3 个点），Esc 取消">
+                <pf:PackIcon
+                    Width="16"
+                    Height="16"
+                    Kind="VectorPolygon" />
             </Button>
             <Separator  Margin="20,0"/>
             <Button HorizontalAlignment="Right"

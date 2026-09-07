@@ -5,6 +5,8 @@ using Prism.Mvvm;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace PF.Modules.Halcon.Controls;
 
@@ -62,12 +64,24 @@ public partial class HalconRoiEditor : UserControl
     private int     _roiCounter;
     private bool    _isPreviewing;   // 预览检测范围时隐藏工具框，仅显示最终 Region
 
+    // 拖拽画图工具状态：_armedType 非空 = 已武装某个工具，等待用户在图像上操作
+    private RoiType? _armedType;
+    private Button?  _armedButton;
+    private bool          _panWasEnabled = true;
+    private bool          _isDragging;
+    private double        _dragStartRow, _dragStartCol;
+    private readonly List<(double Row, double Col)> _polygonPoints = new();
+
     public HalconRoiEditor()
     {
         InitializeComponent();
         RoiGrid.ItemsSource = _rows;
         // HALCON 窗口（重新）创建后重挂载 DrawingObject（切 tab/导航返回时窗口会重建）
         ImageViewer.WindowInitialized += OnWindowInitialized;
+        ImageViewer.ImageMouseDown    += OnImageMouseDown;
+        ImageViewer.ImageMouseMove    += OnImageMouseMove;
+        ImageViewer.ImageMouseUp      += OnImageMouseUp;
+        PreviewKeyDown += OnRoiEditorPreviewKeyDown;
         Loaded   += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -84,6 +98,7 @@ public partial class HalconRoiEditor : UserControl
 
     public void LoadRois(IEnumerable<VisionRoiConfig> rois)
     {
+        DisarmTool();
         ClearAllDrawObjects();
         _rows.Clear();
         foreach (var cfg in rois)
@@ -96,6 +111,7 @@ public partial class HalconRoiEditor : UserControl
 
     public void ClearRois()
     {
+        DisarmTool();
         _isPreviewing = false;
         PreviewBtn.Visibility     = Visibility.Visible;
         ExitPreviewBtn.Visibility = Visibility.Collapsed;
@@ -117,6 +133,7 @@ public partial class HalconRoiEditor : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        DisarmTool();
         // 窗口即将释放：先把 DrawingObject 当前坐标同步回 Config，再销毁 drawId
         // 这样窗口重建后能按 Config.RoiParams 重新创建 DrawingObject，位置不丢
         SyncAllFromDrawObjects();
@@ -170,11 +187,12 @@ public partial class HalconRoiEditor : UserControl
         if (IncludeBtn is not null) IncludeBtn.IsChecked = false;
     }
 
-    private void AddRect_Click(object sender, RoutedEventArgs e)    => AddRoi(RoiType.Rect);
-    private void AddRect2_Click(object sender, RoutedEventArgs e)   => AddRoi(RoiType.Rect2);
-    private void AddCircle_Click(object sender, RoutedEventArgs e)  => AddRoi(RoiType.Circle);
-    private void AddEllipse_Click(object sender, RoutedEventArgs e) => AddRoi(RoiType.Ellipse);
-    private void AddSector_Click(object sender, RoutedEventArgs e)  => AddRoi(RoiType.EllipseSector);
+    private void AddRect_Click(object sender, RoutedEventArgs e)    => ArmTool(RoiType.Rect,          (Button)sender);
+    private void AddRect2_Click(object sender, RoutedEventArgs e)   => ArmTool(RoiType.Rect2,         (Button)sender);
+    private void AddCircle_Click(object sender, RoutedEventArgs e)  => ArmTool(RoiType.Circle,        (Button)sender);
+    private void AddEllipse_Click(object sender, RoutedEventArgs e) => ArmTool(RoiType.Ellipse,       (Button)sender);
+    private void AddSector_Click(object sender, RoutedEventArgs e)  => ArmTool(RoiType.EllipseSector, (Button)sender);
+    private void AddPolygon_Click(object sender, RoutedEventArgs e) => ArmTool(RoiType.Polygon,       (Button)sender);
 
     private void PreviewRegion_Click(object sender, RoutedEventArgs e) => EnterPreview();
 
@@ -241,23 +259,207 @@ public partial class HalconRoiEditor : UserControl
 
     private void RoiGrid_SelectionChanged(object sender, SelectedCellsChangedEventArgs e) { }
 
-    // ── ROI 添加/删除 ─────────────────────────────────────────────────────────
+    // ── 拖拽画图工具（武装/取消） ─────────────────────────────────────────────
 
-    private void AddRoi(RoiType type)
+    /// <summary>
+    /// 点击形状按钮：武装对应工具（按钮加高亮边框，光标变十字，关闭内置左键平移），
+    /// 等待用户在图像上拖拽（多边形为逐点点击）完成绘制；再次点击同一按钮取消武装。
+    /// </summary>
+    private void ArmTool(RoiType type, Button btn)
     {
         BeginEdit();
+
+        if (_armedButton == btn)
+        {
+            DisarmTool();
+            return;
+        }
+
+        // 只在"从无工具切到有工具"时记录原始平移状态；A 工具切到 B 工具时不能重新采样
+        // （此时平移已被 A 关掉，会把"关闭"误当作原始状态存下来，导致最终恢复不回去）
+        if (_armedType is null)
+            _panWasEnabled = ImageViewer.PanEnabled;
+
+        DisarmTool(restorePan: false);
+
+        _armedType   = type;
+        _armedButton = btn;
+        ImageViewer.PanEnabled = false;
+        ImageViewer.Cursor     = Cursors.Cross;
+        SetArmedVisual(btn, true);
+    }
+
+    /// <summary>取消武装：还原按钮高亮/光标/平移，清掉未完成的拖拽或多边形预览</summary>
+    private void DisarmTool(bool restorePan = true)
+    {
+        if (_armedButton is not null) SetArmedVisual(_armedButton, false);
+        _armedButton = null;
+        _armedType   = null;
+        _isDragging  = false;
+        _polygonPoints.Clear();
+        ImageViewer.Cursor = Cursors.Arrow;
+        if (restorePan) ImageViewer.PanEnabled = _panWasEnabled;
+        if (!_isPreviewing) ImageViewer.ClearOverlays();
+    }
+
+    private static void SetArmedVisual(Button btn, bool armed)
+    {
+        if (armed)
+        {
+            btn.BorderBrush     = btn.TryFindResource("PrimaryBrush") as Brush ?? Brushes.DodgerBlue;
+            btn.BorderThickness = new Thickness(2);
+        }
+        else
+        {
+            btn.ClearValue(Button.BorderBrushProperty);
+            btn.ClearValue(Button.BorderThicknessProperty);
+        }
+    }
+
+    private void OnRoiEditorPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || _armedType is null) return;
+        DisarmTool();
+        e.Handled = true;
+    }
+
+    // ── 拖拽画图（矩形/旋转矩形/圆/椭圆/扇形） ───────────────────────────────
+
+    private void OnImageMouseDown(object? sender, ImageMouseEventArgs e)
+    {
+        if (_armedType is not { } type) return;
+
+        if (type == RoiType.Polygon)
+        {
+            if (e.Button == MouseButton.Right) { FinishPolygon(); return; }
+            if (e.Button != MouseButton.Left)  return;
+            _polygonPoints.Add((e.Row, e.Column));
+            RedrawPolygonPreview(e.Row, e.Column);
+            return;
+        }
+
+        if (e.Button != MouseButton.Left) return;
+        _isDragging   = true;
+        _dragStartRow = e.Row;
+        _dragStartCol = e.Column;
+    }
+
+    private void OnImageMouseMove(object? sender, ImageMouseEventArgs e)
+    {
+        if (_armedType is not { } type) return;
+
+        if (type == RoiType.Polygon)
+        {
+            if (_polygonPoints.Count > 0) RedrawPolygonPreview(e.Row, e.Column);
+            return;
+        }
+
+        if (!_isDragging) return;
+        DrawDragPreview(type, _dragStartRow, _dragStartCol, e.Row, e.Column);
+    }
+
+    private void OnImageMouseUp(object? sender, ImageMouseEventArgs e)
+    {
+        if (_armedType is not { } type || type == RoiType.Polygon) return;
+        if (!_isDragging) return;
+
+        // 只按 _isDragging 判断是否收尾：HALCON 转发的 HMouseUp.Button 取值不完全可靠
+        // （曾观察到抬起时不等于 Left），用它做强校验会导致永远走不到这一步，
+        // 工具卡在"武装"状态、松手后仍在无限重绘拖拽预览。_isDragging 只在按下时
+        // 校验过左键才会置真，抬起时不用再重复校验按钮种类。
+        _isDragging = false;
+        CommitDraggedShape(type, _dragStartRow, _dragStartCol, e.Row, e.Column);
+        DisarmTool();
+    }
+
+    /// <summary>矩形/旋转矩形＝对角拖拽定边界；圆/椭圆/扇形＝起点为中心、当前点定半径（旋转矩形先按水平框创建，画完再用手柄旋转）</summary>
+    private static double[] ComputeDragParams(RoiType type, double r0, double c0, double r1, double c1)
+    {
+        var centerRow = (r0 + r1) / 2.0;
+        var centerCol = (c0 + c1) / 2.0;
+        var halfH     = Math.Max(Math.Abs(r1 - r0) / 2.0, 0.5);
+        var halfW     = Math.Max(Math.Abs(c1 - c0) / 2.0, 0.5);
+        var radius    = Math.Max(Math.Sqrt((r1 - r0) * (r1 - r0) + (c1 - c0) * (c1 - c0)), 0.5);
+
+        return type switch
+        {
+            RoiType.Rect          => [Math.Min(r0, r1), Math.Min(c0, c1), Math.Max(r0, r1), Math.Max(c0, c1)],
+            RoiType.Rect2         => [centerRow, centerCol, 0.0, halfW, halfH],
+            RoiType.Circle        => [r0, c0, radius],
+            RoiType.Ellipse       => [r0, c0, 0.0, Math.Max(Math.Abs(c1 - c0), 0.5), Math.Max(Math.Abs(r1 - r0), 0.5)],
+            RoiType.EllipseSector => [r0, c0, 0.0, Math.Max(Math.Abs(c1 - c0), 0.5), Math.Max(Math.Abs(r1 - r0), 0.5), 0.0, 1.57],
+            _                     => [],
+        };
+    }
+
+    private void DrawDragPreview(RoiType type, double r0, double c0, double r1, double c1)
+    {
+        var p = ComputeDragParams(type, r0, c0, r1, c1);
+        using var region = RoiRegionBuilder.GetRegion(new VisionRoiConfig { Type = type, RoiParams = p });
+        ImageViewer.ClearOverlays();
+        if (region.IsInitialized())
+            ImageViewer.DisplayOverlay(region, color: _currentOp == RoiOp.Include ? "green" : "red", lineWidth: 2);
+    }
+
+    private void CommitDraggedShape(RoiType type, double r0, double c0, double r1, double c1)
+    {
         _roiCounter++;
         var cfg = new VisionRoiConfig
         {
             Name      = $"ROI_{_roiCounter}",
             Type      = type,
             Op        = _currentOp,
-            RoiParams = DefaultParams(type),
+            RoiParams = ComputeDragParams(type, r0, c0, r1, c1),
         };
         var row = new RoiRowVm(cfg);
         _rows.Add(row);
         AttachDrawObject(row);
     }
+
+    // ── 多边形（逐点点击，右键完成，Esc 取消） ───────────────────────────────
+
+    private void RedrawPolygonPreview(double liveRow, double liveCol)
+    {
+        ImageViewer.ClearOverlays();
+        if (_polygonPoints.Count == 0) return;
+
+        var rows = _polygonPoints.Select(p => p.Row).Append(liveRow).ToArray();
+        var cols = _polygonPoints.Select(p => p.Col).Append(liveCol).ToArray();
+        if (rows.Length < 2) return;
+
+        HOperatorSet.GenContourPolygonXld(out HObject xld, new HTuple(rows), new HTuple(cols));
+        ImageViewer.DisplayOverlay(xld, color: _currentOp == RoiOp.Include ? "green" : "red", lineWidth: 2);
+        xld.Dispose();
+    }
+
+    /// <summary>右键结束多边形：顶点数不足 3 个视为取消，不生成 ROI</summary>
+    private void FinishPolygon()
+    {
+        var points = _polygonPoints.ToList(); // DisarmTool 会清空 _polygonPoints，先拷贝一份
+        DisarmTool();
+        if (points.Count < 3) return;
+
+        var p = new double[points.Count * 2];
+        for (int i = 0; i < points.Count; i++)
+        {
+            p[i * 2]     = points[i].Row;
+            p[i * 2 + 1] = points[i].Col;
+        }
+
+        _roiCounter++;
+        var cfg = new VisionRoiConfig
+        {
+            Name      = $"ROI_{_roiCounter}",
+            Type      = RoiType.Polygon,
+            Op        = _currentOp,
+            RoiParams = p,
+        };
+        var row = new RoiRowVm(cfg);
+        _rows.Add(row);
+        AttachDrawObject(row);
+    }
+
+    // ── ROI 删除 ──────────────────────────────────────────────────────────────
 
     private void RemoveRow(RoiRowVm row)
     {
@@ -302,6 +504,14 @@ public partial class HalconRoiEditor : UserControl
                     HOperatorSet.CreateDrawingObjectEllipseSector(
                         p[0], p[1], p[2], p[3], p[4], p[5], p[6], out drawId);
                     break;
+                case RoiType.Polygon when p.Length >= 6:
+                {
+                    int count = p.Length / 2;
+                    var rows  = new HTuple(Enumerable.Range(0, count).Select(i => p[i * 2]).ToArray());
+                    var cols  = new HTuple(Enumerable.Range(0, count).Select(i => p[i * 2 + 1]).ToArray());
+                    HOperatorSet.CreateDrawingObjectXld(rows, cols, out drawId);
+                    break;
+                }
                 default:
                     return;
             }
@@ -373,6 +583,20 @@ public partial class HalconRoiEditor : UserControl
                     row.Config.RoiParams = [r.D, c.D, phi.D, r1.D, r2.D, sa.D, ea.D];
                     break;
                 }
+                case RoiType.Polygon:
+                {
+                    HOperatorSet.GetDrawingObjectIconic(out HObject xld, drawId);
+                    HOperatorSet.GetContourXld(xld, out HTuple rows, out HTuple cols);
+                    var p = new double[rows.Length * 2];
+                    for (int i = 0; i < rows.Length; i++)
+                    {
+                        p[i * 2]     = rows.DArr[i];
+                        p[i * 2 + 1] = cols.DArr[i];
+                    }
+                    row.Config.RoiParams = p;
+                    xld.Dispose();
+                    break;
+                }
             }
         }
         catch { }
@@ -395,16 +619,4 @@ public partial class HalconRoiEditor : UserControl
             }
         }
     }
-
-    // ── 默认参数 ──────────────────────────────────────────────────────────────
-
-    private static double[] DefaultParams(RoiType type) => type switch
-    {
-        RoiType.Rect          => [100, 100, 300, 400],
-        RoiType.Rect2         => [200, 300, 0.0, 100, 50],
-        RoiType.Circle        => [200, 300, 80],
-        RoiType.Ellipse       => [200, 300, 0.0, 100, 50],
-        RoiType.EllipseSector => [200, 300, 0.0, 100, 60, 0.0, 1.57],
-        _                     => [],
-    };
 }

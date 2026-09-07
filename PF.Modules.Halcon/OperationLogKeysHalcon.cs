@@ -131,6 +131,9 @@ public static class OperationLogKeysHalcon
         [Description("新增扇形 ROI")]
         public const string AddSector = nameof(AddSector);
 
+        [Description("新增多边形 ROI")]
+        public const string AddPolygon = nameof(AddPolygon);
+
         [Description("预览检测范围")]
         public const string PreviewRegion = nameof(PreviewRegion);
 
@@ -191,6 +194,9 @@ public static class OperationLogKeysHalcon
 
         [Description("新增扇形 ROI")]
         public const string AddSector = nameof(AddSector);
+
+        [Description("新增多边形 ROI")]
+        public const string AddPolygon = nameof(AddPolygon);
 
         [Description("预览检测范围")]
         public const string PreviewRegion = nameof(PreviewRegion);

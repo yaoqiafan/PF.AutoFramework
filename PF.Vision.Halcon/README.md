@@ -74,7 +74,7 @@ containerRegistry.AddShapeTemplateServices(templateDirectory: @"D:\VisionProcedu
 
 **按名字存取，不是按裸路径**：`SaveTemplate`/`LoadTemplate` 只收一个名字，实际文件路径由 `ShapeTemplateService.TemplateDirectory` 拼出来——未配置时调用会直接抛异常，不会静默退化成相对路径。`GetAvailableTemplateNames()` 列出目录下所有可用模板名（目录未配置/不存在时返回空列表，供下拉框等 UI 场景用）。
 
-**模板文件是打包格式 `.roipk`（zip），不是裸 `.shm`**：HALCON 形状模型本身只保存训练好的轮廓特征，不保存建模板时画的 ROI 区域，单存 `.shm` 没法在调试时"重新打开、微调 ROI"。`SaveTemplate` 把 `model.shm`（生产匹配用）+ `rois.json`（`VisionRoiConfig` 列表）+ `reference.png`（建模用的参考图）打成一个 zip；生产路径 `LoadTemplate` 只解 `model.shm`；调试微调路径用 `LoadTemplateForEdit(name)` / `LoadTemplateForEditFromPath(filePath)` 解另外两块（返回 `ShapeTemplateEditSession(ReferenceImage, Rois)`）——两条路径互不影响，生产端不为这个能力多付任何解压/反序列化开销。同名 `SaveTemplate` 会整体覆盖。
+**模板文件是打包格式 `.roipk`（zip），不是裸 `.shm`**：HALCON 形状模型本身只保存训练好的轮廓特征，不保存建模板时画的 ROI 区域，单存 `.shm` 没法在调试时"重新打开、微调 ROI"。`SaveTemplate` 把 `model.shm`（生产匹配用）+ `rois.json`（`VisionRoiConfig` 列表）+ `reference.jpg`（建模用的参考图，JPEG 质量 90——不参与匹配、只给人看，有损压缩换体积）打成一个 zip；生产路径 `LoadTemplate` 只解 `model.shm`；调试微调路径用 `LoadTemplateForEdit(name)` / `LoadTemplateForEditFromPath(filePath)` 解另外两块（返回 `ShapeTemplateEditSession(ReferenceImage, Rois)`）——两条路径互不影响，生产端不为这个能力多付任何解压/反序列化开销。同名 `SaveTemplate` 会整体覆盖。
 
 `ShapeTemplateHandle`（`CreateTemplate`/`LoadTemplate` 的返回值）内部持有 HALCON `ModelId`，用完必须 `Dispose()`（`ClearShapeModel`），`ModelId` 本身不对外暴露。
 

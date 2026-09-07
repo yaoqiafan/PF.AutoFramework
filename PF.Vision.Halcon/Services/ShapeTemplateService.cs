@@ -30,8 +30,9 @@ namespace PF.Vision.Halcon.Services;
 /// <para><b>模板文件是打包格式（<c>.roipk</c>），不是裸 <c>.shm</c></b>：HALCON 形状模型本身
 /// 只保存训练好的轮廓特征，不保存建模板时画的 ROI 区域——单存一个 <c>.shm</c> 没法在调试时
 /// "重新打开、微调 ROI"。<see cref="SaveTemplate"/> 把 <c>model.shm</c>（生产匹配用）、
-/// <c>rois.json</c>（ROI 绘制过程，<see cref="VisionRoiConfig"/> 列表）、<c>reference.png</c>
-/// （建模板用的参考图，微调时用来重新画 ROI）打成一个 zip；<see cref="LoadTemplate"/>（生产路径）
+/// <c>rois.json</c>（ROI 绘制过程，<see cref="VisionRoiConfig"/> 列表）、<c>reference.jpg</c>
+/// （建模板用的参考图，微调时用来重新画 ROI；JPEG 有损压缩——这张图不参与匹配，只给人看，
+/// 换体积很划算）打成一个 zip；<see cref="LoadTemplate"/>（生产路径）
 /// 只解 <c>model.shm</c>，<see cref="LoadTemplateForEdit"/>（调试微调路径）解另外两块——两条路径
 /// 互不影响，生产端不会因为这次改动多付任何解压/反序列化的开销。</para>
 /// </summary>
@@ -116,13 +117,21 @@ public static class ShapeTemplateService
 
     /// <summary>
     /// 把模板按名字打包写盘：<c>model.shm</c>（<c>WriteShapeModel</c>）+ <c>rois.json</c>
-    /// （<paramref name="rois"/> 序列化）+ <c>reference.png</c>（<paramref name="referenceImage"/>），
-    /// 三者压成一个 <c>.roipk</c> zip，实际路径 = <see cref="TemplateDirectory"/> +
+    /// （<paramref name="rois"/> 序列化）+ <c>reference.jpg</c>（<paramref name="referenceImage"/>，
+    /// JPEG 质量 90——纯参考用途，不参与匹配，用有损压缩换体积）
+    /// + 可选的 <c>meta.json</c>（<paramref name="extraMetadataJson"/>，原样落盘，本类不解释
+    /// 内容），压成一个 <c>.roipk</c> zip，实际路径 = <see cref="TemplateDirectory"/> +
     /// <paramref name="name"/> + <c>.roipk</c>。同名已存在时整体覆盖。
     /// </summary>
+    /// <param name="extraMetadataJson">
+    /// 调用方想跟着这个模板一起存的任意 JSON 文本（比如"这个 ROI 对应网格第几行第几列"）——
+    /// 本类不解释、不校验内容，只管原样存、原样在 <see cref="LoadTemplateForEdit"/> 时吐回去。
+    /// 传 null/空串则不写这个条目（老模板/不需要元数据的调用方完全不受影响）。
+    /// </param>
     public static void SaveTemplate(
         ShapeTemplateHandle handle, HObject referenceImage,
-        IReadOnlyList<VisionRoiConfig> rois, string name)
+        IReadOnlyList<VisionRoiConfig> rois, string name,
+        string? extraMetadataJson = null)
     {
         string path = ResolvePath(name);
         string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "PF.ShapeTemplate_" + Guid.NewGuid().ToString("N"));
@@ -131,7 +140,12 @@ public static class ShapeTemplateService
         {
             HOperatorSet.WriteShapeModel(handle.ModelId, System.IO.Path.Combine(tempDir, "model.shm"));
             File.WriteAllText(System.IO.Path.Combine(tempDir, "rois.json"), JsonSerializer.Serialize(rois));
-            HOperatorSet.WriteImage(referenceImage, "png", 0, System.IO.Path.Combine(tempDir, "reference.png"));
+            // JPEG 而非 PNG：这张图纯粹给人看"ROI 画在哪"，不参与匹配（匹配靠上面的 model.shm），
+            // 有损压缩换来的体积收益很值——线扫相机原图分辨率下，PNG 无损常常是大头。
+            // 90 是质量（0-100），FillColor 参数对 jpeg 格式即压缩质量。
+            HOperatorSet.WriteImage(referenceImage, "jpeg", 90, System.IO.Path.Combine(tempDir, "reference.jpg"));
+            if (!string.IsNullOrEmpty(extraMetadataJson))
+                File.WriteAllText(System.IO.Path.Combine(tempDir, "meta.json"), extraMetadataJson);
 
             if (File.Exists(path)) File.Delete(path);
             ZipFile.CreateFromDirectory(tempDir, path);
@@ -195,14 +209,25 @@ public static class ShapeTemplateService
         using (var roisStream = roisEntry.Open())
             rois = JsonSerializer.Deserialize<List<VisionRoiConfig>>(roisStream) ?? [];
 
-        var imgEntry = zip.GetEntry("reference.png")
-            ?? throw new InvalidOperationException($"模板包 [{displayName}] 缺少 reference.png，可能是旧版本模板。");
-        string tempImg = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+        var imgEntry = zip.GetEntry("reference.jpg")
+            ?? throw new InvalidOperationException($"模板包 [{displayName}] 缺少 reference.jpg，可能是旧版本模板。");
+        string tempImg = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".jpg");
         try
         {
             imgEntry.ExtractToFile(tempImg, overwrite: true);
             HOperatorSet.ReadImage(out HObject image, tempImg);
-            return new ShapeTemplateEditSession(image, rois);
+
+            // meta.json 是可选条目——老模板（改这次之前存的）没有这个条目，读不到就是 null，
+            // 不当错误处理，调用方自己决定 null 时怎么办。
+            string? extraMetadataJson = null;
+            if (zip.GetEntry("meta.json") is { } metaEntry)
+            {
+                using var metaStream = metaEntry.Open();
+                using var reader = new StreamReader(metaStream);
+                extraMetadataJson = reader.ReadToEnd();
+            }
+
+            return new ShapeTemplateEditSession(image, rois, extraMetadataJson);
         }
         finally
         {
@@ -263,10 +288,13 @@ public static class ShapeTemplateService
 
 /// <summary>
 /// <see cref="ShapeTemplateService.LoadTemplateForEdit"/> 的返回值——重新打开一个模板包用来微调
-/// ROI 所需的全部东西：当初建模板的参考图 + 画的 ROI 列表。<see cref="ReferenceImage"/> 的所有权
-/// 转给调用方，用完需自行 Dispose；本身不是 <see cref="IDisposable"/>，不引入新的释放规则。
+/// ROI 所需的全部东西：当初建模板的参考图 + 画的 ROI 列表 + 调用方当初存的不透明元数据
+/// （<see cref="ExtraMetadataJson"/>，见 <see cref="ShapeTemplateService.SaveTemplate"/>）。
+/// <see cref="ReferenceImage"/> 的所有权转给调用方，用完需自行 Dispose；本身不是
+/// <see cref="IDisposable"/>，不引入新的释放规则。
 /// </summary>
-public sealed record ShapeTemplateEditSession(HObject ReferenceImage, IReadOnlyList<VisionRoiConfig> Rois);
+public sealed record ShapeTemplateEditSession(
+    HObject ReferenceImage, IReadOnlyList<VisionRoiConfig> Rois, string? ExtraMetadataJson = null);
 
 /// <summary>
 /// 一个已建立（或已读回）的形状模板的句柄，内部持有 HALCON <c>ModelID</c>。

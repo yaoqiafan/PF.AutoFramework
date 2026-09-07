@@ -47,11 +47,31 @@ public class ShapeTemplateEditorDialogViewModel : PFDialogViewModelBase
     private string? _loadedTemplateName;
 
     /// <summary>
-    /// 模板名字输入框是否可编辑——只有"建新模板"（<see cref="_loadedTemplateName"/> 为 null）
-    /// 才可以填/改名字；"改已有模板"时名字锁定为加载进来时的那个，不允许改名另存，
-    /// 避免改名之后实际保存的到底是"新模板"还是"覆盖原模板"这件事变得含糊。
+    /// 调用方通过 <c>"PresetName"</c> 预置并锁定的名字（见 <see cref="OnDialogOpened"/>）——
+    /// 只在"建新模板"路径生效。调用方已经算好这次要存成什么名字（比如按约定拼出来的
+    /// <c>"{基名}_MatchPoint"</c>），锁死不让用户在弹窗里改掉，保证存盘文件名跟调用方那边
+    /// 记录的路径不会对不上。
     /// </summary>
-    public bool CanEditTemplateName => _loadedTemplateName == null;
+    private bool _nameLocked;
+
+    /// <summary>
+    /// 调用方想跟着这个模板一起存/取的不透明 JSON 元数据——本类不解释内容，只负责在
+    /// <see cref="ExecuteSave"/> 时原样传给 <see cref="ShapeTemplateService.SaveTemplate"/>，
+    /// 以及在弹窗关闭时原样带回给调用方（<see cref="ExecuteSave"/> 里的 <c>DialogParameters</c>）。
+    /// 来源有二：调用方通过 <c>"ExtraMetadataJson"</c> 参数传入（"建新模板"路径），或者"改已有
+    /// 模板"时从模板包里加载出来的那份（<see cref="ApplyEditSession"/>，编辑路径下以模板包里
+    /// 已存的为准，覆盖调用方传入的）。
+    /// </summary>
+    private string? _extraMetadataJson;
+
+    /// <summary>
+    /// 模板名字输入框是否可编辑——"改已有模板"（<see cref="_loadedTemplateName"/> 非 null）
+    /// 时名字锁定为加载进来时的那个，不允许改名另存，避免改名之后实际保存的到底是"新模板"
+    /// 还是"覆盖原模板"这件事变得含糊；调用方用 <c>"PresetName"</c> 预置了名字时同样锁定
+    /// （见 <see cref="_nameLocked"/>），原因类似——名字是调用方算好、有外部依赖的，不该让
+    /// 用户在弹窗里顺手改掉。
+    /// </summary>
+    public bool CanEditTemplateName => _loadedTemplateName == null && !_nameLocked;
 
     /// <summary>参考图是否已通过 DialogParameters 注入——注入了就不给"选参考图"按钮，图片锁定。</summary>
     public bool ShowSelectImageButton => !_imageInjected;
@@ -146,6 +166,22 @@ public class ShapeTemplateEditorDialogViewModel : PFDialogViewModelBase
             LoadReferenceImage(imagePath);
             RaisePropertyChanged(nameof(ShowSelectImageButton));
         }
+
+        // "建新模板"路径下，调用方可以预置并锁定这次要存的名字——只在没有 LoadTemplateName
+        // （不是"编辑已有"）时才生效，两者本来就互斥。
+        var presetName = parameters.GetValue<string>("PresetName");
+        if (!string.IsNullOrWhiteSpace(presetName))
+        {
+            TemplateName = presetName;
+            _nameLocked  = true;
+            RaisePropertyChanged(nameof(CanEditTemplateName));
+        }
+
+        // 同样只在"建新模板"路径生效——"编辑已有模板"分支已经在上面 return 前用
+        // ApplyEditSessionByName 从模板包里读出了它自己那份元数据，以那份为准。
+        var extraMetadataJson = parameters.GetValue<string>("ExtraMetadataJson");
+        if (!string.IsNullOrWhiteSpace(extraMetadataJson))
+            _extraMetadataJson = extraMetadataJson;
     }
 
     /// <inheritdoc/>
@@ -238,8 +274,8 @@ public class ShapeTemplateEditorDialogViewModel : PFDialogViewModelBase
             _templateHandle?.Dispose();
             _templateHandle = ShapeTemplateService.CreateTemplate(_referenceImage, region);
 
-            ShapeTemplateService.SaveTemplate(_templateHandle, _referenceImage, rois, TemplateName);
-            var p = new DialogParameters { { "Name", TemplateName } };
+            ShapeTemplateService.SaveTemplate(_templateHandle, _referenceImage, rois, TemplateName, _extraMetadataJson);
+            var p = new DialogParameters { { "Name", TemplateName }, { "ExtraMetadataJson", _extraMetadataJson! } };
             RequestClose.Invoke(new DialogResult(ButtonResult.OK) { Parameters = p });
         }
         catch (Exception ex)
@@ -308,6 +344,10 @@ public class ShapeTemplateEditorDialogViewModel : PFDialogViewModelBase
         _editor?.LoadImage(_referenceImage);
         _editor?.LoadRois(session.Rois);
         _currentRois = session.Rois;
+
+        // 编辑已有模板时，以模板包里已经存的元数据为准——覆盖调用方 OnDialogOpened 时可能
+        // 传入的那份（两者理论上应该一致，但模板包里的才是"真的存盘的那份"）。
+        _extraMetadataJson = session.ExtraMetadataJson;
 
         _templateHandle?.Dispose();
         _templateHandle = null;

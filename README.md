@@ -1647,7 +1647,7 @@ await _hwManager.ReloadAllAsync();
 | `ShapeTemplateVerifyDialogViewModel`（v1.0.6 起） | ROI 形状模板**只读验证**：按名字加载模板 → 在图上跑 `ShapeTemplateService.FindMatches` → `pf:PropertyGrid` 编辑 `ShapeMatchOptions` → 命中轮廓叠加显示，不改模板本身 |
 | `HalconImageViewer` / `HalconRoiEditor` | 基于 `HWindowControlWPF` 的图像查看器 / 交互式 ROI 绘制控件（工具栏 v1.0.7 起改用 `pf:PackIcon` 图标） |
 
-模板文件为 `.roipk`（zip 打包：`model.shm` 生产匹配模型 + `rois.json` ROI 绘制过程 + `reference.png` 参考图），生产路径 `LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
+模板文件为 `.roipk`（zip 打包：`model.shm` 生产匹配模型 + `rois.json` ROI 绘制过程 + `reference.jpg` 参考图，JPEG 有损压缩），生产路径 `LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
 
 ### PF.Modules.Identity — 身份认证
 
@@ -1735,7 +1735,7 @@ await _hwManager.ReloadAllAsync();
 | `VisionContextManager`（`public sealed`） | 按 `EngineMode`（Production/Debug/Offline）管理三个独立惰性引擎槽位，各持一份 `HalconVisionService` + `VisionEngineConfig`；`SemaphoreSlim(1,1)` 保护。`TryGet`（v1.0.2 起）供仅需读取已存在引擎的场景使用，不触发惰性创建 |
 | `HalconDebugService`（`public sealed`） | Level-2 HDevelop 集成：调试服务器启停、启动 HDevelop 进程、解析 `.hdev` XML 过程签名、无超时试运行（便于断点附加）。`ProcedureDirectory`（v1.0.2 起）暴露规范化后的过程目录，签名解析/过程枚举不再需要拉起 Debug 引擎 |
 | `HdevProcedureCatalog`（v1.0.2 起） | 过程枚举与文件查找统一规则，递归查找（此前枚举用 `AllDirectories` 而查找只看顶层，导致子目录过程选得中却解析不出参数） |
-| `ShapeTemplateService`（v1.0.5 起） | ROI 形状模板建立/查找，直调 HALCON SDK 不经 HDevEngine；模板打包为 `.roipk`（zip：`model.shm`+`rois.json`+`reference.png`），`AddShapeTemplateServices(templateDirectory)` 为 DI 入口 |
+| `ShapeTemplateService`（v1.0.5 起） | ROI 形状模板建立/查找，直调 HALCON SDK 不经 HDevEngine；模板打包为 `.roipk`（zip：`model.shm`+`rois.json`+`reference.jpg`），`AddShapeTemplateServices(templateDirectory)` 为 DI 入口 |
 | `VisionPipelineLoader`（`public sealed`） | 扫描 JSON 管线配置目录（`Devices/{Device}/Workflows/`），`FileSystemWatcher`（250ms 防抖）热更新；`JsonElement` 逐字段还原原生类型供引用解析 |
 | `AlgorithmVerifier`（`internal static`） | 启动期 `.hdev` 文件 MD5 完整性校验（对照 `algorithms.lock.json`），变更仅告警不阻断 |
 | `VisionEngineConfig`（record） | 各模式配置预设：Production（30s 超时，容量 100）/ Debug（无限超时，容量 10，等待 HDevelop 连接）/ Offline（120s，容量 500） |
