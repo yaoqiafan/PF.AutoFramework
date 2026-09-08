@@ -50,7 +50,7 @@ namespace PF.Infrastructure.Recipe
         /// <summary>
         /// 获取所有配方名称列表
         /// </summary>
-        public List<string> RecipeNames
+        public virtual List<string> RecipeNames
         {
             get
             {
@@ -91,7 +91,7 @@ namespace PF.Infrastructure.Recipe
         /// <summary>
         /// 写入配方参数到文件
         /// </summary>
-        public Task<bool> RecipeParamWriteAsync(T RecipeParam, bool IsCover = false, CancellationToken token = default)
+        public virtual Task<bool> RecipeParamWriteAsync(T RecipeParam, bool IsCover = false, CancellationToken token = default)
         {
             try
             {
@@ -171,7 +171,7 @@ namespace PF.Infrastructure.Recipe
         /// <summary>
         /// 按名称删除配方
         /// </summary>
-        public Task<bool> RecipeDeleteAsync(string RecipeName, CancellationToken token = default)
+        public virtual Task<bool> RecipeDeleteAsync(string RecipeName, CancellationToken token = default)
         {
             try
             {
@@ -208,50 +208,68 @@ namespace PF.Infrastructure.Recipe
 
 
         /// <summary>
-        /// 复制配方
+        /// 复制配方。
         /// </summary>
-        public Task<T> CopyRecipeAsync(string RecipeName, T RecipeParam, CancellationToken token = default)
+        /// <remarks>
+        /// 写入结果会 <c>await</c> 后再决定返回值——此前这里没有 <c>await</c>
+        /// <see cref="RecipeParamWriteAsync"/> 就直接把新对象返回给调用方，写入是否真的成功
+        /// 全靠运气（本类默认实现的磁盘 IO 恰好是同步完成的，问题一直没暴露；子类如果覆写成
+        /// 真正的异步写入就会出现"调用方以为复制成功了，其实还没写完/写失败"）。
+        /// </remarks>
+        public virtual async Task<T> CopyRecipeAsync(string RecipeName, T RecipeParam, CancellationToken token = default)
         {
             if (this.RecipeNames.FindIndex(x => x == RecipeName) != -1)
             {
-                return Task.FromResult<T>(null);
+                return null;
             }
-            var newrecipe = RecipeParam.DeepClone() as T;
-            if (newrecipe != null)
+            if (RecipeParam.DeepClone() is not T newrecipe)
             {
-                newrecipe.RecipeName = RecipeName;
-                this.RecipeParamWriteAsync(newrecipe, false, token);
-                return Task.FromResult(newrecipe);
+                return null;
             }
-            else
-            {
-                return Task.FromResult<T>(null);
-            }
+            newrecipe.RecipeName = RecipeName;
+            bool written = await this.RecipeParamWriteAsync(newrecipe, false, token).ConfigureAwait(false);
+            return written ? newrecipe : null;
         }
 
         /// <summary>
-        /// 修改配方名称
+        /// 修改配方名称。
         /// </summary>
-        public Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default)
+        /// <remarks>
+        /// 顺序是**先写新文件、确认成功后再删旧文件**——此前是先删旧再写新，写新一旦失败配方
+        /// 就彻底丢了（旧文件已经被删，新文件没写成）。改成这个顺序后，写新失败会直接返回
+        /// false、旧文件原封不动。
+        /// </remarks>
+        public virtual async Task<bool> ChangeRecipeNameAsync(T RecipeParam, string NewRecipeName, CancellationToken token = default)
         {
             if (this.RecipeNames.FindIndex(x => x == NewRecipeName) != -1)
             {
-                return Task.FromResult(false);
+                return false;
             }
-            var newrecipe = RecipeParam.DeepClone() as T;
-            if (newrecipe != null)
+            if (RecipeParam.DeepClone() is not T newrecipe)
             {
-                newrecipe.RecipeName = NewRecipeName;
-                this.RecipeDeleteAsync(RecipeParam.RecipeName, token);
-                return this.RecipeParamWriteAsync(newrecipe, false, token);
+                return false;
             }
-            else
+            newrecipe.RecipeName = NewRecipeName;
+            bool written = await this.RecipeParamWriteAsync(newrecipe, false, token).ConfigureAwait(false);
+            if (!written)
             {
-                return Task.FromResult(false);
+                return false;
             }
+            await this.RecipeDeleteAsync(RecipeParam.RecipeName, token).ConfigureAwait(false);
+            return true;
         }
 
-        Task<T> IRecipeService<T>.RecipeParam(string RecipeName, CancellationToken token)
+        /// <summary>
+        /// 按名称读取配方参数（<see cref="IRecipeService{T}"/> 的 <c>(string, CancellationToken)</c>
+        /// 重载）。
+        /// </summary>
+        /// <remarks>
+        /// 此前是显式接口实现（<c>Task&lt;T&gt; IRecipeService&lt;T&gt;.RecipeParam(...)</c>），
+        /// C# 不允许显式接口实现声明 <c>virtual</c>，子类没法覆写它来改存储格式。改成普通
+        /// <c>public virtual</c> 方法后隐式满足接口，纯粹扩大可见性——全部现有调用方都是通过
+        /// <see cref="IRecipeService{T}"/> 类型的变量调用，行为不受影响。
+        /// </remarks>
+        public virtual Task<T> RecipeParam(string RecipeName, CancellationToken token = default)
         {
             try
             {
@@ -273,7 +291,7 @@ namespace PF.Infrastructure.Recipe
         /// <summary>
         /// 按名称读取配方参数
         /// </summary>
-        public Task<T> RecipeParam(string? requestedPpid)
+        public virtual Task<T> RecipeParam(string? requestedPpid)
         {
             try
             {

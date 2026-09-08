@@ -3,8 +3,24 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.24</Version>
+    <Version>1.0.25</Version>
     <PackageReleaseNotes>
+		v1.0.25 (2026-09-08) — BaseRecipe&lt;T&gt; 存储相关方法开放 virtual，供子类自定义配方存储格式
+
+		[变更/修复 — PF.Infrastructure 1.0.12→1.0.13]
+		- BaseRecipe&lt;T&gt; 的 RecipeNames/RecipeParamWriteAsync/RecipeDeleteAsync(string,...)/
+		  RecipeParam 两个重载全部开放 virtual，子类只需覆写"怎么读写一个配方"这几个方法，
+		  CopyRecipeAsync/ChangeRecipeNameAsync/GetAllRecipes 等编排逻辑通过虚方法调用自动
+		  拿到新行为，不用整体重新实现 IRecipeService&lt;T&gt;；RecipeParam(string,
+		  CancellationToken) 此前是显式接口实现（无法声明 virtual），改成普通 public virtual
+		  方法，隐式实现依旧满足接口，现有调用方不受影响。
+		- 顺带修复两个真实 bug：ChangeRecipeNameAsync 此前先删旧文件再写新文件，写新失败时
+		  配方直接丢失，改成先写新、确认成功后再删旧；CopyRecipeAsync 此前调用
+		  RecipeParamWriteAsync 没有 await，无论写入是否成功都立即返回新对象，改成 await
+		  并按真实结果返回。
+
+		子包版本对照：PF.Infrastructure 1.0.12→1.0.13；其余子包本次无变化。
+
 		v1.0.24 (2026-09-07) — ROI 编辑器改拖拽式交互 + 新增多边形工具；模板参考图改存 JPEG + 元数据通道
 
 		[变更/新增 — PF.Vision.Halcon 1.0.3→1.0.4]

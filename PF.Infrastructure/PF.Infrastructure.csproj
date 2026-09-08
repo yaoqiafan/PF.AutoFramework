@@ -38,8 +38,29 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.12</Version>
+		<Version>1.0.13</Version>
 		<PackageReleaseNotes>
+v1.0.13 (2026-09-08) — BaseRecipe&lt;T&gt; 存储相关方法开放 virtual + 两个正确性修复
+
+[变更 — BaseRecipe&lt;T&gt;，可扩展性]
+- RecipeNames / RecipeParamWriteAsync / RecipeDeleteAsync(string, ...) / RecipeParam(string?) /
+  RecipeParam(string, CancellationToken) 全部加 virtual。此前这些方法不可覆写，子类想要"配方
+  按其它格式存储"（比如多文件打包成一个包）只能整体抛开 BaseRecipe&lt;T&gt; 重新实现一遍
+  IRecipeService&lt;T&gt;，CopyRecipeAsync/ChangeRecipeNameAsync/GetAllRecipes 这些编排逻辑也
+  要跟着抄一份。现在只覆写上面几个"怎么读写一个配方"的方法即可，编排方法通过虚方法调用自动
+  拿到新行为，不用重复实现。纯加 virtual，不改签名/默认行为，对现有子类零影响。
+- RecipeParam(string, CancellationToken) 此前是显式接口实现（C# 不允许显式接口实现声明
+  virtual），改成普通 public virtual 方法（隐式实现依然满足 IRecipeService&lt;T&gt;）。全部
+  现有调用方都是通过接口类型的变量调用，行为不受影响，纯粹是为了让子类能覆写它。
+
+[修复]
+- ChangeRecipeNameAsync：此前是先删旧文件、再写新文件，写新失败时配方直接丢失（旧文件已删、
+  新文件没写成）。改成先写新、确认成功后再删旧，写新失败直接返回 false、旧文件原封不动。
+- CopyRecipeAsync：此前调用 RecipeParamWriteAsync 没有 await，无论写入是否成功都立即把新对象
+  返回给调用方——默认实现的磁盘 IO 恰好是同步完成的，问题一直没暴露；子类若把写入实现成真正
+  的异步操作，调用方就会在写入完成/成功之前拿到"复制成功"的假象。改成 await 并按结果返回
+  新对象/null。
+
 v1.0.12 (2026-08-24) — 光源控制器通道数可配置
 
 [新增]
