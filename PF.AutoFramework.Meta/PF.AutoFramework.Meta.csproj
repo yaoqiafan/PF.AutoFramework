@@ -3,8 +3,27 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.23</Version>
+    <Version>1.0.24</Version>
     <PackageReleaseNotes>
+		v1.0.24 (2026-09-07) — ROI 编辑器改拖拽式交互 + 新增多边形工具；模板参考图改存 JPEG + 元数据通道
+
+		[变更/新增 — PF.Vision.Halcon 1.0.3→1.0.4]
+		- ShapeTemplateService 模板参考图（reference.png→reference.jpg）改用 JPEG 有损压缩
+		  （质量 90），这张图不参与匹配、只给人看，换体积很划算；未做双格式回退读取，旧模板
+		  需重新保存一次才能瘦身。新增可选的 extraMetadataJson 通道（SaveTemplate/
+		  LoadTemplateForEdit），调用方可以把任意不透明 JSON 元数据跟着模板一起存取。
+		- HalconVisionService.HTupleToValue 补上 HANDLE(dict) 分支（DictToJson 转 JSON
+		  字符串），之前 dict 类型的过程控制输出会丢失/乱码。
+
+		[变更/新增 — PF.Modules.Halcon 1.0.8→1.0.9]
+		- HalconRoiEditor 交互模型改成拖拽式画图，新增多边形工具（点击加点、右键完成）；
+		  HalconImageViewer 新增图像坐标系鼠标事件 + PanEnabled 开关配合。
+		- ShapeTemplateEditorDialogViewModel 新增 "PresetName"（预置并锁定建模名称）/
+		  "ExtraMetadataJson"（配合 PF.Vision.Halcon 新增通道）两个 DialogParameters。
+
+		子包版本对照：PF.Vision.Halcon 1.0.3→1.0.4，PF.Modules.Halcon 1.0.8→1.0.9；
+		其余子包本次无变化。
+
 		v1.0.23 (2026-08-28) — 界面操作日志：框架级控件拦截 + 键目录 + 项目级 Excel 配置，8 模块全量接入
 
 		[本次做了什么]

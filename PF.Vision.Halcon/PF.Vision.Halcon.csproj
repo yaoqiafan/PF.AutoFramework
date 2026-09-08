@@ -3,8 +3,27 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <PackageReleaseNotes>
+v1.0.4 (2026-09-07) — 模板参考图改用 JPEG + 新增不透明元数据通道 + dict 控制输出转 JSON
+
+[变更 — ShapeTemplateService]
+- 模板参考图（reference.png → reference.jpg）改用 JPEG 有损压缩（质量 90）。这张图只给人看
+  "ROI 画在哪"，不参与匹配（匹配靠同包内的 model.shm），线扫相机原图分辨率下无损 PNG 常是
+  .roipk 体积的大头。未做双格式回退读取——LoadEditSessionFromZip 找不到 reference.jpg 直接
+  抛异常提示"可能是旧版本模板"，旧模板需重新保存一次才能瘦身。
+
+[新增 — ShapeTemplateService]
+- SaveTemplate 新增可选参数 extraMetadataJson：调用方想跟着模板一起存的任意 JSON 文本
+  （比如"这个 ROI 对应网格第几行第几列"），本类不解释内容，原样打进 .roipk 的 meta.json
+  条目；LoadTemplateForEdit/LoadEditSessionFromZip 原样读回（ShapeTemplateEditSession 新增
+  ExtraMetadataJson 字段）。老模板没有这个条目时读到 null，不当错误处理，兼容既有模板包。
+
+[修复 — HalconVisionService.HTupleToValue]
+- HTuple 的 HANDLE 类型（目前框架内唯一用法是 dict）转 Control 输出值时此前落到默认分支
+  只调 ToString()，dict 内容会丢失或显示乱码；新增分支用 DictToJson 转成 JSON 字符串交给
+  上层，非 dict 的 handle 退回原 ToString()。
+
 v1.0.3 (2026-08-27) — 修复 ShapeTemplateService.FindMatches 找模板必报 HALCON #1208
 
 [修复 — 严重]

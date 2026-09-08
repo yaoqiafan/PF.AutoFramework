@@ -4,8 +4,31 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.0.8</Version>
+    <Version>1.0.9</Version>
     <PackageReleaseNotes>
+v1.0.9 (2026-09-07) — ROI 编辑器改拖拽式交互 + 新增多边形工具；建模弹窗支持外部预置名称/元数据
+
+[变更 — HalconRoiEditor/HalconImageViewer]
+- 交互模型改成"武装工具→在图像上直接画"：矩形/旋转矩形/圆/椭圆/扇形由此前的操作方式改为
+  拖拽定边界；新增多边形工具（逐点点击加顶点、右键完成，少于 3 点视为取消）。
+- HalconImageViewer 新增 ImageMouseDown/Move/Up 三个事件（坐标已换算为图像坐标系）+
+  PanEnabled 开关，供编辑器在画图期间临时关闭内置左键平移，避免和拖拽绘制抢左键。
+- 工具栏按钮由 ToggleButton 改回 Button + 代码后置手动高亮（ToggleButton 选中态下图标
+  不可见，原因未查，改回规避）。
+
+[新增 — ShapeTemplateEditorDialogViewModel]
+- 新增 DialogParameters "PresetName"：调用方可预置并锁定这次建模要存的名字（仅"建新模板"
+  路径生效），避免用户在弹窗里顺手改掉、导致存盘文件名跟调用方记录的路径对不上。
+- 新增 DialogParameters "ExtraMetadataJson"（配合 PF.Vision.Halcon 1.0.4 新增的同名通道）：
+  "建新模板"路径下由调用方传入，"改已有模板"路径下以模板包里已存的为准（覆盖传入值）；
+  保存时透传给 ShapeTemplateService.SaveTemplate，关闭弹窗时通过 DialogParameters 原样带回
+  给调用方，方便调用方拿到"最终真正存盘的那份"。
+
+[新增]
+- OperationLogKeysHalcon 补充多边形 ROI 的操作日志键。
+
+依赖：需 PF.Vision.Halcon 1.0.4+。
+
 v1.0.8 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
 
 [新增]
