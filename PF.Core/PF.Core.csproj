@@ -3,8 +3,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.15</Version>
+		<Version>1.0.16</Version>
 		<PackageReleaseNotes>
+v1.0.16 (2026-09-10) — IAxis 锁存接口新增辅助编码器通道号（含破坏性变更）
+
+[破坏性变更 — IAxis]
+- SetLatchMode 新增 int Encoder = 0（插在 LatchType 与 token 之间）：硬件锁存
+  （LatchType=1）要指定的是"锁存哪一路辅助编码器"，此前这个位置实际传的是轴号，
+  多轴卡上轴号与编码器通道号并不总是一一对应，锁到的常常不是想要的那一路。
+- GetLatchNumber 同样新增 int Encoder = 0（插在 LatchType 与 token 之间）——读锁存计数
+  必须与设置时用的是同一路编码器，否则读到的是别路的计数。
+- 【调用方】新参数带默认值，且既有调用点都是按名字传 token 的，源码级兼容、重编译即可；
+  若有把 token 按位置紧跟在 LatchType 后面的写法，需要改成命名参数。
+- 【实现方】框架内 BaseAxisDevice 已同步（PF.Infrastructure 1.0.14）；项目里若自写了 IAxis
+  实现、或覆写了这两个方法，必须补齐新参数，否则不能编译。
+
 v1.0.15 (2026-08-28) — 界面操作日志契约：两个特性 + 跨层开关接口
 
 [新增]

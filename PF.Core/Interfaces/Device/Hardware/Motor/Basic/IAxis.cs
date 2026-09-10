@@ -105,9 +105,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <param name="Filter">滤波器</param>
         /// <param name="LatchSource">锁存源</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
+        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default);
+        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0,int Encoder =0 , CancellationToken token = default);
 
 
 
@@ -116,9 +117,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
+        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, CancellationToken token = default);
+        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default);
 
 
 

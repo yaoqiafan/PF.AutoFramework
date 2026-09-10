@@ -3,8 +3,25 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.25</Version>
+    <Version>1.0.26</Version>
     <PackageReleaseNotes>
+		v1.0.26 (2026-09-10) — 轴锁存接口新增辅助编码器通道号（含破坏性变更 + 行为变更）
+
+		[破坏性变更 — PF.Core 1.0.15→1.0.16]
+		- IAxis.SetLatchMode / GetLatchNumber 在 LatchType 与 token 之间新增 int Encoder = 0，
+		  用于指定硬件锁存要锁哪一路辅助编码器。调用方源码级兼容（新参数带默认值，既有调用点
+		  都是按名字传 token 的）；项目里自写 IAxis 实现、或覆写了这两个方法的类必须补齐新参数
+		  才能编译。
+
+		[行为变更 — PF.Infrastructure 1.0.13→1.0.14]
+		- BaseAxisDevice 硬件锁存分支（LatchType=1）传给 IMotionCard.SetLtcLatchMode /
+		  GetLtcLatchNumber 的第二个参数由 this.AxisIndex 改为 Encoder。那两个形参本就叫
+		  AuxiliaryEncoder，此前拿轴号顶替是传错了值。Encoder 默认 0，不显式传参时非 0 号轴的
+		  硬件锁存通道会从"轴号"变成 0——用到硬件锁存的项目升级后必须补传 Encoder。
+		  软件锁存（LatchType=0，默认）不受影响。
+
+		子包版本对照：PF.Core 1.0.15→1.0.16，PF.Infrastructure 1.0.13→1.0.14；其余子包本次无变化。
+
 		v1.0.25 (2026-09-08) — BaseRecipe&lt;T&gt; 存储相关方法开放 virtual，供子类自定义配方存储格式
 
 		[变更/修复 — PF.Infrastructure 1.0.12→1.0.13]

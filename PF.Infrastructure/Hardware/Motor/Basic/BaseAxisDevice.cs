@@ -278,11 +278,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 设置锁存模式
         /// </summary>
-        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default)
+        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0,int Encoder =0 , CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return true; }
-            return LatchType == 0 ? await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token) : await ParentCard!.SetLtcLatchMode(LatchNo, this.AxisIndex,  LtcMode, LtcLogic, Filter, LatchSource, token);
+            return LatchType == 0 ? await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token) : await ParentCard!.SetLtcLatchMode(LatchNo, Encoder ,  LtcMode, LtcLogic, Filter, LatchSource, token);
         }
 
 
@@ -291,11 +291,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 获取锁存编号
         /// </summary>
-        public virtual async Task<int> GetLatchNumber(int LatchNo,int LatchType=0, CancellationToken token = default)
+        public virtual async Task<int> GetLatchNumber(int LatchNo,int LatchType=0,int Encoder = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return 1; }
-            return  LatchType ==0 ? await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchNumber(LatchNo, this.AxisIndex, token);
+            return  LatchType ==0 ? await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchNumber(LatchNo, Encoder, token);
         }
 
 

@@ -38,8 +38,20 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.13</Version>
+		<Version>1.0.14</Version>
 		<PackageReleaseNotes>
+v1.0.14 (2026-09-10) — 硬件锁存改用辅助编码器通道号（含行为变更）
+
+[行为变更 — BaseAxisDevice]
+- SetLatchMode / GetLatchNumber 在 LatchType=1（硬件锁存）分支下，传给
+  ParentCard.SetLtcLatchMode / GetLtcLatchNumber 的第二个参数由 this.AxisIndex 改为新增的
+  Encoder 参数。IMotionCard 上那两个方法的形参本来就叫 AuxiliaryEncoder（辅助编码器通道号），
+  之前拿轴号顶上去属于传错了值——轴号与编码器通道号在多轴卡上不一定对得上。
+- 【影响面】Encoder 默认 0：既有调用点不改代码的话，硬件锁存拿到的通道号一律是 0，
+  原本轴号恰好为 0 的轴行为不变，其余轴会从"按轴号锁存"变成"按 0 号编码器锁存"，
+  必须显式传 Encoder 才能锁到正确的那一路。软件锁存（LatchType=0，默认值）分支完全不受影响。
+- 签名同步 PF.Core 1.0.16 的 IAxis：两个方法都在 LatchType 与 token 之间新增 int Encoder = 0。
+
 v1.0.13 (2026-09-08) — BaseRecipe&lt;T&gt; 存储相关方法开放 virtual + 两个正确性修复
 
 [变更 — BaseRecipe&lt;T&gt;，可扩展性]
