@@ -38,8 +38,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.14</Version>
+		<Version>1.0.15</Version>
 		<PackageReleaseNotes>
+v1.0.15 (2026-09-10) — 补齐 BaseAxisDevice.GetLatchPos 的辅助编码器通道号（含行为变更）
+
+[行为变更 — BaseAxisDevice]
+- GetLatchPos 在 LatchType=1（硬件锁存）分支下，传给 ParentCard.GetLtcLatchPos 的第二个参数
+  由 this.AxisIndex 改为新增的 Encoder 参数，与 1.0.14 对 SetLatchMode / GetLatchNumber 做的
+  改动一致——1.0.14 漏掉了这一个方法，读位置仍按轴号取，与设置时用的编码器通道对不上，
+  硬件锁存整条流程仍然拿不到正确的位置。
+- 【影响面】Encoder 默认 0，不显式传参时非 0 号轴读到的是 0 号编码器的锁存位置。
+  软件锁存（LatchType=0，默认值）分支完全不受影响。
+- 签名同步 PF.Core 1.0.17 的 IAxis。
+
 v1.0.14 (2026-09-10) — 硬件锁存改用辅助编码器通道号（含行为变更）
 
 [行为变更 — BaseAxisDevice]

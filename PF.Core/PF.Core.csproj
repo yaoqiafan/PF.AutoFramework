@@ -3,8 +3,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.16</Version>
+		<Version>1.0.17</Version>
 		<PackageReleaseNotes>
+v1.0.17 (2026-09-10) — 补齐 IAxis.GetLatchPos 的辅助编码器通道号（含破坏性变更）
+
+[破坏性变更 — IAxis]
+- GetLatchPos 新增 int Encoder = 0（插在 LatchType 与 token 之间），与 1.0.16 给
+  SetLatchMode / GetLatchNumber 加的那个参数同一含义、同一位置。1.0.16 漏了这一个方法：
+  设置和读计数都已经能指定辅助编码器通道，唯独读锁存位置还锁死在轴号上，
+  三个方法凑不成一套完整的硬件锁存流程。
+- 【调用方】新参数带默认值，且既有调用点都是按名字传 token 的，源码级兼容、重编译即可。
+- 【实现方】框架内 BaseAxisDevice 已同步（PF.Infrastructure 1.0.15）；项目里若自写了 IAxis
+  实现、或覆写了这个方法，必须补齐新参数，否则不能编译。
+
 v1.0.16 (2026-09-10) — IAxis 锁存接口新增辅助编码器通道号（含破坏性变更）
 
 [破坏性变更 — IAxis]

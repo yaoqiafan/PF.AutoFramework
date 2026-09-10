@@ -129,9 +129,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
+        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default);
+        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default);
 
 
 

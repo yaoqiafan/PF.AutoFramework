@@ -3,8 +3,27 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.26</Version>
+    <Version>1.0.27</Version>
     <PackageReleaseNotes>
+		v1.0.27 (2026-09-10) — 补齐 GetLatchPos 的辅助编码器通道号（1.0.26 的补丁）
+
+		[破坏性变更 — PF.Core 1.0.16→1.0.17]
+		- IAxis.GetLatchPos 在 LatchType 与 token 之间新增 int Encoder = 0，与 1.0.26 给
+		  SetLatchMode / GetLatchNumber 加的参数同一含义、同一位置。上个版本漏了这一个方法：
+		  设置锁存和读锁存计数都能指定辅助编码器通道了，唯独读锁存位置还锁死在轴号上，
+		  三个方法凑不成一套完整的硬件锁存流程。调用方源码级兼容；自写 IAxis 实现或覆写了
+		  这个方法的项目类必须补齐新参数才能编译。
+
+		[行为变更 — PF.Infrastructure 1.0.14→1.0.15]
+		- BaseAxisDevice.GetLatchPos 硬件锁存分支传给 IMotionCard.GetLtcLatchPos 的第二个参数
+		  由 this.AxisIndex 改为 Encoder。Encoder 默认 0，不显式传参时非 0 号轴读到的是 0 号
+		  编码器的锁存位置。软件锁存（LatchType=0，默认）不受影响。
+
+		升级提示：用到硬件锁存的项目，SetLatchMode / GetLatchNumber / GetLatchPos 三处都要传
+		同一个 Encoder，只补其中一两处会读到别路编码器的数据。
+
+		子包版本对照：PF.Core 1.0.16→1.0.17，PF.Infrastructure 1.0.14→1.0.15；其余子包本次无变化。
+
 		v1.0.26 (2026-09-10) — 轴锁存接口新增辅助编码器通道号（含破坏性变更 + 行为变更）
 
 		[破坏性变更 — PF.Core 1.0.15→1.0.16]
