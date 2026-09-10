@@ -143,6 +143,7 @@
                         EnableRowVirtualization="True"
                         GridLinesVisibility="Horizontal"
                         HeadersVisibility="Column"
+                         ScrollViewer.CanContentScroll="False"
                         IsReadOnly="True"
                         ItemsSource="{Binding DataList}"
                         RowHeight="NaN">

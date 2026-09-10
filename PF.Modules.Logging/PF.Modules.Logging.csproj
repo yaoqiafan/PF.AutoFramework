@@ -13,8 +13,19 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-09-10) — 修复日志列表滚动卡顿（变行高场景）
+
+[修复]
+- LogListView（LogEntryTemplate 列表）与 LogManagementView（DataGrid）均把
+  ScrollViewer.CanContentScroll 由 True 改为 False。两处日志条目本就允许
+  TextWrapping="Wrap"/RowHeight="NaN" 折行变高，消费项目接入原始报文/JSON 展示后
+  单条记录可能长达十几行，行高差异被放大；CanContentScroll=True 走逻辑项虚拟化，
+  按"项数"而非像素计算滚动量，行高悬殊时表现为一卡一卡、鼠标滚轮体感极慢。改为
+  按像素滚动（False）后滚动流畅度恢复正常，代价是失去逻辑项虚拟化的极限性能，
+  但日志列表量级下无实际影响。
+
 v1.0.3 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
 
 [新增]

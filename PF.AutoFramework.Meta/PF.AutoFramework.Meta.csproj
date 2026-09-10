@@ -3,8 +3,18 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.27</Version>
+    <Version>1.0.28</Version>
     <PackageReleaseNotes>
+		v1.0.28 (2026-09-10) — 修复日志列表滚动卡顿（变行高场景）
+
+		[修复 — PF.Modules.Logging 1.0.3→1.0.4]
+		- LogListView / LogManagementView 的 ScrollViewer.CanContentScroll 由 True 改为
+		  False。日志条目允许折行/变高（消费项目接入原始报文、JSON 等长内容后单条记录可能
+		  长达十几行），逻辑项虚拟化滚动（True）按"项数"而非像素计算滚动量，行高差异被放大后
+		  表现为滚动卡顿；改为按像素滚动后恢复流畅，日志列表量级下不需要逻辑项虚拟化的极限性能。
+
+		子包版本对照：PF.Modules.Logging 1.0.3→1.0.4；其余子包本次无变化。
+
 		v1.0.27 (2026-09-10) — 补齐 GetLatchPos 的辅助编码器通道号（1.0.26 的补丁）
 
 		[破坏性变更 — PF.Core 1.0.16→1.0.17]

@@ -333,7 +333,7 @@
                             ItemTemplate="{StaticResource LogEntryTemplate}"
                             ItemsSource="{Binding LogEntriesView}"
                             oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.SelectedLogEntry}"
-                            ScrollViewer.CanContentScroll="True"
+                            ScrollViewer.CanContentScroll="False"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                             SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}"
