@@ -130,9 +130,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
         /// <param name="Encoder">辅助编码器通道号</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default);
+        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0,double Mulit =2, CancellationToken token = default);
 
 
 
@@ -179,9 +180,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default);
+        Task<bool> SetExtraPos(int Channel, int Pos, double Mulit =2,CancellationToken token = default);
 
 
 

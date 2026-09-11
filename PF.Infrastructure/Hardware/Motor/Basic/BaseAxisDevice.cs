@@ -303,12 +303,12 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 获取锁存位置
         /// </summary>
-        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default)
+        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0,double Mulit=2, CancellationToken token = default)
         {
             EnsureCardAttached();
             // 模拟模式返回当前虚拟位置（锁存语义即"捕获触发瞬间的轴位置"），不再返回 0 哨兵值
             if (IsSimulated) { await Task.Delay(1000, token); return _simulatedPosition; }
-            return LatchType == 0 ? await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchPos(LatchNo, Encoder, token);
+            return LatchType == 0 ? await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchPos(LatchNo, Encoder,Mulit  ,token);
         }
 
 
@@ -415,11 +415,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 设置辅助编码器的位置
         /// </summary>
-        public virtual async   Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default)
+        public virtual async   Task<bool> SetExtraPos(int Channel, int Pos, double Mulit =2,CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return true ; }
-            return await ParentCard!.SetExtraPos(Channel , Pos, token);
+            return await ParentCard!.SetExtraPos(Channel , Pos,Mulit , token);
         }
 
         #endregion 辅助编码器功能

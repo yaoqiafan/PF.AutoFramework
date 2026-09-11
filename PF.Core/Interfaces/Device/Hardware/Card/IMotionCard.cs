@@ -231,9 +231,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="AxisNo">轴号辅助编码器通道</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+        Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo,double Mulit=2, CancellationToken token = default);
 
 
         #endregion 高速位置锁存
@@ -284,9 +285,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetExtraPos(int Channel, int Pos,CancellationToken token =default );
+        Task<bool> SetExtraPos(int Channel, int Pos,double Mulit =2,CancellationToken token =default );
 
 
 
