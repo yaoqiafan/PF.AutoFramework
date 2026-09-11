@@ -85,7 +85,7 @@ namespace PF.Core.Entities.SecsGem.Params
         /// <summary>
         /// �豸����
         /// </summary>
-        public string MDLN { get; set; }
+        public string MDLN { get; set; } = "";
 
         /// <summary>
         /// �����汾��
@@ -120,7 +120,7 @@ namespace PF.Core.Entities.SecsGem.Params
         /// <summary>
         /// 从文件加载参数配置
         /// </summary>
-        public async Task<bool> Load(string path = "", CancellationToken token = default)
+        public async Task<(bool res, string errmessage)> Load(string path = "", CancellationToken token = default)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -149,18 +149,24 @@ namespace PF.Core.Entities.SecsGem.Params
                         this.T6 = param.T6;
                         this.T7 = param.T7;
                         this.T8 = param.T8;
-                        return true;
+                        return (true,"OK");
+                    }
+                    else
+                    {
+                        this.Reset();
+                        return (true, "参数不存在，重置参数");
                     }
                 }
                 else
                 {
                     this.Reset();
+                    return (true, "参数不存在，重置参数");
                 }
-                return false;
+               
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return false;
+                return (false, ex.Message);
             }
 
         }
