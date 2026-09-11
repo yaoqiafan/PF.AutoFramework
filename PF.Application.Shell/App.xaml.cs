@@ -146,7 +146,7 @@ namespace PF.Application.Shell
                 var stopBits = cfg.ConnectionParameters.TryGetValue("StopBits", out var sb)
                     && Enum.TryParse<System.IO.Ports.StopBits>(sb, true, out var sbv) ? sbv : System.IO.Ports.StopBits.One;
                 return new PF.Infrastructure.Communication.Serial.SerialPortCommunication(
-                    portName ?? string.Empty, baudRate, parity, dataBits, stopBits, cfg.InstanceId, logger);
+                    portName ?? string.Empty, baudRate, parity, dataBits, stopBits, cfg.InstanceId, cfg.DisplayName, logger);
             });
 
             commManager.RegisterFactory("ModbusRtuMaster", cfg =>

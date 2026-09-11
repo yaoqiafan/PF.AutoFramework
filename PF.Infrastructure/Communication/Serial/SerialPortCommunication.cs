@@ -23,6 +23,7 @@ namespace PF.Infrastructure.Communication.Serial
         private readonly SemaphoreSlim _openLock = new(1, 1);
         private readonly SemaphoreSlim _sendLock = new(1, 1);
         private readonly string _instanceId;
+        private readonly string _displayName;
         private readonly CategoryLogger _logger;
         private ClientStatus _status = ClientStatus.None;
 
@@ -57,7 +58,7 @@ namespace PF.Infrastructure.Communication.Serial
         /// <inheritdoc cref="ICommunication.Role"/>
         CommunicationRole ICommunication.Role => CommunicationRole.None;
         /// <inheritdoc cref="ICommunication.DisplayName"/>
-        string ICommunication.DisplayName => $"串口 [{PortName}] {BaudRate}bps";
+        string ICommunication.DisplayName => $"{_displayName} [{PortName}] {BaudRate}bps";
 
         /// <summary>
         /// 构造串口通讯实例
@@ -68,14 +69,19 @@ namespace PF.Infrastructure.Communication.Serial
         /// <param name="dataBits">数据位，默认 8</param>
         /// <param name="stopBits">停止位，默认 One</param>
         /// <param name="instanceId">通讯实例唯一标识，缺省时使用 portName</param>
+        /// <param name="displayName">调试树展示名称，缺省时使用 instanceId（再缺省则 portName）——
+        /// 同一项目常有多个串口实例（如多台光源控制器各占一路 COM 口），仅凭端口号/波特率分不清
+        /// 对应的是哪台设备，调用方应传入 CommunicationConfig.DisplayName（用户在通讯配置里填的
+        /// 友好名称）</param>
         /// <param name="logger">日志服务，缺省时不记录日志（保持与既有调用点兼容）</param>
         public SerialPortCommunication(string portName, int baudRate = 9600,
             Parity parity = Parity.None, int dataBits = 8, StopBits stopBits = StopBits.One,
-            string? instanceId = null, ILogService? logger = null)
+            string? instanceId = null, string? displayName = null, ILogService? logger = null)
         {
             PortName = portName;
             BaudRate = baudRate;
             _instanceId = instanceId ?? portName;
+            _displayName = displayName ?? _instanceId;
             _logger = logger == null ? null : CategoryLoggerFactory.Communication(logger);
 
             _port = new SerialPort(portName, baudRate, parity, dataBits, stopBits);

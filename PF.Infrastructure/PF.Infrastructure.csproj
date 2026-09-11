@@ -38,8 +38,26 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.15</Version>
+		<Version>1.0.16</Version>
 		<PackageReleaseNotes>
+v1.0.16 (2026-09-11) — 修复串口调试树看不清实例名称（SerialPortCommunication.DisplayName）
+
+[修复]
+- SerialPortCommunication 构造函数新增可选 displayName 参数（缺省取 instanceId，
+  再缺省取 portName），DisplayName 由固定的 "串口 [COM3] 9600bps" 改为
+  "{displayName} [COM3] 9600bps"。调用方应传入 CommunicationConfig.DisplayName
+  （用户在通讯配置里填的友好名称）。
+- 起因：通讯综合调试树的 Serial 分类下，此前所有串口实例的叶子节点名称只有端口号+
+  波特率，同一项目挂多个串口设备（例如多台光源控制器各占一路 COM 口）时，树上完全
+  分不清哪个节点对应哪台物理设备，必须逐个点开才能靠端口号猜。TCP/文件传输的
+  DisplayName 早就走 _displayName 字段展示友好名称，唯独 SerialPortCommunication
+  和 ModbusRtuMaster（同一模式，暂未改）当初漏了这一环。
+- 【影响面】构造函数新增参数带默认值，源码级兼容；新参数插在原 instanceId 与 logger
+  之间（对齐同类通讯实现的参数顺序惯例），按位置传参且带了 logger 的调用点需要补上
+  这一位，编译期会因类型不匹配直接报错，不会静默错位。消费项目的工厂注册处应把
+  cfg.DisplayName 传入该参数才能看到效果，仅升级本包不改调用点不会生效
+  （PF.Application.Shell Demo 已同步）。
+
 v1.0.15 (2026-09-10) — 补齐 BaseAxisDevice.GetLatchPos 的辅助编码器通道号（含行为变更）
 
 [行为变更 — BaseAxisDevice]
