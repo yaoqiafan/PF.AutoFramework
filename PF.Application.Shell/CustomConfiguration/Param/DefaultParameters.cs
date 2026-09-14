@@ -290,6 +290,9 @@ namespace PF.Application.Shell.CustomConfiguration.Param
         ///   ├── SIM_X_AXIS_0（轴，ParentDeviceId = "SIM_CARD_0"）
         ///   └── SIM_VACUUM_IO（IO，ParentDeviceId = "SIM_CARD_0"）
         ///
+        /// 另见 auxEncoder0：ParentDeviceId 填的是工位1上料Z轴的 DeviceId 而不是卡，
+        /// 演示"辅助编码器挂在某根轴下、随轴分组"这条拓扑（卡 → 轴 → 编码器，三层挂载）。
+        ///
         /// 说明：每条 HardwareParam 的 Name = DeviceId，JsonValue = HardwareConfig 的 JSON 序列化结果。
         /// </summary>
         public Dictionary<string, HardwareParam> GetHardwareDefaults()
@@ -382,6 +385,22 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 ConnectionParameters = new Dictionary<string, string> { ["AxisIndex"] = "5", ["AxisParam"] = System.Text.Json.JsonSerializer.Serialize(new AxisParam()) },
                 Remarks = "工位1上料Z轴，挂载于 LTDMC_Card_0"
             };
+            // 辅助编码器示例：挂在工位1上料Z轴下（而不是直接挂在运动控制卡下），
+            // 演示"挂在某根轴下、随轴分组"这条拓扑——ParentDeviceId 填轴的 DeviceId 即可，
+            // 挂载时由 IEncoderCarrier 自动穿透该轴解析到同一块 LTDMC_Card_0。
+            HardwareConfig auxEncoder0 = new()
+            {
+                DeviceId = "AuxEncoder_0",
+                DeviceName = "辅助编码器[0]",
+                Category = "AuxEncoder",
+                ImplementationClassName = "EtherCatAuxEncoder",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = station1ZAxis.DeviceId,
+                ConnectionParameters = new Dictionary<string, string> { ["Channel"] = "0", ["Multiplier"] = "2" },
+                Remarks = "辅助编码器示例，挂载于工位1上料Z轴，随该轴分组编排"
+            };
+
             HardwareConfig station1YAxis = new()
             {
                 DeviceId = E_AxisName.工位1拉料Y轴.ToString(),
@@ -722,6 +741,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Version      = 1
                     }
                 }  ,
+                {
+                    auxEncoder0.DeviceId, new HardwareParam
+                    {
+                        Name         = auxEncoder0.DeviceId,
+                        Description  = auxEncoder0.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(auxEncoder0),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
                 {
                     station1YAxis.DeviceId, new HardwareParam
                     {

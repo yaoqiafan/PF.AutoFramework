@@ -3,8 +3,42 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.29</Version>
+    <Version>1.0.30</Version>
     <PackageReleaseNotes>
+		v1.0.30 (2026-09-14) — 轴位置锁存收回辅助编码器通道参数，内部改为直接调用绑定的辅助编码器（含破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.19→1.0.20]
+		- IAxis.SetLatchMode / GetLatchNumber / GetLatchPos 去掉 1.0.16～1.0.17 加的
+		  int Encoder（GetLatchPos 还去掉了 double Mulit）参数：硬件锁存（LatchType=1）该锁
+		  哪一路辅助编码器，改由本轴当前挂载的 IAuxEncoder（硬件配置里把该编码器的
+		  ParentDeviceId 指向本轴）自动决定，调用方不再需要、也不再能够手动指定通道号/倍率。
+		  位置锁存仍只有 IAxis 一个入口，IAuxEncoder 这个接口不出现在调用方视野里。
+		- 调用方源码级不兼容：按位置传参、且传了 Encoder/Mulit 的调用点编译期报错；本仓库内
+		  既有调用点均按名字传到 token，不受影响。硬件锁存若此前显式传了 Encoder，改造后必须
+		  给该轴挂一个 IAuxEncoder 子设备；未挂载时调用抛 InvalidOperationException（原来是
+		  静默锁到 0 号通道）。软件锁存（LatchType=0，默认）不受影响。
+
+		[行为变更 — PF.Infrastructure 1.0.18→1.0.19]
+		- BaseAxisDevice 硬件锁存分支改为调用本轴挂载的 BaseAuxEncoder.SetLatchModeAsync /
+		  GetLatchNumberAsync / GetLatchPositionAsync，不再把 Encoder/Mulit 原样透传给
+		  ParentCard。
+		- BaseAuxEncoder.OnAttached 新增回调：挂载对象若是 BaseAxisDevice，自动调用其新增的
+		  internal AttachAuxEncoder 完成登记；挂在运动控制卡下单独使用（不挂轴）不受影响。
+
+		[修复 — PF.Services 1.0.5→1.0.6]
+		- HardwareManagerService 的设备初始化分层由"ParentDeviceId 是否为空"二分成顶级/子级
+		  两层，改为按依赖关系逐层展开，支持"卡→轴→辅助编码器"这类三层挂载链。二分法下轴和
+		  挂在轴下的编码器同属"子级"一批，若该批内配置读取顺序恰好把编码器排在轴前面，编码器
+		  会因父轴尚未激活而永久附着失败（Parent 永久为 null，且没有重试路径）。本次改造让轴
+		  的硬件锁存开始依赖编码器挂载成功，这个既有隐患必须一并修掉。
+
+		升级提示：只用软件锁存（LatchType=0，默认）的项目不受影响。用到硬件锁存的项目，需在
+		硬件配置中给对应轴新增一个 IAuxEncoder 子设备（ParentDeviceId 指向该轴），并删除调用点
+		里多余的 Encoder/Mulit 实参。
+
+		子包版本对照：PF.Core 1.0.19→1.0.20，PF.Infrastructure 1.0.18→1.0.19，
+		PF.Services 1.0.5→1.0.6；其余子包本次无变化。
+
 		v1.0.29 (2026-09-11) — 修复串口调试树看不清实例名称
 
 		[修复 — PF.Infrastructure 1.0.15→1.0.16]

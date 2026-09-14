@@ -906,7 +906,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                     throw new Exception($"设置锁存位置参数错误：锁存器ID错误");
                 }
                 // 1. 设置软件锁存模式和硬件关联触发口
-                short ret = CardAPI.LTDMC.dmc_ltc_set_mode ((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)1,   (ushort)LtcLogic, Filter);
+                short ret = CardAPI.LTDMC.dmc_ltc_set_mode((ushort)(this.CardIndex), (ushort)LatchNo, (ushort)1, (ushort)LtcLogic, Filter);
                 if (ret != 0)
                 {
                     throw new Exception($"配置锁存器失败，函数 dmc_ltc_set_mode 返回值 {ret}");
@@ -920,7 +920,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 }
 
                 // 3. 复位清理锁存器以准备捕获
-                ret = CardAPI.LTDMC.dmc_ltc_reset ((ushort)(this.CardIndex), (ushort)LatchNo);
+                ret = CardAPI.LTDMC.dmc_ltc_reset((ushort)(this.CardIndex), (ushort)LatchNo);
                 if (ret != 0)
                 {
                     throw new Exception($"复位锁存器失败，函数 dmc_ltc_reset 返回值 {ret}");
@@ -944,7 +944,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 if (IsSimulated) { return Task.FromResult(0); }
 
                 int latchNumber = 0;
-                short ret = CardAPI.LTDMC.dmc_ltc_get_number ((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref latchNumber);
+                short ret = CardAPI.LTDMC.dmc_ltc_get_number((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref latchNumber);
                 if (ret != 0)
                 {
                     throw new Exception($"读取锁存个数失败, dmc_ltc_get_number：{ret}");
@@ -961,19 +961,19 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步获取最近一次被捕获到的锁存点实际物理坐标
         /// </summary>
-        public override Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, CancellationToken token = default)
+        public override Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, double Mulit=2,CancellationToken token = default)
         {
             try
             {
                 if (IsSimulated) { return Task.FromResult((double?)0); }
 
                 double pos = 0;
-                short ret = CardAPI.LTDMC.dmc_ltc_get_value_unit ((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref pos);
+                short ret = CardAPI.LTDMC.dmc_ltc_get_value_unit((ushort)CardIndex, (ushort)LatchNo, (ushort)AxisNo, ref pos);
                 if (ret != 0)
                 {
                     throw new Exception($"读取锁存位置失败, dmc_ltc_get_value_unit：{ret}");
                 }
-                return Task.FromResult((double?)pos);
+                return Task.FromResult((double?)pos/2);
             }
             catch (Exception ex)
             {
@@ -1109,16 +1109,17 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-      public override    Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default)
+        public override Task<bool> SetExtraPos(int Channel, int Pos, double Mulit = 2, CancellationToken token = default)
         {
             try
             {
                 if (IsSimulated) { return Task.FromResult(true); }
 
                 // dmc_set_extra_encoder 的 pos 参数是 int，不可强转 ushort（负数/大于 65535 会被截断）
-                short ret = CardAPI.LTDMC.dmc_set_extra_encoder ((ushort)CardIndex, (ushort)Channel , Pos );
+                short ret = CardAPI.LTDMC.dmc_set_extra_encoder((ushort)CardIndex, (ushort)Channel, (int)(Pos * Mulit));
                 if (ret != 0)
                 {
                     throw new Exception($"设置辅助编码器位置失败, dmc_set_extra_encoder返回值：{ret}");
@@ -1132,7 +1133,33 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
         }
 
+        /// <summary>
+        /// 读取辅助编码器的当前位置
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Mulit">编码器倍率</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns>当前位置值；读取失败返回 null</returns>
+        public override Task<double?> GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult((double?)0); }
 
+                int pos = 0;
+                short ret = CardAPI.LTDMC.dmc_get_extra_encoder((ushort)CardIndex, (ushort)Channel, ref pos);
+                if (ret != 0)
+                {
+                    throw new Exception($"读取辅助编码器位置失败, dmc_get_extra_encoder返回值：{ret}");
+                }
+                return Task.FromResult((double?)(pos / Mulit));
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult((double?)null);
+            }
+        }
 
         #endregion 辅助编码器功能
 

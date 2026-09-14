@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.Camera.LineScan;
 using PF.Core.Interfaces.Device.Hardware.Card;
+using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -191,17 +192,7 @@ namespace PF.Modules.Debug.ViewModels
                     Payload  = host
                 };
 
-                if (childMap.TryGetValue(host.DeviceId, out var children))
-                {
-                    foreach (var child in children.OrderBy(c => c.Category.ToString()).ThenBy(c => c.DeviceName))
-                    {
-                        cardNode.Children.Add(new DebugTreeNode
-                        {
-                            NodeName = child.DeviceName,
-                            Payload  = child
-                        });
-                    }
-                }
+                AddChildNodes(cardNode, host.DeviceId, childMap);
 
                 TreeNodes.Add(cardNode);
             }
@@ -218,6 +209,24 @@ namespace PF.Modules.Debug.ViewModels
                 foreach (var d in orphans)
                     orphanGroup.Children.Add(new DebugTreeNode { NodeName = d.DeviceName, Payload = d });
                 TreeNodes.Add(orphanGroup);
+            }
+        }
+
+        /// <summary>
+        /// 递归把挂在 parentDeviceId 下的设备加为子节点，并继续下钻其自身的子设备。
+        /// 挂载链可以有多层（如卡 → 轴 → 挂在该轴下的辅助编码器），只在card这一层展开一次
+        /// 不够——递归下钻才能让深层挂载在树上可见。
+        /// </summary>
+        private static void AddChildNodes(DebugTreeNode parentNode, string parentDeviceId,
+            Dictionary<string, List<IHardwareDevice>> childMap)
+        {
+            if (!childMap.TryGetValue(parentDeviceId, out var children)) return;
+
+            foreach (var child in children.OrderBy(c => c.Category.ToString()).ThenBy(c => c.DeviceName))
+            {
+                var childNode = new DebugTreeNode { NodeName = child.DeviceName, Payload = child };
+                AddChildNodes(childNode, child.DeviceId, childMap);
+                parentNode.Children.Add(childNode);
             }
         }
 
@@ -289,6 +298,12 @@ namespace PF.Modules.Debug.ViewModels
                 parameters.Add("Device", lightcontroller);
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.LightControllerDebugView , parameters);
+            }
+            else if (payload is IAuxEncoder auxEncoder)
+            {
+                parameters.Add("Device", auxEncoder);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.AuxEncoderDebugView, parameters);
             }
 
 

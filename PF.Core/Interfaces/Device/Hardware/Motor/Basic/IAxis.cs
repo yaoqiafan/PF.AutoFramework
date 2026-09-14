@@ -6,9 +6,14 @@ using System.Numerics;
 namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
 {
     /// <summary>
-    /// 单轴运动控制器接口，继承自基础硬件设备接口
+    /// 单轴运动控制器接口，继承自基础硬件设备接口。
     /// </summary>
-    public interface IAxis : IHardwareDevice
+    /// <remarks>
+    /// 同时实现 <see cref="IEncoderCarrier"/>：<c>EncoderCard</c> 转发到本轴已挂载的 <c>ParentCard</c>，
+    /// 使辅助编码器（<c>Encoder.Basic.IAuxEncoder</c>）既能直接挂在运动控制卡下单独使用，
+    /// 也能挂在某根轴下随轴分组编排——两条路径最终落到同一块物理板卡。
+    /// </remarks>
+    public interface IAxis : IEncoderCarrier
     {
         #region 点表管理 (Point Table)
 
@@ -96,7 +101,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
 
 
         /// <summary>
-        /// 设置位置锁存参数
+        /// 设置位置锁存参数。
+        /// 硬件锁存（LatchType=1）锁哪一路辅助编码器，由本轴当前挂载的 IAuxEncoder 决定
+        /// （硬件配置中把该编码器的 ParentDeviceId 指向本轴即可），调用方无需、也不能指定通道号——
+        /// 本轴尚未挂载辅助编码器时，硬件锁存会抛 <see cref="InvalidOperationException"/>。
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="InPutPort">输入端口号</param>
@@ -105,34 +113,33 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <param name="Filter">滤波器</param>
         /// <param name="LatchSource">锁存源</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
-        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0,int Encoder =0 , CancellationToken token = default);
+        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default);
 
 
 
         /// <summary>
-        /// 读取位置锁存个数
+        /// 读取位置锁存个数。硬件锁存（LatchType=1）同样通过本轴挂载的 IAuxEncoder 读取，
+        /// 说明见 <see cref="SetLatchMode"/>。
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
-        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default);
+        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, CancellationToken token = default);
 
 
 
         /// <summary>
-        /// 读取锁存位置
+        /// 读取锁存位置。硬件锁存（LatchType=1）同样通过本轴挂载的 IAuxEncoder 读取
+        /// （编码器倍率取该编码器自身的 Multiplier），说明见 <see cref="SetLatchMode"/>。
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
-        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default);
+        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default);
 
 
 
@@ -175,13 +182,17 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         #region 辅助编码器功能
 
         /// <summary>
-        /// 设置辅助编码器的位置
+        /// 设置辅助编码器的位置。
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default);
+        [Obsolete("辅助编码器已抽取为独立的 IAuxEncoder 设备（挂在本轴或运动控制卡下均可）。" +
+            "请改为在硬件配置中新增一个 IAuxEncoder（ParentDeviceId 指向本轴或所在运动控制卡），" +
+            "并调用其 SetPositionAsync。本方法保留仅为兼容旧调用点，行为不变，将在后续版本移除。")]
+        Task<bool> SetExtraPos(int Channel, int Pos, double Mulit =2,CancellationToken token = default);
 
 
 

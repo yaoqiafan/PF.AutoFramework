@@ -52,6 +52,8 @@ namespace PF.Modules.Debug
 
             containerRegistry.RegisterForNavigation<IODebugView, IODebugViewModel>(NavigationConstants.Views.IODebugView);
 
+            containerRegistry.RegisterForNavigation<AuxEncoderDebugView, AuxEncoderDebugViewModel>(NavigationConstants.Views.AuxEncoderDebugView);
+
             containerRegistry.RegisterForNavigation<BarcodeScanDebugView, BarcodeScanDebugViewModel>(NavigationConstants.Views.BarcodeScanDebugView);
 
 

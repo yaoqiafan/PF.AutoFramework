@@ -18,28 +18,80 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <!-- DLL\Infrastructure\ 下这批第三方 SDK 全部由 PF.Vendor.Infrastructure 包对外分发
+	       （lib 资产 = 有 <Reference> 的托管封装；runtimes\win-x64\native = 纯 P/Invoke 原生库），
+	       两边源文件保持一致，改动/升级时两处都要同步。 -->
+	  <!-- ⚠️ 部署要求：托管层内部仍会 P/Invoke 原生 MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll
+	       （已随 PF.Vendor.Infrastructure 一并分发，无 <Reference>，纯靠文件名加载）。 -->
 	  <Reference Include="MvCodeReaderSDK.Net">
-	    <HintPath>..\DLL\MvCodeReaderSDK.Net.dll</HintPath>
+	    <HintPath>..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Keyence.AutoID.SDK">
-	    <HintPath>..\DLL\Keyence.AutoID.SDK.dll</HintPath>
+	    <HintPath>..\DLL\Infrastructure\Keyence.AutoID.SDK.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Communication">
-	    <HintPath>..\DLL\Communication.dll</HintPath>
+	    <HintPath>..\DLL\Infrastructure\Communication.dll</HintPath>
 	  </Reference>
 	  <!-- 海康工业相机 SDK（MVS）托管封装 V2。取自 SDK 安装目录 Development\DotNet\AnyCpu\netstandard2.0。
-	       ⚠️ 部署要求：托管层内部仍会 P/Invoke 原生 MvCameraControl.dll，
-	       需将 SDK 的 Libraries\win64 下原生库一并复制到程序输出目录；
+	       ⚠️ 部署要求：托管层内部仍会 P/Invoke 真正的原生 MvCameraControl.dll，
+	       但那个文件从来不在本仓库里（PF.Vendor.Infrastructure 同样没有）——只存在于海康 MVS SDK
+	       安装目录的 Libraries\win64 下，需要手动复制到程序输出目录；
 	       CameraLink/CXP/XoF 链路还需另行安装采集卡驱动(MVFG)。 -->
 	  <Reference Include="MvCameraControl.Net">
-	    <HintPath>..\DLL\MvCameraControl.Net.dll</HintPath>
+	    <HintPath>..\DLL\Infrastructure\MvCameraControl.Net.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.16</Version>
+		<Version>1.0.19</Version>
 		<PackageReleaseNotes>
+v1.0.19 (2026-09-14) — 轴硬件锁存改为内部调用绑定的辅助编码器，同步 PF.Core 1.0.20（含行为变更）
+
+[行为变更 — 同步 PF.Core 1.0.20]
+- BaseAxisDevice.SetLatchMode / GetLatchNumber / GetLatchPos 的硬件锁存分支（LatchType=1）
+  不再把 Encoder/Mulit 参数原样透传给 ParentCard，而是调用本轴挂载的辅助编码器
+  （BaseAuxEncoder.SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync），通道号
+  和倍率取该编码器自己的 Channel/Multiplier。本轴未挂载 IAuxEncoder 时抛
+  InvalidOperationException（原来是静默锁到 0 号通道）。
+- BaseAuxEncoder.OnAttached 新增回调：挂载对象若是 BaseAxisDevice，自动调用其新增的
+  internal AttachAuxEncoder 完成登记；挂在运动控制卡下单独使用（不挂轴）不受影响。
+- 配套修复见 PF.Services 1.0.6：HardwareManagerService 初始化分层改为按依赖关系逐层展开，
+  修掉"卡→轴→辅助编码器"三层挂载链下编码器可能因父轴尚未激活而永久附着失败的问题——
+  本次改造让轴的硬件锁存开始依赖编码器实际挂载成功，这个既有隐患必须一并修掉才不会白改。
+
+子包版本对照：PF.Core 1.0.19→1.0.20；其余子包本次无变化。
+
+v1.0.18 (2026-09-14) — 辅助编码器补齐位置读回，同步 PF.Core 1.0.19
+
+[新增 — 同步 PF.Core 1.0.19]
+- BaseMotionCard 新增抽象 GetExtraPos；LTMDCMotionCard 实现，调用 dmc_get_extra_encoder
+  读取辅助编码器通道当前位置，与既有 SetExtraPos 的 (Pos*Mulit)/写入对称，返回 (pos/Mulit)。
+- BaseAuxEncoder 新增 GetPositionAsync：委托给 Card.GetExtraPos；模拟模式返回
+  SetPositionAsync 最近一次写入的虚拟位置，不返回 0 哨兵值。
+- 项目里若已重写 IMotionCard/IAuxEncoder 的自定义实现，必须补齐这两个新成员才能编译。
+
+v1.0.17 (2026-09-14) — 新增辅助编码器实现，同步 PF.Core 1.0.18 的 IEncoderCarrier
+
+[新增]
+- BaseAuxEncoder（PF.Infrastructure.Hardware.Encoder.Basic）：辅助编码器通用代理基类，
+  与 BaseAxisDevice/BaseIODevice 同构——自身不依赖厂商 SDK，所有通道操作（SetPositionAsync /
+  SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync）委托给挂载父设备
+  （IEncoderCarrier，即运动控制卡或某根轴）的 EncoderCard 解析到的板卡执行。
+- EtherCatAuxEncoder（PF.Infrastructure.Hardware.Encoder）：具体实现，构造参数为
+  (deviceId, deviceName, channel, isSimulated, logger)。挂在运动控制卡下单独使用，或挂在
+  某根轴下随轴分组，均由 HardwareManagerService 按 IEncoderCarrier 类型自动完成挂载，
+  无需新增品牌板卡类即可支持。
+
+[同步 — PF.Core 1.0.18]
+- BaseMotionCard 新增 EncoderCard => this，实现 IMotionCard : IEncoderCarrier。
+- BaseAxisDevice 新增显式接口实现 IEncoderCarrier.EncoderCard，转发到已挂载的 ParentCard；
+  未挂载板卡时访问会抛 InvalidOperationException，语义与既有 EnsureCardAttached 一致。
+- BaseAxisDevice.SetExtraPos 标记 [Obsolete]，行为不变（仍委托给 ParentCard.SetExtraPos），
+  仅提示改用挂载的 IAuxEncoder；项目里若已重写该方法，重编译后会看到过期警告，非编译错误。
+- PF.Application.Shell 的 App.xaml.cs（Demo 组合根）已新增 "EtherCatAuxEncoder" 工厂注册作为
+  接入范例：ConnectionParameters 支持 Channel（通道号，必填）与 Multiplier（倍率，缺省 2）。
+
 v1.0.16 (2026-09-11) — 修复串口调试树看不清实例名称（SerialPortCommunication.DisplayName）
 
 [修复]

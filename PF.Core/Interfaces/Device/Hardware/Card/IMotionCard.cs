@@ -18,7 +18,11 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
     ///   所有运动/IO 方法均以目标索引（axisIndex / portIndex）作为第一参数，
     ///   以便板卡用同一 SDK 句柄管理多个子设备。
     /// </summary>
-    public interface IMotionCard : IHardwareDevice
+    /// <remarks>
+    /// 实现 <see cref="IEncoderCarrier"/>：<c>EncoderCard</c> 返回自身，
+    /// 板卡即为辅助编码器（<c>Encoder.Basic.IAuxEncoder</c>）通道操作的最终落点。
+    /// </remarks>
+    public interface IMotionCard : IEncoderCarrier
     {
         #region 板卡基本属性
 
@@ -231,9 +235,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="AxisNo">轴号辅助编码器通道</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, CancellationToken token = default);
+        Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo,double Mulit=2, CancellationToken token = default);
 
 
         #endregion 高速位置锁存
@@ -280,14 +285,27 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         #region 辅助编码器功能
 
         /// <summary>
-        /// 设置辅助编码器的位置
+        /// 设置辅助编码器的位置。
+        /// <para>板卡级原语：按通道号寻址，与具体轴无关。业务代码请优先通过挂载在本卡（或某根轴）下的
+        /// <c>Encoder.Basic.IAuxEncoder.SetPositionAsync</c> 调用，本方法是其最终委托目标。</para>
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetExtraPos(int Channel, int Pos,CancellationToken token =default );
+        Task<bool> SetExtraPos(int Channel, int Pos,double Mulit =2,CancellationToken token =default );
 
+        /// <summary>
+        /// 读取辅助编码器的当前位置。
+        /// <para>板卡级原语：按通道号寻址，与具体轴无关。业务代码请优先通过挂载在本卡（或某根轴）下的
+        /// <c>Encoder.Basic.IAuxEncoder.GetPositionAsync</c> 调用，本方法是其最终委托目标。</para>
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Mulit">编码器倍率</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns>当前位置值；读取失败返回 null</returns>
+        Task<double?> GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default);
 
 
         #endregion 辅助编码器功能

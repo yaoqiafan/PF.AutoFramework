@@ -1,0 +1,100 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+
+	<PropertyGroup>
+		<!-- 本包不产出任何自身的托管程序集，只搬运 PF.Infrastructure 用到的第三方 DLL。
+		     IncludeBuildOutput=false 避免把空的 PF.Vendor.Infrastructure.dll 也塞进 nupkg。 -->
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<!-- NU5128：包里既有 lib 资产也有 runtimes 资产，但 lib 资产是第三方厂商程序集、不是本项目编译产物，
+		     NuGet 仍会按"本项目自己没有 lib 输出"发出该警告，属预期，压掉。 -->
+		<NoWarn>$(NoWarn);NU5128</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- 源文件全部收在 DLL\Infrastructure\ 下（与 DLL\HALCON\ 同级并列，按消费方/供应商分文件夹，
+		     不再堆在 DLL\ 根目录），PF.Infrastructure.csproj 的 HintPath 引用同一批文件。 -->
+
+		<!-- ===== 有 C# <Reference> 的托管封装：走 lib，PackageReference 本包即可让消费项目在编译期
+		     直接拿到类型（配合 PF.Infrastructure 自身仍按 HintPath 编译，两边各自独立，互不冲突）。 ===== -->
+		<None Include="..\DLL\Infrastructure\Keyence.AutoID.SDK.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\Communication.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.xml" Pack="true" PackagePath="lib\net8.0\" />
+		<!-- MvCameraControl.Net.dll 本身是 AnyCPU 纯 IL（用 CorFlags 核实过，不是 COFF Machine 字段
+		     误导的 x86-only），装这个包能解决"托管封装编译期引用不到"的问题；但它内部仍会 P/Invoke
+		     真正的原生 MvCameraControl.dll——那个文件从来不在本仓库里，只存在于海康 MVS SDK
+		     安装目录的 Libraries\win64 下，这个包没有、也没法打包它。用到线扫相机/CameraLink 采集卡的
+		     项目，装完这个包仍需按 PF.Infrastructure.csproj 里那条部署注释，自行从 MVS SDK 安装目录
+		     把原生库复制到输出目录，CameraLink/CXP/XoF 链路还要另装 MVFG 采集卡驱动——这部分无法通过
+		     NuGet 解决，机器级 SDK 安装是唯一途径。 -->
+		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.xml" Pack="true" PackagePath="lib\net8.0\" />
+
+		<!-- ===== 纯 P/Invoke 或同一供应商 SDK 内部互相依赖、代码里没有任何 <Reference> 的原生库：
+		     走 runtimes\win-x64\native，只要装了本包就会落地到输出目录，不需要程序集引用。
+		     ControllerDll.dll / CommonToolDll.dll 由 CtsAPI.cs 按文件名 DllImport；
+		     sControllerDll.dll / ControllerDllCSharp.dll 代码里搜不到任何引用，
+		     但和前两者同属 CTS 光源控制器 SDK 的同一批次文件，Windows 加载器解析
+		     ControllerDll.dll/CommonToolDll.dll 时很可能要在同目录找到它们，因此一并打包、
+		     不单独拆分，也不删除——四个文件当一个不可分割的 SDK 整体维护版本。
+		     MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll 是从一台真实跑通的机器上核实出来的——
+		     MvCodeReaderSDK.Net.dll（海康扫码枪托管封装）内部实际 P/Invoke 这两个原生库，此前
+		     PF.Infrastructure.csproj 里完全没有任何注释提示过，属于遗漏，v1.2.0 补上。
+		     消费项目需要设置 <RuntimeIdentifier>win-x64</RuntimeIdentifier> 才能让 dotnet build
+		     （而不仅是 dotnet publish）自动把这些文件复制到输出目录。 ===== -->
+		<None Include="..\DLL\Infrastructure\LTDMC.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\ControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\CommonToolDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\sControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\ControllerDllCSharp.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrl.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrlWrapper.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Version>1.2.0</Version>
+		<Description>PF.Infrastructure 依赖的第三方硬件 SDK 原生资产合集（雷赛 LTDMC 运动控制卡、
+			CTS 三色灯光源控制器 SDK、基恩士 Keyence.AutoID.SDK、Communication 通讯基础库、
+			海康 MvCodeReaderSDK 扫码枪 SDK 含原生驱动、海康 MvCameraControl.Net 相机 SDK 托管封装）。
+			这些文件此前只存在于仓库根目录 DLL\Infrastructure\ 下、随框架源码编译时靠 HintPath 就近取用，
+			打成 NuGet 包外部消费项目才有办法拿到——不用手动复制，也不会出现版本对不上的问题。
+			托管封装（Keyence.AutoID.SDK.dll / Communication.dll / MvCodeReaderSDK.Net.dll /
+			MvCameraControl.Net.dll，均为 AnyCPU）走 lib\net8.0\，PackageReference 后即可编译期
+			直接引用；纯原生库（LTDMC.dll / ControllerDll.dll / CommonToolDll.dll /
+			sControllerDll.dll / ControllerDllCSharp.dll / MvCodeReaderCtrl.dll /
+			MvCodeReaderCtrlWrapper.dll）走 runtimes\win-x64\native\，没有任何 &lt;Reference&gt;，
+			全靠 DllImport 按文件名在运行期加载。
+			部署要求：消费项目须设置 &lt;RuntimeIdentifier&gt;win-x64&lt;/RuntimeIdentifier&gt;
+			（不需要 SelfContained=true），否则 runtimes 下的原生库只在 dotnet publish 时才会被复制，
+			dotnet build / F5 调试拿不到文件——不过即便不设置，.NET 的 deps.json 运行期原生库探测机制
+			也能从嵌套的 runtimes\win-x64\native\ 子目录找到并成功加载，只是文件不会出现在输出目录
+			根部、不便肉眼确认。
+			另外：装了本包不代表线扫相机/CameraLink 采集卡就能直接用——MvCameraControl.Net.dll
+			内部仍要 P/Invoke 真正的原生 MvCameraControl.dll，那个文件本包没有也无法提供，
+			必须从海康 MVS SDK 安装目录的 Libraries\win64 下手动复制，CameraLink/CXP/XoF 链路
+			还要另装 MVFG 采集卡驱动。</Description>
+		<PackageReleaseNotes>
+v1.2.0 — 源文件目录从 DLL\ 根目录搬到 DLL\Infrastructure\（与 DLL\HALCON\ 并列，按消费方分文件夹）；
+新增此前遗漏的 MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll——海康扫码枪托管封装
+MvCodeReaderSDK.Net.dll 实际会 P/Invoke 这两个原生库，PF.Infrastructure.csproj 里此前没有
+任何注释提示过，是从一台真实跑通的机器上核实出来的遗漏，走 runtimes\win-x64\native\；
+补充说明不设 RuntimeIdentifier 时 .NET 的 deps.json 原生库探测机制其实也能兜底加载成功，
+只是不便肉眼在输出目录确认文件是否存在。
+
+v1.1.0 — 新增海康 MvCodeReaderSDK.Net（扫码枪）+ MvCameraControl.Net（相机，含 .xml 文档）两个
+托管封装，与已有的 lib 资产一样走 PackageReference 编译期直接引用。MvCameraControl.Net.dll
+用 CorFlags 核实过是真正的 AnyCPU（ILOnly=true, Requires32Bit=false），此前只看 COFF Machine
+字段误判成"仅限 32 位"是错的，实际不影响 64 位进程加载；但它背后真正的原生 MvCameraControl.dll
+不在本仓库、本包无法打包，线扫/CameraLink 场景仍需按厂商 SDK 安装目录手动补文件（详见上方
+Description 与 PF.Infrastructure.csproj 里的部署注释），这一点本包解决不了。
+
+v1.0.0 — 首个版本：合并雷赛 LTDMC + CTS 光源控制器 SDK（4 个文件按同一批次整体维护）+
+基恩士 Keyence.AutoID.SDK + Communication 为一个资产包，取代此前"每个 DLL 单独一个包"的
+试点方案——这些文件此前全部只被 PF.Infrastructure 一个项目使用，版本天然绑在一起演进，
+拆成多个小包只会增加发布和版本管理的负担，没有实际收益。
+		</PackageReleaseNotes>
+	</PropertyGroup>
+
+</Project>

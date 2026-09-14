@@ -3,8 +3,76 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.17</Version>
+		<Version>1.0.20</Version>
 		<PackageReleaseNotes>
+v1.0.20 (2026-09-14) — 轴位置锁存收回辅助编码器通道参数，改为轴内部自动调用绑定的辅助编码器（含破坏性变更）
+
+[破坏性变更 — IAxis]
+- SetLatchMode / GetLatchNumber / GetLatchPos 去掉 1.0.16～1.0.17 加的 int Encoder（GetLatchPos
+  还去掉了 double Mulit）三个参数：硬件锁存（LatchType=1）该锁哪一路辅助编码器，改为由本轴当前
+  挂载的 IAuxEncoder（硬件配置里把该编码器的 ParentDeviceId 指向本轴）自动决定，调用方不再需要
+  ——也不再能够——手动指定通道号/倍率。此前把 IAuxEncoder 抽成独立设备契约后，轴的硬件锁存分支
+  却仍要调用方替它传通道号，两条口径不一致，容易和挂载配置的实际编码器对不上；现在收回，位置
+  锁存仍只有 IAxis 一个入口，IAuxEncoder 这个接口不出现在调用方视野里。
+- 调用方源码级不兼容：按位置传参、且传了 Encoder/Mulit 的调用点编译期报错；仅按名字传到
+  token 的调用点不受影响（本仓库内既有调用点均如此）。硬件锁存（LatchType=1）此前若显式传了
+  Encoder，改造后必须改为给该轴挂一个 IAuxEncoder 子设备；未挂载时调用会抛
+  InvalidOperationException，不再静默锁到 0 号通道。软件锁存（LatchType=0，默认）不受影响。
+  实现方：框架内 BaseAxisDevice/BaseAuxEncoder 已同步（PF.Infrastructure 1.0.19）；项目里若
+  自写了 IAxis 实现或覆写了这三个方法，必须删掉多余的参数才能编译。
+
+v1.0.19 (2026-09-14) — 辅助编码器补齐位置读回（含破坏性变更）+ 调试视图导航常量
+
+[新增]
+- IMotionCard.GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default)：
+  读取辅助编码器通道当前位置，与既有 SetExtraPos 对称（板卡 SDK 早就有对应的
+  dmc_get_extra_encoder，只是此前一直没接进契约）。
+- IAuxEncoder.GetPositionAsync(CancellationToken token = default)：对上面这个板卡级原语的
+  设备层封装，业务代码/调试页读位置走这个，不必关心是不是挂了轴。
+- NavigationConstants.Views.AuxEncoderDebugView：辅助编码器调试视图的导航键。
+
+[破坏性变更 — IMotionCard / IAuxEncoder]
+- 两个接口均新增上述方法。【调用方】不受影响。【实现方】框架内 BaseMotionCard/LTMDCMotionCard
+  与 BaseAuxEncoder 已同步（PF.Infrastructure 1.0.18）；项目里若自写了 IMotionCard 或
+  IAuxEncoder 实现，必须补齐新成员，否则不能编译。
+
+v1.0.18 (2026-09-14) — 辅助编码器抽取为独立设备契约（含破坏性变更）
+
+[新增]
+- IEncoderCarrier（PF.Core.Interfaces.Device.Hardware.Card）：辅助编码器可挂载的宿主能力接口，
+  只表达"能提供辅助编码器通道原语操作的底层板卡"。由 IMotionCard 直接实现（EncoderCard 返回
+  自己）与 IAxis 实现（EncoderCard 转发到已挂载的 ParentCard）。
+- IAuxEncoder（PF.Core.Interfaces.Device.Hardware.Encoder.Basic）：独立的辅助编码器设备契约，
+  挂载父设备类型为 IEncoderCarrier —— HardwareConfig.ParentDeviceId 填运动控制卡 DeviceId
+  即直接挂在卡下单独使用，填某根轴的 DeviceId 则挂在该轴下随轴分组编排；两种拓扑最终都落到
+  同一块物理板卡的 SetExtraPos / SetLtcLatchMode 等通道级原语，与线扫相机"挂/不挂采集卡"是
+  同一思路的镜像。成员：Channel（通道号）、Multiplier（倍率）、SetPositionAsync /
+  SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync。
+- HardwareCategory 新增 AuxEncoder。
+- AlarmCodes.Hardware 新增 AuxEncoderCardDisconnected（HW_ENC_001，编号 50026）。
+
+[破坏性变更 — IMotionCard / IAxis]
+- IMotionCard : IHardwareDevice → IMotionCard : IEncoderCarrier；
+  IAxis : IHardwareDevice → IAxis : IEncoderCarrier。
+  两者均因此新增 IMotionCard EncoderCard { get; } 成员（继承自 IEncoderCarrier）。
+- 【调用方】仅经接口调用既有运动/轴方法的代码不受影响，源码级兼容。
+- 【实现方】框架内 BaseMotionCard（EncoderCard => this）与 BaseAxisDevice（EncoderCard 转发到
+  ParentCard）已同步（PF.Infrastructure 1.0.17）；项目里若自写了 IMotionCard 或 IAxis 实现
+  （未继承 BaseMotionCard/BaseAxisDevice），必须补齐 EncoderCard 成员，否则不能编译。
+
+[废弃]
+- IAxis.SetExtraPos 标记 [Obsolete]：辅助编码器操作请改为在硬件配置中新增一个 IAuxEncoder
+  （ParentDeviceId 指向本轴或所在运动控制卡），调用其 SetPositionAsync。方法本身行为不变
+  （仍委托给 ParentCard.SetExtraPos），仅为迁移期兼容保留，将在后续版本移除。
+  IMotionCard.SetExtraPos 与 SetLatchMode/GetLatchNumber/GetLatchPos 的硬件锁存分支
+  （Encoder 参数）不受影响——它们本就是板卡级原语，IAuxEncoder 的新方法最终也委托到这里。
+
+[为什么这么改]
+- SetExtraPos（Channel+Pos+Mulit）本质是板卡通道级操作，与"是不是某根轴"无关，此前借道 IAxis
+  暴露纯属历史遗留，导致想用辅助编码器就必须先挂一根轴。抽成独立设备后，产线跟随编码器、
+  外部测长轮等与具体伺服轴无关的场景不必再假借某根轴才能访问；确实要"挂在某根轴下"分组
+  编排的场景，通过 IEncoderCarrier 这层能力接口原样保留，无需额外的挂载逻辑分支。
+
 v1.0.17 (2026-09-10) — 补齐 IAxis.GetLatchPos 的辅助编码器通道号（含破坏性变更）
 
 [破坏性变更 — IAxis]

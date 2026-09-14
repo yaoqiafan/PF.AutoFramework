@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\Common.props" Condition="Exists('..\Common.props')" />
+
+	<PropertyGroup>
+		<!-- 本包不产出任何自身的托管程序集，只搬运 PF.Modules.Halcon / PF.Vision.Halcon 用到的
+		     HALCON 托管封装层。IncludeBuildOutput=false 避免空的 PF.Vendor.Halcon.dll 也塞进 nupkg。 -->
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<NoWarn>$(NoWarn);NU5128</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- 只打 xl 之外的常规版：DLL\HALCON\ 目录下另有 halcondotnetxl.dll / hdevenginedotnetxl.dll
+		     （超大图像 >2GB 支持），PF.Modules.Halcon.csproj / PF.Vision.Halcon.csproj 的通配引用
+		     一直显式 Exclude 掉它们、代码里也用不到，本包同步不打包，避免维护从没用过的资产。
+		     两个 dll 均已用 CorFlags 核实为真正的 AnyCPU（ILOnly=true, Requires32Bit=false），
+		     64 位进程加载没有问题。 -->
+		<None Include="..\DLL\HALCON\halcondotnet.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\HALCON\halcondotnet.xml" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\HALCON\hdevenginedotnet.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\HALCON\hdevenginedotnet.xml" Pack="true" PackagePath="lib\net8.0\" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<Version>1.0.0</Version>
+		<Description>MVTec HALCON 机器视觉 SDK 的 .NET 托管封装层（halcondotnet.dll / hdevenginedotnet.dll），
+			供 PF.Modules.Halcon / PF.Vision.Halcon 在编译期直接引用，解决这两个包发到 NuGet 后
+			外部消费者拿不到 HalconDotNet 类型的问题。均已用 CorFlags 核实为 AnyCPU 纯 IL 程序集。
+
+			⚠️ 装了本包不代表 HALCON 视觉功能就能跑起来。这两个 dll 只是桥接层，背后真正执行图像处理的
+			原生 HALCON 引擎（halcon.dll、hdevenginert.dll 等几十个原生库）以及授权许可，
+			必须通过 MVTec 官方安装程序单独安装并激活——这是按机器/加密狗校验的商业授权，
+			无法也不应该通过 NuGet 分发。没装 HALCON 官方运行时/开发环境的机器，装了本包一样
+			在加载原生引擎那一步失败。本包只解决"编译期引用不到类型"这一层问题。</Description>
+		<PackageReleaseNotes>
+v1.0.0 — 首个版本：halcondotnet.dll + hdevenginedotnet.dll（含 .xml 文档）打包，
+不含超大图像支持的 xl 变体（未被引用，未打包）。
+		</PackageReleaseNotes>
+	</PropertyGroup>
+
+</Project>

@@ -30,6 +30,11 @@ namespace PF.Infrastructure.Hardware.Card
     /// </summary>
     public abstract class BaseMotionCard : BaseDevice, IMotionCard
     {
+        /// <summary>
+        /// 实现 <see cref="IEncoderCarrier"/>：板卡自身即为辅助编码器通道操作的持有者，返回自己。
+        /// </summary>
+        public IMotionCard EncoderCard => this;
+
         #region IMotionCard 属性（由子类实现）
 
         /// <inheritdoc/>
@@ -199,7 +204,7 @@ namespace PF.Infrastructure.Hardware.Card
         /// <summary>
         /// 获取高速锁存位置
         /// </summary>
-        public abstract Task<double?> GetLtcLatchPos(int LatchNo, int AuxiliaryEncoder, CancellationToken token = default);
+        public abstract Task<double?> GetLtcLatchPos(int LatchNo, int AuxiliaryEncoder,double Mulit=2, CancellationToken token = default);
 
         #endregion 高速位置锁存
 
@@ -234,11 +239,13 @@ namespace PF.Infrastructure.Hardware.Card
         /// </summary>
         /// <param name="Channel">辅助编码器通道号</param>
         /// <param name="Pos">位置值</param>
+        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-      public abstract   Task<bool> SetExtraPos(int Channel, int Pos, CancellationToken token = default);
+        public abstract   Task<bool> SetExtraPos(int Channel, int Pos, double  Mulit =2,CancellationToken token = default);
 
-
+        /// <inheritdoc/>
+        public abstract Task<double?> GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default);
 
         #endregion 辅助编码器功能
 

@@ -11,8 +11,26 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.11</Version>
+		<Version>1.0.12</Version>
 		<PackageReleaseNotes>
+v1.0.12 (2026-09-14) — 新增辅助编码器调试视图
+
+[新增]
+- AuxEncoderDebugView + AuxEncoderDebugViewModel（Views/Hardware，命名空间沿用本目录既有的
+  PF.Modules.Debug.Views，未跟随文件夹嵌套 .Views.Hardware，与 IODebugView/CardDebugView
+  等同目录下的既有文件保持一致）：显示设备基本信息、通道号/倍率、200ms 轮询当前位置；
+  提供写入/预置位置、硬件锁存测试（设置锁存模式 + 读取锁存个数与位置）两组操作面板；
+  连接/断开/复位/模拟报警沿用其余硬件调试页的统一套路。
+- HardwareDebugViewModel.ExecuteNavigateToDebug 新增 IAuxEncoder 分支，路由到上述视图。
+- OperationLogKeysDebug 新增 AuxEncoderDebugView 键组（9 个键，4 个关键操作）。
+
+[修复 — HardwareDebugViewModel.BuildTree]
+- 设备树此前只展开"卡 → 直接子设备"一层：辅助编码器若挂在某根轴下（而不是直接挂在卡下），
+  既不会出现在该卡的子节点里，也不会被归入"独立设备"分组（因为它确实挂载了父设备，只是父设备
+  不是卡）——结果是这类编码器在树上彻底不可见，选不到也就调不出调试页。
+  改为按挂载关系递归下钻（AddChildNodes），卡→轴→编码器这样的多层挂载现在能在树上完整展开。
+  影响面：只影响树的展示结构，不改变任何设备的连接/初始化逻辑。
+
 v1.0.11 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
 
 [新增]

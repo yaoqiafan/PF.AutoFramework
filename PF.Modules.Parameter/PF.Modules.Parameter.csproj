@@ -13,8 +13,19 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.7</Version>
+		<Version>1.0.8</Version>
 		<PackageReleaseNotes>
+v1.0.8 (2026-09-14) — 新增辅助编码器的硬件参数视图
+
+[新增]
+- EtherCatAuxEncoderParamView + Mapper，注册键 "EtherCatAuxEncoder"：设备基本信息 +
+  连接参数（通道号 Channel、编码器倍率 Multiplier，缺省 2）。ParentDeviceId 既可填运动控制卡
+  DeviceId（挂在卡下单独使用），也可填某根轴的 DeviceId（挂在该轴下随轴分组）——两种拓扑填法
+  在这一份参数视图里没有区别，由 PF.Core 1.0.18 的 IEncoderCarrier 在挂载时按类型自动解析。
+- 配合 PF.Infrastructure 1.0.17 新增的 EtherCatAuxEncoder 工厂注册使用：在硬件配置界面新增
+  设备、ImplementationClassName 选 "EtherCatAuxEncoder" 后，即可在此视图里改通道号和倍率，
+  不必手改配置 JSON。
+
 v1.0.7 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
 
 [新增]

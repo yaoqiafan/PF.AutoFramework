@@ -25,5 +25,7 @@
         LightController,
         /// <summary> 图像采集卡（CameraLink/CXP/XoF，管理挂载其下的相机取流）</summary>
         FrameGrabber,
+        /// <summary> 辅助编码器（挂在运动控制卡下单独使用，或挂在某根轴下随轴分组）</summary>
+        AuxEncoder,
     }
 }

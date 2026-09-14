@@ -224,6 +224,18 @@ namespace PF.Core.Constants
     "/PF.UI.Infrastructure;component/HardwareImage/驱动器.png")]
             public const string AxisGetCurrentPositionFailed = "HW_AXIS_006";
             #endregion
+
+            #region 辅助编码器 (ENC)
+            /// <summary>辅助编码器所在运动控制卡已断开</summary>
+            [AlarmInfo("硬件异常", "辅助编码器所在运动控制卡已断开", "Aux encoder card disconnected", AlarmSeverity.Error,
+    "1. 检查运动控制卡与工控机之间的总线连接是否松动或断开;\n" +
+                "2. 检查运动控制卡供电是否正常;\n" +
+                "3. 若辅助编码器挂在某根轴下，先确认该轴自身是否可正常连接;\n" +
+                "4. 点击【复位】重新连接;",
+    50026, "Aux encoder card disconnected",
+    "/PF.UI.Infrastructure;component/HardwareImage/运动控制卡.png")]
+            public const string AuxEncoderCardDisconnected = "HW_ENC_001";
+            #endregion
         }
 
        
