@@ -38,8 +38,24 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.18</Version>
+		<Version>1.0.19</Version>
 		<PackageReleaseNotes>
+v1.0.19 (2026-09-14) — 轴硬件锁存改为内部调用绑定的辅助编码器，同步 PF.Core 1.0.20（含行为变更）
+
+[行为变更 — 同步 PF.Core 1.0.20]
+- BaseAxisDevice.SetLatchMode / GetLatchNumber / GetLatchPos 的硬件锁存分支（LatchType=1）
+  不再把 Encoder/Mulit 参数原样透传给 ParentCard，而是调用本轴挂载的辅助编码器
+  （BaseAuxEncoder.SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync），通道号
+  和倍率取该编码器自己的 Channel/Multiplier。本轴未挂载 IAuxEncoder 时抛
+  InvalidOperationException（原来是静默锁到 0 号通道）。
+- BaseAuxEncoder.OnAttached 新增回调：挂载对象若是 BaseAxisDevice，自动调用其新增的
+  internal AttachAuxEncoder 完成登记；挂在运动控制卡下单独使用（不挂轴）不受影响。
+- 配套修复见 PF.Services 1.0.6：HardwareManagerService 初始化分层改为按依赖关系逐层展开，
+  修掉"卡→轴→辅助编码器"三层挂载链下编码器可能因父轴尚未激活而永久附着失败的问题——
+  本次改造让轴的硬件锁存开始依赖编码器实际挂载成功，这个既有隐患必须一并修掉才不会白改。
+
+子包版本对照：PF.Core 1.0.19→1.0.20；其余子包本次无变化。
+
 v1.0.18 (2026-09-14) — 辅助编码器补齐位置读回，同步 PF.Core 1.0.19
 
 [新增 — 同步 PF.Core 1.0.19]
