@@ -469,14 +469,21 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             try
             {
                 var param = new SecsGemSystemParam();
-                if (await param.Load(dlg.FileName))
+                var resoult = (await param.Load(dlg.FileName));
+                if (resoult.res)
                 {
                     _manager.ParamsManager.SetParam(ParamType.System, param);
                     await SaveSystemToDbAsync(param);
                     await ExecuteRefreshDbViewAsync();
                     _log.Append(null, $"系统参数导入完成: {dlg.FileName}", isSystem: true);
-
-
+                }
+                else
+                {
+                    _log.Append(null, $"系统参数导入失败: {resoult.errmessage}", isSystem: true);
+                    _manager.ParamsManager.SetParam(ParamType.System, param);
+                    await SaveSystemToDbAsync(param);
+                    await ExecuteRefreshDbViewAsync();
+                    _log.Append(null, $"系统参数导入完成默认参数", isSystem: true);
                 }
             }
             catch (Exception ex)
