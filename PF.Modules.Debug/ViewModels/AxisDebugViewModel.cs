@@ -15,6 +15,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
@@ -348,10 +349,15 @@ namespace PF.Modules.Debug.ViewModels
                                 await _paramService.SetParamAsync<HardwareConfig >(_config.DeviceId, _config);
 
                             }
+                            else
+                            {
+                                MessageService.ShowMessage( message: "没有找到 AxisParam 节点，保存失败!", title: "警告", buttons : MessageBoxButton.OK,  image : MessageBoxImage.Warning);
+                            }
                         }
-                        
-                      
-
+                        else
+                        {
+                            MessageService.ShowMessage(message: $"不存在的设备：{_axis.DeviceId}，保存失败!", title: "警告", buttons: MessageBoxButton.OK, image: MessageBoxImage.Warning);
+                        }
 
                     }
                 }
