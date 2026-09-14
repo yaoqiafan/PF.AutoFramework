@@ -101,7 +101,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
 
 
         /// <summary>
-        /// 设置位置锁存参数
+        /// 设置位置锁存参数。
+        /// 硬件锁存（LatchType=1）锁哪一路辅助编码器，由本轴当前挂载的 IAuxEncoder 决定
+        /// （硬件配置中把该编码器的 ParentDeviceId 指向本轴即可），调用方无需、也不能指定通道号——
+        /// 本轴尚未挂载辅助编码器时，硬件锁存会抛 <see cref="InvalidOperationException"/>。
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="InPutPort">输入端口号</param>
@@ -110,35 +113,33 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <param name="Filter">滤波器</param>
         /// <param name="LatchSource">锁存源</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
-        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0,int Encoder =0 , CancellationToken token = default);
+        Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default);
 
 
 
         /// <summary>
-        /// 读取位置锁存个数
+        /// 读取位置锁存个数。硬件锁存（LatchType=1）同样通过本轴挂载的 IAuxEncoder 读取，
+        /// 说明见 <see cref="SetLatchMode"/>。
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
-        /// <param name="Encoder">辅助编码器通道号</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, int Encoder = 0, CancellationToken token = default);
+        Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, CancellationToken token = default);
 
 
 
         /// <summary>
-        /// 读取锁存位置
+        /// 读取锁存位置。硬件锁存（LatchType=1）同样通过本轴挂载的 IAuxEncoder 读取
+        /// （编码器倍率取该编码器自身的 Multiplier），说明见 <see cref="SetLatchMode"/>。
         /// </summary>
         /// <param name="LatchNo">锁存器ID</param>
         /// <param name="LatchType">锁存类型  0：软件锁存  1： 硬件锁存</param>
-        /// <param name="Encoder">辅助编码器通道号</param>
-        /// <param name="Mulit">编码器倍率</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0,double Mulit =2, CancellationToken token = default);
+        Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default);
 
 
 

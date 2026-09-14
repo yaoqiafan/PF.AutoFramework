@@ -3,8 +3,24 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.19</Version>
+		<Version>1.0.20</Version>
 		<PackageReleaseNotes>
+v1.0.20 (2026-09-14) — 轴位置锁存收回辅助编码器通道参数，改为轴内部自动调用绑定的辅助编码器（含破坏性变更）
+
+[破坏性变更 — IAxis]
+- SetLatchMode / GetLatchNumber / GetLatchPos 去掉 1.0.16～1.0.17 加的 int Encoder（GetLatchPos
+  还去掉了 double Mulit）三个参数：硬件锁存（LatchType=1）该锁哪一路辅助编码器，改为由本轴当前
+  挂载的 IAuxEncoder（硬件配置里把该编码器的 ParentDeviceId 指向本轴）自动决定，调用方不再需要
+  ——也不再能够——手动指定通道号/倍率。此前把 IAuxEncoder 抽成独立设备契约后，轴的硬件锁存分支
+  却仍要调用方替它传通道号，两条口径不一致，容易和挂载配置的实际编码器对不上；现在收回，位置
+  锁存仍只有 IAxis 一个入口，IAuxEncoder 这个接口不出现在调用方视野里。
+- 调用方源码级不兼容：按位置传参、且传了 Encoder/Mulit 的调用点编译期报错；仅按名字传到
+  token 的调用点不受影响（本仓库内既有调用点均如此）。硬件锁存（LatchType=1）此前若显式传了
+  Encoder，改造后必须改为给该轴挂一个 IAuxEncoder 子设备；未挂载时调用会抛
+  InvalidOperationException，不再静默锁到 0 号通道。软件锁存（LatchType=0，默认）不受影响。
+  实现方：框架内 BaseAxisDevice/BaseAuxEncoder 已同步（PF.Infrastructure 1.0.19）；项目里若
+  自写了 IAxis 实现或覆写了这三个方法，必须删掉多余的参数才能编译。
+
 v1.0.19 (2026-09-14) — 辅助编码器补齐位置读回（含破坏性变更）+ 调试视图导航常量
 
 [新增]

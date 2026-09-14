@@ -1,6 +1,7 @@
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
+using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using System.Linq;
@@ -63,6 +64,37 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// </summary>
         IMotionCard IEncoderCarrier.EncoderCard =>
             ParentCard ?? throw new InvalidOperationException($"[{DeviceName}] 轴尚未挂载到板卡，无法作为辅助编码器的宿主。");
+
+        #endregion
+
+        #region 辅助编码器绑定（内部实现细节，不进入 IAxis 契约）
+
+        // 挂在本轴下的辅助编码器（若有）。由 BaseAuxEncoder.OnAttached 在其挂载到本轴时回调注册，
+        // 业务代码与 IAxis 接口均不感知 IAuxEncoder 的存在——位置锁存等高级功能内部调用它即可。
+        private IAuxEncoder? _boundAuxEncoder;
+
+        /// <summary>
+        /// 供 <see cref="Encoder.Basic.BaseAuxEncoder"/> 挂载到本轴时回调注册自己（框架内部使用，
+        /// 业务代码不应直接调用）。同一根轴重复挂载新编码器时以最后一次为准。
+        /// </summary>
+        internal void AttachAuxEncoder(IAuxEncoder encoder)
+        {
+            _boundAuxEncoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _logger?.Info($"[{DeviceName}] 已绑定辅助编码器 '{encoder.DeviceName}' (Channel={encoder.Channel})，硬件位置锁存将通过它执行。");
+        }
+
+        /// <summary>取本轴已绑定的辅助编码器；未绑定则记录错误日志并抛出 InvalidOperationException。</summary>
+        private IAuxEncoder RequireBoundAuxEncoder([CallerMemberName] string caller = "")
+        {
+            if (_boundAuxEncoder is null)
+            {
+                var msg = $"[{DeviceName}] '{caller}'：硬件位置锁存需要本轴挂载一个辅助编码器" +
+                          "（硬件配置中新增 IAuxEncoder，ParentDeviceId 指向本轴），当前未绑定。";
+                _logger?.Error(msg);
+                throw new InvalidOperationException(msg);
+            }
+            return _boundAuxEncoder;
+        }
 
         #endregion
 
@@ -284,39 +316,49 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
         
         /// <summary>
-        /// 设置锁存模式
+        /// 设置锁存模式。硬件锁存（LatchType=1）委托给本轴挂载的辅助编码器（<see cref="_boundAuxEncoder"/>）
+        /// 执行，不再直接持有/透传编码器通道号——通道号、倍率均由该编码器自己的 Channel/Multiplier 决定。
         /// </summary>
-        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0,int Encoder =0 , CancellationToken token = default)
+        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return true; }
-            return LatchType == 0 ? await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token) : await ParentCard!.SetLtcLatchMode(LatchNo, Encoder ,  LtcMode, LtcLogic, Filter, LatchSource, token);
+            if (LatchType == 0)
+                return await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token).ConfigureAwait(false);
+
+            return await RequireBoundAuxEncoder().SetLatchModeAsync(LatchNo, LtcMode, LtcLogic, Filter, LatchSource, token).ConfigureAwait(false);
         }
 
 
 
-        
+
         /// <summary>
-        /// 获取锁存编号
+        /// 获取锁存编号。硬件锁存分支同样委托给本轴挂载的辅助编码器，说明见 <see cref="SetLatchMode"/>。
         /// </summary>
-        public virtual async Task<int> GetLatchNumber(int LatchNo,int LatchType=0,int Encoder = 0, CancellationToken token = default)
+        public virtual async Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return 1; }
-            return  LatchType ==0 ? await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchNumber(LatchNo, Encoder, token);
+            if (LatchType == 0)
+                return await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
+
+            return await RequireBoundAuxEncoder().GetLatchNumberAsync(LatchNo, token).ConfigureAwait(false);
         }
 
 
 
         /// <summary>
-        /// 获取锁存位置
+        /// 获取锁存位置。硬件锁存分支同样委托给本轴挂载的辅助编码器，说明见 <see cref="SetLatchMode"/>。
         /// </summary>
-        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, int Encoder = 0,double Mulit=2, CancellationToken token = default)
+        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default)
         {
             EnsureCardAttached();
             // 模拟模式返回当前虚拟位置（锁存语义即"捕获触发瞬间的轴位置"），不再返回 0 哨兵值
             if (IsSimulated) { await Task.Delay(1000, token); return _simulatedPosition; }
-            return LatchType == 0 ? await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token) : await ParentCard!.GetLtcLatchPos(LatchNo, Encoder,Mulit  ,token);
+            if (LatchType == 0)
+                return await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
+
+            return await RequireBoundAuxEncoder().GetLatchPositionAsync(LatchNo, token).ConfigureAwait(false);
         }
 
 
