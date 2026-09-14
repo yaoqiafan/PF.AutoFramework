@@ -52,4 +52,7 @@
   <Folder Name="/09.MetaPackage (元包)/">
     <Project Path="PF.AutoFramework.Meta/PF.AutoFramework.Meta.csproj" />
   </Folder>
+  <Folder Name="/10.VendorSDK (第三方原生库资产包)/">
+    <Project Path="PF.Vendor.Infrastructure/PF.Vendor.Infrastructure.csproj" />
+  </Folder>
 </Solution>
