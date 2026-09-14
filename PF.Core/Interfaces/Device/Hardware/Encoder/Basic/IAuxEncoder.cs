@@ -1,3 +1,4 @@
+using PF.Core.Enums.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 
 namespace PF.Core.Interfaces.Device.Hardware.Encoder.Basic
@@ -35,19 +36,16 @@ namespace PF.Core.Interfaces.Device.Hardware.Encoder.Basic
         /// <summary>读取编码器当前位置；读取失败返回 null。</summary>
         Task<double?> GetPositionAsync(CancellationToken token = default);
 
-        /// <summary>设置以本编码器通道为触发源的硬件位置锁存模式。</summary>
-        /// <param name="latchNo">锁存器 ID</param>
-        /// <param name="ltcMode">锁存模式</param>
-        /// <param name="ltcLogic">锁存逻辑</param>
-        /// <param name="filter">滤波器</param>
-        /// <param name="latchSource">锁存源</param>
+
+        /// <summary>
+        /// 设置编码器的模式
+        /// </summary>
+        /// <param name="InMode">辅助编码器输入方式</param>
+        /// <param name="Mulit">辅助编码器计数模式</param>
         /// <param name="token">取消令牌</param>
-        Task<bool> SetLatchModeAsync(int latchNo, int ltcMode = 1, int ltcLogic = 0, double filter = 0, double latchSource = 0, CancellationToken token = default);
+        /// <returns></returns>
+        Task<bool> SetMode(EmcoderModeEnum InMode= EmcoderModeEnum.AB相, int Mulit=1, CancellationToken token = default);
+      
 
-        /// <summary>读取本编码器通道上的锁存个数。</summary>
-        Task<int> GetLatchNumberAsync(int latchNo, CancellationToken token = default);
-
-        /// <summary>读取本编码器通道上的锁存位置。</summary>
-        Task<double?> GetLatchPositionAsync(int latchNo, CancellationToken token = default);
     }
 }

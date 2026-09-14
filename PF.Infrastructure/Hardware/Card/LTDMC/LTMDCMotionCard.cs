@@ -1,6 +1,7 @@
 ﻿using log4net.Core;
 using Microsoft.EntityFrameworkCore.Metadata;
 using PF.Core.Constants;
+using PF.Core.Enums.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
 using PF.Infrastructure.Logging;
@@ -961,7 +962,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步获取最近一次被捕获到的锁存点实际物理坐标
         /// </summary>
-        public override Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, double Mulit=2,CancellationToken token = default)
+        public override Task<double?> GetLtcLatchPos(int LatchNo, int AxisNo, double Mulit = 2, CancellationToken token = default)
         {
             try
             {
@@ -973,7 +974,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 {
                     throw new Exception($"读取锁存位置失败, dmc_ltc_get_value_unit：{ret}");
                 }
-                return Task.FromResult((double?)pos/2);
+                return Task.FromResult((double?)pos / 2);
             }
             catch (Exception ex)
             {
@@ -1158,6 +1159,36 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             {
                 HardwareLogger.Debug(ex.Message, ex);
                 return Task.FromResult((double?)null);
+            }
+        }
+
+        /// <summary>
+        /// 设置辅助编码器模式
+        /// </summary>
+        /// <param name="Chanel"></param>
+        /// <param name="InMode"></param>
+        /// <param name="Mulit"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+
+        public override Task<bool> SetEncoderMode(int Chanel, EmcoderModeEnum InMode, int Mulit = 1, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult(true); }
+
+               
+                short ret = CardAPI.LTDMC.dmc_set_extra_encoder_mode((ushort)CardIndex, (ushort)Chanel, InMode == EmcoderModeEnum.脉冲方向 ? (ushort)0 : (ushort)1, (ushort)Mulit);
+                if (ret != 0)
+                {
+                    throw new Exception($"读设置辅助编码器模式失败, dmc_set_extra_encoder_mode：{ret}");
+                }
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult(false);
             }
         }
 

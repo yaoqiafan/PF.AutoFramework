@@ -1,3 +1,4 @@
+using PF.Core.Enums.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
 using PF.Core.Interfaces.Logging;
@@ -83,33 +84,12 @@ namespace PF.Infrastructure.Hardware.Encoder.Basic
 
             return await Card!.GetExtraPos(Channel, Multiplier, token).ConfigureAwait(false);
         }
-
         /// <inheritdoc/>
-        public virtual async Task<bool> SetLatchModeAsync(int latchNo, int ltcMode = 1, int ltcLogic = 0, double filter = 0, double latchSource = 0, CancellationToken token = default)
+        public virtual async Task<bool> SetMode(EmcoderModeEnum InMode = EmcoderModeEnum.AB相, int Mulit = 1, CancellationToken token = default)
         {
             EnsureCarrierAttached();
             if (IsSimulated) { await Task.Delay(200, token); return true; }
-
-            return await Card!.SetLtcLatchMode(latchNo, Channel, ltcMode, ltcLogic, filter, latchSource, token).ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public virtual async Task<int> GetLatchNumberAsync(int latchNo, CancellationToken token = default)
-        {
-            EnsureCarrierAttached();
-            if (IsSimulated) { await Task.Delay(200, token); return 1; }
-
-            return await Card!.GetLtcLatchNumber(latchNo, Channel, token).ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public virtual async Task<double?> GetLatchPositionAsync(int latchNo, CancellationToken token = default)
-        {
-            EnsureCarrierAttached();
-            // 模拟模式返回当前虚拟位置（锁存语义即"捕获触发瞬间的编码器位置"），不返回 0 哨兵值
-            if (IsSimulated) { await Task.Delay(200, token); return _simulatedPosition; }
-
-            return await Card!.GetLtcLatchPos(latchNo, Channel, Multiplier, token).ConfigureAwait(false);
+            return await Card!.SetEncoderMode(Channel, InMode, Mulit, token).ConfigureAwait(false);
         }
 
         // ── BaseDevice 生命周期钩子 ─────────────────────────────────────────────

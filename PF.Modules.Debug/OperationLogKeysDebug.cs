@@ -109,12 +109,12 @@ namespace PF.Modules.Debug
             public const string TargetPosition = nameof(TargetPosition);
             [Description("执行写入位置"), OperationLogCritical]
             public const string SetPosition = nameof(SetPosition);
-            [Description("锁存器 ID")]
-            public const string LatchNo = nameof(LatchNo);
-            [Description("设置锁存模式"), OperationLogCritical]
-            public const string SetLatchMode = nameof(SetLatchMode);
-            [Description("读取锁存结果"), OperationLogCritical]
-            public const string ReadLatch = nameof(ReadLatch);
+            [Description("编码器输入模式")]
+            public const string SelectedMode = nameof(SelectedMode);
+            [Description("编码器计数模式（倍率）")]
+            public const string ModeMulit = nameof(ModeMulit);
+            [Description("设置编码器模式"), OperationLogCritical]
+            public const string SetMode = nameof(SetMode);
         }
 
         /// <summary>扫码枪调试视图</summary>

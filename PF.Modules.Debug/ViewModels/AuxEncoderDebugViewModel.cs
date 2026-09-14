@@ -1,4 +1,5 @@
 using PF.Core.Constants;
+using PF.Core.Enums.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
@@ -32,20 +33,11 @@ namespace PF.Modules.Debug.ViewModels
                 await _encoder.SetPositionAsync(pos);
             });
 
-            SetLatchModeCommand = new DelegateCommand(async () =>
+            SetModeCommand = new DelegateCommand(async () =>
             {
-                if (_encoder == null || !int.TryParse(LatchNo, out var latchNo)) return;
-                await _encoder.SetLatchModeAsync(latchNo);
-            });
-
-            ReadLatchCommand = new DelegateCommand(async () =>
-            {
-                if (_encoder == null || !int.TryParse(LatchNo, out var latchNo)) return;
-                var count = await _encoder.GetLatchNumberAsync(latchNo);
-                LatchCount = count.ToString();
-                LatchPosition = count > 0
-                    ? (await _encoder.GetLatchPositionAsync(latchNo))?.ToString("F3") ?? "读取失败"
-                    : "无锁存";
+                if (_encoder == null || !int.TryParse(ModeMulit, out var mulit)) return;
+                var ok = await _encoder.SetMode(SelectedMode, mulit);
+                ModeResult = ok ? "设置成功" : "设置失败";
             });
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
@@ -139,24 +131,26 @@ namespace PF.Modules.Debug.ViewModels
 
         #endregion
 
-        #region 【锁存测试】
+        #region 【编码器模式设置】
 
-        private string _latchNo = "0";
-        /// <summary>获取或设置锁存器 ID</summary>
-        public string LatchNo { get => _latchNo; set => SetProperty(ref _latchNo, value); }
+        /// <summary>可选的编码器输入模式列表（供下拉框绑定）</summary>
+        public IReadOnlyList<EmcoderModeEnum> AvailableModes { get; } =
+            (EmcoderModeEnum[])Enum.GetValues(typeof(EmcoderModeEnum));
 
-        private string _latchCount = "-";
-        /// <summary>获取或设置最近一次读到的锁存个数</summary>
-        public string LatchCount { get => _latchCount; set => SetProperty(ref _latchCount, value); }
+        private EmcoderModeEnum _selectedMode = EmcoderModeEnum.AB相;
+        /// <summary>获取或设置待下发的编码器输入模式</summary>
+        public EmcoderModeEnum SelectedMode { get => _selectedMode; set => SetProperty(ref _selectedMode, value); }
 
-        private string _latchPosition = "-";
-        /// <summary>获取或设置最近一次读到的锁存位置</summary>
-        public string LatchPosition { get => _latchPosition; set => SetProperty(ref _latchPosition, value); }
+        private string _modeMulit = "1";
+        /// <summary>获取或设置待下发的编码器计数模式（倍率）</summary>
+        public string ModeMulit { get => _modeMulit; set => SetProperty(ref _modeMulit, value); }
 
-        /// <summary>设置锁存模式命令</summary>
-        public DelegateCommand SetLatchModeCommand { get; }
-        /// <summary>读取锁存个数+位置命令</summary>
-        public DelegateCommand ReadLatchCommand { get; }
+        private string _modeResult = "-";
+        /// <summary>获取或设置最近一次设置模式的结果</summary>
+        public string ModeResult { get => _modeResult; set => SetProperty(ref _modeResult, value); }
+
+        /// <summary>设置编码器模式命令</summary>
+        public DelegateCommand SetModeCommand { get; }
 
         #endregion
 

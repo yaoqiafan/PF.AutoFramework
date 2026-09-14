@@ -69,14 +69,14 @@
                 </Grid.ColumnDefinitions>
 
                 <!--  当前位置 + 写入位置  -->
-                <Border Grid.Column="0" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                <Border Grid.Column="0" Padding="15" VerticalAlignment="Top" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
                     <StackPanel>
                         <TextBlock Margin="0,0,0,15" FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="编码器位置" />
 
                         <Border Padding="15,20" HorizontalAlignment="Stretch" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
                             <StackPanel HorizontalAlignment="Center">
-                                <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="Gray" Text="当前位置（轮询刷新）" />
-                                <TextBlock Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="28" FontWeight="Bold" Text="{Binding CurrentPosition}" />
+                                <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#64748B" Text="当前位置（轮询刷新）" />
+                                <TextBlock Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="28" FontWeight="Bold" Foreground="#0F172A" Text="{Binding CurrentPosition}" />
                             </StackPanel>
                         </Border>
 
@@ -93,43 +93,28 @@
                     </StackPanel>
                 </Border>
 
-                <!--  锁存测试  -->
-                <Border Grid.Column="2" Padding="15" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                <!--  编码器模式设置  -->
+                <Border Grid.Column="2" Padding="15" VerticalAlignment="Top" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
                     <StackPanel>
-                        <TextBlock Margin="0,0,0,15" FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="硬件锁存测试" />
+                        <TextBlock Margin="0,0,0,15" FontSize="{DynamicResource FontSize.H2.Title}" FontWeight="Bold" Text="编码器模式设置" />
 
-                        <TextBlock Margin="0,0,0,6" Text="锁存器 ID" />
-                        <TextBox Height="32" Margin="0,0,0,12" VerticalContentAlignment="Center" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AuxEncoderDebugView.LatchNo}" Text="{Binding LatchNo, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Margin="0,0,0,6" Text="输入模式" />
+                        <ComboBox Height="32" Margin="0,0,0,12" ItemsSource="{Binding AvailableModes}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AuxEncoderDebugView.SelectedMode}" SelectedItem="{Binding SelectedMode}" />
 
-                        <Grid Margin="0,0,0,15">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="10" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Height="32" Command="{Binding SetLatchModeCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AuxEncoderDebugView.SetLatchMode}" Content="设置锁存模式" Style="{DynamicResource ButtonDefault}" />
-                            <Button Grid.Column="2" Height="32" Command="{Binding ReadLatchCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AuxEncoderDebugView.ReadLatch}" Content="读取锁存结果" Style="{DynamicResource ButtonDefault}" />
-                        </Grid>
+                        <TextBlock Margin="0,0,0,6" Text="计数模式（倍率）" />
+                        <TextBox Height="32" Margin="0,0,0,15" VerticalContentAlignment="Center" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AuxEncoderDebugView.ModeMulit}" Text="{Binding ModeMulit, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Button Height="32" Margin="0,0,0,15" HorizontalAlignment="Left" Padding="15,0" Command="{Binding SetModeCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+AuxEncoderDebugView.SetMode}" Content="下发模式" Style="{DynamicResource ButtonDefault}" />
 
                         <Border Padding="15" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="锁存个数：" />
-                                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding LatchCount}" />
-                                </Grid>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="锁存位置：" />
-                                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding LatchPosition}" />
-                                </Grid>
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Foreground="#64748B" Text="设置结果：" />
+                                <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ModeResult}" />
+                            </Grid>
                         </Border>
                     </StackPanel>
                 </Border>

@@ -1,3 +1,4 @@
+using NPOI.SS.Formula.Functions;
 using PF.Core.Entities.Hardware;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
@@ -7,6 +8,7 @@ using PF.Core.Interfaces.Logging;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Channels;
 
 namespace PF.Infrastructure.Hardware.Motor.Basic
 {
@@ -314,19 +316,18 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
 
-        
+
         /// <summary>
         /// 设置锁存模式。硬件锁存（LatchType=1）委托给本轴挂载的辅助编码器（<see cref="_boundAuxEncoder"/>）
         /// 执行，不再直接持有/透传编码器通道号——通道号、倍率均由该编码器自己的 Channel/Multiplier 决定。
         /// </summary>
-        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, CancellationToken token = default)
+        public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, IAuxEncoder encoder = null, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return true; }
             if (LatchType == 0)
                 return await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token).ConfigureAwait(false);
-
-            return await RequireBoundAuxEncoder().SetLatchModeAsync(LatchNo, LtcMode, LtcLogic, Filter, LatchSource, token).ConfigureAwait(false);
+            return await ParentCard!.SetLtcLatchMode(LatchNo, encoder.Channel, LtcMode, LtcLogic, Filter, LatchSource).ConfigureAwait(false);
         }
 
 
@@ -335,14 +336,14 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 获取锁存编号。硬件锁存分支同样委托给本轴挂载的辅助编码器，说明见 <see cref="SetLatchMode"/>。
         /// </summary>
-        public virtual async Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, CancellationToken token = default)
+        public virtual async Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, IAuxEncoder encoder = null, CancellationToken token = default)
         {
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); return 1; }
             if (LatchType == 0)
                 return await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
 
-            return await RequireBoundAuxEncoder().GetLatchNumberAsync(LatchNo, token).ConfigureAwait(false);
+            return await ParentCard!.GetLtcLatchNumber(LatchNo, encoder.Channel, token).ConfigureAwait(false);
         }
 
 
@@ -350,7 +351,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 获取锁存位置。硬件锁存分支同样委托给本轴挂载的辅助编码器，说明见 <see cref="SetLatchMode"/>。
         /// </summary>
-        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, CancellationToken token = default)
+        public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, IAuxEncoder encoder = null, CancellationToken token = default)
         {
             EnsureCardAttached();
             // 模拟模式返回当前虚拟位置（锁存语义即"捕获触发瞬间的轴位置"），不再返回 0 哨兵值
@@ -358,7 +359,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             if (LatchType == 0)
                 return await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
 
-            return await RequireBoundAuxEncoder().GetLatchPositionAsync(LatchNo, token).ConfigureAwait(false);
+            return await ParentCard.GetLtcLatchPos(LatchNo, encoder.Channel, encoder.Multiplier, token).ConfigureAwait(false);
         }
 
 
@@ -468,12 +469,17 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         [Obsolete("辅助编码器已抽取为独立的 IAuxEncoder 设备（挂在本轴或运动控制卡下均可）。" +
             "请改为在硬件配置中新增一个 IAuxEncoder（ParentDeviceId 指向本轴或所在运动控制卡），" +
             "并调用其 SetPositionAsync。本方法保留仅为兼容旧调用点，行为不变，将在后续版本移除。")]
-        public virtual async   Task<bool> SetExtraPos(int Channel, int Pos, double Mulit =2,CancellationToken token = default)
+        public virtual async Task<bool> SetExtraPos(int Channel, int Pos, double Mulit = 2, CancellationToken token = default)
         {
             EnsureCardAttached();
-            if (IsSimulated) { await Task.Delay(1000, token); return true ; }
-            return await ParentCard!.SetExtraPos(Channel , Pos,Mulit , token);
+            if (IsSimulated) { await Task.Delay(1000, token); return true; }
+            return await ParentCard!.SetExtraPos(Channel, Pos, Mulit, token);
         }
+
+
+
+     
+
 
         #endregion 辅助编码器功能
 
@@ -538,5 +544,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
                 _logger?.Warn($"[{DeviceName}] 点表加载失败，将使用空表: {ex.Message}");
             }
         }
+
+      
     }
 }

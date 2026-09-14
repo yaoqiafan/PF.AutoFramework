@@ -1,3 +1,5 @@
+using PF.Core.Enums.Hardware;
+
 namespace PF.Core.Interfaces.Device.Hardware.Card
 {
     /// <summary>
@@ -306,6 +308,17 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="token">取消令牌</param>
         /// <returns>当前位置值；读取失败返回 null</returns>
         Task<double?> GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default);
+
+
+        /// <summary>
+        /// 设置辅助编码器模式
+        /// </summary>
+        /// <param name="Chanel">通道号</param>
+        /// <param name="InMode">输入方式</param>
+        /// <param name="Mulit">计数模式</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns></returns>
+        Task <bool > SetEncoderMode(int Chanel,EmcoderModeEnum InMode,int Mulit =1,CancellationToken token = default);
 
 
         #endregion 辅助编码器功能

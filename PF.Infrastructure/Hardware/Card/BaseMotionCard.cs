@@ -1,3 +1,4 @@
+using PF.Core.Enums.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Logging;
 
@@ -246,6 +247,18 @@ namespace PF.Infrastructure.Hardware.Card
 
         /// <inheritdoc/>
         public abstract Task<double?> GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default);
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="Chanel"></param>
+        /// <param name="InMode"></param>
+        /// <param name="Mulit"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public abstract Task<bool > SetEncoderMode(int Chanel, EmcoderModeEnum InMode, int Mulit = 1, CancellationToken token = default);
 
         #endregion 辅助编码器功能
 
