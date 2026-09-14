@@ -5,5 +5,11 @@
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<!-- 必须显式指定，否则 PF.Vendor.Infrastructure 等包里 runtimes\win-x64\native\ 下的原生 DLL
+		     （LTDMC.dll / ControllerDll.dll 等）只在 dotnet publish 时才会复制到输出目录根，
+		     dotnet build / F5 调试时会被晾在 bin\Debug\net8.0-windows\runtimes\win-x64\native\ 子目录里，
+		     和 exe 不同级，DllImport 按文件名找不到。SelfContained 显式设 false，避免被误当成自包含部署。 -->
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>false</SelfContained>
 	</PropertyGroup>
 </Project>
