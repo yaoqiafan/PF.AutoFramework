@@ -1133,7 +1133,33 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
         }
 
+        /// <summary>
+        /// 读取辅助编码器的当前位置
+        /// </summary>
+        /// <param name="Channel">辅助编码器通道号</param>
+        /// <param name="Mulit">编码器倍率</param>
+        /// <param name="token">取消令牌</param>
+        /// <returns>当前位置值；读取失败返回 null</returns>
+        public override Task<double?> GetExtraPos(int Channel, double Mulit = 2, CancellationToken token = default)
+        {
+            try
+            {
+                if (IsSimulated) { return Task.FromResult((double?)0); }
 
+                int pos = 0;
+                short ret = CardAPI.LTDMC.dmc_get_extra_encoder((ushort)CardIndex, (ushort)Channel, ref pos);
+                if (ret != 0)
+                {
+                    throw new Exception($"读取辅助编码器位置失败, dmc_get_extra_encoder返回值：{ret}");
+                }
+                return Task.FromResult((double?)(pos / Mulit));
+            }
+            catch (Exception ex)
+            {
+                HardwareLogger.Debug(ex.Message, ex);
+                return Task.FromResult((double?)null);
+            }
+        }
 
         #endregion 辅助编码器功能
 

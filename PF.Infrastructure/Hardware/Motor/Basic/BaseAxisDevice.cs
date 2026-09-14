@@ -56,6 +56,14 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             _logger?.Info($"[{DeviceName}] 已挂载到板卡: '{parent.DeviceName}' (CardIndex={parent.CardIndex})");
         }
 
+        /// <summary>
+        /// 实现 <see cref="IEncoderCarrier"/>：转发到本轴已挂载的 <see cref="ParentCard"/>。
+        /// 使挂在本轴下的辅助编码器（IAuxEncoder）能穿透本轴落到同一块物理板卡。
+        /// 轴尚未挂载板卡时访问会抛异常，语义与 <see cref="EnsureCardAttached"/> 一致。
+        /// </summary>
+        IMotionCard IEncoderCarrier.EncoderCard =>
+            ParentCard ?? throw new InvalidOperationException($"[{DeviceName}] 轴尚未挂载到板卡，无法作为辅助编码器的宿主。");
+
         #endregion
 
         /// <summary>
@@ -415,6 +423,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 设置辅助编码器的位置
         /// </summary>
+        [Obsolete("辅助编码器已抽取为独立的 IAuxEncoder 设备（挂在本轴或运动控制卡下均可）。" +
+            "请改为在硬件配置中新增一个 IAuxEncoder（ParentDeviceId 指向本轴或所在运动控制卡），" +
+            "并调用其 SetPositionAsync。本方法保留仅为兼容旧调用点，行为不变，将在后续版本移除。")]
         public virtual async   Task<bool> SetExtraPos(int Channel, int Pos, double Mulit =2,CancellationToken token = default)
         {
             EnsureCardAttached();

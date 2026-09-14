@@ -112,6 +112,8 @@ namespace PF.Core.Constants
             public const string LineScanCameraDebugView = nameof(LineScanCameraDebugView);
             /// <summary>图像采集卡调试视图</summary>
             public const string FrameGrabberDebugView = nameof(FrameGrabberDebugView);
+            /// <summary>辅助编码器调试视图</summary>
+            public const string AuxEncoderDebugView = nameof(AuxEncoderDebugView);
 
             /// <summary>通讯综合调试视图</summary>
             public const string CommunicationDebugView = nameof(CommunicationDebugView);

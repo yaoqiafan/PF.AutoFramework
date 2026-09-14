@@ -234,6 +234,20 @@ namespace PF.Application.Shell
                     inCount, outCount, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
+            // 辅助编码器：ParentDeviceId 填运动控制卡 DeviceId → 挂在卡下单独使用；
+            // 填某根轴的 DeviceId → 挂在该轴下随轴分组（两种拓扑均由 HardwareManagerService 按
+            // IEncoderCarrier 类型匹配自动完成挂载，本工厂无需关心挂在哪一层）。
+            hwManager.RegisterFactory("EtherCatAuxEncoder", cfg =>
+            {
+                int channel = cfg.ConnectionParameters.TryGetValue("Channel", out var ch) && !string.IsNullOrWhiteSpace(ch)
+                    ? int.Parse(ch) : 0;
+                var encoder = new Infrastructure.Hardware.Encoder.EtherCatAuxEncoder(
+                    cfg.DeviceId, cfg.DeviceName, channel, cfg.IsSimulated, LogService);
+                if (cfg.ConnectionParameters.TryGetValue("Multiplier", out var mul) && !string.IsNullOrWhiteSpace(mul))
+                    encoder.Multiplier = double.Parse(mul);
+                return encoder;
+            });
+
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
             {
                 int timeout = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var to) ? int.Parse(to) : 0;

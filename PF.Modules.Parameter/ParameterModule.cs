@@ -43,6 +43,7 @@ namespace PF.Modules.Parameter
             ViewFactory.RegisterHardwareConfigType<LTDMCMotionCardParamView,          LTDMCMotionCardParamViewMapper>         ("LTDMCMotionCard");
             ViewFactory.RegisterHardwareConfigType<EtherCatAxisParamView,             EtherCatAxisParamViewMapper>            ("EtherCatAxis");
             ViewFactory.RegisterHardwareConfigType<EtherCatIOParamView,               EtherCatIOParamViewMapper>              ("EtherCatIO");
+            ViewFactory.RegisterHardwareConfigType<EtherCatAuxEncoderParamView,       EtherCatAuxEncoderParamViewMapper>      ("EtherCatAuxEncoder");
             ViewFactory.RegisterHardwareConfigType<HKBarcodeScanParamView,            HKBarcodeScanParamViewMapper>           ("HKBarcodeScan");
             ViewFactory.RegisterHardwareConfigType<MvCodeReaderBarcodeScanParamView,  MvCodeReaderBarcodeScanParamViewMapper> ("MvCodeReaderBarcodeScan");
             ViewFactory.RegisterHardwareConfigType<KeyenceSdkBarcodeScanParamView, KeyenceSdkBarcodeScanParamViewMapper>("KeyenceBarcodeScan");

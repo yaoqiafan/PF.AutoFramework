@@ -94,6 +94,29 @@ namespace PF.Modules.Debug
             public const string ToggleOutput = nameof(ToggleOutput);
         }
 
+        /// <summary>辅助编码器调试视图</summary>
+        public static class AuxEncoderDebugView
+        {
+            [Description("连接硬件"), OperationLogCritical]
+            public const string Connect = nameof(Connect);
+            [Description("断开连接"), OperationLogCritical]
+            public const string Disconnect = nameof(Disconnect);
+            [Description("模块复位"), OperationLogCritical]
+            public const string Reset = nameof(Reset);
+            [Description("模拟报警测试"), OperationLogCritical]
+            public const string SimulateAlarm = nameof(SimulateAlarm);
+            [Description("写入/预置位置")]
+            public const string TargetPosition = nameof(TargetPosition);
+            [Description("执行写入位置"), OperationLogCritical]
+            public const string SetPosition = nameof(SetPosition);
+            [Description("锁存器 ID")]
+            public const string LatchNo = nameof(LatchNo);
+            [Description("设置锁存模式"), OperationLogCritical]
+            public const string SetLatchMode = nameof(SetLatchMode);
+            [Description("读取锁存结果"), OperationLogCritical]
+            public const string ReadLatch = nameof(ReadLatch);
+        }
+
         /// <summary>扫码枪调试视图</summary>
         public static class BarcodeScanDebugView
         {
