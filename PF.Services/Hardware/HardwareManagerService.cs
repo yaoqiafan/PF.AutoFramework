@@ -201,11 +201,17 @@ namespace PF.Services.Hardware
         // ── 生命周期 ───────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 从数据库加载配置，然后拓扑分层初始化所有已启用设备：
+        /// 从数据库加载配置，然后按 ParentDeviceId 依赖关系分层初始化所有已启用设备：
         ///   第1层 → ParentDeviceId 为空（运动控制卡、图像采集卡等宿主设备，以及独立设备）
-        ///   第2层 → ParentDeviceId 非空（挂卡的轴/IO、挂采集卡的线阵相机等子设备）
+        ///   第N层（N≥2）→ 父设备恰好在第 N-1 层（或更早）被激活的子设备
         ///
-        /// 分层只看 ParentDeviceId 是否为空，与设备类型无关。
+        /// 挂载链可以不止两层——如"运动控制卡 → 轴 → 挂在该轴下的辅助编码器"是三层，
+        /// 因此这里按依赖关系逐层展开（<see cref="BuildDependencyLayers"/>），而不是把
+        /// "ParentDeviceId 是否为空"简单二分成顶级/子级两组：二分会导致挂在轴下的编码器
+        /// 与轴本身同属"子级"这一批，若配置在该批内的读取顺序恰好把编码器排在轴前面，
+        /// 编码器挂载时其父轴尚未激活，会永久附着失败。
+        ///
+        /// 分层只看 ParentDeviceId 链，与设备类型无关。
         /// 无论父设备是否连接成功，子设备均会被实例化并加入活跃列表，确保 UI 可见。
         /// 子设备实例化完成后，若实现 IAttachedDevice，自动绑定父设备引用。
         /// </summary>
@@ -214,68 +220,101 @@ namespace PF.Services.Hardware
             await LoadConfigsAsync();
 
             // 锁内：取已启用配置快照（拓扑分层读，后续 ActivateDeviceAsync 含硬件 await 必须锁外）
-            List<HardwareConfig> topLevel;
-            List<HardwareConfig> children;
+            List<HardwareConfig> enabledConfigs;
             lock (_configLock)
             {
-                var enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
-                topLevel = enabledConfigs.Where(c => string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
-                children = enabledConfigs.Where(c => !string.IsNullOrEmpty(c.ParentDeviceId)).ToList();
+                enabledConfigs = _configs.Where(c => c.IsEnabled).ToList();
             }
-            _logger.Info($"[HardwareManager] 开始拓扑初始化，共 {topLevel.Count + children.Count} 个已启用设备...");
+
+            var layers = BuildDependencyLayers(enabledConfigs);
+            _logger.Info($"[HardwareManager] 开始拓扑初始化，共 {enabledConfigs.Count} 个已启用设备，分 {layers.Count} 层...");
 
             progress?.Report(new SplashProgressPayload
             {
-                Status = $"开始硬件拓扑初始化，共 {topLevel.Count + children.Count} 个已启用设备...",
+                Status = $"开始硬件拓扑初始化，共 {enabledConfigs.Count} 个已启用设备...",
                 MsgType = MsgType.Info
             });
 
-            // ── 第1层：顶级设备（ParentDeviceId 为空：运动控制卡/采集卡等宿主设备 + 独立设备）──
-            _logger.Info($"[HardwareManager] 第1层：初始化 {topLevel.Count} 个顶级设备"
-                + $"（{DescribeConfigs(topLevel)}）...");
-
-            progress?.Report(new SplashProgressPayload
+            for (int i = 0; i < layers.Count; i++)
             {
-                Status = $"[第1层] 初始化 {topLevel.Count} 个顶级设备（板卡/采集卡/独立设备）...",
-                MsgType = MsgType.Info
-            });
-            foreach (var config in topLevel)
-                await ActivateDeviceAsync(config, parent: null, progress);
+                var layer = layers[i];
+                int layerNo = i + 1;
+                _logger.Info($"[HardwareManager] 第{layerNo}层：初始化 {layer.Count} 个设备"
+                    + $"（{DescribeConfigs(layer)}）...");
 
-            // ── 第2层：子设备（ParentDeviceId 非空：挂卡的轴/IO、挂采集卡的相机等）────────
-            _logger.Info($"[HardwareManager] 第2层：初始化 {children.Count} 个子设备"
-                + $"（{DescribeConfigs(children)}）...");
-
-            progress?.Report(new SplashProgressPayload
-            {
-                Status = $"[第2层] 初始化 {children.Count} 个子设备（轴/IO/挂卡相机）...",
-                MsgType = MsgType.Info
-            });
-            foreach (var config in children)
-            {
-                // 父设备不再窄化为 IMotionCard：轴/IO 挂运动控制卡，线阵相机挂采集卡，
-                // 挂载对象的具体类型由子设备自己声明（IAttachedDevice<TParent>），本层只负责传递
-                if (!_activeDevices.TryGetValue(config.ParentDeviceId, out var parentDevice))
+                progress?.Report(new SplashProgressPayload
                 {
-                    _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
-                                 $"'{config.ParentDeviceId}' 未被激活，仍强制实例化子设备以供 UI 显示。");
-                }
-                else if (!parentDevice.IsConnected)
-                {
-                    _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
-                                 $"'{config.ParentDeviceId}' 未连接，子设备将以离线状态加入活跃列表。");
-                }
+                    Status = $"[第{layerNo}层] 初始化 {layer.Count} 个设备...",
+                    MsgType = MsgType.Info
+                });
 
-                await ActivateDeviceAsync(config, parentDevice, progress);
+                foreach (var config in layer)
+                {
+                    // 父设备不再窄化为 IMotionCard：轴/IO 挂运动控制卡，线阵相机挂采集卡，
+                    // 辅助编码器挂运动控制卡或某根轴，挂载对象的具体类型由子设备自己声明
+                    // （IAttachedDevice<TParent>），本层只负责传递
+                    IHardwareDevice? parentDevice = null;
+                    if (!string.IsNullOrEmpty(config.ParentDeviceId))
+                    {
+                        if (!_activeDevices.TryGetValue(config.ParentDeviceId, out parentDevice))
+                        {
+                            _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
+                                         $"'{config.ParentDeviceId}' 未被激活，仍强制实例化子设备以供 UI 显示。");
+                        }
+                        else if (!parentDevice.IsConnected)
+                        {
+                            _logger.Warn($"[HardwareManager] 子设备 '{config.DeviceId}' 的父设备 " +
+                                         $"'{config.ParentDeviceId}' 未连接，子设备将以离线状态加入活跃列表。");
+                        }
+                    }
+
+                    await ActivateDeviceAsync(config, parentDevice, progress);
+                }
             }
 
             _logger.Success($"[HardwareManager] 初始化完成，活跃设备数: {_activeDevices.Count}");
-          
+
             progress?.Report(new SplashProgressPayload
             {
                 Status = $"硬件初始化完成，活跃设备数: {_activeDevices.Count}",
                 MsgType = MsgType.Success
             });
+        }
+
+        /// <summary>
+        /// 按 ParentDeviceId 依赖关系把配置分层：第1层是 ParentDeviceId 为空的顶级设备，
+        /// 之后每一层取"父设备已归入更早层"的配置，直至所有配置分完层——支持任意深度的挂载链
+        /// （如 卡→轴→辅助编码器）。
+        /// 若剩余配置的父设备始终没出现（配置了不存在的 ParentDeviceId，或配置成环），
+        /// 无法再向前推进时，将剩余配置整体归入最后一层，强制实例化以保证 UI 可见，
+        /// 由 ActivateDeviceAsync 内的警告日志暴露具体是哪一个。
+        /// </summary>
+        private static List<List<HardwareConfig>> BuildDependencyLayers(List<HardwareConfig> configs)
+        {
+            var layers = new List<List<HardwareConfig>>();
+            var remaining = configs;
+            var resolvedIds = new HashSet<string>();
+
+            while (remaining.Count > 0)
+            {
+                var layer = remaining
+                    .Where(c => string.IsNullOrEmpty(c.ParentDeviceId) || resolvedIds.Contains(c.ParentDeviceId))
+                    .ToList();
+
+                if (layer.Count == 0)
+                {
+                    // 无法再推进（父设备缺失/成环）：剩余配置整体作为最后一层强制实例化
+                    layer = remaining;
+                }
+
+                layers.Add(layer);
+                foreach (var c in layer) resolvedIds.Add(c.DeviceId);
+
+                var layerIds = new HashSet<string>(layer.Select(c => c.DeviceId));
+                remaining = remaining.Where(c => !layerIds.Contains(c.DeviceId)).ToList();
+            }
+
+            return layers;
         }
 
         /// <summary>

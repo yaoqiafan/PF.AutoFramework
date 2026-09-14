@@ -1,6 +1,7 @@
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
 using PF.Core.Interfaces.Logging;
+using PF.Infrastructure.Hardware.Motor.Basic;
 using System.Runtime.CompilerServices;
 
 namespace PF.Infrastructure.Hardware.Encoder.Basic
@@ -49,6 +50,14 @@ namespace PF.Infrastructure.Hardware.Encoder.Basic
         protected override void OnAttached(IEncoderCarrier parent)
         {
             _logger?.Info($"[{DeviceName}] 已挂载到 '{parent.DeviceName}'，落点板卡: '{parent.EncoderCard.DeviceName}' (CardIndex={parent.EncoderCard.CardIndex})");
+
+            // 挂载对象若是某根轴，回调注册自己为该轴的绑定编码器：轴的位置锁存（IAxis.SetLatchMode 等）
+            // 硬件分支内部会直接调用本编码器，IAxis 接口本身不感知 IAuxEncoder 的存在。
+            // 挂在运动控制卡下单独使用（parent 是 IMotionCard）时无需注册，走的是另一条独立拓扑。
+            if (parent is BaseAxisDevice axisDevice)
+            {
+                axisDevice.AttachAuxEncoder(this);
+            }
         }
 
         /// <inheritdoc/>

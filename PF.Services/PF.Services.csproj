@@ -16,8 +16,28 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-09-14) — 修复三层挂载链（卡→轴→辅助编码器）下子设备可能永久附着失败
+
+[修复 — 拓扑挂载]
+- LoadAndInitializeAsync 的设备初始化分层由"ParentDeviceId 是否为空"二分成顶级/子级两层，
+  改为按 ParentDeviceId 依赖关系逐层展开（新增私有 BuildDependencyLayers）：第1层仍是
+  ParentDeviceId 为空的顶级设备，之后每层取"父设备已归入更早层"的配置，直到分完，支持任意
+  深度的挂载链。
+- 触发原因：辅助编码器（IAuxEncoder）可以挂在某根轴下（卡→轴→编码器，三层），但轴本身也是
+  "ParentDeviceId 非空"的子级设备——二分法把轴和挂在轴下的编码器分进同一批。这一批内部的
+  处理顺序取决于配置从数据库读出的顺序，并不保证轴排在编码器前面；一旦编码器先于轴被激活，
+  当时其父轴还不在活跃设备表里，TryAttachTo 根本不会被调用（因为该处仅在拿到非空父设备实例
+  时才尝试挂载），编码器的 Parent 永久为 null，之后任何通道操作都会抛
+  "尚未挂载到运动控制卡或轴"异常，且没有自动重试或后续修复路径。
+- 影响面：此前该路径的编码器操作(SetPositionAsync 等) 本就依赖挂载成功，同样受这个隐患
+  影响，只是没有实测场景触发；PF.Infrastructure 1.0.19 起轴的硬件位置锁存（LatchType=1）
+  开始依赖编码器挂载成功，此问题必须一并修掉。日志/Splash 进度文案由固定的"第1层/第2层"
+  改为按实际层数动态生成"第N层"，语义不变。
+
+子包版本对照：PF.Infrastructure 1.0.18→1.0.19；其余子包本次无变化。
+
 v1.0.5 (2026-08-17) — HardwareManagerService 父设备泛化：宿主不再窄化为运动控制卡
 
 [变更 — 拓扑挂载]
