@@ -8,5 +8,7 @@ namespace PF.Vendor.Infrastructure
 {
     internal class testclass
     {
+        public int MyProperty { get; set; }
+
     }
 }
