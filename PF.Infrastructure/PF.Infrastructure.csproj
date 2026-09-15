@@ -44,8 +44,32 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.19</Version>
+		<Version>1.0.20</Version>
 		<PackageReleaseNotes>
+v1.0.20 (2026-09-15) — 辅助编码器改为设置输入模式；修复硬件锁存空引用崩溃隐患，同步 PF.Core 1.0.21（含破坏性变更）
+
+[破坏性变更 — 同步 PF.Core 1.0.21 的 IAuxEncoder]
+- BaseAuxEncoder.SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync 三个方法删除，
+  新增 SetMode(EmcoderModeEnum, int Mulit, CancellationToken)，委托给 Card.SetEncoderMode。
+  这三个方法自 1.0.19 起就没有调用方（硬件锁存已收口到 IAxis），属于清理死代码，不影响任何
+  既有调用点。
+
+[新增 — 同步 PF.Core 1.0.21 的 IMotionCard]
+- BaseMotionCard 新增抽象 SetEncoderMode；LTMDCMotionCard 实现，调用板卡 SDK 的
+  dmc_set_extra_encoder_mode。
+
+[修复 — 关键，1.0.19 尚未发布就存在的问题]
+- BaseAxisDevice.SetLatchMode / GetLatchNumber / GetLatchPos 硬件锁存分支：1.0.19 的实现把
+  "调用本轴挂载的辅助编码器"错写成了要求调用方显式传入 IAuxEncoder 参数，缺省值又是 null，
+  分支内直接对 encoder 取 .Channel——不传参必定 NullReferenceException，且这三个方法的
+  文档注释仍然写着"自动委托给挂载的辅助编码器"，代码和注释完全对不上。现改为 encoder 缺省时
+  通过既有的 RequireBoundAuxEncoder() 自动解析本轴绑定的编码器（未绑定抛
+  InvalidOperationException，与文档描述一致），显式传参时才用调用方指定的编码器，用于需要
+  临时越过绑定关系操作另一路编码器的场景。【1.0.19 从未推送到私有源，全仓库当时也没有任何
+  调用点走到这条分支，这颗雷没有在已发布版本里存在过、也没有真的炸过】。
+
+子包版本对照：PF.Core 1.0.20→1.0.21；其余子包本次无变化。
+
 v1.0.19 (2026-09-14) — 轴硬件锁存改为内部调用绑定的辅助编码器，同步 PF.Core 1.0.20（含行为变更）
 
 [行为变更 — 同步 PF.Core 1.0.20]

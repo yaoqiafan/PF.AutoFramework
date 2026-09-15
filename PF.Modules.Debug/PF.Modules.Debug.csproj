@@ -11,8 +11,24 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.12</Version>
+		<Version>1.0.13</Version>
 		<PackageReleaseNotes>
+v1.0.13 (2026-09-15) — 辅助编码器调试页改造为输入模式设置；轴调试页保存失败补提示弹窗
+
+[变更 — AuxEncoderDebugViewModel / AuxEncoderDebugView，同步 PF.Core 1.0.21 的 IAuxEncoder]
+- 移除失效的硬件锁存测试面板（设置锁存模式 + 读取锁存个数/位置）：这三个操作在 IAuxEncoder
+  上已经删除，面板留着只会调不动。
+- 新增编码器模式设置面板：输入模式下拉（脉冲方向 / AB相）+ 倍率输入 + 下发按钮，对应新增的
+  IAuxEncoder.SetMode。
+- 顺带修复卡片被拉伸导致的大片空白、浅色统计块文字对比度过低两个显示问题。
+- OperationLogKeysDebug 的 AuxEncoderDebugView 键组同步调整（12 行变化，跟随上面的面板改造）。
+
+[修复 — AxisDebugViewModel]
+- 保存 AxisParam 时，"设备不存在"和"没有找到 AxisParam 节点"两种失败路径此前只是静默跳过，
+  界面上看不出保存到底成不成功。现在两种情况都弹 MessageBoxImage.Warning 提示，告知具体原因。
+
+子包版本对照：PF.Core 1.0.20→1.0.21，PF.Infrastructure 1.0.19→1.0.20；其余子包本次无变化。
+
 v1.0.12 (2026-09-14) — 新增辅助编码器调试视图
 
 [新增]

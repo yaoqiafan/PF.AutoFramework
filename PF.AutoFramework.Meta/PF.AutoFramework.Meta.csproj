@@ -3,8 +3,37 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.30</Version>
+    <Version>1.0.31</Version>
     <PackageReleaseNotes>
+		v1.0.31 (2026-09-15) — 辅助编码器新增输入模式设置；修复 1.0.30 尚未发布就存在的硬件锁存空引用隐患（含破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.20→1.0.21 的 IAuxEncoder]
+		- 移除 SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync 三个方法（1.0.20 起
+		  硬件锁存已收口到 IAxis，这三个方法早就没有调用方），新增
+		  SetMode(EmcoderModeEnum InMode, int Mulit, CancellationToken token)：设置辅助编码器的
+		  输入模式（脉冲方向 / AB相）。IMotionCard 新增对应抽象 SetEncoderMode。项目里自写了
+		  IAuxEncoder 实现的，必须删掉那三个方法、补上 SetMode 才能编译。
+
+		[修复 — 关键，PF.Core 1.0.21 / PF.Infrastructure 1.0.19→1.0.20，1.0.30 从未发布就存在的问题]
+		- IAxis.SetLatchMode / GetLatchNumber / GetLatchPos 新增可选参数 IAuxEncoder encoder = null，
+		  BaseAxisDevice 对应实现同步。1.0.30 的实现把"硬件锁存自动委托给本轴挂载的辅助编码器"
+		  错写成了要求调用方显式传入该参数，缺省又是 null，分支内直接取 encoder.Channel——不传参
+		  必定 NullReferenceException，与 1.0.30 changelog 承诺的行为完全对不上。现改为 encoder
+		  缺省时自动解析本轴绑定的编码器（未绑定抛 InvalidOperationException，与文档一致），
+		  显式传参时才用调用方指定的编码器。【1.0.30 从未推送到私有源，全仓库当时也没有任何
+		  调用点走到这条分支，这颗雷没有在已发布版本里存在过、也没有真的炸过】。调用方源码级
+		  兼容：不传 encoder 的既有调用点行为不变。
+
+		[变更 — PF.Modules.Debug 1.0.12→1.0.13]
+		- AuxEncoderDebugView/ViewModel 同步改造：移除失效的硬件锁存测试面板，新增编码器模式
+		  设置面板（输入模式下拉 + 倍率 + 下发），修复卡片被拉伸导致的大片空白、浅色统计块文字
+		  对比度过低两个显示问题。
+		- AxisDebugViewModel：保存 AxisParam 失败（设备不存在 / 没有找到 AxisParam 节点）时补充
+		  提示弹窗，此前静默跳过，界面上看不出保存成不成功。
+
+		子包版本对照：PF.Core 1.0.20→1.0.21，PF.Infrastructure 1.0.19→1.0.20，
+		PF.Modules.Debug 1.0.12→1.0.13；其余子包本次无变化。
+
 		v1.0.30 (2026-09-14) — 轴位置锁存收回辅助编码器通道参数，内部改为直接调用绑定的辅助编码器（含破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.19→1.0.20]

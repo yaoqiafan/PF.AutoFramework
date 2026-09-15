@@ -3,8 +3,38 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.20</Version>
+		<Version>1.0.21</Version>
 		<PackageReleaseNotes>
+v1.0.21 (2026-09-15) — 辅助编码器新增输入模式设置；修复 1.0.20 尚未发布就存在的硬件锁存空引用隐患（含破坏性变更）
+
+[新增 — IMotionCard]
+- SetEncoderMode(int Channel, EmcoderModeEnum InMode, int Mulit = 1, CancellationToken token = default)：
+  设置辅助编码器的输入模式（脉冲方向 / AB相），对应板卡 SDK 的 dmc_set_extra_encoder_mode。
+
+[新增]
+- EmcoderModeEnum（PF.Core.Enums.Hardware）：辅助编码器输入模式枚举，脉冲方向 / AB相 两个取值。
+
+[破坏性变更 — IAuxEncoder]
+- 移除 SetLatchModeAsync / GetLatchNumberAsync / GetLatchPositionAsync 三个方法，新增
+  SetMode(EmcoderModeEnum InMode = EmcoderModeEnum.AB相, int Mulit = 1, CancellationToken token = default)。
+  辅助编码器的职责收窄为"设置自己的输入模式"：1.0.20 已经把硬件锁存收口到 IAxis 一个入口，
+  IAuxEncoder 上这三个锁存方法自那以后就没有任何调用方，属于死接口，直接删除；项目里若自写了
+  IAuxEncoder 实现，必须删掉这三个方法、补上 SetMode 才能编译。
+
+[破坏性变更 — IAxis，同时是对 1.0.20 设计缺口的修复]
+- SetLatchMode / GetLatchNumber / GetLatchPos 新增可选参数 IAuxEncoder encoder = null：显式传入
+  时以调用方指定的编码器为准（用于需要临时越过绑定关系操作另一路编码器的场景）；缺省（null，
+  即 1.0.20 发布时唯一支持的调用方式）时自动取本轴已挂载的 IAuxEncoder，未挂载抛
+  InvalidOperationException——这正是 1.0.20 changelog 承诺的行为，但当时的 BaseAxisDevice
+  实现漏了这层兜底：硬件锁存分支直接对 encoder 取 .Channel，encoder 缺省是 null，必定
+  NullReferenceException，相当于把"未挂载编码器"从一条可读的 InvalidOperationException
+  退化成了裸崩溃。【1.0.20 从未推送到私有源，全仓库当时也没有任何调用点走到这条分支，
+  这颗雷没有在已发布版本里存在过、也没有真的炸过】。调用方源码级兼容：不传 encoder 的
+  既有调用点行为不变（沿用 1.0.20 文档描述的自动解析语义）。
+
+子包版本对照：PF.Infrastructure 1.0.19→1.0.20（同一批级联修复，见该包 changelog）；
+其余子包本次无变化。
+
 v1.0.20 (2026-09-14) — 轴位置锁存收回辅助编码器通道参数，改为轴内部自动调用绑定的辅助编码器（含破坏性变更）
 
 [破坏性变更 — IAxis]

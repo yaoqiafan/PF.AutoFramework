@@ -320,6 +320,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// <summary>
         /// 设置锁存模式。硬件锁存（LatchType=1）委托给本轴挂载的辅助编码器（<see cref="_boundAuxEncoder"/>）
         /// 执行，不再直接持有/透传编码器通道号——通道号、倍率均由该编码器自己的 Channel/Multiplier 决定。
+        /// <paramref name="encoder"/> 缺省（null）时自动取本轴已绑定的辅助编码器（未绑定则抛
+        /// <see cref="InvalidOperationException"/>）；显式传入时以调用方指定的为准，用于需要临时
+        /// 越过绑定关系操作另一路编码器的场景。
         /// </summary>
         public virtual async Task<bool> SetLatchMode(int LatchNo, int InPutPort, int LtcMode = 1, int LtcLogic = 0, double Filter = 0, double LatchSource = 0, int LatchType = 0, IAuxEncoder encoder = null, CancellationToken token = default)
         {
@@ -327,6 +330,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             if (IsSimulated) { await Task.Delay(1000, token); return true; }
             if (LatchType == 0)
                 return await ParentCard!.SetSoftWareLatchMode(LatchNo, this.AxisIndex, InPutPort, LtcMode, LtcLogic, Filter, LatchSource, token).ConfigureAwait(false);
+            encoder ??= RequireBoundAuxEncoder();
             return await ParentCard!.SetLtcLatchMode(LatchNo, encoder.Channel, LtcMode, LtcLogic, Filter, LatchSource).ConfigureAwait(false);
         }
 
@@ -334,7 +338,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
 
         /// <summary>
-        /// 获取锁存编号。硬件锁存分支同样委托给本轴挂载的辅助编码器，说明见 <see cref="SetLatchMode"/>。
+        /// 获取锁存编号。硬件锁存分支同样委托给本轴挂载的辅助编码器，<paramref name="encoder"/>
+        /// 缺省时的解析规则见 <see cref="SetLatchMode"/>。
         /// </summary>
         public virtual async Task<int> GetLatchNumber(int LatchNo, int LatchType = 0, IAuxEncoder encoder = null, CancellationToken token = default)
         {
@@ -343,13 +348,15 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             if (LatchType == 0)
                 return await ParentCard!.GetSoftWareLatchNumber(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
 
+            encoder ??= RequireBoundAuxEncoder();
             return await ParentCard!.GetLtcLatchNumber(LatchNo, encoder.Channel, token).ConfigureAwait(false);
         }
 
 
 
         /// <summary>
-        /// 获取锁存位置。硬件锁存分支同样委托给本轴挂载的辅助编码器，说明见 <see cref="SetLatchMode"/>。
+        /// 获取锁存位置。硬件锁存分支同样委托给本轴挂载的辅助编码器，<paramref name="encoder"/>
+        /// 缺省时的解析规则见 <see cref="SetLatchMode"/>。
         /// </summary>
         public virtual async Task<double?> GetLatchPos(int LatchNo, int LatchType = 0, IAuxEncoder encoder = null, CancellationToken token = default)
         {
@@ -359,6 +366,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             if (LatchType == 0)
                 return await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
 
+            encoder ??= RequireBoundAuxEncoder();
             return await ParentCard.GetLtcLatchPos(LatchNo, encoder.Channel, encoder.Multiplier, token).ConfigureAwait(false);
         }
 
