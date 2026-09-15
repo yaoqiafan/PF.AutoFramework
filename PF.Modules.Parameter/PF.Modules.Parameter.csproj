@@ -13,8 +13,16 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.8</Version>
+		<Version>1.0.9</Version>
 		<PackageReleaseNotes>
+v1.0.9 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
+
+[修复]
+- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
+  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
+  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
+  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
+
 v1.0.8 (2026-09-14) — 新增辅助编码器的硬件参数视图
 
 [新增]

@@ -3,8 +3,36 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.31</Version>
+    <Version>1.0.32</Version>
     <PackageReleaseNotes>
+		v1.0.32 (2026-09-15) — 修复 RuntimeIdentifier 误设导致 11 个子包处理器架构标记污染
+
+		[修复 — 根因]
+		框架仓库共享的 Common.Desktop.props 此前错误设置了 RuntimeIdentifier=win-x64/
+		SelfContained=false（本用于让消费 PF.Vendor.Infrastructure 原生资产的项目在
+		dotnet build/F5 时把 runtimes\win-x64\native\ 下的文件铺平到输出目录根，但本仓库
+		自身没有任何项目真正引用 PF.Vendor.Infrastructure/PF.Vendor.Halcon，加在这里纯属
+		误加）。该属性一旦生效，dotnet build/pack 产出的 net8.0-windows 程序集就不再是
+		AnyCPU，而是带 win-x64 专属架构标记；AnyCPU（MSIL）消费项目引用后 MSBuild 会报
+		"所生成项目的处理器架构"MSIL"与引用……的处理器架构"AMD64"不匹配"警告（用户在
+		2026-09-15 构建时实测发现 PF.Modules.Debug 1.0.13 / PF.Modules.Parameter 1.0.8
+		两个引用触发该警告，进而排查出全部受影响包）。
+
+		已移除该属性，本次仅为受影响包重新打包发布，均无代码/行为变化：
+		PF.CommonTools 1.0.3→1.0.4，PF.Application.Base 1.0.7→1.0.8，
+		PF.UI.Infrastructure 1.0.4→1.0.5，PF.Modules.Alarm 1.0.5→1.0.6，
+		PF.Modules.Identity 1.0.3→1.0.4，PF.Modules.Logging 1.0.4→1.0.5，
+		PF.Modules.Parameter 1.0.8→1.0.9，PF.Modules.SecsGem 1.0.6→1.0.7，
+		PF.Modules.ProductionRecord 1.0.3→1.0.4，PF.Modules.Halcon 1.0.9→1.0.10，
+		PF.Modules.Debug 1.0.13→1.0.14。
+
+		不受影响（走 Common.props，非 net8.0-windows）：PF.Core、PF.Infrastructure、
+		PF.Data、PF.Services、PF.SecsGem.DataBase、PF.Vision.Halcon。
+		不受影响（IncludeBuildOutput=false 纯资产包）：PF.Vendor.Infrastructure、
+		PF.Vendor.Halcon。
+
+		子包版本对照：见上，其余子包本次无变化。
+
 		v1.0.31 (2026-09-15) — 辅助编码器新增输入模式设置；修复 1.0.30 尚未发布就存在的硬件锁存空引用隐患（含破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.20→1.0.21 的 IAuxEncoder]

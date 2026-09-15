@@ -5,11 +5,12 @@
 		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<!-- 必须显式指定，否则 PF.Vendor.Infrastructure 等包里 runtimes\win-x64\native\ 下的原生 DLL
-		     （LTDMC.dll / ControllerDll.dll 等）只在 dotnet publish 时才会复制到输出目录根，
-		     dotnet build / F5 调试时会被晾在 bin\Debug\net8.0-windows\runtimes\win-x64\native\ 子目录里，
-		     和 exe 不同级，DllImport 按文件名找不到。SelfContained 显式设 false，避免被误当成自包含部署。 -->
-		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<SelfContained>false</SelfContained>
+		<!-- 本仓库自身没有任何项目直接 PackageReference PF.Vendor.Infrastructure / PF.Vendor.Halcon
+		     （PF.Infrastructure.csproj 仍走本地 DLL\Infrastructure\ 的 HintPath 引用），
+		     RuntimeIdentifier 不该加在这里——加了会让本仓库产出的所有 net8.0-windows 库包
+		     从 AnyCPU 变成 win-x64 专属，消费方 AnyCPU 项目引用时会报"处理器架构不匹配"警告
+		     （2026-09-15 实测：PF.Modules.Debug 1.0.13 / PF.Modules.Parameter 1.0.8 等已中招）。
+		     RuntimeIdentifier 只应加在真正消费 PF.Vendor.* 包的项目里（VS 扩展模板
+		     _SharedRoot/Common.Desktop.props、MappingShift\MotionControl 等）。 -->
 	</PropertyGroup>
 </Project>
