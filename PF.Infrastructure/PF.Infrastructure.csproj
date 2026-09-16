@@ -44,8 +44,38 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.20</Version>
+		<Version>1.0.21</Version>
 		<PackageReleaseNotes>
+v1.0.21 (2026-09-16) — 线扫相机帧触发路由与检测模组运动参数改造，同步 PF.Core 1.0.22（含破坏性变更）
+
+[破坏性变更 — LineScanDetectionModule，同步 PF.Core 1.0.22 的 ScanGeometry]
+- ScanAsync 签名从 (ScanProfile profile, LineScanCameraConfig? baseConfig, token) 改为
+  (string startPointName, string endPointName, LineScanCameraConfig? baseConfig, token)：
+  位置/速度/加减速/S曲线时间改从扫描轴点位表读取，调用方需要先在轴点位表里维护好起点/终点
+  两个点位（位置/速度/加减速），本模组不再另外接收一份重复的运动参数。
+- 时序相应简化：移除等轴越过某个中间位置才触发的 WaitAxisReachAsync——起点即成像起点，帧
+  软触发改为紧随开流之后、启动扫描运动之前发出，不再有独立的"回退加速点"，起点/终点头尾
+  几行的曝光时间会因为还没提上速/正在减速而略有不均，视为可接受的取舍。
+- BuildConfig 不再计算/下发 FrameControl.ImageHeight 与 FrameTimeoutMs：帧长/行频已经配置在
+  相机自身（UserSetDefault），软件重算一遍再下发反而有覆盖为错误值的风险。FrameControl.
+  TriggerEnable 固定置 true（本模组的扫描流程恒定走帧触发）。
+
+[修复 — HikLineScanCamera]
+- 挂了采集卡时，帧触发（含软触发命令）此前无条件路由给采集卡（InterfaceFrameControl），
+  与海康官方 LineScanSoftwareTrigger 样例的用法（全程只用 device.Parameters，不碰
+  IInterface）不符，现场复现为 MV_E_GC_ACCESS(0x80000106)。现按新增的
+  FrameControlConfig.TriggerOnCameraSide（PF.Core 1.0.22）选择相机自身或采集卡；本会话
+  尚未下发过配置时，改为探测相机当前 FrameTriggerMode 决定默认路由（相机断电重启后会按
+  UserSetDefault 自动恢复参数，不该无条件先假定卡控帧）。
+
+[修复 — LineScanDetectionModule.BuildConfig]
+- 此前无条件强制 LineTriggerMode.Encoder（假定编码器直连相机 IO），现尊重调用方在
+  LineScanCameraConfig.LineTrigger 里的设置，仅调用方完全未指定时才兜底编码器直连；
+  ExternalLine 模式（如编码器接在采集卡上、经 CameraLink LinkTrigger0 转发给相机）不再
+  被误改成 Encoder 模式。
+
+子包版本对照：PF.Core 1.0.21→1.0.22。
+
 v1.0.20 (2026-09-15) — 辅助编码器改为设置输入模式；修复硬件锁存空引用崩溃隐患，同步 PF.Core 1.0.21（含破坏性变更）
 
 [破坏性变更 — 同步 PF.Core 1.0.21 的 IAuxEncoder]

@@ -11,8 +11,26 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.14</Version>
+		<Version>1.0.15</Version>
 		<PackageReleaseNotes>
+v1.0.15 (2026-09-16) — 线扫相机/检测模组调试页配套改造，同步 PF.Core 1.0.22 / PF.Infrastructure 1.0.21
+
+[变更 — LineScanDetectionModuleDebugView/ViewModel，同步 PF.Core 1.0.22 的 ScanGeometry]
+- 起点/终点从下拉框选扫描轴点位表里的点位名，不再用 pf:PropertyGrid 编辑一整套运动参数；
+  选中点位的位置/速度/加减速/S曲线时间以只读文本展示，核对用，不用切到轴调试页。
+- 成像参数面板（原绑定 ScanProfileParamView 的 PropertyGrid）整个移除，只留一个曝光时间
+  输入框（留空 = 不下发，沿用相机当前曝光）；换算结果区去掉帧长/行频/曝光上限三项（已经
+  在相机自己身上，不再由本页计算），改两列排布，不再拥挤。
+- ScanProfileParamView 删除（PF.Core 1.0.22 的 ScanProfile 已删除）。
+
+[新增 — LineScanCameraDebugView/ViewModel]
+- "帧触发落在相机侧"复选框，对应新增的 FrameControlConfig.TriggerOnCameraSide（PF.Core
+  1.0.22）；挂卡场景下点软触发报 MV_E_GC_ACCESS(0x80000106) 时，先检查这个开关是否该勾。
+- "读回设备当前值"（LoadFrameControlAsync）挂卡时先探相机自身 FrameTriggerMode 是否已在用，
+  是则按相机侧节点回读并自动勾选开关，不再无脑只读卡。
+
+子包版本对照：PF.Core 1.0.21→1.0.22，PF.Infrastructure 1.0.20→1.0.21。
+
 v1.0.14 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

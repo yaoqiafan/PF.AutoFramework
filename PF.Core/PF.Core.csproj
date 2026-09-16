@@ -3,8 +3,32 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.21</Version>
+		<Version>1.0.22</Version>
 		<PackageReleaseNotes>
+v1.0.22 (2026-09-16) — 线扫检测运动参数收口到轴点位表，成像参数交给相机自身配置（含破坏性变更）
+
+[破坏性变更 — ScanProfile 删除，新增 ScanGeometry]
+- ScanProfile 曾自己持有一整套运动参数（起点/终点/扫描速度/定位速度/加速度/减速度/S曲线时间/
+  加减速余量）与成像参数（行间距/曝光/最大行频/帧触发开关/帧超时倍数/轴超时），和机台上其它轴
+  统一用的"点位表 + 点位名"模式重复，且 SCurveTimeMs 字段名标"ms"、实际按秒透传给轴（与
+  AxisPoint.STime 的秒单位对不上），是个从未被发现的 1000 倍单位错误。
+- 新增 ScanGeometry(AxisPoint start, AxisPoint end) 取代：不再持有可独立编辑的运动参数，
+  StartMm/EndMm/VelocityMmPerSec/AccelerationMmPerSec2/DecelerationMmPerSec2/SCurveTimeSec
+  全部由传入的起点/终点两个 AxisPoint 直接换算（速度/加减速/S曲线时间取自终点点位），也不再
+  计算 FrameHeightLines/ActualLineRate/MaxExposureTimeUs——帧长/行频这类成像参数已经配置在
+  相机自身（UserSetDefault），不再由软件重新计算下发覆盖。Validate() 只保留"起点终点位置
+  是否相同""终点速度是否大于0"两条几何校验，行频/曝光相关校验一并移除。
+- 调用方（PF.Infrastructure 1.0.21 的 LineScanDetectionModule.ScanAsync）同步改造为按起点/
+  终点点位名调用，不再传 ScanProfile。
+
+[新增 — FrameControlConfig]
+- TriggerOnCameraSide：挂了采集卡时，帧触发（含软触发命令）是否仍下发到相机自身而不是采集卡
+  节点树，默认 false 不影响现有行为。"挂了采集卡"与"由采集卡控帧"是两件独立的事，海康官方
+  LineScanSoftwareTrigger 样例即使枚举到 CameraLink/XoF 设备也全程只用 device.Parameters，
+  从不触碰 IInterface，此前框架按"挂卡即卡控帧"二选一的假设并不总成立。
+
+子包版本对照：PF.Infrastructure 1.0.20→1.0.21，PF.Modules.Debug 1.0.14→1.0.15。
+
 v1.0.21 (2026-09-15) — 辅助编码器新增输入模式设置；修复 1.0.20 尚未发布就存在的硬件锁存空引用隐患（含破坏性变更）
 
 [新增 — IMotionCard]
