@@ -54,7 +54,7 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.2.0</Version>
+		<Version>1.2.1</Version>
 		<Description>PF.Infrastructure 依赖的第三方硬件 SDK 原生资产合集（雷赛 LTDMC 运动控制卡、
 			CTS 三色灯光源控制器 SDK、基恩士 Keyence.AutoID.SDK、Communication 通讯基础库、
 			海康 MvCodeReaderSDK 扫码枪 SDK 含原生驱动、海康 MvCameraControl.Net 相机 SDK 托管封装）。
@@ -76,24 +76,26 @@
 			必须从海康 MVS SDK 安装目录的 Libraries\win64 下手动复制，CameraLink/CXP/XoF 链路
 			还要另装 MVFG 采集卡驱动。</Description>
 		<PackageReleaseNotes>
-v1.2.0 — 源文件目录从 DLL\ 根目录搬到 DLL\Infrastructure\（与 DLL\HALCON\ 并列，按消费方分文件夹）；
-新增此前遗漏的 MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll——海康扫码枪托管封装
-MvCodeReaderSDK.Net.dll 实际会 P/Invoke 这两个原生库，PF.Infrastructure.csproj 里此前没有
-任何注释提示过，是从一台真实跑通的机器上核实出来的遗漏，走 runtimes\win-x64\native\；
-补充说明不设 RuntimeIdentifier 时 .NET 的 deps.json 原生库探测机制其实也能兜底加载成功，
-只是不便肉眼在输出目录确认文件是否存在。
+			v1.2.1 — 更新海康扫码枪的dll。
+			
+			v1.2.0 — 源文件目录从 DLL\ 根目录搬到 DLL\Infrastructure\（与 DLL\HALCON\ 并列，按消费方分文件夹）；
+			新增此前遗漏的 MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll——海康扫码枪托管封装
+			MvCodeReaderSDK.Net.dll 实际会 P/Invoke 这两个原生库，PF.Infrastructure.csproj 里此前没有
+			任何注释提示过，是从一台真实跑通的机器上核实出来的遗漏，走 runtimes\win-x64\native\；
+			补充说明不设 RuntimeIdentifier 时 .NET 的 deps.json 原生库探测机制其实也能兜底加载成功，
+			只是不便肉眼在输出目录确认文件是否存在。
 
-v1.1.0 — 新增海康 MvCodeReaderSDK.Net（扫码枪）+ MvCameraControl.Net（相机，含 .xml 文档）两个
-托管封装，与已有的 lib 资产一样走 PackageReference 编译期直接引用。MvCameraControl.Net.dll
-用 CorFlags 核实过是真正的 AnyCPU（ILOnly=true, Requires32Bit=false），此前只看 COFF Machine
-字段误判成"仅限 32 位"是错的，实际不影响 64 位进程加载；但它背后真正的原生 MvCameraControl.dll
-不在本仓库、本包无法打包，线扫/CameraLink 场景仍需按厂商 SDK 安装目录手动补文件（详见上方
-Description 与 PF.Infrastructure.csproj 里的部署注释），这一点本包解决不了。
+			v1.1.0 — 新增海康 MvCodeReaderSDK.Net（扫码枪）+ MvCameraControl.Net（相机，含 .xml 文档）两个
+			托管封装，与已有的 lib 资产一样走 PackageReference 编译期直接引用。MvCameraControl.Net.dll
+			用 CorFlags 核实过是真正的 AnyCPU（ILOnly=true, Requires32Bit=false），此前只看 COFF Machine
+			字段误判成"仅限 32 位"是错的，实际不影响 64 位进程加载；但它背后真正的原生 MvCameraControl.dll
+			不在本仓库、本包无法打包，线扫/CameraLink 场景仍需按厂商 SDK 安装目录手动补文件（详见上方
+			Description 与 PF.Infrastructure.csproj 里的部署注释），这一点本包解决不了。
 
-v1.0.0 — 首个版本：合并雷赛 LTDMC + CTS 光源控制器 SDK（4 个文件按同一批次整体维护）+
-基恩士 Keyence.AutoID.SDK + Communication 为一个资产包，取代此前"每个 DLL 单独一个包"的
-试点方案——这些文件此前全部只被 PF.Infrastructure 一个项目使用，版本天然绑在一起演进，
-拆成多个小包只会增加发布和版本管理的负担，没有实际收益。
+			v1.0.0 — 首个版本：合并雷赛 LTDMC + CTS 光源控制器 SDK（4 个文件按同一批次整体维护）+
+			基恩士 Keyence.AutoID.SDK + Communication 为一个资产包，取代此前"每个 DLL 单独一个包"的
+			试点方案——这些文件此前全部只被 PF.Infrastructure 一个项目使用，版本天然绑在一起演进，
+			拆成多个小包只会增加发布和版本管理的负担，没有实际收益。
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
