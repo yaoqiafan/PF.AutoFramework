@@ -37,6 +37,22 @@ namespace PF.Core.Entities.Hardware.Vision
         public bool TriggerEnable { get; set; }
 
         /// <summary>
+        /// 挂了采集卡时，帧触发（含软触发命令）是否仍然落在<b>相机自身</b>节点树上，
+        /// 而不是采集卡节点树。
+        ///
+        /// <para>默认 false：保持"挂卡即卡控帧"的原有行为（<c>ImageHeight</c>/<c>FrameTimeoutTime</c>/
+        /// <c>StreamTriggerEnable</c> 等写入采集卡，对应海康官方 ParameterInterface_SoftwareTrigger
+        /// 样例的用法，相机侧配合 <c>ScanMode=LineScan</c> + <c>TriggerMode=Off</c>）。</para>
+        ///
+        /// <para>true：即使挂了采集卡，帧触发（<c>FrameTriggerMode</c>/<c>FrameTriggerSource</c>/
+        /// 软触发命令）也下发到相机自身，对应海康官方 LineScanSoftwareTrigger 样例的用法——
+        /// 相机侧需配合 <c>ScanMode=FrameScan</c>，此时采集卡只承担物理连接，不参与帧边界判定。
+        /// "挂了采集卡"与"由采集卡控帧"是两件独立的事，不能划等号，具体用哪种由现场验证过的
+        /// 相机参数决定。</para>
+        /// </summary>
+        public bool TriggerOnCameraSide { get; set; }
+
+        /// <summary>
         /// 帧触发源 symbolic 值。
         /// <para>采集卡链路：如 "SoftwareSignal0"（软触发）、"QuickSoftwareTrigger0"（快速软触发，
         /// 需固件支持）或硬件信号；相机直连：如 "Software"、"Line0"。</para>

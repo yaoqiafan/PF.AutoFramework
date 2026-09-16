@@ -17,9 +17,12 @@ namespace PF.Infrastructure.Mechanisms.Vision
     /// 设备层（<see cref="ILineScanCamera"/>）刻意不引用 <see cref="IAxis"/>，
     /// 就是为了把这份时序职责收敛在这里。</para>
     ///
-    /// <para><b>编码器接线</b>：本模组假定编码器（外置磁栅读数头）**直连相机 IO**，
-    /// 而不是从轴卡取编码器信号。因此模组只负责「让轴以恒定速度走过扫描区」，
-    /// 行触发由相机自己按编码器脉冲产生，模组不参与逐行同步。</para>
+    /// <para><b>编码器接线</b>：行触发方式由调用方通过 <see cref="LineScanCameraConfig.LineTrigger"/> 指定——
+    /// 编码器可以直连相机 IO（<see cref="LineTriggerMode.Encoder"/>），也可以接在采集卡/其它设备上、
+    /// 再以外部信号线的形式转发给相机（<see cref="LineTriggerMode.ExternalLine"/>，如 CameraLink 的
+    /// <c>LinkTrigger0</c>）。调用方未指定时才兜底为编码器直连（最常见接线）。
+    /// 不论哪种接线，模组本身只负责「让轴以恒定速度走过扫描区」，逐行触发都由相机侧产生，
+    /// 模组不参与逐行同步。</para>
     ///
     /// <para><b>时序要点</b>：开流必须早于轴运动，否则起始若干行会丢；
     /// 而扫描区必须完整落在匀速段内，加减速段留在余量里（见
@@ -224,17 +227,27 @@ namespace PF.Infrastructure.Mechanisms.Vision
         {
             var config = baseConfig ?? new LineScanCameraConfig();
 
-            // 行触发固定为编码器：本模组的前提就是编码器直连相机
-            config.LineTrigger.Mode = LineTriggerMode.Encoder;
-            config.LineTrigger.AcquisitionLineRateEnable = false;   // 内部行频会与编码器抢，必须关
+            // 行触发方式尊重调用方设置；调用方完全没指定时（仍是默认 InternalRate 且未给
+            // TriggerSource/Encoder）才兜底为编码器直连相机——这是最常见的接线方式，
+            // 但不是唯一方式（比如编码器接在采集卡上、经 ExternalLine 转发给相机）。
+            bool callerSpecified = config.LineTrigger.Mode != LineTriggerMode.InternalRate
+                || config.LineTrigger.TriggerSource != null
+                || config.LineTrigger.Encoder != null;
+            if (!callerSpecified)
+                config.LineTrigger.Mode = LineTriggerMode.Encoder;
 
-            config.LineTrigger.Encoder ??= new EncoderConfig();
-
-            // 行间距是配方算出来的，回填进编码器配置，使相机侧 LineSpacingUm 与实际一致
-            if (config.LineTrigger.Encoder.PulseEquivalentUm <= 0)
+            // 编码器专属的自动回填只在真正走编码器直连时才做——ExternalLine 模式下
+            // 相机的编码器模块根本没用，不该碰它的 SourceA/SourceB。
+            if (config.LineTrigger.Mode == LineTriggerMode.Encoder)
             {
-                config.LineTrigger.Encoder.PulseEquivalentUm = profile.LineSpacingUm;
-                config.LineTrigger.Encoder.DividerRatio = 1.0;
+                config.LineTrigger.Encoder ??= new EncoderConfig();
+
+                // 行间距是配方算出来的，回填进编码器配置，使相机侧 LineSpacingUm 与实际一致
+                if (config.LineTrigger.Encoder.PulseEquivalentUm <= 0)
+                {
+                    config.LineTrigger.Encoder.PulseEquivalentUm = profile.LineSpacingUm;
+                    config.LineTrigger.Encoder.DividerRatio = 1.0;
+                }
             }
 
             if (profile.ExposureTimeUs > 0)

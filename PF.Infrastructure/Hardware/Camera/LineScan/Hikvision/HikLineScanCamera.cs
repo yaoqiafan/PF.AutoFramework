@@ -50,7 +50,21 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         private readonly uint _imageNodeNum;
 
         private IDevice? _device;
-        private IFrameControl? _frameControl;
+
+        /// <summary>挂了采集卡时的卡侧帧控制策略；未挂卡时为 null。</summary>
+        private IFrameControl? _cardFrameControl;
+
+        /// <summary>相机自身的帧控制策略，始终可用（挂卡与否都会创建）。</summary>
+        private IFrameControl? _deviceFrameControl;
+
+        /// <summary>
+        /// 当前实际生效的帧控制策略：挂卡且未要求相机侧触发时用卡侧策略，否则用相机自身。
+        /// "挂了采集卡"与"由采集卡控帧"是两件独立的事，见 <see cref="FrameControlConfig.TriggerOnCameraSide"/>。
+        /// </summary>
+        private IFrameControl? ActiveFrameControl
+            => (_cardFrameControl != null && _lastConfig?.FrameControl.TriggerOnCameraSide != true)
+                ? _cardFrameControl
+                : _deviceFrameControl;
 
         private Thread? _receiveThread;
         private volatile bool _isGrabbing;
@@ -128,7 +142,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         public override bool IsGrabbing => _isGrabbing;
 
         /// <summary>当前生效的帧控制落点描述（"采集卡[xx]" 或 "相机自身(直连)"），供调试面板展示。</summary>
-        public string FrameControlDescription => _frameControl?.Description ?? "未连接";
+        public string FrameControlDescription => ActiveFrameControl?.Description ?? "未连接";
 
         #region BaseDevice 钩子
 
@@ -217,16 +231,17 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 var accessor = new GenICamNodeAccessor(() => _device?.Parameters, HardwareLogger, DeviceName);
                 NodeAccessor = accessor;
 
-                // 帧长/帧触发写哪棵节点树，由是否挂了采集卡决定
-                _frameControl = Parent != null
-                    ? new InterfaceFrameControl(Parent)
-                    : new DeviceFrameControl(accessor, HardwareLogger, DeviceName);
+                // 相机自身的帧控制策略始终创建；挂了卡时额外创建卡侧策略。
+                // 两者都备好后，实际用哪个由每次下发的配置（TriggerOnCameraSide）决定——
+                // "挂了采集卡"不等于"由采集卡控帧"，见 ActiveFrameControl。
+                _deviceFrameControl = new DeviceFrameControl(accessor, HardwareLogger, DeviceName);
+                _cardFrameControl = Parent != null ? new InterfaceFrameControl(Parent) : null;
 
                 // 采集模式固定为连续：线扫的"一帧"由帧长/帧触发界定，与相机的单帧/多帧采集模式无关
                 accessor.SetIfPresent("AcquisitionMode", "Continuous");
 
                 HardwareLogger.Info($"[{DeviceName}] 相机已打开：{_modelName} (SN={_resolvedSerialNumber}, "
-                    + $"传输层={_transportLayer}, 帧控制落点={_frameControl.Description})。");
+                    + $"传输层={_transportLayer}, 帧控制落点={ActiveFrameControl?.Description ?? "未知"})。");
                 return true;
             }, token);
 
@@ -262,8 +277,11 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// <summary>
         /// 内部复位：相机无机械动作，重新打开并把最近一次配置补发一遍
         /// （相机断电重启后参数会回到设备默认值，不补发会静默地按错误参数扫描）。
-        /// <para>只补发相机侧参数——帧控制已由 <see cref="InternalConnectAsync"/> 在开相机前写入采集卡，
-        /// 这里再调 <see cref="ApplyConfigAsync"/> 会触发一次多余的重连。</para>
+        /// <para>只补发相机侧参数——帧控制若落在采集卡上，已由 <see cref="InternalConnectAsync"/>
+        /// 在开相机前写入采集卡，这里再调 <see cref="ApplyConfigAsync"/> 会触发一次多余的重连；
+        /// 但帧控制若要求落在相机自身（<see cref="FrameControlConfig.TriggerOnCameraSide"/>），
+        /// 重连不会自动补发，必须在这里额外重发一次，否则复位后相机的 FrameTriggerMode 会
+        /// 回到设备默认值，静默丢失软触发能力。</para>
         /// </summary>
         protected override async Task InternalResetAsync(CancellationToken token)
         {
@@ -272,7 +290,12 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             if (!await InternalConnectAsync(token)) return;
 
             if (_lastConfig != null)
+            {
                 await ApplyCameraSideAsync(_lastConfig, token);
+
+                if (_lastConfig.FrameControl.TriggerOnCameraSide)
+                    await ApplyFrameControlCoreAsync(_lastConfig.FrameControl, token);
+            }
         }
 
         /// <summary>
@@ -352,8 +375,9 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// </summary>
         private Task ApplyFrameControlCoreAsync(FrameControlConfig frameControl, CancellationToken token)
         {
-            if (_frameControl != null)
-                return _frameControl.ApplyAsync(frameControl, token);
+            var fc = ActiveFrameControl;
+            if (fc != null)
+                return fc.ApplyAsync(frameControl, token);
 
             HardwareLogger.Debug($"[{DeviceName}] 相机未连接，帧控制配置已缓存，将在连接时下发。");
             return Task.CompletedTask;
@@ -363,10 +387,13 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// 相机打开之后把帧控制配置补写进采集卡。由 <see cref="InternalConnectAsync"/> 在开相机成功后调用，
         /// 使重连/复位后卡上的流参数自动恢复，不必等调用方再下发一次。
         /// 首次连接前若从未下发过配置则跳过——此时卡沿用自身当前值。
+        /// <para>配置要求相机侧触发（<see cref="FrameControlConfig.TriggerOnCameraSide"/>）时也跳过——
+        /// 这种模式下帧控制根本不该出现在卡上，补发反而会把卡的触发配置搅乱。</para>
         /// </summary>
         private async Task ApplyFrameControlToCardAsync(CancellationToken token)
         {
             if (IsSimulated || Parent == null || _lastConfig == null) return;
+            if (_lastConfig.FrameControl.TriggerOnCameraSide) return;
 
             await Parent.ApplyFrameControlAsync(_lastConfig.FrameControl, token);
         }
@@ -689,7 +716,11 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
 
         #region 触发与取帧
 
-        /// <summary>发送一次帧软触发，转交给当前帧控制策略（挂卡时发采集卡命令，直连时发相机命令）。</summary>
+        /// <summary>
+        /// 发送一次帧软触发，转交给当前生效的帧控制策略——挂卡但配置要求相机侧触发
+        /// （<see cref="FrameControlConfig.TriggerOnCameraSide"/>）时发相机命令，
+        /// 否则挂卡发采集卡命令、直连发相机命令。
+        /// </summary>
         public override Task<bool> SoftwareTriggerFrameAsync(CancellationToken token = default)
         {
             if (IsSimulated)
@@ -698,7 +729,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 return Task.FromResult(true);
             }
 
-            var fc = _frameControl;
+            var fc = ActiveFrameControl;
             if (fc == null)
             {
                 HardwareLogger.Warn($"[{DeviceName}] 相机未连接，无法发送帧软触发。");
@@ -993,7 +1024,8 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         private void DisposeDevice()
         {
             NodeAccessor = null;
-            _frameControl = null;
+            _cardFrameControl = null;
+            _deviceFrameControl = null;
 
             // 先销号再释放：即使 Dispose 抛异常，占用登记也不能留下（否则重连会被自己拦住）
             if (_openedDeviceKey != null)
