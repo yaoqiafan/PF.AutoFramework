@@ -9,7 +9,6 @@ using Prism.Commands;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,10 +20,14 @@ namespace PF.Modules.Debug.ViewModels
     /// <summary>
     /// 线扫检测模组调试 ViewModel。
     ///
-    /// <para><b>这个面板真正的价值在"边填边算"</b>：线扫的帧长、行频、曝光上限、加减速余量
-    /// 是互相牵制的，任何一个填错，症状都只是"图不对"，而原因分别落在轴、相机、光学三处。
-    /// 配方每改一次就重算换算结果并跑一次校验，让参数在**按下扫描之前**就能看出是否自洽；
+    /// <para><b>这个面板真正的价值在"边选边看"</b>：起点/终点点位一改就重算行程、理论加减速距离、
+    /// 理论帧时间，并跑一次校验，让"轴这段能不能走"在**按下扫描之前**就能看出来；
     /// 校验不过时「开始扫描」直接禁用。</para>
+    ///
+    /// <para><b>运动参数不在这个面板编辑</b>：位置/速度/加减速/S曲线时间来自选中的起点/终点
+    /// 两个轴点位在点表里的配置——要改运动参数，去轴自己的调试页改点表，这里只选"用哪两个点"。
+    /// <b>帧长/行频这类成像参数也不在这个面板编辑</b>：它们已经配置在相机自己身上
+    /// （UserSetDefault），这里只留一个曝光时间——留空表示不下发，沿用相机当前曝光。</para>
     ///
     /// <para>模组实例通过 <see cref="IMechanism"/> 集合按类型筛选获得，而不是按 DryIoc 服务键解析——
     /// 一台设备上可能有多条扫描线，各自是一个 LineScanDetectionModule 实例，
@@ -35,8 +38,8 @@ namespace PF.Modules.Debug.ViewModels
         private readonly CategoryLogger _logger;
         private readonly DispatcherTimer _statusTimer;
 
-        /// <summary>由 <see cref="Profile"/> 换算出的配方快照，供只读展示属性读取。</summary>
-        private ScanProfile _derived = new();
+        /// <summary>由选中的起点/终点点位换算出的几何快照，供只读展示属性读取；无法解析点位时为 null。</summary>
+        private ScanGeometry? _derived;
 
         private CancellationTokenSource? _scanCts;
 
@@ -49,9 +52,6 @@ namespace PF.Modules.Debug.ViewModels
                 Modules.Add(m);
 
             SelectedModule = Modules.FirstOrDefault();
-
-            // PropertyGrid 改任何一项都要重算派生量与校验，故订阅整个视图对象的属性变更
-            Profile.PropertyChanged += OnProfileChanged;
 
             InitializeCommands();
 
@@ -72,7 +72,7 @@ namespace PF.Modules.Debug.ViewModels
         public LineScanDetectionModule? SelectedModule
         {
             get => _selectedModule;
-            set { if (SetProperty(ref _selectedModule, value)) RefreshModuleInfo(); }
+            set { if (SetProperty(ref _selectedModule, value)) { RefreshModuleInfo(); RefreshPointNames(); } }
         }
 
         private string _moduleName = "未找到线扫检测模组";
@@ -104,51 +104,77 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         private string _axisPosition = "-";
-        /// <summary>扫描轴当前位置（实时刷新，用于确认起止点填得对不对）。</summary>
+        /// <summary>扫描轴当前位置（实时刷新，用于确认起止点选得对不对）。</summary>
         public string AxisPosition { get => _axisPosition; set => SetProperty(ref _axisPosition, value); }
 
         #endregion
 
-        #region 【扫描配方】
+        #region 【起点/终点点位】
 
+        /// <summary>扫描轴点表里的全部点位名，供两个下拉框选择。</summary>
+        public ObservableCollection<string> PointNames { get; } = new();
+
+        private string? _selectedStartPointName;
+        /// <summary>扫描起点点位名（图像第一行对应的位置）。</summary>
+        public string? SelectedStartPointName
+        {
+            get => _selectedStartPointName;
+            set { if (SetProperty(ref _selectedStartPointName, value)) RefreshDerived(); }
+        }
+
+        private string? _selectedEndPointName;
+        /// <summary>扫描终点点位名（图像最后一行对应的位置；速度/加减速/S曲线时间均取自这个点位）。</summary>
+        public string? SelectedEndPointName
+        {
+            get => _selectedEndPointName;
+            set { if (SetProperty(ref _selectedEndPointName, value)) RefreshDerived(); }
+        }
+
+        private string _startPointDetailText = "-";
+        /// <summary>起点在轴点表里的详情（位置/速度），核对用，不用切到轴调试页。</summary>
+        public string StartPointDetailText { get => _startPointDetailText; set => SetProperty(ref _startPointDetailText, value); }
+
+        private string _endPointDetailText = "-";
+        /// <summary>终点在轴点表里的详情（位置/速度/加减速/S曲线时间），核对用。</summary>
+        public string EndPointDetailText { get => _endPointDetailText; set => SetProperty(ref _endPointDetailText, value); }
+
+        #endregion
+
+        #region 【曝光】
+
+        private string _exposureTimeUs = string.Empty;
         /// <summary>
-        /// 扫描配方编辑对象，绑给 pf:PropertyGrid。
-        /// 带 [Category]/[DisplayName]/[Description]，属性说明直接在网格里可见。
+        /// 曝光时间（μs），留空表示不下发、沿用相机当前曝光。
+        /// 帧长/行频等其它成像参数不在这里改——它们已经配置在相机自己身上（UserSetDefault）。
         /// </summary>
-        public ScanProfileParamView Profile { get; } = new();
+        public string ExposureTimeUs { get => _exposureTimeUs; set => SetProperty(ref _exposureTimeUs, value); }
 
         #endregion
 
         #region 【换算结果 —— 只读】
 
-        /// <summary>扫描行程（mm）。</summary>
-        public string ScanLengthText => $"{_derived.ScanLengthMm:F2} mm";
+        /// <summary>扫描行程。</summary>
+        public string ScanLengthText => _derived != null ? $"{_derived.ScanLengthMm:F2}" : "-";
 
-        /// <summary>帧长（行）= 行程 ÷ 行间距。</summary>
-        public string FrameHeightText => $"{_derived.FrameHeightLines} 行";
+        /// <summary>
+        /// 理论加减速距离，仅供参考——判断起点到终点这段行程够不够轴提上速/减下速。
+        /// 不是硬性校验：余量已经交给起点/终点两个点位自己的位置去把握。
+        /// </summary>
+        public string AccelDistanceText => _derived != null
+            ? $"加速 {_derived.TheoreticalAccelDistanceMm:F2} / 减速 {_derived.TheoreticalDecelDistanceMm:F2}（仅供参考，实际行程 {_derived.ScanLengthMm:F2}）"
+            : "-";
 
-        /// <summary>实际行频（行/秒）= 速度 ÷ 行间距。</summary>
-        public string ActualLineRateText => $"{_derived.ActualLineRate:F0} 行/秒";
-
-        /// <summary>行周期，即单行可用的最长曝光时间。</summary>
-        public string MaxExposureText => $"{_derived.MaxExposureTimeUs:F1} μs";
-
-        /// <summary>理论加减速距离。</summary>
-        public string AccelDistanceText
-            => $"加速 {_derived.TheoreticalAccelDistanceMm:F2} / 减速 {_derived.TheoreticalDecelDistanceMm:F2} mm";
-
-        /// <summary>轴实际要走的起止位置（含加减速余量）。</summary>
-        public string MoveRangeText => $"{_derived.MoveStartMm:F2} → {_derived.MoveEndMm:F2} mm";
-
-        /// <summary>理论帧时间与据此推出的帧超时。</summary>
-        public string FrameTimeText => $"{_derived.EstimatedFrameTimeMs} ms（帧超时 {_derived.FrameTimeoutMs} ms）";
+        /// <summary>理论帧时间与据此推出的等帧超时。</summary>
+        public string FrameTimeText => _derived != null
+            ? $"{_derived.EstimatedFrameTimeMs} ms（等帧超时 {_derived.FrameTimeoutMs} ms）"
+            : "-";
 
         private string _validationText = string.Empty;
-        /// <summary>配方校验问题清单；为空表示通过。</summary>
+        /// <summary>几何校验问题清单；为空表示通过。</summary>
         public string ValidationText { get => _validationText; set => SetProperty(ref _validationText, value); }
 
         private bool _isProfileValid;
-        /// <summary>配方是否通过校验。</summary>
+        /// <summary>当前选择是否通过校验。</summary>
         public bool IsProfileValid
         {
             get => _isProfileValid;
@@ -194,11 +220,17 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand AbortCommand { get; private set; } = null!;
         /// <summary>把扫描轴移动到扫描起点（不扫描，用于对位）</summary>
         public DelegateCommand GotoStartCommand { get; private set; } = null!;
+        /// <summary>重新从轴点表读取点位名列表（点表在别处被改过时用）</summary>
+        public DelegateCommand RefreshPointsCommand { get; private set; } = null!;
 
         private void InitializeCommands()
         {
-            InitializeModuleCommand = new DelegateCommand(() => RunAsync("初始化模组",
-                async () => { if (SelectedModule != null) await SelectedModule.InitializeAsync(); RefreshModuleInfo(); }));
+            InitializeModuleCommand = new DelegateCommand(() => RunAsync("初始化模组", async () =>
+            {
+                if (SelectedModule != null) await SelectedModule.InitializeAsync();
+                RefreshModuleInfo();
+                RefreshPointNames();
+            }));
 
             ResetModuleCommand = new DelegateCommand(() => RunAsync("复位模组",
                 async () => { if (SelectedModule != null) await SelectedModule.ResetAsync(); }));
@@ -210,13 +242,13 @@ namespace PF.Modules.Debug.ViewModels
             {
                 var axis = SelectedModule?.ScanAxis;
                 if (axis == null) { LogWarn("模组未初始化，取不到扫描轴。"); return; }
+                if (string.IsNullOrEmpty(SelectedStartPointName)) { LogWarn("未选择起点点位。"); return; }
 
-                // 走到含加速余量的实际起点，与扫描时的起始位置完全一致，便于目视对位
-                await axis.MoveAbsoluteAsync(_derived.MoveStartMm, _derived.EffectivePositioningVelocity,
-                    _derived.AccelerationMmPerSec2, _derived.EffectiveDeceleration, _derived.SCurveTimeMs);
-
-                Log($"扫描轴移动到起始位 {_derived.MoveStartMm:F2}mm。");
+                await axis.MoveToPointAsync(SelectedStartPointName);
+                Log($"扫描轴移动到起点 '{SelectedStartPointName}'。");
             }));
+
+            RefreshPointsCommand = new DelegateCommand(RefreshPointNames);
 
             ScanCommand = new DelegateCommand(ExecuteScan, () => !IsScanning && IsProfileValid);
 
@@ -231,6 +263,11 @@ namespace PF.Modules.Debug.ViewModels
         private void ExecuteScan() => RunAsync("扫描", async () =>
         {
             if (SelectedModule == null) { LogWarn("未选择模组。"); return; }
+            if (string.IsNullOrEmpty(SelectedStartPointName) || string.IsNullOrEmpty(SelectedEndPointName))
+            {
+                LogWarn("请先选择起点与终点点位。");
+                return;
+            }
 
             IsScanning = true;
             PreviewHint = "扫描中...";
@@ -238,10 +275,16 @@ namespace PF.Modules.Debug.ViewModels
             var cts = new CancellationTokenSource();
             _scanCts = cts;
 
+            // 曝光留空 = 不下发，沿用相机当前曝光；填了才组一份只带曝光的相机配置
+            LineScanCameraConfig? config = double.TryParse(ExposureTimeUs, out var exp) && exp > 0
+                ? new LineScanCameraConfig { ExposureTimeUs = exp }
+                : null;
+
             var startedAt = DateTime.Now;
             try
             {
-                var frame = await SelectedModule.ScanAsync(Profile.ToProfile(), null, cts.Token);
+                var frame = await SelectedModule.ScanAsync(
+                    SelectedStartPointName, SelectedEndPointName, config, cts.Token);
 
                 double elapsed = (DateTime.Now - startedAt).TotalMilliseconds;
                 ResultText = $"{frame.Width}×{frame.Height}，{frame.SizeBytes / 1024.0 / 1024.0:F2}MB，"
@@ -264,29 +307,60 @@ namespace PF.Modules.Debug.ViewModels
 
         #region 【私有辅助】
 
-        private void OnProfileChanged(object? sender, PropertyChangedEventArgs e) => RefreshDerived();
+        /// <summary>
+        /// 重新从扫描轴点表读取点位名列表。选中项若还在新列表里就保留，否则清空——
+        /// 不能悄悄留着一个已经不存在的点位名，那样换算结果会用着旧值却不吭声。
+        /// </summary>
+        private void RefreshPointNames()
+        {
+            var axis = SelectedModule?.ScanAxis;
+            var names = axis?.PointTable.Select(p => p.Name).ToList() ?? new List<string>();
+
+            PointNames.Clear();
+            foreach (var n in names) PointNames.Add(n);
+
+            if (SelectedStartPointName != null && !names.Contains(SelectedStartPointName))
+                SelectedStartPointName = null;
+            if (SelectedEndPointName != null && !names.Contains(SelectedEndPointName))
+                SelectedEndPointName = null;
+
+            RefreshDerived();
+        }
 
         /// <summary>
         /// 重算全部派生量并跑一次校验。
-        /// <para>每次输入变化都重算，是为了让"这组参数自不自洽"在按下扫描**之前**就可见——
-        /// 事后从一张废图倒推是轴、相机还是光学的问题，代价高得多。</para>
+        /// <para>每次点位选择变化都重算，是为了让"这组起点/终点走不走得通"在按下扫描**之前**就可见。</para>
         /// </summary>
         private void RefreshDerived()
         {
-            _derived = Profile.ToProfile();
+            var axis = SelectedModule?.ScanAxis;
+            var start = axis?.PointTable.FirstOrDefault(p => p.Name == SelectedStartPointName);
+            var end = axis?.PointTable.FirstOrDefault(p => p.Name == SelectedEndPointName);
+
+            StartPointDetailText = start != null
+                ? $"{start.TargetPosition:F2} @ {start.Speed:F1}/s"
+                : "未选择";
+            EndPointDetailText = end != null
+                ? $"{end.TargetPosition:F2} @ {end.Speed:F1}/s，加速{end.Acc:F0}/减速{end.Dec:F0}，S曲线{end.STime:F3}s"
+                : "未选择";
+
+            _derived = (start != null && end != null) ? new ScanGeometry(start, end) : null;
 
             RaisePropertyChanged(nameof(ScanLengthText));
-            RaisePropertyChanged(nameof(FrameHeightText));
-            RaisePropertyChanged(nameof(ActualLineRateText));
-            RaisePropertyChanged(nameof(MaxExposureText));
             RaisePropertyChanged(nameof(AccelDistanceText));
-            RaisePropertyChanged(nameof(MoveRangeText));
             RaisePropertyChanged(nameof(FrameTimeText));
+
+            if (_derived == null)
+            {
+                IsProfileValid = false;
+                ValidationText = "请先选择起点与终点点位。";
+                return;
+            }
 
             var problems = _derived.Validate();
             IsProfileValid = problems.Count == 0;
             ValidationText = problems.Count == 0
-                ? "配方校验通过。"
+                ? "校验通过。"
                 : "· " + string.Join("\n· ", problems);
         }
 
@@ -318,7 +392,7 @@ namespace PF.Modules.Debug.ViewModels
             HasAlarm = module.HasAlarm;
 
             double? pos = module.ScanAxis?.CurrentPosition;
-            AxisPosition = pos.HasValue ? $"{pos.Value:F3} mm" : "-";
+            AxisPosition = pos.HasValue ? $"{pos.Value:F3}" : "-";
         }
 
         /// <summary>统一的异步命令外壳：吞掉异常并落到日志栏与顶部反馈，不让 async void 击穿进程。</summary>
@@ -337,7 +411,7 @@ namespace PF.Modules.Debug.ViewModels
             }
             catch (Exception ex)
             {
-                // 配方校验失败会带整段问题清单，原样输出比截断更有用
+                // 校验失败会带整段问题清单，原样输出比截断更有用
                 DebugMessage = $"{opName}失败：{ex.Message}";
                 _logger.Error($"[{ModuleName}] {opName}失败：{ex.Message}");
                 PreviewHint = $"{opName}失败：{ex.Message}";
@@ -356,11 +430,10 @@ namespace PF.Modules.Debug.ViewModels
             _logger.Warn($"[{ModuleName}] {message}");
         }
 
-        /// <summary>视图销毁时停掉轮询并退订配方变更。</summary>
+        /// <summary>视图销毁时停掉轮询。</summary>
         public override void Destroy()
         {
             _statusTimer.Stop();
-            Profile.PropertyChanged -= OnProfileChanged;
         }
 
         #endregion

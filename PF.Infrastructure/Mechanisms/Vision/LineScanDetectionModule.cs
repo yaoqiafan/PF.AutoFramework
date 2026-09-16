@@ -1,4 +1,5 @@
-﻿using PF.Core.Attributes;
+using PF.Core.Attributes;
+using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Hardware.Vision;
 using PF.Core.Enums.Hardware.Vision;
 using PF.Core.Interfaces.Configuration;
@@ -12,6 +13,14 @@ namespace PF.Infrastructure.Mechanisms.Vision
     /// <summary>
     /// 线扫检测模组 —— 把「轴运动」与「相机取流」编排到一起，扫出一张完整图像。
     ///
+    /// <para><b>像一台"设备"</b>：给起点/终点两个轴点位名，吐一张图，仅此而已。
+    /// 位置/速度/加减速/S曲线时间一律来自轴自己的点位表（<see cref="AxisPoint"/>）——
+    /// 机台上其它轴全部走"点位表 + 点位名"，线扫轴没有理由在这单独维护一套重复的运动参数，
+    /// 也不会因为字段命名和轴的实际单位对不上而踩坑（见 <see cref="ScanGeometry"/> 的说明）。
+    /// 帧长/行频/曝光这类成像参数也不在这里——它们已经配置在相机自己身上（UserSetDefault），
+    /// 本模组不重新计算、不下发覆盖，只在需要临时改曝光这类个别项时，由调用方在
+    /// <see cref="LineScanCameraConfig"/> 里显式指定。</para>
+    ///
     /// <para><b>为什么必须有这一层</b>：线阵相机每次只曝光一行，图像的第二个维度完全由运动提供。
     /// 相机自己不知道轴走到哪了，轴也不知道相机在不在取流——两者的时序只能由机构层负责。
     /// 设备层（<see cref="ILineScanCamera"/>）刻意不引用 <see cref="IAxis"/>，
@@ -24,15 +33,16 @@ namespace PF.Infrastructure.Mechanisms.Vision
     /// 不论哪种接线，模组本身只负责「让轴以恒定速度走过扫描区」，逐行触发都由相机侧产生，
     /// 模组不参与逐行同步。</para>
     ///
-    /// <para><b>时序要点</b>：开流必须早于轴运动，否则起始若干行会丢；
-    /// 而扫描区必须完整落在匀速段内，加减速段留在余量里（见
-    /// <see cref="ScanProfile.EffectiveApproachMarginMm"/>）。</para>
+    /// <para><b>时序要点</b>：开流、帧触发都必须早于轴运动，否则起始若干行会丢或被算进上一帧。
+    /// 起点到终点这段行程里含不含足够的加减速余量，由起点/终点两个点位在点表里的位置自己决定——
+    /// 本模组不再自动往外插一段"回退加速距离"，行程头尾几行的曝光时间会因为还没提上速/正在减速
+    /// 而略有不均，如果这点亮度差异对检测有影响，请在轴点位表里把起点/终点往外多挪一点。</para>
     /// </summary>
     [MechanismUI("线扫检测模组", "LineScanDetectionModuleDebugView", 20)]
     public class LineScanDetectionModule : BaseMechanism
     {
-        /// <summary>等待轴到达指定位置时的轮询间隔（ms）。</summary>
-        private const int ReachPollIntervalMs = 5;
+        /// <summary>轴移动到位/走完的等待超时（ms）。不是成像相关量，不需要按扫描配置，固定给个宽裕值。</summary>
+        private const int AxisTimeoutMs = 60_000;
 
         private readonly string _scanAxisDeviceId;
         private readonly string _cameraDeviceId;
@@ -119,53 +129,57 @@ namespace PF.Infrastructure.Mechanisms.Vision
         /// <summary>
         /// 执行一次完整扫描并返回图像。
         ///
-        /// <para>九步时序：校验配方 → 下发相机配置 → 轴回到起点（含加速余量）→ 开流 →
-        /// 轴启动扫描运动（不等待）→ 到达扫描起点时发帧触发 → 等一帧 → 等轴走完 → 停流。</para>
+        /// <para>时序：校验几何 → 下发相机配置 → 轴移动到起点并等停稳 → 开流 → 武装帧触发 →
+        /// 启动扫描运动（不等待）→ 等一帧 → 等轴走完 → 停流。</para>
         /// </summary>
-        /// <param name="profile">扫描配方。会先经 <see cref="ScanProfile.Validate"/> 校验。</param>
+        /// <param name="startPointName">扫描起点的轴点位名（图像第一行对应的位置）。</param>
+        /// <param name="endPointName">
+        /// 扫描终点的轴点位名（图像最后一行对应的位置）。本次扫描实际用的速度/加速度/减速度/
+        /// S曲线时间，全部取自这个点位在轴点位表里的配置。
+        /// </param>
         /// <param name="baseConfig">
-        /// 相机基础配置（像素格式、增益、编码器接线等）。为 null 时新建一份默认配置。
-        /// 其中的帧长、帧超时、曝光、帧触发开关会被 <paramref name="profile"/> 覆盖——
-        /// 这几项由扫描几何决定，不该由调用方另填一遍。
+        /// 相机配置（像素格式、增益、编码器接线、曝光等）。为 null 时新建一份默认配置，
+        /// 此时不下发任何相机侧参数，沿用相机当前值（通常是它自己的 UserSetDefault）。
+        /// 帧长/行频不在这里覆盖——它们已经配置在相机自己身上，本模组不重新计算。
         /// </param>
         /// <param name="token">取消令牌。</param>
         /// <returns>扫描得到的一帧完整图像。</returns>
-        /// <exception cref="InvalidOperationException">配方校验不通过，或轴/相机动作失败。</exception>
+        /// <exception cref="KeyNotFoundException">起点或终点点位在轴点位表里不存在。</exception>
+        /// <exception cref="InvalidOperationException">几何校验不通过，或轴/相机动作失败。</exception>
         /// <exception cref="TimeoutException">在帧超时内没有收到完整帧。</exception>
-        public async Task<LineScanFrame> ScanAsync(ScanProfile profile,
+        public async Task<LineScanFrame> ScanAsync(string startPointName, string endPointName,
             LineScanCameraConfig? baseConfig = null, CancellationToken token = default)
         {
             CheckReady();
 
-            ArgumentNullException.ThrowIfNull(profile);
             if (_scanAxis == null || _camera == null)
                 throw new InvalidOperationException($"模组 [{MechanismName}] 尚未解析到扫描轴或相机。");
 
-            // ① 配方自洽性校验：配错的症状都是"图不对"，但原因分别在轴、相机、光学，
-            //    与其扫完一张废图再回头猜，不如在这里一次把问题全列出来
-            var problems = profile.Validate();
+            var startPoint = FindPoint(startPointName);
+            var endPoint = FindPoint(endPointName);
+            var geometry = new ScanGeometry(startPoint, endPoint);
+
+            // ① 几何自洽性校验：起点/终点位置不对、终点没配速度，这些不拦住的话，
+            //    症状都只是"轴动不起来"或"图整体偏移"，事后排查代价更高
+            var problems = geometry.Validate();
             if (problems.Count > 0)
             {
                 string detail = string.Join("\n  · ", problems);
-                throw new InvalidOperationException($"[{MechanismName}] 扫描配方校验未通过：\n  · {detail}");
+                throw new InvalidOperationException($"[{MechanismName}] 扫描几何校验未通过：\n  · {detail}");
             }
 
-            _logger.Info($"[{MechanismName}] 开始扫描：{profile}");
+            _logger.Info($"[{MechanismName}] 开始扫描：{geometry}");
 
             bool grabbing = false;
             try
             {
-                // ② 下发相机配置
-                var config = BuildConfig(profile, baseConfig);
+                // ② 下发相机配置（曝光等个别项由调用方指定，其余沿用相机自身当前值）
+                var config = BuildConfig(baseConfig);
                 await _camera.ApplyConfigAsync(config, token);
 
-                // ③ 轴回到起点（比扫描起点多退一个加速余量，让扫描区完整落在匀速段）
-                if (!await MoveAbsAndWaitAsync(_scanAxis, profile.MoveStartMm,
-                        profile.EffectivePositioningVelocity, profile.AccelerationMmPerSec2,
-                        profile.EffectiveDeceleration, profile.SCurveTimeMs, profile.AxisTimeoutMs, token))
-                {
-                    throw new InvalidOperationException($"[{MechanismName}] 轴未能回到扫描起始位 {profile.MoveStartMm:F2}mm。");
-                }
+                // ③ 轴移动到起点，完全停稳（用起点自身在点表里配置的速度/加减速）
+                if (!await MoveToPointAndWaitAsync(_scanAxis, startPointName, AxisTimeoutMs, token))
+                    throw new InvalidOperationException($"[{MechanismName}] 轴未能到达扫描起点 '{startPointName}'。");
 
                 // ④ 开流——必须早于轴运动，晚了会丢掉起始若干行
                 if (!await _camera.ArmAsync(token))
@@ -173,29 +187,21 @@ namespace PF.Infrastructure.Mechanisms.Vision
 
                 grabbing = true;
 
-                // ⑤ 启动扫描运动，**不等待到位**：后面还要在运动过程中触发和收帧
-                if (!await _scanAxis.MoveAbsoluteAsync(profile.MoveEndMm, profile.ScanVelocityMmPerSec,
-                        profile.AccelerationMmPerSec2, profile.EffectiveDeceleration, profile.SCurveTimeMs, token))
-                {
+                // ⑤ 帧触发——先武装好帧再让轴动。不再有独立的回退加速点，
+                //    轴一启动就已经在扫描区内，没有"等到达某个中间位置再触发"的必要
+                if (!await _camera.SoftwareTriggerFrameAsync(token))
+                    throw new InvalidOperationException($"[{MechanismName}] 帧软触发失败，扫描中止。");
+
+                // ⑥ 启动扫描运动（用终点自身在点表里配置的速度/加减速），**不等待到位**——
+                //    后面还要在运动过程中收帧
+                if (!await _scanAxis.MoveToPointAsync(endPointName, token))
                     throw new InvalidOperationException($"[{MechanismName}] 扫描运动指令下发失败。");
-                }
-
-                // ⑥ 帧触发模式：等轴真正进入扫描区再起帧，
-                //    否则加速段的编码器脉冲会被算进这一帧，图像整体偏移
-                if (profile.UseFrameTrigger)
-                {
-                    await WaitAxisReachAsync(_scanAxis, profile.ScanStartMm, profile.Direction,
-                        profile.AxisTimeoutMs, token);
-
-                    if (!await _camera.SoftwareTriggerFrameAsync(token))
-                        throw new InvalidOperationException($"[{MechanismName}] 帧软触发失败，扫描中止。");
-                }
 
                 // ⑦ 等一帧完整图像
-                var frame = await _camera.WaitFrameAsync(profile.FrameTimeoutMs, token);
+                var frame = await _camera.WaitFrameAsync(geometry.FrameTimeoutMs, token);
 
-                // ⑧ 等轴走完（含减速余量），保证下一次动作从静止开始
-                await WaitAxisMoveDoneAsync(_scanAxis, profile.AxisTimeoutMs, profile.MoveEndMm, token);
+                // ⑧ 等轴走完，保证下一次动作从静止开始
+                await WaitAxisMoveDoneAsync(_scanAxis, AxisTimeoutMs, geometry.EndMm, token);
 
                 _logger.Success($"[{MechanismName}] 扫描完成：{frame.Width}×{frame.Height}，"
                     + $"{frame.SizeBytes / 1024.0 / 1024.0:F2}MB，帧号 {frame.FrameNumber}。");
@@ -220,10 +226,11 @@ namespace PF.Infrastructure.Mechanisms.Vision
         }
 
         /// <summary>
-        /// 按扫描配方组装相机配置：帧长、帧超时、曝光、帧触发开关由几何决定，覆盖基础配置里的同名项。
-        /// 其余（像素格式、增益、编码器接线）沿用基础配置。
+        /// 组装相机配置：只补两件本模组的时序恒定依赖的事——行触发方式（未指定时兜底编码器直连）、
+        /// 帧触发必须打开（本模组的扫描流程恒定走帧触发）。其余（像素格式、增益、曝光、帧长、行频……）
+        /// 一律沿用调用方传入的配置或相机自身当前值，不重新计算、不覆盖。
         /// </summary>
-        private static LineScanCameraConfig BuildConfig(ScanProfile profile, LineScanCameraConfig? baseConfig)
+        private static LineScanCameraConfig BuildConfig(LineScanCameraConfig? baseConfig)
         {
             var config = baseConfig ?? new LineScanCameraConfig();
 
@@ -236,60 +243,17 @@ namespace PF.Infrastructure.Mechanisms.Vision
             if (!callerSpecified)
                 config.LineTrigger.Mode = LineTriggerMode.Encoder;
 
-            // 编码器专属的自动回填只在真正走编码器直连时才做——ExternalLine 模式下
-            // 相机的编码器模块根本没用，不该碰它的 SourceA/SourceB。
-            if (config.LineTrigger.Mode == LineTriggerMode.Encoder)
-            {
-                config.LineTrigger.Encoder ??= new EncoderConfig();
-
-                // 行间距是配方算出来的，回填进编码器配置，使相机侧 LineSpacingUm 与实际一致
-                if (config.LineTrigger.Encoder.PulseEquivalentUm <= 0)
-                {
-                    config.LineTrigger.Encoder.PulseEquivalentUm = profile.LineSpacingUm;
-                    config.LineTrigger.Encoder.DividerRatio = 1.0;
-                }
-            }
-
-            if (profile.ExposureTimeUs > 0)
-                config.ExposureTimeUs = profile.ExposureTimeUs;
-
-            config.FrameControl.ImageHeight = profile.FrameHeightLines;
-            config.FrameControl.FrameTimeoutMs = profile.FrameTimeoutMs;
-            config.FrameControl.TriggerEnable = profile.UseFrameTrigger;
+            config.FrameControl.TriggerEnable = true;
 
             return config;
         }
 
-        /// <summary>
-        /// 等待轴到达（或越过）指定位置。
-        /// <para>按扫描方向判断"到没到"：正向时位置 ≥ 目标，反向时 ≤ 目标。
-        /// 用越过而非相等来判定，是因为轮询必然会错过精确相等的瞬间。</para>
-        /// </summary>
-        private async Task WaitAxisReachAsync(IAxis axis, double targetMm, int direction,
-            int timeoutMs, CancellationToken token)
+        /// <summary>按名称在扫描轴点表里查找点位；不存在则抛出，报错信息直接指路"去哪加"。</summary>
+        private AxisPoint FindPoint(string pointName)
         {
-            var deadline = DateTime.Now.AddMilliseconds(timeoutMs);
-
-            while (true)
-            {
-                token.ThrowIfCancellationRequested();
-
-                double? pos = axis.CurrentPosition;
-                if (pos.HasValue)
-                {
-                    bool reached = direction > 0 ? pos.Value >= targetMm : pos.Value <= targetMm;
-                    if (reached) return;
-                }
-
-                if (DateTime.Now > deadline)
-                {
-                    throw new TimeoutException($"[{MechanismName}] 等待轴到达 {targetMm:F2}mm 超时"
-                        + $"（{timeoutMs}ms，当前位置 {pos?.ToString("F2") ?? "未知"}mm）。"
-                        + "请确认轴确实在运动、且目标位置在行程范围内。");
-                }
-
-                await Task.Delay(ReachPollIntervalMs, token);
-            }
+            return _scanAxis!.PointTable.FirstOrDefault(p => p.Name == pointName)
+                ?? throw new KeyNotFoundException($"[{MechanismName}] 扫描轴未找到点位 '{pointName}'，"
+                    + "请先在轴调试页的点位表里添加（位置/速度/加减速）。");
         }
 
         #endregion

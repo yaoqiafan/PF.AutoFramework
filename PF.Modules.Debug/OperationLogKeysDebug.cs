@@ -378,6 +378,14 @@ namespace PF.Modules.Debug
             public const string ResetModule = nameof(ResetModule);
             [Description("模组停止"), OperationLogCritical]
             public const string Stop = nameof(Stop);
+            [Description("选择起点点位")]
+            public const string SelectedStartPoint = nameof(SelectedStartPoint);
+            [Description("选择终点点位")]
+            public const string SelectedEndPoint = nameof(SelectedEndPoint);
+            [Description("刷新点位列表")]
+            public const string RefreshPoints = nameof(RefreshPoints);
+            [Description("填写曝光时间")]
+            public const string ExposureTimeUs = nameof(ExposureTimeUs);
             [Description("移动到扫描起点"), OperationLogCritical]
             public const string GotoStart = nameof(GotoStart);
             [Description("开始扫描"), OperationLogCritical]

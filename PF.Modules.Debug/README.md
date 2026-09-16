@@ -42,7 +42,7 @@ GenICam 属性树（线阵相机/采集卡两页共用）：一键枚举设备�
 
 ### 线扫检测模组调试页
 
-`LineScanDetectionModuleDebugView`（v1.0.7 起）随框架提供，本体在 `PF.Infrastructure`，项目无需自己写。导航 key 与 `[MechanismUI]` 一致。功能：初始化/复位/停止、移动到扫描起点、执行一次完整扫描、中止；`ScanProfile` 参数经 `pf:PropertyGrid` 编辑，实时显示换算结果（帧长/行频/曝光上限/理论帧时间）与 `Validate()` 校验信息，校验不通过时"扫描"按钮禁用；结果用 `pf:ImageViewer` 预览。
+`LineScanDetectionModuleDebugView`（v1.0.7 起）随框架提供，本体在 `PF.Infrastructure`，项目无需自己写。导航 key 与 `[MechanismUI]` 一致。功能：初始化/复位/停止、移动到扫描起点、执行一次完整扫描、中止；扫描起点/终点从扫描轴的点位表里选（位置/速度/加减速/S曲线时间均取自选中点位，不在本页重复编辑），成像参数（帧长/行频）已配置在相机自己身上（UserSetDefault）不再重复下发，本页只留曝光时间一项；实时显示换算结果（扫描行程/理论加减速距离/理论帧时间）与 `ScanGeometry.Validate()` 校验信息，校验不通过时"扫描"按钮禁用；结果用 `pf:ImageViewer` 预览。
 
 ## 接入步骤
 
