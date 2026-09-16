@@ -58,13 +58,30 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         private IFrameControl? _deviceFrameControl;
 
         /// <summary>
+        /// 连接时探测到的相机自身 FrameTriggerMode 是否已经是 On——本会话还没下发过任何配置
+        /// （<see cref="_lastConfig"/> 为 null）时，用它代替硬编码的"挂卡就默认卡控帧"，
+        /// 否则谁也没点过「下发完整配置」就直接点软触发（现场很常见的操作顺序：开机后
+        /// 相机已按 UserSetDefault 自带正确接线，直接开流触发），会被误判成卡侧从而复现
+        /// MV_E_GC_ACCESS。为 null 表示未挂卡或探测失败，此时不影响判断。
+        /// </summary>
+        private bool? _probedDeviceSideTrigger;
+
+        /// <summary>
         /// 当前实际生效的帧控制策略：挂卡且未要求相机侧触发时用卡侧策略，否则用相机自身。
         /// "挂了采集卡"与"由采集卡控帧"是两件独立的事，见 <see cref="FrameControlConfig.TriggerOnCameraSide"/>。
+        /// 本会话尚未下发过配置时，退回连接时探测到的相机实际状态（<see cref="_probedDeviceSideTrigger"/>），
+        /// 而不是无条件假定卡控帧。
         /// </summary>
         private IFrameControl? ActiveFrameControl
-            => (_cardFrameControl != null && _lastConfig?.FrameControl.TriggerOnCameraSide != true)
-                ? _cardFrameControl
-                : _deviceFrameControl;
+        {
+            get
+            {
+                bool cameraSide = _lastConfig?.FrameControl.TriggerOnCameraSide
+                    ?? _probedDeviceSideTrigger
+                    ?? false;
+                return (_cardFrameControl != null && !cameraSide) ? _cardFrameControl : _deviceFrameControl;
+            }
+        }
 
         private Thread? _receiveThread;
         private volatile bool _isGrabbing;
@@ -236,6 +253,16 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 // "挂了采集卡"不等于"由采集卡控帧"，见 ActiveFrameControl。
                 _deviceFrameControl = new DeviceFrameControl(accessor, HardwareLogger, DeviceName);
                 _cardFrameControl = Parent != null ? new InterfaceFrameControl(Parent) : null;
+
+                // 挂了卡时探一下相机自己当前的 FrameTriggerMode——相机断电重启后会按
+                // UserSetDefault 自动恢复参数，本会话还没下发过配置时，ActiveFrameControl
+                // 应该信这个探测结果，而不是无条件先假定卡控帧。
+                if (_cardFrameControl != null)
+                {
+                    string? camMode = accessor.GetNode("FrameTriggerMode");
+                    _probedDeviceSideTrigger = string.Equals(camMode, "true", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(camMode, "On", StringComparison.OrdinalIgnoreCase);
+                }
 
                 // 采集模式固定为连续：线扫的"一帧"由帧长/帧触发界定，与相机的单帧/多帧采集模式无关
                 accessor.SetIfPresent("AcquisitionMode", "Continuous");
@@ -1026,6 +1053,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             NodeAccessor = null;
             _cardFrameControl = null;
             _deviceFrameControl = null;
+            _probedDeviceSideTrigger = null;
 
             // 先销号再释放：即使 Dispose 抛异常，占用登记也不能留下（否则重连会被自己拦住）
             if (_openedDeviceKey != null)
