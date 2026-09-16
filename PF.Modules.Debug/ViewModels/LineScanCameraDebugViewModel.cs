@@ -340,6 +340,14 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置相机类型匹配（CameraLink 位宽，留空则不下发）</summary>
         public string CameraType { get => _cameraType; set => SetProperty(ref _cameraType, value); }
 
+        private bool _frameTriggerOnCameraSide;
+        /// <summary>
+        /// 挂了采集卡时，帧触发（含软触发命令）是否仍下发到相机自身，而不是采集卡。
+        /// 见 <see cref="FrameControlConfig.TriggerOnCameraSide"/>：勾选前若在挂卡场景下点软触发，
+        /// 卡侧节点未必已配好触发角色，容易报 MV_E_GC_ACCESS(0x80000106)。
+        /// </summary>
+        public bool FrameTriggerOnCameraSide { get => _frameTriggerOnCameraSide; set => SetProperty(ref _frameTriggerOnCameraSide, value); }
+
         #endregion
 
         #region 【取帧、预览与存盘】
@@ -685,14 +693,26 @@ namespace PF.Modules.Debug.ViewModels
         }
 
         /// <summary>
-        /// 读回帧控制。挂了采集卡就读卡的节点树（ImageHeight/FrameTimeoutTime/...），
-        /// 直连则读相机自身的 Height。
+        /// 读回帧控制。挂了采集卡时，先看相机自身的 FrameTriggerMode 是不是已经在用
+        /// （即 <see cref="FrameControlConfig.TriggerOnCameraSide"/> 场景——挂卡不等于卡控帧，
+        /// 见该字段注释）；如果是，按相机侧节点读，并把开关同步勾上，否则按卡的节点树读
+        /// （ImageHeight/FrameTimeoutTime/...）。未挂卡则直接读相机自身的 Height。
         /// </summary>
         private async Task LoadFrameControlAsync()
         {
             string? v;
 
-            if (_camera.HasFrameGrabber && _camera is Infrastructure.Hardware.Camera.LineScan.BaseLineScanCamera { Parent: { } card })
+            bool cameraSideActive = false;
+            if (_camera.HasFrameGrabber)
+            {
+                string? camMode = await _camera.GetNodeAsync("FrameTriggerMode");
+                cameraSideActive = string.Equals(camMode, "true", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(camMode, "On", StringComparison.OrdinalIgnoreCase);
+            }
+            FrameTriggerOnCameraSide = cameraSideActive;
+
+            if (_camera.HasFrameGrabber && !cameraSideActive
+                && _camera is Infrastructure.Hardware.Camera.LineScan.BaseLineScanCamera { Parent: { } card })
             {
                 if ((v = await card.GetNodeAsync("ImageHeight")) != null) ImageHeight = v;
                 if ((v = await card.GetNodeAsync("FrameTimeoutTime")) != null) FrameTimeoutMs = v;
@@ -705,10 +725,13 @@ namespace PF.Modules.Debug.ViewModels
             }
             else
             {
+                // 走到这里要么是相机直连（未挂卡），要么是挂了卡但相机自身正在做帧触发——
+                // 两种情况都读相机自己的节点。挂卡场景下上面已经读过一次 FrameTriggerMode
+                // 用于判定 cameraSideActive，这里直接复用，不用再读一遍。
                 if ((v = await _camera.GetNodeAsync("Height")) != null) ImageHeight = v;
                 if ((v = await _camera.GetNodeAsync("FrameTriggerSource")) != null) FrameTriggerSource = v;
-                if ((v = await _camera.GetNodeAsync("FrameTriggerMode")) != null)
-                    FrameTriggerEnable = string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+                FrameTriggerEnable = cameraSideActive
+                    || string.Equals(await _camera.GetNodeAsync("FrameTriggerMode"), "true", StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -792,6 +815,7 @@ namespace PF.Modules.Debug.ViewModels
                 TriggerActivation = NullIfBlank(FrameTriggerActivation),
                 StreamSelector = NullIfBlank(StreamSelector),
                 CameraType = NullIfBlank(CameraType),
+                TriggerOnCameraSide = FrameTriggerOnCameraSide,
             },
         };
 

@@ -764,7 +764,13 @@
                                         oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FrameTriggerEnable}"
                                         IsChecked="{Binding FrameTriggerEnable}" />
 
-                                    <TextBlock Style="{StaticResource Hint}" Text="流选择器与相机类型仅在经采集卡时生效；相机直连时帧超时没有对应节点，只能由取帧等待超时兜底。留空的项不下发，沿用设备当前值。" />
+                                    <CheckBox
+                                        Margin="0,0,0,12"
+                                        Content="帧触发落在相机侧（挂卡时也用相机自身 FrameTriggerMode/Source，不发给采集卡）"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FrameTriggerOnCameraSide}"
+                                        IsChecked="{Binding FrameTriggerOnCameraSide}" />
+
+                                    <TextBlock Style="{StaticResource Hint}" Text="流选择器与相机类型仅在经采集卡时生效；相机直连时帧超时没有对应节点，只能由取帧等待超时兜底。留空的项不下发，沿用设备当前值。勾选“帧触发落在相机侧”后，挂卡场景下软触发也会改发给相机自身（ScanMode 需配合设为 FrameScan），而不是采集卡的 StreamSoftwareTrigger——卡侧触发节点未配好时（如未挂 StreamTriggerEnable）点软触发会报 MV_E_GC_ACCESS(0x80000106)，遇到这个错先检查这个开关是否该勾。" />
                                 </StackPanel>
                             </ScrollViewer>
                         </Border>

@@ -260,6 +260,8 @@ namespace PF.Modules.Debug
             public const string CameraType = nameof(CameraType);
             [Description("启用帧触发")]
             public const string FrameTriggerEnable = nameof(FrameTriggerEnable);
+            [Description("帧触发落在相机侧")]
+            public const string FrameTriggerOnCameraSide = nameof(FrameTriggerOnCameraSide);
             [Description("读回设备当前值")]
             public const string RefreshParams2 = nameof(RefreshParams2);
             [Description("下发完整配置"), OperationLogCritical]
