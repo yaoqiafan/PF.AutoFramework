@@ -266,6 +266,10 @@ namespace PF.Modules.Debug
             public const string RefreshParams2 = nameof(RefreshParams2);
             [Description("下发完整配置"), OperationLogCritical]
             public const string ApplyConfig = nameof(ApplyConfig);
+            [Description("填写属性文件路径")]
+            public const string FeatureFilePath = nameof(FeatureFilePath);
+            [Description("导入属性文件"), OperationLogCritical]
+            public const string ImportFeatureFile = nameof(ImportFeatureFile);
             [Description("枚举全部节点")]
             public const string EnumerateNodes = nameof(EnumerateNodes);
             [Description("节点过滤")]

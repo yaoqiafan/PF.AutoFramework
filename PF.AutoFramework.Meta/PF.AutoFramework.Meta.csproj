@@ -3,8 +3,27 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.33</Version>
+    <Version>1.0.34</Version>
     <PackageReleaseNotes>
+		v1.0.34 (2026-09-17) — 新增设备属性文件（.mfs）导入能力，线扫相机调试页配套测试入口
+
+		[新增 — PF.Core 1.0.22→1.0.23 的 IGenICamNodeAccess]
+		- ImportFeatureFileAsync(string filePath, token)：从设备属性文件（如 MVS 客户端导出的
+		  .mfs）批量导入并下发节点值，相机与采集卡通用。个别节点导入失败不中断，记日志列出。
+		- 背景：验证"现场导出的相机/采集卡参数文件能不能直接喂给设备"这条路是否可行，替代
+		  在代码里逐个节点手抄字面量（手抄容易漂移，本仓库线扫这块已经吃过一次亏）。
+
+		[新增 — PF.Infrastructure 1.0.21→1.0.22]
+		- BaseLineScanCamera/BaseFrameGrabberCard 委托实现，GenICamNodeAccessor 新增
+		  ImportFeatureFile（调用 SDK 的 IParameters.FeatureLoadEx，逐节点失败记 Warn）。
+
+		[新增 — PF.Modules.Debug 1.0.15→1.0.16]
+		- LineScanCameraDebugView/ViewModel 新增属性文件路径输入框 + 导入按钮，测试用途，
+		  尚未接入任何生产路径。
+
+		子包版本对照：PF.Core 1.0.22→1.0.23，PF.Infrastructure 1.0.21→1.0.22，
+		PF.Modules.Debug 1.0.15→1.0.16；其余子包本次无变化。
+
 		v1.0.33 (2026-09-17) — 线扫相机行触发路由与检测模组运动/成像参数改造（含破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.21→1.0.22]

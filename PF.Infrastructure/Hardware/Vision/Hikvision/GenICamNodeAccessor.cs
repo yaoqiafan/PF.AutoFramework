@@ -223,6 +223,44 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
             }
         }
 
+        /// <summary>
+        /// 从设备属性文件（MVS 客户端导出的 .mfs）批量导入并下发节点值。
+        /// <para>比逐个 SetNode 更可靠：现场用 MVS 客户端把参数调好、导出成文件后，
+        /// 直接把这份文件原样喂给设备，不必在代码里把每个节点的值抄一遍再维护一份——
+        /// 抄的过程本身就是出错/漂移的来源。个别节点导入失败不影响其余节点，
+        /// 只在日志里列出来，返回值只表示整体调用（SDK 层面）是否成功。</para>
+        /// </summary>
+        public bool ImportFeatureFile(string filePath)
+        {
+            var p = _parameters();
+            if (p == null || string.IsNullOrWhiteSpace(filePath)) return false;
+
+            try
+            {
+                int ret = p.FeatureLoadEx(filePath, out List<INodeError> nodeErrors);
+                if (ret != MvError.MV_OK)
+                {
+                    _logger.Error($"[{_owner}] 导入属性文件 '{filePath}' 失败，错误码=0x{ret:X8}。");
+                    return false;
+                }
+
+                if (nodeErrors is { Count: > 0 })
+                {
+                    foreach (var e in nodeErrors)
+                        _logger.Warn($"[{_owner}] 属性文件节点 '{e.NodeName}' 导入失败：{e.ErrorType}。");
+                }
+
+                _logger.Info($"[{_owner}] 属性文件 '{filePath}' 已导入"
+                    + (nodeErrors is { Count: > 0 } ? $"（{nodeErrors.Count} 个节点失败，见上）。" : "。"));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"[{_owner}] 导入属性文件 '{filePath}' 异常：{ex.Message}", ex);
+                return false;
+            }
+        }
+
         #region 属性树枚举
 
         /// <summary>GenApi XML 里代表"可取值节点"的元素名 → 框架节点类型。</summary>

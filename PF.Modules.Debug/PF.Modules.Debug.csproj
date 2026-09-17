@@ -11,8 +11,20 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.15</Version>
+		<Version>1.0.16</Version>
 		<PackageReleaseNotes>
+v1.0.16 (2026-09-17) — 线扫相机调试页新增属性文件导入测试入口，同步 PF.Core 1.0.23 / PF.Infrastructure 1.0.22
+
+[新增 — LineScanCameraDebugView/ViewModel]
+- 属性文件路径输入框 + "导入属性文件(.mfs)"按钮，对应新增的
+  ILineScanCamera.ImportFeatureFileAsync（PF.Core 1.0.23）。用于验证"现场导出的相机参数
+  文件能不能直接喂给设备"这条路是否可行——.mfs 里的节点名如果和实际设备对不上，
+  导入结果里逐条失败的节点会记在硬件日志里，不会静默吞掉。
+- 本次只加测试入口，不影响任何生产路径（MappingShiftDetectionModule 的相机配置仍走
+  原有的显式字段下发）。
+
+子包版本对照：PF.Core 1.0.22→1.0.23，PF.Infrastructure 1.0.21→1.0.22。
+
 v1.0.15 (2026-09-16) — 线扫相机/检测模组调试页配套改造，同步 PF.Core 1.0.22 / PF.Infrastructure 1.0.21
 
 [变更 — LineScanDetectionModuleDebugView/ViewModel，同步 PF.Core 1.0.22 的 ScanGeometry]

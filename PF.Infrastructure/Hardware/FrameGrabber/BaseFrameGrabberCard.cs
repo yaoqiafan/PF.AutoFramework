@@ -64,6 +64,16 @@ namespace PF.Infrastructure.Hardware.FrameGrabber
             => Task.FromResult(NodeAccessor?.ExecuteCommand(nodeName) ?? false);
 
         /// <inheritdoc/>
+        public Task<bool> ImportFeatureFileAsync(string filePath, CancellationToken token = default)
+        {
+            var acc = NodeAccessor;
+            if (acc == null) return Task.FromResult(false);
+
+            // 文件里成百上千个节点逐条下发，耗时可到秒级，必须离开调用方线程
+            return Task.Run(() => acc.ImportFeatureFile(filePath), token);
+        }
+
+        /// <inheritdoc/>
         public Task<IReadOnlyList<GenICamNode>> EnumerateNodesAsync(CancellationToken token = default)
         {
             var acc = NodeAccessor;

@@ -36,6 +36,14 @@ namespace PF.Core.Interfaces.Device.Hardware
         Task<bool> ExecuteCommandAsync(string nodeName, CancellationToken token = default);
 
         /// <summary>
+        /// 从设备属性文件（如 MVS 客户端导出的 .mfs）批量导入并下发节点值。
+        /// <para>现场用厂商客户端把参数调好、导出成文件后，直接把文件喂给设备，
+        /// 不必在代码里把每个节点的值抄一遍再维护一份——那份手抄配置会漂移，见项目实际教训。
+        /// 个别节点导入失败不中断，只记日志；返回值只表示整体调用是否成功。</para>
+        /// </summary>
+        Task<bool> ImportFeatureFileAsync(string filePath, CancellationToken token = default);
+
+        /// <summary>
         /// 枚举设备的全部属性节点（名称 / 分类 / 类型 / 权限 / 当前值），供调试面板直接列出。
         ///
         /// <para>不必再靠手填节点名——现场排查最花时间的往往是先猜出节点叫什么，

@@ -782,6 +782,11 @@
                             Grid.ColumnSpan="5"
                             Style="{StaticResource GroupBorder}">
                             <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="12" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
@@ -790,6 +795,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock
+                                    Grid.Row="0"
                                     Grid.Column="0"
                                     Margin="0,0,16,0"
                                     VerticalAlignment="Center"
@@ -797,6 +803,7 @@
                                     Text="进入本页时已自动从设备读回当前值。留空的项不下发，沿用设备当前值；单项失败只记警告，结果见底部日志栏。面板未覆盖的节点请到「属性树」页按名直接改。" />
 
                                 <Button
+                                    Grid.Row="0"
                                     Grid.Column="1"
                                     Width="180"
                                     Height="40"
@@ -806,6 +813,7 @@
                                     Style="{DynamicResource ButtonDefault}" />
 
                                 <Button
+                                    Grid.Row="0"
                                     Grid.Column="3"
                                     Width="180"
                                     Height="40"
@@ -814,6 +822,27 @@
                                     Content="下发完整配置"
                                     FontWeight="Bold"
                                     Style="{DynamicResource ButtonPrimary}" />
+
+                                <TextBox
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Height="32"
+                                    Margin="0,0,16,0"
+                                    VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FeatureFilePath}"
+                                    Text="{Binding FeatureFilePath, UpdateSourceTrigger=PropertyChanged}"
+                                    ToolTip="MVS 客户端导出的设备属性文件（.mfs）完整路径" />
+
+                                <Button
+                                    Grid.Row="2"
+                                    Grid.Column="3"
+                                    Grid.ColumnSpan="2"
+                                    Width="180"
+                                    Height="32"
+                                    Command="{Binding ImportFeatureFileCommand}"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.ImportFeatureFile}"
+                                    Content="导入属性文件(.mfs)"
+                                    Style="{DynamicResource ButtonWarning}" />
                             </Grid>
                         </Border>
                     </Grid>

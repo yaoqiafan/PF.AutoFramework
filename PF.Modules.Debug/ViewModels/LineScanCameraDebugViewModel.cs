@@ -408,6 +408,14 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
+        private string _featureFilePath = string.Empty;
+        /// <summary>
+        /// 待导入的设备属性文件路径（MVS 客户端导出的 .mfs）。
+        /// 用于校验"现场调好参数导出成文件后，能不能直接喂给设备"这条路是否可行——
+        /// 导入结果（含逐节点失败清单）见 <see cref="ImportFeatureFileCommand"/> 的硬件日志。
+        /// </summary>
+        public string FeatureFilePath { get => _featureFilePath; set => SetProperty(ref _featureFilePath, value); }
+
         private string _nodeFilter = string.Empty;
         /// <summary>节点过滤关键字（按名称/显示名/分类匹配）。</summary>
         public string NodeFilter
@@ -457,6 +465,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand RefreshParamsCommand { get; private set; }
         /// <summary>下发完整配置命令</summary>
         public DelegateCommand ApplyConfigCommand { get; private set; }
+        /// <summary>导入设备属性文件（.mfs）命令</summary>
+        public DelegateCommand ImportFeatureFileCommand { get; private set; }
         /// <summary>开流命令</summary>
         public DelegateCommand StartGrabCommand { get; private set; }
         /// <summary>停流命令</summary>
@@ -532,6 +542,16 @@ namespace PF.Modules.Debug.ViewModels
                     : "未使用编码器";
 
                 Log("配置已下发（逐节点结果见上条硬件日志）。");
+            }));
+
+            ImportFeatureFileCommand = new DelegateCommand(() => RunAsync("导入属性文件", async () =>
+            {
+                if (_camera == null) return;
+                if (string.IsNullOrWhiteSpace(FeatureFilePath)) { LogWarn("请先填写属性文件路径。"); return; }
+
+                bool ok = await _camera.ImportFeatureFileAsync(FeatureFilePath);
+                if (ok) Log("属性文件导入完成（逐节点失败清单见硬件日志）。");
+                else LogWarn("属性文件导入失败（详见上条硬件日志）。");
             }));
 
             StartGrabCommand = new DelegateCommand(() => RunAsync("开流", async () =>

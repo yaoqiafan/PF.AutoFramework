@@ -44,8 +44,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.21</Version>
+		<Version>1.0.22</Version>
 		<PackageReleaseNotes>
+v1.0.22 (2026-09-17) — BaseLineScanCamera/BaseFrameGrabberCard 实现属性文件导入，同步 PF.Core 1.0.23
+
+[新增 — 同步 PF.Core 1.0.23 的 IGenICamNodeAccess.ImportFeatureFileAsync]
+- BaseLineScanCamera/BaseFrameGrabberCard 委托给 GenICamNodeAccessor.ImportFeatureFile
+  （内部调用 SDK 的 IParameters.FeatureLoadEx），文件里可能有成百上千个节点，用 Task.Run
+  离开调用方线程，与既有 EnumerateNodesAsync 同样处理。
+- GenICamNodeAccessor 新增 ImportFeatureFile：整体调用失败记 Error；单个节点导入失败通过
+  FeatureLoadEx 的 nodeErrors 逐条记 Warn，不中断其余节点。
+
+子包版本对照：PF.Core 1.0.22→1.0.23。
+
 v1.0.21 (2026-09-16) — 线扫相机帧触发路由与检测模组运动参数改造，同步 PF.Core 1.0.22（含破坏性变更）
 
 [破坏性变更 — LineScanDetectionModule，同步 PF.Core 1.0.22 的 ScanGeometry]

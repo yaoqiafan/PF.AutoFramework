@@ -3,8 +3,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.22</Version>
+		<Version>1.0.23</Version>
 		<PackageReleaseNotes>
+v1.0.23 (2026-09-17) — IGenICamNodeAccess 新增设备属性文件导入能力
+
+[新增 — IGenICamNodeAccess，相机与采集卡通用]
+- ImportFeatureFileAsync(string filePath, CancellationToken token = default)：从设备属性
+  文件（如 MVS 客户端导出的 .mfs）批量导入并下发节点值，比在代码里逐个节点手抄字面量更可靠——
+  现场调好参数、导出成文件后直接喂给设备即可。个别节点导入失败不中断整体导入，只记日志。
+- 背景：本次是为了验证"能不能直接读取现场导出的相机/采集卡参数文件"这条路是否可行，
+  先在 PF.Modules.Debug 1.0.16 的线扫相机调试页加了测试入口，尚未接入任何生产路径。
+
+子包版本对照：PF.Infrastructure 1.0.21→1.0.22，PF.Modules.Debug 1.0.15→1.0.16。
+
 v1.0.22 (2026-09-16) — 线扫检测运动参数收口到轴点位表，成像参数交给相机自身配置（含破坏性变更）
 
 [破坏性变更 — ScanProfile 删除，新增 ScanGeometry]
