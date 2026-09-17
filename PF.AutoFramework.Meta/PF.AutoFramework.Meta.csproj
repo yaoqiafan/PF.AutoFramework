@@ -3,8 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.37</Version>
+    <Version>1.0.38</Version>
     <PackageReleaseNotes>
+		v1.0.38 (2026-09-17) — LineScanCameraConfig.ScanMode 默认值订正为 null（含破坏性变更，同一类事故的第三处也是最后一处）
+
+		[破坏性变更 — PF.Core 1.0.25→1.0.26]
+		- ScanMode 默认值从字符串 "LineScan" 改为 null，兑现类注释早就写的"null = 不下发"承诺。
+		  这是同一次事故复盘挖出来的第三处、也是最后一处默认值不是"不下发"的字段（前两处见
+		  v1.0.36/v1.0.37 的 LineTriggerConfig.Mode / FrameControlConfig.TriggerOnCameraSide）。
+
+		子包版本对照：其余子包本次无变化。
+
 		v1.0.37 (2026-09-17) — 线扫帧触发路由同类问题修复：未表态即探测兜底，不再当卡控帧处理（含破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.24→1.0.25 的 FrameControlConfig]

@@ -3,8 +3,20 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.25</Version>
+		<Version>1.0.26</Version>
 		<PackageReleaseNotes>
+v1.0.26 (2026-09-17) — LineScanCameraConfig.ScanMode 默认值订正为 null，兑现类注释早就写的承诺（含破坏性变更，同一类事故的第三处）
+
+[破坏性变更 — LineScanCameraConfig]
+- ScanMode 默认值从 "LineScan" 改为 null。本类自己的类注释一直写着"所有可空字段的语义统一为：
+  null = 不下发、沿用设备当前值"，但 ScanMode 实际默认值是具体字符串 "LineScan"，是本类唯一
+  没兑现这条承诺的字段——不填就等于替调用方选了 LineScan，这对某些型号/接线（编码器接在采集卡
+  上、经外部信号线转发的场景需要 FrameScan）是错的，相当于拿相机已经调好的真实配置去覆盖。
+  和 v1.0.24/1.0.25 的 LineTriggerConfig.Mode / FrameControlConfig.TriggerOnCameraSide
+  是同一次事故复盘挖出来的同一类问题，这是第三处，也是最后一处默认值不是"不下发"的字段。
+
+子包版本对照：其余子包本次无变化（消费方 PF.WorkStation.MappingShift 已同步简化）。
+
 v1.0.25 (2026-09-17) — FrameControlConfig.TriggerOnCameraSide 改为可空，未表态即探测兜底（含破坏性变更，同一类事故的第二处）
 
 [破坏性变更 — FrameControlConfig]
