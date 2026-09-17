@@ -44,8 +44,25 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.23</Version>
+		<Version>1.0.24</Version>
 		<PackageReleaseNotes>
+v1.0.24 (2026-09-17) — HikLineScanCamera 行触发改为"未指定即整段跳过"，同步 PF.Core 1.0.24；LineScanDetectionModule 不再猜行触发模式（含破坏性变更）
+
+[破坏性变更 — HikLineScanCamera.ApplyLineTrigger，同步 PF.Core 1.0.24 的 LineTriggerConfig.Mode]
+- cfg.Mode 为 null 时整个方法直接返回，不下发任何行触发相关节点（LineTriggerMode/Source、
+  TriggerSelector 分支、AcquisitionLineRate、编码器接线全部跳过），相机沿用当前接线。
+- ApplyConfigAsync 的下发结果日志同步：Mode 为 null 时打"未指定(沿用现有接线)"，不再打空字符串。
+
+[破坏性变更 — LineScanDetectionModule.BuildConfig]
+- 移除"调用方完全没指定行触发时自动兜底成 Encoder 模式"的猜测逻辑。这条逻辑是本次要修的
+  真实事故根因：一次只想测曝光的调用没碰 LineTrigger，被自动兜底成 Encoder，把现场验证过的
+  ExternalLine（编码器接采集卡、经 LinkTrigger0 转发）接线覆盖成了错的直连编码器模式。
+  现在调用方不指定就是不指定，相机侧原样跳过，不会被框架"好心"猜错。
+- 调用方原来依赖"不填就是 Encoder"这个隐式默认的，需要显式写
+  `config.LineTrigger.Mode = LineTriggerMode.Encoder;`。
+
+子包版本对照：PF.Core 1.0.23→1.0.24。
+
 v1.0.23 (2026-09-17) — 属性文件导入补充结果汇总（总数/成功/失败）
 
 [新增 — GenICamNodeAccessor.ImportFeatureFile]

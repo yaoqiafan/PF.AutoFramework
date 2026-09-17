@@ -8,8 +8,12 @@ namespace PF.Core.Entities.Hardware.Vision
     /// </summary>
     public class LineTriggerConfig
     {
-        /// <summary>行触发方式。</summary>
-        public LineTriggerMode Mode { get; set; } = LineTriggerMode.InternalRate;
+        /// <summary>
+        /// 行触发方式。null = 不下发、沿用相机当前接线——调用方没有理由被强迫在"不关心行触发"
+        /// 时也要显式选一个模式，设备层也不该在这种情况下替调用方猜一个（猜错就是拿真实接线
+        /// 去覆盖，机构层曾因为"未指定就兜底成 Encoder"吃过这个亏）。
+        /// </summary>
+        public LineTriggerMode? Mode { get; set; }
 
         /// <summary>
         /// 行触发源 symbolic 值。

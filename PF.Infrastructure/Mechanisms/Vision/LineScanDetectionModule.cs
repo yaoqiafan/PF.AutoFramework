@@ -26,12 +26,15 @@ namespace PF.Infrastructure.Mechanisms.Vision
     /// 设备层（<see cref="ILineScanCamera"/>）刻意不引用 <see cref="IAxis"/>，
     /// 就是为了把这份时序职责收敛在这里。</para>
     ///
-    /// <para><b>编码器接线</b>：行触发方式由调用方通过 <see cref="LineScanCameraConfig.LineTrigger"/> 指定——
-    /// 编码器可以直连相机 IO（<see cref="LineTriggerMode.Encoder"/>），也可以接在采集卡/其它设备上、
-    /// 再以外部信号线的形式转发给相机（<see cref="LineTriggerMode.ExternalLine"/>，如 CameraLink 的
-    /// <c>LinkTrigger0</c>）。调用方未指定时才兜底为编码器直连（最常见接线）。
-    /// 不论哪种接线，模组本身只负责「让轴以恒定速度走过扫描区」，逐行触发都由相机侧产生，
-    /// 模组不参与逐行同步。</para>
+    /// <para><b>编码器接线</b>：行触发方式完全由调用方通过 <see cref="LineScanCameraConfig.LineTrigger"/>
+    /// 显式指定——编码器可以直连相机 IO（<see cref="LineTriggerMode.Encoder"/>），也可以接在
+    /// 采集卡/其它设备上、再以外部信号线的形式转发给相机（<see cref="LineTriggerMode.ExternalLine"/>，
+    /// 如 CameraLink 的 <c>LinkTrigger0</c>）。调用方不指定时（<see cref="LineTriggerConfig.Mode"/>
+    /// 为 null）本模组<b>不会替调用方猜一个模式</b>，相机侧整段行触发配置原样跳过、沿用当前接线——
+    /// 猜错就是拿现场已经验证过的真实接线去覆盖，这不是假设性的风险：本模组早期版本会在调用方
+    /// 未指定时兜底成编码器直连，结果被一次"只想改曝光"的调用悄悄把 ExternalLine 接线覆盖成了
+    /// 错的 Encoder 接线。不论哪种接线，模组本身只负责「让轴以恒定速度走过扫描区」，
+    /// 逐行触发都由相机侧产生，模组不参与逐行同步。</para>
     ///
     /// <para><b>时序要点</b>：开流、帧触发都必须早于轴运动，否则起始若干行会丢或被算进上一帧。
     /// 起点到终点这段行程里含不含足够的加减速余量，由起点/终点两个点位在点表里的位置自己决定——
@@ -226,22 +229,16 @@ namespace PF.Infrastructure.Mechanisms.Vision
         }
 
         /// <summary>
-        /// 组装相机配置：只补两件本模组的时序恒定依赖的事——行触发方式（未指定时兜底编码器直连）、
-        /// 帧触发必须打开（本模组的扫描流程恒定走帧触发）。其余（像素格式、增益、曝光、帧长、行频……）
-        /// 一律沿用调用方传入的配置或相机自身当前值，不重新计算、不覆盖。
+        /// 组装相机配置：只补一件本模组的时序恒定依赖的事——帧触发必须打开（本模组的扫描流程
+        /// 恒定走帧触发）。行触发方式完全交给调用方：<see cref="LineTriggerConfig.Mode"/> 为
+        /// null 时相机侧会整段跳过、沿用当前接线，本模组不再替调用方猜一个模式——猜错就是拿
+        /// 真实接线去覆盖，此前就吃过这个亏（调试页只填曝光、没碰行触发，结果被自动兜底成
+        /// Encoder 模式，把现场验证过的 ExternalLine 接线覆盖掉）。其余（像素格式、增益、
+        /// 曝光、帧长、行频……）一律沿用调用方传入的配置或相机自身当前值，不重新计算、不覆盖。
         /// </summary>
         private static LineScanCameraConfig BuildConfig(LineScanCameraConfig? baseConfig)
         {
             var config = baseConfig ?? new LineScanCameraConfig();
-
-            // 行触发方式尊重调用方设置；调用方完全没指定时（仍是默认 InternalRate 且未给
-            // TriggerSource/Encoder）才兜底为编码器直连相机——这是最常见的接线方式，
-            // 但不是唯一方式（比如编码器接在采集卡上、经 ExternalLine 转发给相机）。
-            bool callerSpecified = config.LineTrigger.Mode != LineTriggerMode.InternalRate
-                || config.LineTrigger.TriggerSource != null
-                || config.LineTrigger.Encoder != null;
-            if (!callerSpecified)
-                config.LineTrigger.Mode = LineTriggerMode.Encoder;
 
             config.FrameControl.TriggerEnable = true;
 

@@ -3,8 +3,23 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.23</Version>
+		<Version>1.0.24</Version>
 		<PackageReleaseNotes>
+v1.0.24 (2026-09-17) — LineTriggerConfig.Mode 改为可空，未指定即不下发（含破坏性变更，修复真实误覆盖事故）
+
+[破坏性变更 — LineTriggerConfig]
+- Mode 从 LineTriggerMode（默认 InternalRate）改为 LineTriggerMode?（默认 null）。null 语义
+  统一为"不下发、沿用相机当前接线"，与本类其余字段（TriggerSource/Encoder 为 null 即不下发）
+  的既有约定对齐；调用方显式赋值一个具体枚举值时行为不变。
+- 起因是一次真实误覆盖：LineScanDetectionModule.BuildConfig 之前会在调用方完全没设置行触发
+  （Mode 仍是默认 InternalRate 且未给 TriggerSource/Encoder）时自动兜底成 Encoder 模式——
+  一次只想测曝光、没碰行触发的调试调用，把现场已经验证并通过 FeatureLoadEx 导入好的
+  ExternalLine（编码器接在采集卡上、经 LinkTrigger0 转发）接线，静默改回了错的 Encoder 直连。
+  Mode 原来是非空枚举，"调用方没设置"和"调用方明确要 InternalRate"在类型上无法区分，
+  框架只能靠猜；改成可空后 null 就是"没设置"的唯一、明确的表示，不再需要猜。
+
+子包版本对照：PF.Infrastructure 1.0.23→1.0.24。
+
 v1.0.23 (2026-09-17) — IGenICamNodeAccess 新增设备属性文件导入能力
 
 [新增 — IGenICamNodeAccess，相机与采集卡通用]

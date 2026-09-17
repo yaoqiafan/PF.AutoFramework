@@ -371,7 +371,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
 
             WarnIfFrameMemoryHeavy(config.FrameControl.ImageHeight);
 
-            HardwareLogger.Info($"[{DeviceName}] 配置已下发：行触发={config.LineTrigger.Mode}, "
+            HardwareLogger.Info($"[{DeviceName}] 配置已下发：行触发={config.LineTrigger.Mode?.ToString() ?? "未指定(沿用现有接线)"}, "
                 + $"帧长={config.FrameControl.ImageHeight}行, 行间距={_lineSpacingUm:F3}μm/行。");
         }
 
@@ -452,12 +452,18 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// 行触发：控制"每扫一行由谁驱动"。两种链路下都配在相机本体上。
         /// <para>新固件有独立的 LineTriggerControl 节点组，老固件要退回
         /// TriggerSelector=LineStart，用节点探测选分支（同官方 LineScanIOSettings 示例）。</para>
+        /// <para><see cref="LineTriggerConfig.Mode"/> 为 null 时整个方法直接跳过——调用方没有指定
+        /// 行触发方式，就不该由框架替它猜一个模式去覆盖相机当前接线（历史上猜错导致真实接线被
+        /// 篡改的教训见 <see cref="LineScanCameraConfig.LineTrigger"/> 的调用方，
+        /// MappingShift 项目的 LineScanDetectionModule 消费方曾因此中招）。</para>
         /// </summary>
         private void ApplyLineTrigger(GenICamNodeAccessor acc, LineTriggerConfig cfg)
         {
+            if (cfg.Mode is not { } mode) return;
+
             bool modern = acc.IsNodeAvailable("LineTriggerControl");
 
-            if (cfg.Mode == LineTriggerMode.InternalRate)
+            if (mode == LineTriggerMode.InternalRate)
             {
                 if (modern) acc.SetIfPresent("LineTriggerMode", "false");
                 else if (acc.SetNode("TriggerSelector", "LineStart")) acc.SetIfPresent("TriggerMode", "Off");
@@ -472,7 +478,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
 
             // 编码器模式下触发源固定为编码器模块输出；外部行信号模式下由配置给出（如 Line0）
             string source = cfg.TriggerSource
-                ?? (cfg.Mode == LineTriggerMode.Encoder ? "EncoderModuleOut" : "Line0");
+                ?? (mode == LineTriggerMode.Encoder ? "EncoderModuleOut" : "Line0");
 
             if (modern)
             {
@@ -491,7 +497,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 return;
             }
 
-            if (cfg.Mode == LineTriggerMode.Encoder)
+            if (mode == LineTriggerMode.Encoder)
                 ApplyEncoder(acc, cfg.Encoder);
 
             acc.ApplyExtraNodes(cfg.ExtraNodes);

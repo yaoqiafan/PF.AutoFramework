@@ -3,8 +3,26 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.35</Version>
+    <Version>1.0.36</Version>
     <PackageReleaseNotes>
+		v1.0.36 (2026-09-17) — 修复线扫行触发被自动猜测覆盖真实接线的事故（含破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.23→1.0.24 的 LineTriggerConfig]
+		- Mode 从非空枚举（默认 InternalRate）改为可空（默认 null），null = 不下发、沿用相机
+		  当前接线，与本类其余字段的既有约定对齐。
+
+		[破坏性变更 — PF.Infrastructure 1.0.23→1.0.24]
+		- HikLineScanCamera.ApplyLineTrigger：Mode 为 null 时整个方法直接跳过，不碰任何行触发
+		  节点。
+		- LineScanDetectionModule.BuildConfig：移除"调用方没指定行触发就自动兜底成 Encoder
+		  模式"的猜测逻辑——这正是本次修复的事故根因：一次只想测曝光、没碰行触发的调试调用，
+		  被自动猜成 Encoder，把现场已用 FeatureLoadEx 验证导入好的 ExternalLine（编码器接
+		  采集卡、经 LinkTrigger0 转发）接线静默覆盖成了错的编码器直连。现在"不指定"就是"不
+		  指定"，相机侧原样跳过，框架不再替调用方猜。依赖旧默认行为（不填即 Encoder）的调用方
+		  需要改为显式赋值。
+
+		子包版本对照：PF.Core 1.0.23→1.0.24，PF.Infrastructure 1.0.23→1.0.24；其余子包本次无变化。
+
 		v1.0.35 (2026-09-17) — 属性文件导入补充结果汇总（总数/成功/失败）
 
 		[新增 — PF.Infrastructure 1.0.22→1.0.23]
