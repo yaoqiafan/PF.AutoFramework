@@ -11,8 +11,35 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.16</Version>
+		<Version>1.0.18</Version>
 		<PackageReleaseNotes>
+v1.0.18 (2026-09-17) — 相机/采集卡调试页的属性文件导入改成固定路径只读展示 + 重新导入按钮，同步 PF.Core 1.0.28 / PF.Infrastructure 1.0.27
+
+[变更 — LineScanCameraDebugView/ViewModel]
+- 原来自由填路径的"属性文件路径"文本框改成只读，展示 ILineScanCamera.FeatureFilePath
+  （PF.Core 1.0.28）算出来的固定路径；"导入属性文件(.mfs)"按钮改调用
+  ReimportFeatureFileAsync，不再需要手填任意路径。
+- 加"属性文件缺失"提醒横幅（绑定 FeatureFileMissing，PF.Core 1.0.27）。
+
+[新增 — FrameGrabberDebugView/ViewModel]
+- 同上，补齐固定路径只读展示 + "导入属性文件"按钮 + 缺失提醒横幅（采集卡此前没有这个
+  测试入口）。
+
+[清理 — OperationLogKeysDebug]
+- LineScanCameraDebugView.FeatureFilePath 键随文本框改只读一并删除（只读控件不产生用户
+  输入，不需要操作日志键）；FrameGrabberDebugView 新增 ImportFeatureFile 键。
+
+子包版本对照：PF.Core 1.0.27→1.0.28，PF.Infrastructure 1.0.26→1.0.27。
+
+v1.0.17 (2026-09-17) — 相机/采集卡调试页新增"属性文件缺失"提醒横幅，同步 PF.Core 1.0.27 / PF.Infrastructure 1.0.26
+
+[新增 — LineScanCameraDebugView/FrameGrabberDebugView]
+- 各加一条黄色提醒横幅（绑定新增的 FeatureFileMissing，PF.Core 1.0.27），固定路径下没
+  找到该设备的属性文件时显示，接线沿用设备当前配置。此前这块横幅短暂放过项目侧主界面，
+  按要求改放调试面板——设备接线是调试关注的事，不该占主界面操作员视野。
+
+子包版本对照：PF.Core 1.0.26→1.0.27，PF.Infrastructure 1.0.25→1.0.26。
+
 v1.0.16 (2026-09-17) — 线扫相机调试页新增属性文件导入测试入口，同步 PF.Core 1.0.23 / PF.Infrastructure 1.0.22
 
 [新增 — LineScanCameraDebugView/ViewModel]

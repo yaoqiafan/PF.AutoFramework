@@ -44,8 +44,39 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.25</Version>
+		<Version>1.0.27</Version>
 		<PackageReleaseNotes>
+v1.0.27 (2026-09-17) — BaseLineScanCamera/BaseFrameGrabberCard 实现 FeatureFilePath/ReimportFeatureFileAsync，同步 PF.Core 1.0.28；固定路径文件缺失自动建占位
+
+[新增 — 同步 PF.Core 1.0.28 的 IGenICamNodeAccess.FeatureFilePath/ReimportFeatureFileAsync]
+- FeatureFilePath：Path.Combine(ConstGlobalParam.ConfigPath, "HardwareFeatureFiles", FeatureFileName)。
+- ReimportFeatureFileAsync：包一层 Task.Run 调用原本只在连接时跑的 AutoImportFeatureFile
+  （现在返回 bool，true=真的导入了，false=文件缺失只建了占位），供调试面板按钮按需触发。
+- 新增 FeatureFileScaffold.EnsurePlaceholder（PF.Infrastructure.Hardware，相机/采集卡共用）：
+  目录不存在则建，文件不存在则写一份仅含 # 注释行的占位文件——现场照着这个路径放真实导出
+  文件即可，不用先猜目录建不建、文件名对不对；即使占位文件被误当真文件导入也不会写坏任何
+  节点（GenApi 注释语法，逐节点解析时会被跳过）。
+- 相机/采集卡调试面板原来自由填路径的导入框改成显示固定路径（只读）+ 一个"导入属性文件"
+  按钮（PF.Modules.Debug 1.0.18）。
+
+子包版本对照：PF.Core 1.0.27→1.0.28，PF.Modules.Debug 1.0.17→1.0.18。
+
+v1.0.26 (2026-09-17) — 线扫相机/采集卡接线属性文件改为设备自己在连接时从固定路径导入，同步 PF.Core 1.0.27
+
+[新增 — 同步 PF.Core 1.0.27 的 IGenICamNodeAccess.FeatureFileMissing]
+- BaseLineScanCamera/BaseFrameGrabberCard 新增固定文件名（LineScanCamera.mfs/
+  FrameGrabberCard.hcf，子类可覆盖）+ AutoImportFeatureFile()：从
+  {ConstGlobalParam.ConfigPath}\HardwareFeatureFiles\ 导入，文件缺失只记 Warn、置位
+  FeatureFileMissing，不阻断连接。
+- HikLineScanCamera/HikFrameGrabberCard 在 InternalConnectAsync 的 NodeAccessor 赋值后
+  调用（相机侧特意放在探测 FrameTriggerMode 之前，否则探测到的是导入前的旧值）。
+- 背景：这套逻辑此前被临时写在了项目侧的检测模组里，本次下沉成设备类自己的能力——
+  之前把"固定路径读文件、缺失置位"塞进业务机构，是走错了层，GenICam 节点操作历来归
+  设备自己管，不该由调用方代劳。
+- 线扫相机/采集卡调试面板各加"属性文件缺失"提醒横幅（PF.Modules.Debug 1.0.17）。
+
+子包版本对照：PF.Core 1.0.26→1.0.27，PF.Modules.Debug 1.0.16→1.0.17。
+
 v1.0.25 (2026-09-17) — HikLineScanCamera 帧触发路由改为"未表态即探测兜底"，同步 PF.Core 1.0.25（含破坏性变更）
 
 [破坏性变更 — HikLineScanCamera，同步 PF.Core 1.0.25 的 FrameControlConfig.TriggerOnCameraSide]

@@ -11,7 +11,11 @@ namespace PF.Core.Enums.Hardware
     /// </summary>
     public enum EmcoderModeEnum
     {
+        ///脉冲方向
         脉冲方向,
+        /// <summary>
+        /// AB相
+        /// </summary>
         AB相,
     }
 }
