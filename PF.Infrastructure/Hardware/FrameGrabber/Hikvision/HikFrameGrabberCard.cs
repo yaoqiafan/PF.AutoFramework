@@ -127,6 +127,9 @@ namespace PF.Infrastructure.Hardware.FrameGrabber.Hikvision
                 _resolvedSerialNumber = target.SerialNumber ?? string.Empty;
                 NodeAccessor = new GenICamNodeAccessor(() => _interface?.Parameters, HardwareLogger, DeviceName);
 
+                // 接线参数从固定路径的属性文件一次性导入，不依赖调用方逐个字段下发
+                AutoImportFeatureFile();
+
                 HardwareLogger.Info($"[{DeviceName}] 采集卡已打开：{_modelName} (SN={_resolvedSerialNumber}, "
                     + $"ID={target.InterfaceID}, 类型={target.TLayerType})。");
                 return true;

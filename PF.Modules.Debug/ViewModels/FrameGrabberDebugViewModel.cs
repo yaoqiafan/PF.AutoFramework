@@ -125,6 +125,13 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置是否报警</summary>
         public bool IsAlarm { get => _isAlarm; set => SetProperty(ref _isAlarm, value); }
 
+        private bool _featureFileMissing;
+        /// <summary>
+        /// 固定路径下（<c>HardwareFeatureFiles\</c>）没找到该采集卡的属性文件，接线沿用设备当前配置。
+        /// 值来自 <see cref="PF.Core.Interfaces.Device.Hardware.IGenICamNodeAccess.FeatureFileMissing"/>，由卡自己在每次连接时探测。
+        /// </summary>
+        public bool FeatureFileMissing { get => _featureFileMissing; set => SetProperty(ref _featureFileMissing, value); }
+
         private string _modelName = "-";
         /// <summary>获取或设置采集卡型号</summary>
         public string ModelName { get => _modelName; set => SetProperty(ref _modelName, value); }
@@ -475,6 +482,7 @@ namespace PF.Modules.Debug.ViewModels
 
             IsConnected = _baseDevice.IsConnected;
             IsAlarm = _baseDevice.HasAlarm;
+            FeatureFileMissing = _card?.FeatureFileMissing ?? false;
         }
 
         #endregion

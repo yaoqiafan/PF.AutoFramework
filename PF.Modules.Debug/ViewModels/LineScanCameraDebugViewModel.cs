@@ -171,6 +171,13 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置是否正在取流</summary>
         public bool IsGrabbing { get => _isGrabbing; set => SetProperty(ref _isGrabbing, value); }
 
+        private bool _featureFileMissing;
+        /// <summary>
+        /// 固定路径下（<c>HardwareFeatureFiles\</c>）没找到该相机的属性文件，接线沿用设备当前配置。
+        /// 值来自 <see cref="PF.Core.Interfaces.Device.Hardware.IGenICamNodeAccess.FeatureFileMissing"/>，由相机自己在每次连接时探测。
+        /// </summary>
+        public bool FeatureFileMissing { get => _featureFileMissing; set => SetProperty(ref _featureFileMissing, value); }
+
         private string _cameraInfo = "-";
         /// <summary>获取或设置相机型号/序列号/链路信息</summary>
         public string CameraInfo { get => _cameraInfo; set => SetProperty(ref _cameraInfo, value); }
@@ -956,6 +963,7 @@ namespace PF.Modules.Debug.ViewModels
             IsConnected = _baseDevice.IsConnected;
             IsAlarm = _baseDevice.HasAlarm;
             IsGrabbing = _camera?.IsGrabbing ?? false;
+            FeatureFileMissing = _camera?.FeatureFileMissing ?? false;
         }
 
         #endregion

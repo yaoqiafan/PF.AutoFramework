@@ -15,6 +15,13 @@ namespace PF.Core.Interfaces.Device.Hardware
     public interface IGenICamNodeAccess
     {
         /// <summary>
+        /// 固定路径的属性文件在最近一次连接时是否缺失（<c>HardwareFeatureFiles\</c> 下没找到
+        /// 该设备的固定文件名，本次连接沿用设备当前配置，未导入任何节点）。
+        /// 连接前默认 false；每次 <c>InternalConnectAsync</c> 重新探测并刷新。
+        /// </summary>
+        bool FeatureFileMissing { get; }
+
+        /// <summary>
         /// 探测节点是否存在且当前可访问（RO/RW/WO 均视为可用）。
         /// <para>用于新旧固件双分支：节点不存在时应跳过并记日志，而不是让整个初始化失败。</para>
         /// </summary>

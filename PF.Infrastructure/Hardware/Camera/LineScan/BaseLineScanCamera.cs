@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Entities.Hardware.Vision;
 using PF.Core.Enums.Hardware.Vision;
 using PF.Core.Interfaces.Device.Hardware.Camera.LineScan;
@@ -34,6 +35,45 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan
         /// 未连接时为 null，此时所有节点操作静默返回失败。
         /// </summary>
         private protected GenICamNodeAccessor? NodeAccessor { get; set; }
+
+        /// <inheritdoc/>
+        public bool FeatureFileMissing { get; private protected set; }
+
+        /// <summary>
+        /// 固定属性文件名（<c>HardwareFeatureFiles\</c> 下），子类可按厂商导出格式覆盖。
+        /// 默认对齐海康 MVS 客户端导出格式。
+        /// </summary>
+        protected virtual string FeatureFileName => "LineScanCamera.mfs";
+
+        /// <summary>
+        /// 连接成功、<see cref="NodeAccessor"/> 赋值后调用：从固定路径
+        /// <c>{ConstGlobalParam.ConfigPath}\HardwareFeatureFiles\{FeatureFileName}</c>
+        /// 导入接线/成像属性。文件不存在时只记 Warn 并沿用设备当前配置，不视为连接失败——
+        /// 现场首次上电、还没来得及导出文件时不应阻塞整机初始化。
+        ///
+        /// <para>同步方法：调用方（<c>InternalConnectAsync</c>）本就运行在 SDK 专用的 Task.Run
+        /// 线程里，直接调用 <see cref="GenICamNodeAccessor.ImportFeatureFile"/> 即可，
+        /// 无需再嵌套一层 Task.Run。且必须在探测设备当前接线状态（如 FrameTriggerMode）之前调用，
+        /// 否则探测到的是导入前的旧值。</para>
+        /// </summary>
+        private protected void AutoImportFeatureFile()
+        {
+            var acc = NodeAccessor;
+            string path = Path.Combine(ConstGlobalParam.ConfigPath, "HardwareFeatureFiles", FeatureFileName);
+
+            if (acc == null || !File.Exists(path))
+            {
+                FeatureFileMissing = true;
+                HardwareLogger.Warn($"[{DeviceName}] 属性文件不存在：{path}，跳过导入，沿用设备当前配置。");
+                return;
+            }
+
+            FeatureFileMissing = false;
+            if (acc.ImportFeatureFile(path))
+                HardwareLogger.Success($"[{DeviceName}] 属性文件已导入（逐节点结果见 Hardware 日志）。");
+            else
+                HardwareLogger.Error($"[{DeviceName}] 属性文件导入失败，详见 Hardware 日志。");
+        }
 
         /// <inheritdoc/>
         public abstract string ModelName { get; }

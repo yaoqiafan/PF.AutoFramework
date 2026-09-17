@@ -64,6 +64,7 @@
         <Grid Margin="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -157,8 +158,28 @@
                 </Grid>
             </Border>
 
+            <!--  ══ 属性文件缺失提醒：固定路径下没找到该设备的属性文件，接线沿用设备当前配置 ══  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,12"
+                Padding="10,6"
+                Background="#FFF3CD"
+                BorderBrush="#FFC107"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding FeatureFileMissing, Converter={StaticResource Boolean2VisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#856404" Text="⚠  " />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="#856404"
+                        Text="固定路径下未找到该采集卡的属性文件（Config\HardwareFeatureFiles\FrameGrabberCard.hcf），接线沿用设备当前配置，未做任何导入。" />
+                </StackPanel>
+            </Border>
+
             <!--  ══ 主体：上半区三列（启停 / 本卡相机 / 帧控制），下半区属性树占满全宽 ══  -->
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="250" />
                     <RowDefinition Height="12" />

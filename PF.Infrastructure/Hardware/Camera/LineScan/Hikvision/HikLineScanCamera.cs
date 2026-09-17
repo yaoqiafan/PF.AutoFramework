@@ -249,6 +249,10 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 var accessor = new GenICamNodeAccessor(() => _device?.Parameters, HardwareLogger, DeviceName);
                 NodeAccessor = accessor;
 
+                // 接线/成像参数从固定路径的属性文件一次性导入，不依赖调用方逐个字段下发。
+                // 必须在下面的 FrameTriggerMode 探测之前做，否则探测到的是导入前的旧值。
+                AutoImportFeatureFile();
+
                 // 相机自身的帧控制策略始终创建；挂了卡时额外创建卡侧策略。
                 // 两者都备好后，实际用哪个由每次下发的配置（TriggerOnCameraSide）决定——
                 // "挂了采集卡"不等于"由采集卡控帧"，见 ActiveFrameControl。

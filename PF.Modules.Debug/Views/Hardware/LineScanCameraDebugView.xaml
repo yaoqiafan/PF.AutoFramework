@@ -70,6 +70,7 @@
         <Grid Margin="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -189,7 +190,27 @@
                 </Grid>
             </Border>
 
-            <TabControl Grid.Row="1">
+            <!--  ══ 属性文件缺失提醒：固定路径下没找到该设备的属性文件，接线沿用设备当前配置 ══  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,12"
+                Padding="10,6"
+                Background="#FFF3CD"
+                BorderBrush="#FFC107"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding FeatureFileMissing, Converter={StaticResource Boolean2VisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#856404" Text="⚠  " />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="#856404"
+                        Text="固定路径下未找到该相机的属性文件（Config\HardwareFeatureFiles\LineScanCamera.mfs），接线沿用设备当前配置，未做任何导入。" />
+                </StackPanel>
+            </Border>
+
+            <TabControl Grid.Row="2">
 
                 <!--  ══════════ 操作页：连接 → 采集 → 预览 → 存盘 ══════════  -->
                 <TabItem FontSize="{DynamicResource FontSize.H3.Subtitle}" Header="  操 作  ">
