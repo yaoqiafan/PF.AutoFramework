@@ -53,13 +53,13 @@
 		<None Include="..\DLL\Infrastructure\CommonToolDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="..\DLL\Infrastructure\sControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="..\DLL\Infrastructure\ControllerDllCSharp.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrl.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
+		
 		
 	</ItemGroup>
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.2.4</Version>
+		<Version>1.2.5</Version>
 		<Description>PF.Infrastructure 依赖的第三方硬件 SDK 原生资产合集（雷赛 LTDMC 运动控制卡、
 			CTS 三色灯光源控制器 SDK、基恩士 Keyence.AutoID.SDK、Communication 通讯基础库、
 			海康 MvCodeReaderSDK 扫码枪 SDK 含原生驱动、海康 MvCameraControl.Net 相机 SDK 托管封装）。
@@ -81,6 +81,8 @@
 			必须从海康 MVS SDK 安装目录的 Libraries\win64 下手动复制，CameraLink/CXP/XoF 链路
 			还要另装 MVFG 采集卡驱动。</Description>
 		<PackageReleaseNotes>
+			v1.2.5 — 删除MvCodeReaderCtrl.dll引用。
+
 			v1.2.4 — 修复被 ProjectReference 引用时资产不复制的问题
 
 			[修复]
