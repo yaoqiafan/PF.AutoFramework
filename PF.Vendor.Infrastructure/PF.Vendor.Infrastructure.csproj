@@ -49,7 +49,7 @@
 		<None Include="..\DLL\Infrastructure\sControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
 		<None Include="..\DLL\Infrastructure\ControllerDllCSharp.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
 		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrl.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrlWrapper.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		
 	</ItemGroup>
 
 	<PropertyGroup>
