@@ -17,10 +17,15 @@
 
 		<!-- ===== 有 C# <Reference> 的托管封装：走 lib，PackageReference 本包即可让消费项目在编译期
 		     直接拿到类型（配合 PF.Infrastructure 自身仍按 HintPath 编译，两边各自独立，互不冲突）。 ===== -->
-		<None Include="..\DLL\Infrastructure\Keyence.AutoID.SDK.dll" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\Infrastructure\Communication.dll" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.xml" Pack="true" PackagePath="lib\net8.0\" />
+		<!-- CopyToOutputDirectory：Pack/PackagePath 只在 dotnet pack 时生效，本包又
+		     IncludeBuildOutput=false（没有自身编译产物可流转），本项目一旦被 ProjectReference
+		     （例如手工加引用、或联合库调试时误把本包也切成源码引用），这些文件不会被复制到
+		     引用方输出目录——两种消费路径都要覆盖，加上这条元数据后 PackageReference（走 NuGet
+		     runtimes 资产落地）和 ProjectReference（走本机制）都能正确落地，互不影响。 -->
+		<None Include="..\DLL\Infrastructure\Keyence.AutoID.SDK.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\Communication.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.xml" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
 		<!-- MvCameraControl.Net.dll 本身是 AnyCPU 纯 IL（用 CorFlags 核实过，不是 COFF Machine 字段
 		     误导的 x86-only），装这个包能解决"托管封装编译期引用不到"的问题；但它内部仍会 P/Invoke
 		     真正的原生 MvCameraControl.dll——那个文件从来不在本仓库里，只存在于海康 MVS SDK
@@ -28,8 +33,8 @@
 		     项目，装完这个包仍需按 PF.Infrastructure.csproj 里那条部署注释，自行从 MVS SDK 安装目录
 		     把原生库复制到输出目录，CameraLink/CXP/XoF 链路还要另装 MVFG 采集卡驱动——这部分无法通过
 		     NuGet 解决，机器级 SDK 安装是唯一途径。 -->
-		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.dll" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.xml" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.xml" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
 
 		<!-- ===== 纯 P/Invoke 或同一供应商 SDK 内部互相依赖、代码里没有任何 <Reference> 的原生库：
 		     走 runtimes\win-x64\native，只要装了本包就会落地到输出目录，不需要程序集引用。
@@ -43,18 +48,18 @@
 		     PF.Infrastructure.csproj 里完全没有任何注释提示过，属于遗漏，v1.2.0 补上。
 		     消费项目需要设置 <RuntimeIdentifier>win-x64</RuntimeIdentifier> 才能让 dotnet build
 		     （而不仅是 dotnet publish）自动把这些文件复制到输出目录。 ===== -->
-		<None Include="..\DLL\Infrastructure\LTDMC.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
-		<None Include="..\DLL\Infrastructure\ControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
-		<None Include="..\DLL\Infrastructure\CommonToolDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
-		<None Include="..\DLL\Infrastructure\sControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
-		<None Include="..\DLL\Infrastructure\ControllerDllCSharp.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrl.dll" Pack="true" PackagePath="runtimes\win-x64\native\" />
+		<None Include="..\DLL\Infrastructure\LTDMC.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\ControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\CommonToolDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\sControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\ControllerDllCSharp.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderCtrl.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
 		
 	</ItemGroup>
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.2.2</Version>
+		<Version>1.2.4</Version>
 		<Description>PF.Infrastructure 依赖的第三方硬件 SDK 原生资产合集（雷赛 LTDMC 运动控制卡、
 			CTS 三色灯光源控制器 SDK、基恩士 Keyence.AutoID.SDK、Communication 通讯基础库、
 			海康 MvCodeReaderSDK 扫码枪 SDK 含原生驱动、海康 MvCameraControl.Net 相机 SDK 托管封装）。
@@ -76,6 +81,20 @@
 			必须从海康 MVS SDK 安装目录的 Libraries\win64 下手动复制，CameraLink/CXP/XoF 链路
 			还要另装 MVFG 采集卡驱动。</Description>
 		<PackageReleaseNotes>
+			v1.2.4 — 修复被 ProjectReference 引用时资产不复制的问题
+
+			[修复]
+			本包 IncludeBuildOutput=false，自身没有编译产物；全部资产原先只标了
+			Pack="true"/PackagePath（只在 dotnet pack 时生效）。正常按 PackageReference 消费走
+			NuGet 自己的资产落地机制，没问题；但手工把本包也切成 ProjectReference（比如联合库调试时
+			误把它也当框架源码接进去）时，MSBuild 的项目间引用只搬运"被引用项目自身的编译输出"，
+			这些纯资产文件完全传不过去——lib 资产（Communication.dll 等）会直接体现为编译期类型找不到，
+			runtimes\win-x64\native 下没有 &lt;Reference&gt; 的原生库则更隐蔽：编译能过，只是运行期
+			P/Invoke 找不到文件才炸。现在给每个 &lt;None&gt; 项都加上 CopyToOutputDirectory=PreserveNewest，
+			PackageReference/ProjectReference 两条路径都能正确落地，互不影响、nupkg 内容不变。
+
+			v1.2.3 — 更新海康扫码枪的dll。
+
 			v1.2.2 — 更新海康扫码枪的dll。
 
 			v1.2.1 — 更新海康扫码枪的dll。

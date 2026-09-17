@@ -15,15 +15,19 @@
 		     一直显式 Exclude 掉它们、代码里也用不到，本包同步不打包，避免维护从没用过的资产。
 		     两个 dll 均已用 CorFlags 核实为真正的 AnyCPU（ILOnly=true, Requires32Bit=false），
 		     64 位进程加载没有问题。 -->
-		<None Include="..\DLL\HALCON\halcondotnet.dll" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\HALCON\halcondotnet.xml" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\HALCON\hdevenginedotnet.dll" Pack="true" PackagePath="lib\net8.0\" />
-		<None Include="..\DLL\HALCON\hdevenginedotnet.xml" Pack="true" PackagePath="lib\net8.0\" />
+		<!-- CopyToOutputDirectory：Pack/PackagePath 只在 dotnet pack 时生效，本包 IncludeBuildOutput=false
+		     没有自身编译产物可流转，一旦被 ProjectReference（手工加引用、或联合库调试时误把本包也
+		     切成源码引用）这些文件不会被复制到引用方输出目录。加上这条元数据后 PackageReference
+		     （走 NuGet lib 资产选取）和 ProjectReference（走本机制）都能正确落地，互不影响。 -->
+		<None Include="..\DLL\HALCON\halcondotnet.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\HALCON\halcondotnet.xml" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\HALCON\hdevenginedotnet.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\HALCON\hdevenginedotnet.xml" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.0</Version>
+		<Version>1.0.1</Version>
 		<Description>MVTec HALCON 机器视觉 SDK 的 .NET 托管封装层（halcondotnet.dll / hdevenginedotnet.dll），
 			供 PF.Modules.Halcon / PF.Vision.Halcon 在编译期直接引用，解决这两个包发到 NuGet 后
 			外部消费者拿不到 HalconDotNet 类型的问题。均已用 CorFlags 核实为 AnyCPU 纯 IL 程序集。
@@ -34,6 +38,11 @@
 			无法也不应该通过 NuGet 分发。没装 HALCON 官方运行时/开发环境的机器，装了本包一样
 			在加载原生引擎那一步失败。本包只解决"编译期引用不到类型"这一层问题。</Description>
 		<PackageReleaseNotes>
+v1.0.1 — 修复被 ProjectReference 引用时资产不复制的问题：全部 &lt;None&gt; 项补上
+CopyToOutputDirectory=PreserveNewest，与 PF.Vendor.Infrastructure 1.2.4 同一根因、同一修法
+（本包 IncludeBuildOutput=false，Pack/PackagePath 只在 dotnet pack 时生效，ProjectReference
+搬不走纯资产文件）。nupkg 内容不变。
+
 v1.0.0 — 首个版本：halcondotnet.dll + hdevenginedotnet.dll（含 .xml 文档）打包，
 不含超大图像支持的 xl 变体（未被引用，未打包）。
 		</PackageReleaseNotes>
