@@ -3,8 +3,46 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.32</Version>
+    <Version>1.0.33</Version>
     <PackageReleaseNotes>
+		v1.0.33 (2026-09-17) — 线扫相机行触发路由与检测模组运动/成像参数改造（含破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.21→1.0.22]
+		- ScanProfile 删除，新增 ScanGeometry(AxisPoint start, AxisPoint end)：运动参数（位置/
+		  速度/加减速/S曲线时间）不再由软件单独持有，全部来自起点/终点两个轴点位在点表里的
+		  配置，顺带修掉一个从未被发现的单位错误（原 SCurveTimeMs 字段名标"ms"，实际按秒下发
+		  给轴，与 AxisPoint.STime 的秒单位差 1000 倍）；成像参数（帧长/行频/曝光上限相关换算）
+		  一并移除——已经配置在相机自身（UserSetDefault），不再由软件重新计算下发覆盖。
+		- FrameControlConfig 新增 TriggerOnCameraSide：挂了采集卡时，帧触发（含软触发命令）是否
+		  仍下发到相机自身而不是采集卡节点树，默认 false 不影响现有行为。
+
+		[破坏性变更 — PF.Infrastructure 1.0.20→1.0.21，同步上面的 PF.Core 改动]
+		- LineScanDetectionModule.ScanAsync 签名从 (ScanProfile, LineScanCameraConfig?, token)
+		  改为 (string startPointName, string endPointName, LineScanCameraConfig?, token)；
+		  移除等轴越过某个中间位置才触发的 WaitAxisReachAsync，帧软触发改为紧随开流之后、
+		  启动扫描运动之前发出。
+		- HikLineScanCamera 挂了采集卡时的帧触发路由此前无条件发给采集卡
+		  （InterfaceFrameControl），与海康官方 LineScanSoftwareTrigger 样例（全程只用
+		  device.Parameters，不碰 IInterface）不符，现场复现 MV_E_GC_ACCESS(0x80000106)。
+		  现按新增的 TriggerOnCameraSide 选择相机自身或采集卡；本会话尚未下发过配置时，
+		  改为按连接时探测到的相机实际 FrameTriggerMode 兜底，不再无条件先假定卡控帧。
+		- LineScanDetectionModule.BuildConfig 不再无条件强制 LineTriggerMode.Encoder，
+		  尊重调用方在 LineTrigger 里的设置，仅完全未指定时才兜底编码器直连。
+		- [修复，与线扫改动无关] MvTypeMapper.ToImageFormatInfo 的 Tiff 分支删掉
+		  ImageFormatInfo.ByteOrder 赋值——海康扫码枪 SDK 升级（本仓库另一提交）后该字段已从
+		  MvCameraControl.Net.dll 移除，此前导致 PF.Infrastructure 编译失败。
+
+		[变更 — PF.Modules.Debug 1.0.14→1.0.15，同步上面的改动]
+		- LineScanDetectionModuleDebugView/ViewModel：起点/终点改成从扫描轴点位表选的下拉框
+		  （不再用 pf:PropertyGrid 编辑一整套运动参数），成像参数面板移除只留一个曝光时间
+		  输入框，换算结果区去掉帧长/行频/曝光上限三项、改两列排布，不再拥挤。
+		- LineScanCameraDebugView/ViewModel：新增"帧触发落在相机侧"复选框，对应
+		  FrameControlConfig.TriggerOnCameraSide；"读回设备当前值"同步支持先探相机自身
+		  FrameTriggerMode 是否已在用，是则按相机侧节点回读并自动勾选开关。
+
+		子包版本对照：PF.Core 1.0.21→1.0.22，PF.Infrastructure 1.0.20→1.0.21，
+		PF.Modules.Debug 1.0.14→1.0.15；其余子包本次无变化。
+
 		v1.0.32 (2026-09-15) — 修复 RuntimeIdentifier 误设导致 11 个子包处理器架构标记污染
 
 		[修复 — 根因]
