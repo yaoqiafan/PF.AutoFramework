@@ -416,6 +416,29 @@
                                             FontWeight="Bold"
                                             Style="{DynamicResource ButtonSuccess}" />
                                     </UniformGrid>
+
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="6" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox
+                                            Grid.Column="0"
+                                            Height="32"
+                                            VerticalContentAlignment="Center"
+                                            IsReadOnly="True"
+                                            Text="{Binding FixedFeatureFilePath, Mode=OneWay}"
+                                            ToolTip="固定路径，把 MVS 客户端导出的采集卡属性文件（.hcf）放到这里，文件名不能改" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Width="140"
+                                            Height="32"
+                                            Command="{Binding ImportFeatureFileCommand}"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+FrameGrabberDebugView.ImportFeatureFile}"
+                                            Content="导入属性文件"
+                                            Style="{DynamicResource ButtonWarning}" />
+                                    </Grid>
                                 </StackPanel>
 
                             </ScrollViewer>

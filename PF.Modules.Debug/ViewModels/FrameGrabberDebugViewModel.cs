@@ -183,6 +183,14 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置残帧处理策略（留空则不下发）</summary>
         public string PartialImageControl { get => _partialImageControl; set => SetProperty(ref _partialImageControl, value); }
 
+        private string _fixedFeatureFilePath = "-";
+        /// <summary>
+        /// 固定路径属性文件的完整路径（只读，来自 <see cref="PF.Core.Interfaces.Device.Hardware.IGenICamNodeAccess.FeatureFilePath"/>）。
+        /// 现场照着这个路径把 MVS 客户端导出的 .hcf 放过去即可，不用猜文件名；
+        /// 放好后点 <see cref="ImportFeatureFileCommand"/> 即可重新下发，不需要重新连接设备。
+        /// </summary>
+        public string FixedFeatureFilePath { get => _fixedFeatureFilePath; set => SetProperty(ref _fixedFeatureFilePath, value); }
+
         #endregion
 
         #region 【属性树】
@@ -262,6 +270,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand SoftwareTriggerCommand { get; private set; }
         /// <summary>枚举本卡相机命令</summary>
         public DelegateCommand DiscoverCamerasCommand { get; private set; }
+        /// <summary>从固定路径重新导入属性文件命令</summary>
+        public DelegateCommand ImportFeatureFileCommand { get; private set; }
         /// <summary>读取节点命令</summary>
         public DelegateCommand ReadNodeCommand { get; private set; }
         /// <summary>写入节点命令</summary>
@@ -323,6 +333,16 @@ namespace PF.Modules.Debug.ViewModels
                 foreach (var d in list) DiscoveredCameras.Add(d.DisplayName);
 
                 Log($"本卡下发现 {list.Count} 台相机。");
+            }));
+
+            ImportFeatureFileCommand = new DelegateCommand(() => RunAsync("导入属性文件", async () =>
+            {
+                if (_card == null) return;
+
+                bool ok = await _card.ReimportFeatureFileAsync();
+                FeatureFileMissing = _card.FeatureFileMissing;
+                if (ok) Log("属性文件导入完成（逐节点失败清单见硬件日志）。");
+                else LogWarn($"属性文件导入失败或文件不存在（详见上条硬件日志），固定路径：{FixedFeatureFilePath}");
             }));
 
             ReadNodeCommand = new DelegateCommand(() => RunAsync("读取节点", async () =>
@@ -424,6 +444,7 @@ namespace PF.Modules.Debug.ViewModels
         {
             ModelName = string.IsNullOrEmpty(_card?.ModelName) ? "-" : _card.ModelName;
             SerialNumber = string.IsNullOrEmpty(_card?.SerialNumber) ? "-" : _card.SerialNumber;
+            FixedFeatureFilePath = _card?.FeatureFilePath ?? "-";
         }
 
         /// <summary>

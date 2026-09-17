@@ -36,33 +36,46 @@ namespace PF.Infrastructure.Hardware.FrameGrabber
         /// </summary>
         protected virtual string FeatureFileName => "FrameGrabberCard.hcf";
 
+        /// <inheritdoc/>
+        public string FeatureFilePath => Path.Combine(ConstGlobalParam.ConfigPath, "HardwareFeatureFiles", FeatureFileName);
+
+        /// <inheritdoc/>
+        public Task<bool> ReimportFeatureFileAsync(CancellationToken token = default)
+            => Task.Run(AutoImportFeatureFile, token);
+
         /// <summary>
-        /// 连接成功、<see cref="NodeAccessor"/> 赋值后调用：从固定路径
-        /// <c>{ConstGlobalParam.ConfigPath}\HardwareFeatureFiles\{FeatureFileName}</c>
-        /// 导入接线属性。文件不存在时只记 Warn 并沿用设备当前配置，不视为连接失败——
-        /// 现场首次上电、还没来得及导出文件时不应阻塞整机初始化。
+        /// 从固定路径 <see cref="FeatureFilePath"/> 导入接线属性。文件不存在时只记 Warn 并沿用
+        /// 设备当前配置，不视为失败——现场首次上电、还没来得及导出文件时不应阻塞整机初始化。
         ///
-        /// <para>同步方法：调用方（<c>InternalConnectAsync</c>）本就运行在 SDK 专用的 Task.Run
-        /// 线程里，直接调用 <see cref="GenICamNodeAccessor.ImportFeatureFile"/> 即可，
-        /// 无需再嵌套一层 Task.Run。</para>
+        /// <para>连接成功、<see cref="NodeAccessor"/> 赋值后由 <c>InternalConnectAsync</c> 同步调用一次
+        /// （此时已运行在 SDK 专用的 Task.Run 线程里，直接调 <see cref="GenICamNodeAccessor.ImportFeatureFile"/>
+        /// 即可，无需再嵌套一层 Task.Run）；也可由 <see cref="ReimportFeatureFileAsync"/> 在调试面板
+        /// 按需手动重新触发。</para>
         /// </summary>
-        private protected void AutoImportFeatureFile()
+        /// <returns>是否真的导入了文件（false 表示文件缺失，只是建了占位）。</returns>
+        private protected bool AutoImportFeatureFile()
         {
             var acc = NodeAccessor;
-            string path = Path.Combine(ConstGlobalParam.ConfigPath, "HardwareFeatureFiles", FeatureFileName);
+            string dir = Path.Combine(ConstGlobalParam.ConfigPath, "HardwareFeatureFiles");
+            string path = FeatureFilePath;
 
             if (acc == null || !File.Exists(path))
             {
                 FeatureFileMissing = true;
+                FeatureFileScaffold.EnsurePlaceholder(dir, path, DeviceName, HardwareLogger);
                 HardwareLogger.Warn($"[{DeviceName}] 属性文件不存在：{path}，跳过导入，沿用设备当前配置。");
-                return;
+                return false;
             }
 
             FeatureFileMissing = false;
             if (acc.ImportFeatureFile(path))
+            {
                 HardwareLogger.Success($"[{DeviceName}] 属性文件已导入（逐节点结果见 Hardware 日志）。");
-            else
-                HardwareLogger.Error($"[{DeviceName}] 属性文件导入失败，详见 Hardware 日志。");
+                return true;
+            }
+
+            HardwareLogger.Error($"[{DeviceName}] 属性文件导入失败，详见 Hardware 日志。");
+            return false;
         }
 
         /// <inheritdoc/>

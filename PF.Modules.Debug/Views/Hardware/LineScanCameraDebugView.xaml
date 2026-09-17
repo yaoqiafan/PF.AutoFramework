@@ -850,9 +850,9 @@
                                     Height="32"
                                     Margin="0,0,16,0"
                                     VerticalContentAlignment="Center"
-                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanCameraDebugView.FeatureFilePath}"
-                                    Text="{Binding FeatureFilePath, UpdateSourceTrigger=PropertyChanged}"
-                                    ToolTip="MVS 客户端导出的设备属性文件（.mfs）完整路径" />
+                                    IsReadOnly="True"
+                                    Text="{Binding FixedFeatureFilePath, Mode=OneWay}"
+                                    ToolTip="固定路径，把 MVS 客户端导出的设备属性文件（.mfs）放到这里，文件名不能改" />
 
                                 <Button
                                     Grid.Row="2"

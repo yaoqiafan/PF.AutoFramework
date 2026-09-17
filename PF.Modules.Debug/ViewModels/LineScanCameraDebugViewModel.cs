@@ -415,13 +415,13 @@ namespace PF.Modules.Debug.ViewModels
             }
         }
 
-        private string _featureFilePath = string.Empty;
+        private string _fixedFeatureFilePath = "-";
         /// <summary>
-        /// 待导入的设备属性文件路径（MVS 客户端导出的 .mfs）。
-        /// 用于校验"现场调好参数导出成文件后，能不能直接喂给设备"这条路是否可行——
-        /// 导入结果（含逐节点失败清单）见 <see cref="ImportFeatureFileCommand"/> 的硬件日志。
+        /// 固定路径属性文件的完整路径（只读，来自 <see cref="PF.Core.Interfaces.Device.Hardware.IGenICamNodeAccess.FeatureFilePath"/>）。
+        /// 现场照着这个路径把 MVS 客户端导出的 .mfs 放过去即可，不用猜文件名；
+        /// 放好后点 <see cref="ImportFeatureFileCommand"/> 即可重新下发，不需要重新连接设备。
         /// </summary>
-        public string FeatureFilePath { get => _featureFilePath; set => SetProperty(ref _featureFilePath, value); }
+        public string FixedFeatureFilePath { get => _fixedFeatureFilePath; set => SetProperty(ref _fixedFeatureFilePath, value); }
 
         private string _nodeFilter = string.Empty;
         /// <summary>节点过滤关键字（按名称/显示名/分类匹配）。</summary>
@@ -554,11 +554,11 @@ namespace PF.Modules.Debug.ViewModels
             ImportFeatureFileCommand = new DelegateCommand(() => RunAsync("导入属性文件", async () =>
             {
                 if (_camera == null) return;
-                if (string.IsNullOrWhiteSpace(FeatureFilePath)) { LogWarn("请先填写属性文件路径。"); return; }
 
-                bool ok = await _camera.ImportFeatureFileAsync(FeatureFilePath);
+                bool ok = await _camera.ReimportFeatureFileAsync();
+                FeatureFileMissing = _camera.FeatureFileMissing;
                 if (ok) Log("属性文件导入完成（逐节点失败清单见硬件日志）。");
-                else LogWarn("属性文件导入失败（详见上条硬件日志）。");
+                else LogWarn($"属性文件导入失败或文件不存在（详见上条硬件日志），固定路径：{FixedFeatureFilePath}");
             }));
 
             StartGrabCommand = new DelegateCommand(() => RunAsync("开流", async () =>
@@ -881,6 +881,8 @@ namespace PF.Modules.Debug.ViewModels
         private void RefreshCameraInfo()
         {
             if (_camera == null) return;
+
+            FixedFeatureFilePath = _camera.FeatureFilePath;
 
             string model = string.IsNullOrEmpty(_camera.ModelName) ? "-" : _camera.ModelName;
             string sn = string.IsNullOrEmpty(_camera.SerialNumber) ? "-" : _camera.SerialNumber;

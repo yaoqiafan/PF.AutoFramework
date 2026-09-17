@@ -22,6 +22,20 @@ namespace PF.Core.Interfaces.Device.Hardware
         bool FeatureFileMissing { get; }
 
         /// <summary>
+        /// 固定路径属性文件的完整路径（<c>{ConstGlobalParam.ConfigPath}\HardwareFeatureFiles\固定文件名</c>），
+        /// 供调试面板只读展示——现场人员照着这个路径把厂商客户端导出的文件放过去即可，不用猜文件名。
+        /// </summary>
+        string FeatureFilePath { get; }
+
+        /// <summary>
+        /// 手动从 <see cref="FeatureFilePath"/> 重新导入一次，与连接时的自动导入走同一套逻辑
+        /// （文件不存在则建占位并返回 false，存在则导入并刷新 <see cref="FeatureFileMissing"/>）。
+        /// 供调试面板"导入属性文件"按钮使用：现场把新导出的文件放到固定路径后，不需要重新连接设备，
+        /// 点一下按钮就能重新下发。
+        /// </summary>
+        Task<bool> ReimportFeatureFileAsync(CancellationToken token = default);
+
+        /// <summary>
         /// 探测节点是否存在且当前可访问（RO/RW/WO 均视为可用）。
         /// <para>用于新旧固件双分支：节点不存在时应跳过并记日志，而不是让整个初始化失败。</para>
         /// </summary>
