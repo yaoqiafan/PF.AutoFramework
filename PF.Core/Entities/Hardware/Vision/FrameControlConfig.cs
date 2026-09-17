@@ -40,7 +40,13 @@ namespace PF.Core.Entities.Hardware.Vision
         /// 挂了采集卡时，帧触发（含软触发命令）是否仍然落在<b>相机自身</b>节点树上，
         /// 而不是采集卡节点树。
         ///
-        /// <para>默认 false：保持"挂卡即卡控帧"的原有行为（<c>ImageHeight</c>/<c>FrameTimeoutTime</c>/
+        /// <para>null（默认）：调用方不关心这件事，设备层退回"连接时探测到的相机实际状态"决定
+        /// （相机自身 FrameTriggerMode 当时已经是 On，就落相机侧，否则落卡侧）——不能直接当
+        /// false 处理：那等于把"调用方没说"和"调用方明确要卡控帧"划了等号，一次只想测曝光的
+        /// 调用就会把现场已经验证好的相机侧接线强行路由回卡，卡侧没有对应触发节点时报
+        /// MV_E_GC_ACCESS，这不是假设，是真出过的故障。</para>
+        ///
+        /// <para>false：保持"挂卡即卡控帧"（<c>ImageHeight</c>/<c>FrameTimeoutTime</c>/
         /// <c>StreamTriggerEnable</c> 等写入采集卡，对应海康官方 ParameterInterface_SoftwareTrigger
         /// 样例的用法，相机侧配合 <c>ScanMode=LineScan</c> + <c>TriggerMode=Off</c>）。</para>
         ///
@@ -48,9 +54,9 @@ namespace PF.Core.Entities.Hardware.Vision
         /// 软触发命令）也下发到相机自身，对应海康官方 LineScanSoftwareTrigger 样例的用法——
         /// 相机侧需配合 <c>ScanMode=FrameScan</c>，此时采集卡只承担物理连接，不参与帧边界判定。
         /// "挂了采集卡"与"由采集卡控帧"是两件独立的事，不能划等号，具体用哪种由现场验证过的
-        /// 相机参数决定。</para>
+        /// 相机参数决定，false/true 都是调用方的明确选择，只有 null 才交给探测兜底。</para>
         /// </summary>
-        public bool TriggerOnCameraSide { get; set; }
+        public bool? TriggerOnCameraSide { get; set; }
 
         /// <summary>
         /// 帧触发源 symbolic 值。

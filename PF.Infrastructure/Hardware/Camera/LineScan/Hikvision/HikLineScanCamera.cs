@@ -58,30 +58,31 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         private IFrameControl? _deviceFrameControl;
 
         /// <summary>
-        /// 连接时探测到的相机自身 FrameTriggerMode 是否已经是 On——本会话还没下发过任何配置
-        /// （<see cref="_lastConfig"/> 为 null）时，用它代替硬编码的"挂卡就默认卡控帧"，
-        /// 否则谁也没点过「下发完整配置」就直接点软触发（现场很常见的操作顺序：开机后
-        /// 相机已按 UserSetDefault 自带正确接线，直接开流触发），会被误判成卡侧从而复现
-        /// MV_E_GC_ACCESS。为 null 表示未挂卡或探测失败，此时不影响判断。
+        /// 连接时探测到的相机自身 FrameTriggerMode 是否已经是 On——调用方没有在配置里明确表态
+        /// （<see cref="FrameControlConfig.TriggerOnCameraSide"/> 为 null，或压根没下发过配置）
+        /// 时，用它代替硬编码的"挂卡就默认卡控帧"，否则一次只关心曝光、没碰 FrameControl 的
+        /// 调用（现场很常见：开机后相机已按 UserSetDefault 自带正确接线，直接开流触发），
+        /// 会被误判成卡侧从而复现 MV_E_GC_ACCESS。为 null 表示未挂卡或探测失败，此时不影响判断。
         /// </summary>
         private bool? _probedDeviceSideTrigger;
 
         /// <summary>
-        /// 当前实际生效的帧控制策略：挂卡且未要求相机侧触发时用卡侧策略，否则用相机自身。
-        /// "挂了采集卡"与"由采集卡控帧"是两件独立的事，见 <see cref="FrameControlConfig.TriggerOnCameraSide"/>。
-        /// 本会话尚未下发过配置时，退回连接时探测到的相机实际状态（<see cref="_probedDeviceSideTrigger"/>），
-        /// 而不是无条件假定卡控帧。
+        /// 帧触发该不该落在相机侧：调用方在 <see cref="FrameControlConfig.TriggerOnCameraSide"/>
+        /// 里明确表态（true/false）就听调用方的；没表态（null，包括压根没下发过配置）才退回
+        /// 连接时探测到的相机实际状态（<see cref="_probedDeviceSideTrigger"/>）兜底，不是无条件
+        /// 假定卡控帧。<see cref="ActiveFrameControl"/> 与卡侧重发逻辑共用这份判断，避免两处各写
+        /// 一遍、改一处漏一处。
+        /// </summary>
+        private bool ShouldTriggerOnCameraSide
+            => _lastConfig?.FrameControl.TriggerOnCameraSide ?? _probedDeviceSideTrigger ?? false;
+
+        /// <summary>
+        /// 当前实际生效的帧控制策略：挂卡且不该走相机侧触发（<see cref="ShouldTriggerOnCameraSide"/>）
+        /// 时用卡侧策略，否则用相机自身。"挂了采集卡"与"由采集卡控帧"是两件独立的事，
+        /// 见 <see cref="FrameControlConfig.TriggerOnCameraSide"/>。
         /// </summary>
         private IFrameControl? ActiveFrameControl
-        {
-            get
-            {
-                bool cameraSide = _lastConfig?.FrameControl.TriggerOnCameraSide
-                    ?? _probedDeviceSideTrigger
-                    ?? false;
-                return (_cardFrameControl != null && !cameraSide) ? _cardFrameControl : _deviceFrameControl;
-            }
-        }
+            => (_cardFrameControl != null && !ShouldTriggerOnCameraSide) ? _cardFrameControl : _deviceFrameControl;
 
         private Thread? _receiveThread;
         private volatile bool _isGrabbing;
@@ -306,9 +307,9 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// （相机断电重启后参数会回到设备默认值，不补发会静默地按错误参数扫描）。
         /// <para>只补发相机侧参数——帧控制若落在采集卡上，已由 <see cref="InternalConnectAsync"/>
         /// 在开相机前写入采集卡，这里再调 <see cref="ApplyConfigAsync"/> 会触发一次多余的重连；
-        /// 但帧控制若要求落在相机自身（<see cref="FrameControlConfig.TriggerOnCameraSide"/>），
-        /// 重连不会自动补发，必须在这里额外重发一次，否则复位后相机的 FrameTriggerMode 会
-        /// 回到设备默认值，静默丢失软触发能力。</para>
+        /// 但帧控制若要求落在相机自身（<see cref="ShouldTriggerOnCameraSide"/>，重连时已按新探测
+        /// 结果重新判断），重连不会自动补发，必须在这里额外重发一次，否则复位后相机的
+        /// FrameTriggerMode 会回到设备默认值，静默丢失软触发能力。</para>
         /// </summary>
         protected override async Task InternalResetAsync(CancellationToken token)
         {
@@ -320,7 +321,7 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             {
                 await ApplyCameraSideAsync(_lastConfig, token);
 
-                if (_lastConfig.FrameControl.TriggerOnCameraSide)
+                if (ShouldTriggerOnCameraSide)
                     await ApplyFrameControlCoreAsync(_lastConfig.FrameControl, token);
             }
         }
@@ -414,13 +415,13 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// 相机打开之后把帧控制配置补写进采集卡。由 <see cref="InternalConnectAsync"/> 在开相机成功后调用，
         /// 使重连/复位后卡上的流参数自动恢复，不必等调用方再下发一次。
         /// 首次连接前若从未下发过配置则跳过——此时卡沿用自身当前值。
-        /// <para>配置要求相机侧触发（<see cref="FrameControlConfig.TriggerOnCameraSide"/>）时也跳过——
+        /// <para>帧触发该落在相机侧时（<see cref="ShouldTriggerOnCameraSide"/>）也跳过——
         /// 这种模式下帧控制根本不该出现在卡上，补发反而会把卡的触发配置搅乱。</para>
         /// </summary>
         private async Task ApplyFrameControlToCardAsync(CancellationToken token)
         {
             if (IsSimulated || Parent == null || _lastConfig == null) return;
-            if (_lastConfig.FrameControl.TriggerOnCameraSide) return;
+            if (ShouldTriggerOnCameraSide) return;
 
             await Parent.ApplyFrameControlAsync(_lastConfig.FrameControl, token);
         }

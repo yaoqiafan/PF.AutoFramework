@@ -44,8 +44,22 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.24</Version>
+		<Version>1.0.25</Version>
 		<PackageReleaseNotes>
+v1.0.25 (2026-09-17) — HikLineScanCamera 帧触发路由改为"未表态即探测兜底"，同步 PF.Core 1.0.25（含破坏性变更）
+
+[破坏性变更 — HikLineScanCamera，同步 PF.Core 1.0.25 的 FrameControlConfig.TriggerOnCameraSide]
+- 新增 ShouldTriggerOnCameraSide 只读属性，统一收口"帧触发该不该落在相机侧"的判断：调用方
+  明确表态（true/false）就听调用方的，没表态（null，含压根没下发过配置）才退回连接时探测到的
+  相机实际状态兜底。ActiveFrameControl、InternalResetAsync 的补发判断、
+  ApplyFrameControlToCardAsync 的跳过判断三处原来各自读 _lastConfig.FrameControl.
+  TriggerOnCameraSide，现在统一改读这一个属性，不再各写一份、改一处漏一处。
+- 背景：与本次同步的 LineTriggerConfig.Mode 是同一次事故复盘挖出来的同一类问题，只是发生在
+  帧触发这一侧——调用方没碰 FrameControl 时，原来的非空 bool 默认值会被当成"明确要卡控帧"，
+  路由到没有 StreamTriggerEnable 节点的卡上报错。
+
+子包版本对照：PF.Core 1.0.24→1.0.25。
+
 v1.0.24 (2026-09-17) — HikLineScanCamera 行触发改为"未指定即整段跳过"，同步 PF.Core 1.0.24；LineScanDetectionModule 不再猜行触发模式（含破坏性变更）
 
 [破坏性变更 — HikLineScanCamera.ApplyLineTrigger，同步 PF.Core 1.0.24 的 LineTriggerConfig.Mode]

@@ -3,8 +3,22 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.24</Version>
+		<Version>1.0.25</Version>
 		<PackageReleaseNotes>
+v1.0.25 (2026-09-17) — FrameControlConfig.TriggerOnCameraSide 改为可空，未表态即探测兜底（含破坏性变更，同一类事故的第二处）
+
+[破坏性变更 — FrameControlConfig]
+- TriggerOnCameraSide 从 bool（默认 false）改为 bool?（默认 null）。false 曾经在"调用方没
+  下发这个字段"和"调用方明确要卡控帧"两种情况下取值相同，设备层没法区分，只能一律当卡控帧
+  处理；改成可空后 null 才是"调用方没表态"，由设备层退回连接时探测到的相机实际状态兜底，
+  true/false 仍然是调用方的明确选择，原样生效。
+- 和 v1.0.24 的 LineTriggerConfig.Mode 是同一次事故复盘挖出来的同一类问题：一次只想测曝光、
+  完全没碰 FrameControl 的调用，被当成"要卡控帧"，路由到没有 StreamTriggerEnable 节点的卡上，
+  报 MV_E_GC_ACCESS——跟行触发那次是同一个根因（"没设置"被当成"设置成默认值"），只是发生在
+  帧触发这一侧。
+
+子包版本对照：PF.Infrastructure 1.0.24→1.0.25。
+
 v1.0.24 (2026-09-17) — LineTriggerConfig.Mode 改为可空，未指定即不下发（含破坏性变更，修复真实误覆盖事故）
 
 [破坏性变更 — LineTriggerConfig]

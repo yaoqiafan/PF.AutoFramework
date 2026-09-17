@@ -3,8 +3,23 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.36</Version>
+    <Version>1.0.37</Version>
     <PackageReleaseNotes>
+		v1.0.37 (2026-09-17) — 线扫帧触发路由同类问题修复：未表态即探测兜底，不再当卡控帧处理（含破坏性变更）
+
+		[破坏性变更 — PF.Core 1.0.24→1.0.25 的 FrameControlConfig]
+		- TriggerOnCameraSide 从非空 bool（默认 false）改为可空 bool?（默认 null）。null = 调用方
+		  没表态，由设备层退回连接时探测到的相机实际状态兜底；true/false 仍是调用方的明确选择。
+
+		[破坏性变更 — PF.Infrastructure 1.0.24→1.0.25]
+		- HikLineScanCamera 新增 ShouldTriggerOnCameraSide 统一收口判断逻辑，ActiveFrameControl/
+		  复位补发/卡侧补发跳过三处原来各自读字段的地方改用这一个属性。
+		- 与上一版（v1.0.36）修复的 LineTriggerConfig.Mode 是同一次事故复盘挖出来的同一类问题：
+		  调用方没碰 FrameControl 时，原来的非空默认值被当成"明确要卡控帧"，路由到没有
+		  StreamTriggerEnable 节点的卡上报 MV_E_GC_ACCESS。
+
+		子包版本对照：PF.Core 1.0.24→1.0.25，PF.Infrastructure 1.0.24→1.0.25；其余子包本次无变化。
+
 		v1.0.36 (2026-09-17) — 修复线扫行触发被自动猜测覆盖真实接线的事故（含破坏性变更）
 
 		[破坏性变更 — PF.Core 1.0.23→1.0.24 的 LineTriggerConfig]
