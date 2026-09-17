@@ -69,6 +69,7 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                     break;
                 case ImageFileFormat.Tiff:
                     info.FormatType = ImageFormatType.Tiff;
+                    info.ByteOrder = 0;
                     break;
                 case ImageFileFormat.Png:
                     info.FormatType = ImageFormatType.Png;
