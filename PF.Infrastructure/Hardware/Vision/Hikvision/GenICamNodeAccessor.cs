@@ -250,14 +250,40 @@ namespace PF.Infrastructure.Hardware.Vision.Hikvision
                         _logger.Warn($"[{_owner}] 属性文件节点 '{e.NodeName}' 导入失败：{e.ErrorType}。");
                 }
 
-                _logger.Info($"[{_owner}] 属性文件 '{filePath}' 已导入"
-                    + (nodeErrors is { Count: > 0 } ? $"（{nodeErrors.Count} 个节点失败，见上）。" : "。"));
+                int failed = nodeErrors?.Count ?? 0;
+                int? total = CountFeatureFileEntries(filePath);
+                string summary = total.HasValue
+                    ? $"共 {total} 个节点，成功 {total - failed}，失败 {failed}。"
+                    : $"失败 {failed} 个（文件行数统计失败，总数未知）。";
+
+                _logger.Info($"[{_owner}] 属性文件 '{filePath}' 已导入，{summary}");
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.Error($"[{_owner}] 导入属性文件 '{filePath}' 异常：{ex.Message}", ex);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 统计 .mfs 文件里实际的"节点=值"条目数，供导入结果汇总用。
+        /// <para>.mfs 是纯文本，每行一条 "节点名\t值"；以 <c>#</c> 开头的是文件头注释
+        /// （版本号、设备型号等），不算节点。选择器类节点（如 RegionSelector）本身也是一条
+        /// 独立的赋值，同一行格式，无需特殊处理。统计失败（文件读不到等）返回 null，
+        /// 调用方据此退化为"总数未知，只报失败个数"。</para>
+        /// </summary>
+        private int? CountFeatureFileEntries(string filePath)
+        {
+            try
+            {
+                return File.ReadAllLines(filePath)
+                    .Count(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith('#'));
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug($"[{_owner}] 统计属性文件 '{filePath}' 行数失败：{ex.Message}", ex);
+                return null;
             }
         }
 

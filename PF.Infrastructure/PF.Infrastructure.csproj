@@ -44,8 +44,17 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.22</Version>
+		<Version>1.0.23</Version>
 		<PackageReleaseNotes>
+v1.0.23 (2026-09-17) — 属性文件导入补充结果汇总（总数/成功/失败）
+
+[新增 — GenICamNodeAccessor.ImportFeatureFile]
+- 导入完成后除了逐节点失败清单（Warn），额外统计 .mfs 文件里的节点总数（跳过 # 开头的
+  文件头注释行），汇总成"共 N 个节点，成功 X，失败 Y。"记一条 Info，不用再自己数失败条数
+  推总数。文件行数统计失败时退化为"总数未知，只报失败个数"，不影响导入结果本身。
+
+子包版本对照：其余子包本次无变化。
+
 v1.0.22 (2026-09-17) — BaseLineScanCamera/BaseFrameGrabberCard 实现属性文件导入，同步 PF.Core 1.0.23
 
 [新增 — 同步 PF.Core 1.0.23 的 IGenICamNodeAccess.ImportFeatureFileAsync]

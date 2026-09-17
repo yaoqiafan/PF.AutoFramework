@@ -3,8 +3,16 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.34</Version>
+    <Version>1.0.35</Version>
     <PackageReleaseNotes>
+		v1.0.35 (2026-09-17) — 属性文件导入补充结果汇总（总数/成功/失败）
+
+		[新增 — PF.Infrastructure 1.0.22→1.0.23]
+		- GenICamNodeAccessor.ImportFeatureFile 导入完成后统计 .mfs 文件节点总数，汇总成
+		  "共 N 个节点，成功 X，失败 Y。"记一条 Info，不用再自己数失败条数推总数。
+
+		子包版本对照：PF.Infrastructure 1.0.22→1.0.23；其余子包本次无变化。
+
 		v1.0.34 (2026-09-17) — 新增设备属性文件（.mfs）导入能力，线扫相机调试页配套测试入口
 
 		[新增 — PF.Core 1.0.22→1.0.23 的 IGenICamNodeAccess]
