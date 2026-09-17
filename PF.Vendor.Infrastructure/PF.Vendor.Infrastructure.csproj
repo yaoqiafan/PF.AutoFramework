@@ -54,7 +54,7 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.2.1</Version>
+		<Version>1.2.2</Version>
 		<Description>PF.Infrastructure 依赖的第三方硬件 SDK 原生资产合集（雷赛 LTDMC 运动控制卡、
 			CTS 三色灯光源控制器 SDK、基恩士 Keyence.AutoID.SDK、Communication 通讯基础库、
 			海康 MvCodeReaderSDK 扫码枪 SDK 含原生驱动、海康 MvCameraControl.Net 相机 SDK 托管封装）。
@@ -76,8 +76,10 @@
 			必须从海康 MVS SDK 安装目录的 Libraries\win64 下手动复制，CameraLink/CXP/XoF 链路
 			还要另装 MVFG 采集卡驱动。</Description>
 		<PackageReleaseNotes>
+			v1.2.2 — 更新海康扫码枪的dll。
+
 			v1.2.1 — 更新海康扫码枪的dll。
-			
+
 			v1.2.0 — 源文件目录从 DLL\ 根目录搬到 DLL\Infrastructure\（与 DLL\HALCON\ 并列，按消费方分文件夹）；
 			新增此前遗漏的 MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll——海康扫码枪托管封装
 			MvCodeReaderSDK.Net.dll 实际会 P/Invoke 这两个原生库，PF.Infrastructure.csproj 里此前没有
