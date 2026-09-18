@@ -31,8 +31,22 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-09-18) — 修复 WaitDialogViewModel 任务过快完成时的关闭异常
+
+[修复]
+- ExecuteWithWaitAsync 包裹的任务如果跑得足够快（比如只写一两条参数，全程没有真正让出线程
+  的异步点），会在 DialogService 还没走完窗口显示/RequestClose 绑定这套收尾流程之前，
+  就在 OnDialogOpened 的 finally 里调用 RequestClose.Invoke() 请求关闭弹窗，抛出
+  "The DialogCloseListener has not been properly initialized" 未处理异常（被全局异常处理器
+  兜住后弹成"系统错误"提示框）。WaitDialogViewModel.OnDialogOpened 执行任务前加一行
+  await Task.Yield()，把后续执行推到下一次调度，确保窗口已完成显示流程后再运行任务，
+  无论任务多快都不会再抢跑。
+- 此前仓库内唯一的 ExecuteWithWaitAsync 调用点（HardwareManagerService.LoadAndInitializeAsync）
+  是硬件加载，耗时够长从未触发过这条竞态；PF.Modules.Identity 1.0.5 新增的批量导入/删除功能
+  是第一个用"可能很快跑完"的任务触发它的调用方，修复对所有调用方通用。
+
 v1.0.5 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

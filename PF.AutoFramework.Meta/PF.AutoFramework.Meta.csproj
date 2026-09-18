@@ -3,8 +3,30 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.40</Version>
+    <Version>1.0.41</Version>
     <PackageReleaseNotes>
+		v1.0.41 (2026-09-18) — 用户管理新增批量导入 / 批量删除 / 列表视图；修复等待弹窗任务过快完成时的关闭异常
+
+		[新增 — PF.Modules.Identity 1.0.4→1.0.5]
+		- UserManagementView 新增"导出模板""批量导入"：导出仅含「工号/密码」两列的 xlsx 模板，
+		  导入时校验空值/文件内重复/与既有账号（含内置账号）重名，弹窗展示成功/跳过/失败明细，
+		  确认后批量落盘，账号权限统一固定 Operator；仅管理员及以上可用。
+		- 卡片视图与新增的列表视图（DataGrid）顶部均新增"全选/已选择 N 项/批量删除"工具条，
+		  两视图共用同一份勾选状态；权限门槛按等级逐行判定——只能删严格低于自己等级的账号，
+		  同级/更高级（含自己）不可勾选，天然排除误删自己。
+		- 标题旁新增 pf:ButtonGroup 视图切换（🗂 卡片视图 / 📋 列表视图）。
+		- 新增 NPOI 包引用（版本由 Directory.Packages.props 中央管理）。
+
+		[修复 — PF.UI.Infrastructure 1.0.5→1.0.6]
+		- WaitDialogViewModel（ExecuteWithWaitAsync 等待框）包裹的任务若跑得足够快，会在
+		  DialogService 完成窗口显示/RequestClose 绑定前提前触发关闭，抛出
+		  "DialogCloseListener 未初始化"未处理异常。执行任务前加 await Task.Yield() 修复，
+		  对所有调用方通用；此前仓库内唯一调用点是硬件加载（耗时够长未触发过），
+		  PF.Modules.Identity 1.0.5 的批量导入/删除是第一个触发该竞态的调用方。
+
+		子包版本对照：PF.Modules.Identity 1.0.4→1.0.5，PF.UI.Infrastructure 1.0.5→1.0.6；
+		其余子包本次无变化。
+
 		v1.0.40 (2026-09-17) — 固定路径属性文件缺失时自动建占位；调试面板加只读路径展示与重新导入按钮
 
 		[新增 — PF.Core 1.0.27→1.0.28]

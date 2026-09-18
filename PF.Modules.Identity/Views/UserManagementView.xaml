@@ -18,6 +18,7 @@
         <conv:ListToStringConverter x:Key="ListToStringConverter" />
         <conv:UserLevelToBrushConverter x:Key="UserLevelToBrushConverter" />
         <conv:UserLevelToDisplayConverter x:Key="UserLevelToDisplayConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -33,11 +34,22 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="{DynamicResource FontSize.H1.Large}"
-                    FontWeight="Light"
-                    Text="用户管理" />
+                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,20,0"
+                        VerticalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.H1.Large}"
+                        FontWeight="Light"
+                        Text="用户管理" />
+                    <pf:ButtonGroup Orientation="Horizontal">
+                        <RadioButton
+                            Content="🗂 卡片视图"
+                            IsChecked="{Binding IsCardView, Mode=TwoWay}" />
+                        <RadioButton
+                            Content="📋 列表视图"
+                            IsChecked="{Binding IsListView, Mode=TwoWay}" />
+                    </pf:ButtonGroup>
+                </StackPanel>
                 <StackPanel
                     Grid.Column="1"
                     VerticalAlignment="Center"
@@ -48,6 +60,18 @@
                         Content="刷新"
                         oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.Refresh}" />
                     <Button
+                        Margin="0,0,8,0"
+                        Command="{Binding ExportTemplateCommand}"
+                        Content="导出模板"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.ExportTemplate}" />
+                    <Button
+                        Margin="0,0,8,0"
+                        Command="{Binding ImportUsersCommand}"
+                        Content="批量导入"
+                        IsEnabled="{Binding CanImportUsers}"
+                        ToolTip="仅管理员及以上权限可批量导入用户"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.ImportUsers}" />
+                    <Button
                         Command="{Binding AddCommand}"
                         Content="＋ 新增用户"
                         Style="{StaticResource ButtonPrimary}"
@@ -56,15 +80,45 @@
             </Grid>
 
             <!--  CoverView 用户卡片列表  -->
-            <ScrollViewer
-                Grid.Row="1"
-                HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto">
+            <Grid Grid.Row="1" Visibility="{Binding IsCardView, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  批量操作工具条  -->
+                <StackPanel
+                    Grid.Row="0"
+                    Margin="0,0,0,10"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <CheckBox
+                        Margin="0,0,16,0"
+                        VerticalAlignment="Center"
+                        Content="全选"
+                        IsChecked="{Binding SelectAllUsers, Mode=TwoWay}" />
+                    <TextBlock
+                        Margin="0,0,16,0"
+                        VerticalAlignment="Center"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        Text="{Binding SelectedCount, StringFormat='已选择 {0} 项'}" />
+                    <Button
+                        Command="{Binding BatchDeleteCommand}"
+                        Content="批量删除"
+                        Style="{StaticResource ButtonDashedDanger}"
+                        ToolTip="仅能删除权限等级低于自己的账号"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.BatchDelete}" />
+                </StackPanel>
+
+                <ScrollViewer
+                    Grid.Row="1"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
                 <pf:CoverView
                     ItemContentHeight="240"
                     ItemContentHeightFixed="True"
                     ItemHeight="210"
-                    ItemsSource="{Binding Users}"
+                    ItemsSource="{Binding SelectableUsers}"
                     ItemWidth="180">
 
                     <!--  ══════ 卡片封面（ItemHeaderTemplate）══════  -->
@@ -101,13 +155,13 @@
                                             Height="72"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
-                                            Fill="{Binding Root, Converter={StaticResource UserLevelToBrushConverter}}" />
+                                            Fill="{Binding User.Root, Converter={StaticResource UserLevelToBrushConverter}}" />
                                         <TextBlock
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
                                             FontSize="30"
                                             Foreground="White"
-                                            Text="{Binding Root, Converter={StaticResource UserLevelToDisplayConverter}, ConverterParameter=icon}" />
+                                            Text="{Binding User.Root, Converter={StaticResource UserLevelToDisplayConverter}, ConverterParameter=icon}" />
                                     </Grid>
 
                                     <!--  用户名  -->
@@ -117,7 +171,7 @@
                                         HorizontalAlignment="Center"
                                         FontSize="14"
                                         FontWeight="SemiBold"
-                                        Text="{Binding UserName}"
+                                        Text="{Binding User.UserName}"
                                         TextTrimming="CharacterEllipsis" />
 
                                     <!--  等级徽章  -->
@@ -126,13 +180,13 @@
                                         Margin="0,0,0,10"
                                         Padding="12,3"
                                         HorizontalAlignment="Center"
-                                        Background="{Binding Root, Converter={StaticResource UserLevelToBrushConverter}}"
+                                        Background="{Binding User.Root, Converter={StaticResource UserLevelToBrushConverter}}"
                                         CornerRadius="10">
                                         <TextBlock
                                             FontSize="11"
                                             FontWeight="Medium"
                                             Foreground="White"
-                                            Text="{Binding Root, Converter={StaticResource UserLevelToDisplayConverter}}" />
+                                            Text="{Binding User.Root, Converter={StaticResource UserLevelToDisplayConverter}}" />
                                     </Border>
 
                                     <!--  分隔线  -->
@@ -149,6 +203,16 @@
                                         FontSize="11"
                                         Foreground="{DynamicResource SecondaryTextBrush}"
                                         Text="点击展开编辑" />
+
+                                    <!--  批量删除勾选框：仅权限等级严格低于当前登录用户时可选（同级/更高级含自己禁用）  -->
+                                    <CheckBox
+                                        Grid.Row="0" Grid.RowSpan="5"
+                                        Margin="10"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                        IsEnabled="{Binding CanSelect}"
+                                        ToolTip="勾选后可批量删除（仅限权限等级低于自己的账号）" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -181,7 +245,7 @@
                                     Text="用户名" />
                                 <TextBox
                                     Grid.Row="1" Grid.Column="0"
-                                    Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}"
+                                    Text="{Binding User.UserName, UpdateSourceTrigger=PropertyChanged}"
                                     oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.UserName}" />
 
                                 <!--  密码  -->
@@ -192,7 +256,7 @@
                                     Text="密码" />
                                 <TextBox
                                     Grid.Row="1" Grid.Column="2"
-                                    Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" />
+                                    Text="{Binding User.Password, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <!--  权限等级  -->
                                 <TextBlock
@@ -203,7 +267,7 @@
                                 <ComboBox Height="{DynamicResource DefaultControlHeight}"
                                     Grid.Row="4" Grid.Column="0"
                                     ItemsSource="{Binding Data.UserLevels, Source={StaticResource Proxy}}"
-                                    SelectedItem="{Binding Root, Mode=TwoWay}"
+                                    SelectedItem="{Binding User.Root, Mode=TwoWay}"
                                     oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.SelectUserLevel}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
@@ -222,7 +286,7 @@
                                     Grid.Row="4" Grid.Column="2"
                                     MaxHeight="52"
                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                    Text="{Binding AccessibleViews, Converter={StaticResource ListToStringConverter}}"
+                                    Text="{Binding User.AccessibleViews, Converter={StaticResource ListToStringConverter}}"
                                     TextWrapping="Wrap" />
 
                                 <!--  操作按钮（保存 + 删除），独立底部行  -->
@@ -233,15 +297,15 @@
                                     <Button
                                         Margin="0,0,8,0"
                                         Command="{Binding Data.SaveUserCommand, Source={StaticResource Proxy}}"
-                                        CommandParameter="{Binding}"
+                                        CommandParameter="{Binding User}"
                                         Content="💾 保存"
                                         Style="{StaticResource ButtonPrimary}"
                                         oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.SaveUser}" />
                                     <Button
                                         Command="{Binding Data.DeleteCommand, Source={StaticResource Proxy}}"
-                                        CommandParameter="{Binding}"
+                                        CommandParameter="{Binding User}"
                                         Content="🗑 删除"
-                                        IsEnabled="{Binding UserName, Converter={StaticResource SystemUserToBoolConverter}}"
+                                        IsEnabled="{Binding User.UserName, Converter={StaticResource SystemUserToBoolConverter}}"
                                         Style="{StaticResource ButtonDashedDanger}"
                                         oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.DeleteUser}" />
                                 </StackPanel>
@@ -250,7 +314,116 @@
                     </pf:CoverView.ItemTemplate>
 
                 </pf:CoverView>
-            </ScrollViewer>
+                </ScrollViewer>
+            </Grid>
+
+            <!--  DataGrid 用户列表视图  -->
+            <Grid Grid.Row="1" Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  批量操作工具条  -->
+                <StackPanel
+                    Grid.Row="0"
+                    Margin="0,0,0,10"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <CheckBox
+                        Margin="0,0,16,0"
+                        VerticalAlignment="Center"
+                        Content="全选"
+                        IsChecked="{Binding SelectAllUsers, Mode=TwoWay}" />
+                    <TextBlock
+                        Margin="0,0,16,0"
+                        VerticalAlignment="Center"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        Text="{Binding SelectedCount, StringFormat='已选择 {0} 项'}" />
+                    <Button
+                        Command="{Binding BatchDeleteCommand}"
+                        Content="批量删除"
+                        Style="{StaticResource ButtonDashedDanger}"
+                        ToolTip="仅能删除权限等级低于自己的账号"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.BatchDelete}" />
+                </StackPanel>
+
+                <!--  用户列表 DataGrid  -->
+                <DataGrid
+                    Grid.Row="1"
+                    AutoGenerateColumns="False"
+                    BorderThickness="1"
+                    CanUserAddRows="False"
+                    CanUserSortColumns="True"
+                    HeadersVisibility="Column"
+                    ItemsSource="{Binding SelectableUsers}"
+                    RowHeight="44"
+                    SelectionUnit="FullRow">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="50" Header="☑">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox
+                                        HorizontalAlignment="Center"
+                                        IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding CanSelect}"
+                                        ToolTip="仅限权限等级低于自己的账号" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn
+                            Width="160"
+                            Binding="{Binding User.UserName}"
+                            FontWeight="Medium"
+                            Header="用户名"
+                            IsReadOnly="True" />
+
+                        <DataGridTemplateColumn Width="120" Header="权限等级">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Padding="10,3"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Background="{Binding User.Root, Converter={StaticResource UserLevelToBrushConverter}}"
+                                        CornerRadius="10">
+                                        <TextBlock
+                                            FontSize="11"
+                                            Foreground="White"
+                                            Text="{Binding User.Root, Converter={StaticResource UserLevelToDisplayConverter}}" />
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Width="*" Header="可访问页面">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        Text="{Binding User.AccessibleViews, Converter={StaticResource ListToStringConverter}}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Width="90" Header="操作">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button
+                                        Command="{Binding Data.DeleteCommand, Source={StaticResource Proxy}}"
+                                        CommandParameter="{Binding User}"
+                                        Content="🗑 删除"
+                                        IsEnabled="{Binding User.UserName, Converter={StaticResource SystemUserToBoolConverter}}"
+                                        Style="{StaticResource ButtonDashedDanger}"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+UserManagementView.DeleteUser}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
         </Grid>
     </pf:TransitioningContentControl>
 </UserControl>

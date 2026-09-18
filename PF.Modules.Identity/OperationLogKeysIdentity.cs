@@ -91,6 +91,20 @@ namespace PF.Modules.Identity
             [Description("删除用户")]
             [OperationLogCritical]
             public const string DeleteUser = nameof(DeleteUser);
+
+            /// <summary>导出批量导入模板</summary>
+            [Description("导出批量导入模板")]
+            public const string ExportTemplate = nameof(ExportTemplate);
+
+            /// <summary>批量导入用户</summary>
+            [Description("批量导入用户")]
+            [OperationLogCritical]
+            public const string ImportUsers = nameof(ImportUsers);
+
+            /// <summary>批量删除用户</summary>
+            [Description("批量删除用户")]
+            [OperationLogCritical]
+            public const string BatchDelete = nameof(BatchDelete);
         }
     }
 }

@@ -2,6 +2,7 @@
 		<Import Project="..\Common.Desktop.props" Condition="Exists('..\Common.Desktop.props')" />
 		<ItemGroup>
 			<PackageReference Include="Prism.Wpf" />
+			<PackageReference Include="NPOI" />
 		</ItemGroup>
 		<ItemGroup>
 			<ProjectReference Include="..\PF.UI.Infrastructure\PF.UI.Infrastructure.csproj" />
@@ -11,8 +12,37 @@
 		<PropertyGroup>
 			<IsModuleProject>true</IsModuleProject>
 			<IsPackable>true</IsPackable>
-			<Version>1.0.4</Version>
+			<Version>1.0.5</Version>
 			<PackageReleaseNotes>
+v1.0.5 (2026-09-18) — 用户管理新增批量导入 / 批量删除 / 列表视图
+
+[新增 — 批量导入]
+- UserManagementView 工具栏新增"导出模板""批量导入"两个按钮。导出模板产出一份仅含
+  「工号/密码」两列的 xlsx；导入时逐行校验（空值、文件内工号重复判失败；工号与系统已有
+  账号——含内置 Operator/Engineer/Administrator/SuperUser——重名判跳过、不覆盖），弹窗展示
+  成功/跳过/失败明细，用户确认后才批量落盘。导入账号权限统一固定为 Operator。
+- 批量导入仅管理员（Administrator）及以上可用，非管理员按钮置灰（IsEnabled 绑定，非隐藏），
+  命令内部同时做一次防御性二次校验。
+- 新增 UserImportExcelHelper（NPOI 读写 xlsx）；本包新增 NPOI 包引用（版本由
+  Directory.Packages.props 中央管理）。
+
+[新增 — 批量删除]
+- 卡片视图（CoverView）与新增的列表视图（DataGrid）顶部均新增"全选 / 已选择 N 项 / 批量
+  删除"工具条，两个视图共用同一份勾选状态，切换视图不丢失已勾选项。
+- 权限门槛按等级逐行判定，不是全局开关：只能勾选/删除权限等级严格低于当前登录账号的用户，
+  同级或更高级（含账号自己）一律不可勾选——用等级比较天然排除了"删自己"，不需要额外特判。
+- 二次确认弹窗列出待删用户名，确认后批量调用既有 DeleteUserAsync，复用原有落盘与日志路径。
+
+[新增 — 列表视图]
+- 标题"用户管理"右侧新增 pf:ButtonGroup + 两个 RadioButton（🗂 卡片视图 / 📋 列表视图）双向
+  绑定切换；列表视图为只读 DataGrid（用户名/权限等级/可访问页面/删除），编辑仍走卡片视图。
+
+[修复 — 联动修复 PF.UI.Infrastructure 的 WaitDialogViewModel]
+- 批量导入/删除包一层"请稍候"等待框（ExecuteWithWaitAsync）时，若被包裹的任务跑得足够快
+  （如只写一两条参数），会在弹窗真正显示完成前触发关闭，抛出
+  "DialogCloseListener 未初始化"未处理异常。本包是第一个用快速任务触发该竞态的调用方，
+  根因修复见 PF.UI.Infrastructure 1.0.6 changelog。
+
 v1.0.4 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

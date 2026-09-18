@@ -34,6 +34,12 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
             {
                 try
                 {
+                    // 让出一次调度：DialogService 在调用 OnDialogOpened 之后才真正完成窗口显示 /
+                    // RequestClose 绑定。若 workAction 足够快（如仅写几条参数），可能在这些收尾
+                    // 动作完成前就跑完并在 finally 里调用 RequestClose.Invoke，导致
+                    // "DialogCloseListener 未初始化" 崩溃。Task.Yield 把后续执行推到下一次调度，
+                    // 确保窗口已完成显示流程后再运行任务。
+                    await Task.Yield();
                     await workAction();
                     LogService.Info($"[等待弹窗] 等待任务完成 | 标题：{Title}", "操作日志");
                 }
