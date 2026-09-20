@@ -103,11 +103,9 @@ namespace PF.Infrastructure.Mechanisms.Vision
             RegisterHardwareDevice(_scanAxis as IHardwareDevice);
             RegisterHardwareDevice(_camera);
 
-            // 采集卡是相机的 Parent，独立顶级设备，不会因为注册了相机就自动纳入本模组的硬件快照——
-            // 漏了这一条的后果是复位（BaseMechanism.ResetAsync 遍历 SnapshotHardwares）永远碰不到卡，
-            // 卡一旦被某次失败的取流留在坏状态，复位没用，只能手动重新导入属性文件才能恢复。
-            if (_camera is IAttachedDevice { ParentDevice: { } card })
-                RegisterHardwareDevice(card);
+            // 注意：这里不要把相机的 Parent（采集卡）也注册进本模组的硬件快照。快照复位是按注册顺序
+            // 逐个来的，卡排在相机后面复位，卡重连后相机原来的流绑定就失效了，开流报 0x80000000。
+            // 卡的复位由相机自己的 InternalResetAsync 负责（关相机 → 复位卡 → 重开相机），顺序才对。
 
             _logger.Info($"[{MechanismName}] 初始化完成：扫描轴 '{_scanAxisDeviceId}'，相机 '{_cameraDeviceId}'"
                 + $"（{(_camera.HasFrameGrabber ? "经采集卡" : "直连")}）。");

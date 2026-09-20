@@ -319,6 +319,13 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         {
             await InternalDisconnectAsync();
 
+            // 经采集卡取流时，相机的流绑定在卡的接口对象上：卡一旦断开重连，此前打开的相机就成了
+            // 悬空绑定（开流报 0x80000000、部分节点写入报"值非法"）。所以顺序必须是
+            // 先关相机 → 复位卡（重连并重新导入属性文件）→ 再重开相机。
+            // 卡是独立的顶级设备，没有任何机构会替它复位，坏状态只能在这里清。
+            if (Parent != null && !await Parent.ResetAsync(token))
+                HardwareLogger.Warn($"[{DeviceName}] 采集卡 [{Parent.DeviceName}] 复位失败，继续尝试重新打开相机。");
+
             if (!await InternalConnectAsync(token)) return;
 
             if (_lastConfig != null)
