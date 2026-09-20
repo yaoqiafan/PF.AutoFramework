@@ -177,37 +177,62 @@
                         <ItemsControl ItemsSource="{Binding Channels}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <!--  通道行：左侧通道名，中间带刻度滑块，右侧文本框可直接输入数值，两者绑定同一个 Value 天然双向联动  -->
+                                    <!--  通道行：左侧通道名，中间带刻度滑块，右侧 NumericUpDown 可直接输入数值，两者绑定同一个 Value 联动。
+                                          用 NumericUpDown 而不是 TextBox：输入会按 0~255 钳位、非数字不会写进源，
+                                          不会再出现"框里 300、滑块 255、硬件先后收到 300 和 255"的脱节  -->
                                     <Grid Margin="0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="70" />
+                                            <ColumnDefinition Width="100" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock
-                                            Height="100"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            FontSize="{DynamicResource FontSize.H2.Title}"
-                                            FontWeight="SemiBold"
-                                            Text="{Binding DisplayName}" />
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                FontSize="{DynamicResource FontSize.H2.Title}"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding DisplayName}" />
+                                            <!--  未读取/读取失败时给出提示：此时滑块上的 0 只是初值，不是硬件读回的值  -->
+                                            <TextBlock
+                                                MaxWidth="86"
+                                                Margin="0,2,0,0"
+                                                HorizontalAlignment="Center"
+                                                FontSize="11"
+                                                Foreground="#EF4444"
+                                                Text="{Binding ReadStatus}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding ReadStatus}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasReadProblem}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
                                         <Slider
                                             Grid.Column="1"
                                             Margin="10,0"
                                             VerticalAlignment="Center"
-                                            IsSnapToTickEnabled="False"
+                                            IsSnapToTickEnabled="True"
                                             Maximum="255"
                                             Minimum="0"
-                                            TickFrequency="5"
-                                            TickPlacement="BottomRight"
+                                            TickFrequency="1"
+                                            TickPlacement="None"
                                             Value="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
-                                        <TextBox
+                                        <pf:NumericUpDown
                                             Grid.Column="2"
                                             Height="30"
-                                            HorizontalContentAlignment="Center"
-                                            VerticalContentAlignment="Center"
+                                            DecimalPlaces="0"
+                                            Increment="1"
+                                            Maximum="255"
+                                            Minimum="0"
                                             oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LightControllerDebugView.ChannelValueText}"
-                                            Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                                            Value="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

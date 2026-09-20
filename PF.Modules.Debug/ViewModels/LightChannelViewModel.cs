@@ -32,13 +32,41 @@ namespace PF.Modules.Debug.ViewModels
             Channel = channel;
         }
 
+        private string _readStatus = "未读取";
+        /// <summary>
+        /// 该通道亮度值的来源状态。"未读取"/"读取失败：…"时 <see cref="Value"/> 只是界面初值 0，
+        /// 并不代表硬件真是 0——没有这个提示，"没读到"和"读到 0"在界面上完全看不出区别。
+        /// 读回成功或用户改值后为空串。
+        /// </summary>
+        public string ReadStatus
+        {
+            get => _readStatus;
+            private set
+            {
+                if (SetProperty(ref _readStatus, value))
+                    RaisePropertyChanged(nameof(HasReadProblem));
+            }
+        }
+
+        /// <summary>当前显示的值是否不可信（未读取或读取失败），供界面高亮。</summary>
+        public bool HasReadProblem => !string.IsNullOrEmpty(_readStatus);
+
         /// <summary>把读回值写入通道，不触发下发（避免读到什么又原样发回去）。</summary>
-        public void ApplyReadValue(int value) => SetValueCore(value, notifyOwner: false);
+        public void ApplyReadValue(int value)
+        {
+            SetValueCore(value, notifyOwner: false);
+            ReadStatus = string.Empty;
+        }
+
+        /// <summary>标记读回失败：数值保持原样不动，只把"不可信"状态亮给界面。</summary>
+        public void MarkReadFailed(string message) => ReadStatus = $"读取失败：{message}";
 
         private void SetValueCore(int value, bool notifyOwner)
         {
             if (SetProperty(ref _value, value) && notifyOwner)
             {
+                // 用户主动给了值，这个值就是权威的，不再是"没读到的初值"
+                ReadStatus = string.Empty;
                 ValueChangedByUser?.Invoke(Channel, value);
             }
         }

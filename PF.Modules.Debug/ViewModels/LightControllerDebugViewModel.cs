@@ -376,6 +376,7 @@ namespace PF.Modules.Debug.ViewModels
                     catch (Exception ex)
                     {
                         _logger.Error($"[{DeviceName}] 通道{item.Channel} 亮度读取失败：{ex.Message}", ex);
+                        item.MarkReadFailed(ex.Message);
                     }
                 }
             }
