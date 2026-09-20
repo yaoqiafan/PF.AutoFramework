@@ -63,7 +63,10 @@ namespace PF.Modules.Debug.ViewModels
 
         private void SetValueCore(int value, bool notifyOwner)
         {
-            if (SetProperty(ref _value, value) && notifyOwner)
+            // 必须显式给属性名：SetProperty 默认取 [CallerMemberName]，在这个辅助方法里取到的是
+            // "SetValueCore"，界面永远收不到 Value 的变更通知——读回的值赋进去了，滑块和数值框
+            // 却一直停在 0（读回日志里明明是 165）
+            if (SetProperty(ref _value, value, nameof(Value)) && notifyOwner)
             {
                 // 用户主动给了值，这个值就是权威的，不再是"没读到的初值"
                 ReadStatus = string.Empty;
