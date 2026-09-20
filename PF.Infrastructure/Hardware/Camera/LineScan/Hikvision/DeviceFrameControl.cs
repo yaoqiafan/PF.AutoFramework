@@ -77,11 +77,15 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             if (!_accessor.SetNode("FrameTriggerMode", config.TriggerEnable ? "true" : "false"))
                 _logger.Warn($"[{_owner}] 设置 FrameTriggerMode 失败。");
 
-            if (config.TriggerEnable)
+            if (config.TriggerEnable && !string.IsNullOrWhiteSpace(config.TriggerSource))
                 _accessor.SetIfPresent("FrameTriggerSource", config.TriggerSource);
 
-            _logger.Info($"[{_owner}] 帧触发已按新节点树配置："
-                + $"{(config.TriggerEnable ? config.TriggerSource : "关闭(连续)")}。");
+            // 触发源留空时沿用相机当前接线，不在日志里报"已配置成 xxx"——那份值根本没下发，
+            // 报成功会误导现场以为触发源被改了。
+            string sourceText = config.TriggerEnable
+                ? (string.IsNullOrWhiteSpace(config.TriggerSource) ? "沿用现有接线" : config.TriggerSource)
+                : "关闭(连续)";
+            _logger.Info($"[{_owner}] 帧触发（新节点树）已启用={config.TriggerEnable}，触发源={sourceText}。");
         }
 
         /// <summary>
@@ -100,11 +104,13 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
 
             _accessor.SetNode("TriggerMode", config.TriggerEnable ? "On" : "Off");
 
-            if (config.TriggerEnable)
+            if (config.TriggerEnable && !string.IsNullOrWhiteSpace(config.TriggerSource))
                 _accessor.SetIfPresent("TriggerSource", config.TriggerSource);
 
-            _logger.Info($"[{_owner}] 帧触发已按老节点树(FrameBurstStart)配置："
-                + $"{(config.TriggerEnable ? config.TriggerSource : "关闭(连续)")}。");
+            string sourceText = config.TriggerEnable
+                ? (string.IsNullOrWhiteSpace(config.TriggerSource) ? "沿用现有接线" : config.TriggerSource)
+                : "关闭(连续)";
+            _logger.Info($"[{_owner}] 帧触发（老节点树 FrameBurstStart）已启用={config.TriggerEnable}，触发源={sourceText}。");
         }
     }
 }

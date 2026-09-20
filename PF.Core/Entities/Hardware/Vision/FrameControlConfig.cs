@@ -61,12 +61,14 @@ namespace PF.Core.Entities.Hardware.Vision
         /// <summary>
         /// 帧触发源 symbolic 值。
         /// <para>采集卡链路：如 "SoftwareSignal0"（软触发）、"QuickSoftwareTrigger0"（快速软触发，
-        /// 需固件支持）或硬件信号；相机直连：如 "Software"、"Line0"。</para>
+        /// 需固件支持）或硬件信号；相机直连：如 "Software"、"Line0"。两条链路的合法取值不是同一套，
+        /// 不能共用一个默认值——本字段默认 null，不下发，沿用设备当前接线（现场用厂商客户端调好、
+        /// 通过属性文件导入的那份）。调用方明确要切换触发源时才显式赋值。</para>
         /// </summary>
-        public string TriggerSource { get; set; } = "SoftwareSignal0";
+        public string? TriggerSource { get; set; }
 
-        /// <summary>帧触发有效边沿，如 "RisingEdge"。留空则不下发。</summary>
-        public string? TriggerActivation { get; set; } = "RisingEdge";
+        /// <summary>帧触发有效边沿，如 "RisingEdge"。留空则不下发，沿用设备当前值。</summary>
+        public string? TriggerActivation { get; set; }
 
         /// <summary>残帧处理策略（采集卡 StreamPartialImageControl）。留空则不下发。</summary>
         public string? PartialImageControl { get; set; }
