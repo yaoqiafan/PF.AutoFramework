@@ -11,8 +11,24 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.18</Version>
+		<Version>1.0.19</Version>
 		<PackageReleaseNotes>
+v1.0.19 (2026-09-21) — 光源控制器调试页：亮度输入换 NumericUpDown，读回失败给出明确提示，修复读回值不刷新；同步 PF.Core 1.0.29 / PF.Infrastructure 1.0.28
+
+[变更 — LightControllerDebugView]
+- 每个通道的亮度输入由 TextBox 换成 pf:NumericUpDown（0~255，步长 1），与滑块绑定同一个 Value：
+  输入会按范围钳位，不会再出现"框里 300、滑块 255、硬件先后收到 300 和 255"的脱节。
+- 通道名下方新增红色读取状态：未读取/读取失败时提示"此刻界面上的 0 只是初值，不是硬件读回的值"，
+  读回成功或用户改值后消失。
+
+[修复 — LightChannelViewModel]
+- 读回的值赋进去了，滑块和数值框却一直停在 0：SetProperty 默认取 [CallerMemberName]，在辅助方法
+  SetValueCore 里取到的是 "SetValueCore"，界面永远收不到 Value 的变更通知。改为显式传 nameof(Value)。
+- 注意：OperationLog 只监听 TextBoxBase 的焦点事件，亮度输入换成 NumericUpDown 后，
+  ChannelValueText 这个键不再产生操作日志。
+
+子包版本对照：PF.Core 1.0.28→1.0.29，PF.Infrastructure 1.0.27→1.0.28。
+
 v1.0.18 (2026-09-17) — 相机/采集卡调试页的属性文件导入改成固定路径只读展示 + 重新导入按钮，同步 PF.Core 1.0.28 / PF.Infrastructure 1.0.27
 
 [变更 — LineScanCameraDebugView/ViewModel]

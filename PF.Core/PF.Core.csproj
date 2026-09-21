@@ -3,8 +3,24 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.28</Version>
+		<Version>1.0.29</Version>
 		<PackageReleaseNotes>
+v1.0.29 (2026-09-21) — FrameControlConfig 帧触发源/有效边沿不再带默认值（含破坏性变更）；光源控制器通讯异常严重度调为 Error
+
+[破坏性变更 — FrameControlConfig]
+- TriggerSource / TriggerActivation 改为可空、去掉默认值（原为 "SoftwareSignal0"/"RisingEdge"）：
+  不指定就不下发，沿用设备当前接线（现场用厂商客户端调好、通过属性文件导入的那份）。
+  SoftwareSignal0 是采集卡侧的 symbolic 值，相机自身 FrameTriggerSource 节点只认 "Software"，
+  帧触发落在相机侧时每次都被 SDK 以"值非法或超出范围"拒绝——采集卡链路与相机直连链路的合法
+  取值不是同一套，不能共用一个默认值。与 LineTriggerConfig.Mode/TriggerOnCameraSide/ScanMode
+  是同一类问题（默认值被当成调用方的明确表态）的第四处。
+- 迁移：原来依赖默认值自动下发 SoftwareSignal0（采集卡侧触发）的调用方，需要显式赋值或靠属性文件导入。
+
+[变更 — AlarmCodes]
+- Hardware.LightControllerError（HW_LGT_001 光源控制器通讯异常）严重度由 Warning 调为 Error。
+
+子包版本对照：PF.Infrastructure 1.0.27→1.0.28，PF.Modules.Debug 1.0.18→1.0.19。
+
 v1.0.28 (2026-09-17) — IGenICamNodeAccess 新增 FeatureFilePath 只读属性 + ReimportFeatureFileAsync 手动重新导入
 
 [新增 — IGenICamNodeAccess，相机与采集卡通用]

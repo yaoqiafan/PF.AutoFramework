@@ -3,8 +3,28 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.41</Version>
+    <Version>1.0.42</Version>
     <PackageReleaseNotes>
+		v1.0.42 (2026-09-21) — 线扫复位补齐与取帧超时诊断；帧触发源不再带默认值（含破坏性变更）；修复海康串口光源健康检查取反；光源调试页修复
+
+		[破坏性变更 — PF.Core 1.0.28→1.0.29 的 FrameControlConfig]
+		- TriggerSource / TriggerActivation 改为可空、无默认值（原为 "SoftwareSignal0"/"RisingEdge"），
+		  不指定即不下发、沿用设备当前接线。依赖旧默认值的调用方需显式赋值或靠属性文件导入。
+
+		[修复 / 新增 — PF.Infrastructure 1.0.27→1.0.28]
+		- 修复海康串口光源 InternalCheckHealthAsync 逻辑取反（连着时报警、断了反而消警）。
+		- 线扫相机复位：先关相机→复位采集卡→重开相机，再重导卡/相机属性文件。
+		- 新增取帧超时诊断日志（取流事实 + 相机关键节点 + 扫描轴位置差）。
+
+		[修复 — PF.Modules.Debug 1.0.18→1.0.19]
+		- 光源调试页：亮度输入换 NumericUpDown、读回失败明确提示、修复读回值滑块/数值框不刷新。
+
+		[变更 — PF.Core 1.0.29]
+		- HW_LGT_001（光源控制器通讯异常）严重度 Warning→Error。
+
+		子包版本对照：PF.Core 1.0.28→1.0.29，PF.Infrastructure 1.0.27→1.0.28，
+		PF.Modules.Debug 1.0.18→1.0.19；其余子包本次无变化。
+
 		v1.0.41 (2026-09-18) — 用户管理新增批量导入 / 批量删除 / 列表视图；修复等待弹窗任务过快完成时的关闭异常
 
 		[新增 — PF.Modules.Identity 1.0.4→1.0.5]

@@ -44,8 +44,39 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.27</Version>
+		<Version>1.0.28</Version>
 		<PackageReleaseNotes>
+v1.0.28 (2026-09-21) — 线扫复位补齐采集卡与属性文件重导、取帧超时诊断；修复海康串口光源健康检查逻辑取反；同步 PF.Core 1.0.29
+
+[修复 — HikComLightController.InternalCheckHealthAsync]
+- UpdateAutoClearableHealth 的第一个参数是"是否故障"，此前传的是 Status == Connected，逻辑整个
+  反了：串口连着时持续报 HW_LGT_001，真断了反而把报警消掉。改为 faulted = Status != Connected。
+  升级后现场光源串口连着时不再报 HW_LGT_001。
+
+[修复 — HikLineScanCamera 复位]
+- 复位顺序：先关相机 → 复位采集卡（重连并重新导入 hcf）→ 再重开相机。相机的流绑定在卡的接口
+  对象上，卡一旦断开重连，此前打开的相机就成了悬空绑定（开流报 0x80000000）。卡是独立的顶级
+  设备，没有任何机构会替它复位，只能由相机复位时顺带处理。
+- 重开相机之后，再依次重新导入一遍卡、相机的属性文件（与调试页手动"板卡参数导入→相机参数导入"
+  是同一套动作）。现场实测：异常后单纯重连复位，下一次采图仍取帧超时，手动补做这两次导入即恢复。
+  机理未完全确认，先把已验证有效的动作固化进复位；导入幂等，无副作用。
+
+[新增 — 取帧超时诊断]
+- HikLineScanCamera：每次开流清零并记录取流线程的原始事实（轮询次数、收到帧数、累计丢包、
+  按返回码分类的 GetImageBuffer 结果、SDK 缓存有效图像数）。超时时在报警前打一条 Warn
+  "取帧超时诊断"，附相机当前 ImageHeight/Height/ResultingLineRate/AcquisitionLineRate/
+  ExposureTime/TriggerMode/FrameTriggerMode/LineTriggerSource。收到的帧有丢包时单独告警。
+- LineScanDetectionModule：取帧超时时补打扫描轴当前位置与终点位置的差，用来区分
+  "轴没走到位"与"轴走完了但帧没满（行数不足/触发问题）"。
+
+[变更 — 帧触发源不再带默认值，同步 PF.Core 1.0.29]
+- DeviceFrameControl：触发源/有效边沿为空时跳过下发，日志如实打印"沿用现有接线"，不再在
+  写入失败/未下发时报"已配置成 xxx"。
+- LineScanDetectionModule 不再把采集卡注册进机构硬件快照（会导致卡在相机之后才复位，顺序反了），
+  改由相机复位统一处理。
+
+子包版本对照：PF.Core 1.0.28→1.0.29，PF.Modules.Debug 1.0.18→1.0.19。
+
 v1.0.27 (2026-09-17) — BaseLineScanCamera/BaseFrameGrabberCard 实现 FeatureFilePath/ReimportFeatureFileAsync，同步 PF.Core 1.0.28；固定路径文件缺失自动建占位
 
 [新增 — 同步 PF.Core 1.0.28 的 IGenICamNodeAccess.FeatureFilePath/ReimportFeatureFileAsync]
