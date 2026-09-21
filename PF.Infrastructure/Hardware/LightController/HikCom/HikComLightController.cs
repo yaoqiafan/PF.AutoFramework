@@ -232,14 +232,17 @@ namespace PF.Infrastructure.Hardware.LightController.HikCom
 
 
         /// <summary>
-        /// 内部健康检查实现
+        /// 内部健康检查实现。
+        /// 连接类报警：串口断开→报警，重连→防抖后自动消除。
+        /// <see cref="BaseDevice.UpdateAutoClearableHealth"/> 第一个参数是"是否故障"，
+        /// 必须传"未连接"，传"已连接"会整个反过来——连着时报警、断了反而消警。
         /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (!IsSimulated)
             {
-                bool trigOk = lightSerial.Status == ClientStatus.Connected;
-                UpdateAutoClearableHealth(trigOk, AlarmCodes.Hardware.LightControllerError,
+                bool faulted = lightSerial.Status != ClientStatus.Connected;
+                UpdateAutoClearableHealth(faulted, AlarmCodes.Hardware.LightControllerError,
                     $"光源控制器[{DeviceName}]串口 连接中断");
             }
             return Task.CompletedTask;
