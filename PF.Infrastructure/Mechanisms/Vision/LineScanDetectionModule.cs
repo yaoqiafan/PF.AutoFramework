@@ -205,7 +205,21 @@ namespace PF.Infrastructure.Mechanisms.Vision
                     throw new InvalidOperationException($"[{MechanismName}] 扫描运动指令下发失败。");
 
                 // ⑦ 等一帧完整图像
-                var frame = await _camera.WaitFrameAsync(geometry.FrameTimeoutMs, token);
+                LineScanFrame frame;
+                try
+                {
+                    frame = await _camera.WaitFrameAsync(geometry.FrameTimeoutMs, token);
+                }
+                catch (TimeoutException)
+                {
+                    // 超时后帧超时远大于运动时间，此时轴应已到终点：位置到了而帧没满，
+                    // 说明是行数不够/触发问题；位置没到，才是轴的问题。相机侧的诊断见"取帧超时诊断"。
+                    double? pos = _scanAxis.CurrentPosition;
+                    _logger.Warn($"[{MechanismName}] 取帧超时时扫描轴位置：当前 {(pos.HasValue ? pos.Value.ToString("F2") : "未知")}，"
+                        + $"终点 {geometry.EndMm:F2}"
+                        + (pos.HasValue ? $"（差 {Math.Abs(pos.Value - geometry.EndMm):F2}）。" : "。"));
+                    throw;
+                }
 
                 // ⑧ 等轴走完，保证下一次动作从静止开始
                 await WaitAxisMoveDoneAsync(_scanAxis, AxisTimeoutMs, geometry.EndMm, token);

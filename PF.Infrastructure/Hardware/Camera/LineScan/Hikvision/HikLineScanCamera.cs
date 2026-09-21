@@ -109,6 +109,15 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         private double _lineSpacingUm;
         private LineScanCameraConfig? _lastConfig;
 
+        // ── 取帧超时诊断：每次开流清零，超时时一并打出 ──────────────────────────────────
+        // 线扫"等不到完整帧"有好几种截然不同的原因（少行、丢包、取流返回错误、流根本没起来），
+        // 只有报警文本时无法分辨，现场只能反复试。这里记下取流线程看到的原始事实。
+        private long _armTimestamp;
+        private long _pollCount;
+        private long _framesDelivered;
+        private long _lostPacketTotal;
+        private readonly ConcurrentDictionary<int, long> _pollReturnCodes = new();
+
         /// <summary>
         /// 本进程内已被打开的相机：设备键 → 持有它的 DeviceId。
         /// SDK 没有"这台设备被谁占了"的查询接口，只会在 Open 时返回一个含糊的
@@ -327,6 +336,17 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 HardwareLogger.Warn($"[{DeviceName}] 采集卡 [{Parent.DeviceName}] 复位失败，继续尝试重新打开相机。");
 
             if (!await InternalConnectAsync(token)) return;
+
+            // 相机开着的状态下，再依次重导一遍卡、相机的属性文件——和调试页里手动点
+            // "板卡参数导入 → 相机参数导入"是同一套动作。
+            // 现场实测：异常后单纯"关相机→重开卡→重开相机"（连接时各导入过一次）复位，下一次采图仍然取帧超时，
+            // 而手动补做这两次导入就能恢复。两者的差别在于连接时的导入发生在相机尚未打开/刚打开的时刻，
+            // 手动导入则在两端都已就绪、流已绑定之后。机理没有完全确认，先把已验证有效的动作固化进复位；
+            // 属性文件导入是幂等的，多导一次没有副作用。
+            if (Parent != null && !await Parent.ReimportFeatureFileAsync(token))
+                HardwareLogger.Warn($"[{DeviceName}] 复位后重新导入采集卡属性文件失败。");
+            if (!await ReimportFeatureFileAsync(token))
+                HardwareLogger.Warn($"[{DeviceName}] 复位后重新导入相机属性文件失败。");
 
             if (_lastConfig != null)
             {
@@ -587,6 +607,12 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
 
                 dev.StreamGrabber.ClearImageBuffer();
 
+                _armTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+                Interlocked.Exchange(ref _pollCount, 0);
+                Interlocked.Exchange(ref _framesDelivered, 0);
+                Interlocked.Exchange(ref _lostPacketTotal, 0);
+                _pollReturnCodes.Clear();
+
                 _isGrabbing = true;
                 _receiveThread = new Thread(ReceiveLoop)
                 {
@@ -651,8 +677,16 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
                 try
                 {
                     int ret = dev.StreamGrabber.GetImageBuffer((uint)GrabPollTimeoutMs, out frameOut);
-                    if (ret != MvError.MV_OK) continue;   // 超时属常态：帧触发模式下大多数轮询都取不到图
+                    Interlocked.Increment(ref _pollCount);
+                    if (ret != MvError.MV_OK)
+                    {
+                        // 超时属常态：帧触发模式下大多数轮询都取不到图。但不能连返回码都不留——
+                        // 超时之外的返回码（缓冲区错误、流异常）才是"为什么等不到帧"的线索，按返回码计数。
+                        _pollReturnCodes.AddOrUpdate(ret, 1, (_, n) => n + 1);
+                        continue;
+                    }
 
+                    Interlocked.Increment(ref _framesDelivered);
                     HandleFrame(dev, frameOut);
                 }
                 catch (Exception ex)
@@ -676,6 +710,13 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             IFrameOut? decoded = null;
             try
             {
+                long lost = Convert.ToInt64(frameOut.LostPacket);
+                if (lost > 0)
+                {
+                    Interlocked.Add(ref _lostPacketTotal, lost);
+                    HardwareLogger.Warn($"[{DeviceName}] 第 {frameOut.FrameNum} 帧传输丢包 {lost} 个，图像可能有缺行/花屏。");
+                }
+
                 // 开了无损压缩（HB）时，取到的是压缩流，必须先解码才是可按宽高解析的裸像素
                 if (IsCompressed(frameOut.Image.PixelType))
                 {
@@ -800,6 +841,8 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {
+                HardwareLogger.Warn($"[{DeviceName}] 取帧超时诊断：{BuildTimeoutDiagnostics()}");
+
                 RaiseAlarm(AlarmCodes.Hardware.LineScanFrameTimeout,
                     $"线阵相机[{DeviceName}]等待 {timeoutMs}ms 未收到完整帧。");
 
@@ -808,6 +851,49 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             catch (ChannelClosedException)
             {
                 throw new InvalidOperationException($"线阵相机[{DeviceName}]取流已结束，无法继续取帧。");
+            }
+        }
+
+        /// <summary>
+        /// 取帧超时时的现场快照：取流线程累计看到的事实 + 相机当前的关键节点。
+        /// <para>怎么读：<b>收到帧=0、返回码里只有超时</b> → 相机压根没出帧（行数没凑满/触发没到）；
+        /// <b>返回码里有超时以外的码</b> → 流本身有错；<b>丢包&gt;0</b> → 链路丢数据；
+        /// <b>缓存有效图像数&gt;0 但收到帧=0</b> → 帧已到 SDK 却没被取走。
+        /// ImageHeight × 行频 ÷ 实际行程可以反推行数够不够。</para>
+        /// 本方法只读、不抛异常——诊断信息不能把超时报警本身搞丢。
+        /// </summary>
+        private string BuildTimeoutDiagnostics()
+        {
+            try
+            {
+                double elapsedMs = _armTimestamp == 0 ? 0
+                    : System.Diagnostics.Stopwatch.GetElapsedTime(_armTimestamp).TotalMilliseconds;
+
+                string codes = _pollReturnCodes.IsEmpty
+                    ? "无"
+                    : string.Join(", ", _pollReturnCodes.OrderBy(k => k.Key).Select(k => $"0x{k.Key:X8}×{k.Value}"));
+
+                string valid = "未知";
+                var dev = _device;
+                if (dev != null && dev.StreamGrabber.GetValidImageNum(out uint n) == MvError.MV_OK)
+                    valid = n.ToString();
+
+                var acc = NodeAccessor;
+                string nodes = acc == null
+                    ? "节点访问器不可用"
+                    : string.Join("，", new[]
+                    {
+                        "ImageHeight", "Height", "ResultingLineRate", "AcquisitionLineRate",
+                        "ExposureTime", "TriggerMode", "FrameTriggerMode", "LineTriggerSource",
+                    }.Select(name => $"{name}={acc.GetNode(name) ?? "-"}"));
+
+                return $"开流后 {elapsedMs:F0}ms；取流轮询 {Interlocked.Read(ref _pollCount)} 次，"
+                    + $"收到帧 {Interlocked.Read(ref _framesDelivered)}，累计丢包 {Interlocked.Read(ref _lostPacketTotal)}；"
+                    + $"轮询返回码 [{codes}]；SDK 缓存有效图像数 {valid}；相机节点 {nodes}";
+            }
+            catch (Exception ex)
+            {
+                return $"（诊断信息采集失败：{ex.Message}）";
             }
         }
 

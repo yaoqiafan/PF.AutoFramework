@@ -163,7 +163,7 @@ namespace PF.Core.Constants
 
             #region 光源控制 (LGT)
             /// <summary>光源控制器通讯异常</summary>
-            [AlarmInfo("硬件异常", "光源控制器通讯异常", "Light controller comm error", AlarmSeverity.Warning,
+            [AlarmInfo("硬件异常", "光源控制器通讯异常", "Light controller comm error", AlarmSeverity.Error,
     "1. 检查光源控制器串口线是否连接;\n" +
                 "2. 确认波特率等串口参数配置正确;\n" +
                 "3. 重启光源控制器;\n" +
