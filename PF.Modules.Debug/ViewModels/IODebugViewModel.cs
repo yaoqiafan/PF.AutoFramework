@@ -1,9 +1,13 @@
 using PF.Core.Constants;
 using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
+using PF.Core.Models.Device.Hardware.IO;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows.Data;
 using System.Windows.Threading;
 
 namespace PF.Modules.Debug.ViewModels
@@ -14,6 +18,9 @@ namespace PF.Modules.Debug.ViewModels
     /// </summary>
     public class IODebugViewModel : RegionViewModelBase
     {
+        /// <summary>未标注 [Display(GroupName=)] 的信号归入的默认分组名</summary>
+        private const string SharedCategoryName = "其他信号";
+
         private IIOController _ioController;
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
@@ -107,51 +114,92 @@ namespace PF.Modules.Debug.ViewModels
 
         #endregion
 
-        #region 【IO 端口集合与初始化】
+        #region 【IO 端口分组与初始化】
 
-        // 输入输出端口集合，绑定到 UI 的 ItemsControl
-        /// <summary>获取输入端口列表</summary>
-        public ObservableCollection<IOPortModel> InputPorts { get; } = new ObservableCollection<IOPortModel>();
-        /// <summary>获取输出端口列表</summary>
-        public ObservableCollection<IOPortModel> OutputPorts { get; } = new ObservableCollection<IOPortModel>();
+        private List<IOPortGroup> _inputGroups = new();
+        /// <summary>获取输入端口分组列表（按 [Display(GroupName=)] 分组，绑定到 UI 的外层 ItemsControl）</summary>
+        public List<IOPortGroup> InputGroups { get => _inputGroups; private set => SetProperty(ref _inputGroups, value); }
+
+        private List<IOPortGroup> _outputGroups = new();
+        /// <summary>获取输出端口分组列表（按 [Display(GroupName=)] 分组，绑定到 UI 的外层 ItemsControl）</summary>
+        public List<IOPortGroup> OutputGroups { get => _outputGroups; private set => SetProperty(ref _outputGroups, value); }
+
+        private string _inputSearchText = string.Empty;
+        /// <summary>获取或设置输入端口的搜索关键字</summary>
+        public string InputSearchText
+        {
+            get => _inputSearchText;
+            set
+            {
+                if (SetProperty(ref _inputSearchText, value))
+                    foreach (var group in InputGroups) group.Refresh();
+            }
+        }
+
+        private string _outputSearchText = string.Empty;
+        /// <summary>获取或设置输出端口的搜索关键字</summary>
+        public string OutputSearchText
+        {
+            get => _outputSearchText;
+            set
+            {
+                if (SetProperty(ref _outputSearchText, value))
+                    foreach (var group in OutputGroups) group.Refresh();
+            }
+        }
+
+        private bool FilterInputPort(object obj) => MatchesSearch(obj, InputSearchText);
+        private bool FilterOutputPort(object obj) => MatchesSearch(obj, OutputSearchText);
+
+        private static bool MatchesSearch(object obj, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText)) return true;
+            if (obj is not IOPortModel port) return false;
+
+            return port.PortName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true
+                || port.Index.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase);
+        }
 
         private void InitializePorts()
         {
-            InputPorts.Clear();
-            OutputPorts.Clear();
-
-            // 1. 获取动态引脚数量
-            int inCount = _ioController.InputCount;
-            int outCount = _ioController.OutputCount;
-
-            // 2. 获取当前设备 ID
             string deviceId = _baseDevice?.DeviceId ?? "Default";
 
-            // 3. 初始化输入端口（过滤 [Browsable(false)] 的引脚）
-            for (int i = 0; i < inCount; i++)
-            {
-                var ioInfo = _ioMappingService.GetInputInfo(deviceId, i);
+            InputGroups = BuildGroups(_ioController.InputCount,
+                i => _ioMappingService.GetInputInfo(deviceId, i), "DI", isOutput: false, FilterInputPort);
+            OutputGroups = BuildGroups(_ioController.OutputCount,
+                i => _ioMappingService.GetOutputInfo(deviceId, i), "DO", isOutput: true, FilterOutputPort);
+        }
 
-                // 【核心过滤逻辑】：如果明确标记了不可见，则直接跳过该引脚
+        // 过滤 [Browsable(false)] 引脚 → 按 [Display(Order=)] 排序 → 按 [Display(GroupName=)] 分组
+        // （未指定顺序/分组的分别退化为物理索引排序、归入"其他信号"）
+        private List<IOPortGroup> BuildGroups(int count, Func<int, IOMapInfo> getInfo, string prefix, bool isOutput, Predicate<object> filter)
+        {
+            var candidates = new List<(int Order, int Index, string Name, string Category)>();
+            for (int i = 0; i < count; i++)
+            {
+                var ioInfo = getInfo(i);
                 if (ioInfo != null && !ioInfo.IsBrowsable) continue;
 
-                string showName = ioInfo?.Name ?? $"DI {i:D2}";
-                InputPorts.Add(new IOPortModel { Index = i, PortName = showName, IsOutput = false });
+                string showName = ioInfo?.Name ?? $"{prefix} {i:D2}";
+                int order = ioInfo?.Order ?? int.MaxValue;
+                candidates.Add((order == int.MaxValue ? i : order, i, showName, ioInfo?.Category));
             }
 
-            // 4. 初始化输出端口（过滤 [Browsable(false)] 的引脚）
-            for (int i = 0; i < outCount; i++)
+            var groups = new List<IOPortGroup>();
+            foreach (var bucket in candidates.OrderBy(c => c.Order).ThenBy(c => c.Index)
+                                              .GroupBy(c => c.Category ?? SharedCategoryName))
             {
-                var ioInfo = _ioMappingService.GetOutputInfo(deviceId, i);
-
-                // 【核心过滤逻辑】：如果明确标记了不可见，则直接跳过该引脚
-                if (ioInfo != null && !ioInfo.IsBrowsable) continue;
-
-                string showName = ioInfo?.Name ?? $"DO {i:D2}";
-                var outPort = new IOPortModel { Index = i, PortName = showName, IsOutput = true };
-                outPort.ToggleCommand = new DelegateCommand<IOPortModel>(ToggleOutputPort);
-                OutputPorts.Add(outPort);
+                var group = new IOPortGroup(bucket.Key, filter);
+                foreach (var c in bucket)
+                {
+                    var port = new IOPortModel { Index = c.Index, PortName = c.Name, IsOutput = isOutput };
+                    if (isOutput) port.ToggleCommand = new DelegateCommand<IOPortModel>(ToggleOutputPort);
+                    group.Items.Add(port);
+                }
+                group.RecomputeVisibility();
+                groups.Add(group);
             }
+            return groups;
         }
 
         private void ToggleOutputPort(IOPortModel port)
@@ -165,7 +213,7 @@ namespace PF.Modules.Debug.ViewModels
             // =========================================================================
              _ioController.WriteOutput(port.Index, targetState);
 
-            
+
         }
 
         #endregion
@@ -182,22 +230,58 @@ namespace PF.Modules.Debug.ViewModels
             // =========================================================================
 
             // 1. 刷新输入端口 (DI)
-            foreach (var port in InputPorts)
-            {
-                 port.State =Convert.ToBoolean(_ioController.ReadInput(port.Index));
-            }
+            foreach (var group in InputGroups)
+                foreach (var port in group.Items)
+                    port.State = Convert.ToBoolean(_ioController.ReadInput(port.Index));
 
             // 2. 刷新输出端口 (DO) 的反馈状态
-            foreach (var port in OutputPorts)
-            {
-                port.State = Convert.ToBoolean(_ioController.ReadOutput(port.Index));
-            }
+            foreach (var group in OutputGroups)
+                foreach (var port in group.Items)
+                    port.State = Convert.ToBoolean(_ioController.ReadOutput(port.Index));
 
             // 3. 刷新连接状态
              if (_baseDevice != null) IsConnected = _baseDevice.IsConnected;
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// IO 端口分组：承载同一分类（如"工位1"/"工位2"/"其他信号"）下的端口列表，
+    /// 自带独立的搜索过滤视图与"过滤后是否还有可见项"标记（用于隐藏空分组的分割线）
+    /// </summary>
+    public class IOPortGroup : BindableBase
+    {
+        /// <summary>获取分组名称（对应 [Display(GroupName=)] 特性）</summary>
+        public string CategoryName { get; }
+
+        /// <summary>获取该分组下的端口集合（承载真实数据，含轮询刷新的 State）</summary>
+        public ObservableCollection<IOPortModel> Items { get; } = new ObservableCollection<IOPortModel>();
+
+        /// <summary>获取该分组的搜索过滤视图，绑定到 UI 的 ItemsControl</summary>
+        public ICollectionView View { get; }
+
+        private bool _hasVisibleItems = true;
+        /// <summary>获取过滤后该分组是否还有可见端口；为 false 时应隐藏分割线与列表</summary>
+        public bool HasVisibleItems { get => _hasVisibleItems; private set => SetProperty(ref _hasVisibleItems, value); }
+
+        /// <summary>创建一个 IO 端口分组，并绑定其搜索过滤谓词</summary>
+        public IOPortGroup(string categoryName, Predicate<object> filter)
+        {
+            CategoryName = categoryName;
+            View = CollectionViewSource.GetDefaultView(Items);
+            View.Filter = filter;
+        }
+
+        /// <summary>重新计算过滤后是否还有可见项</summary>
+        public void RecomputeVisibility() => HasVisibleItems = View.Cast<object>().Any();
+
+        /// <summary>搜索关键字变化时调用：刷新过滤视图并重新计算可见性</summary>
+        public void Refresh()
+        {
+            View.Refresh();
+            RecomputeVisibility();
+        }
     }
 
     /// <summary>

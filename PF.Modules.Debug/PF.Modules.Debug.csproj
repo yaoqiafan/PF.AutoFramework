@@ -11,8 +11,21 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.19</Version>
+		<Version>1.0.20</Version>
 		<PackageReleaseNotes>
+v1.0.20 (2026-09-23) — IODebugView 支持按 [Display(Order=, GroupName=)] 排序/分组，输入/输出各自独立搜索框；同步 PF.Core 1.0.30
+
+[新增 — IODebugViewModel / IODebugView]
+- 排序：InitializePorts 按 IOMapInfo.Order 排序（未指定的沿用物理索引顺序），不影响
+  IOPortModel.Index（真实引脚号，ReadInput/WriteOutput 寻址不受影响）。
+- 分组：新增 IOPortGroup（CategoryName + Items + 独立 ICollectionView + HasVisibleItems），
+  按 IOMapInfo.Category 分桶，UI 每组一条 pf:Divider 标题线 + 原有的两列端口网格；
+  某分组被搜索过滤到一个不剩时，分割线与网格一并隐藏（HasVisibleItems 驱动 Visibility）。
+- 搜索：输入区/输出区各一个独立的 pf:SearchBar，按端口名称/索引模糊匹配，仅在搜索关键字
+  变化时刷新对应分组的 ICollectionView，50ms 轮询只改 State 不触发重新过滤，无性能影响。
+
+子包版本对照：PF.Core 1.0.29→1.0.30；PF.Infrastructure 本次无变化（仍为 1.0.28）。
+
 v1.0.19 (2026-09-21) — 光源控制器调试页：亮度输入换 NumericUpDown，读回失败给出明确提示，修复读回值不刷新；同步 PF.Core 1.0.29 / PF.Infrastructure 1.0.28
 
 [变更 — LightControllerDebugView]

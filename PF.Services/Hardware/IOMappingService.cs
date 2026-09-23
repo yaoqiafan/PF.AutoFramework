@@ -3,6 +3,7 @@ using PF.Core.Models.Device.Hardware.IO;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
 namespace PF.Services.Hardware
@@ -82,6 +83,8 @@ namespace PF.Services.Hardware
                 int index = (int)value;
                 string name = value.ToString();
                 bool isBrowsable = true;
+                int order = int.MaxValue;
+                string category = null;
 
                 var fieldInfo = typeof(TEnum).GetField(name);
                 if (fieldInfo != null)
@@ -93,9 +96,15 @@ namespace PF.Services.Hardware
                     // 解析 [Browsable] 特性
                     var browsableAttr = fieldInfo.GetCustomAttribute<BrowsableAttribute>();
                     if (browsableAttr != null) isBrowsable = browsableAttr.Browsable;
+
+                    // 解析 [Display(Order = n, GroupName = "...")] 特性，用于指定 UI 显示顺序与分组
+                    var displayAttr = fieldInfo.GetCustomAttribute<DisplayAttribute>();
+                    var displayOrder = displayAttr?.GetOrder();
+                    if (displayOrder.HasValue) order = displayOrder.Value;
+                    category = displayAttr?.GetGroupName();
                 }
 
-                targetMap[index] = new IOMapInfo { Name = name, IsBrowsable = isBrowsable };
+                targetMap[index] = new IOMapInfo { Name = name, IsBrowsable = isBrowsable, Order = order, Category = category };
             }
         }
     }

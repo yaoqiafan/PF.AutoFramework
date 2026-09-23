@@ -3,8 +3,25 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.42</Version>
+    <Version>1.0.43</Version>
     <PackageReleaseNotes>
+		v1.0.43 (2026-09-23) — IO 调试页支持按 [Display(Order=, GroupName=)] 排序/分组、输入输出各自独立搜索框
+
+		[新增 — PF.Core 1.0.29→1.0.30 的 IOMapInfo]
+		- 新增 Order（对应 [Display(Order=n)]，UI 显示顺序，默认按物理索引）、
+		  Category（对应 [Display(GroupName="...")]，UI 分组名称，默认归入调用方约定的共享分组）。
+
+		[新增 — PF.Services 1.0.6→1.0.7 的 IOMappingService]
+		- ParseEnumToMap 同步解析 [Display(Order=, GroupName=)] 写入上述两个新字段，均为可选特性、
+		  不打就沿用旧行为。
+
+		[新增 — PF.Modules.Debug 1.0.19→1.0.20 的 IODebugView]
+		- 端口按 Order 排序、按 Category 分组显示（每组一条 pf:Divider 标题线），搜索后过滤到空的
+		  分组连同分割线一起隐藏；输入区/输出区各自一个独立的 pf:SearchBar，按名称/索引模糊匹配。
+
+		子包版本对照：PF.Core 1.0.29→1.0.30，PF.Services 1.0.6→1.0.7，PF.Modules.Debug 1.0.19→1.0.20；
+		其余子包本次无变化。
+
 		v1.0.42 (2026-09-21) — 线扫复位补齐与取帧超时诊断；帧触发源不再带默认值（含破坏性变更）；修复海康串口光源健康检查取反；光源调试页修复
 
 		[破坏性变更 — PF.Core 1.0.28→1.0.29 的 FrameControlConfig]

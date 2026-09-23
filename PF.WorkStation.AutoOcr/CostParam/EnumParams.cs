@@ -35,32 +35,43 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     /// <summary>
     /// 输入信号名称
+    /// UI 显示顺序/分组按 [Display(Order=, GroupName=)] 控制：工位1（左）在前，工位2（右）随后，
+    /// 未标注的共享/预留信号沿用原有物理索引顺序排在最后、归入"共享信号"分组
     /// </summary>
     public enum E_InPutName
     {
         /// <summary>上晶圆左错层公共检测</summary>
+        [Display(Order = 1, GroupName = "工位1")]
         上晶圆左错层公共检测=0,
         /// <summary>上晶圆左错层12寸检测</summary>
+        [Display(Order = 2, GroupName = "工位1")]
         上晶圆左错层12寸检测=1,
         /// <summary>上晶圆左错层8寸检测</summary>
+        [Display(Order = 3, GroupName = "工位1")]
         上晶圆左错层8寸检测 = 2,
         /// <summary>预留2</summary>
         [Browsable(false)]
         预留2 = 3,
         /// <summary>上晶圆右错层公共检测</summary>
+        [Display(Order = 26, GroupName = "工位2")]
         上晶圆右错层公共检测 = 4,
         /// <summary>上晶圆右错层12寸检测</summary>
+        [Display(Order = 27, GroupName = "工位2")]
         上晶圆右错层8寸检测 = 5,
         /// <summary>上晶圆右错层8寸检测</summary>
+        [Display(Order = 28, GroupName = "工位2")]
         上晶圆右错层12寸检测 = 6,
         /// <summary>预留4</summary>
         [Browsable(false)]
         预留4 = 7,
         /// <summary>上晶圆左铁环突片检测</summary>
+        [Display(Order = 4, GroupName = "工位1")]
         上晶圆左铁环突片检测 =8,
         /// <summary>上晶圆左8寸铁环防反检测</summary>
+        [Display(Order = 5, GroupName = "工位1")]
         上晶圆左8寸铁环防反检测 = 9,
         /// <summary>上晶圆左12寸铁环防反检测</summary>
+        [Display(Order = 6, GroupName = "工位1")]
         上晶圆左12寸铁环防反检测 = 10,
         /// <summary>预留5</summary>
         [Browsable(false)]
@@ -68,10 +79,13 @@ namespace PF.Workstation.AutoOcr.CostParam
 
 
         /// <summary>上晶圆左8寸料盒挡杆检测</summary>
+        [Display(Order = 7, GroupName = "工位1")]
         上晶圆左8寸料盒挡杆检测 = 12,
         /// <summary>上晶圆左12寸料盒挡杆检测1</summary>
+        [Display(Order = 8, GroupName = "工位1")]
         上晶圆左12寸料盒挡杆检测1 = 13,
         /// <summary>上晶圆左12寸料盒挡杆检测2</summary>
+        [Display(Order = 9, GroupName = "工位1")]
         上晶圆左12寸料盒挡杆检测2 = 14,
         /// <summary>预留6</summary>
         [Browsable(false)]
@@ -79,10 +93,13 @@ namespace PF.Workstation.AutoOcr.CostParam
 
 
         /// <summary>上晶圆左料盒公用到位检测</summary>
+        [Display(Order = 10, GroupName = "工位1")]
         上晶圆左料盒公用到位检测 = 16,
         /// <summary>上晶圆左8寸料盒到位检测</summary>
+        [Display(Order = 11, GroupName = "工位1")]
         上晶圆左8寸料盒到位检测 = 17,
         /// <summary>上晶圆左12寸料盒到位检测</summary>
+        [Display(Order = 12, GroupName = "工位1")]
         上晶圆左12寸料盒到位检测 = 18,
         /// <summary>预留7</summary>
         [Browsable(false)]
@@ -92,101 +109,134 @@ namespace PF.Workstation.AutoOcr.CostParam
 
 
         /// <summary>上晶圆右铁环突片检测</summary>
+        [Display(Order = 29, GroupName = "工位2")]
         上晶圆右铁环突片检测 = 20,
         /// <summary>上晶圆右8寸铁环防反检测</summary>
+        [Display(Order = 30, GroupName = "工位2")]
         上晶圆右8寸铁环防反检测 = 21,
         /// <summary>上晶圆右12寸铁环防反检测</summary>
+        [Display(Order = 31, GroupName = "工位2")]
         上晶圆右12寸铁环防反检测 = 22,
         /// <summary>预留8</summary>
         [Browsable(false)]
         预留8 = 23,
         /// <summary>上晶圆右8寸料盒挡杆检测</summary>
+        [Display(Order = 32, GroupName = "工位2")]
         上晶圆右8寸料盒挡杆检测 = 24,
         /// <summary>上晶圆右12寸料盒挡杆检测1</summary>
+        [Display(Order = 33, GroupName = "工位2")]
         上晶圆右12寸料盒挡杆检测1 = 25,
         /// <summary>上晶圆右12寸料盒挡杆检测2</summary>
+        [Display(Order = 34, GroupName = "工位2")]
         上晶圆右12寸料盒挡杆检测2 = 26,
         /// <summary>预留9</summary>
         [Browsable(false)]
         预留9 = 27,
         /// <summary>上晶圆右料盒公用到位</summary>
+        [Display(Order = 35, GroupName = "工位2")]
         上晶圆右料盒公用到位 = 28,
         /// <summary>上晶圆右8寸料盒到位检测</summary>
+        [Display(Order = 36, GroupName = "工位2")]
         上晶圆右8寸料盒到位检测 = 29,
         /// <summary>上晶圆右12寸到料盒位检测</summary>
+        [Display(Order = 37, GroupName = "工位2")]
         上晶圆右12寸到料盒位检测 = 30,
         /// <summary>预留10</summary>
         [Browsable(false)]
         预留10 = 31,
 
         /// <summary>晶圆夹爪左气缸张开</summary>
+        [Display(Order = 13, GroupName = "工位1")]
         晶圆夹爪左气缸张开 = 32,
         /// <summary>晶圆夹爪左气缸闭合</summary>
+        [Display(Order = 14, GroupName = "工位1")]
         晶圆夹爪左气缸闭合 = 33,
         /// <summary>晶圆夹爪左铁环有无检测</summary>
+        [Display(Order = 15, GroupName = "工位1")]
         晶圆夹爪左铁环有无检测 = 34,
         /// <summary>夹爪左叠料检测</summary>
+        [Display(Order = 16, GroupName = "工位1")]
         夹爪左叠料检测 = 35,
         /// <summary>晶圆夹爪左卡料检测</summary>
+        [Display(Order = 17, GroupName = "工位1")]
         晶圆夹爪左卡料检测 = 36,
         /// <summary>晶圆夹爪左12寸气缸打开</summary>
+        [Display(Order = 18, GroupName = "工位1")]
         晶圆夹爪左12寸气缸打开 = 37,
         /// <summary>晶圆夹爪左8寸气缸缩回</summary>
+        [Display(Order = 19, GroupName = "工位1")]
         晶圆夹爪左8寸气缸缩回 = 38,
         /// <summary>预留11</summary>
         [Browsable(false)]
         预留11 = 39,
         /// <summary>晶圆夹爪右气缸张开</summary>
+        [Display(Order = 38, GroupName = "工位2")]
         晶圆夹爪右气缸张开 = 40,
         /// <summary>晶圆夹爪右气缸闭合</summary>
+        [Display(Order = 39, GroupName = "工位2")]
         晶圆夹爪右气缸闭合 = 41,
         /// <summary>晶圆夹爪右铁环有无检测</summary>
+        [Display(Order = 40, GroupName = "工位2")]
         晶圆夹爪右铁环有无检测 = 42,
         /// <summary>夹爪右叠料检测</summary>
+        [Display(Order = 41, GroupName = "工位2")]
         夹爪右叠料检测 = 43,
         /// <summary>晶圆夹爪右卡料检测</summary>
+        [Display(Order = 42, GroupName = "工位2")]
         晶圆夹爪右卡料检测 = 44,
         /// <summary>晶圆夹爪右12寸气缸打开</summary>
+        [Display(Order = 43, GroupName = "工位2")]
         晶圆夹爪右12寸气缸打开 = 45,
         /// <summary>晶圆夹爪右8寸气缸缩回</summary>
+        [Display(Order = 44, GroupName = "工位2")]
         晶圆夹爪右8寸气缸缩回 = 46,
         /// <summary>预留12</summary>
         [Browsable(false)]
         预留12 = 47,
         /// <summary>晶圆轨道左调宽气缸打开</summary>
+        [Display(Order = 20, GroupName = "工位1")]
         晶圆轨道左调宽气缸打开 = 48,
         /// <summary>晶圆轨道左调宽气缸缩回</summary>
+        [Display(Order = 21, GroupName = "工位1")]
         晶圆轨道左调宽气缸缩回 = 49,
         /// <summary>晶圆轨道左晶圆在位检测1</summary>
+        [Display(Order = 22, GroupName = "工位1")]
         晶圆轨道左晶圆在位检测1 = 50,
         /// <summary>晶圆轨道左晶圆在位检测2</summary>
+        [Display(Order = 23, GroupName = "工位1")]
         晶圆轨道左晶圆在位检测2 = 51,
         /// <summary>晶圆轨道右调宽气缸打开</summary>
+        [Display(Order = 45, GroupName = "工位2")]
         晶圆轨道右调宽气缸打开 = 52,
         /// <summary>晶圆轨道右调宽气缸缩回</summary>
+        [Display(Order = 46, GroupName = "工位2")]
         晶圆轨道右调宽气缸缩回 = 53,
         /// <summary>晶圆轨道右晶圆在位检测1</summary>
+        [Display(Order = 47, GroupName = "工位2")]
         晶圆轨道右晶圆在位检测1 = 54,
         /// <summary>晶圆轨道右晶圆在位检测2</summary>
+        [Display(Order = 48, GroupName = "工位2")]
         晶圆轨道右晶圆在位检测2 = 55,
         /// <summary>电磁门锁1_2信号</summary>
           [Browsable(false)]
         电磁门锁1_2信号 = 56,
-        /// <summary>电磁门锁3_4信号</summary>
+        /// <summary>电磁门锁3_4信号（共享信号，未指定工位分组，沿用物理索引排在最后）</summary>
         电磁门锁3_4信号 = 57,
-        /// <summary>电磁门锁5_6信号</summary>
+        /// <summary>电磁门锁5_6信号（共享信号，未指定工位分组，沿用物理索引排在最后）</summary>
         电磁门锁5_6信号 = 58,
-        /// <summary>电磁门锁7_8信号</summary>
+        /// <summary>电磁门锁7_8信号（共享信号，未指定工位分组，沿用物理索引排在最后）</summary>
         电磁门锁7_8信号 = 59,
         /// <summary>上晶圆左启动按钮</summary>
+        [Display(Order = 24, GroupName = "工位1")]
         上晶圆左启动按钮 = 60,
         /// <summary>上晶圆右启动按钮</summary>
+        [Display(Order = 49, GroupName = "工位2")]
         上晶圆右启动按钮 = 61,
-        /// <summary>预留13</summary>
-       
+        /// <summary>工位1门锁</summary>
+        [Display(Order = 25, GroupName = "工位1")]
         工位1门锁 = 62,
-        /// <summary>预留14</summary>
-       
+        /// <summary>工位2门锁</summary>
+        [Display(Order = 50, GroupName = "工位2")]
         工位2门锁 = 63,
         /// <summary>预留15</summary>
         [Browsable(false)]
@@ -218,6 +268,8 @@ namespace PF.Workstation.AutoOcr.CostParam
 
     /// <summary>
     /// 输出信号名称枚举
+    /// UI 显示顺序/分组按 [Display(Order=, GroupName=)] 控制：工位1（左）在前，工位2（右）随后，
+    /// 未标注的共享/预留信号沿用原有物理索引顺序排在最后、归入"共享信号"分组
     /// </summary>
     public enum E_OutPutName
     {
@@ -246,6 +298,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         [Browsable(false)]
         预留30 = 7,
         /// <summary>上晶圆左铁环突片检测开关</summary>
+        [Display(Order = 1, GroupName = "工位1")]
         上晶圆左铁环突片检测开关 = 8,
         /// <summary>预留2</summary>
         [Browsable(false)]
@@ -257,6 +310,7 @@ namespace PF.Workstation.AutoOcr.CostParam
         [Browsable(false)]
         预留4 = 11,
         /// <summary>上晶圆右铁环突片检测开关</summary>
+        [Display(Order = 8, GroupName = "工位2")]
         上晶圆右铁环突片检测开关 = 12,
         /// <summary>预留6</summary>
         [Browsable(false)]
@@ -268,16 +322,22 @@ namespace PF.Workstation.AutoOcr.CostParam
         [Browsable(false)]
         预留8 = 15,
         /// <summary>夹爪气缸左闭合</summary>
+        [Display(Order = 2, GroupName = "工位1")]
         夹爪气缸左闭合 = 16,
         /// <summary>夹爪气缸左张开</summary>
+        [Display(Order = 3, GroupName = "工位1")]
         夹爪气缸左张开 = 17,
         /// <summary>夹爪左X轴气缸伸出</summary>
+        [Display(Order = 4, GroupName = "工位1")]
         夹爪左X轴气缸伸出 = 18,
         /// <summary>夹爪左X轴气缸缩回</summary>
+        [Display(Order = 5, GroupName = "工位1")]
         夹爪左X轴气缸缩回 = 19,
         /// <summary>晶圆轨道左调宽气缸伸出</summary>
+        [Display(Order = 6, GroupName = "工位1")]
         晶圆轨道左调宽气缸伸出 = 20,
         /// <summary>晶圆轨道左调宽气缸收回</summary>
+        [Display(Order = 7, GroupName = "工位1")]
         晶圆轨道左调宽气缸收回 = 21,
         /// <summary>预留9</summary>
         [Browsable(false)]
@@ -286,16 +346,22 @@ namespace PF.Workstation.AutoOcr.CostParam
         [Browsable(false)]
         预留10 = 23,
         /// <summary>夹爪气缸右闭合</summary>
+        [Display(Order = 9, GroupName = "工位2")]
         夹爪气缸右闭合 =   24,
         /// <summary>夹爪气缸右张开</summary>
+        [Display(Order = 10, GroupName = "工位2")]
         夹爪气缸右张开 = 25,
         /// <summary>夹爪右X轴气缸伸出</summary>
+        [Display(Order = 11, GroupName = "工位2")]
         夹爪右X轴气缸伸出 = 26,
         /// <summary>夹爪右X轴气缸缩回</summary>
+        [Display(Order = 12, GroupName = "工位2")]
         夹爪右X轴气缸缩回 = 27,
         /// <summary>晶圆轨道右调宽气缸伸出</summary>
+        [Display(Order = 13, GroupName = "工位2")]
         晶圆轨道右调宽气缸伸出 = 28,
         /// <summary>晶圆轨道右调宽气缸收回</summary>
+        [Display(Order = 14, GroupName = "工位2")]
         晶圆轨道右调宽气缸收回 = 29,
         /// <summary>预留11</summary>
         [Browsable(false)]

@@ -3,8 +3,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.29</Version>
+		<Version>1.0.30</Version>
 		<PackageReleaseNotes>
+v1.0.30 (2026-09-23) — IOMapInfo 新增 Order/Category 字段，支撑 IO 调试页按业务顺序排序与分组
+
+[新增 — IOMapInfo]
+- 新增 Order（对应 [Display(Order=n)] 特性，UI 显示顺序，默认 int.MaxValue 即退化为物理索引顺序）、
+  Category（对应 [Display(GroupName="...")] 特性，UI 分组名称，默认 null 即归入调用方约定的"共享"分组）。
+- 向后兼容：两个字段均为新增可选项，不影响现有 IIOMappingService 调用方。
+
 v1.0.29 (2026-09-21) — FrameControlConfig 帧触发源/有效边沿不再带默认值（含破坏性变更）；光源控制器通讯异常严重度调为 Error
 
 [破坏性变更 — FrameControlConfig]
