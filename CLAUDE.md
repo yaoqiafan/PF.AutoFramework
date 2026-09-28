@@ -256,6 +256,7 @@ D:\PFConfig\PFAutoFrameWork\
 - 工站循环暂停：`CancellationTokenSource _runCts` 取消式暂停，`CancelAndAwaitOldTaskAsync` 确保旧任务彻底终止
 - 报警原子性：`Volatile.Write` + `Interlocked.Exchange` 防撕裂
 - 主控硬件输入门：`SemaphoreSlim _hardwareOpGate` 非阻塞 `WaitAsync(0)` 防止并发硬件操作
+- 安全门门锁：由 `BaseMasterController` 按主控状态统一驱动，**工站不参与**。`IsDoorLockState`（默认 Initializing / Running，Resetting 不锁）；`Fire(Initialize/Start/Resume)` 在状态锁内先 `GetOpenArmedDoors` 检查、再 `SetLockPermit(true)`、再 Fire；离开上锁状态后后台等所有 `IAxis` 停稳再撤销许可，超时（`DoorUnlockHaltTimeout` 5s）保持上锁并报 `HW_SAFE_005`；`_doorLockGeneration` 代次号防旧解锁任务解开新锁。锁输出 = 许可 && `IsEnabled` && `!IsMuted`，工站只用 `SetSafetyDoorEnabled` 开"允许开门"窗口。Safety 线程由 `PFApplicationBase` 常驻启动，无许可时 Safety 组不触发
 - DbContext：Scoped 注册（每请求一个），工厂层 `ConcurrentDictionary` 缓存配置
 
 ---
@@ -281,3 +282,7 @@ D:\PFConfig\PFAutoFrameWork\
 | 暂停后循环无法被打断 | 使用了不存在的 `_pauseEvent` | 暂停是 CancellationToken 取消式，循环用 `while (!token.IsCancellationRequested)` |
 | `GetMechanisms` 编译报错 | 返回类型是 `IEnumerable<BaseMechanism>` 非接口 | 改为 `IEnumerable<BaseMechanism>`，只能返回 `BaseMechanism` 子类 |
 | `StationSyncService.Reset` 不存在 | API 已更新 | 用 `ResetSingleSignal` / `ResetScope` / `ResetAll` |
+| 配了门锁输出但门从不上锁 | 主控没把 `IHardwareInputMonitor` / `IHardwareManagerService` 传给 `base(...)` | 构造函数末尾补传两个参数 |
+| 暂停后恢复运行，某扇门不上锁 | 工站 `OnPhysicalPauseAsync` 里调了 `SetSafetyDoorEnabled(false)` | 删掉，暂停解锁由主控按状态处理 |
+| 初始化中开门不停机 | 子类重写 `OnHardwareInputReceived` 对 SafeDoor 自行 `PauseAll()`（Initializing 下无效） | 交给基类，或改调 `HandleSafetyBreach(code)` |
+| 仿真模式下门禁检查/门锁不生效 | 仿真 IO `ReadInput` 恒为 false，Monitor 在仿真下跳过 Safety 扫描与门禁检查 | 属预期，门锁行为需在真机验证 |

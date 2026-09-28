@@ -49,6 +49,18 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 为 null 时不进行动态屏蔽状态加载。
         /// </summary>
         string? MuteParamKey { get; }
+
+        /// <summary>
+        /// 该安全门绑定的门锁输出端口（传入 IIOController.WriteOutput）。
+        /// null 或空 = 该点位无门锁（默认）；一个门磁对应多把锁时配置多个端口。
+        /// 仅 Safety 组有效。
+        /// </summary>
+        IReadOnlyList<int>? LockOutputPorts => null;
+
+        /// <summary>
+        /// 门锁输出有效电平：true = 输出 ON 为上锁（默认）；false = 输出 OFF 为上锁。
+        /// </summary>
+        bool LockOutputActiveHigh => true;
     }
 
     /// <summary>
@@ -97,6 +109,28 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 获取所有安全门的当前状态快照。
         /// </summary>
         IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot();
+
+        /// <summary>
+        /// 上锁许可（由主控按机台状态驱动）。
+        /// true：已启用且未屏蔽的安全门上锁，并对其开门进行检测；
+        /// false：全部解锁，Safety 组输入不再触发（门关闭的恢复事件照常发布）。
+        /// 由 false 切到 true 时对所有安全门重新布防：门若仍处于打开态，下一轮扫描立即触发。
+        /// </summary>
+        void SetLockPermit(bool permit);
+
+        /// <summary>当前是否持有上锁许可。</summary>
+        bool IsLockPermitted { get; }
+
+        /// <summary>
+        /// 返回"已启用、未屏蔽、但当前未关闭"的安全门名称（IO 读不到的也计入，名称后附原因）。
+        /// 主控进入上锁状态前据此拒绝启动。
+        /// </summary>
+        IReadOnlyList<string> GetOpenArmedDoors();
+
+        /// <summary>
+        /// 将所有安全门恢复为启用状态（清除工站开门窗口残留的停用标记）。
+        /// </summary>
+        void ResetAllSafetyDoorsEnabled();
     }
 
 

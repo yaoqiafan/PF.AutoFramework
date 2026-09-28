@@ -1,4 +1,4 @@
-﻿using PF.Core.Constants;
+using PF.Core.Constants;
 using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Configuration;
@@ -16,6 +16,11 @@ namespace PF.Services.Hardware
     /// <summary>
     /// IHardwareInputMonitor 监控器
     /// </summary>
+    /// <remarks>
+    /// 安全门门锁：锁输出统一按 <c>上锁许可 &amp;&amp; IsEnabled &amp;&amp; !IsMuted</c> 计算，
+    /// 上锁许可由主控按机台状态驱动（<see cref="SetLockPermit"/>），工站只通过 <see cref="SetSafetyDoorEnabled"/>
+    /// 开"允许开门"的窗口。Safety 组的开门触发同样受上锁许可约束，未持有许可时开门不报警。
+    /// </remarks>
     public class HardwareInputMonitor : IHardwareInputMonitor
     {
         private readonly IPanelIoConfig _config;
@@ -43,6 +48,14 @@ namespace PF.Services.Hardware
         private int _consecutiveSafetyReadFails;
         private int _consecutiveStandardReadFails;
         private const int MonitorFailThreshold = 5;
+
+        // --- 门锁 ---
+        // 上锁许可与锁输出写入统一在 _lockSync 内完成，保证"许可/启用/屏蔽 → 输出"的计算不被并发撕裂
+        private readonly object _lockSync = new();
+        private volatile bool _lockPermit;
+        private bool _lockWriteFailed;
+        private long _lastLockReconcileTicks;
+        private const int LockReconcileIntervalMs = 500;
 
         /// <summary>
         /// HardwareInputMonitor 监控器
@@ -96,6 +109,8 @@ namespace PF.Services.Hardware
             if (device.DeviceId != _config.IoDeviceId || device is not IIOController ioCard) return;
             _ioCard = ioCard;
             _logger.Info($"【硬件输入监控】IO 板卡 '{device.DeviceId}' 已重新注册，扫描自动恢复。");
+            // 新板卡实例的输出处于复位态，按当前期望重写一遍门锁输出
+            ApplyAllLocks();
         }
 
         /// <summary>
@@ -184,7 +199,14 @@ namespace PF.Services.Hardware
                 return;
             }
 
-            if (!TryInitializeIoCard()) return;
+            if (!TryInitializeIoCard())
+            {
+                // 配了安全装置却拿不到 IO 板卡：安全门检测整体失效，必须报警而非只写日志
+                if (_safetyInputs.Count > 0)
+                    _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
+                        $"未找到 IO 板卡 '{_config.IoDeviceId}'，Safety 监控无法启动，安全门检测已失效");
+                return;
+            }
 
             // 重置 LastValue 为静止态（NC=true 常闭导通，NO=false 常开断开），防止启动瞬间误触发
             foreach (var state in _safetyInputs)
@@ -223,6 +245,9 @@ namespace PF.Services.Hardware
             // 重置所有安全门触发标志，防止跨生命周期状态泄漏
             foreach (var state in _safetyInputs)
                 state.WasTriggeredWhileEnabled = false;
+
+            // 扫描线程停止后无人检测开门，门锁不能继续保持
+            SetLockPermit(false);
         }
 
         // ==========================================
@@ -248,6 +273,8 @@ namespace PF.Services.Hardware
             _hardwareManager.DeviceAdded -= OnDeviceAdded;
             _paramService.ParamChanged -= OnParamChanged;
             StopAll();
+            // 退出兜底：扫描线程可能从未启动（StopSafetyMonitoring 提前返回），仍须解锁
+            SetLockPermit(false);
         }
 
         private async Task StandardMonitorLoopAsync(CancellationToken token)
@@ -258,6 +285,8 @@ namespace PF.Services.Hardware
                 var io = _ioCard;
                 if (io == null || !io.IsConnected)
                 {
+                    // 板卡缺失/断开同样计入失败：否则断线期间面板检测静默失效且无自警
+                    CountReadFailure(ref _consecutiveStandardReadFails, "Standard 监控 IO 板卡不可用", "操作面板检测可能已失效");
                     await Task.Delay(500, token).ConfigureAwait(false);
                     continue;
                 }
@@ -279,10 +308,7 @@ namespace PF.Services.Hardware
                     {
                         // 底层 ReadInput 出错时返回 null 而非抛异常，读取失败必须在此计数，
                         // 否则监控失效自警永远不会触发
-                        int fails = Interlocked.Increment(ref _consecutiveStandardReadFails);
-                        if (fails == MonitorFailThreshold)
-                            _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
-                                $"Standard 监控 IO 连续读取失败 {fails} 次，操作面板检测可能已失效");
+                        CountReadFailure(ref _consecutiveStandardReadFails, "Standard 监控 IO 连续读取失败", "操作面板检测可能已失效");
                     }
 
                     await Task.Delay(30, token).ConfigureAwait(false);
@@ -291,10 +317,7 @@ namespace PF.Services.Hardware
                 catch (Exception ex)
                 {
                     _logger.Error($"【硬件输入监控/Standard】扫描异常：{ex.Message}");
-                    int fails = Interlocked.Increment(ref _consecutiveStandardReadFails);
-                    if (fails == MonitorFailThreshold)
-                        _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
-                            $"Standard 监控 IO 连续读取失败 {fails} 次，操作面板检测可能已失效");
+                    CountReadFailure(ref _consecutiveStandardReadFails, "Standard 监控 IO 连续读取失败", "操作面板检测可能已失效");
                     await Task.Delay(1000, token).ConfigureAwait(false);
                 }
             }
@@ -310,6 +333,16 @@ namespace PF.Services.Hardware
                 // 局部快照：_ioCard 可能被热重载事件线程置 null，两次读取之间不做快照会 NRE
                 var io = _ioCard;
                 if (io == null || !io.IsConnected)
+                {
+                    // 板卡缺失/断开同样计入失败：否则断线期间安全门检测静默失效且无自警
+                    if (_safetyInputs.Count > 0)
+                        CountReadFailure(ref _consecutiveSafetyReadFails, "Safety 监控 IO 板卡不可用", "安全门检测可能已失效");
+                    await Task.Delay(500, token).ConfigureAwait(false);
+                    continue;
+                }
+
+                // 仿真 IO 的 ReadInput 恒为 false：常闭门会被当成"一直开着"，扫描只会制造误报，直接跳过
+                if (io.IsSimulated)
                 {
                     await Task.Delay(500, token).ConfigureAwait(false);
                     continue;
@@ -332,11 +365,10 @@ namespace PF.Services.Hardware
                     {
                         // 底层 ReadInput 出错时返回 null 而非抛异常，读取失败必须在此计数，
                         // 否则监控失效自警永远不会触发
-                        int fails = Interlocked.Increment(ref _consecutiveSafetyReadFails);
-                        if (fails == MonitorFailThreshold)
-                            _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
-                                $"Safety 监控 IO 连续读取失败 {fails} 次，安全门检测可能已失效");
+                        CountReadFailure(ref _consecutiveSafetyReadFails, "Safety 监控 IO 连续读取失败", "安全门检测可能已失效");
                     }
+
+                    ReconcileLocksIfDue();
 
                     await Task.Delay(10, token).ConfigureAwait(false);
                 }
@@ -344,13 +376,18 @@ namespace PF.Services.Hardware
                 catch (Exception ex)
                 {
                     _logger.Error($"【硬件输入监控/Safety】扫描异常：{ex.Message}");
-                    int fails = Interlocked.Increment(ref _consecutiveSafetyReadFails);
-                    if (fails == MonitorFailThreshold)
-                        _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
-                            $"Safety 监控 IO 连续读取失败 {fails} 次，安全门检测可能已失效");
+                    CountReadFailure(ref _consecutiveSafetyReadFails, "Safety 监控 IO 连续读取失败", "安全门检测可能已失效");
                     await Task.Delay(1000, token).ConfigureAwait(false);
                 }
             }
+        }
+
+        private void CountReadFailure(ref int counter, string what, string consequence)
+        {
+            int fails = Interlocked.Increment(ref counter);
+            if (fails == MonitorFailThreshold)
+                _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure,
+                    $"{what}（连续 {fails} 次），{consequence}");
         }
 
         /// <summary>
@@ -374,6 +411,7 @@ namespace PF.Services.Hardware
                     _logger.Warn($"【硬件输入监控】读取 [{state.Config.Name}] 屏蔽参数失败：{ex.Message}");
                 }
             }
+            ApplyAllLocks();
         }
 
         private void OnParamChanged(object? sender, ParamChangedEventArgs e)
@@ -381,8 +419,12 @@ namespace PF.Services.Hardware
             if (e.NewValue is not bool b) return;
             foreach (var state in _safetyInputs)
             {
-                if (state.Config.MuteParamKey == e.ParamName)
-                    state.Config.IsMuted = b;
+                if (state.Config.MuteParamKey != e.ParamName) continue;
+                bool wasMuted = state.Config.IsMuted;
+                state.Config.IsMuted = b;
+                // 取消屏蔽 = 重新纳入检测：门若此时开着必须立即触发，而不是等下一次开关门
+                if (wasMuted && !b) state.RearmRequested = true;
+                ApplyLock(state);
             }
         }
 
@@ -395,17 +437,33 @@ namespace PF.Services.Hardware
                 _logger.Warn($"【硬件输入监控】未找到安全门 [{name}]，无法设置启用状态。");
                 return;
             }
+            bool wasEnabled = state.IsEnabled;
             state.IsEnabled = enabled;
+            // 停用期间 LastValue 照常跟随门的实际状态；重新启用时若门仍开着，不重新布防就没有边沿、永远不触发
+            if (enabled && !wasEnabled) state.RearmRequested = true;
+            ApplyLock(state);
             _logger.Info($"【硬件输入监控】安全门 [{name}] 已{(enabled ? "启用" : "停用")}。");
+        }
+
+        /// <inheritdoc/>
+        public void ResetAllSafetyDoorsEnabled()
+        {
+            foreach (var state in _safetyInputs)
+            {
+                if (!state.IsEnabled) state.RearmRequested = true;
+                state.IsEnabled = true;
+            }
+            ApplyAllLocks();
         }
 
         /// <inheritdoc/>
         public IReadOnlyList<SafetyDoorState> GetSafetyDoorSnapshot()
         {
+            var io = _ioCard;
             var result = new List<SafetyDoorState>(_safetyInputs.Count);
             foreach (var state in _safetyInputs)
             {
-                bool? signal = _ioCard?.ReadInput(state.Config.Port);
+                bool? signal = io?.ReadInput(state.Config.Port);
                 bool? isActive = signal.HasValue
                     ? signal.Value == state.Config.NormallyOpen
                     : null;
@@ -415,9 +473,175 @@ namespace PF.Services.Hardware
                     isEnabled: state.IsEnabled,
                     isMuted: state.Config.IsMuted,
                     signalValue: signal,
-                    isActive: isActive));
+                    isActive: isActive,
+                    isLocked: ReadLockState(io, state)));
             }
             return result;
+        }
+
+        // ==========================================
+        // 门锁
+        // ==========================================
+
+        /// <inheritdoc/>
+        public bool IsLockPermitted => _lockPermit;
+
+        /// <inheritdoc/>
+        public void SetLockPermit(bool permit)
+        {
+            lock (_lockSync)
+            {
+                if (permit == _lockPermit) return;
+                if (permit)
+                {
+                    // 取得许可 = 开门检测从无到有，门若仍开着必须立即触发
+                    foreach (var state in _safetyInputs)
+                        state.RearmRequested = true;
+                }
+                _lockPermit = permit;
+                ApplyAllLocksCore();
+            }
+            _logger.Info($"【硬件输入监控】安全门上锁许可：{(permit ? "上锁" : "解锁")}。");
+
+            // 上锁的前提是有人在检测开门；老项目可能在 Uninitialized 时停过扫描线程
+            if (permit && !IsSafetyMonitoringRunning)
+                StartSafetyMonitoring();
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyList<string> GetOpenArmedDoors()
+        {
+            var io = _ioCard;
+            var result = new List<string>();
+            // 仿真 IO 读不到真实门状态（ReadInput 恒为 false），不据此拦截启动
+            if (io is { IsSimulated: true }) return result;
+
+            foreach (var state in _safetyInputs)
+            {
+                if (!state.IsEnabled || state.Config.IsMuted) continue;
+
+                if (io == null || !io.IsConnected)
+                {
+                    result.Add($"{state.Config.Name}(IO板卡不可用)");
+                    continue;
+                }
+
+                bool? signal = io.ReadInput(state.Config.Port);
+                if (signal == null)
+                    result.Add($"{state.Config.Name}(信号读取失败)");
+                else if (signal.Value == state.Config.NormallyOpen)
+                    result.Add(state.Config.Name);
+            }
+            return result;
+        }
+
+        private static bool HasLock(InputScanState state) =>
+            state.Config.LockOutputPorts is { Count: > 0 };
+
+        /// <summary>该门此刻应处于上锁态。</summary>
+        private bool ShouldLock(InputScanState state) =>
+            _lockPermit && state.IsEnabled && !state.Config.IsMuted;
+
+        private void ApplyAllLocks()
+        {
+            lock (_lockSync) ApplyAllLocksCore();
+        }
+
+        private void ApplyLock(InputScanState state)
+        {
+            lock (_lockSync)
+            {
+                ApplyLockCore(_ioCard, state, out bool ok);
+                UpdateLockWriteAlarm(ok);
+            }
+        }
+
+        private void ApplyAllLocksCore()
+        {
+            var io = _ioCard;
+            bool allOk = true;
+            foreach (var state in _safetyInputs)
+            {
+                ApplyLockCore(io, state, out bool ok);
+                allOk &= ok;
+            }
+            UpdateLockWriteAlarm(allOk);
+        }
+
+        /// <summary>按当前期望写出该门全部锁输出。须在 _lockSync 内调用。</summary>
+        private void ApplyLockCore(IIOController? io, InputScanState state, out bool ok)
+        {
+            ok = true;
+            if (!HasLock(state)) return;
+
+            // 板卡不可用时无从写出，由 OnDeviceAdded / 周期对账在恢复后补写，此处不计为写失败
+            if (io == null || !io.IsConnected) return;
+
+            bool level = ShouldLock(state) == state.Config.LockOutputActiveHigh;
+            foreach (var port in state.Config.LockOutputPorts!)
+            {
+                if (io.WriteOutput(port, level)) continue;
+                ok = false;
+                _logger.Error($"【硬件输入监控】安全门 [{state.Config.Name}] 门锁输出 {port} 写入失败（目标电平 {level}）。");
+            }
+        }
+
+        /// <summary>写失败首次触发报警，恢复后自动清除。须在 _lockSync 内调用。</summary>
+        private void UpdateLockWriteAlarm(bool ok)
+        {
+            if (!ok && !_lockWriteFailed)
+            {
+                _lockWriteFailed = true;
+                _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorLockFailure, null);
+            }
+            else if (ok && _lockWriteFailed)
+            {
+                _lockWriteFailed = false;
+                _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorLockFailure);
+            }
+        }
+
+        /// <summary>
+        /// 周期对账：回读锁输出与期望不一致就重写（防 IO 模块掉电复位、被调试页手动改写等）。
+        /// </summary>
+        private void ReconcileLocksIfDue()
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastLockReconcileTicks < LockReconcileIntervalMs) return;
+            _lastLockReconcileTicks = now;
+
+            lock (_lockSync)
+            {
+                var io = _ioCard;
+                // 仿真 IO 的 ReadOutput 恒为 false，无法对账
+                if (io == null || !io.IsConnected || io.IsSimulated) return;
+
+                bool allOk = true;
+                foreach (var state in _safetyInputs)
+                {
+                    if (!HasLock(state)) continue;
+                    bool level = ShouldLock(state) == state.Config.LockOutputActiveHigh;
+                    if (state.Config.LockOutputPorts!.All(p => io.ReadOutput(p) == level)) continue;
+
+                    _logger.Warn($"【硬件输入监控】安全门 [{state.Config.Name}] 门锁输出与期望不一致，重新写出。");
+                    ApplyLockCore(io, state, out bool ok);
+                    allOk &= ok;
+                }
+                UpdateLockWriteAlarm(allOk);
+            }
+        }
+
+        private static bool? ReadLockState(IIOController? io, InputScanState state)
+        {
+            if (!HasLock(state) || io == null) return null;
+            bool locked = true;
+            foreach (var port in state.Config.LockOutputPorts!)
+            {
+                bool? value = io.ReadOutput(port);
+                if (value == null) return null;
+                locked &= value.Value == state.Config.LockOutputActiveHigh;
+            }
+            return locked;
         }
 
         /// <summary>
@@ -426,6 +650,7 @@ namespace PF.Services.Hardware
         /// <para>NO（NormallyOpen=true） ：静止态信号=false，触发沿=上升沿（false→true）。</para>
         /// 触发条件统一为：上一次未处于激活态 且 本次进入激活态。
         /// 激活态定义：当前值 == NormallyOpen（NC激活=false，NO激活=true）。
+        /// Safety 组额外要求持有上锁许可（机台处于上锁状态）。
         /// </summary>
         /// <returns>true = 本次 IO 读取正常；false = 底层读取失败（ReadInput 返回 null），由调用方计入连续失败自警计数。</returns>
         private async Task<bool> ProcessSingleInputAsync(IIOController io, InputScanState state, CancellationToken token)
@@ -435,13 +660,20 @@ namespace PF.Services.Hardware
 
             bool current = raw.Value;
             bool no = state.Config.NormallyOpen;
+            bool isSafety = state.Config.ScanGroup == InputScanGroup.Safety;
+
+            // 重新布防：视上一次为静止态，使"启用/取得许可时门已开着"也能产生触发沿
+            bool rearm = state.RearmRequested;
+            if (rearm) state.RearmRequested = false;
 
             // 上一次是否处于激活态（激活 = 信号值等于 NormallyOpen）
-            bool wasActive = (state.LastValue == no);
+            bool wasActive = !rearm && (state.LastValue == no);
             // 当前是否处于激活态
             bool isActive  = (current == no);
 
-            if (state.IsEnabled && !state.Config.IsMuted && !wasActive && isActive)
+            bool armed = state.IsEnabled && !state.Config.IsMuted && (!isSafety || _lockPermit);
+
+            if (armed && !wasActive && isActive)
             {
                 if (state.Config.DebounceMs > 0)
                 {
@@ -465,10 +697,10 @@ namespace PF.Services.Hardware
                 state.WasTriggeredWhileEnabled = true;
                 _eventBus.PublishInputEvent(state.Config.InputType);
             }
-            else if (state.Config.ScanGroup == InputScanGroup.Safety
+            else if (isSafety
                      && !state.Config.IsMuted
                      && state.WasTriggeredWhileEnabled
-                     && wasActive && !isActive)
+                     && (state.LastValue == no) && !isActive)
             {
                 _logger.Info($"【硬件输入】{state.Config.Name} 恢复 → 类型：{state.Config.InputType}");
                 state.WasTriggeredWhileEnabled = false;
@@ -483,9 +715,12 @@ namespace PF.Services.Hardware
         {
             public IHardwareInputConfig Config { get; }
             public bool LastValue { get; set; }
-            public bool IsEnabled { get; set; } = true;
+            public volatile bool IsEnabled = true;
             // 仅当 IsEnabled=true 时发生的触发才允许后续恢复事件，防止禁用期间开关门产生误恢复
             public bool WasTriggeredWhileEnabled { get; set; }
+            // 由启用/取得许可/取消屏蔽的线程置位，扫描线程消费；用标志而非直接改 LastValue，
+            // 避免与扫描线程同时写 LastValue 时被其覆盖而丢失触发沿
+            public volatile bool RearmRequested;
 
             public InputScanState(IHardwareInputConfig config)
             {

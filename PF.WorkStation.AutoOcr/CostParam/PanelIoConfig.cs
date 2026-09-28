@@ -26,6 +26,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public bool NormallyOpen { get; }
         /// <summary>运行时屏蔽参数键名（null=不支持动态屏蔽）</summary>
         public string? MuteParamKey { get; }
+        /// <summary>门锁输出端口（null=无门锁）</summary>
+        public IReadOnlyList<int>? LockOutputPorts { get; }
+        /// <summary>门锁输出有效电平：true=输出ON上锁，false=输出OFF上锁</summary>
+        public bool LockOutputActiveHigh { get; }
 
         /// <summary>
         /// 初始化硬件输入配置
@@ -37,7 +41,9 @@ namespace PF.WorkStation.AutoOcr.CostParam
             string name,
             InputScanGroup scanGroup,
             bool normallyOpen = false,
-            string? muteParamKey = null)
+            string? muteParamKey = null,
+            IReadOnlyList<int>? lockOutputPorts = null,
+            bool lockOutputActiveHigh = true)
         {
             InputType    = inputType;
             Port         = port;
@@ -46,6 +52,8 @@ namespace PF.WorkStation.AutoOcr.CostParam
             ScanGroup    = scanGroup;
             NormallyOpen = normallyOpen;
             MuteParamKey = muteParamKey;
+            LockOutputPorts      = lockOutputPorts;
+            LockOutputActiveHigh = lockOutputActiveHigh;
         }
     }
 
@@ -86,31 +94,36 @@ namespace PF.WorkStation.AutoOcr.CostParam
                     port: (int)E_InPutName.工位1门锁, debounceMs: 0,
                     name: nameof(E_InPutName.工位1门锁), InputScanGroup.Safety,
                     normallyOpen: false,
-                    muteParamKey: nameof(E_Params.SafeDoor_1_Muted)),
+                    muteParamKey: nameof(E_Params.SafeDoor_1_Muted),
+                    lockOutputPorts: new[] { (int)E_OutPutName.电磁门锁1 }),
                   new HardwareInputConfig(HardwareInputType.SafeDoor2,
                     port: (int)E_InPutName.工位2门锁, debounceMs: 0,
                     name: nameof(E_InPutName.工位2门锁), InputScanGroup.Safety,
                     normallyOpen: false,
-                    muteParamKey: nameof(E_Params.SafeDoor_2_Muted)),
+                    muteParamKey: nameof(E_Params.SafeDoor_2_Muted),
+                    lockOutputPorts: new[] { (int)E_OutPutName.电磁门锁2 }),
 
 
                 new HardwareInputConfig(HardwareInputType.SafeDoor,
                     port: (int)E_InPutName.电磁门锁3_4信号, debounceMs: 0,
                     name: nameof(E_InPutName.电磁门锁3_4信号), InputScanGroup.Safety,
                     normallyOpen: false,
-                    muteParamKey: nameof(E_Params.SafeDoor_3_4_Muted)),
+                    muteParamKey: nameof(E_Params.SafeDoor_3_4_Muted),
+                    lockOutputPorts: new[] { (int)E_OutPutName.电磁门锁3, (int)E_OutPutName.电磁门锁4 }),
 
                 new HardwareInputConfig(HardwareInputType.SafeDoor,
                     port: (int)E_InPutName.电磁门锁5_6信号, debounceMs: 0,
                     name: nameof(E_InPutName.电磁门锁5_6信号), InputScanGroup.Safety,
                     normallyOpen: false,
-                    muteParamKey: nameof(E_Params.SafeDoor_5_6_Muted)),
+                    muteParamKey: nameof(E_Params.SafeDoor_5_6_Muted),
+                    lockOutputPorts: new[] { (int)E_OutPutName.电磁门锁5, (int)E_OutPutName.电磁门锁6 }),
 
                 new HardwareInputConfig(HardwareInputType.SafeDoor,
                     port: (int)E_InPutName.电磁门锁7_8信号, debounceMs: 0,
                     name: nameof(E_InPutName.电磁门锁7_8信号), InputScanGroup.Safety,
                     normallyOpen: false ,
-                    muteParamKey: nameof(E_Params.SafeDoor_7_8_Muted)),
+                    muteParamKey: nameof(E_Params.SafeDoor_7_8_Muted),
+                    lockOutputPorts: new[] { (int)E_OutPutName.电磁门锁7, (int)E_OutPutName.电磁门锁8 }),
             };
     }
 }

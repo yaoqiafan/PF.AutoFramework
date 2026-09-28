@@ -44,8 +44,23 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.28</Version>
+		<Version>1.0.29</Version>
 		<PackageReleaseNotes>
+v1.0.29 (2026-09-28) — BaseMasterController 按主控状态统一驱动安全门门锁；同步 PF.Core 1.0.31
+
+[新增 — 门锁联动]
+- 构造函数新增可选参数 safetyInputMonitor / hardwareManager（位于末尾，已有子类源码兼容）。
+- 上锁状态 IsDoorLockState（可重写，默认 Initializing / Running；Resetting 只清状态不锁）。
+- 进入前：Fire(Initialize/Start/Resume) 在状态锁内先检查门，有已启用未屏蔽的门未关 → HW_SAFE_003 并拒绝触发；
+  否则先上锁再 Fire，保证运动前门已锁。Initialize/Start 会先 ResetAllSafetyDoorsEnabled，Resume 保留工站开门窗口。
+- 离开后：OnTransitioned 内同步发起延迟解锁，后台等所有轴（IAxis.AxisIOStatus.Moving/Homing）停稳再撤销许可；
+  超过 DoorUnlockHaltTimeout（默认 5s）仍未停稳 → 保持上锁并触发 HW_SAFE_005，停稳后自动解锁并清除。
+  仿真轴、断开的轴视为已停稳；代次号防止旧解锁任务解开新上的锁。
+
+[新增 — HandleSafetyBreach]
+- 安全门打开统一处理：Running → Pause；Initializing → Error（InitAlarm）后取消并行初始化。
+- 默认路由新增 SafeDoor1 / SafeDoor2（分别报 HW_SAFE_001_1 / 001_2），子类无需再自行 PauseAll。
+
 v1.0.28 (2026-09-21) — 线扫复位补齐采集卡与属性文件重导、取帧超时诊断；修复海康串口光源健康检查逻辑取反；同步 PF.Core 1.0.29
 
 [修复 — HikComLightController.InternalCheckHealthAsync]

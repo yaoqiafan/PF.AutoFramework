@@ -11,8 +11,9 @@ namespace PF.Core.Interfaces.Device.Hardware
     /// <param name="isMuted"></param>
     /// <param name="signalValue"></param>
     /// <param name="isActive"></param>
+    /// <param name="isLocked"></param>
     public sealed class SafetyDoorState(string name, bool isEnabled, bool isMuted,
-        bool? signalValue, bool? isActive)
+        bool? signalValue, bool? isActive, bool? isLocked = null)
     {
 
         /// <summary>可读名称，如"电磁门锁1_2信号"。</summary>
@@ -32,6 +33,12 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// null 表示无法判定（SignalValue 为 null）。
         /// </summary>
         public bool? IsActive { get; } = isActive;
+
+        /// <summary>
+        /// 门锁当前是否处于上锁态（按输出回读值与有效电平判定，多把锁时全部上锁才为 true）。
+        /// null 表示该门未配置门锁输出，或输出无法回读。
+        /// </summary>
+        public bool? IsLocked { get; } = isLocked;
 
     }
 }

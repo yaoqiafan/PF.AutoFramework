@@ -687,7 +687,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
 
             if (_hardwareInputMonitor != null)
             {
-                bool threadRunning = _hardwareInputMonitor.IsSafetyMonitoringRunning;
+                // Safety 线程常驻，只有持有上锁许可（机台处于上锁状态）时才真正检测开门
+                bool threadRunning = _hardwareInputMonitor.IsSafetyMonitoringRunning
+                                     && _hardwareInputMonitor.IsLockPermitted;
                 var doors = _hardwareInputMonitor.GetSafetyDoorSnapshot();
                 foreach (var door in doors)
                 {

@@ -3,8 +3,13 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.8</Version>
+		<Version>1.0.9</Version>
 		<PackageReleaseNotes>
+v1.0.9 (2026-09-28) — Safety 监控线程随 Standard 一起常驻启动；退出时兜底解锁安全门
+
+- 启动画面结束后同时 StartSafetyMonitoring（原由各项目主控在 Running 时启动）；是否检测/上锁由主控下发的上锁许可决定。
+- OnExit 先撤销上锁许可并停止监控，避免软件退出后门锁保持。
+
 v1.0.8 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

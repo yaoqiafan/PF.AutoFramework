@@ -2,6 +2,8 @@ using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
+using PF.Core.Interfaces.Device.Hardware;
+using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
@@ -176,6 +178,24 @@ namespace PF.Infrastructure.Station
         /// </summary>
         private readonly SemaphoreSlim _hardwareOpGate = new(1, 1);
 
+        /// <summary>
+        /// 硬件输入监控（可选）。传入后由主控按状态统一驱动安全门上锁/解锁，工站无需参与：
+        /// 进入 <see cref="IsDoorLockState"/> 前检查门并上锁，离开后等所有轴停稳再解锁。
+        /// </summary>
+        protected readonly IHardwareInputMonitor? _safetyInputMonitor;
+
+        /// <summary>硬件管理服务（可选），用于离开上锁状态时判断所有轴是否停稳。</summary>
+        private readonly IHardwareManagerService? _hardwareManager;
+
+        /// <summary>
+        /// 门锁代次：每次上锁/发起解锁都 +1。延迟解锁任务只在代次未变时才生效，
+        /// 防止"暂停后马上恢复"时旧的解锁任务把新上的锁解开。
+        /// </summary>
+        private long _doorLockGeneration;
+
+        /// <summary>保护"代次校验 + 许可写入"的原子性（上锁在 _machineLock 内，解锁在后台任务里）。</summary>
+        private readonly object _doorLockSync = new();
+
         // 工站间信号量同步（IStationSyncService）由各子类工站按需持有，主控基类本身不消费，故不在此声明。
 
         #endregion
@@ -189,16 +209,22 @@ namespace PF.Infrastructure.Station
         /// <param name="hardwareEventBus">硬件输入事件总线，可为 null（无物理按钮时）。</param>
         /// <param name="subStations">受管理的子工站集合，不可为 null。</param>
         /// <param name="alarmService">报警持久化服务，可为 null（无 AlarmService 时）。</param>
+        /// <param name="safetyInputMonitor">硬件输入监控，可为 null（不使用安全门门锁联动时）。</param>
+        /// <param name="hardwareManager">硬件管理服务，可为 null；为 null 时离开上锁状态不等轴停稳直接解锁。</param>
         /// <exception cref="ArgumentNullException"><paramref name="logger"/> 或 <paramref name="subStations"/> 为 null 时抛出。</exception>
         protected BaseMasterController(
             ILogService logger,
             HardwareInputEventBus? hardwareEventBus,
             IEnumerable<IStation> subStations,
-            IAlarmService? alarmService = null)
+            IAlarmService? alarmService = null,
+            IHardwareInputMonitor? safetyInputMonitor = null,
+            IHardwareManagerService? hardwareManager = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _alarmService = alarmService;
             _hardwareEventBus = hardwareEventBus;
+            _safetyInputMonitor = safetyInputMonitor;
+            _hardwareManager = hardwareManager;
             _subStations = subStations?.ToList() ?? throw new ArgumentNullException(nameof(subStations));
 
 
@@ -233,6 +259,11 @@ namespace PF.Infrastructure.Station
             _globalMachine.OnTransitioned(t =>
             {
                 _logger.Info($"【全局主控】状态切换: {t.Source} -> {t.Destination}");
+
+                // 门锁在状态锁内同步处理，保证与状态变迁严格同序（MasterStateChanged 为异步派发，顺序无保证）
+                if (!IsDoorLockState(t.Destination))
+                    BeginDeferredDoorUnlock();
+
                 var handler = MasterStateChanged;
                 if (handler != null)
                 {
@@ -391,9 +422,35 @@ namespace PF.Infrastructure.Station
                 case HardwareInputType.Start: _ = ExecuteSmartStartAsync(); break;
                 case HardwareInputType.Pause: PauseAll(); break;
                 case HardwareInputType.Reset: _ = ExecuteHardwareResetAsync(); break;
-                case HardwareInputType.SafeDoor:
+                case HardwareInputType.SafeDoor:  HandleSafetyBreach(AlarmCodes.Safety.SafeDoorOpen);  break;
+                case HardwareInputType.SafeDoor1: HandleSafetyBreach(AlarmCodes.Safety.SafeDoorOpen1); break;
+                case HardwareInputType.SafeDoor2: HandleSafetyBreach(AlarmCodes.Safety.SafeDoorOpen2); break;
+            }
+        }
+
+        /// <summary>
+        /// 安全门在上锁状态下被打开（锁失效或被强行拉开）的统一处理：报警后按当前状态停机。
+        /// <list type="bullet">
+        ///   <item>Running → Pause；</item>
+        ///   <item>Initializing → Error（进入 InitAlarm，级联各子站报警），再取消并行初始化；</item>
+        ///   <item>其余状态只报警（Monitor 仅在持有上锁许可时触发，正常不会走到这里）。</item>
+        /// </list>
+        /// 子类处理自定义安全输入时调用此方法，而不是自行 PauseAll，否则初始化期间开门不会停机。
+        /// </summary>
+        /// <param name="alarmCode">报警码。</param>
+        /// <param name="runtimeMessage">附加运行时信息。</param>
+        protected void HandleSafetyBreach(string alarmCode, string? runtimeMessage = null)
+        {
+            _alarmService?.TriggerAlarm("主控", alarmCode, runtimeMessage);
+            switch (CurrentState)
+            {
+                case MachineState.Running:
                     PauseAll();
-                    _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.SafeDoorOpen, null);
+                    break;
+                case MachineState.Initializing:
+                    // 先切 InitAlarm 再取消：反过来 InitializeAllAsync 可能在取消后抢先 Fire(InitializeDone)
+                    Fire(MachineTrigger.Error);
+                    try { _initCts?.Cancel(); } catch { }
                     break;
             }
         }
@@ -893,6 +950,141 @@ namespace PF.Infrastructure.Station
 
         #endregion
 
+        #region Safety Door Locks (安全门门锁联动)
+
+        /// <summary>
+        /// 需要锁门的主控状态。默认 Initializing / Running（有运动）；
+        /// Resetting 按框架约定只清状态不动作，不锁。
+        /// </summary>
+        protected virtual bool IsDoorLockState(MachineState state)
+            => state is MachineState.Initializing or MachineState.Running;
+
+        /// <summary>离开上锁状态后等待所有轴停稳的超时；超时后保持上锁并报警，停稳后自动解锁。</summary>
+        protected virtual TimeSpan DoorUnlockHaltTimeout => TimeSpan.FromSeconds(5);
+
+        /// <summary>等待轴停稳的轮询间隔。</summary>
+        protected virtual TimeSpan DoorUnlockPollInterval => TimeSpan.FromMilliseconds(50);
+
+        /// <summary>
+        /// 进入上锁状态前的门禁检查（在 <c>_machineLock</c> 内、Fire 之前调用）：
+        /// 有已启用且未屏蔽的门未关闭 → 报警并拒绝本次触发；否则先上锁再放行，保证运动开始前门已锁。
+        /// </summary>
+        /// <returns>true = 放行；false = 拒绝触发。</returns>
+        private bool TryArmDoorLocks(MachineTrigger trigger)
+        {
+            var monitor = _safetyInputMonitor;
+            if (monitor == null) return true;
+
+            MachineState? target = trigger switch
+            {
+                MachineTrigger.Initialize => MachineState.Initializing,
+                MachineTrigger.Start      => MachineState.Running,
+                MachineTrigger.Resume     => MachineState.Running,
+                _ => null
+            };
+            if (target is not { } dest || !IsDoorLockState(dest)) return true;
+
+            // 初始化 / 启动是"从头开始"，清掉工站开门窗口残留的停用标记；
+            // 恢复（Resume）保留，工站重新进入原步序时会自行再开窗口
+            if (trigger != MachineTrigger.Resume)
+                monitor.ResetAllSafetyDoorsEnabled();
+
+            var openDoors = monitor.GetOpenArmedDoors();
+            if (openDoors.Count > 0)
+            {
+                var doors = string.Join("、", openDoors);
+                _logger.Warn($"【主控】安全门未关闭，拒绝 {trigger}：{doors}");
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.DoorNotClosed, $"未关闭：{doors}");
+                return false;
+            }
+
+            _alarmService?.ClearAlarm("主控", AlarmCodes.Safety.DoorNotClosed);
+            lock (_doorLockSync)
+            {
+                // 代次 +1 使尚未完成的延迟解锁任务作废
+                Interlocked.Increment(ref _doorLockGeneration);
+                monitor.SetLockPermit(true);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 离开上锁状态：后台等所有轴停稳后撤销上锁许可。
+        /// 超时仍未停稳 → 保持上锁并报警，继续等待，停稳后自动解锁并清除该报警。
+        /// </summary>
+        private void BeginDeferredDoorUnlock()
+        {
+            var monitor = _safetyInputMonitor;
+            if (monitor == null || !monitor.IsLockPermitted) return;
+
+            long generation = Interlocked.Increment(ref _doorLockGeneration);
+            _ = Task.Run(async () =>
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                bool alarmed = false;
+                try
+                {
+                    while (true)
+                    {
+                        if (Volatile.Read(ref _disposed) != 0) return;
+                        if (Interlocked.Read(ref _doorLockGeneration) != generation) return;
+
+                        var moving = GetMovingAxes();
+                        if (moving.Count == 0) break;
+
+                        if (!alarmed && sw.Elapsed >= DoorUnlockHaltTimeout)
+                        {
+                            alarmed = true;
+                            var axes = string.Join("、", moving);
+                            _logger.Warn($"【主控】离开上锁状态 {DoorUnlockHaltTimeout.TotalSeconds:0.#}s 后轴仍未停稳，安全门保持上锁：{axes}");
+                            _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.DoorUnlockBlocked, $"未停稳：{axes}");
+                        }
+                        await Task.Delay(DoorUnlockPollInterval).ConfigureAwait(false);
+                    }
+
+                    lock (_doorLockSync)
+                    {
+                        if (Interlocked.Read(ref _doorLockGeneration) != generation) return;
+                        monitor.SetLockPermit(false);
+                    }
+                    _logger.Info($"【主控】所有轴已停稳（{sw.ElapsedMilliseconds} ms），安全门解锁。");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"【主控】安全门延迟解锁异常，门保持上锁：{ex.Message}");
+                }
+                finally
+                {
+                    if (alarmed) _alarmService?.ClearAlarm("主控", AlarmCodes.Safety.DoorUnlockBlocked);
+                }
+            });
+        }
+
+        /// <summary>
+        /// 返回仍在运动的轴名称。
+        /// 仿真轴视为已停稳；断开连接的轴不受控也无法确认，视为已停稳（否则断线会把门永久锁死）；
+        /// 在线但读不到 IO 状态的轴无法确认停稳，按未停稳处理。
+        /// 未注入 <see cref="IHardwareManagerService"/> 时不做判断，直接视为全部停稳。
+        /// </summary>
+        private List<string> GetMovingAxes()
+        {
+            var result = new List<string>();
+            if (_hardwareManager == null) return result;
+
+            foreach (var axis in _hardwareManager.ActiveDevices.OfType<IAxis>())
+            {
+                if (axis.IsSimulated || !axis.IsConnected) continue;
+                var status = axis.AxisIOStatus;
+                if (status == null)
+                    result.Add($"{axis.DeviceId}(状态未知)");
+                else if (status.Moving || status.Homing)
+                    result.Add(axis.DeviceId);
+            }
+            return result;
+        }
+
+        #endregion
+
         #region Thread-Safe Triggers
 
         /// <summary>
@@ -912,8 +1104,10 @@ namespace PF.Infrastructure.Station
                     _logger.Error($"【主控】Fire({trigger}) 获取状态锁超时。");
                     return false;
                 }
-                if (_globalMachine.CanFire(trigger)) { _globalMachine.Fire(trigger); return true; }
-                return false;
+                if (!_globalMachine.CanFire(trigger)) return false;
+                if (!TryArmDoorLocks(trigger)) return false;
+                _globalMachine.Fire(trigger);
+                return true;
             }
             catch (ObjectDisposedException) { return false; }
             finally
@@ -939,7 +1133,8 @@ namespace PF.Infrastructure.Station
                     _logger.Error($"【主控】FireAsync({trigger}) 获取状态锁超时。");
                     return;
                 }
-                if (_globalMachine.CanFire(trigger)) await _globalMachine.FireAsync(trigger).ConfigureAwait(false);
+                if (_globalMachine.CanFire(trigger) && TryArmDoorLocks(trigger))
+                    await _globalMachine.FireAsync(trigger).ConfigureAwait(false);
             }
             catch (ObjectDisposedException) { }
             finally

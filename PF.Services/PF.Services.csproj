@@ -16,8 +16,24 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.7</Version>
+		<Version>1.0.8</Version>
 		<PackageReleaseNotes>
+v1.0.8 (2026-09-28) — HardwareInputMonitor 支持安全门门锁输出；Safety 线程常驻，检测受上锁许可约束
+
+[新增 — 门锁]
+- 锁输出统一按"上锁许可 &amp;&amp; IsEnabled &amp;&amp; !IsMuted"计算，按门配置的有效电平写出；
+  启用/许可/屏蔽变化、热重载（DeviceAdded）时重写，Safety 循环每 500ms 回读对账。
+- 写失败触发 HW_SAFE_004，恢复后自动清除；StopSafetyMonitoring / Dispose 时全部解锁。
+
+[变更 — Safety 检测]
+- Safety 组触发额外要求持有上锁许可：Idle/Paused/报警等状态下开门不再报警（门关闭的恢复事件照常发布）。
+- 重新启用门、取得许可、取消屏蔽时重新布防：门若仍开着，下一轮扫描立即触发（修复"门开着启用/恢复运行不报警"）。
+- 仿真 IO（ReadInput 恒为 false）下跳过 Safety 扫描、门禁检查与输出对账，避免常闭门误报。
+
+[修复 — 监控失效自警]
+- IO 板卡缺失/断开也计入连续失败计数，达到阈值触发 HW_SAFE_002（原先仅延时重试、无任何报警）。
+- StartSafetyMonitoring 找不到 IO 板卡且配置了安全装置时触发 HW_SAFE_002（原先只写日志）。
+
 v1.0.7 (2026-09-23) — IOMappingService 解析 [Display(Order=, GroupName=)]，支撑 IO 调试页排序与分组
 
 [新增 — IOMappingService.ParseEnumToMap]

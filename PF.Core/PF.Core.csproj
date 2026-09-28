@@ -3,8 +3,27 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.30</Version>
+		<Version>1.0.31</Version>
 		<PackageReleaseNotes>
+v1.0.31 (2026-09-28) — 安全门门锁输出绑定：配置门锁输出端口/有效电平，Monitor 新增上锁许可 API
+
+[新增 — IHardwareInputConfig]
+- LockOutputPorts（门锁输出端口，null/空 = 无锁，一个门磁可配多把锁）、LockOutputActiveHigh
+  （true = 输出 ON 上锁）。均为默认接口实现，老项目的实现类无需修改即可编译。
+
+[新增 — IHardwareInputMonitor]
+- SetLockPermit / IsLockPermitted：上锁许可，由主控按机台状态驱动；无许可时全部解锁且 Safety 组不触发。
+- GetOpenArmedDoors：进入上锁状态前的门禁检查。
+- ResetAllSafetyDoorsEnabled：清除工站开门窗口残留的停用标记。
+- 破坏性：接口新增成员无默认实现，自行实现 IHardwareInputMonitor 的项目需补齐（框架内仅 HardwareInputMonitor 实现）。
+
+[新增 — SafetyDoorState]
+- IsLocked（按输出回读值判定，构造参数可选，向后兼容）。
+
+[新增 — AlarmCodes.Safety]
+- DoorNotClosed（HW_SAFE_003，门未关拒绝启动）、DoorLockFailure（HW_SAFE_004，锁输出写失败）、
+  DoorUnlockBlocked（HW_SAFE_005，离开上锁状态后轴未停稳，门保持上锁）。
+
 v1.0.30 (2026-09-23) — IOMapInfo 新增 Order/Category 字段，支撑 IO 调试页按业务顺序排序与分组
 
 [新增 — IOMapInfo]

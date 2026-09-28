@@ -120,15 +120,16 @@ namespace PF.WorkStation.AutoOcr.Stations
             IHardwareInputMonitor hardwareInputMonitor,
             IStationSyncService sync,
             IParamService paramService,
+            IHardwareManagerService hardwareManager,
             IEnumerable<IStation> subStations)
-            : base(logger, hardwareEventBus, subStations, alarmService)
+            // 传入 Monitor + 硬件管理：安全门上锁/解锁由基类按主控状态统一驱动
+            : base(logger, hardwareEventBus, subStations, alarmService, hardwareInputMonitor, hardwareManager)
         {
             _hardwareInputMonitor = hardwareInputMonitor;
             _sync = sync;
             _paramService = paramService;
             _paramService.ParamChanged += OnParamChanged;
 
-            // 根据主控状态驱动 Safety 监控线程的启停
             MasterStateChanged += OnMasterStateChanged;
 
             // ── 工位 1 信号注册 (明确指定 Scope 作用域以实现精准的生命周期管理) ──
@@ -182,25 +183,12 @@ namespace PF.WorkStation.AutoOcr.Stations
 
         /// <summary>
         /// 拦截并处理底层广播的物理硬件输入事件。
-        /// 工位1/2安全门使用独立通道（SafeDoor1/SafeDoor2），直接在此处理，不走基类通用 SafeDoor 路径。
-        /// 其余标准输入（Start/Pause/Reset）仍由基类路由。
+        /// 安全门（SafeDoor / SafeDoor1 / SafeDoor2）与标准输入（Start/Pause/Reset）均由基类路由：
+        /// 安全门走 HandleSafetyBreach，按当前状态暂停或切入初始化报警。
         /// </summary>
         /// <param name="inputType">事件类型标识符</param>
         protected override void OnHardwareInputReceived(string inputType)
         {
-            // 工位独立安全门：PauseAll + 触发各自专属报警码，不调用基类（基类只处理通用 SafeDoor）
-            switch (inputType)
-            {
-                case HardwareInputType.SafeDoor1:
-                    PauseAll();
-                    TriggerMasterAlarm(AlarmCodes.Safety.SafeDoorOpen1);
-                    return;
-                case HardwareInputType.SafeDoor2:
-                    PauseAll();
-                    TriggerMasterAlarm(AlarmCodes.Safety.SafeDoorOpen2);
-                    return;
-            }
-
             // 优先执行基类中封装的标准路由 (如标准 Start/Stop/Reset/Pause 状态机流转)
             base.OnHardwareInputReceived(inputType);
             if (CurrentState == Core.Enums.MachineState.Running)
@@ -228,51 +216,18 @@ namespace PF.WorkStation.AutoOcr.Stations
         }
 
         /// <summary>
-        /// 监听主控状态变迁，根据状态驱动 Safety 监控线程的启停。
-        /// Running  → 启动 Safety 监控（此时屏蔽参数会被重新从数据库加载）。
-        /// 安全门监控需在 Running / Paused / Idle / Alarm 等所有运行态下保持运行，
-        /// 否则安全门关闭的恢复事件无法被检测到，导致 ClearAlarm 不被调用，
-        /// 下一次安全门触发时报警服务因去重而无法弹窗。
-        /// Standard 监控由 App.xaml.cs 在启动画面结束后统一启动，此处不干预。
+        /// 监听主控状态变迁，维护重初始化标记。
+        /// Safety 监控线程常驻（由 PFApplicationBase 启动），安全门上锁/解锁与检测开关由基类按状态统一驱动，此处不干预。
         /// </summary>
         private void OnMasterStateChanged(object? sender, Core.Enums.MachineState newState)
         {
-            try
+            // 从 Initializing → Idle 表示初始化成功，清除重初始化标记
+            if (newState == Core.Enums.MachineState.Idle
+                && _previousState == Core.Enums.MachineState.Initializing)
             {
-                // 从 Initializing → Idle 表示初始化成功，清除重初始化标记
-                if (newState == Core.Enums.MachineState.Idle
-                    && _previousState == Core.Enums.MachineState.Initializing)
-                {
-                    _isReinitializationRequired = false;
-                }
-                _previousState = newState;
-
-                if (newState == Core.Enums.MachineState.Running)
-                {
-                    _logger.Info("【主控】机台进入 Running，启动 Safety 监控...");
-                    _hardwareInputMonitor.StartSafetyMonitoring();
-                    // 兜底：清除 IsEnabled 残留的 false 状态，确保安全门监控有效
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
-                }
-                else if (newState == Core.Enums.MachineState.Paused)
-                {
-                    _logger.Info("【主控】机台进入 Paused，禁用安全门检测（允许操作员进门查看）...");
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), false);
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), false);
-                }
-                else if (newState == Core.Enums.MachineState.Uninitialized)
-                {
-                    _hardwareInputMonitor.StopSafetyMonitoring();
-                    // 重置安全门启用状态，下次 StartSafetyMonitoring 时重新从参数加载屏蔽状态
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
-                    _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
-                }
+                _isReinitializationRequired = false;
             }
-            catch (Exception ex)
-            {
-                _logger.Error($"【主控】Safety 监控状态切换异常：{ex.Message}");
-            }
+            _previousState = newState;
         }
 
         #endregion
@@ -280,7 +235,7 @@ namespace PF.WorkStation.AutoOcr.Stations
         #region Hardware Restore Routing (安全信号恢复路由)
 
         /// <summary>
-        /// 安全门关闭时，仅清除该扇门自身的报警并重新启用其检测。
+        /// 安全门关闭时，仅清除该扇门自身的报警。
         /// 工位1/2各自独立处理，互不影响。其余通用安全门走基类路径。
         /// </summary>
         protected override void OnHardwareInputRestored(string inputType)
@@ -294,8 +249,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (door?.IsActive == false)
                     {
                         ClearMasterAlarm(AlarmCodes.Safety.SafeDoorOpen1);
-                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位1门锁), true);
-                        _logger.Info("【主控】工位1安全门已关闭，清除报警并重新启用检测。");
+                        _logger.Info("【主控】工位1安全门已关闭，清除报警。");
                     }
                     else
                     {
@@ -310,8 +264,7 @@ namespace PF.WorkStation.AutoOcr.Stations
                     if (door?.IsActive == false)
                     {
                         ClearMasterAlarm(AlarmCodes.Safety.SafeDoorOpen2);
-                        _hardwareInputMonitor.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
-                        _logger.Info("【主控】工位2安全门已关闭，清除报警并重新启用检测。");
+                        _logger.Info("【主控】工位2安全门已关闭，清除报警。");
                     }
                     else
                     {

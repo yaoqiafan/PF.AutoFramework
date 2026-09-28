@@ -336,6 +336,18 @@ namespace PF.Application.Base
         /// <summary>释放全局互斥锁并执行基类退出逻辑。</summary>
         protected override void OnExit(ExitEventArgs e)
         {
+            // 退出兜底解锁：软件退出后无人检测开门，门锁不能继续保持（否则人被锁在外面/里面）
+            try
+            {
+                if (Container?.IsRegistered<IHardwareInputMonitor>() == true)
+                {
+                    var inputMonitor = Container.Resolve<IHardwareInputMonitor>();
+                    inputMonitor.SetLockPermit(false);
+                    inputMonitor.StopAll();
+                }
+            }
+            catch (Exception ex) { Debug.WriteLine($"Exit unlock error: {ex.Message}"); }
+
             base.OnExit(e);
             if (_isNewInstance)
             {
@@ -424,7 +436,10 @@ namespace PF.Application.Base
             if (splash.ShowDialog() == true)
             {
                 splash.Close();
-                Container.Resolve<IHardwareInputMonitor>().StartStandardMonitoring();
+                var inputMonitor = Container.Resolve<IHardwareInputMonitor>();
+                inputMonitor.StartStandardMonitoring();
+                // Safety 组常驻：是否触发/是否上锁由主控按机台状态下发的上锁许可决定
+                inputMonitor.StartSafetyMonitoring();
             }
             else
             {

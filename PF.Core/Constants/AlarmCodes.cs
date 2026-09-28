@@ -359,6 +359,33 @@ namespace PF.Core.Constants
     50025, "Safety IO fail, door detect lost",
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string MonitorFailure = "HW_SAFE_002";
+
+            /// <summary>安全门未关闭，拒绝进入初始化/运行</summary>
+            [AlarmInfo("安全防护", "安全门未关闭，拒绝启动", "Safety door not closed, start refused", AlarmSeverity.Warning,
+    "1. 按报警信息中列出的门逐一确认已关闭;\n" +
+                "2. 关门后重新执行【初始化】/【启动】;\n" +
+                "3. 若门已关闭仍报警，请检查门磁传感器接线;",
+    49001, "Safety door not closed, start refused",
+    "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
+            public const string DoorNotClosed = "HW_SAFE_003";
+
+            /// <summary>门锁输出写入失败</summary>
+            [AlarmInfo("安全防护", "门锁输出写入失败，门锁可能未生效", "Door lock output write failed", AlarmSeverity.Error,
+    "1. 检查 IO 模块连接状态;\n" +
+                "2. 检查门锁输出点位配置是否正确;\n" +
+                "3. 在 IO 调试页手动验证门锁输出;",
+    49002, "Door lock output write failed",
+    "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
+            public const string DoorLockFailure = "HW_SAFE_004";
+
+            /// <summary>停机后轴未在超时内停稳，门锁保持上锁</summary>
+            [AlarmInfo("安全防护", "轴未停稳，安全门保持上锁", "Axes not halted, doors stay locked", AlarmSeverity.Warning,
+    "1. 等待设备运动停止，停稳后门锁自动解锁、报警自动清除;\n" +
+                "2. 若长时间未解锁，检查报警信息中列出的轴状态;\n" +
+                "3. 必要时按急停后由维护人员处理;",
+    49003, "Axes not halted, doors stay locked",
+    "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
+            public const string DoorUnlockBlocked = "HW_SAFE_005";
         }
     }
 
