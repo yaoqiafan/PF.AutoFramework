@@ -26,9 +26,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
     /// SDK 未提供结构化的条码类型/位置/角度/质量评分（仅 FTP 历史数据 JSON 中含 code corner 位置信息，且无类型/质量字段），
     /// 因此 <see cref="BarcodeInfo"/> 仅填充 <see cref="BarcodeInfo.Code"/>，其余字段保持默认值——
     /// 这与同目录下 <see cref="HKRobot.HKBarcodeScan"/>（TCP 透传协议版）的能力边界一致。</para>
-    /// <para>图像获取通过 FTP（<c>OpenFtp/GetFileList/GetFile/CloseFtp</c>）从设备 IMAGE 目录拉取最近一张成功读码图片
-    /// （文件名含 "_S_" 标记，对照官方 ErrorImageGetter/ReadResultAnalyzer Demo 的筛选逻辑），
-    /// 属于额外网络往返，因此不在每次 <see cref="Tigger"/> 内自动执行，而是提供 <see cref="FetchLatestImageAsync"/> 按需调用。</para>
+    /// <para>图像获取通过 FTP（<c>OpenFtp/GetFileList/GetFile/CloseFtp</c>）从设备 IMAGE 目录拉取最新一张读码图片（不区分成功/失败图）。
+    /// 默认不在 <see cref="Tigger"/> 内执行，按需调用 <see cref="FetchLatestImageAsync"/>；
+    /// 将 <see cref="AutoFetchImage"/> 置 true 后，每次触发读到/未读到码都带图返回，与海康实现一致。</para>
     /// </summary>
     public class KeyenceBarcodeScan : BaseBarcodeScan
     {
@@ -41,8 +41,11 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
         /// <summary>设备内图像存储目录。</summary>
         private const string ImageDirectory = "IMAGE";
 
-        /// <summary>成功读码图片文件名标记（对照官方 Demo 的 GetJpegFileName 筛选逻辑）。</summary>
-        private const string SuccessImageMarker = "_S_";
+        /// <summary>触发后等待设备写出新图的重试次数。</summary>
+        private const int ImageFetchRetryCount = 5;
+
+        /// <summary>触发后等待设备写出新图的重试间隔（毫秒）。</summary>
+        private const int ImageFetchRetryIntervalMs = 100;
 
         /// <summary>
         /// 构造基恩士 SR 系列扫码枪。
@@ -87,9 +90,20 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
         #region IBarcodeScan
 
         /// <summary>
+        /// 触发时是否顺带通过 FTP 拉取本次触发的图像（默认 false，避免每次触发都产生 FTP 往返）。
+        /// <para>置 true 后读到/未读到码都带图返回，与海康 MvCodeReader 行为一致；为 false 时可按需调用 <see cref="FetchLatestImageAsync"/>。</para>
+        /// <para>⚠️ 需在读码器侧开启"图像保存"且包含读码失败(NG)图像，否则未读到码时拿不到本次图像。</para>
+        /// </summary>
+        public bool AutoFetchImage { get; set; } = false;
+
+        /// <summary>上一次成功拉取的图像文件名，用于判断设备是否产生了新图，避免把旧图当成本次结果返回。</summary>
+        private string _lastFetchedImageFile;
+
+        /// <summary>
         /// 触发扫码：发送 "LON" 命令并同步等待设备返回读码结果。
         /// 本 SDK 不提供条码类型/位置/角度/质量评分，<see cref="BarcodeInfo"/> 仅填充 <see cref="BarcodeInfo.Code"/>。
-        /// 本方法不附带图像（避免每次触发都产生额外 FTP 往返），如需图像请调用 <see cref="FetchLatestImageAsync"/>。
+        /// <para>设备返回 "ERROR"（未读到码）时视为触发成功、条码为空集合；只有无响应/命令错误才返回失败。</para>
+        /// <para><see cref="AutoFetchImage"/> 为 true 时，读到/未读到码都会附带本次图像。</para>
         /// </summary>
         public override async Task<BarcodeScanResult> Tigger(CancellationToken token = default)
         {
@@ -104,6 +118,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
                     return BarcodeScanResult.Fail("基恩士扫码枪未连接，无法触发。");
                 }
 
+                // 清掉上一次的图像，避免本次未取到图时误返回旧图
+                ClearLastImage();
+
                 string response = await Task.Run(() => _reader.ExecCommand(TriggerCommand, TimeOutMs), token);
 
                 if (string.IsNullOrWhiteSpace(response))
@@ -112,26 +129,36 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
                     return BarcodeScanResult.Fail($"基恩士扫码枪触发取码超时或无响应（{TimeOutMs}ms）。");
                 }
 
-                if (response.IndexOf(ErrorSentinel, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    HardwareLogger.Debug($"基恩士扫码枪读码失败：{response.Trim()}");
-                    return BarcodeScanResult.Fail($"基恩士扫码枪读码失败：{response.Trim()}");
-                }
-
-                var codes = response
+                var lines = response
                     .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(line => line.Trim())
                     .Where(line => !string.IsNullOrEmpty(line))
+                    .ToList();
+
+                // "ER,命令,错误码" 为命令执行错误（非读码结果），属于真正的失败
+                if (lines.Any(line => line.StartsWith("ER,", StringComparison.OrdinalIgnoreCase)))
+                {
+                    HardwareLogger.Debug($"基恩士扫码枪触发命令执行错误：{response.Trim()}");
+                    return BarcodeScanResult.Fail($"基恩士扫码枪触发命令执行错误：{response.Trim()}");
+                }
+
+                // "ERROR" 为未读到码（多码读取时可能部分行为 ERROR），过滤掉后剩下的即有效条码
+                var codes = lines
+                    .Where(line => !string.Equals(line, ErrorSentinel, StringComparison.OrdinalIgnoreCase))
                     .Select(code => new BarcodeInfo { Code = code })
                     .ToList();
 
                 if (codes.Count == 0)
+                    HardwareLogger.Debug($"基恩士扫码枪本次触发未识别到条码，返回空条码，原始响应：{response.Trim()}");
+
+                if (AutoFetchImage)
                 {
-                    HardwareLogger.Debug($"基恩士扫码枪未解析到有效条码，原始响应：{response}");
-                    return BarcodeScanResult.Fail("基恩士扫码枪未解析到有效条码。");
+                    bool gotImage = await FetchLatestImageAsync(token);
+                    if (!gotImage)
+                        HardwareLogger.Debug("基恩士扫码枪本次触发未取到新图像（请确认读码器已开启图像保存且包含NG图像）。");
                 }
 
-                return BarcodeScanResult.Success(codes);
+                return BarcodeScanResult.Success(codes, LastImageData, LastImageWidth, LastImageHeight, LastImagePixelFormat);
             }
             catch (Exception ex)
             {
@@ -257,9 +284,10 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
         #region 图像获取（按需，非 Tigger 内自动执行）
 
         /// <summary>
-        /// 通过 FTP 从设备 IMAGE 目录拉取最近一张成功读码图片（文件名含 "_S_" 标记），
+        /// 通过 FTP 从设备 IMAGE 目录拉取最新一张读码图片（不区分成功 "_S_" / 失败图，保证未读到码时也拿到本次图像），
         /// 更新 <c>LastImageData</c>/<c>LastImageWidth</c>/<c>LastImageHeight</c>/<c>LastImagePixelFormat</c>（Jpeg）。
-        /// 涉及额外的 FTP 网络往返，不建议在生产节拍内每次触发都调用。
+        /// <para>若最新文件与上次拉取的相同（设备未产生新图），视为无新图返回 false，不更新图像。</para>
+        /// 涉及额外的 FTP 网络往返。
         /// </summary>
         public override async Task<bool> FetchLatestImageAsync(CancellationToken token = default)
         {
@@ -278,17 +306,19 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
 
                     try
                     {
-                        List<string> files = _reader.GetFileList(ImageDirectory);
-                        if (files == null || files.Count == 0)
-                            return false;
+                        // LON 返回后设备可能还在写图，短暂重试等待新文件出现
+                        string targetFile = null;
+                        for (int attempt = 0; attempt < ImageFetchRetryCount; attempt++)
+                        {
+                            token.ThrowIfCancellationRequested();
 
-                        files.Remove("LIVE.BIN");
-                        files.Remove("EXTRALIVE.BIN");
+                            targetFile = GetNewestImageFile();
+                            if (!string.IsNullOrEmpty(targetFile) && targetFile != _lastFetchedImageFile)
+                                break;
 
-                        string targetFile = files
-                            .Where(f => f.Contains(SuccessImageMarker))
-                            .OrderByDescending(f => f)
-                            .FirstOrDefault() ?? files.OrderByDescending(f => f).FirstOrDefault();
+                            targetFile = null;
+                            Thread.Sleep(ImageFetchRetryIntervalMs);
+                        }
 
                         if (string.IsNullOrEmpty(targetFile))
                             return false;
@@ -310,6 +340,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
                             }
                             LastImageData = bytes;
                             LastImagePixelFormat = BarcodeImagePixelFormat.Jpeg;
+                            _lastFetchedImageFile = targetFile;
                             return true;
                         }
                         finally
@@ -323,11 +354,41 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Keyence
                     }
                 }, token);
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 HardwareLogger.Debug($"基恩士扫码枪获取图像异常：{ex.Message}", ex);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 获取 IMAGE 目录下最新的一张图片文件名（需在 OpenFtp 之后调用）。
+        /// 设备文件名带时间序号，按名称倒序即时间倒序（沿用原实现的排序假设）。
+        /// </summary>
+        private string GetNewestImageFile()
+        {
+            List<string> files = _reader.GetFileList(ImageDirectory);
+            if (files == null || files.Count == 0)
+                return null;
+
+            return files
+                .Where(f => !string.Equals(f, "LIVE.BIN", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(f, "EXTRALIVE.BIN", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(f => f, StringComparer.Ordinal)
+                .FirstOrDefault();
+        }
+
+        /// <summary>清空上一次的图像缓存。</summary>
+        private void ClearLastImage()
+        {
+            LastImageData = Array.Empty<byte>();
+            LastImageWidth = 0;
+            LastImageHeight = 0;
+            LastImagePixelFormat = BarcodeImagePixelFormat.Unknown;
         }
 
         #endregion
