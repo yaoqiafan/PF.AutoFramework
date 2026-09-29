@@ -102,6 +102,11 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
 
                 _resultEvent.Reset();
                 LastCodes = Array.Empty<BarcodeInfo>();
+                // 清掉上一帧图像，避免本次未出图时误返回旧图
+                LastImageData = Array.Empty<byte>();
+                LastImageWidth = 0;
+                LastImageHeight = 0;
+                LastImagePixelFormat = BarcodeImagePixelFormat.Unknown;
 
                 int ret = _device.MV_CODEREADER_SetCommandValue_NET("TriggerSoftware");
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
@@ -114,11 +119,18 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 Task timeoutTask = Task.Delay(TimeOutMs, token);
                 Task finished = await Task.WhenAny(waitTask, timeoutTask);
 
+                // 只要收到图像帧就视为触发成功：读到码返回条码列表，未读到码返回空列表，两种情况都带图
                 if (finished == waitTask && _resultEvent.IsSet)
-                    return BarcodeScanResult.Success(LastCodes, LastImageData, LastImageWidth, LastImageHeight, LastImagePixelFormat);
+                {
+                    if (LastCodes.Count == 0)
+                        HardwareLogger.Debug("海康MvCodeReader扫码枪本次触发未识别到条码，返回空条码及图像。");
 
-                HardwareLogger.Debug($"海康MvCodeReader扫码枪触发取码超时（{TimeOutMs}ms）。");
-                return BarcodeScanResult.Fail($"海康MvCodeReader扫码枪触发取码超时（{TimeOutMs}ms）。");
+                    return BarcodeScanResult.Success(LastCodes, LastImageData, LastImageWidth, LastImageHeight, LastImagePixelFormat);
+                }
+
+                // 超时 = 连图像帧都没收到，属于真正的设备/通讯异常
+                HardwareLogger.Debug($"海康MvCodeReader扫码枪触发取图超时（{TimeOutMs}ms），未收到图像帧。");
+                return BarcodeScanResult.Fail($"海康MvCodeReader扫码枪触发取图超时（{TimeOutMs}ms），未收到图像帧。");
             }
             catch (Exception ex)
             {
@@ -266,9 +278,11 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// <summary>
         /// 图像回调：拷贝最新图像，解析全部条码。
         /// 官方托管封装已完成结构体 Marshal（含定长数组），此处直接整体 PtrToStructure，无需手工按偏移解析。
+        /// <para>只要拿到有效图像帧就置位完成信号，未读到码时 <see cref="LastCodes"/> 为空集合，由 <see cref="Tigger"/> 返回空码 + 图像。</para>
         /// </summary>
         private void OnImageCallback(IntPtr pData, IntPtr pstFrameInfoEx2, IntPtr pUser)
         {
+            bool gotFrame = false;
             try
             {
                 if (pData == IntPtr.Zero || pstFrameInfoEx2 == IntPtr.Zero)
@@ -288,6 +302,8 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 LastImageWidth = frameInfo.nWidth;
                 LastImageHeight = frameInfo.nHeight;
                 LastImagePixelFormat = MapPixelFormat(frameInfo.enPixelType);
+                LastCodes = Array.Empty<BarcodeInfo>();
+                gotFrame = true;
 
                 if (!frameInfo.bIsGetCode || frameInfo.UnparsedBcrList.pstCodeListEx2 == IntPtr.Zero)
                     return;
@@ -317,15 +333,17 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                     });
                 }
 
-                if (codes.Count > 0)
-                {
-                    LastCodes = codes;
-                    _resultEvent.Set();
-                }
+                LastCodes = codes;
             }
             catch (Exception ex)
             {
                 HardwareLogger.Debug($"海康MvCodeReader扫码枪解析图像回调异常：{ex.Message}", ex);
+            }
+            finally
+            {
+                // 图像已拷贝成功即通知 Tigger 返回（条码解析异常时也带图返回空码）
+                if (gotFrame)
+                    _resultEvent.Set();
             }
         }
 

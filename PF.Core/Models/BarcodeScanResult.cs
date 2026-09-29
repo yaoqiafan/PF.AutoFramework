@@ -10,7 +10,11 @@ namespace PF.Core.Models
     /// </summary>
     public class BarcodeScanResult
     {
-        /// <summary>是否成功读到至少一个条码</summary>
+        /// <summary>
+        /// 触发是否成功。
+        /// <para>注意：支持取图的扫码枪（如海康 MvCodeReader）在收到图像但未识别到条码时也返回 true，
+        /// 此时 <see cref="Codes"/> 为空集合；判断是否读到码请用 <c>Codes.Count &gt; 0</c>。</para>
+        /// </summary>
         public bool IsSuccess { get; set; }
 
         /// <summary>本次触发识别到的全部条码详细信息（一帧可能包含多个条码，未读到时为空集合）</summary>
