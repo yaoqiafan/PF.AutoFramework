@@ -51,6 +51,8 @@ v1.0.29 (2026-09-28) — BaseMasterController 按主控状态统一驱动安全�
 [新增 — 门锁联动]
 - 构造函数新增可选参数 safetyInputMonitor / hardwareManager（位于末尾，已有子类源码兼容）。
 - 上锁状态 IsDoorLockState（可重写，默认 Initializing / Running；Resetting 只清状态不锁）。
+- 先锁后验：InitializeAllAsync / StartAllAsync / ResumeAllAsync 在状态锁之外先 PreLockAndVerifyAsync
+  （预上锁 → 等锁定监控型门稳定 → 查门），未关好则撤销预上锁、报 HW_SAFE_003 并返回；Fire 后 ReleasePreLock。
 - 进入前：Fire(Initialize/Start/Resume) 在状态锁内先检查门，有已启用未屏蔽的门未关 → HW_SAFE_003 并拒绝触发；
   否则先上锁再 Fire，保证运动前门已锁。Initialize/Start 会先 ResetAllSafetyDoorsEnabled，Resume 保留工站开门窗口。
 - 离开后：OnTransitioned 内同步发起延迟解锁，后台等所有轴（IAxis.AxisIOStatus.Moving/Homing）停稳再撤销许可；

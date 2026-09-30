@@ -61,6 +61,19 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 门锁输出有效电平：true = 输出 ON 为上锁（默认）；false = 输出 OFF 为上锁。
         /// </summary>
         bool LockOutputActiveHigh => true;
+
+        /// <summary>
+        /// 信号仅在上锁后有效（锁定监控型安全开关：信号含义为"门已关且已锁定"，解锁时恒为激活态）。
+        /// true 时：解锁期间不扫描该门、状态视为未知；上锁后须经 <see cref="LockSettleMs"/> 稳定才信任信号，
+        /// 并由 PreLockAndVerifyAsync / ArmSafetyDoorAsync"先锁后验"。须同时配置 <see cref="LockOutputPorts"/>。
+        /// </summary>
+        bool SignalValidOnlyWhenLocked => false;
+
+        /// <summary>
+        /// 上锁后信号稳定所需时间（毫秒）。仅 <see cref="SignalValidOnlyWhenLocked"/> 为 true 时生效；
+        /// 填 0 时按默认 500ms。
+        /// </summary>
+        int LockSettleMs => 0;
     }
 
     /// <summary>
@@ -131,6 +144,24 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 将所有安全门恢复为启用状态（清除工站开门窗口残留的停用标记）。
         /// </summary>
         void ResetAllSafetyDoorsEnabled();
+
+        /// <summary>
+        /// 主控进入上锁状态前的"先锁后验"：预上锁（只给已启用未屏蔽门的锁输出上电，不打开开门检测），
+        /// 等锁定监控型门的信号稳定，再检查门。
+        /// 返回未关好的门（空 = 全部确认通过）。调用方无论成败都须在状态切换后调用 <see cref="ReleasePreLock"/>。
+        /// 确认通过时，之前因开门报过警、至今未发恢复事件的门会补发恢复事件（锁定监控型门解锁后收不到恢复沿）。
+        /// </summary>
+        Task<IReadOnlyList<string>> PreLockAndVerifyAsync(CancellationToken token = default);
+
+        /// <summary>撤销预上锁。已持有上锁许可的门锁不受影响。</summary>
+        void ReleasePreLock();
+
+        /// <summary>
+        /// 工站关闭"允许开门"窗口时调用：启用该门、上锁、等信号稳定、确认门已关好。
+        /// 确认期间扫描线程跳过该门。确认失败则把该门重新停用（窗口重新打开）并报 HW_SAFE_003，返回 false，
+        /// 工站应停在原步序重新等待，而不是继续动作。当前无上锁许可时只启用该门，直接返回 true。
+        /// </summary>
+        Task<bool> ArmSafetyDoorAsync(string name, CancellationToken token = default);
     }
 
 

@@ -360,12 +360,12 @@ namespace PF.Core.Constants
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string MonitorFailure = "HW_SAFE_002";
 
-            /// <summary>安全门未关闭，拒绝进入初始化/运行</summary>
-            [AlarmInfo("安全防护", "安全门未关闭，拒绝启动", "Safety door not closed, start refused", AlarmSeverity.Warning,
+            /// <summary>安全门未关闭或门锁未吸合，拒绝启动/继续动作</summary>
+            [AlarmInfo("安全防护", "安全门未关闭或门锁未吸合，拒绝启动", "Door not closed or lock not engaged", AlarmSeverity.Warning,
     "1. 按报警信息中列出的门逐一确认已关闭;\n" +
-                "2. 关门后重新执行【初始化】/【启动】;\n" +
-                "3. 若门已关闭仍报警，请检查门磁传感器接线;",
-    49001, "Safety door not closed, start refused",
+                "2. 关门后重新执行【初始化】/【启动】，或重新按工位启动按钮 / 确认下料;\n" +
+                "3. 若门已关闭仍报警，请检查门磁/门锁接线及门锁是否能吸合;",
+    49001, "Door not closed or lock not engaged",
     "/PF.UI.Infrastructure;component/HardwareImage/安全门.png")]
             public const string DoorNotClosed = "HW_SAFE_003";
 

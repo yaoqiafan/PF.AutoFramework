@@ -11,6 +11,8 @@
 		- IHardwareInputConfig.LockOutputPorts / LockOutputActiveHigh（默认接口实现，老配置照常编译）。
 		- IHardwareInputMonitor 新增 SetLockPermit / IsLockPermitted / GetOpenArmedDoors / ResetAllSafetyDoorsEnabled。
 		- SafetyDoorState.IsLocked；报警码 HW_SAFE_003 / 004 / 005。
+		- 锁定监控型安全开关支持：SignalValidOnlyWhenLocked / LockSettleMs 配置，
+		  PreLockAndVerifyAsync / ReleasePreLock（主控先锁后验）、ArmSafetyDoorAsync（工站关闭开门窗口时上锁确认）。
 
 		[新增 — PF.Infrastructure 1.0.28→1.0.29]
 		- BaseMasterController 构造新增可选 safetyInputMonitor / hardwareManager；Initializing / Running 上锁，
@@ -27,6 +29,8 @@
 		- 主控构造把 IHardwareInputMonitor、IHardwareManagerService 传给基类，否则门锁不生效；
 		- 删除主控 OnMasterStateChanged 里 Start/StopSafetyMonitoring 与 SetSafetyDoorEnabled 的状态联动；
 		- 删除工站 OnPhysicalPauseAsync / OnPhysicalStopAsync 里的 SetSafetyDoorEnabled(false)；
+		- 工站开门窗口结束处的 SetSafetyDoorEnabled(true) 改为 await ArmSafetyDoorAsync(...)，返回 false 时停在原步序；
+		  人工下料 finally 里不再恢复安全门；
 		- SafeDoor1/2 的 PauseAll + TriggerMasterAlarm 可删，交给基类 HandleSafetyBreach（否则初始化中开门不停机）；
 		- PanelIoConfig 配置 lockOutputPorts / lockOutputActiveHigh。
 

@@ -256,7 +256,7 @@ D:\PFConfig\PFAutoFrameWork\
 - 工站循环暂停：`CancellationTokenSource _runCts` 取消式暂停，`CancelAndAwaitOldTaskAsync` 确保旧任务彻底终止
 - 报警原子性：`Volatile.Write` + `Interlocked.Exchange` 防撕裂
 - 主控硬件输入门：`SemaphoreSlim _hardwareOpGate` 非阻塞 `WaitAsync(0)` 防止并发硬件操作
-- 安全门门锁：由 `BaseMasterController` 按主控状态统一驱动，**工站不参与**。`IsDoorLockState`（默认 Initializing / Running，Resetting 不锁）；`Fire(Initialize/Start/Resume)` 在状态锁内先 `GetOpenArmedDoors` 检查、再 `SetLockPermit(true)`、再 Fire；离开上锁状态后后台等所有 `IAxis` 停稳再撤销许可，超时（`DoorUnlockHaltTimeout` 5s）保持上锁并报 `HW_SAFE_005`；`_doorLockGeneration` 代次号防旧解锁任务解开新锁。锁输出 = 许可 && `IsEnabled` && `!IsMuted`，工站只用 `SetSafetyDoorEnabled` 开"允许开门"窗口。Safety 线程由 `PFApplicationBase` 常驻启动，无许可时 Safety 组不触发
+- 安全门门锁：由 `BaseMasterController` 按主控状态统一驱动，**工站不参与**。`IsDoorLockState`（默认 Initializing / Running，Resetting 不锁）；`Fire(Initialize/Start/Resume)` 在状态锁内先 `GetOpenArmedDoors` 检查、再 `SetLockPermit(true)`、再 Fire；离开上锁状态后后台等所有 `IAxis` 停稳再撤销许可，超时（`DoorUnlockHaltTimeout` 5s）保持上锁并报 `HW_SAFE_005`；`_doorLockGeneration` 代次号防旧解锁任务解开新锁。锁输出 = (许可 || 预上锁) && `IsEnabled` && `!IsMuted`，工站用 `SetSafetyDoorEnabled(false)` 开"允许开门"窗口、**用 `await ArmSafetyDoorAsync(...)` 关窗口**（返回 false 停在原步序重等）。Safety 线程由 `PFApplicationBase` 常驻启动，无许可时 Safety 组不触发。锁定监控型开关（`SignalValidOnlyWhenLocked`，信号 = 门已关且已锁）"先锁后验"：`Initialize/Start/ResumeAllAsync` 在状态锁外先 `PreLockAndVerifyAsync` 等 `LockSettleMs`（默认 500ms）再查门；解锁期间不扫描、快照 `IsActive` 为 null，开门报警在下一次确认通过时补发恢复事件清除
 - DbContext：Scoped 注册（每请求一个），工厂层 `ConcurrentDictionary` 缓存配置
 
 ---
@@ -285,4 +285,6 @@ D:\PFConfig\PFAutoFrameWork\
 | 配了门锁输出但门从不上锁 | 主控没把 `IHardwareInputMonitor` / `IHardwareManagerService` 传给 `base(...)` | 构造函数末尾补传两个参数 |
 | 暂停后恢复运行，某扇门不上锁 | 工站 `OnPhysicalPauseAsync` 里调了 `SetSafetyDoorEnabled(false)` | 删掉，暂停解锁由主控按状态处理 |
 | 初始化中开门不停机 | 子类重写 `OnHardwareInputReceived` 对 SafeDoor 自行 `PauseAll()`（Initializing 下无效） | 交给基类，或改调 `HandleSafetyBreach(code)` |
+| 工站开门窗口结束后门没关好，轴却先动了 | 用同步 `SetSafetyDoorEnabled(true)` 关窗口，锁定监控型门要等稳定时间才能确认 | 改为 `if (!await ArmSafetyDoorAsync(name, token)) break;` |
+| 锁定监控型门永远拒绝启动 | 没配门锁输出，信号永远不可信 | `SignalValidOnlyWhenLocked` 必须配 `LockOutputPorts`（ConfigGen 校验会拦） |
 | 仿真模式下门禁检查/门锁不生效 | 仿真 IO `ReadInput` 恒为 false，Monitor 在仿真下跳过 Safety 扫描与门禁检查 | 属预期，门锁行为需在真机验证 |

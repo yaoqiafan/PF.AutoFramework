@@ -627,7 +627,12 @@ namespace PF.Infrastructure.Station
         /// <summary>
         /// 驱动全局状态机从 Idle 进入 Running，状态机 OnEntry 会自动逐站调用 StartAsync。
         /// </summary>
-        public Task StartAllAsync() => FireAsync(MachineTrigger.Start);
+        public async Task StartAllAsync()
+        {
+            if (!await PrepareDoorLocksAsync(MachineTrigger.Start).ConfigureAwait(false)) return;
+            try { await FireAsync(MachineTrigger.Start).ConfigureAwait(false); }
+            finally { _safetyInputMonitor?.ReleasePreLock(); }
+        }
 
         /// <summary>
         /// 并行停止所有子工站（最多 4 路并发），等待各站安全停稳后驱动主控状态机回到 Uninitialized。
@@ -686,7 +691,12 @@ namespace PF.Infrastructure.Station
         /// <summary>
         /// 驱动全局状态机从 Paused 进入 Running，状态机 OnEntry 会自动逐站调用 ResumeAsync。
         /// </summary>
-        public Task ResumeAllAsync() => FireAsync(MachineTrigger.Resume);
+        public async Task ResumeAllAsync()
+        {
+            if (!await PrepareDoorLocksAsync(MachineTrigger.Resume).ConfigureAwait(false)) return;
+            try { await FireAsync(MachineTrigger.Resume).ConfigureAwait(false); }
+            finally { _safetyInputMonitor?.ReleasePreLock(); }
+        }
 
         /// <summary>
         /// 设置全局运行模式并同步下发到所有子工站。
@@ -710,8 +720,12 @@ namespace PF.Infrastructure.Station
         public async Task InitializeAllAsync()
         {
             _logger.Info("【主控】开始全线初始化(限流模式)...");
+            if (!await PrepareDoorLocksAsync(MachineTrigger.Initialize).ConfigureAwait(false)) return;
             // 使用 Fire 返回值原子判断：在锁内完成 CanFire + Fire，消除 TOCTOU 竞态
-            if (!Fire(MachineTrigger.Initialize)) return;
+            bool fired;
+            try { fired = Fire(MachineTrigger.Initialize); }
+            finally { _safetyInputMonitor?.ReleasePreLock(); }
+            if (!fired) return;
 
             // 清零上一轮可能残留的中止标志（如 StopAllAsync 与上一轮初始化的异常退出路径竞态时未被消费），
             // 否则本轮初始化成功后会跳过 InitializeDone，主控永久卡在 Initializing
@@ -966,6 +980,56 @@ namespace PF.Infrastructure.Station
         protected virtual TimeSpan DoorUnlockPollInterval => TimeSpan.FromMilliseconds(50);
 
         /// <summary>
+        /// 进入上锁状态前的"先锁后验"（状态锁之外、Fire 之前调用）：
+        /// 预上锁 → 等锁定监控型门的信号稳定 → 检查门。未关好则撤销预上锁、报警并拒绝。
+        /// 通过后由 Fire 内的 <see cref="TryArmDoorLocks"/> 再查一次（此时信号已可信）并转为上锁许可，
+        /// 调用方须在 Fire 之后调用 ReleasePreLock（锁已由许可接管，输出不会闪断）。
+        /// </summary>
+        /// <returns>true = 放行（或无需门锁处理）；false = 拒绝，调用方直接返回。</returns>
+        private async Task<bool> PrepareDoorLocksAsync(MachineTrigger trigger)
+        {
+            var monitor = _safetyInputMonitor;
+            if (monitor == null || !TriggerEntersDoorLockState(trigger)) return true;
+            // 当前状态本就不允许这次触发时不去动门锁（Fire 内仍会再判一次）
+            if (!_globalMachine.CanFire(trigger)) return true;
+
+            // 初始化 / 启动是"从头开始"，先清掉工站开门窗口残留的停用标记，预上锁才覆盖到这些门
+            if (trigger != MachineTrigger.Resume)
+                monitor.ResetAllSafetyDoorsEnabled();
+
+            IReadOnlyList<string> notClosed;
+            try
+            {
+                notClosed = await monitor.PreLockAndVerifyAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                monitor.ReleasePreLock();
+                _logger.Error($"【主控】安全门先锁后验异常，拒绝 {trigger}：{ex.Message}");
+                return false;
+            }
+
+            if (notClosed.Count == 0) return true;
+
+            monitor.ReleasePreLock();
+            var doors = string.Join("、", notClosed);
+            _logger.Warn($"【主控】安全门未关闭或门锁未吸合，拒绝 {trigger}：{doors}");
+            _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.DoorNotClosed, $"未关闭或门锁未吸合：{doors}");
+            return false;
+        }
+
+        private MachineState? DoorLockTargetOf(MachineTrigger trigger) => trigger switch
+        {
+            MachineTrigger.Initialize => MachineState.Initializing,
+            MachineTrigger.Start      => MachineState.Running,
+            MachineTrigger.Resume     => MachineState.Running,
+            _ => null
+        };
+
+        private bool TriggerEntersDoorLockState(MachineTrigger trigger)
+            => DoorLockTargetOf(trigger) is { } dest && IsDoorLockState(dest);
+
+        /// <summary>
         /// 进入上锁状态前的门禁检查（在 <c>_machineLock</c> 内、Fire 之前调用）：
         /// 有已启用且未屏蔽的门未关闭 → 报警并拒绝本次触发；否则先上锁再放行，保证运动开始前门已锁。
         /// </summary>
@@ -973,16 +1037,7 @@ namespace PF.Infrastructure.Station
         private bool TryArmDoorLocks(MachineTrigger trigger)
         {
             var monitor = _safetyInputMonitor;
-            if (monitor == null) return true;
-
-            MachineState? target = trigger switch
-            {
-                MachineTrigger.Initialize => MachineState.Initializing,
-                MachineTrigger.Start      => MachineState.Running,
-                MachineTrigger.Resume     => MachineState.Running,
-                _ => null
-            };
-            if (target is not { } dest || !IsDoorLockState(dest)) return true;
+            if (monitor == null || !TriggerEntersDoorLockState(trigger)) return true;
 
             // 初始化 / 启动是"从头开始"，清掉工站开门窗口残留的停用标记；
             // 恢复（Resume）保留，工站重新进入原步序时会自行再开窗口
@@ -994,7 +1049,7 @@ namespace PF.Infrastructure.Station
             {
                 var doors = string.Join("、", openDoors);
                 _logger.Warn($"【主控】安全门未关闭，拒绝 {trigger}：{doors}");
-                _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.DoorNotClosed, $"未关闭：{doors}");
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.Safety.DoorNotClosed, $"未关闭或门锁未吸合：{doors}");
                 return false;
             }
 

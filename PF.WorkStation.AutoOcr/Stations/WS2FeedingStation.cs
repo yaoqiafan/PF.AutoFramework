@@ -712,8 +712,14 @@ namespace PF.WorkStation.AutoOcr.Stations
 
                             await _sync.WaitAsync(nameof(WorkstationSignals.工位2启动按钮按下), token, scope: E_WorkStation.工位2上下料工站.ToString()).ConfigureAwait(false);
 
-                            // 收到启动信号后恢复安全门监控
-                            _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+                            // 收到启动信号后先上锁并确认门已关好，确认通过才允许动作；
+                            // 没关好则门重新解锁，停在本步序重新等待按钮（不暂停整机）
+                            if (_hardwareInputMonitor != null
+                                && !await _hardwareInputMonitor.ArmSafetyDoorAsync(nameof(E_InPutName.工位2门锁), token).ConfigureAwait(false))
+                            {
+                                _logger.Warn($"[{StationName}] 工位2安全门未关好或门锁未吸合，请关门后重新按启动按钮。");
+                                break;
+                            }
                             _logger.Info($"[{StationName}] 检测到启动信号，开始执行上料流程。");
                             _currentStep = Station2FeedingStep.验证当前批次产品个数;
                             break;
@@ -1113,9 +1119,18 @@ namespace PF.WorkStation.AutoOcr.Stations
                             }
                             finally
                             {
-                                // 无论正常完成还是外部取消/停止，都必须恢复安全门监控和蜂鸣器
+                                // 无论正常完成还是外部取消/停止，都必须关蜂鸣器。
+                                // 安全门不在这里恢复：取消时机台已撤销上锁许可，恢复运行会重新进入本步序，
+                                // 下次初始化/启动也会统一把门重新启用
                                 _towerLight.SetLight(LightColor.Buzzer, LightState.Off);
-                                _hardwareInputMonitor?.SetSafetyDoorEnabled(nameof(E_InPutName.工位2门锁), true);
+                            }
+
+                            // 下料确认后先上锁并确认门已关好，没关好就停在本步序重新提示下料
+                            if (_hardwareInputMonitor != null
+                                && !await _hardwareInputMonitor.ArmSafetyDoorAsync(nameof(E_InPutName.工位2门锁), token).ConfigureAwait(false))
+                            {
+                                _logger.Warn($"[{StationName}] 工位2安全门未关好或门锁未吸合，请关门后重新确认下料。");
+                                break;
                             }
 
                             _currentStep = Station2FeedingStep.生产完毕;

@@ -30,6 +30,10 @@ namespace PF.WorkStation.AutoOcr.CostParam
         public IReadOnlyList<int>? LockOutputPorts { get; }
         /// <summary>门锁输出有效电平：true=输出ON上锁，false=输出OFF上锁</summary>
         public bool LockOutputActiveHigh { get; }
+        /// <summary>信号仅上锁后有效（锁定监控型安全开关）</summary>
+        public bool SignalValidOnlyWhenLocked { get; }
+        /// <summary>上锁后信号稳定时间(ms)，0=框架默认</summary>
+        public int LockSettleMs { get; }
 
         /// <summary>
         /// 初始化硬件输入配置
@@ -43,7 +47,9 @@ namespace PF.WorkStation.AutoOcr.CostParam
             bool normallyOpen = false,
             string? muteParamKey = null,
             IReadOnlyList<int>? lockOutputPorts = null,
-            bool lockOutputActiveHigh = true)
+            bool lockOutputActiveHigh = true,
+            bool signalValidOnlyWhenLocked = false,
+            int lockSettleMs = 0)
         {
             InputType    = inputType;
             Port         = port;
@@ -54,6 +60,8 @@ namespace PF.WorkStation.AutoOcr.CostParam
             MuteParamKey = muteParamKey;
             LockOutputPorts      = lockOutputPorts;
             LockOutputActiveHigh = lockOutputActiveHigh;
+            SignalValidOnlyWhenLocked = signalValidOnlyWhenLocked;
+            LockSettleMs         = lockSettleMs;
         }
     }
 

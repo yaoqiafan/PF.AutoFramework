@@ -53,7 +53,11 @@ namespace PF.Services.Hardware
         // 上锁许可与锁输出写入统一在 _lockSync 内完成，保证"许可/启用/屏蔽 → 输出"的计算不被并发撕裂
         private readonly object _lockSync = new();
         private volatile bool _lockPermit;
+        // 预上锁：主控切换状态前"先锁后验"用，只给锁输出上电、不打开开门检测
+        private volatile bool _preLock;
         private bool _lockWriteFailed;
+        // 锁定监控型门未配置稳定时间时的默认值
+        private const int DefaultLockSettleMs = 500;
         private long _lastLockReconcileTicks;
         private const int LockReconcileIntervalMs = 500;
 
@@ -464,7 +468,8 @@ namespace PF.Services.Hardware
             foreach (var state in _safetyInputs)
             {
                 bool? signal = io?.ReadInput(state.Config.Port);
-                bool? isActive = signal.HasValue
+                // 锁定监控型门未上锁/未稳定时信号不代表门状态，报"未知"而不是"开"
+                bool? isActive = signal.HasValue && IsSignalValid(state)
                     ? signal.Value == state.Config.NormallyOpen
                     : null;
 
@@ -526,6 +531,13 @@ namespace PF.Services.Hardware
                     continue;
                 }
 
+                // 锁定监控型门未上锁/未稳定时信号恒为"开"，不能据此判断门状态，一律视为未确认
+                if (!IsSignalValid(state))
+                {
+                    result.Add($"{state.Config.Name}(门锁未吸合确认)");
+                    continue;
+                }
+
                 bool? signal = io.ReadInput(state.Config.Port);
                 if (signal == null)
                     result.Add($"{state.Config.Name}(信号读取失败)");
@@ -535,12 +547,144 @@ namespace PF.Services.Hardware
             return result;
         }
 
+        /// <inheritdoc/>
+        public async Task<IReadOnlyList<string>> PreLockAndVerifyAsync(CancellationToken token = default)
+        {
+            lock (_lockSync)
+            {
+                _preLock = true;
+                ApplyAllLocksCore();
+            }
+
+            var io = _ioCard;
+            // 仿真 IO 读不到真实门状态，不等待也不拦截（GetOpenArmedDoors 同样放行）
+            if (io is not { IsSimulated: true })
+            {
+                // 只等"已启用、未屏蔽、锁定监控型"门里最慢的那一扇；已稳定的（如暂停后延迟解锁尚未完成）不再重复等
+                long wait = _safetyInputs
+                    .Where(s => s.IsEnabled && !s.Config.IsMuted)
+                    .Select(RemainingSettleMs)
+                    .Where(ms => ms > 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
+                if (wait > 0)
+                    await Task.Delay(TimeSpan.FromMilliseconds(wait), token).ConfigureAwait(false);
+            }
+
+            var notClosed = GetOpenArmedDoors();
+            if (notClosed.Count == 0)
+            {
+                _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed);
+                // 锁定监控型门报警后一解锁信号就恒为"开"，永远等不到恢复沿，报警要在这里补发恢复事件清掉
+                foreach (var state in _safetyInputs.Where(s => s.WasTriggeredWhileEnabled && IsLockMonitored(s)))
+                    PublishRestore(state);
+            }
+            return notClosed;
+        }
+
+        /// <inheritdoc/>
+        public void ReleasePreLock()
+        {
+            lock (_lockSync)
+            {
+                if (!_preLock) return;
+                _preLock = false;
+                ApplyAllLocksCore();
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> ArmSafetyDoorAsync(string name, CancellationToken token = default)
+        {
+            var state = _safetyInputs.FirstOrDefault(s => s.Config.Name == name);
+            if (state == null)
+            {
+                _logger.Warn($"【硬件输入监控】未找到安全门 [{name}]，无法上锁确认。");
+                return true;
+            }
+
+            // 机台不在上锁状态：没有"锁住才能动"的前提，只恢复启用，由下一次进入上锁状态时统一先锁后验
+            if (!_lockPermit)
+            {
+                SetSafetyDoorEnabled(name, true);
+                return true;
+            }
+
+            // 确认期间扫描线程跳过该门，避免锁吸合过程中误报、也避免与本流程抢着判定
+            state.Verifying = true;
+            try
+            {
+                SetSafetyDoorEnabled(name, true);
+
+                var io = _ioCard;
+                if (io is { IsSimulated: true }) return true;
+
+                long wait = RemainingSettleMs(state);
+                if (wait > 0)
+                    await Task.Delay(TimeSpan.FromMilliseconds(wait), token).ConfigureAwait(false);
+
+                bool? signal = (io != null && io.IsConnected && IsSignalValid(state))
+                    ? io.ReadInput(state.Config.Port)
+                    : null;
+                bool closed = signal.HasValue && signal.Value != state.Config.NormallyOpen;
+
+                if (closed)
+                {
+                    state.LastValue = signal!.Value;
+                    _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed);
+                    if (state.WasTriggeredWhileEnabled) PublishRestore(state);
+                    _logger.Info($"【硬件输入监控】安全门 [{name}] 已上锁并确认关闭。");
+                    return true;
+                }
+
+                // 没关好：重新停用（= 解锁，窗口重新打开），由工站停在原步序重新等待，不连带暂停整机
+                state.IsEnabled = false;
+                ApplyLock(state);
+                var reason = signal.HasValue ? "未关闭或门锁未吸合" : "信号读取失败";
+                _logger.Warn($"【硬件输入监控】安全门 [{name}] {reason}，已重新解锁，等待关门后重试。");
+                _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed, $"{name}：{reason}");
+                return false;
+            }
+            finally
+            {
+                state.Verifying = false;
+            }
+        }
+
+        private void PublishRestore(InputScanState state)
+        {
+            state.WasTriggeredWhileEnabled = false;
+            _logger.Info($"【硬件输入】{state.Config.Name} 确认关闭 → 类型：{state.Config.InputType}");
+            _eventBus.PublishRestoreEvent(state.Config.InputType);
+        }
+
         private static bool HasLock(InputScanState state) =>
             state.Config.LockOutputPorts is { Count: > 0 };
 
         /// <summary>该门此刻应处于上锁态。</summary>
         private bool ShouldLock(InputScanState state) =>
-            _lockPermit && state.IsEnabled && !state.Config.IsMuted;
+            (_lockPermit || _preLock) && state.IsEnabled && !state.Config.IsMuted;
+
+        /// <summary>锁定监控型门：信号只在上锁后有效。未配门锁输出时退化为普通门。</summary>
+        private static bool IsLockMonitored(InputScanState state) =>
+            state.Config.SignalValidOnlyWhenLocked && HasLock(state);
+
+        private static int SettleMs(InputScanState state) =>
+            state.Config.LockSettleMs > 0 ? state.Config.LockSettleMs : DefaultLockSettleMs;
+
+        /// <summary>
+        /// 距离信号可信还要等多久（毫秒）：普通门恒为 0；锁定监控型门未上锁时为 -1（不可能变为可信）。
+        /// </summary>
+        private static long RemainingSettleMs(InputScanState state)
+        {
+            if (!IsLockMonitored(state)) return 0;
+            long engagedAt = Interlocked.Read(ref state.LockEngagedAt);
+            if (engagedAt == 0) return -1;
+            return Math.Max(0, SettleMs(state) - (Environment.TickCount64 - engagedAt));
+        }
+
+        /// <summary>该门的信号此刻是否可信（普通门恒可信；锁定监控型门须已上锁且稳定）。</summary>
+        private static bool IsSignalValid(InputScanState state) => RemainingSettleMs(state) == 0;
 
         private void ApplyAllLocks()
         {
@@ -574,16 +718,28 @@ namespace PF.Services.Hardware
             ok = true;
             if (!HasLock(state)) return;
 
-            // 板卡不可用时无从写出，由 OnDeviceAdded / 周期对账在恢复后补写，此处不计为写失败
-            if (io == null || !io.IsConnected) return;
+            bool want = ShouldLock(state);
 
-            bool level = ShouldLock(state) == state.Config.LockOutputActiveHigh;
+            // 板卡不可用时无从写出，由 OnDeviceAdded / 周期对账在恢复后补写，此处不计为写失败
+            if (io == null || !io.IsConnected)
+            {
+                if (!want) Interlocked.Exchange(ref state.LockEngagedAt, 0);
+                return;
+            }
+
+            bool level = want == state.Config.LockOutputActiveHigh;
             foreach (var port in state.Config.LockOutputPorts!)
             {
                 if (io.WriteOutput(port, level)) continue;
                 ok = false;
                 _logger.Error($"【硬件输入监控】安全门 [{state.Config.Name}] 门锁输出 {port} 写入失败（目标电平 {level}）。");
             }
+
+            // 记录上锁时刻（仅在由解锁变为上锁时记，重复写出不刷新），锁定监控型门据此计算稳定时间
+            if (!want)
+                Interlocked.Exchange(ref state.LockEngagedAt, 0);
+            else if (ok)
+                Interlocked.CompareExchange(ref state.LockEngagedAt, Environment.TickCount64, 0);
         }
 
         /// <summary>写失败首次触发报警，恢复后自动清除。须在 _lockSync 内调用。</summary>
@@ -655,6 +811,14 @@ namespace PF.Services.Hardware
         /// <returns>true = 本次 IO 读取正常；false = 底层读取失败（ReadInput 返回 null），由调用方计入连续失败自警计数。</returns>
         private async Task<bool> ProcessSingleInputAsync(IIOController io, InputScanState state, CancellationToken token)
         {
+            // 确认进行中 / 锁定监控型门信号尚不可信（未上锁或未稳定）：本轮不判定，
+            // 等信号可信后按重新布防处理——门若开着能立即触发，门关着则无副作用
+            if (state.Config.ScanGroup == InputScanGroup.Safety && (state.Verifying || !IsSignalValid(state)))
+            {
+                state.RearmRequested = true;
+                return true;
+            }
+
             bool? raw = io.ReadInput(state.Config.Port);
             if (raw == null) return false;
 
@@ -721,6 +885,11 @@ namespace PF.Services.Hardware
             // 由启用/取得许可/取消屏蔽的线程置位，扫描线程消费；用标志而非直接改 LastValue，
             // 避免与扫描线程同时写 LastValue 时被其覆盖而丢失触发沿
             public volatile bool RearmRequested;
+            // 锁输出最近一次由解锁变为上锁的时刻（Environment.TickCount64），0 = 当前未上锁。
+            // 锁定监控型门据此判断信号是否已稳定可信
+            public long LockEngagedAt;
+            // ArmSafetyDoorAsync 确认进行中：扫描线程跳过该门，由确认流程自己判定
+            public volatile bool Verifying;
 
             public InputScanState(IHardwareInputConfig config)
             {

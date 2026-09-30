@@ -24,6 +24,10 @@ v1.0.8 (2026-09-28) — HardwareInputMonitor 支持安全门门锁输出；Safet
 - 锁输出统一按"上锁许可 &amp;&amp; IsEnabled &amp;&amp; !IsMuted"计算，按门配置的有效电平写出；
   启用/许可/屏蔽变化、热重载（DeviceAdded）时重写，Safety 循环每 500ms 回读对账。
 - 写失败触发 HW_SAFE_004，恢复后自动清除；StopSafetyMonitoring / Dispose 时全部解锁。
+- 锁定监控型门（SignalValidOnlyWhenLocked）：记录上锁时刻，未上锁或未稳定时不扫描、快照 IsActive 为 null、
+  门禁检查视为"门锁未吸合确认"；确认通过时补发恢复事件清除开门报警（这类门解锁后等不到恢复沿）。
+- 预上锁（PreLockAndVerifyAsync）：只给锁输出上电、不打开开门检测，等最慢一扇门稳定后检查。
+- ArmSafetyDoorAsync：确认期间扫描线程跳过该门；失败时重新停用该门（解锁）并报 HW_SAFE_003，不连带暂停整机。
 
 [变更 — Safety 检测]
 - Safety 组触发额外要求持有上锁许可：Idle/Paused/报警等状态下开门不再报警（门关闭的恢复事件照常发布）。
