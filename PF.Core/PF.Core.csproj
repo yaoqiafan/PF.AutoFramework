@@ -5,7 +5,7 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.31</Version>
 		<PackageReleaseNotes>
-v1.0.31 (2026-09-28) — 安全门门锁输出绑定：配置门锁输出端口/有效电平，Monitor 新增上锁许可 API
+v1.0.31 (2026-09-28) — 安全门门锁输出绑定：配置门锁输出端口/有效电平，Monitor 新增上锁许可 API；扫码结果 IsSuccess 语义调整
 
 [新增 — IHardwareInputConfig]
 - LockOutputPorts（门锁输出端口，null/空 = 无锁，一个门磁可配多把锁）、LockOutputActiveHigh
@@ -27,6 +27,12 @@ v1.0.31 (2026-09-28) — 安全门门锁输出绑定：配置门锁输出端口/
 [新增 — AlarmCodes.Safety]
 - DoorNotClosed（HW_SAFE_003，门未关闭或门锁未吸合，拒绝启动/继续）、DoorLockFailure（HW_SAFE_004，锁输出写失败）、
   DoorUnlockBlocked（HW_SAFE_005，离开上锁状态后轴未停稳，门保持上锁）。
+
+[行为变更 — BarcodeScanResult.IsSuccess]
+- 含义由"读到至少一个条码"改为"触发成功"：扫码枪正常响应但未读到码时 IsSuccess = true、Codes 为空集合，
+  并尽量带回本次图像；只有设备无响应/超时/命令错误才返回失败。
+- 判断是否读到码请用 Codes.Count > 0。只写了 if (!result.IsSuccess) 来识别"没读到码"的调用方，
+  升级后会把没读到码当成功继续往下走，须补上 Codes.Count 判断（具体实现见 PF.Infrastructure 1.0.29）。
 
 v1.0.30 (2026-09-23) — IOMapInfo 新增 Order/Category 字段，支撑 IO 调试页按业务顺序排序与分组
 

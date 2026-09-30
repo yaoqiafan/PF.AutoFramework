@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <Version>1.0.44</Version>
     <PackageReleaseNotes>
-		v1.0.44 (2026-09-28) — 安全门门锁输出绑定：按主控状态统一上锁/解锁
+		v1.0.44 (2026-09-28) — 安全门门锁输出绑定：按主控状态统一上锁/解锁；扫码枪未读到码改为返回成功+空条码（含行为变更）
 
 		[新增 — PF.Core 1.0.30→1.0.31]
 		- IHardwareInputConfig.LockOutputPorts / LockOutputActiveHigh（默认接口实现，老配置照常编译）。
@@ -17,6 +17,11 @@
 		[新增 — PF.Infrastructure 1.0.28→1.0.29]
 		- BaseMasterController 构造新增可选 safetyInputMonitor / hardwareManager；Initializing / Running 上锁，
 		  进入前门未关拒绝启动，离开后等轴停稳再解锁（超时保持上锁并报警）；HandleSafetyBreach 统一开门处理。
+
+		[行为变更 — PF.Core 1.0.31 BarcodeScanResult / PF.Infrastructure 1.0.29 海康、基恩士扫码枪]
+		- 扫码枪正常响应但未读到码时，由返回失败改为返回成功 + 空条码（并尽量带回图像）；只有无响应/超时/命令错误才失败。
+		- 基恩士新增 AutoFetchImage（默认 false），开启后每次触发经 FTP 带回最新图。
+		- 迁移：用 if (!result.IsSuccess) 判断"没读到码"的地方须改为 !result.IsSuccess || result.Codes.Count == 0。
 
 		[变更 — PF.Services 1.0.7→1.0.8]
 		- HardwareInputMonitor 写门锁输出并周期对账；Safety 检测受上锁许可约束；启用/许可时重新布防；
@@ -32,7 +37,8 @@
 		- 工站开门窗口结束处的 SetSafetyDoorEnabled(true) 改为 await ArmSafetyDoorAsync(...)，返回 false 时停在原步序；
 		  人工下料 finally 里不再恢复安全门；
 		- SafeDoor1/2 的 PauseAll + TriggerMasterAlarm 可删，交给基类 HandleSafetyBreach（否则初始化中开门不停机）；
-		- PanelIoConfig 配置 lockOutputPorts / lockOutputActiveHigh。
+		- PanelIoConfig 配置 lockOutputPorts / lockOutputActiveHigh；
+		- 扫码判定检查 Codes.Count（见上方行为变更）。
 
 		子包版本对照：PF.Core 1.0.30→1.0.31，PF.Services 1.0.7→1.0.8，PF.Infrastructure 1.0.28→1.0.29，
 		PF.Application.Base 1.0.8→1.0.9；其余子包本次无变化。

@@ -610,6 +610,15 @@ namespace PF.Services.Hardware
                 return true;
             }
 
+            // 已屏蔽的门不上锁也不检测（与 GetOpenArmedDoors / PreLockAndVerifyAsync 口径一致），只恢复启用直接放行。
+            // 不能往下走：锁定监控型门没上锁，信号永远不可信，会被误判为"信号读取失败"，工站卡在原步序反复重试
+            if (state.Config.IsMuted)
+            {
+                SetSafetyDoorEnabled(name, true);
+                _logger.Info($"【硬件输入监控】安全门 [{name}] 已屏蔽，跳过上锁确认。");
+                return true;
+            }
+
             // 确认期间扫描线程跳过该门，避免锁吸合过程中误报、也避免与本流程抢着判定
             state.Verifying = true;
             try
@@ -623,9 +632,9 @@ namespace PF.Services.Hardware
                 if (wait > 0)
                     await Task.Delay(TimeSpan.FromMilliseconds(wait), token).ConfigureAwait(false);
 
-                bool? signal = (io != null && io.IsConnected && IsSignalValid(state))
-                    ? io.ReadInput(state.Config.Port)
-                    : null;
+                bool ioReady = io != null && io.IsConnected;
+                bool signalValid = IsSignalValid(state);
+                bool? signal = ioReady && signalValid ? io!.ReadInput(state.Config.Port) : null;
                 bool closed = signal.HasValue && signal.Value != state.Config.NormallyOpen;
 
                 if (closed)
@@ -640,7 +649,10 @@ namespace PF.Services.Hardware
                 // 没关好：重新停用（= 解锁，窗口重新打开），由工站停在原步序重新等待，不连带暂停整机
                 state.IsEnabled = false;
                 ApplyLock(state);
-                var reason = signal.HasValue ? "未关闭或门锁未吸合" : "信号读取失败";
+                var reason = !ioReady ? "IO板卡不可用"
+                           : !signalValid ? "门锁未上锁（锁输出写入失败？）"
+                           : signal.HasValue ? "未关闭或门锁未吸合"
+                           : "信号读取失败";
                 _logger.Warn($"【硬件输入监控】安全门 [{name}] {reason}，已重新解锁，等待关门后重试。");
                 _alarmService?.TriggerAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed, $"{name}：{reason}");
                 return false;

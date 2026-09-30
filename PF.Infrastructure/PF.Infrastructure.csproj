@@ -46,7 +46,7 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.29</Version>
 		<PackageReleaseNotes>
-v1.0.29 (2026-09-28) — BaseMasterController 按主控状态统一驱动安全门门锁；同步 PF.Core 1.0.31
+v1.0.29 (2026-09-28) — BaseMasterController 按主控状态统一驱动安全门门锁；扫码枪未读到码返回成功+空条码并带图；同步 PF.Core 1.0.31
 
 [新增 — 门锁联动]
 - 构造函数新增可选参数 safetyInputMonitor / hardwareManager（位于末尾，已有子类源码兼容）。
@@ -62,6 +62,15 @@ v1.0.29 (2026-09-28) — BaseMasterController 按主控状态统一驱动安全�
 [新增 — HandleSafetyBreach]
 - 安全门打开统一处理：Running → Pause；Initializing → Error（InitAlarm）后取消并行初始化。
 - 默认路由新增 SafeDoor1 / SafeDoor2（分别报 HW_SAFE_001_1 / 001_2），子类无需再自行 PauseAll。
+
+[行为变更 — 扫码枪未读到码不再返回失败]
+- MvCodeReaderBarcodeScan（海康）：图像回调收到有效帧即完成，未读到码返回成功 + 空条码 + 本次图像；
+  只有超时未收到图像帧才返回失败。触发前清空上一帧图像，避免未出图时返回旧图。
+- KeyenceBarcodeScan（基恩士 SR）：LON 返回 "ERROR" 视为未读到码（成功 + 空条码），多码读取时过滤掉 ERROR 行；
+  "ER,命令,错误码"（命令执行错误）和无响应仍返回失败。
+- 基恩士新增 AutoFetchImage（默认 false）：开启后每次触发经 FTP 拉取最新一张图（不再只取成功图 "_S_"），
+  按文件名去重防止返回旧图，并短暂重试等待设备写图。需在读码器侧开启图像保存且包含 NG 图，否则未读到码时取不到图。
+- 迁移：用 if (!result.IsSuccess) 判断"没读到码"的调用方须改为 !result.IsSuccess || result.Codes.Count == 0。
 
 v1.0.28 (2026-09-21) — 线扫复位补齐采集卡与属性文件重导、取帧超时诊断；修复海康串口光源健康检查逻辑取反；同步 PF.Core 1.0.29
 
