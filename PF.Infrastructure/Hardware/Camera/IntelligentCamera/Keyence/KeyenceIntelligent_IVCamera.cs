@@ -275,6 +275,12 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
                 HardwareLogger.Warn($"[{DeviceName}] 连接后查询当前程序号失败", ex);
                 _currentProgram = string.Empty;
             }
+           if(!await   ChangeResultFormat(token ))
+            {
+                HardwareLogger.Warn($"[{DeviceName}] 切换结果输出格式失败");
+                return false;
+            }
+
             return true;
         }
 
