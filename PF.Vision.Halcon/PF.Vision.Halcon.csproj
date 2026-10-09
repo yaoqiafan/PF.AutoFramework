@@ -3,8 +3,18 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <PackageReleaseNotes>
+v1.0.5 (2026-10-09) — dict 控制输出夹带图标量时拆分返回
+
+[修复 — HalconVisionService 控制输出收集]
+- 过程用 set_dict_object 往输出 dict 里塞了 Region/Image 等图标量时，dict_to_json 直接报 H1301，
+  此前整个输出只剩一串 handle 字符串，元组和图标量全部丢失。现拆成两半：
+  · 图标量放进 IconicOutputs，键为 "{参数名}.{dict 键}"（如 "OutDict.DieRegions"），所有权归调用方，
+    与其它 IconicOutputs 一致，用完必须释放；
+  · 其余元组键照常转成 JSON 字符串，作为该控制输出的值。
+- 不含图标量的 dict、普通元组、非 dict 的 handle 行为不变。
+
 v1.0.4 (2026-09-07) — 模板参考图改用 JPEG + 新增不透明元数据通道 + dict 控制输出转 JSON
 
 [变更 — ShapeTemplateService]

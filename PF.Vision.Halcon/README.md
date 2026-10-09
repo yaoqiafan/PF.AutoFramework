@@ -29,6 +29,8 @@ public interface IVisionService
 
 `IVisionResult` 以 `object` 装箱传递控制量（`ControlOutputs`，对应 `.hdev` 变量的 `HTuple`）与图标量（`IconicOutputs`，对应 `HObject`），由调用方按需强转。
 
+dict 类型的控制输出转成 JSON 字符串；dict 里用 `set_dict_object` 夹带了图标量时（v1.0.5 起），图标量拆到 `IconicOutputs`，键为 `"{参数名}.{dict 键}"`（如 `"OutDict.DieRegions"`），JSON 里只剩元组键。
+
 `IVisionContextManager` 管理**三模式引擎**（`EngineMode.Production`/`Debug`/`Offline`），每种模式一个独立 HDevEngine + Worker 线程，按需拉起、用完释放，三者可同时存在、共享同一算法目录：
 
 ```csharp

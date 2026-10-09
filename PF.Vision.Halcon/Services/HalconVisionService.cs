@@ -423,18 +423,25 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
             // 收集控制量输出（HALCON 参数索引 1-based）
             // GetOutputCtrlParamName 的异常独立捕获，防止单次失败中断整个收集
+            // iconicOut 提前建好：dict 控制输出里夹带的图标量要拆到这里（见 SplitDictWithObjects）
             var ctrlOut = new Dictionary<string, object?>();
+            var iconicOut = new Dictionary<string, object?>();
             var ctrlCount = procedure.GetOutputCtrlParamCount();
             for (int i = 1; i <= ctrlCount; i++)
             {
                 string? paramName = null;
                 try { paramName = procedure.GetOutputCtrlParamName(i); } catch { continue; }
-                try { ctrlOut[paramName] = HTupleToValue(call.GetOutputCtrlParamTuple(paramName)); }
+                try
+                {
+                    var tuple = call.GetOutputCtrlParamTuple(paramName);
+                    ctrlOut[paramName] = TrySplitDictWithObjects(tuple, paramName, iconicOut, out var json)
+                        ? json
+                        : HTupleToValue(tuple);
+                }
                 catch { ctrlOut[paramName] = null; }
             }
 
             // 收集图标量输出（HALCON 参数索引 1-based）
-            var iconicOut = new Dictionary<string, object?>();
             var iconicCount = procedure.GetOutputIconicParamCount();
             for (int i = 1; i <= iconicCount; i++)
             {
@@ -713,6 +720,63 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
         {
             return handle.ToString() ?? string.Empty;
         }
+    }
+
+    /// <summary>
+    /// 控制输出是夹带了图标量的 dict（过程里用过 <c>set_dict_object</c>）时，把它拆成两半：
+    /// 图标量逐个取出放进 <paramref name="iconicOut"/>，键为 <c>"{参数名}.{dict 键}"</c>（如
+    /// <c>"OutDict.DieRegions"</c>），所有权与其它 IconicOutputs 一样归调用方；其余控制量键
+    /// 重新组一个只含元组的 dict 转成 JSON，作为该控制输出的值。
+    /// <para>
+    /// 只处理"含图标量的 dict"这一种情况，返回 false 时调用方照旧走 <see cref="HTupleToValue"/>：
+    /// 普通元组、不是 dict 的 handle、只含元组的 dict（<c>DictToJson</c> 本来就能转）都不受影响。
+    /// 之所以要拆，是因为 <c>dict_to_json</c> 遇到图标量直接报 H1301，此前整个 dict 只剩一个
+    /// handle 字符串，元组和图标量全部丢失。
+    /// </para>
+    /// <para>嵌套 dict 不展开，原样当元组塞进 JSON 那一半（与 DictToJson 的行为一致，只是不再拆其中的图标量）。</para>
+    /// </summary>
+    private static bool TrySplitDictWithObjects(
+        HTuple tuple, string paramName, Dictionary<string, object?> iconicOut, out string json)
+    {
+        json = string.Empty;
+        if (tuple.Length != 1 || tuple.Type != HTupleType.HANDLE) return false;
+
+        HTuple keys;
+        try { HOperatorSet.GetDictParam(tuple, "keys", new HTuple(), out keys); }
+        catch (HalconException) { return false; }   // 不是 dict 的 handle
+
+        var objectKeys = new List<string>();
+        for (int i = 0; i < keys.Length; i++)
+        {
+            HOperatorSet.GetDictParam(tuple, "key_data_type", keys[i], out HTuple type);
+            if (type.S == "object") objectKeys.Add(keys[i].S);
+        }
+        if (objectKeys.Count == 0) return false;     // 纯元组 dict，DictToJson 能直接转
+
+        HOperatorSet.CreateDict(out HTuple tupleOnly);
+        try
+        {
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var key = keys[i].S;
+                if (objectKeys.Contains(key)) continue;
+                HOperatorSet.GetDictTuple(tuple, key, out HTuple value);
+                HOperatorSet.SetDictTuple(tupleOnly, key, value);
+            }
+            HOperatorSet.DictToJson(tupleOnly, new HTuple(), new HTuple(), out HTuple jsonTuple);
+            json = jsonTuple.S;
+        }
+        finally
+        {
+            tupleOnly.Dispose();
+        }
+
+        foreach (var key in objectKeys)
+        {
+            HOperatorSet.GetDictObject(out HObject obj, tuple, key);
+            iconicOut[$"{paramName}.{key}"] = obj;
+        }
+        return true;
     }
 
     private void UpdateLoadedSnapshot()
