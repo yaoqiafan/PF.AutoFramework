@@ -1,0 +1,224 @@
+<UserControl
+    x:Class="PF.Modules.Halcon.Views.VisionPackageEditor.VisionPackageEditorDialogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:pkg="clr-namespace:PF.Vision.Halcon.Packaging;assembly=PF.Vision.Halcon"
+    xmlns:views="clr-namespace:PF.Modules.Halcon.Views.VisionPackageEditor"
+    xmlns:vm="clr-namespace:PF.Modules.Halcon.ViewModels.VisionPackageEditor"
+    FontSize="{DynamicResource FontSize.Body.Standard}"
+    oplog:OperationLog.PageName="{x:Static local:HalconNavigationConstants+Dialogs.VisionPackageEditor}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/PF.Modules.Halcon;component/Views/VisionPackageEditor/EditorStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--  右侧编辑页：按页面 VM 类型选视图  -->
+            <DataTemplate DataType="{x:Type vm:ImagePageViewModel}">
+                <views:ImagePageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:RoiPageViewModel}">
+                <views:RoiPageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ShapeModelPageViewModel}">
+                <views:ShapeModelPageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:DataPageViewModel}">
+                <views:DataPageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:FilePageViewModel}">
+                <views:FilePageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:InfoPageViewModel}">
+                <views:InfoPageView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CustomPageViewModel}">
+                <DockPanel>
+                    <views:PageHeaderView DockPanel.Dock="Top" />
+                    <ContentControl Content="{Binding View}" />
+                </DockPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  顶部：包信息 + 工具栏  -->
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Text="{Binding PackageName}" />
+                        <TextBlock
+                            Margin="12,0,0,0"
+                            VerticalAlignment="Bottom"
+                            Foreground="{DynamicResource WarningBrush}"
+                            Text="● 有未保存的修改"
+                            Visibility="{Binding IsDirty, Converter={StaticResource VpkBoolToVis}}" />
+                    </StackPanel>
+                    <TextBlock Foreground="{DynamicResource SecondaryTextBrush}">
+                        <Run Text="{Binding LayoutText, Mode=OneWay}" />
+                        <Run Text="　" />
+                        <Run Text="{Binding RevisionText, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
+                    <Button
+                        Margin="0,0,8,0"
+                        Padding="14,6"
+                        Command="{Binding ImportImageCommand}"
+                        Content="导入原图…"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.ImportImage}" />
+                    <Button
+                        Margin="0,0,8,0"
+                        Padding="14,6"
+                        Command="{Binding RegenerateAllCommand}"
+                        Content="全部重新生成"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.RegenerateAll}" />
+                    <Button
+                        Padding="24,6"
+                        Command="{Binding SaveCommand}"
+                        Content="保 存"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.Save}"
+                        Style="{DynamicResource ButtonPrimary}" />
+                </StackPanel>
+            </Grid>
+
+            <!--  中部：条目树 + 编辑页  -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border
+                    Grid.Column="0"
+                    Padding="4"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <TreeView
+                        x:Name="EntryTree"
+                        BorderThickness="0"
+                        ItemsSource="{Binding Nodes}"
+                        SelectedItemChanged="OnTreeSelectedItemChanged"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.SelectEntry}">
+                        <TreeView.ItemContainerStyle>
+                            <Style BasedOn="{StaticResource {x:Type TreeViewItem}}" TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type vm:PackageTreeNode}" ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" ToolTip="{Binding Tip}">
+                                    <TextBlock
+                                        Width="18"
+                                        Style="{StaticResource VpkLevelText}"
+                                        Tag="{Binding Level}"
+                                        Text="{Binding Glyph}" />
+                                    <TextBlock Foreground="{DynamicResource PrimaryTextBrush}" Text="{Binding Title}" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Border>
+                <ContentControl Grid.Column="2" Content="{Binding CurrentPage}" />
+            </Grid>
+
+            <!--  校验栏  -->
+            <Border
+                Grid.Row="2"
+                Margin="0,10,0,0"
+                Padding="8,6"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource VpkSectionTitle}" Text="{Binding ValidationSummary}" />
+                    <ListBox
+                        MaxHeight="110"
+                        BorderThickness="0"
+                        ItemsSource="{Binding Issues}"
+                        SelectedItem="{Binding SelectedIssue}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type pkg:PackageIssue}">
+                                <TextBlock x:Name="Line" Foreground="{DynamicResource DangerBrush}">
+                                    <Run x:Name="Mark" Text="✕ " />
+                                    <Run Text="{Binding Mode=OneWay}" />
+                                </TextBlock>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Severity}" Value="{x:Static pkg:IssueSeverity.Warning}">
+                                        <Setter TargetName="Line" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                        <Setter TargetName="Mark" Property="Text" Value="◐ " />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <!--  底部：状态 + 关闭  -->
+            <Grid Grid.Row="3" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{DynamicResource ThirdlyTextBrush}"
+                    Text="{Binding StatusMessage}"
+                    TextWrapping="Wrap" />
+                <Button
+                    Grid.Column="1"
+                    Padding="28,7"
+                    Command="{Binding CancelCommand}"
+                    Content="关 闭"
+                    oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.Close}"
+                    Style="{DynamicResource ButtonDefault}" />
+            </Grid>
+        </Grid>
+
+        <!--  忙碌遮罩  -->
+        <Grid Background="#66000000" Visibility="{Binding IsBusy, Converter={StaticResource VpkBoolToVis}}">
+            <Border
+                Padding="28,18"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="{DynamicResource RegionBrush}"
+                CornerRadius="8">
+                <StackPanel>
+                    <ProgressBar
+                        Width="220"
+                        Height="6"
+                        Margin="0,0,0,10"
+                        IsIndeterminate="True" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        Text="{Binding BusyText}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

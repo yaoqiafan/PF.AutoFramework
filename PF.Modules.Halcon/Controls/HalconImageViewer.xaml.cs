@@ -200,12 +200,26 @@ public partial class HalconImageViewer : UserControl
         catch { return null; }
     }
 
+    /// <summary>
+    /// 自适应：按窗口宽高比算显示范围，整张图完整显示且居中、不拉伸。此前直接 SetPart 成整张图，
+    /// 图与窗口宽高比不同时（如 11000×16384 竖图放进横向窗口）第一次显示是拉伸的，双击自适应后才正常。
+    /// </summary>
     private static void AdaptPart(HWindow win, HObject image)
     {
         try
         {
             HOperatorSet.GetImageSize(image, out HTuple w, out HTuple h);
-            HOperatorSet.SetPart(win, 0, 0, h.I - 1, w.I - 1);
+            double iw = w.I, ih = h.I;
+            HOperatorSet.GetWindowExtents(win, out _, out _, out HTuple ww, out HTuple wh);
+            if (ww.I <= 1 || wh.I <= 1)
+            {
+                HOperatorSet.SetPart(win, 0, 0, ih - 1, iw - 1);
+                return;
+            }
+            double scale = Math.Max(iw / ww.I, ih / wh.I);   // 每个窗口像素对应多少图像像素，取较大者保证整图放得下
+            double pw = ww.I * scale, ph = wh.I * scale;
+            double r1 = (ih - ph) / 2, c1 = (iw - pw) / 2;
+            HOperatorSet.SetPart(win, r1, c1, r1 + ph - 1, c1 + pw - 1);
         }
         catch { }
     }

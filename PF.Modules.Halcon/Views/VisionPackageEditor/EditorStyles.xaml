@@ -1,0 +1,38 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <BooleanToVisibilityConverter x:Key="VpkBoolToVis" />
+
+    <!--  按 Tag（ok / warn / error / none）着色的文字，用于状态符号与状态文字  -->
+    <Style x:Key="VpkLevelText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="ok">
+                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="warn">
+                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="error">
+                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--  分区标题  -->
+    <Style x:Key="VpkSectionTitle" TargetType="TextBlock">
+        <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    </Style>
+
+    <!--  图像区域外框  -->
+    <Style x:Key="VpkImageBorder" TargetType="Border">
+        <Setter Property="Padding" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+</ResourceDictionary>

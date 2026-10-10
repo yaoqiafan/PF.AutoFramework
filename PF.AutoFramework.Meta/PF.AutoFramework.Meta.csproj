@@ -3,8 +3,31 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.44</Version>
+    <Version>1.0.45</Version>
     <PackageReleaseNotes>
+		v1.0.45 (2026-10-10) — 视觉资产包（.vpk）及编辑器取代 ROI 形状模板 .roipk；修复 HALCON 区域裁剪按线程缓存；修复弹窗偶发"消失"（含破坏性变更）
+
+		[新增 / 破坏性变更 — PF.Vision.Halcon 1.0.4→1.1.0（含此前未在元包登记的 1.0.5）]
+		- 1.0.5：dict 控制输出夹带图标量时拆分返回（图标量进 IconicOutputs，键 "{参数名}.{dict 键}"）。
+		- 1.1.0：新增视觉资产包 PF.Vision.Halcon.Packaging（布局声明、原图/ROI/形状模型/Data&lt;T&gt;/附件条目、依赖与状态、
+		  编辑会话、生产读取器）；ShapeTemplateService 删除 .roipk 存取 API，AddShapeTemplateServices 改为 AddVisionPackageServices。
+		- 1.1.0：修复区域裁剪尺寸按线程缓存导致 ROI 被裁空、进程启动后第一次执行过程失败（HalconThreadContext）。
+
+		[新增 / 破坏性变更 — PF.Modules.Halcon 1.0.10→1.1.0]
+		- 新增 VisionPackageEditorDialog；删除 ShapeTemplateEditorDialog / ShapeTemplateVerifyDialog。
+		- HalconImageViewer 自适应按窗口宽高比，不再拉伸。
+
+		[修复 — PF.UI.Infrastructure 1.0.6→1.0.7]
+		- PFDialogBaseWindow 显示前补所有者 / 无可见窗口时进任务栏并带图标 / 首次显示后激活，修复弹窗偶发"消失"像卡死。
+
+		[消费项目迁移]
+		- AddShapeTemplateServices(dir) → AddVisionPackageServices(dir)；
+		- 用到 ShapeTemplateService.SaveTemplate/LoadTemplate* 或 ShapeTemplateEditor/Verify 弹窗的地方，改为声明一个视觉资产包布局，
+		  编辑用 VisionPackageEditorDialog（或 VisionPackageSession），生产用 VisionPackageReader；旧 .roipk 需重建。
+
+		子包版本对照：PF.Vision.Halcon 1.0.4→1.1.0，PF.Modules.Halcon 1.0.10→1.1.0，PF.UI.Infrastructure 1.0.6→1.0.7；
+		其余子包本次无变化。
+
 		v1.0.44 (2026-09-28) — 安全门门锁输出绑定：按主控状态统一上锁/解锁；扫码枪未读到码改为返回成功+空条码（含行为变更）
 
 		[新增 — PF.Core 1.0.30→1.0.31]

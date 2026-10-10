@@ -23,6 +23,7 @@ public static class RoiRegionBuilder
     /// </summary>
     public static HObject Build(IEnumerable<VisionRoiConfig> rois)
     {
+        HalconThreadContext.EnsureRegionClipOff();   // ROI 画多大就是多大，不被线程缓存的裁剪尺寸裁空
         var roiList  = rois.ToList();
         var includes = roiList.Where(r => r.Op == RoiOp.Include).ToList();
         var excludes = roiList.Where(r => r.Op == RoiOp.Exclude).ToList();
@@ -76,6 +77,7 @@ public static class RoiRegionBuilder
     /// <summary>将单个 VisionRoiConfig 转换为 HALCON Region。</summary>
     public static HObject GetRegion(VisionRoiConfig roi)
     {
+        HalconThreadContext.EnsureRegionClipOff();
         HObject region;
         var p = roi.RoiParams;
 

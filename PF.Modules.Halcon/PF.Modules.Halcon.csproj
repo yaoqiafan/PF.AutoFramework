@@ -4,8 +4,29 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.0.10</Version>
+    <Version>1.1.0</Version>
     <PackageReleaseNotes>
+v1.1.0 (2026-10-10) — 新增视觉资产包编辑器；删除 ROI 形状模板编辑/验证弹窗（含破坏性变更）；图像查看器自适应不再拉伸
+
+[新增 — VisionPackageEditorDialog]
+- 视觉资产包（.vpk）编辑器：左侧按布局生成条目树（状态符号 ● ◐ ○ ✕），右侧按条目类型切换编辑页
+  （原图 / ROI〔复用 HalconRoiEditor〕/ 形状模型〔建模参数、生成、试找叠加轮廓〕/ Data&lt;T&gt;〔PropertyGrid〕/ 附件），
+  底部常驻校验栏（点一条跳到对应条目），顶部导入原图 / 全部重新生成 / 保存。
+- 耗时操作（打开大包含原图预解码、导入原图、生成模型、保存）在后台线程执行并显示忙碌遮罩。
+- 切走/保存/关闭前提示未应用的修改；有未保存修改时关闭提示放弃；标题栏 × 与底部「关闭」走同一流程。
+- DialogParameters："Layout"（必需）、"PackagePath" 或 "PackageName"、"ImagePath"（可选）；
+  关闭带回 "PackagePath"、"Revision"、"Saved"。自定义条目类型的编辑页实现 IVisionPackageEntryEditor 即可挂入。
+
+[破坏性变更]
+- 删除 ShapeTemplateEditorDialog、ShapeTemplateVerifyDialog（及 HalconNavigationConstants.Dialogs 对应常量、
+  OperationLogKeysHalcon 对应键目录），由 VisionPackageEditorDialog 取代（"验证"改为形状模型页的"试找"）。
+
+[修复 — HalconImageViewer]
+- 自适应显示按窗口宽高比计算显示范围（整图完整显示、居中），此前直接设成整张图，图与窗口宽高比不同时
+  第一次显示是拉伸的。
+
+依赖：需 PF.Vision.Halcon 1.1.0+。
+
 v1.0.10 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

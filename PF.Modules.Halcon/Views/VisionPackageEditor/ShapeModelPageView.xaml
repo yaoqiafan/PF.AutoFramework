@@ -1,0 +1,121 @@
+<UserControl
+    x:Class="PF.Modules.Halcon.Views.VisionPackageEditor.ShapeModelPageView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:views="clr-namespace:PF.Modules.Halcon.Views.VisionPackageEditor">
+
+    <UserControl.Resources>
+        <ResourceDictionary Source="/PF.Modules.Halcon;component/Views/VisionPackageEditor/EditorStyles.xaml" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="340" />
+        </Grid.ColumnDefinitions>
+
+        <views:PageHeaderView Grid.Row="0" Grid.ColumnSpan="3" />
+
+        <Grid Grid.Row="1" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Style="{StaticResource VpkImageBorder}">
+                <controls:HalconImageViewer x:Name="Viewer" />
+            </Border>
+            <StackPanel Grid.Row="1" Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" Text="试找用图：" />
+                <TextBlock
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
+                    Text="{Binding TestImageName}" />
+                <Button
+                    Margin="0,0,8,0"
+                    Padding="10,3"
+                    Command="{Binding SelectTestImageCommand}"
+                    Content="另选一张图…"
+                    oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.SelectTestImage}" />
+                <Button Padding="10,3" Command="{Binding UsePackageImageCommand}" Content="用包里的原图" />
+            </StackPanel>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock
+                    Margin="0,0,0,10"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Text="{Binding Info}"
+                    TextWrapping="Wrap" />
+
+                <TextBlock Style="{StaticResource VpkSectionTitle}" Text="建模参数" />
+                <pf:PropertyGrid Margin="0,0,0,8" SelectedObject="{Binding Options}" ShowSortButton="False" />
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button
+                        Grid.Column="0"
+                        Padding="6,5"
+                        Command="{Binding RevertCommand}"
+                        Content="撤销"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.Revert}" />
+                    <Button
+                        Grid.Column="2"
+                        Padding="6,5"
+                        Command="{Binding ApplyOptionsCommand}"
+                        Content="应用参数"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.ApplyOptions}" />
+                    <Button
+                        Grid.Column="4"
+                        Padding="6,5"
+                        Command="{Binding GenerateCommand}"
+                        Content="生成模型"
+                        oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.GenerateModel}"
+                        Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource VpkSectionTitle}" Text="试找参数" />
+                <pf:PropertyGrid Margin="0,0,0,8" SelectedObject="{Binding MatchOptions}" ShowSortButton="False" />
+                <Button
+                    Margin="0,0,0,8"
+                    Padding="10,5"
+                    HorizontalAlignment="Stretch"
+                    Command="{Binding FindCommand}"
+                    Content="▶ 试找"
+                    oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.FindMatch}"
+                    Style="{DynamicResource ButtonPrimary}" />
+                <ListBox Height="120" ItemsSource="{Binding Results}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="12">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Row={0:F1}  Col={1:F1}  Angle={2:F3}rad  Score={3:F3}">
+                                        <Binding Path="Row" />
+                                        <Binding Path="Column" />
+                                        <Binding Path="Angle" />
+                                        <Binding Path="Score" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

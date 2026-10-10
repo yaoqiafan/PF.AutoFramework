@@ -1,0 +1,54 @@
+<UserControl
+    x:Class="PF.Modules.Halcon.Views.VisionPackageEditor.PageHeaderView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure">
+
+    <UserControl.Resources>
+        <ResourceDictionary Source="/PF.Modules.Halcon;component/Views/VisionPackageEditor/EditorStyles.xaml" />
+    </UserControl.Resources>
+
+    <!--  DataContext = 任一 EntryPageViewModel  -->
+    <Grid Margin="0,0,0,8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
+                    Text="{Binding State.Title}" />
+                <TextBlock
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Bottom"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Text="{Binding KindLabel}" />
+                <TextBlock
+                    Margin="16,0,0,0"
+                    VerticalAlignment="Bottom"
+                    FontWeight="SemiBold"
+                    Style="{StaticResource VpkLevelText}"
+                    Tag="{Binding StatusLevel}"
+                    Text="{Binding StatusText}" />
+            </StackPanel>
+            <TextBlock
+                Margin="0,4,0,0"
+                Style="{StaticResource VpkLevelText}"
+                Tag="{Binding StatusLevel}"
+                Text="{Binding ReasonsText}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+        <Button
+            Grid.Column="1"
+            Padding="12,4"
+            VerticalAlignment="Top"
+            Command="{Binding RemoveCommand}"
+            Content="删除此条目"
+            oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.RemoveEntry}"
+            Style="{DynamicResource ButtonDashedDanger}" />
+    </Grid>
+</UserControl>

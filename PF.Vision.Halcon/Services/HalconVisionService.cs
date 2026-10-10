@@ -411,6 +411,10 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
                 loadedImages.Add(img);
             }
 
+            // 工作线程的区域裁剪尺寸按线程缓存（初始化时是 128×128），图像在别的线程读进来时不会跟着变，
+            // 过程里生成的区域会被裁空——进程启动后第一次执行必错。执行前按输入图像尺寸刷新，见 HalconThreadContext
+            HalconThreadContext.SyncClipSize(request.IconicInputs.Values.OfType<HObject>().Concat(loadedImages));
+
             if (_config.VerboseLogging)
                 _logger.Info($"[Vision][Debug] → {request.ProcedureName} | ctrl-in={request.ControlInputs.Count} iconic-in={request.IconicInputs.Count}", LogCategories.Vision);
 

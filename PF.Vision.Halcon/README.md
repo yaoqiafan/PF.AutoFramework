@@ -51,6 +51,7 @@ HALCON 的 `HObject`（图像/区域/轮廓）是非托管内存，生命周期�
 | `ProcedureExecuted` **事件参数** | 仅回调期间有效 | 需要长期保留必须自行 `HOperatorSet.CopyObj` 克隆；严禁保存原引用或释放它 |
 | `ExecutePipelineAsync` 的 `externalInputs` 参数 | 仍归调用方 | 实现层内部存副本，不会接管释放责任 |
 | `ShapeTemplateService` 各方法返回的 `HObject`（`GetMatchedContour` 等）/`ShapeTemplateHandle` | 归调用方 | 用完必须 Dispose，规则与上面一致 |
+| `VisionPackageSession.GetImage` 返回的图 / `LoadShapeModel` 返回的句柄 | 归调用方 | 同上；会话内部缓存的图由会话自己释放 |
 
 违反这条契约（在事件回调外持有原始引用，或忘记释放返回值）是本层已知的历史 Bug 来源（管线黑板此前未持有独立句柄副本导致的 HObject 泄漏，已在 v1.0.1 修复）。
 
@@ -62,32 +63,64 @@ containerRegistry.AddVisionServices(
     procedureDirectory: @"D:\VisionProcedures",
     pipelineDirectory:  null); // 默认取 procedureDirectory 同级的 "Workflows" 目录
 
-// 用到 ROI 形状模板匹配时，额外配一次模板目录（不用则不必调用）
-containerRegistry.AddShapeTemplateServices(templateDirectory: @"D:\VisionProcedures\ShapeTemplates");
+// 用到视觉资产包（.vpk）时，额外配一次包目录（不用则不必调用）
+containerRegistry.AddVisionPackageServices(packageDirectory: @"D:\VisionProcedures\Packages");
 ```
 
-`AddVisionServices` 注册 `IVisionContextManager`、`IHalconDebugService`、`VisionPipelineLoader` 三个单例；`AddShapeTemplateServices` 只是把目录写进 `ShapeTemplateService.TemplateDirectory`（静态属性），不存在会自动创建，`ShapeTemplateService` 本身是静态类，不进容器。
+`AddVisionServices` 注册 `IVisionContextManager`、`IHalconDebugService`、`VisionPipelineLoader` 三个单例；`AddVisionPackageServices` 只是把目录写进 `VisionPackage.Directory`（静态属性），不存在会自动创建，之后用 `VisionPackage.PathOf(name)` 按名字拼路径。
 
-## ROI 形状模板匹配（`ShapeTemplateService`，v1.0.x 新增）
+## 形状模板匹配（`ShapeTemplateService`）
 
 基于 `CreateShapeModel`/`FindShapeModel`，**直调 HALCON SDK、不经过 HDevEngine**——跟 `Internal.RoiRegionBuilder` 同一路子，纯托管方法调用，可在任意线程调用，不用像过程执行那样排队到专用 Worker 线程。
 
-**典型用法（三步）**：`CreateTemplate(image, roiRegion, options?)` 在参考图的 ROI 区域内建模板 → `SaveTemplate(handle, referenceImage, rois, name)` 按名字存盘（`LoadTemplate(name)` 读回）→ `FindMatches(image, handle, options?)` 在新图上找，返回 `IReadOnlyList<ShapeMatchResult>`（`Row`/`Column`/`Angle`/`Score`）。ROI 区域建议用 `Internal.RoiRegionBuilder.Build` 从一组 `VisionRoiConfig` 拼出来（已支持多区域 Include/Exclude 拼接复杂形状）。
+只管算法：`CreateTemplate(image, roiRegion, options?)` 在图的 ROI 区域内建模板 → `FindMatches(image, handle, options?)` 在新图上找，返回 `IReadOnlyList<ShapeMatchResult>`（`Row`/`Column`/`Angle`/`Score`）→ `GetMatchedContour(handle, match)` 取命中位置的模板轮廓（可直接喂给 `HalconImageViewer.DisplayOverlay`）。ROI 区域建议用 `Internal.RoiRegionBuilder.Build` 从一组 `VisionRoiConfig` 拼出来（支持多区域 Include/Exclude）。
 
-**按名字存取，不是按裸路径**：`SaveTemplate`/`LoadTemplate` 只收一个名字，实际文件路径由 `ShapeTemplateService.TemplateDirectory` 拼出来——未配置时调用会直接抛异常，不会静默退化成相对路径。`GetAvailableTemplateNames()` 列出目录下所有可用模板名（目录未配置/不存在时返回空列表，供下拉框等 UI 场景用）。
+**模板的存取不在这里**（v1.1.0 起）：原 `.roipk` 的 `SaveTemplate`/`LoadTemplate*`/`TemplateDirectory` 已删除，形状模型作为视觉资产包的 `ShapeModel` 条目保存，见下一节。
 
-**模板文件是打包格式 `.roipk`（zip），不是裸 `.shm`**：HALCON 形状模型本身只保存训练好的轮廓特征，不保存建模板时画的 ROI 区域，单存 `.shm` 没法在调试时"重新打开、微调 ROI"。`SaveTemplate` 把 `model.shm`（生产匹配用）+ `rois.json`（`VisionRoiConfig` 列表）+ `reference.jpg`（建模用的参考图，JPEG 质量 90——不参与匹配、只给人看，有损压缩换体积）打成一个 zip；生产路径 `LoadTemplate` 只解 `model.shm`；调试微调路径用 `LoadTemplateForEdit(name)` / `LoadTemplateForEditFromPath(filePath)` 解另外两块（返回 `ShapeTemplateEditSession(ReferenceImage, Rois)`）——两条路径互不影响，生产端不为这个能力多付任何解压/反序列化开销。同名 `SaveTemplate` 会整体覆盖。
-
-`ShapeTemplateHandle`（`CreateTemplate`/`LoadTemplate` 的返回值）内部持有 HALCON `ModelId`，用完必须 `Dispose()`（`ClearShapeModel`），`ModelId` 本身不对外暴露。
-
-可调参数全用 C# 原生类型（非 `HTuple`），方便直接绑 `pf:PropertyGrid`：
+`ShapeTemplateHandle` 内部持有 HALCON `ModelId`，用完必须 `Dispose()`（`ClearShapeModel`）。可调参数全用 C# 原生类型，方便直接绑 `pf:PropertyGrid`：
 
 - `ShapeTemplateCreateOptions`（建模）：`AngleStart`/`AngleExtent`/`AngleStep`、`NumLevels`（0=自动）、`Contrast`（0=自动）/`MinContrast`、`Optimization`（默认 `auto`）、`Metric`（默认 `use_polarity`）。
 - `ShapeMatchOptions`（查找）：`AngleStart`/`AngleExtent`、`MinScore`（默认 0.7）、`NumMatches`（默认 1）、`MaxOverlap`（默认 0.5）、`SubPixel`（默认 `least_squares`）、`NumLevels`（0=自动）、`Greediness`（默认 0.9）。
 
-`GetMatchedContour(handle, match)` 取某次匹配位姿下的模板轮廓（模板参考系轮廓 + `VectorAngleToRigid`/`AffineTransContourXld` 变换到实际位置/角度），可直接喂给 `HalconImageViewer.DisplayOverlay` 画出命中框；返回值所有权归调用方，用完需 Dispose。
+> **v1.0.3 修复的严重 Bug**：`FindMatches` 里 `NumLevels==0` 时此前错误传成字符串 `"auto"`，必现 `HALCON error #1208`。现直接传整数。
 
-> **v1.0.3 修复的严重 Bug**：`FindMatches` 里 `NumLevels==0` 时此前错误传成字符串 `"auto"`（抄自 `CreateShapeModel` 的惯例），但 `find_shape_model` 算子的 `NumLevels` 默认值本来就是整数 0，不接受该字符串，必现 `HALCON error #1208`，升级前"查找模板"功能实际上完全不可用。现直接传整数。
+## 视觉资产包（`.vpk`，`PF.Vision.Halcon.Packaging`，v1.1.0 新增）
+
+一个 zip 包，根目录 `manifest.json` 记录格式版本、布局 id/版本、修订号、保存时间/保存人与全部条目。项目用**布局**声明包里有哪些条目，框架按布局管理依赖、状态、生成与校验。完整设计见框架仓库 `DOC/视觉资产包设计稿.md`。
+
+```csharp
+// 布局（项目在代码里声明一次）
+var layout = VisionPackageLayout.Create("PF.ShapeTemplate", version: 1)
+    .Group("输入").Image("Image", "原图").Roi("Region", "模板区域", image: "Image")
+    .Group("生成").ShapeModel("Model", "形状模型", image: "Image", roi: "Region")
+    .Build();
+
+// 编辑（调试界面用 PF.Modules.Halcon 的 VisionPackageEditorDialog 即可，代码里也能直接用会话）
+using (var s = VisionPackage.Create(layout))                 // 或 VisionPackage.Open(path, layout)
+{
+    s.ImportImage("Image", @"D:\图\a.tiff");                // 原来没图或无下游时直接生效，否则需 ConfirmImageReplace
+    s.SetRois("Region", rois);
+    s.Save(VisionPackage.PathOf("产品A"), userName);          // 自动生成派生条目、强制校验；不保存直接 Dispose = 放弃
+}
+
+// 生产
+using var pkg = VisionPackageReader.Open(VisionPackage.PathOf("产品A"), LayoutRequirement.Of(layout));
+using var model = pkg.LoadShapeModel("Model");               // 只解压这一个条目并核对哈希
+```
+
+- **内置条目**：`Image`（默认无损 PNG，可选原文件原样/TIFF/BMP/JPEG；显示、画 ROI、生成模型一律用存储版）、`Roi`（原图坐标）、`ShapeModel`（派生，由原图 + ROI 按建模参数生成）、`Data<T>`（宽松反序列化，`T` 实现 `IVisionPackageData` 时做自校验）、`File`（附件原样保存）。自定义类型实现 `IPackageEntryKind` 并 `VisionPackage.RegisterKind`。
+- **依赖与状态**：`Missing`/`Ok`/`Stale`/`Invalid`/`Extra`，按依赖指纹判断并向下游传播。换原图：同一文件不动；尺寸相同内容不同 → ROI 需 `ConfirmRoi`；尺寸不同 → ROI 失效需重画。派生条目 `Regenerate`/`RegenerateAllStale`。
+- **保存即生效**：没有草稿；校验不通过抛 `VisionPackageValidationException`，原文件不动；成功后修订号 +1。
+- **版本**：生产读取器要求布局 id 与版本**完全相等**；`Data<T>` 字段改名/改含义、增删必填条目等须升布局版本。
+- **注意**：`.shm` 文件头带生成时间，同一份输入重新生成模型等价但指纹不同。
+
+## HALCON 区域裁剪按线程缓存（`HalconThreadContext`，v1.1.0）
+
+`clip_region=true`（默认）时新生成的区域被裁剪到"当前图像尺寸"，这个尺寸**按线程缓存**：线程第一次用 HALCON 时记下当时的全局 `width/height`（未读图时 128×128），别的线程之后读了大图也不会跟着变。曾导致：UI 线程上 ROI 区域被裁空（ROI 编辑器看不到拖拽预览）、视觉引擎进程启动后第一次执行过程匹配必失败。
+
+- `RoiRegionBuilder` / `ShapeTemplateService` 内部调用 `HalconThreadContext.EnsureRegionClipOff()`，在当前线程关闭区域裁剪；
+- `HalconVisionService` 执行过程前调用 `HalconThreadContext.SyncClipSize(输入图像)`，把工作线程裁剪尺寸设成输入图像尺寸（保留裁剪语义，与 HDevelop 一致）；
+- 消费项目自己在多线程里生成区域时，同样可以调这两个方法。
 
 ## 过程调试服务解耦（`IHalconDebugService`，v1.0.2 起，含破坏性变更）
 
@@ -116,5 +149,5 @@ containerRegistry.AddShapeTemplateServices(templateDirectory: @"D:\VisionProcedu
 IVisionService / IHalconDebugService / IVisionContextManager（PF.Core 契约）
     ↓
 HalconVisionService / HalconDebugService（本包实现，HDevEngine 运行时加载 .hdev 算子文件）
-ShapeTemplateService（本包实现，直调 HALCON SDK，不经 HDevEngine）
+ShapeTemplateService / Packaging（本包实现，直调 HALCON SDK，不经 HDevEngine）
 ```

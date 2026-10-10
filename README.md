@@ -19,7 +19,7 @@
 * **🧩 极致的模块化架构**：基于 Prism 9 实现 UI、核心逻辑与数据层的彻底解耦。支持插件式开发，子模块动态加载。
 * **🏭 完整的工控生命周期**：内置标准化 8 状态机（含 `InitAlarm` / `RunAlarm` 分离），配合 `MasterController` 实现多工站联动初始化、启停、暂停、复位的全生命周期管理。
 * **🔩 硬件三级抽象**：`BaseDevice`（设备）→ `BaseMechanism`（模组）→ `StationBase<T>`（工站），模板方法模式，子类仅实现业务钩子。支持运动控制卡中间件层（`IMotionCard` / `IAttachedDevice<TParent>`）与图像采集卡挂载链路（`IFrameGrabberCard` / `ILineScanCamera`）。
-* **👁️ 集成机器视觉**：通过 `PF.Vision.Halcon` 桥接 Halcon HDevEngine，提供 Halcon 无关的 `IVisionService` 抽象（生产 / 调试 / 离线三模式引擎）、过程执行引擎、ROI 管理、视觉工作流管线（JSON 配置 + 条件分支）、**ROI 形状模板建立/验证**（`.roipk` 打包格式，直调 HALCON SDK 不经 HDevEngine），并配套 `PF.Modules.Halcon` 调试 UI（HDevelop Level-2 联调、管线运行器、ROI 编辑器、形状模板弹窗）。
+* **👁️ 集成机器视觉**：通过 `PF.Vision.Halcon` 桥接 Halcon HDevEngine，提供 Halcon 无关的 `IVisionService` 抽象（生产 / 调试 / 离线三模式引擎）、过程执行引擎、ROI 管理、视觉工作流管线（JSON 配置 + 条件分支）、**视觉资产包**（`.vpk`：按布局声明原图 / ROI / 形状模型 / 参数 / 附件，带依赖与版本校验；形状模板直调 HALCON SDK 不经 HDevEngine），并配套 `PF.Modules.Halcon` 调试 UI（HDevelop Level-2 联调、管线运行器、ROI 编辑器、视觉资产包编辑器）。
 * **📷 线扫视觉全链路**：`ILineScanCamera` / `IFrameGrabberCard` / `IGenICamNodeAccess` 契约 + 海康线阵相机/图像采集卡实现 + `LineScanDetectionModule`（框架级可复用扫描模组）+ 三个调试页（线阵相机 / 采集卡 / 扫描模组，均带 GenICam 属性树）。
 * **🌐 统一通讯管理框架**：`ICommunication` 抽象统一封装 TCP 服务端/客户端、串口、Modbus RTU/TCP 主站、大文件传输通道（多 Lane 并行 + CRC32/xxHash64 校验 + 断线重连），`CommunicationManagerService` 与 `HardwareManagerService` 结构对齐。
 * **🏭 SECS/GEM 全套支持**：内置协议管理、独立 Windows 后台服务、专用数据库与调试面板；不做半导体设备对接的项目可通过 `PFApplicationBase.UsesSecsGemService = false` 整体关闭，跳过相关 DI 注册、服务归属校验与模块加载。
@@ -1635,7 +1635,7 @@ await _hwManager.ReloadAllAsync();
 
 ### PF.Modules.Halcon — Halcon 视觉调试模块（当前 v1.0.7）
 
-> `PF.Vision.Halcon` 服务层的 WPF 调试 UI 配套（Prism `IModule`），提供运行期过程/管线调试、ROI 编辑与 ROI 形状模板建立/验证。Shell 通过 `RegisterVisionServices` 钩子注入、`ConfigureModuleCatalog` 中 `AddModule<HalconModule>()` 加载。
+> `PF.Vision.Halcon` 服务层的 WPF 调试 UI 配套（Prism `IModule`），提供运行期过程/管线调试、ROI 编辑与视觉资产包（`.vpk`）编辑。Shell 通过 `RegisterVisionServices` 钩子注入、`ConfigureModuleCatalog` 中 `AddModule<HalconModule>()` 加载。
 
 | 类 | 用途 |
 |----|------|
@@ -1643,11 +1643,10 @@ await _hwManager.ReloadAllAsync();
 | `HalconDebugViewModel` | HDevelop Level-2 联调：过程列表、参数签名解析、调试服务器启停、启动 HDevelop 进程、填充控制/图标参数后试运行、图标输出渲染、唤起 ROI 编辑器、「引擎耦合自检」按钮（v1.0.3） |
 | `PipelineRunnerViewModel` | 管线运行器：列出 `VisionPipelineLoader` 管线，经生产引擎执行，按引擎所有权契约克隆 `HObject` 累积各步输出，分层渲染（图像背景 / 区域与 XLD 前景 / 缺陷红色） |
 | `RoiEditorDialogViewModel` | ROI 编辑对话框，经 `DialogParameters` 接收 `FilePath`/`Rois`，OK 返回编辑后的 `Rois` |
-| `ShapeTemplateEditorDialogViewModel`（v1.0.5 起） | ROI 形状模板**建立/编辑**：选参考图或按名字加载已有模板 → 画 ROI（复用 `HalconRoiEditor`）→「保存并关闭」一步完成建模型+写盘；改已有模板时名称锁定不可改，新建时校验名称合法性与唯一性 |
-| `ShapeTemplateVerifyDialogViewModel`（v1.0.6 起） | ROI 形状模板**只读验证**：按名字加载模板 → 在图上跑 `ShapeTemplateService.FindMatches` → `pf:PropertyGrid` 编辑 `ShapeMatchOptions` → 命中轮廓叠加显示，不改模板本身 |
-| `HalconImageViewer` / `HalconRoiEditor` | 基于 `HWindowControlWPF` 的图像查看器 / 交互式 ROI 绘制控件（工具栏 v1.0.7 起改用 `pf:PackIcon` 图标） |
+| `VisionPackageEditorDialogViewModel`（v1.1.0 起） | 视觉资产包（`.vpk`）编辑器：左侧按布局生成条目树（带状态），右侧按条目类型切换编辑页（原图 / ROI / 形状模型试找 / 参数 / 附件），底部校验栏，校验通过后保存；取代 v1.0.x 的 `ShapeTemplateEditorDialog` / `ShapeTemplateVerifyDialog` |
+| `HalconImageViewer` / `HalconRoiEditor` | 基于 `HWindowControlWPF` 的图像查看器（v1.1.0 起自适应按窗口宽高比、不拉伸）/ 交互式 ROI 绘制控件（工具栏 v1.0.7 起改用 `pf:PackIcon` 图标） |
 
-模板文件为 `.roipk`（zip 打包：`model.shm` 生产匹配模型 + `rois.json` ROI 绘制过程 + `reference.jpg` 参考图，JPEG 有损压缩），生产路径 `LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
+视觉资产包格式与规则见 `PF.Vision.Halcon` README 与 `DOC/视觉资产包设计稿.md`。
 
 ### PF.Modules.Identity — 身份认证
 
@@ -1735,7 +1734,9 @@ await _hwManager.ReloadAllAsync();
 | `VisionContextManager`（`public sealed`） | 按 `EngineMode`（Production/Debug/Offline）管理三个独立惰性引擎槽位，各持一份 `HalconVisionService` + `VisionEngineConfig`；`SemaphoreSlim(1,1)` 保护。`TryGet`（v1.0.2 起）供仅需读取已存在引擎的场景使用，不触发惰性创建 |
 | `HalconDebugService`（`public sealed`） | Level-2 HDevelop 集成：调试服务器启停、启动 HDevelop 进程、解析 `.hdev` XML 过程签名、无超时试运行（便于断点附加）。`ProcedureDirectory`（v1.0.2 起）暴露规范化后的过程目录，签名解析/过程枚举不再需要拉起 Debug 引擎 |
 | `HdevProcedureCatalog`（v1.0.2 起） | 过程枚举与文件查找统一规则，递归查找（此前枚举用 `AllDirectories` 而查找只看顶层，导致子目录过程选得中却解析不出参数） |
-| `ShapeTemplateService`（v1.0.5 起） | ROI 形状模板建立/查找，直调 HALCON SDK 不经 HDevEngine；模板打包为 `.roipk`（zip：`model.shm`+`rois.json`+`reference.jpg`），`AddShapeTemplateServices(templateDirectory)` 为 DI 入口 |
+| `ShapeTemplateService` | 形状模板建立/查找/取命中轮廓，直调 HALCON SDK 不经 HDevEngine；v1.1.0 起只管算法，模板存取移到视觉资产包 |
+| `Packaging.*`（v1.1.0 起） | 视觉资产包（`.vpk`）：`VisionPackageLayout` 布局声明、`VisionPackageSession` 编辑会话（依赖/状态/生成/校验/保存）、`VisionPackageReader` 生产读取（校验布局版本、按需解压、哈希校验）；`AddVisionPackageServices(directory)` 为 DI 入口 |
+| `HalconThreadContext`（v1.1.0 起） | HALCON 区域裁剪尺寸按线程缓存的处理：工具类代码关闭裁剪，视觉引擎执行前按输入图像同步裁剪尺寸（修复 ROI 被裁空、进程启动后首次执行失败） |
 | `VisionPipelineLoader`（`public sealed`） | 扫描 JSON 管线配置目录（`Devices/{Device}/Workflows/`），`FileSystemWatcher`（250ms 防抖）热更新；`JsonElement` 逐字段还原原生类型供引用解析 |
 | `AlgorithmVerifier`（`internal static`） | 启动期 `.hdev` 文件 MD5 完整性校验（对照 `algorithms.lock.json`），变更仅告警不阻断 |
 | `VisionEngineConfig`（record） | 各模式配置预设：Production（30s 超时，容量 100）/ Debug（无限超时，容量 10，等待 HDevelop 连接）/ Offline（120s，容量 500） |

@@ -1,6 +1,6 @@
 # PF.Modules.Halcon
 
-PF.AutoFramework HALCON 视觉调试 Prism 模块（Layer 05，当前版本 1.0.7），提供过程调试、管线运行、ROI 编辑、ROI 形状模板建立/验证的可视化界面。以插件 DLL 方式加载，依赖 `PF.Vision.Halcon` 服务层（零 UI 依赖）完成实际的视觉引擎调用。
+PF.AutoFramework HALCON 视觉调试 Prism 模块（Layer 05，当前版本 1.1.0），提供过程调试、管线运行、ROI 编辑、视觉资产包（`.vpk`）编辑的可视化界面。以插件 DLL 方式加载，依赖 `PF.Vision.Halcon` 服务层（零 UI 依赖）完成实际的视觉引擎调用。
 
 ## 界面构成
 
@@ -11,31 +11,45 @@ HalconDashboardView（侧边栏根入口）
          └─ PipelineRunnerView   — 管线运行：按顺序执行多步视觉管线，步骤间通过上下文黑板自动传图
 ```
 
-三个独立弹窗（`IDialogService`，`HalconModule.RegisterTypes` 注册）：
+两个独立弹窗（`IDialogService`，`HalconModule.RegisterTypes` 注册）：
 
 | 弹窗 | 导航 key | 作用 |
 |---|---|---|
-| `RoiEditorDialogView` | `RoiEditorDialog` | 拖拽/绘制方式定义 `VisionRoiConfig`（矩形/旋转矩/圆/椭圆/扇形），画布控件用 `HalconRoiEditor` |
-| `ShapeTemplateEditorDialogView` | `ShapeTemplateEditorDialog` | ROI 形状模板**建立/编辑**：选参考图 → 画 ROI → 保存（建模+写盘一步完成）；也能按名字加载已有模板微调 |
-| `ShapeTemplateVerifyDialogView` | `ShapeTemplateVerifyDialog` | ROI 形状模板**只读验证**：按名字加载模板 → 在一张图上查找匹配 → 叠加显示命中轮廓 |
+| `RoiEditorDialogView` | `RoiEditorDialog` | 拖拽/绘制方式定义 `VisionRoiConfig`（矩形/旋转矩/圆/椭圆/扇形/多边形），画布控件用 `HalconRoiEditor` |
+| `VisionPackageEditorDialogView` | `VisionPackageEditorDialog` | 视觉资产包（`.vpk`）编辑器：按布局编辑原图 / ROI / 形状模型 / 参数 / 附件，校验通过后保存 |
 
-## ROI 形状模板匹配能力（v1.0.5 起新增，v1.0.6/v1.0.7 迭代）
+> v1.1.0 起删除了 `ShapeTemplateEditorDialog` / `ShapeTemplateVerifyDialog`（及对应导航常量、操作日志键目录），
+> 由 `VisionPackageEditorDialog` 取代——原来的"建立模板"是布局里的 原图 + ROI + 形状模型 三个条目，"验证模板"是形状模型页的"试找"。
 
-框架侧独立、可复用的形状模板编辑/验证能力，消费项目不用自己重写这套界面，实际的建模/查找由 `PF.Vision.Halcon` 的 `ShapeTemplateService` 完成（不经 HDevEngine，直调 HALCON SDK）。
+## 视觉资产包编辑器 `VisionPackageEditorDialog`（v1.1.0 新增）
 
-**建模弹窗 `ShapeTemplateEditorDialog`**：
+包格式、布局声明、依赖与状态规则见 `PF.Vision.Halcon` README 与框架仓库 `DOC/视觉资产包设计稿.md`；本弹窗是它的通用编辑界面。
 
-- 打开方式互斥，调用方一开始就得选好——传 `"ImagePath"`（string）= 建新模板，用调用方指定的图当参考图（图片锁定）；传 `"LoadTemplateName"`（string）= 打开一个已有模板微调，按名字读回它自己存的参考图 + ROI；两者都不传就是空白开局，弹窗里"选参考图"/"加载模板文件"两个按钮都在。
-- 画 ROI 复用 `HalconRoiEditor` 控件本体。v1.0.7 起「建立模板」不再是独立一步：填好名字、画好 ROI，点一次「保存并关闭」把建模型（`CreateShapeModel`）和写盘一起做了。
-- 保存前两项校验（v1.0.6 起）：名称合法性（挡 Windows 文件名非法字符 `\ / : * ? " < > |`）与唯一性（撞已有模板名弹「确认覆盖」二次确认）。v1.0.7 起「改已有模板」时名称锁定不可改（`CanEditTemplateName` 仅新建时为真），从根上避免"到底是新建还是覆盖了原模板"变得含糊——因此撞名确认现在只可能发生在新建路径。
-- 关闭（OK）时通过 `DialogParameters` 带回 `"Name"`，方便调用方（比如自动填进旁边的"验证模板"输入框）直接使用。
-- 范围只到"存盘"为止，不含"在新图上查找/预览"——那是 `ShapeTemplateVerifyDialog` 或消费方自己的事。
+**打开**：`DialogParameters` 传 `"Layout"`（`VisionPackageLayout`，必需）+ `"PackagePath"`（string）或 `"PackageName"`（string，按 `VisionPackage.PathOf` 拼路径）——文件存在则打开，否则新建；`"ImagePath"`（string，可选）新建时预填第一张原图。关闭带回 `"PackagePath"`、`"Revision"`（int）、`"Saved"`（bool，本次是否保存过；保存过结果为 OK）。
 
-**验证弹窗 `ShapeTemplateVerifyDialog`**：纯只读，不建模板也不改模板。打开时 `DialogParameters` 传 `"TemplateName"`（必需）+ `"ImagePath"`（可选，预填验证图）；图片来源按钮**始终可见**（不因预填而隐藏，验证场景本就需要随时换图测试鲁棒性）。在图上跑 `ShapeTemplateService.FindMatches`，通过 `pf:PropertyGrid` 直接编辑 `ShapeMatchOptions`（`MinScore`/`AngleExtent`/`NumLevels` 等），匹配结果列表可选中，选中即用 `GetMatchedContour` + `HalconImageViewer.DisplayOverlay` 叠加显示命中轮廓（lime green）。`ConfirmCommand = CancelCommand`，没有"确定"要提交，关闭即走。
+```csharp
+var p = new DialogParameters { { "Layout", layout }, { "PackageName", "产品A" } };
+DialogService.ShowDialog(HalconNavigationConstants.Dialogs.VisionPackageEditor, p, r =>
+{
+    if (r.Parameters.GetValue<bool>("Saved")) { /* 包已更新，修订号 r.Parameters.GetValue<int>("Revision") */ }
+});
+```
 
-模板文件是 `.roipk`（zip 打包）：`model.shm`（生产匹配用的 HALCON 形状模型）+ `rois.json`（ROI 绘制过程，供再次打开微调）+ `reference.jpg`（参考图，JPEG 有损压缩）。生产路径的 `ShapeTemplateService.LoadTemplate` 只解压 `model.shm`，不受编辑弹窗改动影响。
+**界面**：
 
-> `FindMatches` 此前有一个必现 Bug：`NumLevels==0` 时被错误传成字符串 `"auto"`（抄自 `CreateShapeModel` 的惯例），但 `find_shape_model` 的 `NumLevels` 默认值是整数 0、不接受该字符串，导致查找模板必现 HALCON #1208。已在 `PF.Vision.Halcon` 1.0.3 修复为直接传整数，升级前"查找模板"功能实际上完全不可用。
+- 左侧条目树按布局分组生成，状态符号：● 正常、◐ 需重新生成 / 需确认、○ 未建立、✕ 无效（或多余）；悬停看原因。
+- 右侧按条目类型切换编辑页：
+  - 原图：预览、尺寸/来源/存储方式、导入/替换（替换时按与当前图的比对结论提示）；
+  - ROI：复用 `HalconRoiEditor` 在依赖的原图上画，「应用 ROI」写入会话，换图后「确认位置」；
+  - 形状模型：建模参数（PropertyGrid）、生成、试找（可另选一张图）并叠加命中轮廓；
+  - 参数（`Data<T>`）：按类型生成 PropertyGrid，显示自校验错误；
+  - 附件：导入/导出；
+  - 多余条目 / 没有编辑页的自定义类型：只读信息页 + 删除。
+- 底部校验栏常驻，点一条跳到对应条目；顶部工具栏：导入原图 / 全部重新生成 / 保存（当前登录用户记入包）。
+- 页面上未应用的修改，切走 / 保存 / 关闭前都会提示；有未保存的修改时关闭提示放弃。标题栏 × 与底部「关闭」走同一流程。
+- 打开大包（含原图预解码）、导入原图、生成模型、保存都在后台线程执行，期间显示忙碌遮罩。
+
+**自定义条目类型的编辑页**：`IPackageEntryKind.EditorViewName` 指向一个用 `RegisterForNavigation` 注册的视图；视图本身或其 DataContext 实现 `IVisionPackageEntryEditor`（`Attach(session, entryId)` / `Detach()`）即可挂进右侧。
 
 ## `HalconDebugView`：过程调试 + 引擎耦合自检（v1.0.3 起）
 
@@ -51,11 +65,15 @@ PF.Vision.Halcon（HDevEngine + 直调 HALCON SDK 的服务层，见其 README�
 PF.Core.Interfaces.Vision（IVisionService / IVisionResult 契约）
 ```
 
+本版本需 `PF.Vision.Halcon` 1.1.0+。
+
 ## 注意事项
 
 - 调试 UI 内的 `async void` 命令方法均已补充统一异常保护，单个命令抛异常不会导致进程崩溃（v1.0.1 起）。
 - `HalconDashboardViewModel` 重写了 `KeepAlive => true`（配合 `PF.UI.Infrastructure` v1.0.2 起 `RegionMemberLifetime` 默认值变为 `false` 的行为变更），以保留内部区域（过程调试/管线运行）已选中的导航状态；自行编写新的、需要"导航离开后重新进入仍保留状态"的调试面板时，务必同时重写 `IsNavigationTarget` 和 `KeepAlive`，只写一个会被 Region 自动移除打断复用逻辑。
 - `HalconRoiEditor` 顶部工具栏（操作模式/形状选择/预览检测范围/退出预览/清空 ROI 共 10 个按钮）自 v1.0.4 起由"emoji+文字"改为 `pf:PackIcon` 纯图标，说明文字移到 `ToolTip` 里——不再依赖字体对几何符号 emoji 的渲染支持。
+- `HalconImageViewer` 自适应显示自 v1.1.0 起按窗口宽高比计算显示范围（整图完整显示、居中），此前第一次显示与窗口宽高比不同的图会被拉伸。
+- 同类型编辑页之间切换时 WPF 会复用同一个视图实例、只换 DataContext（不触发 Loaded/Unloaded）：编辑页里挂 HALCON 查看器的代码后置要同时处理 `DataContextChanged`，参照 `Views/VisionPackageEditor/ImagePageView.xaml.cs`。
 
 ## 图标量所有权提示
 

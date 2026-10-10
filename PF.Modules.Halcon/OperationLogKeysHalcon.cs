@@ -155,24 +155,59 @@ public static class OperationLogKeysHalcon
         public const string DeleteRoi = nameof(DeleteRoi);
     }
 
-    /// <summary>ROI 形状模板编辑弹窗（同样内嵌 HalconRoiEditor 控件，复制一份同款 Key）</summary>
-    public static class ShapeTemplateEditorDialog
+    /// <summary>视觉资产包编辑器（ROI 页内嵌 HalconRoiEditor 控件，复制一份同款 Key）</summary>
+    public static class VisionPackageEditorDialog
     {
-        [Description("选参考图")]
-        public const string SelectReferenceImage = nameof(SelectReferenceImage);
+        [Description("选择条目")]
+        public const string SelectEntry = nameof(SelectEntry);
 
-        [Description("设置模板名称")]
-        public const string TemplateName = nameof(TemplateName);
-
-        [Description("加载模板文件")]
-        public const string LoadTemplateFile = nameof(LoadTemplateFile);
-
-        [Description("保存并关闭")]
+        [Description("导入原图")]
         [OperationLogCritical]
-        public const string SaveAndClose = nameof(SaveAndClose);
+        public const string ImportImage = nameof(ImportImage);
 
-        [Description("取消")]
-        public const string Cancel = nameof(Cancel);
+        [Description("全部重新生成")]
+        public const string RegenerateAll = nameof(RegenerateAll);
+
+        [Description("保存")]
+        [OperationLogCritical]
+        public const string Save = nameof(Save);
+
+        [Description("关闭")]
+        public const string Close = nameof(Close);
+
+        [Description("删除条目")]
+        [OperationLogCritical]
+        public const string RemoveEntry = nameof(RemoveEntry);
+
+        [Description("应用 ROI")]
+        public const string ApplyRois = nameof(ApplyRois);
+
+        [Description("确认 ROI 位置")]
+        public const string ConfirmRoi = nameof(ConfirmRoi);
+
+        [Description("撤销未应用的修改")]
+        public const string Revert = nameof(Revert);
+
+        [Description("应用建模参数")]
+        public const string ApplyOptions = nameof(ApplyOptions);
+
+        [Description("生成形状模型")]
+        public const string GenerateModel = nameof(GenerateModel);
+
+        [Description("试找")]
+        public const string FindMatch = nameof(FindMatch);
+
+        [Description("选择试找用图")]
+        public const string SelectTestImage = nameof(SelectTestImage);
+
+        [Description("应用参数")]
+        public const string ApplyData = nameof(ApplyData);
+
+        [Description("导入附件")]
+        public const string ImportFile = nameof(ImportFile);
+
+        [Description("导出附件")]
+        public const string ExportFile = nameof(ExportFile);
 
         [Description("设为包含区域模式")]
         public const string SetIncludeMode = nameof(SetIncludeMode);
@@ -217,21 +252,5 @@ public static class OperationLogKeysHalcon
         [Description("删除 ROI")]
         [OperationLogCritical]
         public const string DeleteRoi = nameof(DeleteRoi);
-    }
-
-    /// <summary>ROI 形状模板验证弹窗</summary>
-    public static class ShapeTemplateVerifyDialog
-    {
-        [Description("查找匹配")]
-        public const string FindMatch = nameof(FindMatch);
-
-        [Description("选择匹配结果")]
-        public const string SelectMatchResult = nameof(SelectMatchResult);
-
-        [Description("选图")]
-        public const string SelectImage = nameof(SelectImage);
-
-        [Description("关闭")]
-        public const string Close = nameof(Close);
     }
 }

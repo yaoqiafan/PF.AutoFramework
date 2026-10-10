@@ -1,5 +1,7 @@
 ﻿using PF.Modules.Halcon.ViewModels;
+using PF.Modules.Halcon.ViewModels.VisionPackageEditor;
 using PF.Modules.Halcon.Views;
+using PF.Modules.Halcon.Views.VisionPackageEditor;
 using PF.UI.Infrastructure.Navigation;
 using PF.UI.Infrastructure.Operation;
 using PF.UI.Infrastructure.PrismBase;
@@ -29,13 +31,9 @@ public class HalconModule : IModule
         containerRegistry.RegisterDialog<RoiEditorDialogView, RoiEditorDialogViewModel>(
             HalconNavigationConstants.Dialogs.RoiEditor);
 
-        // ROI 形状模板编辑弹窗（画 ROI → 建模板 → 按名字存盘，框架侧独立能力，消费方直接复用）
-        containerRegistry.RegisterDialog<ShapeTemplateEditorDialogView, ShapeTemplateEditorDialogViewModel>(
-            HalconNavigationConstants.Dialogs.ShapeTemplateEditor);
-
-        // ROI 形状模板验证弹窗（按名字加载模板 → 在一张图上查找匹配/调参 → 看叠加轮廓，纯只读）
-        containerRegistry.RegisterDialog<ShapeTemplateVerifyDialogView, ShapeTemplateVerifyDialogViewModel>(
-            HalconNavigationConstants.Dialogs.ShapeTemplateVerify);
+        // 视觉资产包（.vpk）编辑器：按布局编辑原图 / ROI / 形状模型 / 参数 / 附件，校验通过后保存
+        containerRegistry.RegisterDialog<VisionPackageEditorDialogView, VisionPackageEditorDialogViewModel>(
+            HalconNavigationConstants.Dialogs.VisionPackageEditor);
     }
 
     public void OnInitialized(IContainerProvider containerProvider)

@@ -3,8 +3,38 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.5</Version>
+    <Version>1.1.0</Version>
     <PackageReleaseNotes>
+v1.1.0 (2026-10-10) — 视觉资产包（.vpk）取代 .roipk；修复 HALCON 区域裁剪尺寸按线程缓存导致 ROI 被裁空、进程启动后第一次执行过程失败（含破坏性变更）
+
+[新增 — 视觉资产包 PF.Vision.Halcon.Packaging]
+- 包为 zip（.vpk），根目录 manifest.json 记录格式版本、布局 id/版本、修订号、保存时间/保存人与全部条目；
+  读取一律以 manifest 为准。设计说明见框架仓库 DOC/视觉资产包设计稿.md。
+- 布局（目录配置）由项目在代码里声明：VisionPackageLayout.Create(id, version).Image/Roi/ShapeModel/Data&lt;T&gt;/File…Build()，
+  声明时校验 id、依赖存在、依赖类型、无环；自定义条目类型用 VisionPackage.RegisterKind 注册。
+- 内置条目：原图（默认无损 PNG，可选原文件原样 / TIFF / BMP / JPEG）、ROI（原图坐标）、形状模型（派生，由原图 + ROI
+  按建模参数生成）、Data&lt;T&gt;（宽松反序列化 + 可选 IVisionPackageData 自校验）、附件。
+- 依赖与一致性：条目记录生成/绘制时各依赖的指纹，状态 Missing / Ok / Stale / Invalid / Extra 沿依赖向下游传播；
+  换原图时按"同一文件 / 尺寸相同内容不同（ROI 需确认）/ 尺寸不同（ROI 失效需重画）"处理；派生条目可重新生成。
+- VisionPackageSession：只在内存 + 临时目录里编辑，Save 前自动生成派生条目并强制校验，写临时文件后替换原文件，
+  修订号 +1；不保存直接 Dispose 即放弃修改。
+- VisionPackageReader（生产）：校验格式版本、布局 id 与版本（完全相等），按需只解压单个条目并核对内容哈希。
+- AddVisionPackageServices(directory) + VisionPackage.PathOf(name) 按名字存取。
+
+[破坏性变更 — ShapeTemplateService]
+- 删除 SaveTemplate / LoadTemplate / LoadTemplateForEdit / LoadTemplateForEditFromPath / TemplateDirectory /
+  GetAvailableTemplateNames 与 ShapeTemplateEditSession；只保留 CreateTemplate / FindMatches / GetMatchedContour。
+  形状模型改为视觉资产包的 ShapeModel 条目（编辑用 VisionPackageSession，生产读取用 VisionPackageReader.LoadShapeModel）。
+- AddShapeTemplateServices 改为 AddVisionPackageServices。旧 .roipk 不再支持，需重建。
+
+[修复 — 严重：HALCON 区域裁剪尺寸按线程缓存]
+- clip_region=true（默认）时，新生成的区域裁剪到"当前图像尺寸"，而该尺寸按线程缓存：线程第一次用 HALCON 时记下当时的
+  全局 width/height（未读图时 128×128），之后别的线程读了大图也不会变。后果（11000×16384 图实测）：
+  · 图在后台线程读、UI 线程上生成 ROI 区域面积为 0（ROI 编辑器看不到拖拽预览、算外接矩形报"区域为空"）；
+  · 视觉引擎工作线程缓存了小尺寸，进程启动后第一次执行过程 reduce_domain 得到空图，匹配必失败，执行过一次后才正常。
+- 新增 HalconThreadContext：RoiRegionBuilder / ShapeTemplateService 在当前线程关闭区域裁剪（EnsureRegionClipOff）；
+  HalconVisionService 执行过程前把工作线程裁剪尺寸设成输入图像尺寸（SyncClipSize），保留裁剪语义、与 HDevelop 一致。
+
 v1.0.5 (2026-10-09) — dict 控制输出夹带图标量时拆分返回
 
 [修复 — HalconVisionService 控制输出收集]

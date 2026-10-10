@@ -23,16 +23,12 @@ public static class HalconNavigationConstants
         public const string RoiEditor = "RoiEditorDialog";
 
         /// <summary>
-        /// ROI 形状模板编辑弹窗：选参考图（或用 DialogParameters 的 "ImagePath" 注入）→ 画 ROI →
-        /// 建立模板 → 按名字存盘。范围到"存盘"为止，不含"在新图上查找/预览"——那是消费方自己的事。
+        /// 视觉资产包（<c>.vpk</c>）编辑器：左侧按布局显示条目树，右侧按条目类型切换编辑页，校验通过后保存。
+        /// DialogParameters：<c>"Layout"</c>（<c>VisionPackageLayout</c>，必需）；<c>"PackagePath"</c>（string）或
+        /// <c>"PackageName"</c>（string，按 <c>VisionPackage.PathOf</c> 拼路径）——文件存在则打开，否则新建；
+        /// <c>"ImagePath"</c>（string，可选，新建时预填第一张原图）。关闭时带回 <c>"PackagePath"</c>、
+        /// <c>"Revision"</c>（int）、<c>"Saved"</c>（bool，本次是否保存过；保存过时结果为 OK）。
         /// </summary>
-        public const string ShapeTemplateEditor = "ShapeTemplateEditorDialog";
-
-        /// <summary>
-        /// ROI 形状模板验证弹窗：按名字加载一个已存在的模板 → 在一张图（DialogParameters 的
-        /// "ImagePath" 注入，或弹窗里自己选）上查找匹配、调 <c>ShapeMatchOptions</c>、看叠加轮廓。
-        /// 纯只读验证，不改模板本身，不写回任何状态。
-        /// </summary>
-        public const string ShapeTemplateVerify = "ShapeTemplateVerifyDialog";
+        public const string VisionPackageEditor = "VisionPackageEditorDialog";
     }
 }

@@ -1,5 +1,6 @@
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Vision;
+using PF.Vision.Halcon.Packaging;
 using PF.Vision.Halcon.Services;
 using Prism.Ioc;
 using System.IO;
@@ -51,20 +52,19 @@ public static class VisionServiceExtensions
     }
 
     /// <summary>
-    /// 配置 <see cref="ShapeTemplateService"/> 的模板存放目录（消费项目启动时调用一次）。
-    /// 之后无论是框架侧的 ROI 模板编辑弹窗，还是消费方自己的代码，存/取模板都只需要传一个名字，
-    /// 不用互相传递完整路径——跟 <see cref="AddVisionServices"/> 里 <c>procedureDirectory</c>
-    /// 的思路一致。
+    /// 配置视觉资产包（<c>.vpk</c>）的存放目录（消费项目启动时调用一次）。之后用
+    /// <see cref="VisionPackage.PathOf"/> 按名字拼路径，不用互相传递完整路径——跟
+    /// <see cref="AddVisionServices"/> 里 <c>procedureDirectory</c> 的思路一致。
     /// </summary>
-    /// <param name="containerRegistry">Prism 容器注册器（<see cref="ShapeTemplateService"/> 本身是
-    /// 静态类，不需要真的注册进容器，这里只是保持跟 <see cref="AddVisionServices"/> 一致的调用手感）。</param>
-    /// <param name="templateDirectory">模板包（<c>.roipk</c>）存放目录，不存在会自动创建。</param>
-    public static IContainerRegistry AddShapeTemplateServices(
+    /// <param name="containerRegistry">Prism 容器注册器（<see cref="VisionPackage"/> 是静态类，不进容器，
+    /// 这里只是保持跟 <see cref="AddVisionServices"/> 一致的调用手感）。</param>
+    /// <param name="packageDirectory">包存放目录，不存在会自动创建。</param>
+    public static IContainerRegistry AddVisionPackageServices(
         this IContainerRegistry containerRegistry,
-        string templateDirectory)
+        string packageDirectory)
     {
-        Directory.CreateDirectory(templateDirectory);
-        ShapeTemplateService.TemplateDirectory = Path.GetFullPath(templateDirectory);
+        Directory.CreateDirectory(packageDirectory);
+        VisionPackage.Directory = Path.GetFullPath(packageDirectory);
         return containerRegistry;
     }
 }

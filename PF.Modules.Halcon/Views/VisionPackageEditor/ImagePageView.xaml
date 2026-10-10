@@ -1,0 +1,53 @@
+<UserControl
+    x:Class="PF.Modules.Halcon.Views.VisionPackageEditor.ImagePageView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:PF.Modules.Halcon.Controls"
+    xmlns:local="clr-namespace:PF.Modules.Halcon"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:views="clr-namespace:PF.Modules.Halcon.Views.VisionPackageEditor">
+
+    <UserControl.Resources>
+        <ResourceDictionary Source="/PF.Modules.Halcon;component/Views/VisionPackageEditor/EditorStyles.xaml" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="280" />
+        </Grid.ColumnDefinitions>
+
+        <views:PageHeaderView Grid.Row="0" Grid.ColumnSpan="3" />
+
+        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource VpkImageBorder}">
+            <controls:HalconImageViewer x:Name="Viewer" />
+        </Border>
+
+        <StackPanel Grid.Row="1" Grid.Column="2">
+            <TextBlock Style="{StaticResource VpkSectionTitle}" Text="原图信息" />
+            <TextBlock
+                Margin="0,0,0,12"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Text="{Binding Info}"
+                TextWrapping="Wrap" />
+            <Button
+                Padding="10,6"
+                HorizontalAlignment="Stretch"
+                Command="{Binding ImportCommand}"
+                Content="导入 / 替换原图…"
+                oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.ImportImage}"
+                Style="{DynamicResource ButtonPrimary}" />
+            <TextBlock
+                Margin="0,10,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThirdlyTextBrush}"
+                Text="替换原图时会与当前图比对：尺寸相同的，依赖它的 ROI 保留坐标、需逐个确认位置；尺寸不同的，依赖它的 ROI 失效需重画。"
+                TextWrapping="Wrap" />
+        </StackPanel>
+    </Grid>
+</UserControl>

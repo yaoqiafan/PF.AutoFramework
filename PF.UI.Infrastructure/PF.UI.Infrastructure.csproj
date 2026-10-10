@@ -31,8 +31,16 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-10-10) — 修复弹窗偶发"消失"像卡死
+
+[修复 — PFDialogBaseWindow]
+- Prism 打开弹窗时只取"当前激活的窗口"当所有者，那一刻程序没有激活窗口（刚点过别的程序、刚关掉提示框）时所有者为空；
+  本窗口是 ToolWindow 样式、不进任务栏，模态弹窗又禁用了主窗口，弹窗落到别的程序后面就只能去任务管理器"切换到"。
+  现在显示前（IDialogWindow.Show/ShowDialog）补所有者：为空或不可见时改用可见的主窗口；没有可见窗口时进任务栏，
+  图标借用主窗口图标（无则用框架默认图标）；首次显示后主动激活。
+
 v1.0.6 (2026-09-18) — 修复 WaitDialogViewModel 任务过快完成时的关闭异常
 
 [修复]

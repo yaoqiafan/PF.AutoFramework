@@ -1,8 +1,5 @@
 using HalconDotNet;
-using PF.Core.Interfaces.Vision.Pipeline;
 using PF.Vision.Halcon.Models;
-using System.IO.Compression;
-using System.Text.Json;
 
 namespace PF.Vision.Halcon.Services;
 
@@ -11,74 +8,21 @@ namespace PF.Vision.Halcon.Services;
 /// **不经过 HDevEngine**——跟 <see cref="Internal.RoiRegionBuilder"/> 同一路子，纯托管方法调用，
 /// 可在任意线程调用，不用像 <c>HalconVisionService</c> 那样排队到专用 Worker 线程。
 ///
-/// <para>典型用法（三步）：<see cref="CreateTemplate"/> 在参考图的 ROI 区域内建模板 →
-/// <see cref="SaveTemplate"/> 存盘（可选，<see cref="LoadTemplate"/> 读回）→
-/// <see cref="FindMatches"/> 在新图上找，拿到匹配位姿（Row/Column/Angle/Score）。
-/// ROI 区域建议用 <see cref="Internal.RoiRegionBuilder.Build"/> 从一组
-/// <c>VisionRoiConfig</c> 拼出来——已经支持多区域 Include/Exclude 拼接成复杂形状。</para>
+/// <para>本类只管算法：<see cref="CreateTemplate"/> 在图的 ROI 区域内建模板、<see cref="FindMatches"/>
+/// 在新图上找、<see cref="GetMatchedContour"/> 取命中位置的轮廓。ROI 区域建议用
+/// <see cref="Internal.RoiRegionBuilder.Build"/> 从一组 <c>VisionRoiConfig</c> 拼出来。</para>
 ///
-/// <para>模板不解释用途——位姿结果拿去做"补偿图像整体偏移/旋转"还是"限定后续算法处理范围"，
-/// 由调用方决定，这里只管建模板和找模板两件事。</para>
+/// <para><b>模板的存取不在这里</b>：形状模型作为视觉资产包（<c>.vpk</c>）的 <c>ShapeModel</c> 条目保存，
+/// 编辑用 <see cref="Packaging.VisionPackageSession"/>，生产读取用
+/// <see cref="Packaging.VisionPackageReader.LoadShapeModel"/>（v1.1.0 起取代原 <c>.roipk</c> 的
+/// SaveTemplate/LoadTemplate 系列方法）。</para>
 ///
-/// <para><b>模板按名字存取，不是按裸路径</b>：<see cref="SaveTemplate"/>/<see cref="LoadTemplate"/>
-/// 只收一个名字，实际文件路径由 <see cref="TemplateDirectory"/> 拼出来——跟 <c>.hdev</c> 过程目录
-/// （<c>AddVisionServices(procedureDirectory, ...)</c>）同一个思路：消费项目在启动时用
-/// <c>AddShapeTemplateServices(templateDirectory)</c> 配一次目录，之后无论是框架侧的
-/// ROI 模板编辑弹窗（<c>ShapeTemplateEditorDialogView</c>），还是消费方自己代码里要找模板，
-/// 都只需要认一个名字，不用互相传递/记住完整路径。</para>
-///
-/// <para><b>模板文件是打包格式（<c>.roipk</c>），不是裸 <c>.shm</c></b>：HALCON 形状模型本身
-/// 只保存训练好的轮廓特征，不保存建模板时画的 ROI 区域——单存一个 <c>.shm</c> 没法在调试时
-/// "重新打开、微调 ROI"。<see cref="SaveTemplate"/> 把 <c>model.shm</c>（生产匹配用）、
-/// <c>rois.json</c>（ROI 绘制过程，<see cref="VisionRoiConfig"/> 列表）、<c>reference.jpg</c>
-/// （建模板用的参考图，微调时用来重新画 ROI；JPEG 有损压缩——这张图不参与匹配，只给人看，
-/// 换体积很划算）打成一个 zip；<see cref="LoadTemplate"/>（生产路径）
-/// 只解 <c>model.shm</c>，<see cref="LoadTemplateForEdit"/>（调试微调路径）解另外两块——两条路径
-/// 互不影响，生产端不会因为这次改动多付任何解压/反序列化的开销。</para>
+/// <para>模板不解释用途——位姿结果拿去做"补偿图像整体偏移/旋转"还是"限定后续算法处理范围"，由调用方决定。</para>
 /// </summary>
 public static class ShapeTemplateService
 {
     /// <summary>
-    /// 模板文件存放目录，由消费项目在启动时通过 <c>AddShapeTemplateServices(templateDirectory)</c>
-    /// 设置一次。未配置时调用 <see cref="SaveTemplate"/>/<see cref="LoadTemplate"/> 会抛异常——
-    /// 不要静默退化成相对路径，否则存的文件会落进进程当前工作目录这种谁也找不到的地方。
-    /// </summary>
-    public static string? TemplateDirectory { get; set; }
-
-    private static string ResolvePath(string name)
-    {
-        if (string.IsNullOrWhiteSpace(TemplateDirectory))
-            throw new InvalidOperationException(
-                $"{nameof(ShapeTemplateService)}.{nameof(TemplateDirectory)} 未配置——" +
-                "消费项目需先在启动代码里调用 AddShapeTemplateServices(templateDirectory) " +
-                "（见 PF.Vision.Halcon.Extensions.VisionServiceExtensions），或手动设置该属性。");
-
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("模板名字不能为空。", nameof(name));
-
-        return System.IO.Path.Combine(TemplateDirectory, name + ".roipk");
-    }
-
-    /// <summary>
-    /// 列出 <see cref="TemplateDirectory"/> 下所有可用模板的名字（不含扩展名），供下拉选择控件用
-    /// （比如程式参数里"关联 ROI 模板"那个下拉框）。目录未配置/不存在时返回空列表，不抛异常——
-    /// 这是给 UI 展示用的只读查询，不该让调用方（往往是 PropertyGrid 的编辑器）因为目录没配就
-    /// 渲染失败。
-    /// </summary>
-    public static IReadOnlyList<string> GetAvailableTemplateNames()
-    {
-        if (string.IsNullOrWhiteSpace(TemplateDirectory) || !Directory.Exists(TemplateDirectory))
-            return [];
-
-        return Directory.GetFiles(TemplateDirectory, "*.roipk")
-            .Select(System.IO.Path.GetFileNameWithoutExtension)
-            .Where(n => !string.IsNullOrEmpty(n))
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .ToList()!;
-    }
-
-    /// <summary>
-    /// 用一张参考图 + ROI 区域建立形状模板。内部先 <c>ReduceDomain</c> 把图像限制到
+    /// 用一张图 + ROI 区域建立形状模板。内部先 <c>ReduceDomain</c> 把图像限制到
     /// <paramref name="roiRegion"/>，再 <c>CreateShapeModel</c>——模板只认区域内的边缘特征。
     /// 返回的 <see cref="ShapeTemplateHandle"/> 用完必须 <see cref="ShapeTemplateHandle.Dispose"/>，
     /// 否则 HALCON 模型资源（<c>ClearShapeModel</c>）不会释放。
@@ -87,6 +31,7 @@ public static class ShapeTemplateService
         HObject image, HObject roiRegion, ShapeTemplateCreateOptions? options = null)
     {
         options ??= new ShapeTemplateCreateOptions();
+        HalconThreadContext.EnsureRegionClipOff();
 
         HOperatorSet.ReduceDomain(image, roiRegion, out HObject reduced);
         try
@@ -116,126 +61,6 @@ public static class ShapeTemplateService
     }
 
     /// <summary>
-    /// 把模板按名字打包写盘：<c>model.shm</c>（<c>WriteShapeModel</c>）+ <c>rois.json</c>
-    /// （<paramref name="rois"/> 序列化）+ <c>reference.jpg</c>（<paramref name="referenceImage"/>，
-    /// JPEG 质量 90——纯参考用途，不参与匹配，用有损压缩换体积）
-    /// + 可选的 <c>meta.json</c>（<paramref name="extraMetadataJson"/>，原样落盘，本类不解释
-    /// 内容），压成一个 <c>.roipk</c> zip，实际路径 = <see cref="TemplateDirectory"/> +
-    /// <paramref name="name"/> + <c>.roipk</c>。同名已存在时整体覆盖。
-    /// </summary>
-    /// <param name="extraMetadataJson">
-    /// 调用方想跟着这个模板一起存的任意 JSON 文本（比如"这个 ROI 对应网格第几行第几列"）——
-    /// 本类不解释、不校验内容，只管原样存、原样在 <see cref="LoadTemplateForEdit"/> 时吐回去。
-    /// 传 null/空串则不写这个条目（老模板/不需要元数据的调用方完全不受影响）。
-    /// </param>
-    public static void SaveTemplate(
-        ShapeTemplateHandle handle, HObject referenceImage,
-        IReadOnlyList<VisionRoiConfig> rois, string name,
-        string? extraMetadataJson = null)
-    {
-        string path = ResolvePath(name);
-        string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "PF.ShapeTemplate_" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempDir);
-        try
-        {
-            HOperatorSet.WriteShapeModel(handle.ModelId, System.IO.Path.Combine(tempDir, "model.shm"));
-            File.WriteAllText(System.IO.Path.Combine(tempDir, "rois.json"), JsonSerializer.Serialize(rois));
-            // JPEG 而非 PNG：这张图纯粹给人看"ROI 画在哪"，不参与匹配（匹配靠上面的 model.shm），
-            // 有损压缩换来的体积收益很值——线扫相机原图分辨率下，PNG 无损常常是大头。
-            // 90 是质量（0-100），FillColor 参数对 jpeg 格式即压缩质量。
-            HOperatorSet.WriteImage(referenceImage, "jpeg", 90, System.IO.Path.Combine(tempDir, "reference.jpg"));
-            if (!string.IsNullOrEmpty(extraMetadataJson))
-                File.WriteAllText(System.IO.Path.Combine(tempDir, "meta.json"), extraMetadataJson);
-
-            if (File.Exists(path)) File.Delete(path);
-            ZipFile.CreateFromDirectory(tempDir, path);
-        }
-        finally
-        {
-            Directory.Delete(tempDir, recursive: true);
-        }
-    }
-
-    /// <summary>
-    /// 按名字从盘上读回模板供生产匹配用——只解包 <c>model.shm</c>（<c>ReadShapeModel</c>），
-    /// 不碰 <c>rois.json</c>/参考图，运行时路径不为这次改动多付任何解压/反序列化开销。
-    /// 同样需要调用方负责 Dispose。找不到文件/包内缺模型条目时抛异常，不在这里吞掉——
-    /// "模板名字打错了/还没建过/包已损坏"应该让消费方明确看到失败，不是静默拿到一个空模型。
-    /// </summary>
-    public static ShapeTemplateHandle LoadTemplate(string name)
-    {
-        string path = ResolvePath(name);
-        string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".shm");
-        try
-        {
-            using var zip = ZipFile.OpenRead(path);
-            var entry = zip.GetEntry("model.shm")
-                ?? throw new InvalidOperationException($"模板包 [{name}] 缺少 model.shm，可能已损坏。");
-            entry.ExtractToFile(tempFile, overwrite: true);
-
-            HOperatorSet.ReadShapeModel(tempFile, out HTuple modelId);
-            return new ShapeTemplateHandle(modelId);
-        }
-        finally
-        {
-            if (File.Exists(tempFile)) File.Delete(tempFile);
-        }
-    }
-
-    /// <summary>
-    /// 按名字读回模板的 ROI 绘制过程 + 参考图，供调试时"重新打开模板微调 ROI"用——
-    /// 跟 <see cref="LoadTemplate"/>（生产路径，只认 <c>model.shm</c>）完全独立，互不影响。
-    /// 返回值里 <see cref="ShapeTemplateEditSession.ReferenceImage"/> 的所有权转给调用方，
-    /// 用完需自行 Dispose（跟 <c>HOperatorSet.ReadImage</c> 的一贯所有权约定一致）。
-    /// </summary>
-    public static ShapeTemplateEditSession LoadTemplateForEdit(string name)
-        => LoadEditSessionFromZip(ResolvePath(name), name);
-
-    /// <summary>
-    /// 跟 <see cref="LoadTemplateForEdit"/> 一样，但直接给一个 <c>.roipk</c> 文件的裸路径——
-    /// 给"弹文件选择框选模板文件"这条交互用，不强求文件落在 <see cref="TemplateDirectory"/> 里，
-    /// 也不需要提前知道名字。
-    /// </summary>
-    public static ShapeTemplateEditSession LoadTemplateForEditFromPath(string filePath)
-        => LoadEditSessionFromZip(filePath, System.IO.Path.GetFileNameWithoutExtension(filePath));
-
-    private static ShapeTemplateEditSession LoadEditSessionFromZip(string path, string displayName)
-    {
-        using var zip = ZipFile.OpenRead(path);
-
-        var roisEntry = zip.GetEntry("rois.json")
-            ?? throw new InvalidOperationException($"模板包 [{displayName}] 缺少 rois.json，可能是旧版本模板（改版前存的裸 .shm 不支持微调）。");
-        List<VisionRoiConfig> rois;
-        using (var roisStream = roisEntry.Open())
-            rois = JsonSerializer.Deserialize<List<VisionRoiConfig>>(roisStream) ?? [];
-
-        var imgEntry = zip.GetEntry("reference.jpg")
-            ?? throw new InvalidOperationException($"模板包 [{displayName}] 缺少 reference.jpg，可能是旧版本模板。");
-        string tempImg = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".jpg");
-        try
-        {
-            imgEntry.ExtractToFile(tempImg, overwrite: true);
-            HOperatorSet.ReadImage(out HObject image, tempImg);
-
-            // meta.json 是可选条目——老模板（改这次之前存的）没有这个条目，读不到就是 null，
-            // 不当错误处理，调用方自己决定 null 时怎么办。
-            string? extraMetadataJson = null;
-            if (zip.GetEntry("meta.json") is { } metaEntry)
-            {
-                using var metaStream = metaEntry.Open();
-                using var reader = new StreamReader(metaStream);
-                extraMetadataJson = reader.ReadToEnd();
-            }
-
-            return new ShapeTemplateEditSession(image, rois, extraMetadataJson);
-        }
-        finally
-        {
-            if (File.Exists(tempImg)) File.Delete(tempImg);
-        }
-    }
-
-    /// <summary>
     /// 在新图上查找模板（<c>FindShapeModel</c>），按 <see cref="ShapeMatchOptions.NumMatches"/>
     /// 返回 0..N 个匹配，按 HALCON 返回顺序（一般是分数从高到低）。
     /// </summary>
@@ -243,6 +68,7 @@ public static class ShapeTemplateService
         HObject image, ShapeTemplateHandle handle, ShapeMatchOptions? options = null)
     {
         options ??= new ShapeMatchOptions();
+        HalconThreadContext.EnsureRegionClipOff();
 
         HOperatorSet.FindShapeModel(
             image,
@@ -287,20 +113,9 @@ public static class ShapeTemplateService
 }
 
 /// <summary>
-/// <see cref="ShapeTemplateService.LoadTemplateForEdit"/> 的返回值——重新打开一个模板包用来微调
-/// ROI 所需的全部东西：当初建模板的参考图 + 画的 ROI 列表 + 调用方当初存的不透明元数据
-/// （<see cref="ExtraMetadataJson"/>，见 <see cref="ShapeTemplateService.SaveTemplate"/>）。
-/// <see cref="ReferenceImage"/> 的所有权转给调用方，用完需自行 Dispose；本身不是
-/// <see cref="IDisposable"/>，不引入新的释放规则。
-/// </summary>
-public sealed record ShapeTemplateEditSession(
-    HObject ReferenceImage, IReadOnlyList<VisionRoiConfig> Rois, string? ExtraMetadataJson = null);
-
-/// <summary>
 /// 一个已建立（或已读回）的形状模板的句柄，内部持有 HALCON <c>ModelID</c>。
 /// 用完必须 <see cref="Dispose"/>（<c>ClearShapeModel</c>），否则 HALCON 侧模型资源不释放。
-/// <c>ModelId</c> 特意只暴露给 <see cref="ShapeTemplateService"/> 内部方法用——外部调用方
-/// 不需要、也不应该直接碰 HTuple，全部通过本类的静态方法操作。
+/// <c>ModelId</c> 只在本程序集内部使用——外部调用方通过 <see cref="ShapeTemplateService"/> 的静态方法操作。
 /// </summary>
 public sealed class ShapeTemplateHandle : IDisposable
 {
