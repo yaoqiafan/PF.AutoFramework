@@ -49,7 +49,7 @@ DialogService.ShowDialog(HalconNavigationConstants.Dialogs.VisionPackageEditor, 
 - 页面上未应用的修改，切走 / 保存 / 关闭前都会提示；有未保存的修改时关闭提示放弃。标题栏 × 与底部「关闭」走同一流程。
 - 打开大包（含原图预解码）、导入原图、生成模型、保存都在后台线程执行，期间显示忙碌遮罩。
 
-**自定义条目类型的编辑页**：`IPackageEntryKind.EditorViewName` 指向一个用 `RegisterForNavigation` 注册的视图；视图本身或其 DataContext 实现 `IVisionPackageEntryEditor`（`Attach(session, entryId)` / `Detach()`）即可挂进右侧。
+**自定义编辑页**：`IPackageEntryKind.EditorViewName`（整类条目）或布局里的 `editorView` 参数（单个条目，如 `.Data<GridCell>("Cell", "行列号", editorView: "MyCellEditor")`）指向一个用 `RegisterForNavigation` 注册的视图；视图本身或其 DataContext 实现 `IVisionPackageEntryEditor`（`Attach(session, entryId)` / `Detach()`）即可挂进右侧。编辑页直接调用会话方法修改数据，编辑器会随 `Changed` 刷新树和校验栏。
 
 ## `HalconDebugView`：过程调试 + 引擎耦合自检（v1.0.3 起）
 

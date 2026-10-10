@@ -20,6 +20,7 @@ v1.1.0 (2026-10-10) — 视觉资产包（.vpk）取代 .roipk；修复 HALCON �
   修订号 +1；不保存直接 Dispose 即放弃修改。
 - VisionPackageReader（生产）：校验格式版本、布局 id 与版本（完全相等），按需只解压单个条目并核对内容哈希。
 - AddVisionPackageServices(directory) + VisionPackage.PathOf(name) 按名字存取。
+- 布局条目可用 editorView（Data&lt;T&gt; / Entry 的可选参数，LayoutEntry.EditorView）指定项目自己的编辑页，覆盖默认页。
 
 [破坏性变更 — ShapeTemplateService]
 - 删除 SaveTemplate / LoadTemplate / LoadTemplateForEdit / LoadTemplateForEditFromPath / TemplateDirectory /

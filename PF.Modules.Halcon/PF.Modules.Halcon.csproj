@@ -15,7 +15,8 @@ v1.1.0 (2026-10-10) — 新增视觉资产包编辑器；删除 ROI 形状模板
 - 耗时操作（打开大包含原图预解码、导入原图、生成模型、保存）在后台线程执行并显示忙碌遮罩。
 - 切走/保存/关闭前提示未应用的修改；有未保存修改时关闭提示放弃；标题栏 × 与底部「关闭」走同一流程。
 - DialogParameters："Layout"（必需）、"PackagePath" 或 "PackageName"、"ImagePath"（可选）；
-  关闭带回 "PackagePath"、"Revision"、"Saved"。自定义条目类型的编辑页实现 IVisionPackageEntryEditor 即可挂入。
+  关闭带回 "PackagePath"、"Revision"、"Saved"。自定义条目类型的编辑页实现 IVisionPackageEntryEditor 即可挂入；
+  布局条目指定了 EditorView 时，用该视图替代默认编辑页。
 
 [破坏性变更]
 - 删除 ShapeTemplateEditorDialog、ShapeTemplateVerifyDialog（及 HalconNavigationConstants.Dialogs 对应常量、

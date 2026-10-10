@@ -90,8 +90,12 @@ public sealed class VisionPackageLayout
                      new ShapeModelEntryOptions(options ?? new ShapeTemplateCreateOptions()));
 
         /// <summary>结构化参数，按 <typeparamref name="T"/> 序列化（宽松反序列化 + 可选自校验）。</summary>
-        public Builder Data<T>(string id, string title, bool required = true) where T : class, new()
-            => Entry(BuiltInKinds.Data, id, title, required, null, new DataEntryOptions(typeof(T)));
+        /// <param name="editorView">
+        /// 可选：自定义编辑页的 Prism 视图名（已用 <c>RegisterForNavigation</c> 注册、实现 <c>IVisionPackageEntryEditor</c>），
+        /// 替代编辑器默认的 PropertyGrid 页——比如需要"在参考图上点选"这类项目专属交互时。
+        /// </param>
+        public Builder Data<T>(string id, string title, bool required = true, string? editorView = null) where T : class, new()
+            => Entry(BuiltInKinds.Data, id, title, required, null, new DataEntryOptions(typeof(T)), editorView);
 
         /// <summary>附件，原样保存。</summary>
         /// <param name="extensions">允许的扩展名（含点，如 <c>.txt</c>），null/空 = 不限。</param>
@@ -106,11 +110,13 @@ public sealed class VisionPackageLayout
         /// <param name="required">是否必填。</param>
         /// <param name="dependsOn">依赖：角色 → 条目 id。</param>
         /// <param name="options">交给条目类型自己解释的选项。</param>
+        /// <param name="editorView">可选：覆盖条目类型默认编辑页的 Prism 视图名（见 <see cref="LayoutEntry.EditorView"/>）。</param>
         public Builder Entry(string kind, string id, string title, bool required = true,
-                             IReadOnlyDictionary<string, string>? dependsOn = null, object? options = null)
+                             IReadOnlyDictionary<string, string>? dependsOn = null, object? options = null,
+                             string? editorView = null)
         {
             _entries.Add(new LayoutEntry(id, kind, title, _group, required,
-                dependsOn ?? new Dictionary<string, string>(), options));
+                dependsOn ?? new Dictionary<string, string>(), options) { EditorView = editorView });
             return this;
         }
 
@@ -205,7 +211,14 @@ public sealed record LayoutEntry(
     string? Group,
     bool Required,
     IReadOnlyDictionary<string, string> DependsOn,
-    object? Options);
+    object? Options)
+{
+    /// <summary>
+    /// 覆盖条目类型默认编辑页的 Prism 视图名（null = 用条目类型的默认页）。视图本身或其 DataContext 实现
+    /// <c>PF.Modules.Halcon</c> 的 <c>IVisionPackageEntryEditor</c>，编辑器把会话和条目 id 交给它。
+    /// </summary>
+    public string? EditorView { get; init; }
+}
 
 /// <summary>原图的存储方式。</summary>
 public enum ImageStorage

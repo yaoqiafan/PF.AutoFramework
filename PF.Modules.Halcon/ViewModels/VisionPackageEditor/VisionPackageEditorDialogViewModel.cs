@@ -361,6 +361,8 @@ public sealed class VisionPackageEditorDialogViewModel : PFDialogViewModelBase, 
         {
             var st = Session.GetState(id);
             if (st.Status == EntryStatus.Extra) return new InfoPageViewModel(this, id);
+            if (Layout.Find(id)?.EditorView is { } overrideView)
+                return new CustomPageViewModel(this, id, overrideView);   // 布局为这个条目指定了项目自己的编辑页
             return st.Kind switch
             {
                 BuiltInKinds.Image      => new ImagePageViewModel(this, id),
