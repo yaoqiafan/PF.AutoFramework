@@ -3,8 +3,23 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.31</Version>
+		<Version>1.0.32</Version>
 		<PackageReleaseNotes>
+v1.0.32 (2026-10-12) — 线扫曝光与扫描速度匹配校验（像素精度 / 行频 / 最大曝光）
+
+[新增 — ScanGeometry]
+- LineRateHz(像素精度) = 速度 × 1000 ÷ 像素精度；MaxExposureUs(像素精度) = 像素精度 ÷ 速度 × 1000（即行周期）；
+  MaxVelocityFor(曝光, 像素精度) 反算最大速度。速度按轴点位表工程单位 mm/s、像素精度 μm/行。
+- CheckExposure(曝光, 像素精度) → ExposureCheck（Unknown / Ok / NearLimit / Exceeded）：硬上限 = 行周期，
+  超过 ExposureWarnRatio（90%）为 NearLimit；DescribeExposureExceeded 给出含两种改法的中文说明。
+- 新增枚举 ExposureCheck。
+
+[新增 — VisionRequest.WaitForDebugConnection]
+- 本次执行是否在过程入口暂停等调试器连接（默认 false）。仅 Debug 引擎、调试服务器已启动时生效（PF.Vision.Halcon 1.1.0）。
+
+[文档 — ILineScanCamera.LineSpacingUm]
+- 明确为"像素精度"：编码器模式下由编码器换算，否则取硬件配置（实现支持时），线扫模组据此算行频/最大曝光。
+
 v1.0.31 (2026-09-28) — 安全门门锁输出绑定：配置门锁输出端口/有效电平，Monitor 新增上锁许可 API；扫码结果 IsSuccess 语义调整
 
 [新增 — IHardwareInputConfig]

@@ -244,7 +244,7 @@
                         <TextBlock
                             Margin="0,0,0,10"
                             Style="{StaticResource Hint}"
-                            Text="位置、速度、加减速、S曲线时间都取自下面选中点位在轴点表里的配置，要改这些请去轴调试页改点表。" />
+                            Text="位置、速度、加减速、S曲线时间都取自下面选中点位在轴点表里的配置。扫描速度 = 终点速度，可在下方直接改并保存；其余参数请去轴调试页改点表。" />
 
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
@@ -299,8 +299,45 @@
                                 Style="{DynamicResource ButtonDefault}" />
                         </Grid>
 
+                        <!--  终点速度：扫描速度取自终点点位，跟曝光直接相关（最大曝光 = 像素精度 ÷ 速度），这里可快捷修改并保存回点表  -->
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="扫描速度（终点点位）" />
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                Grid.Column="0"
+                                Height="30"
+                                VerticalContentAlignment="Center"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanDetectionModuleDebugView.EndSpeed}"
+                                Text="{Binding EndSpeedText, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="终点点位速度（mm/s），点「保存速度」写回轴点位表并持久化" />
+                            <Button
+                                Grid.Column="2"
+                                Height="30"
+                                Padding="10,0"
+                                Command="{Binding FillSafeSpeedCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanDetectionModuleDebugView.FillSafeSpeed}"
+                                Content="按曝光填入安全速度"
+                                Style="{DynamicResource ButtonDefault}"
+                                ToolTip="按下方曝光反算最大速度（像素精度 ÷ 曝光），填入它的 90%；还要点「保存速度」才生效" />
+                            <Button
+                                Grid.Column="4"
+                                Height="30"
+                                Padding="10,0"
+                                Command="{Binding SaveEndSpeedCommand}"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanDetectionModuleDebugView.SaveEndSpeed}"
+                                Content="保存速度"
+                                Style="{DynamicResource ButtonPrimary}"
+                                ToolTip="把速度写回终点点位并保存轴点位表，随后重算行频/最大曝光" />
+                        </Grid>
+
                         <!--  曝光：帧长/行频这类成像参数已经配置在相机自己身上（UserSetDefault），
-                              这里只留曝光时间——留空表示不下发，沿用相机当前曝光。  -->
+                              这里只留曝光时间——留空表示不下发，沿用相机当前曝光；填了按当前速度校验（不能超过行周期）。  -->
                         <TextBlock Style="{StaticResource GroupTitle}" Text="曝光" />
                         <StackPanel Margin="0,0,0,20">
                             <TextBlock Style="{StaticResource FieldLabel}" Text="曝光时间(μs)（留空 = 不下发，沿用相机当前曝光）" />
@@ -309,9 +346,32 @@
                                 VerticalContentAlignment="Center"
                                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanDetectionModuleDebugView.ExposureTimeUs}"
                                 Text="{Binding ExposureTimeUs, UpdateSourceTrigger=PropertyChanged}" />
+                            <!--  校验提示：超限红（禁止扫描），超过 90% 黄，通过绿  -->
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                FontSize="{DynamicResource FontSize.Body.Small}"
+                                Text="{Binding ExposureHintText}"
+                                TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#6B7280" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ExposureCheck}" Value="Ok">
+                                                <Setter Property="Foreground" Value="#15803D" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ExposureCheck}" Value="NearLimit">
+                                                <Setter Property="Foreground" Value="#B45309" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ExposureCheck}" Value="Exceeded">
+                                                <Setter Property="Foreground" Value="#B91C1C" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
 
-                        <!--  换算结果：只剩轴几何相关的量，帧长/行频不在这里——已经在相机自己身上  -->
+                        <!--  换算结果：轴几何 + 曝光/速度匹配（行频 = 速度 ÷ 像素精度，最大曝光 = 行周期）  -->
                         <TextBlock Style="{StaticResource GroupTitle}" Text="换算结果" />
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -322,7 +382,23 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource DerivedLabel}" Text="扫描速度" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource DerivedValue}" Text="{Binding ScanSpeedText}" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource DerivedLabel}" Text="像素精度" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource DerivedValue}" Text="{Binding LineSpacingText}" TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Style="{StaticResource DerivedLabel}" Text="行频" />
+                            <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource DerivedValue}" Text="{Binding LineRateText}" />
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Style="{StaticResource DerivedLabel}" Text="最大曝光" />
+                            <TextBlock Grid.Row="6" Grid.Column="1" Style="{StaticResource DerivedValue}" Text="{Binding MaxExposureText}" />
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource DerivedLabel}" Text="扫描行程" />
                             <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource DerivedValue}" Text="{Binding ScanLengthText}" />

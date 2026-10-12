@@ -9,8 +9,9 @@ public sealed record VisionEngineConfig(
     bool     VerboseLogging)
 {
     /// <summary>
-    /// 每次过程调用前是否调用 SetWaitForDebugConnection(true)，在入口处暂停等待 HDevelop 连接。
-    /// 仅 Debug 引擎启用，Production/Offline 为 false。
+    /// 本引擎是否<b>允许</b>在过程入口暂停等待 HDevelop 连接。仅 Debug 引擎启用，Production/Offline 为 false。
+    /// 允许不等于每次都等：只有请求显式要求（<c>VisionRequest.WaitForDebugConnection</c>，调试页的"调试执行"）
+    /// 且调试服务器已启动时才真的暂停。
     /// </summary>
     public bool WaitForDebugConnection { get; init; } = false;
 
@@ -18,7 +19,7 @@ public sealed record VisionEngineConfig(
     public static VisionEngineConfig Production { get; } =
         new(TimeSpan.FromSeconds(30), 100, false);
 
-    /// <summary>调试引擎：无超时限制，容量 10，逐步详细日志，每次调用等待 HDevelop 接入</summary>
+    /// <summary>调试引擎：无超时限制，容量 10，逐步详细日志，允许"调试执行"在入口等待 HDevelop 接入</summary>
     public static VisionEngineConfig Debug { get; } =
         new(Timeout.InfiniteTimeSpan, 10, true) { WaitForDebugConnection = true };
 

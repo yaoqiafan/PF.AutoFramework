@@ -28,6 +28,13 @@ v1.1.0 (2026-10-10) — 视觉资产包（.vpk）取代 .roipk；修复 HALCON �
   形状模型改为视觉资产包的 ShapeModel 条目（编辑用 VisionPackageSession，生产读取用 VisionPackageReader.LoadShapeModel）。
 - AddShapeTemplateServices 改为 AddVisionPackageServices。旧 .roipk 不再支持，需重建。
 
+[修复 — 调试服务器开着时 Debug 引擎所有执行卡在过程入口]
+- 原先启动调试服务器时引擎级等待连接生效，且每次调用都 SetWaitForDebugConnection(true)：服务器没停时，任何经
+  Debug 引擎的执行都停在入口，只有 HDevelop 附加后点"继续"才往下走。
+- 现在引擎属性 debug_wait_for_connection 设为 false；是否等待由请求决定：VisionRequest.WaitForDebugConnection
+  （需 PF.Core 1.0.32+）且引擎配置允许、调试服务器已启动时才等。HalconDebugService.RunTestAsync（"调试执行"）带该标志，
+  其它执行直接跑（HDevelop 已附加时仍会停在断点）。
+
 [修复 — 严重：HALCON 区域裁剪尺寸按线程缓存]
 - clip_region=true（默认）时，新生成的区域裁剪到"当前图像尺寸"，而该尺寸按线程缓存：线程第一次用 HALCON 时记下当时的
   全局 width/height（未读图时 128×128），之后别的线程读了大图也不会变。后果（11000×16384 图实测）：

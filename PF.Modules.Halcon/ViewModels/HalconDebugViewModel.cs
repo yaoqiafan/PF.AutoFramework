@@ -185,9 +185,9 @@ public class HalconDebugViewModel : RegionViewModelBase
         _contextManager = contextManager;
 
         RefreshCommand = new DelegateCommand(RefreshProcedures);
-        EnableCommand  = new DelegateCommand(async () => await OnEnableAsync(),
+        EnableCommand  = new DelegateCommand(async () => { _wantServer = true;  await OnEnableAsync(); },
                              () => !IsActive && !IsBusy);
-        DisableCommand = new DelegateCommand(async () => await OnDisableAsync(),
+        DisableCommand = new DelegateCommand(async () => { _wantServer = false; await OnDisableAsync(); },
                              () => IsActive && !IsBusy);
         LaunchCommand  = new DelegateCommand(async () => await OnLaunchAsync(),
                              () => IsActive && SelectedProcedure is not null && !IsDebugging);
@@ -406,6 +406,13 @@ public class HalconDebugViewModel : RegionViewModelBase
 
     // ── 调试服务器控制 ────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// 期望的调试服务器状态：进入页面 / 点「启动」为 true，离开页面 / 点「停止」为 false。
+    /// 启停都要几秒（拉起 Debug 引擎），期间的反向请求会因 IsBusy 被跳过——启停结束后按它补齐，
+    /// 不让服务器在页面离开后一直开着（服务器开着时 JIT 被禁用；旧版还会让 Debug 引擎上所有执行卡在入口）。
+    /// </summary>
+    private bool _wantServer;
+
     private async Task OnEnableAsync()
     {
         IsBusy       = true;
@@ -433,6 +440,10 @@ public class HalconDebugViewModel : RegionViewModelBase
         {
             IsBusy = false;
         }
+
+        // 启动期间页面已经离开：补停
+        if (!_wantServer && IsActive)
+            await OnDisableAsync();
     }
 
     private async Task OnDisableAsync()
@@ -456,6 +467,10 @@ public class HalconDebugViewModel : RegionViewModelBase
         {
             IsBusy = false;
         }
+
+        // 停止期间页面又回来了：补启
+        if (_wantServer && !IsActive)
+            await OnEnableAsync();
     }
 
     // ── 引擎耦合自检 ──────────────────────────────────────────────────────────
@@ -484,7 +499,8 @@ public class HalconDebugViewModel : RegionViewModelBase
             sb.AppendLine($"过程目录：{_debugService.ProcedureDirectory}");
             sb.AppendLine();
 
-            // 干净起点：先停服务器（引擎仍在），再释放引擎槽位
+            // 干净起点：先停服务器（引擎仍在），再释放引擎槽位；自检结束保持关闭
+            _wantServer = false;
             if (_debugService.IsDebugServerActive)
                 await _debugService.DisableDebugServerAsync();
             await _contextManager.ReleaseAsync(EngineMode.Debug);
@@ -555,17 +571,41 @@ public class HalconDebugViewModel : RegionViewModelBase
     public override void OnNavigatedTo(NavigationContext navigationContext)
     {
         base.OnNavigatedTo(navigationContext);
-        if (!IsActive && !IsBusy)
-            _ = OnEnableAsync();
+        OnPageShown();
     }
 
     /// <summary>离开调试页面时取消进行中的调试会话，并停止调试服务器</summary>
     public override void OnNavigatedFrom(NavigationContext navigationContext)
     {
         base.OnNavigatedFrom(navigationContext);
+        OnPageHidden();
+    }
+
+    /// <summary>
+    /// 宿主（<see cref="HalconDashboardViewModel"/>）被切走时调用。本页嵌在仪表盘的内部区域里，
+    /// 主界面切到别的页面只会通知仪表盘（它常驻），本页收不到 <see cref="OnNavigatedFrom"/>——
+    /// 由仪表盘转告，否则调试服务器会一直开着。
+    /// </summary>
+    public void OnHostDeactivated() => OnPageHidden();
+
+    /// <summary>宿主重新回到前台时调用（仪表盘复用实例、不会重新导航到本页），按进入页面处理：启动调试服务器。</summary>
+    public void OnHostActivated() => OnPageShown();
+
+    private void OnPageShown()
+    {
+        _wantServer = true;
+        if (!IsActive && !IsBusy)
+            _ = OnEnableAsync();
+        // IsBusy（正在停）时由 OnDisableAsync 结束后按 _wantServer 补启
+    }
+
+    private void OnPageHidden()
+    {
+        _wantServer = false;
         _debugCts?.Cancel();
         if (IsActive && !IsBusy)
             _ = OnDisableAsync();
+        // IsBusy（正在启动）时由 OnEnableAsync 结束后按 _wantServer 补停
     }
 
     public override void Destroy()

@@ -12,10 +12,13 @@
 		- 1.1.0：新增视觉资产包 PF.Vision.Halcon.Packaging（布局声明、原图/ROI/形状模型/Data&lt;T&gt;/附件条目、依赖与状态、
 		  编辑会话、生产读取器）；ShapeTemplateService 删除 .roipk 存取 API，AddShapeTemplateServices 改为 AddVisionPackageServices。
 		- 1.1.0：修复区域裁剪尺寸按线程缓存导致 ROI 被裁空、进程启动后第一次执行过程失败（HalconThreadContext）。
+		- 1.1.0：修复调试服务器开着时 Debug 引擎所有执行卡在过程入口（只有"调试执行"才等 HDevelop 连接，
+		  由 PF.Core 1.0.32 新增的 VisionRequest.WaitForDebugConnection 控制）。
 
 		[新增 / 破坏性变更 — PF.Modules.Halcon 1.0.10→1.1.0]
 		- 新增 VisionPackageEditorDialog；删除 ShapeTemplateEditorDialog / ShapeTemplateVerifyDialog。
 		- HalconImageViewer 自适应按窗口宽高比，不再拉伸。
+		- 修复离开视觉调试仪表盘不停调试服务器、启停进行中切换页面后状态不对。
 
 		[修复 — PF.UI.Infrastructure 1.0.6→1.0.7]
 		- PFDialogBaseWindow 显示前补所有者 / 无可见窗口时进任务栏并带图标 / 首次显示后激活，修复弹窗偶发"消失"像卡死。
@@ -25,8 +28,16 @@
 		- 用到 ShapeTemplateService.SaveTemplate/LoadTemplate* 或 ShapeTemplateEditor/Verify 弹窗的地方，改为声明一个视觉资产包布局，
 		  编辑用 VisionPackageEditorDialog（或 VisionPackageSession），生产用 VisionPackageReader；旧 .roipk 需重建。
 
-		子包版本对照：PF.Vision.Halcon 1.0.4→1.1.0，PF.Modules.Halcon 1.0.10→1.1.0，PF.UI.Infrastructure 1.0.6→1.0.7；
-		其余子包本次无变化。
+		[新增 — PF.Core 1.0.31→1.0.32 / PF.Infrastructure 1.0.29→1.0.30 / PF.Modules.Debug 1.0.20→1.0.21：线扫曝光与速度匹配]
+		- ScanGeometry 新增行频 / 最大曝光（行周期 = 像素精度 ÷ 速度）/ 曝光校验（硬上限 = 行周期，超 90% 提醒）。
+		- LineScanDetectionModule.ScanAsync 曝光超过行周期直接拦截（不再丢行、取帧超时）。
+		- HikLineScanCamera 构造新增可选像素精度（硬件配置 ConnectionParameters["LineSpacingUm"]），非编码器模式下作为 LineSpacingUm。
+		- 线扫检测模组调试页显示速度/像素精度/行频/最大曝光，曝光实时校验，终点速度可快捷修改并保存到点位表。
+		- PF.Modules.Parameter 1.0.9→1.0.10：海康线阵相机硬件参数界面新增「像素精度(μm/行)」（LineSpacingUm）。
+
+		子包版本对照：PF.Vision.Halcon 1.0.4→1.1.0，PF.Modules.Halcon 1.0.10→1.1.0，PF.UI.Infrastructure 1.0.6→1.0.7，
+		PF.Core 1.0.31→1.0.32，PF.Infrastructure 1.0.29→1.0.30，PF.Modules.Debug 1.0.20→1.0.21，
+		PF.Modules.Parameter 1.0.9→1.0.10；其余子包本次无变化。
 
 		v1.0.44 (2026-09-28) — 安全门门锁输出绑定：按主控状态统一上锁/解锁；扫码枪未读到码改为返回成功+空条码（含行为变更）
 

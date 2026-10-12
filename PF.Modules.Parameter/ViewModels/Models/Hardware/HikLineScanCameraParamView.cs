@@ -10,7 +10,8 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
     /// 无需另设"链路类型"字段，配置拓扑本身就表达了链路。</para>
     ///
     /// <para>曝光、增益、行触发、编码器等运行期参数不在这里配置——它们随配方变化，
-    /// 由机构层按扫描任务下发，调试阶段用线阵相机调试面板逐项试。</para>
+    /// 由机构层按扫描任务下发，调试阶段用线阵相机调试面板逐项试。<b>像素精度</b>例外：它由编码器当量 × 分频
+    /// （写在采集卡配置里）和光学决定，是这台机器这条扫描线的硬件属性，放在这里。</para>
     /// </summary>
     public class HikLineScanCameraParamView : BindableBase
     {
@@ -96,6 +97,22 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
         {
             get => _imageNodeNum;
             set => SetProperty(ref _imageNodeNum, value);
+        }
+
+        private string _lineSpacingUm;
+        /// <summary>
+        /// 获取或设置像素精度（μm/行，扫描方向 Y 向的物理分辨率）。
+        /// 编码器接在采集卡上、经 ExternalLine 转发时相机自己算不出行间距，由这里配置；
+        /// 线扫模组据此算行频（速度 ÷ 像素精度）与最大曝光（像素精度 ÷ 速度），曝光超过行周期直接拦截。
+        /// 留空或 0 表示未配置（不校验曝光）。
+        /// </summary>
+        [Category("采集")]
+        [DisplayName("像素精度(μm/行)")]
+        [Description("扫描方向每行对应的物理长度。用于计算行频与最大曝光：最大曝光 = 像素精度 ÷ 扫描速度。留空 = 不校验曝光。")]
+        public string LineSpacingUm
+        {
+            get => _lineSpacingUm;
+            set => SetProperty(ref _lineSpacingUm, value);
         }
 
         private string _remarks;

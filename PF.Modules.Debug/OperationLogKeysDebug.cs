@@ -390,6 +390,12 @@ namespace PF.Modules.Debug
             public const string RefreshPoints = nameof(RefreshPoints);
             [Description("填写曝光时间")]
             public const string ExposureTimeUs = nameof(ExposureTimeUs);
+            [Description("终点速度")]
+            public const string EndSpeed = nameof(EndSpeed);
+            [Description("按曝光填入安全速度")]
+            public const string FillSafeSpeed = nameof(FillSafeSpeed);
+            [Description("保存终点速度到点位表"), OperationLogCritical]
+            public const string SaveEndSpeed = nameof(SaveEndSpeed);
             [Description("移动到扫描起点"), OperationLogCritical]
             public const string GotoStart = nameof(GotoStart);
             [Description("开始扫描"), OperationLogCritical]

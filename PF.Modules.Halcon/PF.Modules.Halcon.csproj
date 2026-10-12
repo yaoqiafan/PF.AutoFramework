@@ -22,6 +22,11 @@ v1.1.0 (2026-10-10) — 新增视觉资产包编辑器；删除 ROI 形状模板
 - 删除 ShapeTemplateEditorDialog、ShapeTemplateVerifyDialog（及 HalconNavigationConstants.Dialogs 对应常量、
   OperationLogKeysHalcon 对应键目录），由 VisionPackageEditorDialog 取代（"验证"改为形状模型页的"试找"）。
 
+[修复 — 离开视觉调试仪表盘不停调试服务器]
+- 过程调试页嵌在仪表盘内部区域里，主界面切走时它收不到 OnNavigatedFrom，服务器一直开着。
+  现在由 HalconDashboardViewModel 的 OnNavigatedFrom/OnNavigatedTo 转告内部调试页（OnHostDeactivated/OnHostActivated）。
+- 启动/停止进行中离开或返回会被忽略：新增"期望状态"，启停完成后与期望不符时自动补一次停止/启动。
+
 [修复 — HalconImageViewer]
 - 自适应显示按窗口宽高比计算显示范围（整图完整显示、居中），此前直接设成整张图，图与窗口宽高比不同时
   第一次显示是拉伸的。

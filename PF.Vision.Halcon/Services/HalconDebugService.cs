@@ -12,9 +12,10 @@ namespace PF.Vision.Halcon.Services;
 /// <summary>
 /// HALCON 调试服务实现（Level 2）。
 /// <para>
-/// 启用流程：禁用 JIT → 设置端口/密码/等待属性 → StartDebugServer()。
-/// 每次过程调用由 <see cref="HalconVisionService"/> 自动调用 SetWaitForDebugConnection(true)，
-/// 使过程在入口暂停，等待 HDevelop 连接后再继续。
+/// 启用流程：禁用 JIT → 设置端口/密码 → StartDebugServer()。
+/// <b>只有 <see cref="RunTestAsync"/>（调试页的"调试执行"）会在过程入口暂停等 HDevelop 连接</b>
+/// （请求带 <see cref="VisionRequest.WaitForDebugConnection"/>）；引擎级的 <c>debug_wait_for_connection</c> 设为 false，
+/// 服务器开着时其它执行照常跑（HDevelop 已连上时仍会停在断点上）。
 /// 所有引擎操作通过 Channel 路由到 Worker 线程，保证 HDevEngine 线程安全。
 /// </para>
 /// </summary>
@@ -60,7 +61,8 @@ public sealed class HalconDebugService : IHalconDebugService
             e.SetEngineAttribute("execute_procedures_jit_compiled", "false");
             e.SetEngineAttribute("debug_port",                new HTuple(port));
             e.SetEngineAttribute("debug_password",            new HTuple(password));
-            e.SetEngineAttribute("debug_wait_for_connection", "true");
+            // 不让引擎级"等连接"罩住所有执行：是否等由每次请求决定（只有调试执行等），见 HalconVisionService
+            e.SetEngineAttribute("debug_wait_for_connection", "false");
             e.StartDebugServer();
             return true;
         }, cancellationToken);
@@ -122,6 +124,8 @@ public sealed class HalconDebugService : IHalconDebugService
             IconicFilePaths = iconicFilePaths.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
             // 预计算 HObject（ROI Region 等），同名时优先级高于 FilePath
             IconicInputs    = iconicObjects.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+            // 调试执行：在过程入口暂停，等 HDevelop 连接后再继续
+            WaitForDebugConnection = true,
         };
         return engine.ExecuteAsync(request, ct);
     }

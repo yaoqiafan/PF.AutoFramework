@@ -25,10 +25,12 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                 config.ConnectionParameters.TryGetValue("SerialNumber", out var serialNumber);
                 config.ConnectionParameters.TryGetValue("Index",        out var index);
                 config.ConnectionParameters.TryGetValue("ImageNodeNum", out var imageNodeNum);
+                config.ConnectionParameters.TryGetValue("LineSpacingUm", out var lineSpacingUm);
 
-                view.SerialNumber = serialNumber ?? string.Empty;
-                view.Index        = index        ?? "0";
-                view.ImageNodeNum = imageNodeNum ?? "3";
+                view.SerialNumber  = serialNumber  ?? string.Empty;
+                view.Index         = index         ?? "0";
+                view.ImageNodeNum  = imageNodeNum  ?? "3";
+                view.LineSpacingUm = lineSpacingUm ?? string.Empty;
 
                 return true;
             }
@@ -53,9 +55,10 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ImplementationClassName = "HikLineScanCamera",
                     ConnectionParameters  = new Dictionary<string, string>
                     {
-                        ["SerialNumber"] = view.SerialNumber ?? string.Empty,
-                        ["Index"]        = view.Index        ?? "0",
-                        ["ImageNodeNum"] = view.ImageNodeNum ?? "3"
+                        ["SerialNumber"]  = view.SerialNumber  ?? string.Empty,
+                        ["Index"]         = view.Index         ?? "0",
+                        ["ImageNodeNum"]  = view.ImageNodeNum  ?? "3",
+                        ["LineSpacingUm"] = view.LineSpacingUm?.Trim() ?? string.Empty,
                     }
                 };
             }

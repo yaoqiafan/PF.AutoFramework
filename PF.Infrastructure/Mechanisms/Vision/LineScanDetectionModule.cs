@@ -136,8 +136,8 @@ namespace PF.Infrastructure.Mechanisms.Vision
         /// <summary>
         /// 执行一次完整扫描并返回图像。
         ///
-        /// <para>时序：校验几何 → 下发相机配置 → 轴移动到起点并等停稳 → 开流 → 武装帧触发 →
-        /// 启动扫描运动（不等待）→ 等一帧 → 等轴走完 → 停流。</para>
+        /// <para>时序：校验几何与曝光（曝光超过行周期直接拦截）→ 下发相机配置 → 轴移动到起点并等停稳 → 开流 →
+        /// 武装帧触发 → 启动扫描运动（不等待）→ 等一帧 → 等轴走完 → 停流。</para>
         /// </summary>
         /// <param name="startPointName">扫描起点的轴点位名（图像第一行对应的位置）。</param>
         /// <param name="endPointName">
@@ -152,7 +152,7 @@ namespace PF.Infrastructure.Mechanisms.Vision
         /// <param name="token">取消令牌。</param>
         /// <returns>扫描得到的一帧完整图像。</returns>
         /// <exception cref="KeyNotFoundException">起点或终点点位在轴点位表里不存在。</exception>
-        /// <exception cref="InvalidOperationException">几何校验不通过，或轴/相机动作失败。</exception>
+        /// <exception cref="InvalidOperationException">几何校验不通过、曝光超过当前速度下的最大曝光，或轴/相机动作失败。</exception>
         /// <exception cref="TimeoutException">在帧超时内没有收到完整帧。</exception>
         public async Task<LineScanFrame> ScanAsync(string startPointName, string endPointName,
             LineScanCameraConfig? baseConfig = null, CancellationToken token = default)
@@ -175,7 +175,29 @@ namespace PF.Infrastructure.Mechanisms.Vision
                 throw new InvalidOperationException($"[{MechanismName}] 扫描几何校验未通过：\n  · {detail}");
             }
 
-            _logger.Info($"[{MechanismName}] 开始扫描：{geometry}");
+            // ①' 曝光与速度匹配：曝光超过行周期（像素精度 ÷ 速度），相机跟不上行触发会丢行，表现为取帧超时、
+            //    看不出原因——在动轴之前直接拦下。只在调用方指定了曝光、相机给得出像素精度时能校验。
+            double lineSpacing = _camera.LineSpacingUm;
+            double? exposure = baseConfig?.ExposureTimeUs;
+            switch (geometry.CheckExposure(exposure, lineSpacing))
+            {
+                case ExposureCheck.Exceeded:
+                    throw new InvalidOperationException($"[{MechanismName}] {geometry.DescribeExposureExceeded(exposure!.Value, lineSpacing)}");
+                case ExposureCheck.NearLimit:
+                    _logger.Warn($"[{MechanismName}] 曝光 {exposure:F1}μs 已超过最大曝光 {geometry.MaxExposureUs(lineSpacing):F1}μs 的 "
+                        + $"{ScanGeometry.ExposureWarnRatio:P0}，余量不多。");
+                    break;
+                case ExposureCheck.Unknown when lineSpacing <= 0:
+                    _logger.Warn($"[{MechanismName}] 相机 '{_cameraDeviceId}' 没有配置像素精度（行间距），无法校验曝光与扫描速度是否匹配——"
+                        + "请在硬件配置里给相机填上 LineSpacingUm。");
+                    break;
+            }
+
+            _logger.Info($"[{MechanismName}] 开始扫描：{geometry}"
+                + (lineSpacing > 0
+                    ? $"；像素精度 {lineSpacing:F3}μm/行，行频 {geometry.LineRateHz(lineSpacing):F0}Hz，最大曝光 {geometry.MaxExposureUs(lineSpacing):F1}μs"
+                      + (exposure > 0 ? $"，本次曝光 {exposure:F1}μs" : "（曝光沿用相机当前值，未校验）")
+                    : ""));
 
             bool grabbing = false;
             try

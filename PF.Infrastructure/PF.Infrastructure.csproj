@@ -44,8 +44,22 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.29</Version>
+		<Version>1.0.30</Version>
 		<PackageReleaseNotes>
+v1.0.30 (2026-10-12) — 线扫模组曝光超限直接拦截；海康线扫相机支持在硬件配置里设像素精度；同步 PF.Core 1.0.32
+
+[新增 — LineScanDetectionModule.ScanAsync]
+- 动轴之前校验曝光与扫描速度：调用方指定了曝光且相机给得出像素精度时，曝光超过行周期（像素精度 ÷ 终点速度）
+  抛 InvalidOperationException（含行频、最大曝光、降曝光/降速度两种改法），不再等到丢行、取帧超时；
+  超过 90% 记警告；相机没配像素精度时记警告提示去硬件配置填。开始扫描的日志带上像素精度/行频/最大曝光。
+
+[新增 — HikLineScanCamera]
+- 构造函数末尾新增可选参数 configuredLineSpacingUm（像素精度，μm/行），新增 ConfiguredLineSpacingUm 属性；
+  LineSpacingUm 在非编码器模式（如编码器接采集卡、经 ExternalLine 转发）下返回该配置值。已有调用源码兼容。
+  消费项目在相机工厂里从 ConnectionParameters["LineSpacingUm"] 解析后传入。
+
+子包版本对照：PF.Core 1.0.31→1.0.32。
+
 v1.0.29 (2026-09-28) — BaseMasterController 按主控状态统一驱动安全门门锁；扫码枪未读到码返回成功+空条码并带图；同步 PF.Core 1.0.31
 
 [新增 — 门锁联动]

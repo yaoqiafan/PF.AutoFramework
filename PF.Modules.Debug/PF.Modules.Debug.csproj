@@ -11,8 +11,19 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.20</Version>
+		<Version>1.0.21</Version>
 		<PackageReleaseNotes>
+v1.0.21 (2026-10-12) — 线扫检测模组调试页：显示扫描速度/像素精度/行频/最大曝光，曝光实时校验，终点速度快捷修改并保存；同步 PF.Core 1.0.32、PF.Infrastructure 1.0.30
+
+[新增 — LineScanDetectionModuleDebugView]
+- 选好起点/终点后显示扫描速度（终点点位）、像素精度（相机 LineSpacingUm）、行频、最大曝光（行周期）。
+- 曝光输入实时校验：超过最大曝光标红并禁用「开始扫描」，超过 90% 标黄，通过标绿；未配像素精度时提示去硬件配置填。
+- 终点速度可直接编辑，「保存速度」写回轴点位表并 SavePointTable 持久化，随后重算；
+  「按曝光填入安全速度」按 像素精度 ÷ 曝光 反算最大速度，填入其 90%（需再点保存）。
+- OperationLogKeysDebug 新增 EndSpeed / FillSafeSpeed / SaveEndSpeed。
+
+子包版本对照：PF.Core 1.0.31→1.0.32，PF.Infrastructure 1.0.29→1.0.30。
+
 v1.0.20 (2026-09-23) — IODebugView 支持按 [Display(Order=, GroupName=)] 排序/分组，输入/输出各自独立搜索框；同步 PF.Core 1.0.30
 
 [新增 — IODebugViewModel / IODebugView]

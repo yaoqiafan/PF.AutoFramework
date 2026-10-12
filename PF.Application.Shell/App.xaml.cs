@@ -328,7 +328,7 @@ namespace PF.Application.Shell
             //
             // ConnectionParameters：
             //   采集卡 SerialNumber / Index
-            //   相机   SerialNumber / Index / ImageNodeNum
+            //   相机   SerialNumber / Index / ImageNodeNum / LineSpacingUm（像素精度 μm/行，可选）
 
             // 海康图像采集卡：CameraLink 相机的帧长/帧触发落在卡上，故卡必须建成独立的顶级设备，
             // 由拓扑初始化保证"卡先于相机"
@@ -351,8 +351,13 @@ namespace PF.Application.Shell
                 // 线扫大帧下必须按实际帧长下调，故做成可配置项而非固定值
                 int nodeNum = cfg.ConnectionParameters.TryGetValue("ImageNodeNum", out var nn) ? int.Parse(nn) : 3;
 
+                // 像素精度（μm/行）：非编码器直连时相机算不出行间距，由这里配置；线扫模组据此校验曝光不超过行周期
+                double lineSpacingUm = cfg.ConnectionParameters.TryGetValue("LineSpacingUm", out var ls)
+                    && double.TryParse(ls, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lsv)
+                    ? lsv : 0;
+
                 return new Infrastructure.Hardware.Camera.LineScan.Hikvision.HikLineScanCamera(
-                    sn, index, nodeNum, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+                    sn, index, nodeNum, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, lineSpacingUm);
             });
         }
 

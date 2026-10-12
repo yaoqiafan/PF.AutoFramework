@@ -418,10 +418,13 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
             if (_config.VerboseLogging)
                 _logger.Info($"[Vision][Debug] → {request.ProcedureName} | ctrl-in={request.ControlInputs.Count} iconic-in={request.IconicInputs.Count}", LogCategories.Vision);
 
-            // Debug 模式：在过程入口暂停，等待 HDevelop 连接后再继续执行。
-            // 必须同时确认调试服务器已启动，否则等待的连接永远不会到来（见 DebugServerStarted）
-            if (_config.WaitForDebugConnection && DebugServerStarted)
-                call.SetWaitForDebugConnection(true);
+            // 在过程入口暂停、等 HDevelop 连接：三者同时满足才等——
+            //   · 请求显式要求（只有调试页的"调试执行"会要，见 VisionRequest.WaitForDebugConnection）；
+            //   · 引擎允许（仅 Debug 引擎，VisionEngineConfig.WaitForDebugConnection）；
+            //   · 调试服务器已启动（否则等待的连接永远不会到来，见 DebugServerStarted）。
+            // 曾经只看后两条：服务器一开，Debug 引擎上所有执行（业务本地试跑、预处理）都卡在入口，
+            // 离开调试页又没停服务器时更是一直卡着，只能去 HDevelop 附加后点继续。
+            call.SetWaitForDebugConnection(request.WaitForDebugConnection && _config.WaitForDebugConnection && DebugServerStarted);
 
             call.Execute();
 

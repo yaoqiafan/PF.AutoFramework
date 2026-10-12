@@ -35,8 +35,9 @@ namespace PF.Core.Interfaces.Device.Hardware.Camera.LineScan
         bool HasFrameGrabber { get; }
 
         /// <summary>
-        /// 当前配置换算出的行间距（微米/行），即图像 Y 向的物理分辨率。
-        /// 编码器模式下 = 读数头当量 × 分频系数；未使用编码器时为 0。
+        /// 当前的行间距（微米/行，即"像素精度"），即图像 Y 向的物理分辨率。
+        /// 编码器模式下 = 读数头当量 × 分频系数；否则取硬件配置里的像素精度（实现支持时），都没有时为 0。
+        /// 线扫模组用它和扫描速度算行频、最大曝光（见 <c>ScanGeometry.MaxExposureUs</c>）。
         /// </summary>
         double LineSpacingUm { get; }
 

@@ -144,14 +144,24 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         /// <param name="deviceName">设备显示名称。</param>
         /// <param name="isSimulated">是否仿真模式。</param>
         /// <param name="logger">日志服务。</param>
+        /// <param name="configuredLineSpacingUm">
+        /// 像素精度（μm/行，扫描方向 Y 向的物理分辨率），来自硬件配置。行触发不是由调用方以编码器模式显式下发时
+        /// （比如编码器接在采集卡上、经 <c>ExternalLine</c> 转发，分频写在采集卡配置文件里），相机自己算不出行间距，
+        /// <see cref="LineSpacingUm"/> 就用这个值；线扫模组据此算行频与最大曝光。≤0 表示未配置。
+        /// </param>
         public HikLineScanCamera(string? serialNumber, int index, int imageNodeNum,
-            string deviceId, string deviceName, bool isSimulated, ILogService logger)
+            string deviceId, string deviceName, bool isSimulated, ILogService logger,
+            double configuredLineSpacingUm = 0)
             : base(deviceId, deviceName, isSimulated, logger)
         {
             _serialNumber = serialNumber ?? string.Empty;
             _index = index < 0 ? 0 : index;
             _imageNodeNum = (uint)(imageNodeNum < 2 ? 2 : imageNodeNum);
+            ConfiguredLineSpacingUm = configuredLineSpacingUm > 0 ? configuredLineSpacingUm : 0;
         }
+
+        /// <summary>硬件配置里的像素精度（μm/行）；0 表示未配置。见构造参数 <c>configuredLineSpacingUm</c>。</summary>
+        public double ConfiguredLineSpacingUm { get; }
 
         /// <inheritdoc/>
         public override string ModelName => _modelName;
@@ -163,7 +173,9 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
         public override CameraTransportLayer TransportLayer => _transportLayer;
 
         /// <inheritdoc/>
-        public override double LineSpacingUm => _lineSpacingUm;
+        /// <remarks>编码器模式下由下发的编码器配置换算（当量 × 分频）；否则取硬件配置里的像素精度
+        /// （<see cref="ConfiguredLineSpacingUm"/>），都没有时为 0。</remarks>
+        public override double LineSpacingUm => _lineSpacingUm > 0 ? _lineSpacingUm : ConfiguredLineSpacingUm;
 
         /// <inheritdoc/>
         public override bool IsGrabbing => _isGrabbing;
@@ -404,7 +416,8 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
             WarnIfFrameMemoryHeavy(config.FrameControl.ImageHeight);
 
             HardwareLogger.Info($"[{DeviceName}] 配置已下发：行触发={config.LineTrigger.Mode?.ToString() ?? "未指定(沿用现有接线)"}, "
-                + $"帧长={config.FrameControl.ImageHeight}行, 行间距={_lineSpacingUm:F3}μm/行。");
+                + $"帧长={config.FrameControl.ImageHeight}行, 行间距={LineSpacingUm:F3}μm/行"
+                + (_lineSpacingUm > 0 ? "（编码器换算）。" : ConfiguredLineSpacingUm > 0 ? "（硬件配置）。" : "（未配置）。"));
         }
 
         /// <summary>

@@ -3,9 +3,10 @@ using PF.Core.Entities.Hardware;
 namespace PF.Core.Entities.Hardware.Vision
 {
     /// <summary>
-    /// 一次扫描的几何量——由起点/终点两个轴点位算出，不持有任何可独立编辑的运动参数，
-    /// 也不涉及成像（帧长/行频/曝光）——那些已经配置在相机自己身上（UserSetDefault），
-    /// 本模组不再重新计算、不再下发覆盖。
+    /// 一次扫描的几何量——由起点/终点两个轴点位算出，不持有任何可独立编辑的运动参数。
+    /// 帧长/行频/曝光这些成像参数仍配置在相机自己身上（UserSetDefault），本模组不下发覆盖；
+    /// 但曝光必须跟扫描速度匹配（曝光 ≤ 行周期 = 像素精度 ÷ 速度），这里提供换算与校验
+    /// （<see cref="MaxExposureUs"/>/<see cref="CheckExposure"/>），像素精度取自相机的 <c>LineSpacingUm</c>。
     ///
     /// <para><b>为什么速度/加减速/S曲线时间不是本类自己的字段</b>：它们全部来自"终点"这个点位
     /// 自身的配置（<see cref="AxisPoint.Speed"/>/<see cref="AxisPoint.Acc"/>/
@@ -109,9 +110,67 @@ namespace PF.Core.Entities.Hardware.Vision
             return problems;
         }
 
+        // ── 曝光与速度的匹配 ─────────────────────────────────────────────────
+        //
+        // 线阵相机每走过一个像素精度（行间距）触发一行，曝光必须在下一行触发前结束：
+        //   行频 (Hz)      = 速度 (mm/s) × 1000 ÷ 像素精度 (μm/行)
+        //   最大曝光 (μs)  = 像素精度 (μm/行) ÷ 速度 (mm/s) × 1000   （即行周期）
+        // 曝光超过行周期，相机跟不上行触发会丢行，一帧永远攒不满，表现为取帧超时——
+        // 原因却看不出来。速度单位按轴点位表的工程单位 mm/s 计。
+
+        /// <summary>曝光超过最大曝光的这个比例时提醒（未超限，但余量不多）。</summary>
+        public const double ExposureWarnRatio = 0.9;
+
+        /// <summary>行频（Hz）；像素精度或速度 ≤0 时为 0。</summary>
+        public double LineRateHz(double lineSpacingUm)
+            => lineSpacingUm > 0 && VelocityMmPerSec > 0 ? VelocityMmPerSec * 1000.0 / lineSpacingUm : 0;
+
+        /// <summary>当前速度下允许的最大曝光（μs）= 行周期；像素精度或速度 ≤0 时为 0（无法计算）。</summary>
+        public double MaxExposureUs(double lineSpacingUm)
+            => lineSpacingUm > 0 && VelocityMmPerSec > 0 ? lineSpacingUm / VelocityMmPerSec * 1000.0 : 0;
+
+        /// <summary>
+        /// 按指定曝光反算允许的最大扫描速度（mm/s）= 像素精度 ÷ 曝光 × 1000；参数 ≤0 时为 0。
+        /// </summary>
+        public static double MaxVelocityFor(double exposureUs, double lineSpacingUm)
+            => exposureUs > 0 && lineSpacingUm > 0 ? lineSpacingUm / exposureUs * 1000.0 : 0;
+
+        /// <summary>
+        /// 曝光校验：<paramref name="exposureUs"/> 超过最大曝光（行周期）返回 <see cref="ExposureCheck.Exceeded"/>，
+        /// 超过 <see cref="ExposureWarnRatio"/> 返回 <see cref="ExposureCheck.NearLimit"/>；像素精度未配置、
+        /// 曝光未指定或速度无效时返回 <see cref="ExposureCheck.Unknown"/>（不校验）。
+        /// </summary>
+        public ExposureCheck CheckExposure(double? exposureUs, double lineSpacingUm)
+        {
+            double max = MaxExposureUs(lineSpacingUm);
+            if (exposureUs is not > 0 || max <= 0) return ExposureCheck.Unknown;
+            if (exposureUs.Value > max) return ExposureCheck.Exceeded;
+            return exposureUs.Value > max * ExposureWarnRatio ? ExposureCheck.NearLimit : ExposureCheck.Ok;
+        }
+
+        /// <summary>曝光超限时给操作员看的一句话（含行频、最大曝光、两种改法）。</summary>
+        public string DescribeExposureExceeded(double exposureUs, double lineSpacingUm)
+            => $"曝光 {exposureUs:F1}μs 超过当前速度下的最大曝光 {MaxExposureUs(lineSpacingUm):F1}μs"
+             + $"（终点 '{EndPointName}' 速度 {VelocityMmPerSec:F2}mm/s、像素精度 {lineSpacingUm:F3}μm/行、行频 {LineRateHz(lineSpacingUm):F0}Hz）"
+             + $"——相机跟不上行触发会丢行、取帧超时。请把曝光降到 {MaxExposureUs(lineSpacingUm):F1}μs 以下，"
+             + $"或把终点速度降到 {MaxVelocityFor(exposureUs, lineSpacingUm):F2}mm/s 以下。";
+
         /// <summary>一行摘要，便于日志中一眼看清这次扫描的关键量。</summary>
         public override string ToString()
             => $"{StartPointName}({StartMm:F2})→{EndPointName}({EndMm:F2}) ({ScanLengthMm:F2}) @ {VelocityMmPerSec:F1}/s, "
              + $"帧时间约 {EstimatedFrameTimeMs}ms（等帧超时 {FrameTimeoutMs}ms）";
+    }
+
+    /// <summary>曝光与扫描速度的匹配校验结果（见 <see cref="ScanGeometry.CheckExposure"/>）。</summary>
+    public enum ExposureCheck
+    {
+        /// <summary>无法校验：像素精度未配置、曝光未指定或速度无效。</summary>
+        Unknown,
+        /// <summary>曝光在最大曝光的 90% 以内。</summary>
+        Ok,
+        /// <summary>曝光超过最大曝光的 90%，未超限但余量不多。</summary>
+        NearLimit,
+        /// <summary>曝光超过最大曝光（行周期），会丢行、取帧超时——必须拦截。</summary>
+        Exceeded,
     }
 }

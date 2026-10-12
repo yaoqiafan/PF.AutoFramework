@@ -1,3 +1,4 @@
+using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Hardware.Vision;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
@@ -24,8 +25,9 @@ namespace PF.Modules.Debug.ViewModels
     /// 理论帧时间，并跑一次校验，让"轴这段能不能走"在**按下扫描之前**就能看出来；
     /// 校验不过时「开始扫描」直接禁用。</para>
     ///
-    /// <para><b>运动参数不在这个面板编辑</b>：位置/速度/加减速/S曲线时间来自选中的起点/终点
-    /// 两个轴点位在点表里的配置——要改运动参数，去轴自己的调试页改点表，这里只选"用哪两个点"。
+    /// <para><b>运动参数基本不在这个面板编辑</b>：位置/速度/加减速/S曲线时间来自选中的起点/终点
+    /// 两个轴点位在点表里的配置。例外是<b>终点速度</b>：它和曝光直接相关（最大曝光 = 像素精度 ÷ 速度），
+    /// 这里可以快捷修改并保存回点表，其余运动参数仍去轴调试页改。
     /// <b>帧长/行频这类成像参数也不在这个面板编辑</b>：它们已经配置在相机自己身上
     /// （UserSetDefault），这里只留一个曝光时间——留空表示不下发，沿用相机当前曝光。</para>
     ///
@@ -100,7 +102,12 @@ namespace PF.Modules.Debug.ViewModels
         public bool IsScanning
         {
             get => _isScanning;
-            set { if (SetProperty(ref _isScanning, value)) ScanCommand.RaiseCanExecuteChanged(); }
+            set
+            {
+                if (!SetProperty(ref _isScanning, value)) return;
+                ScanCommand.RaiseCanExecuteChanged();
+                SaveEndSpeedCommand?.RaiseCanExecuteChanged();
+            }
         }
 
         private string _axisPosition = "-";
@@ -144,10 +151,50 @@ namespace PF.Modules.Debug.ViewModels
 
         private string _exposureTimeUs = string.Empty;
         /// <summary>
-        /// 曝光时间（μs），留空表示不下发、沿用相机当前曝光。
+        /// 曝光时间（μs），留空表示不下发、沿用相机当前曝光。改动即按当前终点速度校验（不能超过行周期）。
         /// 帧长/行频等其它成像参数不在这里改——它们已经配置在相机自己身上（UserSetDefault）。
         /// </summary>
-        public string ExposureTimeUs { get => _exposureTimeUs; set => SetProperty(ref _exposureTimeUs, value); }
+        public string ExposureTimeUs
+        {
+            get => _exposureTimeUs;
+            set { if (SetProperty(ref _exposureTimeUs, value)) RefreshDerived(); }
+        }
+
+        /// <summary>曝光输入框解析出的值；留空/非法时为 null（不下发、不校验）。</summary>
+        private double? ParsedExposureUs => double.TryParse(ExposureTimeUs, out var exp) && exp > 0 ? exp : null;
+
+        private ExposureCheck _exposureCheck = ExposureCheck.Unknown;
+        /// <summary>曝光与速度的匹配结果：<c>Exceeded</c> 标红并禁止扫描，<c>NearLimit</c>（超过 90%）标黄。</summary>
+        public ExposureCheck ExposureCheck
+        {
+            get => _exposureCheck;
+            private set => SetProperty(ref _exposureCheck, value);
+        }
+
+        private string _exposureHintText = string.Empty;
+        /// <summary>曝光输入框下方的校验提示。</summary>
+        public string ExposureHintText { get => _exposureHintText; private set => SetProperty(ref _exposureHintText, value); }
+
+        #endregion
+
+        #region 【终点速度 —— 快捷修改并持久化】
+
+        private string _endSpeedText = string.Empty;
+        /// <summary>
+        /// 终点点位速度（mm/s）的编辑值。扫描速度取自终点点位，这里改完点「保存速度」写回轴点位表并持久化，
+        /// 不用切到轴调试页；保存后立即重算行频/最大曝光。
+        /// </summary>
+        public string EndSpeedText
+        {
+            get => _endSpeedText;
+            set { if (SetProperty(ref _endSpeedText, value)) SaveEndSpeedCommand?.RaiseCanExecuteChanged(); }
+        }
+
+        /// <summary>把 <see cref="EndSpeedText"/> 写回终点点位并保存点位表。</summary>
+        public DelegateCommand SaveEndSpeedCommand { get; private set; } = null!;
+
+        /// <summary>按当前曝光反算一个安全速度（最大速度的 90%）填进 <see cref="EndSpeedText"/>（不保存）。</summary>
+        public DelegateCommand FillSafeSpeedCommand { get; private set; } = null!;
 
         #endregion
 
@@ -167,6 +214,27 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>理论帧时间与据此推出的等帧超时。</summary>
         public string FrameTimeText => _derived != null
             ? $"{_derived.EstimatedFrameTimeMs} ms（等帧超时 {_derived.FrameTimeoutMs} ms）"
+            : "-";
+
+        /// <summary>相机的像素精度（行间距，μm/行）：编码器换算或硬件配置里的值，0 = 未配置。</summary>
+        private double LineSpacingUm => SelectedModule?.Camera?.LineSpacingUm ?? 0;
+
+        /// <summary>扫描速度（终点点位速度）。</summary>
+        public string ScanSpeedText => _derived != null ? $"{_derived.VelocityMmPerSec:F2} mm/s（终点 '{_derived.EndPointName}'）" : "-";
+
+        /// <summary>像素精度。</summary>
+        public string LineSpacingText => LineSpacingUm > 0
+            ? $"{LineSpacingUm:F3} μm/行"
+            : "未配置——在硬件配置里给线扫相机填 LineSpacingUm，否则算不出行频/最大曝光";
+
+        /// <summary>行频 = 速度 ÷ 像素精度。</summary>
+        public string LineRateText => _derived != null && LineSpacingUm > 0
+            ? $"{_derived.LineRateHz(LineSpacingUm):F0} Hz（行周期 {_derived.MaxExposureUs(LineSpacingUm):F1} μs）"
+            : "-";
+
+        /// <summary>最大曝光 = 行周期 = 像素精度 ÷ 速度。</summary>
+        public string MaxExposureText => _derived != null && LineSpacingUm > 0
+            ? $"{_derived.MaxExposureUs(LineSpacingUm):F1} μs（超过 {ScanGeometry.ExposureWarnRatio:P0} 即 {_derived.MaxExposureUs(LineSpacingUm) * ScanGeometry.ExposureWarnRatio:F1} μs 提醒）"
             : "-";
 
         private string _validationText = string.Empty;
@@ -250,6 +318,17 @@ namespace PF.Modules.Debug.ViewModels
 
             RefreshPointsCommand = new DelegateCommand(RefreshPointNames);
 
+            SaveEndSpeedCommand = new DelegateCommand(ExecuteSaveEndSpeed,
+                () => !IsScanning && FindEndPoint() != null && double.TryParse(EndSpeedText, out var v) && v > 0);
+
+            FillSafeSpeedCommand = new DelegateCommand(() =>
+            {
+                double max = ScanGeometry.MaxVelocityFor(ParsedExposureUs ?? 0, LineSpacingUm);
+                if (max <= 0) { LogWarn("先填曝光时间，且相机要配置像素精度，才能反算速度。"); return; }
+                EndSpeedText = (max * ScanGeometry.ExposureWarnRatio).ToString("F2");
+                Log($"按曝光 {ParsedExposureUs:F1}μs 反算：最大速度 {max:F2}mm/s，已填入其 {ScanGeometry.ExposureWarnRatio:P0} = {EndSpeedText}mm/s（点「保存速度」才生效）。");
+            });
+
             ScanCommand = new DelegateCommand(ExecuteScan, () => !IsScanning && IsProfileValid);
 
             AbortCommand = new DelegateCommand(() =>
@@ -276,7 +355,7 @@ namespace PF.Modules.Debug.ViewModels
             _scanCts = cts;
 
             // 曝光留空 = 不下发，沿用相机当前曝光；填了才组一份只带曝光的相机配置
-            LineScanCameraConfig? config = double.TryParse(ExposureTimeUs, out var exp) && exp > 0
+            LineScanCameraConfig? config = ParsedExposureUs is { } exp
                 ? new LineScanCameraConfig { ExposureTimeUs = exp }
                 : null;
 
@@ -304,6 +383,44 @@ namespace PF.Modules.Debug.ViewModels
         });
 
         #endregion
+
+        /// <summary>
+        /// 把编辑的终点速度写回轴点位表并持久化（<c>AddOrUpdatePoint</c> + <c>SavePointTable</c>），然后重算。
+        /// 写一份副本进去：点表里的对象是轴的内部状态，不在界面线程上就地改它。
+        /// </summary>
+        private void ExecuteSaveEndSpeed()
+        {
+            var axis = SelectedModule?.ScanAxis;
+            var end = FindEndPoint();
+            if (axis == null || end == null) { LogWarn("模组未初始化或未选终点点位。"); return; }
+            if (!double.TryParse(EndSpeedText, out var speed) || speed <= 0) { LogWarn("速度须为大于 0 的数。"); return; }
+
+            double old = end.Speed;
+            try
+            {
+                axis.AddOrUpdatePoint(new AxisPoint
+                {
+                    Name           = end.Name,
+                    TargetPosition = end.TargetPosition,
+                    Speed          = speed,
+                    Acc            = end.Acc,
+                    Dec            = end.Dec,
+                    STime          = end.STime,
+                    Description    = end.Description,
+                    SortOrder      = end.SortOrder,
+                });
+                axis.SavePointTable();
+                Log($"终点 '{end.Name}' 速度 {old:F2} → {speed:F2} mm/s，已保存到点位表。");
+            }
+            catch (Exception ex)
+            {
+                LogWarn($"保存终点速度失败：{ex.Message}");
+            }
+            RefreshDerived();
+        }
+
+        private AxisPoint? FindEndPoint()
+            => SelectedModule?.ScanAxis?.PointTable.FirstOrDefault(p => p.Name == SelectedEndPointName);
 
         #region 【私有辅助】
 
@@ -346,23 +463,58 @@ namespace PF.Modules.Debug.ViewModels
 
             _derived = (start != null && end != null) ? new ScanGeometry(start, end) : null;
 
+            // 终点换了或保存过速度：编辑框跟上点表里的当前值
+            string currentSpeed = end != null ? end.Speed.ToString("F2") : string.Empty;
+            if (!string.Equals(_lastSyncedEndSpeed, currentSpeed, StringComparison.Ordinal) || end?.Name != _lastSyncedEndName)
+            {
+                EndSpeedText = currentSpeed;
+                _lastSyncedEndSpeed = currentSpeed;
+                _lastSyncedEndName = end?.Name;
+            }
+
             RaisePropertyChanged(nameof(ScanLengthText));
             RaisePropertyChanged(nameof(AccelDistanceText));
             RaisePropertyChanged(nameof(FrameTimeText));
+            RaisePropertyChanged(nameof(ScanSpeedText));
+            RaisePropertyChanged(nameof(LineSpacingText));
+            RaisePropertyChanged(nameof(LineRateText));
+            RaisePropertyChanged(nameof(MaxExposureText));
+            SaveEndSpeedCommand?.RaiseCanExecuteChanged();
 
             if (_derived == null)
             {
+                ExposureCheck = ExposureCheck.Unknown;
+                ExposureHintText = string.Empty;
                 IsProfileValid = false;
                 ValidationText = "请先选择起点与终点点位。";
                 return;
             }
 
-            var problems = _derived.Validate();
+            // 曝光与速度匹配：超限红（禁止扫描，ScanAsync 也会拦），超过 90% 黄
+            double spacing = LineSpacingUm;
+            double? exposure = ParsedExposureUs;
+            ExposureCheck = _derived.CheckExposure(exposure, spacing);
+            ExposureHintText = ExposureCheck switch
+            {
+                ExposureCheck.Exceeded  => "✕ " + _derived.DescribeExposureExceeded(exposure!.Value, spacing),
+                ExposureCheck.NearLimit => $"⚠ 曝光已超过最大曝光 {_derived.MaxExposureUs(spacing):F1}μs 的 {ScanGeometry.ExposureWarnRatio:P0}，余量不多。",
+                ExposureCheck.Ok        => $"✓ 曝光在最大曝光 {_derived.MaxExposureUs(spacing):F1}μs 以内。",
+                _ => exposure == null ? "未填曝光：不下发、不校验（沿用相机当前曝光）。"
+                                      : "相机没有配置像素精度，无法校验曝光。",
+            };
+
+            var problems = _derived.Validate().ToList();
+            if (ExposureCheck == ExposureCheck.Exceeded)
+                problems.Add("曝光超过当前速度下的最大曝光（见曝光提示）。");
             IsProfileValid = problems.Count == 0;
             ValidationText = problems.Count == 0
                 ? "校验通过。"
                 : "· " + string.Join("\n· ", problems);
         }
+
+        /// <summary>上次同步到 <see cref="EndSpeedText"/> 的点表速度/终点名——只在点表值或终点变了时覆盖编辑框，不打断正在输入的值。</summary>
+        private string? _lastSyncedEndSpeed;
+        private string? _lastSyncedEndName;
 
         private void RefreshModuleInfo()
         {
