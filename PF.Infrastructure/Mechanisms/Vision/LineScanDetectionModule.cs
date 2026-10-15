@@ -244,26 +244,39 @@ namespace PF.Infrastructure.Mechanisms.Vision
                     : ""));
 
             bool grabbing = false;
+
+            // 分段计时：一帧返回慢时，靠这行日志直接看出慢在配置、到起点、开流、扫描运动、等帧还是停流，
+            // 不用再拿日志时间戳去手算。帧到达时轴在哪、停没停也一并记下——轴早已停在终点而帧迟迟才到，
+            // 说明行数凑不满、帧是被采集卡/相机的行超时强行冲出来的。
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var stages = new List<string>();
+            void Mark(string stage) { stages.Add($"{stage} {sw.ElapsedMilliseconds}ms"); sw.Restart(); }
+            string frameArrival = "未到";
+
             try
             {
                 // ② 下发相机配置（曝光等个别项由调用方指定，其余沿用相机自身当前值）
                 var config = BuildConfig(baseConfig);
                 await _camera.ApplyConfigAsync(config, token);
+                Mark("下发配置");
 
                 // ③ 轴移动到起点，完全停稳（用起点自身在点表里配置的速度/加减速）
                 if (!await MoveToPointAndWaitAsync(_scanAxis, startPointName, AxisTimeoutMs, token))
                     throw new InvalidOperationException($"[{MechanismName}] 轴未能到达扫描起点 '{startPointName}'。");
+                Mark("到起点");
 
                 // ④ 开流——必须早于轴运动，晚了会丢掉起始若干行
                 if (!await _camera.ArmAsync(token))
                     throw new InvalidOperationException($"[{MechanismName}] 相机开流失败，扫描中止。");
 
                 grabbing = true;
+                Mark("开流");
 
                 // ⑤ 帧触发——先武装好帧再让轴动。不再有独立的回退加速点，
                 //    轴一启动就已经在扫描区内，没有"等到达某个中间位置再触发"的必要
                 if (!await _camera.SoftwareTriggerFrameAsync(token))
                     throw new InvalidOperationException($"[{MechanismName}] 帧软触发失败，扫描中止。");
+                Mark("帧触发");
 
                 // ⑥ 启动扫描运动（用终点自身在点表里配置的速度/加减速），**不等待到位**——
                 //    后面还要在运动过程中收帧
@@ -275,6 +288,12 @@ namespace PF.Infrastructure.Mechanisms.Vision
                 try
                 {
                     frame = await _camera.WaitFrameAsync(geometry.FrameTimeoutMs, token);
+                    Mark($"扫描运动+等帧（理论帧时间 {geometry.EstimatedFrameTimeMs}ms）");
+                    double? arrivePos = _scanAxis.CurrentPosition;
+                    bool? moving = _scanAxis.AxisIOStatus?.Moving;
+                    frameArrival = $"帧到达时轴在 {(arrivePos.HasValue ? arrivePos.Value.ToString("F0") + "μm" : "未知")}"
+                        + $"（终点 {geometry.EndUm:F0}μm，{(moving == true ? "仍在运动" : moving == false ? "已停" : "状态未知")}），"
+                        + $"帧高 {frame.Height} 行";
                 }
                 catch (TimeoutException)
                 {
@@ -289,6 +308,7 @@ namespace PF.Infrastructure.Mechanisms.Vision
 
                 // ⑧ 等轴走完，保证下一次动作从静止开始
                 await WaitAxisMoveDoneAsync(_scanAxis, AxisTimeoutMs, geometry.EndUm, token);
+                Mark("帧后等轴停");
 
                 _logger.Success($"[{MechanismName}] 扫描完成：{frame.Width}×{frame.Height}，"
                     + $"{frame.SizeBytes / 1024.0 / 1024.0:F2}MB，帧号 {frame.FrameNumber}。");
@@ -302,6 +322,7 @@ namespace PF.Infrastructure.Mechanisms.Vision
                 {
                     try { await _camera.StopAsync(CancellationToken.None); }
                     catch (Exception ex) { _logger.Warn($"[{MechanismName}] 收尾停流异常：{ex.Message}"); }
+                    Mark("停流");
                 }
 
                 if (token.IsCancellationRequested)
@@ -309,6 +330,8 @@ namespace PF.Infrastructure.Mechanisms.Vision
                     try { await _scanAxis.StopAsync(CancellationToken.None); }
                     catch (Exception ex) { _logger.Warn($"[{MechanismName}] 取消时停轴异常：{ex.Message}"); }
                 }
+
+                _logger.Info($"[{MechanismName}] 扫描耗时分解：{string.Join("，", stages)}；{frameArrival}。");
             }
         }
 
