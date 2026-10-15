@@ -92,6 +92,8 @@ namespace PF.Modules.Debug
             public const string SimulateAlarm = nameof(SimulateAlarm);
             [Description("强制切换输出通道状态"), OperationLogCritical]
             public const string ToggleOutput = nameof(ToggleOutput);
+            [Description("门锁手动接管"), OperationLogCritical]
+            public const string ToggleLockOverride = nameof(ToggleLockOverride);
         }
 
         /// <summary>辅助编码器调试视图</summary>

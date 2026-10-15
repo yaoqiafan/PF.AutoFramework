@@ -1,12 +1,15 @@
 using PF.Core.Constants;
+using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.IO;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Models.Device.Hardware.IO;
 using PF.Infrastructure.Hardware;
 using PF.UI.Infrastructure.PrismBase;
+using Prism.Ioc;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Threading;
 
@@ -26,11 +29,25 @@ namespace PF.Modules.Debug.ViewModels
         private DispatcherTimer _pollingTimer;
         private readonly IIOMappingService _ioMappingService;
 
+        // 安全门监控（可选）：不是所有项目都有安全门，未注册时本页不做任何门锁处理
+        private readonly IHardwareInputMonitor? _inputMonitor;
+        // 当前板卡上由安全门监控驱动的门锁输出口 → 所属门名称；为空表示本卡没有门锁
+        private Dictionary<int, string> _doorLockPorts = new();
+
         // 构造函数注入映射服务
         /// <summary>初始化 IO 调试 ViewModel</summary>
         public IODebugViewModel(IIOMappingService ioMappingService)
         {
             _ioMappingService = ioMappingService;
+
+            var container = ContainerLocator.Container;
+            if (container.IsRegistered<IHardwareInputMonitor>())
+                _inputMonitor = container.Resolve<IHardwareInputMonitor>();
+
+            ToggleLockOverrideCommand = new DelegateCommand(ToggleLockOverride,
+                () => IsLockManualOverride || CanLockManualOverride)
+                .ObservesProperty(() => IsLockManualOverride)
+                .ObservesProperty(() => CanLockManualOverride);
 
             // 初始化命令
             ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(System.Threading.CancellationToken.None); });
@@ -85,6 +102,11 @@ namespace PF.Modules.Debug.ViewModels
         {
             base.OnNavigatedFrom(navigationContext);
             _pollingTimer.Stop(); // 离开页面务必停止轮询，防止内存泄漏
+
+            // 手动接管只在本页有效：离开即交还安全门监控，锁输出按期望写回
+            if (_inputMonitor?.IsLockManualOverride == true)
+                _inputMonitor.TrySetLockManualOverride(false);
+            IsLockManualOverride = false;
         }
 
         #endregion
@@ -111,6 +133,39 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand ResetCommand { get; private set; }
         /// <summary>模拟硬件报警命令</summary>
         public DelegateCommand SimulateAlarmCommand { get; private set; }
+
+        #endregion
+
+        #region 【门锁手动接管】
+
+        private bool _hasDoorLocks;
+        /// <summary>当前板卡上是否有由安全门监控驱动的门锁输出（为 false 时本页不显示任何门锁相关内容）</summary>
+        public bool HasDoorLocks { get => _hasDoorLocks; private set => SetProperty(ref _hasDoorLocks, value); }
+
+        private bool _isLockManualOverride;
+        /// <summary>门锁是否处于手动接管（接管期间门锁口可直接写出，监控不会写回）</summary>
+        public bool IsLockManualOverride { get => _isLockManualOverride; private set => SetProperty(ref _isLockManualOverride, value); }
+
+        private bool _canLockManualOverride;
+        /// <summary>当前是否允许进入手动接管（机台初始化中/运行中持有上锁许可时不允许）</summary>
+        public bool CanLockManualOverride { get => _canLockManualOverride; private set => SetProperty(ref _canLockManualOverride, value); }
+
+        /// <summary>进入/退出门锁手动接管命令</summary>
+        public DelegateCommand ToggleLockOverrideCommand { get; }
+
+        private void ToggleLockOverride()
+        {
+            if (_inputMonitor == null) return;
+
+            bool target = !IsLockManualOverride;
+            if (!_inputMonitor.TrySetLockManualOverride(target))
+            {
+                MessageService.ShowMessage("机台处于初始化或运行中，门锁由安全门监控控制，不能手动接管。",
+                    "门锁手动接管", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            IsLockManualOverride = _inputMonitor.IsLockManualOverride;
+        }
 
         #endregion
 
@@ -164,6 +219,14 @@ namespace PF.Modules.Debug.ViewModels
         {
             string deviceId = _baseDevice?.DeviceId ?? "Default";
 
+            // 只认安全门监控所管的那张卡：其他 IO 卡、或项目没有门锁时映射为空，本页行为与原来一致
+            _doorLockPorts = (_inputMonitor?.GetDoorLockOutputs() ?? Array.Empty<DoorLockOutput>())
+                .Where(o => o.DeviceId == deviceId)
+                .GroupBy(o => o.Port)
+                .ToDictionary(g => g.Key, g => g.First().DoorName);
+            HasDoorLocks = _doorLockPorts.Count > 0;
+            RefreshLockOverrideState();
+
             InputGroups = BuildGroups(_ioController.InputCount,
                 i => _ioMappingService.GetInputInfo(deviceId, i), "DI", isOutput: false, FilterInputPort);
             OutputGroups = BuildGroups(_ioController.OutputCount,
@@ -193,7 +256,11 @@ namespace PF.Modules.Debug.ViewModels
                 foreach (var c in bucket)
                 {
                     var port = new IOPortModel { Index = c.Index, PortName = c.Name, IsOutput = isOutput };
-                    if (isOutput) port.ToggleCommand = new DelegateCommand<IOPortModel>(ToggleOutputPort);
+                    if (isOutput)
+                    {
+                        port.ToggleCommand = new DelegateCommand<IOPortModel>(ToggleOutputPort);
+                        if (_doorLockPorts.TryGetValue(c.Index, out var doorName)) port.DoorLockName = doorName;
+                    }
                     group.Items.Add(port);
                 }
                 group.RecomputeVisibility();
@@ -205,6 +272,14 @@ namespace PF.Modules.Debug.ViewModels
         private void ToggleOutputPort(IOPortModel port)
         {
             if (port == null || _ioController == null) return;
+
+            // 门锁口由安全门监控按机台状态驱动（并周期对账），未接管时直接写出会在 0.5s 内被写回
+            if (port.IsDoorLock && _inputMonitor?.IsLockManualOverride != true)
+            {
+                MessageService.ShowMessage($"[{port.PortName}] 是安全门 [{port.DoorLockName}] 的门锁输出，由安全门监控控制。\n请先开启「门锁手动接管」再操作。",
+                    "门锁手动接管", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
             bool targetState = !port.State; // 取反
 
@@ -241,6 +316,16 @@ namespace PF.Modules.Debug.ViewModels
 
             // 3. 刷新连接状态
              if (_baseDevice != null) IsConnected = _baseDevice.IsConnected;
+
+            // 4. 刷新门锁接管状态（主控初始化/启动时会强制收回接管）
+            RefreshLockOverrideState();
+        }
+
+        private void RefreshLockOverrideState()
+        {
+            if (!HasDoorLocks || _inputMonitor == null) return;
+            IsLockManualOverride = _inputMonitor.IsLockManualOverride;
+            CanLockManualOverride = !_inputMonitor.IsLockPermitted;
         }
 
         #endregion
@@ -295,6 +380,11 @@ namespace PF.Modules.Debug.ViewModels
         public string PortName { get; set; }
         /// <summary>获取或设置是否为输出端口</summary>
         public bool IsOutput { get; set; }
+
+        /// <summary>门锁输出所属的安全门名称；null 表示不是门锁口</summary>
+        public string? DoorLockName { get; set; }
+        /// <summary>是否为安全门门锁输出口（由安全门监控驱动）</summary>
+        public bool IsDoorLock => DoorLockName != null;
 
         private bool _state;
         /// <summary>获取或设置端口状态</summary>

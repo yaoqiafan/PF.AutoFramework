@@ -102,6 +102,20 @@
                                     FontSize="{DynamicResource FontSize.Body.Standard}"
                                     FontWeight="Bold"
                                     Text="{Binding PortName}" />
+                                <!--  门锁口标记：由安全门监控驱动，需先开启手动接管  -->
+                                <Border
+                                    Margin="8,0,0,0"
+                                    Padding="6,1"
+                                    VerticalAlignment="Center"
+                                    Background="#F59E0B"
+                                    CornerRadius="3"
+                                    ToolTip="{Binding DoorLockName, StringFormat='安全门 [{0}] 的门锁输出，由安全门监控控制'}"
+                                    Visibility="{Binding IsDoorLock, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock
+                                        FontSize="{DynamicResource FontSize.Body.Small}"
+                                        Foreground="White"
+                                        Text="门锁" />
+                                </Border>
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -172,6 +186,28 @@
                         Margin="0,0,20,0"
                         VerticalAlignment="Center"
                         Orientation="Horizontal">
+                        <!--  门锁手动接管：仅当本卡有门锁输出时显示；机台初始化/运行中不可进入  -->
+                        <Button
+                            Height="32"
+                            Margin="0,0,10,0"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+IODebugView.ToggleLockOverride}"
+                            Command="{Binding ToggleLockOverrideCommand}"
+                            Style="{DynamicResource ButtonWarning}"
+                            ToolTip="门锁输出平时由安全门监控按机台状态驱动；接管后可在下方手动操作门锁口，离开本页或初始化/启动时自动收回"
+                            Visibility="{Binding HasDoorLocks, Converter={StaticResource BoolToVis}}">
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="门锁手动接管" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLockManualOverride}" Value="True">
+                                                <Setter Property="Text" Value="退出门锁接管" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button>
                         <Button
                             Height="32"
                             Margin="0,0,10,0"
@@ -313,6 +349,23 @@
                                     FontSize="{DynamicResource FontSize.Body.Small}"
                                     Foreground="{DynamicResource OffColor}"
                                     Text="(点击通道按钮可强制切换状态)" />
+                                <TextBlock
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Bottom"
+                                    FontSize="{DynamicResource FontSize.Body.Small}"
+                                    Foreground="#D97706"
+                                    Visibility="{Binding HasDoorLocks, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="「门锁」口需先开启门锁手动接管" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLockManualOverride}" Value="True">
+                                                    <Setter Property="Text" Value="门锁手动接管中，安全门监控暂停驱动门锁" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                             <pf:SearchBar
                                 Width="160"

@@ -162,6 +162,24 @@ namespace PF.Core.Interfaces.Device.Hardware
         /// 工站应停在原步序重新等待，而不是继续动作。当前无上锁许可时只启用该门，直接返回 true。
         /// </summary>
         Task<bool> ArmSafetyDoorAsync(string name, CancellationToken token = default);
+
+        // ── 门锁手动接管（调试页用）────────────────────────────────────────
+        // 带默认实现：没有门锁的项目（含自行实现本接口的空监控）无需改动
+
+        /// <summary>
+        /// 返回由本监控驱动的全部门锁输出点（仅含配置了 LockOutputPorts 的安全门）。
+        /// 为空表示项目没有门锁，调试页不需要任何门锁相关的处理。
+        /// </summary>
+        IReadOnlyList<DoorLockOutput> GetDoorLockOutputs() => Array.Empty<DoorLockOutput>();
+
+        /// <summary>当前是否处于门锁手动接管：接管期间监控不写出、也不对账门锁输出，由调试页手动操作。</summary>
+        bool IsLockManualOverride => false;
+
+        /// <summary>
+        /// 进入/退出门锁手动接管。只有不持有上锁许可、也不在预上锁时才允许进入，返回 false 表示被拒绝。
+        /// 退出时按当前期望把门锁输出写回；主控取得上锁许可或预上锁时会自动退出。
+        /// </summary>
+        bool TrySetLockManualOverride(bool enable) => false;
     }
 
 

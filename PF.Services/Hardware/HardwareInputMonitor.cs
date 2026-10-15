@@ -20,6 +20,8 @@ namespace PF.Services.Hardware
     /// 安全门门锁：锁输出统一按 <c>上锁许可 &amp;&amp; IsEnabled &amp;&amp; !IsMuted</c> 计算，
     /// 上锁许可由主控按机台状态驱动（<see cref="SetLockPermit"/>），工站只通过 <see cref="SetSafetyDoorEnabled"/>
     /// 开"允许开门"的窗口。Safety 组的开门触发同样受上锁许可约束，未持有许可时开门不报警。
+    /// 未持有许可时调试页可申请门锁手动接管（<see cref="TrySetLockManualOverride"/>），期间监控不写出、不对账锁输出；
+    /// 取得许可或预上锁时强制收回。
     /// </remarks>
     public class HardwareInputMonitor : IHardwareInputMonitor
     {
@@ -55,6 +57,8 @@ namespace PF.Services.Hardware
         private volatile bool _lockPermit;
         // 预上锁：主控切换状态前"先锁后验"用，只给锁输出上电、不打开开门检测
         private volatile bool _preLock;
+        // 门锁手动接管：调试页手动操作锁输出期间，监控不写出也不对账（只在无上锁许可、无预上锁时允许）
+        private volatile bool _lockManualOverride;
         private bool _lockWriteFailed;
         // 锁定监控型门未配置稳定时间时的默认值
         private const int DefaultLockSettleMs = 500;
@@ -277,7 +281,9 @@ namespace PF.Services.Hardware
             _hardwareManager.DeviceAdded -= OnDeviceAdded;
             _paramService.ParamChanged -= OnParamChanged;
             StopAll();
-            // 退出兜底：扫描线程可能从未启动（StopSafetyMonitoring 提前返回），仍须解锁
+            // 退出兜底：扫描线程可能从未启动（StopSafetyMonitoring 提前返回），仍须解锁；
+            // 手动接管中锁输出可能被调试页留在上锁态，退出接管时按期望（解锁）写回
+            TrySetLockManualOverride(false);
             SetLockPermit(false);
         }
 
@@ -499,6 +505,8 @@ namespace PF.Services.Hardware
                 if (permit == _lockPermit) return;
                 if (permit)
                 {
+                    // 上锁必须由监控接管：调试页的手动接管在此强制结束，下面 ApplyAllLocksCore 按期望重写锁输出
+                    ExitLockManualOverrideCore("主控取得上锁许可");
                     // 取得许可 = 开门检测从无到有，门若仍开着必须立即触发
                     foreach (var state in _safetyInputs)
                         state.RearmRequested = true;
@@ -552,6 +560,7 @@ namespace PF.Services.Hardware
         {
             lock (_lockSync)
             {
+                ExitLockManualOverrideCore("主控预上锁");
                 _preLock = true;
                 ApplyAllLocksCore();
             }
@@ -591,6 +600,51 @@ namespace PF.Services.Hardware
                 _preLock = false;
                 ApplyAllLocksCore();
             }
+        }
+
+        /// <inheritdoc/>
+        public IReadOnlyList<DoorLockOutput> GetDoorLockOutputs() =>
+            _safetyInputs.Where(HasLock)
+                .SelectMany(s => s.Config.LockOutputPorts!.Select(p => new DoorLockOutput(_config.IoDeviceId, p, s.Config.Name)))
+                .ToList();
+
+        /// <inheritdoc/>
+        public bool IsLockManualOverride => _lockManualOverride;
+
+        /// <inheritdoc/>
+        public bool TrySetLockManualOverride(bool enable)
+        {
+            lock (_lockSync)
+            {
+                if (enable == _lockManualOverride) return true;
+
+                if (!enable)
+                {
+                    ExitLockManualOverrideCore("调试页退出");
+                    ApplyAllLocksCore();
+                    return true;
+                }
+
+                // 机台处于上锁状态（初始化/运行）或正在先锁后验：门锁必须由监控驱动，不允许手动
+                if (_lockPermit || _preLock)
+                {
+                    _logger.Warn("【硬件输入监控】机台处于上锁状态，拒绝门锁手动接管。");
+                    return false;
+                }
+                if (!_safetyInputs.Any(HasLock)) return false;
+
+                _lockManualOverride = true;
+            }
+            _logger.Warn("【硬件输入监控】门锁进入手动接管：监控暂停写出与对账门锁输出，初始化/启动时自动收回。");
+            return true;
+        }
+
+        /// <summary>结束手动接管（不写输出，由调用方随后按期望重写）。须在 _lockSync 内调用。</summary>
+        private void ExitLockManualOverrideCore(string reason)
+        {
+            if (!_lockManualOverride) return;
+            _lockManualOverride = false;
+            _logger.Info($"【硬件输入监控】门锁退出手动接管（{reason}），按当前期望重写门锁输出。");
         }
 
         /// <inheritdoc/>
@@ -732,6 +786,13 @@ namespace PF.Services.Hardware
 
             bool want = ShouldLock(state);
 
+            // 手动接管：输出由调试页决定，监控不写。接管只在无许可时存在，此时期望恒为解锁、信号不作数
+            if (_lockManualOverride)
+            {
+                Interlocked.Exchange(ref state.LockEngagedAt, 0);
+                return;
+            }
+
             // 板卡不可用时无从写出，由 OnDeviceAdded / 周期对账在恢复后补写，此处不计为写失败
             if (io == null || !io.IsConnected)
             {
@@ -781,8 +842,8 @@ namespace PF.Services.Hardware
             lock (_lockSync)
             {
                 var io = _ioCard;
-                // 仿真 IO 的 ReadOutput 恒为 false，无法对账
-                if (io == null || !io.IsConnected || io.IsSimulated) return;
+                // 仿真 IO 的 ReadOutput 恒为 false，无法对账；手动接管期间输出由调试页决定，不对账
+                if (io == null || !io.IsConnected || io.IsSimulated || _lockManualOverride) return;
 
                 bool allOk = true;
                 foreach (var state in _safetyInputs)

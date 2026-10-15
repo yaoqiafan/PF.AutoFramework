@@ -288,3 +288,4 @@ D:\PFConfig\PFAutoFrameWork\
 | 工站开门窗口结束后门没关好，轴却先动了 | 用同步 `SetSafetyDoorEnabled(true)` 关窗口，锁定监控型门要等稳定时间才能确认 | 改为 `if (!await ArmSafetyDoorAsync(name, token)) break;` |
 | 锁定监控型门永远拒绝启动 | 没配门锁输出，信号永远不可信 | `SignalValidOnlyWhenLocked` 必须配 `LockOutputPorts`（ConfigGen 校验会拦） |
 | 仿真模式下门禁检查/门锁不生效 | 仿真 IO `ReadInput` 恒为 false，Monitor 在仿真下跳过 Safety 扫描与门禁检查 | 属预期，门锁行为需在真机验证 |
+| IO 调试页手动改门锁输出被写回（日志"门锁输出与期望不一致，重新写出"） | 锁输出由 Monitor 每 500ms 对账 | 调试页点「门锁手动接管」（`TrySetLockManualOverride`，仅无上锁许可时允许；离开页面、预上锁、取得许可时自动收回）。页面按 `GetDoorLockOutputs()` 自动识别，无门锁的项目/板卡不显示 |
