@@ -32,13 +32,15 @@ namespace PF.Infrastructure.Hardware.Encoder.Basic
         /// <param name="deviceId">设备唯一标识</param>
         /// <param name="deviceName">设备名称</param>
         /// <param name="channel">本编码器在板卡内的物理通道号</param>
+        /// <param name="multiplier">本编码器倍率</param>
         /// <param name="isSimulated">是否为模拟模式</param>
         /// <param name="logger">日志服务</param>
-        protected BaseAuxEncoder(string deviceId, string deviceName, int channel, bool isSimulated, ILogService logger)
+        protected BaseAuxEncoder(string deviceId, string deviceName, int channel,double multiplier, bool isSimulated, ILogService logger)
             : base(deviceId, deviceName, isSimulated, logger)
         {
             Channel = channel;
             Category = Core.Enums.HardwareCategory.AuxEncoder;
+            Multiplier = multiplier;
         }
 
         /// <summary>

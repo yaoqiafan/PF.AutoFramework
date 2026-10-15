@@ -974,7 +974,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 {
                     throw new Exception($"读取锁存位置失败, dmc_ltc_get_value_unit：{ret}");
                 }
-                return Task.FromResult((double?)pos / 2);
+                return Task.FromResult((double?)pos / Mulit);
             }
             catch (Exception ex)
             {

@@ -14,10 +14,11 @@ namespace PF.Infrastructure.Hardware.Encoder
         /// <param name="deviceId">设备唯一标识</param>
         /// <param name="deviceName">设备名称</param>
         /// <param name="channel">本编码器在板卡内的物理通道号</param>
+        /// <param name="multiplier">本编码器的传感器倍率</param>
         /// <param name="isSimulated">是否为模拟模式</param>
         /// <param name="logger">日志服务</param>
-        public EtherCatAuxEncoder(string deviceId, string deviceName, int channel, bool isSimulated, ILogService logger)
-            : base(deviceId, deviceName, channel, isSimulated, logger)
+        public EtherCatAuxEncoder(string deviceId, string deviceName, int channel,double  multiplier, bool isSimulated, ILogService logger)
+            : base(deviceId, deviceName, channel, multiplier, isSimulated, logger)
         {
         }
     }
