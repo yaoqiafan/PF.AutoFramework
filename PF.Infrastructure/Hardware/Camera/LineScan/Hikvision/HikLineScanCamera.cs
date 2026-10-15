@@ -30,8 +30,12 @@ namespace PF.Infrastructure.Hardware.Camera.LineScan.Hikvision
     /// </summary>
     public class HikLineScanCamera : BaseLineScanCamera
     {
-        /// <summary>取流线程单次轮询的等待时长（毫秒）。停流时最多多等这么久即可 Join。</summary>
-        private const int GrabPollTimeoutMs = 500;
+        /// <summary>
+        /// 取流线程单次轮询的等待时长（毫秒）。停流时最多多等这么久即可 Join。
+        /// 原为 500ms：现场每次停流实测都要 479ms，基本全耗在等这一轮轮询超时上；
+        /// 轮询短一点只是多空转几次（超时返回很轻），不影响出帧时延。
+        /// </summary>
+        private const int GrabPollTimeoutMs = 100;
 
         /// <summary>仿真模式下合成图像的宽度。取小值以免调试机被假图撑爆内存。</summary>
         private const int SimulatedWidth = 1024;
