@@ -288,7 +288,7 @@
                                 Height="30"
                                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanDetectionModuleDebugView.RefreshPoints}"
                                 Command="{Binding RefreshPointsCommand}"
-                                Content="刷新点位（点表在别处改过）"
+                                Content="刷新点位与帧高"
                                 Style="{DynamicResource ButtonDefault}" />
                             <Button
                                 Grid.Column="2"
@@ -300,7 +300,7 @@
                         </Grid>
 
                         <!--  终点速度：扫描速度取自终点点位，跟曝光直接相关（最大曝光 = 像素精度 ÷ 速度），这里可快捷修改并保存回点表  -->
-                        <TextBlock Style="{StaticResource GroupTitle}" Text="扫描速度（终点点位）" />
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="扫描速度（终点点位，μm/s）" />
                         <Grid Margin="0,0,0,20">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -315,7 +315,7 @@
                                 VerticalContentAlignment="Center"
                                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+LineScanDetectionModuleDebugView.EndSpeed}"
                                 Text="{Binding EndSpeedText, UpdateSourceTrigger=PropertyChanged}"
-                                ToolTip="终点点位速度（mm/s），点「保存速度」写回轴点位表并持久化" />
+                                ToolTip="终点点位速度（μm/s），点「保存速度」写回轴点位表并持久化" />
                             <Button
                                 Grid.Column="2"
                                 Height="30"
@@ -388,7 +388,33 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
+
+                            <!--  凑帧：行程 ÷ 像素精度 = 可产生行数，不够相机帧高时标红并禁止扫描  -->
+                            <TextBlock
+                                Grid.Row="7"
+                                Grid.Column="0"
+                                Style="{StaticResource DerivedLabel}"
+                                Text="凑帧" />
+                            <TextBlock
+                                Grid.Row="7"
+                                Grid.Column="1"
+                                Text="{Binding FrameFillText}"
+                                TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style BasedOn="{StaticResource DerivedValue}" TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding FrameFillCheck}" Value="Ok">
+                                                <Setter Property="Foreground" Value="#15803D" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding FrameFillCheck}" Value="Insufficient">
+                                                <Setter Property="Foreground" Value="#B91C1C" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
 
                             <TextBlock
                                 Grid.Row="3"

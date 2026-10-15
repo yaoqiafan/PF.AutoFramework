@@ -74,7 +74,14 @@ namespace PF.Modules.Debug.ViewModels
         public LineScanDetectionModule? SelectedModule
         {
             get => _selectedModule;
-            set { if (SetProperty(ref _selectedModule, value)) { RefreshModuleInfo(); RefreshPointNames(); } }
+            set
+            {
+                if (!SetProperty(ref _selectedModule, value)) return;
+                _frameHeight = null;
+                RefreshModuleInfo();
+                RefreshPointNames();
+                _ = RefreshFrameHeightAsync();
+            }
         }
 
         private string _moduleName = "未找到线扫检测模组";
@@ -181,7 +188,7 @@ namespace PF.Modules.Debug.ViewModels
 
         private string _endSpeedText = string.Empty;
         /// <summary>
-        /// 终点点位速度（mm/s）的编辑值。扫描速度取自终点点位，这里改完点「保存速度」写回轴点位表并持久化，
+        /// 终点点位速度（μm/s）的编辑值。扫描速度取自终点点位，这里改完点「保存速度」写回轴点位表并持久化，
         /// 不用切到轴调试页；保存后立即重算行频/最大曝光。
         /// </summary>
         public string EndSpeedText
@@ -201,15 +208,45 @@ namespace PF.Modules.Debug.ViewModels
         #region 【换算结果 —— 只读】
 
         /// <summary>扫描行程。</summary>
-        public string ScanLengthText => _derived != null ? $"{_derived.ScanLengthMm:F2}" : "-";
+        public string ScanLengthText => _derived != null ? $"{_derived.ScanLengthUm:F0} μm" : "-";
 
         /// <summary>
         /// 理论加减速距离，仅供参考——判断起点到终点这段行程够不够轴提上速/减下速。
         /// 不是硬性校验：余量已经交给起点/终点两个点位自己的位置去把握。
         /// </summary>
         public string AccelDistanceText => _derived != null
-            ? $"加速 {_derived.TheoreticalAccelDistanceMm:F2} / 减速 {_derived.TheoreticalDecelDistanceMm:F2}（仅供参考，实际行程 {_derived.ScanLengthMm:F2}）"
+            ? $"加速 {_derived.TheoreticalAccelDistanceUm:F0} μm / 减速 {_derived.TheoreticalDecelDistanceUm:F0} μm（仅供参考，实际行程 {_derived.ScanLengthUm:F0} μm）"
             : "-";
+
+        /// <summary>相机当前帧高（行），由 <see cref="RefreshFrameHeightAsync"/> 读回缓存；读不到时为 null。</summary>
+        private int? _frameHeight;
+
+        private FrameFillCheck _frameFillCheck = FrameFillCheck.Unknown;
+        /// <summary>行程凑帧校验结果：<c>Insufficient</c> 标红并禁止扫描。</summary>
+        public FrameFillCheck FrameFillCheck
+        {
+            get => _frameFillCheck;
+            private set => SetProperty(ref _frameFillCheck, value);
+        }
+
+        /// <summary>
+        /// 凑帧换算：行程 ÷ 像素精度 = 可产生行数，与相机帧高比较；不够时给出凑满一帧所需的行程。
+        /// </summary>
+        public string FrameFillText
+        {
+            get
+            {
+                if (_derived == null) return "-";
+                double spacing = LineSpacingUm;
+                if (spacing <= 0) return "像素精度未配置，无法换算行数";
+                string lines = $"可产生 {_derived.ProducibleLines(spacing):F0} 行";
+                if (_frameHeight is not > 0) return $"{lines}，帧高读不到（相机未连接/仿真），无法校验";
+                double required = ScanGeometry.RequiredScanLengthUm(_frameHeight.Value, spacing);
+                return FrameFillCheck == FrameFillCheck.Insufficient
+                    ? $"✕ {lines} < 帧高 {_frameHeight} 行，凑满一帧需行程 ≥ {required:F0} μm"
+                    : $"✓ {lines} ≥ 帧高 {_frameHeight} 行（凑满一帧需行程 {required:F0} μm）";
+            }
+        }
 
         /// <summary>理论帧时间与据此推出的等帧超时。</summary>
         public string FrameTimeText => _derived != null
@@ -220,7 +257,7 @@ namespace PF.Modules.Debug.ViewModels
         private double LineSpacingUm => SelectedModule?.Camera?.LineSpacingUm ?? 0;
 
         /// <summary>扫描速度（终点点位速度）。</summary>
-        public string ScanSpeedText => _derived != null ? $"{_derived.VelocityMmPerSec:F2} mm/s（终点 '{_derived.EndPointName}'）" : "-";
+        public string ScanSpeedText => _derived != null ? $"{_derived.VelocityUmPerSec:F0} μm/s（终点 '{_derived.EndPointName}'）" : "-";
 
         /// <summary>像素精度。</summary>
         public string LineSpacingText => LineSpacingUm > 0
@@ -246,7 +283,7 @@ namespace PF.Modules.Debug.ViewModels
         public bool IsProfileValid
         {
             get => _isProfileValid;
-            set { if (SetProperty(ref _isProfileValid, value)) ScanCommand.RaiseCanExecuteChanged(); }
+            set { if (SetProperty(ref _isProfileValid, value)) ScanCommand?.RaiseCanExecuteChanged(); }
         }
 
         #endregion
@@ -298,6 +335,7 @@ namespace PF.Modules.Debug.ViewModels
                 if (SelectedModule != null) await SelectedModule.InitializeAsync();
                 RefreshModuleInfo();
                 RefreshPointNames();
+                await RefreshFrameHeightAsync();
             }));
 
             ResetModuleCommand = new DelegateCommand(() => RunAsync("复位模组",
@@ -316,7 +354,12 @@ namespace PF.Modules.Debug.ViewModels
                 Log($"扫描轴移动到起点 '{SelectedStartPointName}'。");
             }));
 
-            RefreshPointsCommand = new DelegateCommand(RefreshPointNames);
+            // 点表和相机帧高都可能在别处被改过（轴调试页 / 相机属性文件重新导入），一起重读
+            RefreshPointsCommand = new DelegateCommand(() => RunAsync("刷新点位与帧高", async () =>
+            {
+                RefreshPointNames();
+                await RefreshFrameHeightAsync();
+            }));
 
             SaveEndSpeedCommand = new DelegateCommand(ExecuteSaveEndSpeed,
                 () => !IsScanning && FindEndPoint() != null && double.TryParse(EndSpeedText, out var v) && v > 0);
@@ -325,8 +368,8 @@ namespace PF.Modules.Debug.ViewModels
             {
                 double max = ScanGeometry.MaxVelocityFor(ParsedExposureUs ?? 0, LineSpacingUm);
                 if (max <= 0) { LogWarn("先填曝光时间，且相机要配置像素精度，才能反算速度。"); return; }
-                EndSpeedText = (max * ScanGeometry.ExposureWarnRatio).ToString("F2");
-                Log($"按曝光 {ParsedExposureUs:F1}μs 反算：最大速度 {max:F2}mm/s，已填入其 {ScanGeometry.ExposureWarnRatio:P0} = {EndSpeedText}mm/s（点「保存速度」才生效）。");
+                EndSpeedText = Math.Floor(max * ScanGeometry.ExposureWarnRatio).ToString("F0");
+                Log($"按曝光 {ParsedExposureUs:F1}μs 反算：最大速度 {max:F0}μm/s，已填入其 {ScanGeometry.ExposureWarnRatio:P0} = {EndSpeedText}μm/s（点「保存速度」才生效）。");
             });
 
             ScanCommand = new DelegateCommand(ExecuteScan, () => !IsScanning && IsProfileValid);
@@ -410,7 +453,7 @@ namespace PF.Modules.Debug.ViewModels
                     SortOrder      = end.SortOrder,
                 });
                 axis.SavePointTable();
-                Log($"终点 '{end.Name}' 速度 {old:F2} → {speed:F2} mm/s，已保存到点位表。");
+                Log($"终点 '{end.Name}' 速度 {old:F0} → {speed:F0} μm/s，已保存到点位表。");
             }
             catch (Exception ex)
             {
@@ -455,16 +498,16 @@ namespace PF.Modules.Debug.ViewModels
             var end = axis?.PointTable.FirstOrDefault(p => p.Name == SelectedEndPointName);
 
             StartPointDetailText = start != null
-                ? $"{start.TargetPosition:F2} @ {start.Speed:F1}/s"
+                ? $"{start.TargetPosition:F0} μm @ {start.Speed:F0} μm/s"
                 : "未选择";
             EndPointDetailText = end != null
-                ? $"{end.TargetPosition:F2} @ {end.Speed:F1}/s，加速{end.Acc:F0}/减速{end.Dec:F0}，S曲线{end.STime:F3}s"
+                ? $"{end.TargetPosition:F0} μm @ {end.Speed:F0} μm/s，加速 {end.Acc:F0} / 减速 {end.Dec:F0} μm/s²，S曲线 {end.STime:F3}s"
                 : "未选择";
 
             _derived = (start != null && end != null) ? new ScanGeometry(start, end) : null;
 
             // 终点换了或保存过速度：编辑框跟上点表里的当前值
-            string currentSpeed = end != null ? end.Speed.ToString("F2") : string.Empty;
+            string currentSpeed = end != null ? end.Speed.ToString("F0") : string.Empty;
             if (!string.Equals(_lastSyncedEndSpeed, currentSpeed, StringComparison.Ordinal) || end?.Name != _lastSyncedEndName)
             {
                 EndSpeedText = currentSpeed;
@@ -484,14 +527,20 @@ namespace PF.Modules.Debug.ViewModels
             if (_derived == null)
             {
                 ExposureCheck = ExposureCheck.Unknown;
+                FrameFillCheck = FrameFillCheck.Unknown;
+                RaisePropertyChanged(nameof(FrameFillText));
                 ExposureHintText = string.Empty;
                 IsProfileValid = false;
                 ValidationText = "请先选择起点与终点点位。";
                 return;
             }
 
-            // 曝光与速度匹配：超限红（禁止扫描，ScanAsync 也会拦），超过 90% 黄
+            // 行程凑帧：行程 ÷ 像素精度 < 帧高时一帧凑不满（禁止扫描，ScanAsync 也会拦）
             double spacing = LineSpacingUm;
+            FrameFillCheck = _derived.CheckFrameFill(_frameHeight, spacing);
+            RaisePropertyChanged(nameof(FrameFillText));
+
+            // 曝光与速度匹配：超限红（禁止扫描，ScanAsync 也会拦），超过 90% 黄
             double? exposure = ParsedExposureUs;
             ExposureCheck = _derived.CheckExposure(exposure, spacing);
             ExposureHintText = ExposureCheck switch
@@ -506,10 +555,28 @@ namespace PF.Modules.Debug.ViewModels
             var problems = _derived.Validate().ToList();
             if (ExposureCheck == ExposureCheck.Exceeded)
                 problems.Add("曝光超过当前速度下的最大曝光（见曝光提示）。");
+            if (FrameFillCheck == FrameFillCheck.Insufficient)
+                problems.Add(_derived.DescribeFrameFillInsufficient(_frameHeight!.Value, spacing));
             IsProfileValid = problems.Count == 0;
             ValidationText = problems.Count == 0
                 ? "校验通过。"
                 : "· " + string.Join("\n· ", problems);
+        }
+
+        /// <summary>
+        /// 读相机当前帧高并重算校验。读不到（未初始化/仿真/未连接）时缓存为 null，凑帧不校验。
+        /// 不抛异常：模组侧读节点已兜住，这里是界面刷新，失败不该打断操作。
+        /// </summary>
+        private async Task RefreshFrameHeightAsync()
+        {
+            var module = SelectedModule;
+            int? height = null;
+            try { height = module != null ? await module.ReadFrameHeightAsync() : null; }
+            catch (Exception ex) { _logger.Warn($"[{ModuleName}] 读取相机帧高失败：{ex.Message}"); }
+
+            if (!ReferenceEquals(module, SelectedModule)) return; // 读的过程中切了模组，结果作废
+            _frameHeight = height;
+            RefreshDerived();
         }
 
         /// <summary>上次同步到 <see cref="EndSpeedText"/> 的点表速度/终点名——只在点表值或终点变了时覆盖编辑框，不打断正在输入的值。</summary>
@@ -544,7 +611,7 @@ namespace PF.Modules.Debug.ViewModels
             HasAlarm = module.HasAlarm;
 
             double? pos = module.ScanAxis?.CurrentPosition;
-            AxisPosition = pos.HasValue ? $"{pos.Value:F3}" : "-";
+            AxisPosition = pos.HasValue ? $"{pos.Value:F0} μm" : "-";
         }
 
         /// <summary>统一的异步命令外壳：吞掉异常并落到日志栏与顶部反馈，不让 async void 击穿进程。</summary>

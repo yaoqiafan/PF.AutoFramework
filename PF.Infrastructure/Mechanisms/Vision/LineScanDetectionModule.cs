@@ -70,6 +70,33 @@ namespace PF.Infrastructure.Mechanisms.Vision
             _cameraDeviceId = cameraDeviceId;
         }
 
+        /// <summary>
+        /// 读相机当前帧高（行），即凑满一帧需要的行数；相机未连接/仿真/节点读不到时返回 null。
+        /// <para>帧高配置在相机自己身上（属性文件导入），本模组不下发，只读出来做凑帧校验
+        /// （见 <see cref="ScanGeometry.CheckFrameFill"/>）。先读 <c>Height</c>，读不到再试 <c>ImageHeight</c>。</para>
+        /// </summary>
+        public async Task<int?> ReadFrameHeightAsync(CancellationToken token = default)
+        {
+            var camera = _camera;
+            if (camera == null || camera.IsSimulated) return null;
+
+            foreach (var node in new[] { "Height", "ImageHeight" })
+            {
+                try
+                {
+                    string? raw = await camera.GetNodeAsync(node, token);
+                    if (double.TryParse(raw, System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var h) && h > 0)
+                        return (int)h;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.Debug($"[{MechanismName}] 读相机节点 {node} 失败：{ex.Message}");
+                }
+            }
+            return null;
+        }
+
         /// <summary>扫描轴实例（初始化后可用）。</summary>
         public IAxis? ScanAxis => _scanAxis;
 
@@ -136,7 +163,7 @@ namespace PF.Infrastructure.Mechanisms.Vision
         /// <summary>
         /// 执行一次完整扫描并返回图像。
         ///
-        /// <para>时序：校验几何与曝光（曝光超过行周期直接拦截）→ 下发相机配置 → 轴移动到起点并等停稳 → 开流 →
+        /// <para>时序：校验几何、曝光与凑帧（曝光超过行周期、行程凑不满一帧都直接拦截）→ 下发相机配置 → 轴移动到起点并等停稳 → 开流 →
         /// 武装帧触发 → 启动扫描运动（不等待）→ 等一帧 → 等轴走完 → 停流。</para>
         /// </summary>
         /// <param name="startPointName">扫描起点的轴点位名（图像第一行对应的位置）。</param>
@@ -152,7 +179,7 @@ namespace PF.Infrastructure.Mechanisms.Vision
         /// <param name="token">取消令牌。</param>
         /// <returns>扫描得到的一帧完整图像。</returns>
         /// <exception cref="KeyNotFoundException">起点或终点点位在轴点位表里不存在。</exception>
-        /// <exception cref="InvalidOperationException">几何校验不通过、曝光超过当前速度下的最大曝光，或轴/相机动作失败。</exception>
+        /// <exception cref="InvalidOperationException">几何校验不通过、曝光超过当前速度下的最大曝光、行程凑不满一帧，或轴/相机动作失败。</exception>
         /// <exception cref="TimeoutException">在帧超时内没有收到完整帧。</exception>
         public async Task<LineScanFrame> ScanAsync(string startPointName, string endPointName,
             LineScanCameraConfig? baseConfig = null, CancellationToken token = default)
@@ -193,10 +220,27 @@ namespace PF.Infrastructure.Mechanisms.Vision
                     break;
             }
 
+            // ①'' 行程能否凑满一帧：行触发按位移产生，行程 ÷ 像素精度 < 帧高时一帧永远凑不满，
+            //     轴停在终点、取帧超时——和"触发没接上"症状一样，同样在动轴之前拦下。
+            //     帧高优先取调用方本次要下发的值，没指定就读相机当前值。
+            int? frameHeight = baseConfig?.FrameControl.ImageHeight > 0
+                ? baseConfig.FrameControl.ImageHeight
+                : await ReadFrameHeightAsync(token);
+            switch (geometry.CheckFrameFill(frameHeight, lineSpacing))
+            {
+                case FrameFillCheck.Insufficient:
+                    throw new InvalidOperationException($"[{MechanismName}] {geometry.DescribeFrameFillInsufficient(frameHeight!.Value, lineSpacing)}");
+                case FrameFillCheck.Unknown when lineSpacing > 0:
+                    _logger.Warn($"[{MechanismName}] 读不到相机帧高，无法校验扫描行程能否凑满一帧。");
+                    break;
+            }
+
             _logger.Info($"[{MechanismName}] 开始扫描：{geometry}"
                 + (lineSpacing > 0
                     ? $"；像素精度 {lineSpacing:F3}μm/行，行频 {geometry.LineRateHz(lineSpacing):F0}Hz，最大曝光 {geometry.MaxExposureUs(lineSpacing):F1}μs"
                       + (exposure > 0 ? $"，本次曝光 {exposure:F1}μs" : "（曝光沿用相机当前值，未校验）")
+                      + $"，可产生 {geometry.ProducibleLines(lineSpacing):F0} 行"
+                      + (frameHeight > 0 ? $"／帧高 {frameHeight} 行" : "（帧高未知）")
                     : ""));
 
             bool grabbing = false;
@@ -237,14 +281,14 @@ namespace PF.Infrastructure.Mechanisms.Vision
                     // 超时后帧超时远大于运动时间，此时轴应已到终点：位置到了而帧没满，
                     // 说明是行数不够/触发问题；位置没到，才是轴的问题。相机侧的诊断见"取帧超时诊断"。
                     double? pos = _scanAxis.CurrentPosition;
-                    _logger.Warn($"[{MechanismName}] 取帧超时时扫描轴位置：当前 {(pos.HasValue ? pos.Value.ToString("F2") : "未知")}，"
-                        + $"终点 {geometry.EndMm:F2}"
-                        + (pos.HasValue ? $"（差 {Math.Abs(pos.Value - geometry.EndMm):F2}）。" : "。"));
+                    _logger.Warn($"[{MechanismName}] 取帧超时时扫描轴位置：当前 {(pos.HasValue ? pos.Value.ToString("F0") + "μm" : "未知")}，"
+                        + $"终点 {geometry.EndUm:F0}μm"
+                        + (pos.HasValue ? $"（差 {Math.Abs(pos.Value - geometry.EndUm):F0}μm）。" : "。"));
                     throw;
                 }
 
                 // ⑧ 等轴走完，保证下一次动作从静止开始
-                await WaitAxisMoveDoneAsync(_scanAxis, AxisTimeoutMs, geometry.EndMm, token);
+                await WaitAxisMoveDoneAsync(_scanAxis, AxisTimeoutMs, geometry.EndUm, token);
 
                 _logger.Success($"[{MechanismName}] 扫描完成：{frame.Width}×{frame.Height}，"
                     + $"{frame.SizeBytes / 1024.0 / 1024.0:F2}MB，帧号 {frame.FrameNumber}。");
