@@ -11,8 +11,13 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.21</Version>
+		<Version>1.0.22</Version>
 		<PackageReleaseNotes>
+v1.0.22 (2026-10-23) — 扫码枪调试页连接按钮防重复点击；同步 PF.Infrastructure 1.0.31
+
+[变更 — BarcodeScanDebugView 连接按钮]
+- 连接过程中按钮置灰并显示「连接中...」，防止重复点击；连接异常写入扫码记录而不是击穿到 Dispatcher。
+
 v1.0.21 (2026-10-23) — 线扫检测模组调试页：速度/像素精度/行频/最大曝光、曝光与凑帧实时校验，单位改为微米；IO 调试页门锁手动接管；工站调试页复位受报警清除权限控制；同步 PF.Core 1.0.32、PF.Infrastructure 1.0.30
 
 [变更 — StationDebugView 复位]

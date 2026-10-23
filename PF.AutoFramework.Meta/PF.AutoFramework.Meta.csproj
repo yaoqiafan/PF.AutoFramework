@@ -3,8 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.45</Version>
+    <Version>1.0.46</Version>
     <PackageReleaseNotes>
+		v1.0.46 (2026-10-23) — 设备连接/断开互斥，修复海康 SDK 扫码枪连接中重复点击导致读码器被独占
+
+		[修复 — PF.Infrastructure 1.0.30→1.0.31 / PF.Modules.Debug 1.0.21→1.0.22]
+		- BaseDevice 连接/断开加互斥锁，连接进行中的重复调用等待前一次结束，所有设备生效，子类无需改动。
+		- 海康 SDK 扫码枪连接改用局部实例：修复连接中重复点击「连接硬件」导致句柄泄漏、读码器被独占需重启软件的问题。
+		- 扫码枪调试页连接中按钮置灰并显示「连接中...」。
+
+		子包版本对照：PF.Infrastructure 1.0.30→1.0.31，PF.Modules.Debug 1.0.21→1.0.22；其余子包本次无变化。
+
 		v1.0.45 (2026-10-23) — 视觉资产包（.vpk）取代 .roipk；报警清除权限分级；线扫凑帧校验与微米制；日志页修复；修复弹窗偶发"消失"（含破坏性变更）
 
 		[新增 — 报警清除权限：PF.Core 1.0.32 / PF.Data 1.0.3→1.0.4 / PF.Services 1.0.8→1.0.9 / PF.Infrastructure 1.0.30 /

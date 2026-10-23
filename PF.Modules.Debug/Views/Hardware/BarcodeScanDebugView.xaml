@@ -108,7 +108,18 @@
                         <StackPanel>
                             <TextBlock Margin="0,0,0,10" FontSize="14" FontWeight="SemiBold" Foreground="#475569" Text="基础设备控制" />
                             <UniformGrid Margin="0,0,0,10" Columns="2">
-                                <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Connect}" Content="连接硬件" Style="{DynamicResource ButtonDefault}" />
+                                <Button Height="36" Margin="0,0,5,5" Command="{Binding ConnectCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Connect}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource ButtonDefault}">
+                                            <Setter Property="Content" Value="连接硬件" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+                                                    <Setter Property="Content" Value="连接中..." />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                                 <Button Height="36" Margin="5,0,0,5" Command="{Binding DisconnectCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Disconnect}" Content="断开连接" Style="{DynamicResource ButtonDefault}" />
                                 <Button Height="36" Margin="0,5,5,0" Command="{Binding ResetCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.Reset}" Content="报警复位" Style="{DynamicResource ButtonWarning}" />
                                 <Button Height="36" Margin="5,5,0,0" Command="{Binding SimulateAlarmCommand}" oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+BarcodeScanDebugView.SimulateAlarm}" Content="模拟报警测试" Style="{DynamicResource ButtonDanger}" />

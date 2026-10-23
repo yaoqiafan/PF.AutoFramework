@@ -44,8 +44,20 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.30</Version>
+		<Version>1.0.31</Version>
 		<PackageReleaseNotes>
+v1.0.31 (2026-10-23) — 设备连接/断开互斥；修复海康 SDK 扫码枪连接中重复连接导致句柄泄漏
+
+[修复 — BaseDevice 连接/断开互斥]
+- ConnectAsync / DisconnectAsync 加互斥锁：连接进行中（含重试，可能持续数秒）的重复调用等待前一次结束，
+  前一次已连上则直接返回 true，不再并发进入 InternalConnectAsync；连接中调用断开会等连接结束后再断开。
+  所有设备生效，子类无需改动。
+
+[修复 — MvCodeReaderBarcodeScan（海康 SDK 扫码枪）]
+- 连接改用局部实例，全部步骤成功后才赋给设备字段，失败只清理本次创建的句柄。修复连接过程中重复点击「连接硬件」时
+  两次连接共用同一字段：先打开的句柄泄漏、读码器被本进程独占，不重启软件无法再连接。
+- 连接前若发现残留句柄先释放并记警告。
+
 v1.0.30 (2026-10-23) — 主控复位权限钩子；线扫模组曝光超限/行程凑不满一帧直接拦截；海康线扫相机支持在硬件配置里设像素精度；海康 SDK 扫码枪按 IP 严格匹配；辅助编码器倍率可配（含破坏性变更）；同步 PF.Core 1.0.32
 
 [新增 — BaseMasterController.ResetAuthorization]

@@ -30,6 +30,9 @@ namespace PF.Infrastructure.Hardware
         private CancellationTokenSource? _healthMonitorCts;
         private Task? _healthMonitorTask;
 
+        // 连接/断开互斥：连接过程要数秒（含重试），期间重复点击或并发断开会让子类 SDK 句柄互相踩踏、泄漏
+        private readonly SemaphoreSlim _lifecycleLock = new SemaphoreSlim(1, 1);
+
         #region INotifyPropertyChanged
 
         /// <summary>
@@ -163,12 +166,38 @@ namespace PF.Infrastructure.Hardware
         #region 核心生命周期与重连封装 (Template Methods)
 
         /// <summary>
-        /// 异步连接设备（包含脱机拦截与重连机制）
+        /// 异步连接设备（包含脱机拦截与重连机制）。
+        /// 与 <see cref="DisconnectAsync"/> 互斥：连接进行中的重复调用会等待前一次结束，
+        /// 前一次已连上则直接返回 true，不会并发进入 <see cref="InternalConnectAsync"/>。
         /// </summary>
         public async Task<bool> ConnectAsync(CancellationToken token = default)
         {
             if (IsConnected) return true;
 
+            try
+            {
+                await _lifecycleLock.WaitAsync(token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger?.Warn($"[{DeviceName}] 连接操作被外部取消。");
+                return false;
+            }
+
+            try
+            {
+                // 等锁期间前一次连接可能已成功
+                if (IsConnected) return true;
+                return await ConnectCoreAsync(token).ConfigureAwait(false);
+            }
+            finally
+            {
+                _lifecycleLock.Release();
+            }
+        }
+
+        private async Task<bool> ConnectCoreAsync(CancellationToken token)
+        {
             // 1. 脱机模拟模式拦截
             if (IsSimulated)
             {
@@ -227,27 +256,37 @@ namespace PF.Infrastructure.Hardware
         }
 
         /// <summary>
-        /// 异步断开设备连接
+        /// 异步断开设备连接。连接进行中调用会等待连接结束后再断开。
         /// </summary>
         public async Task DisconnectAsync(CancellationToken token = default)
         {
-            if (!IsConnected) return;
+            if (!IsConnected && _lifecycleLock.CurrentCount > 0) return;
 
-            // 停止健康监控，再进行物理断开
-            await StopHealthMonitorAsync();
-
+            await _lifecycleLock.WaitAsync(token).ConfigureAwait(false);
             try
             {
-                if (!IsSimulated)
-                    await InternalDisconnectAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger?.Error($"[{DeviceName}] 断开连接时发生异常: {ex.Message}");
+                if (!IsConnected) return;
+
+                // 停止健康监控，再进行物理断开
+                await StopHealthMonitorAsync();
+
+                try
+                {
+                    if (!IsSimulated)
+                        await InternalDisconnectAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error($"[{DeviceName}] 断开连接时发生异常: {ex.Message}");
+                }
+                finally
+                {
+                    IsConnected = false;
+                }
             }
             finally
             {
-                IsConnected = false;
+                _lifecycleLock.Release();
             }
         }
 

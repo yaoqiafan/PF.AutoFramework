@@ -224,11 +224,20 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// <summary>
         /// 内部连接：枚举设备 → 选定目标 → 创建句柄 → 打开 → 注册图像回调
         /// → 设置软触发模式 → 开始取流。
+        /// <para>全程操作局部实例，全部成功后才赋给 <see cref="_device"/>；任一步失败只清理本次创建的实例，
+        /// 不会销毁或覆盖字段里已有的句柄。</para>
         /// </summary>
         protected override async Task<bool> InternalConnectAsync(CancellationToken token)
         {
             return await Task.Run(() =>
             {
+                // 残留句柄（理论上不应出现）先释放，否则设备被本进程独占，新句柄打开必然失败
+                if (_device != null)
+                {
+                    HardwareLogger.Warn($"海康MvCodeReader扫码枪[{DeviceName}]连接前发现残留句柄，先释放。");
+                    CloseAndDestroy();
+                }
+
                 var devList = new MvCodeReader.MV_CODEREADER_DEVICE_INFO_LIST();
                 int ret = MvCodeReader.MV_CODEREADER_EnumDevices_NET(ref devList, MvCodeReader.MV_CODEREADER_GIGE_DEVICE);
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
@@ -246,57 +255,59 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 if (!TrySelectDevice(devList, out MvCodeReader.MV_CODEREADER_DEVICE_INFO stDevInfo))
                     return false;
 
-                _device = new MvCodeReader();
+                var device = new MvCodeReader();
 
-                ret = _device.MV_CODEREADER_CreateHandle_NET(ref stDevInfo);
+                ret = device.MV_CODEREADER_CreateHandle_NET(ref stDevInfo);
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
                 {
                     HardwareLogger.Debug($"海康MvCodeReader扫码枪创建句柄失败，错误码={ret}。");
-                    _device = null;
                     return false;
                 }
 
-                ret = _device.MV_CODEREADER_OpenDevice_NET();
+                ret = device.MV_CODEREADER_OpenDevice_NET();
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
                 {
                     HardwareLogger.Debug($"海康MvCodeReader扫码枪打开设备失败，错误码={ret}。");
-                    DestroyHandle();
+                    ReleaseDevice(device, opened: false);
                     return false;
                 }
 
-                _imageCallback = new MvCodeReader.cbOutputEx2delegate(OnImageCallback);
-                ret = _device.MV_CODEREADER_RegisterImageCallBackEx2_NET(_imageCallback, IntPtr.Zero);
+                // 委托必须由字段持有防 GC；回调要到 StartGrabbing 后才会触发
+                var callback = new MvCodeReader.cbOutputEx2delegate(OnImageCallback);
+                ret = device.MV_CODEREADER_RegisterImageCallBackEx2_NET(callback, IntPtr.Zero);
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
                 {
                     HardwareLogger.Debug($"海康MvCodeReader扫码枪注册图像回调失败，错误码={ret}。");
-                    CloseAndDestroy();
+                    ReleaseDevice(device, opened: true);
                     return false;
                 }
+                _imageCallback = callback;
 
                 // 取流前加载默认用户参数组（内含重新设为软触发）；加载失败不连接，避免以错误的读码参数生产
                 if (DefaultUserSet >= 0)
                 {
-                    string? error = LoadUserSet(DefaultUserSet);
+                    string? error = LoadUserSet(device, DefaultUserSet);
                     if (error != null)
                     {
                         HardwareLogger.Error($"海康MvCodeReader扫码枪[{DeviceName}]连接时加载用户参数{DefaultUserSet}失败：{error}");
-                        CloseAndDestroy();
+                        ReleaseDevice(device, opened: true);
                         return false;
                     }
                 }
                 else
                 {
-                    ApplySoftwareTrigger();
+                    ApplySoftwareTrigger(device);
                 }
 
-                ret = _device.MV_CODEREADER_StartGrabbing_NET();
+                ret = device.MV_CODEREADER_StartGrabbing_NET();
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
                 {
                     HardwareLogger.Debug($"海康MvCodeReader扫码枪开始取流失败，错误码={ret}。");
-                    CloseAndDestroy();
+                    ReleaseDevice(device, opened: true);
                     return false;
                 }
 
+                _device = device;
                 _grabbing = true;
                 return true;
             }, token);
@@ -350,7 +361,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
             string? error;
             try
             {
-                error = LoadUserSet(userSet);
+                error = LoadUserSet(_device, userSet);
             }
             catch (Exception ex)
             {
@@ -372,10 +383,10 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// 加载用户参数组（调用方保证未在取流）：校验序号在设备支持范围内 → 加载 → 重新设为软触发 → 回读确认。
         /// </summary>
         /// <returns>成功返回 null，失败返回原因</returns>
-        private string? LoadUserSet(int userSet)
+        private string? LoadUserSet(MvCodeReader device, int userSet)
         {
             var selector = new MvCodeReader.MV_CODEREADER_ENUMVALUE();
-            int ret = _device.MV_CODEREADER_GetEnumValue_NET("UserSetSelector", ref selector);
+            int ret = device.MV_CODEREADER_GetEnumValue_NET("UserSetSelector", ref selector);
             if (ret != MvCodeReader.MV_CODEREADER_OK)
                 return $"读取用户参数组列表失败，错误码={ret}（设备可能不支持 UserSetSelector 节点）。";
 
@@ -383,21 +394,21 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
             if (!supported.Contains((uint)userSet))
                 return $"设备不支持用户参数组 {userSet}，可选值：[{string.Join(", ", supported)}]。";
 
-            ret = _device.MV_CODEREADER_SetEnumValue_NET("UserSetSelector", (uint)userSet);
+            ret = device.MV_CODEREADER_SetEnumValue_NET("UserSetSelector", (uint)userSet);
             if (ret != MvCodeReader.MV_CODEREADER_OK)
                 return $"选择用户参数组失败，错误码={ret}。";
 
-            ret = _device.MV_CODEREADER_SetCommandValue_NET("UserSetLoad");
+            ret = device.MV_CODEREADER_SetCommandValue_NET("UserSetLoad");
             if (ret != MvCodeReader.MV_CODEREADER_OK)
                 return $"加载用户参数组失败，错误码={ret}。";
 
             // 参数组内可能保存了其他触发方式，加载后必须重新设回软触发，否则 Tigger 会一直超时
-            ret = ApplySoftwareTrigger();
+            ret = ApplySoftwareTrigger(device);
             if (ret != MvCodeReader.MV_CODEREADER_OK)
                 return $"参数组已加载，但设置软触发失败，错误码={ret}。";
 
             var check = new MvCodeReader.MV_CODEREADER_ENUMVALUE();
-            ret = _device.MV_CODEREADER_GetEnumValue_NET("UserSetSelector", ref check);
+            ret = device.MV_CODEREADER_GetEnumValue_NET("UserSetSelector", ref check);
             if (ret != MvCodeReader.MV_CODEREADER_OK || check.nCurValue != (uint)userSet)
                 return $"回读确认失败（错误码={ret}，当前参数组={check.nCurValue}）。";
 
@@ -407,12 +418,12 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         }
 
         /// <summary>设为软触发模式（触发模式开 + 触发源软件），返回首个失败的错误码，全部成功返回 OK。</summary>
-        private int ApplySoftwareTrigger()
+        private static int ApplySoftwareTrigger(MvCodeReader device)
         {
-            int ret = _device.MV_CODEREADER_SetEnumValue_NET("TriggerMode", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_MODE.MV_CODEREADER_TRIGGER_MODE_ON);
+            int ret = device.MV_CODEREADER_SetEnumValue_NET("TriggerMode", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_MODE.MV_CODEREADER_TRIGGER_MODE_ON);
             if (ret != MvCodeReader.MV_CODEREADER_OK)
                 return ret;
-            return _device.MV_CODEREADER_SetEnumValue_NET("TriggerSource", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_SOURCE.MV_CODEREADER_TRIGGER_SOURCE_SOFTWARE);
+            return device.MV_CODEREADER_SetEnumValue_NET("TriggerSource", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_SOURCE.MV_CODEREADER_TRIGGER_SOURCE_SOFTWARE);
         }
 
         #endregion
@@ -620,30 +631,29 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
             return $"{(ip >> 24) & 0xFF}.{(ip >> 16) & 0xFF}.{(ip >> 8) & 0xFF}.{ip & 0xFF}";
         }
 
-        /// <summary>停止取流 + 关闭设备 + 销毁句柄的统一清理。</summary>
+        /// <summary>停止取流 + 关闭设备 + 销毁句柄的统一清理（针对已赋给字段的当前设备）。</summary>
         private void CloseAndDestroy()
         {
             _grabbing = false;
 
-            if (_device != null)
-            {
-                try { _device.MV_CODEREADER_StopGrabbing_NET(); } catch { /* 忽略 */ }
-                try { _device.MV_CODEREADER_CloseDevice_NET(); } catch { /* 忽略 */ }
-                DestroyHandle();
-            }
+            MvCodeReader device = _device;
+            _device = null;
+            if (device != null)
+                ReleaseDevice(device, opened: true);
 
             _imageCallback = null;
             _resultEvent.Reset();
         }
 
-        /// <summary>仅销毁句柄（假定设备已关闭）。</summary>
-        private void DestroyHandle()
+        /// <summary>释放指定实例：已打开的先停止取流并关闭，再销毁句柄。不触碰任何字段。</summary>
+        private static void ReleaseDevice(MvCodeReader device, bool opened)
         {
-            if (_device != null)
+            if (opened)
             {
-                try { _device.MV_CODEREADER_DestroyHandle_NET(); } catch { /* 忽略 */ }
-                _device = null;
+                try { device.MV_CODEREADER_StopGrabbing_NET(); } catch { /* 忽略 */ }
+                try { device.MV_CODEREADER_CloseDevice_NET(); } catch { /* 忽略 */ }
             }
+            try { device.MV_CODEREADER_DestroyHandle_NET(); } catch { /* 忽略 */ }
         }
 
         #endregion

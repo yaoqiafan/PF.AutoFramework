@@ -53,7 +53,7 @@ BaseAxisDevice    ← 代理到 ParentCard，子类只需提供 AxisIndex / Para
 BaseIODevice      ← 代理到 ParentCard，WaitInputAsync 以 20ms 轮询，泛型枚举重载
 ```
 
-- **BaseDevice**：3 次重试连接（间隔 2s），健康监控循环（默认 1000ms，仿真模式 ×5），抽象钩子 `InternalConnectAsync` / `InternalDisconnectAsync` / `InternalResetAsync`
+- **BaseDevice**：3 次重试连接（间隔 2s），`ConnectAsync` / `DisconnectAsync` 互斥（连接中重复调用等前一次结束，不并发进 `InternalConnectAsync`），健康监控循环（默认 1000ms，仿真模式 ×5），抽象钩子 `InternalConnectAsync` / `InternalDisconnectAsync` / `InternalResetAsync`
 - **BaseMechanism**：聚合多硬件，`RegisterHardwareDevice()` 自动订阅报警聚合 + 批量复位，内置 `WaitAxisMoveDoneAsync`（50ms 轮询，30s 超时）/ `EnsurePointsExist<TEnum>(IAxis)`（点表自动补全 + 持久化）/ `CheckReady()`（防呆保护）
 - **StationBase\<T\>**：8 状态机（Stateless）+ `SemaphoreSlim(1,1)` 状态锁 + `CancellationTokenSource _runCts` 取消式暂停，子类实现 `ProcessNormalLoopAsync` / `ProcessDryRunLoopAsync`
 - **BaseMasterController**：编排所有 `IStation`，并行初始化（最大并发度 4），初始化超时 120s，复位超时 30s，防撕裂守卫（子站意外跌落 Uninitialized 时全局报警）

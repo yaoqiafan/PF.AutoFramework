@@ -90,6 +90,10 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置是否报警</summary>
         public bool HasAlarm { get => _hasAlarm; set => SetProperty(ref _hasAlarm, value); }
 
+        private bool _isConnecting;
+        /// <summary>获取或设置是否正在连接（连接含重试可能持续数秒，期间禁用连接按钮防重复点击）</summary>
+        public bool IsConnecting { get => _isConnecting; set => SetProperty(ref _isConnecting, value); }
+
         // --- IBarcodeScan 接口专有属性 ---
         /// <summary>获取 IP 地址</summary>
         public string IpAddress => _scanner?.IPAdress ?? "0.0.0.0";
@@ -141,7 +145,24 @@ namespace PF.Modules.Debug.ViewModels
 
         private void InitializeCommands()
         {
-            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
+            ConnectCommand = new DelegateCommand(async () =>
+            {
+                if (_baseDevice == null) return;
+                IsConnecting = true;
+                try
+                {
+                    await _baseDevice.ConnectAsync(CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    UpdateScanResult($"连接异常: {ex.Message}");
+                }
+                finally
+                {
+                    IsConnecting = false;
+                    IsConnected = _baseDevice.IsConnected;
+                }
+            }, () => !IsConnecting).ObservesProperty(() => IsConnecting);
             DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
             ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
 
