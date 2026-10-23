@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -37,12 +38,20 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// <param name="deviceName">设备名称。</param>
         /// <param name="isSimulated">是否仿真模式。</param>
         /// <param name="logger">日志服务。</param>
-        public MvCodeReaderBarcodeScan(string ip, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger)
+        /// <param name="defaultUserSet">连接时加载的用户参数组序号（0=出厂默认，1~3=用户参数1~3，因型号而异），默认用户参数1；小于 0 表示连接时不加载。</param>
+        public MvCodeReaderBarcodeScan(string ip, int timeoutms, string deviceId, string deviceName, bool isSimulated, ILogService logger, int defaultUserSet = 1)
             : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
             IPAdress = ip ?? string.Empty;
             TimeOutMs = timeoutms > 0 ? timeoutms : 5000;
+            DefaultUserSet = defaultUserSet;
         }
+
+        /// <summary>连接时加载的用户参数组序号；小于 0 表示连接时不加载，沿用设备当前参数。</summary>
+        public int DefaultUserSet { get; }
+
+        /// <summary>最近一次成功加载的用户参数组序号；未加载过为 -1。</summary>
+        public int CurrentUserSet { get; private set; } = -1;
 
         /// <summary>读码器 IP 地址。</summary>
         public override string IPAdress { get; }
@@ -82,6 +91,9 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// <summary>触发取码完成信号。</summary>
         private readonly ManualResetEventSlim _resultEvent = new ManualResetEventSlim(false);
 
+        /// <summary>触发与切换用户参数互斥：切换期间会停止取流，不允许同时触发。</summary>
+        private readonly SemaphoreSlim _operationLock = new SemaphoreSlim(1, 1);
+
         #region IBarcodeScan
 
         /// <summary>
@@ -89,11 +101,20 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// </summary>
         public override async Task<BarcodeScanResult> Tigger(CancellationToken token = default)
         {
+            if (IsSimulated)
+                return BarcodeScanResult.Success(new[] { "当前设备模拟模式中，触发测试！" });
+
             try
             {
-                if (IsSimulated)
-                    return BarcodeScanResult.Success(new[] { "当前设备模拟模式中，触发测试！" });
+                await _operationLock.WaitAsync(token);
+            }
+            catch (OperationCanceledException ex)
+            {
+                return BarcodeScanResult.Fail(ex.Message);
+            }
 
+            try
+            {
                 if (_device == null || !_grabbing)
                 {
                     HardwareLogger.Debug("海康MvCodeReader扫码枪未连接，无法触发。");
@@ -137,40 +158,62 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 HardwareLogger.Debug(ex.Message, ex);
                 return BarcodeScanResult.Fail(ex.Message);
             }
+            finally
+            {
+                _operationLock.Release();
+            }
         }
 
         /// <summary>
-        /// 切换用户参数：加载相机内的用户配置组（GenICam 标准 UserSetSelector/UserSetLoad 节点）。
-        /// <para>⚠️ 假设设备暴露标准 GenICam 用户参数组节点，<paramref name="userInfo"/> 为用户组序号（0~3 等，因型号而异）。</para>
+        /// 切换用户参数：加载读码器内的用户参数组（GenICam 标准 UserSetSelector/UserSetLoad 节点）。
+        /// <para><paramref name="userInfo"/> 为用户参数组序号（0=出厂默认，1~3=用户参数1~3，因型号而异）。</para>
+        /// <para>流程：校验序号在设备支持范围内 → 停止取流 → 加载参数组 → 重新设为软触发 → 回读确认 → 恢复取流。
+        /// 与 <see cref="Tigger"/> 互斥，切换期间的触发会等待切换完成。</para>
         /// </summary>
         public override async Task<bool> ChangeUserParam(object userInfo, CancellationToken token = default)
         {
+            if (IsSimulated)
+                return true;
+
+            if (!int.TryParse(userInfo?.ToString(), out int userSet) || userSet < 0)
+            {
+                HardwareLogger.Error($"海康MvCodeReader扫码枪[{DeviceName}]切换用户参数失败：用户参数组序号 [{userInfo}] 无效。");
+                return false;
+            }
+
             try
             {
-                if (IsSimulated)
-                    return true;
+                await _operationLock.WaitAsync(token);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
 
+            try
+            {
                 if (_device == null)
-                    throw new Exception("海康MvCodeReader扫码枪未连接，无法切换参数。");
+                {
+                    HardwareLogger.Error($"海康MvCodeReader扫码枪[{DeviceName}]未连接，无法切换用户参数。");
+                    return false;
+                }
 
-                if (!int.TryParse(userInfo?.ToString(), out int userSetIndex))
-                    throw new Exception("海康MvCodeReader扫码枪切换参数错误：用户组序号无效。");
-
-                int ret = _device.MV_CODEREADER_SetEnumValue_NET("UserSetSelector", (uint)userSetIndex);
-                if (ret != MvCodeReader.MV_CODEREADER_OK)
-                    throw new Exception($"海康MvCodeReader扫码枪设置用户组序号失败，错误码={ret}。");
-
-                ret = _device.MV_CODEREADER_SetCommandValue_NET("UserSetLoad");
-                if (ret != MvCodeReader.MV_CODEREADER_OK)
-                    throw new Exception($"海康MvCodeReader扫码枪加载用户组失败，错误码={ret}。");
-
-                await Task.CompletedTask;
+                string? error = await Task.Run(() => SwitchUserSet(userSet));
+                if (error != null)
+                {
+                    HardwareLogger.Error($"海康MvCodeReader扫码枪[{DeviceName}]切换用户参数{userSet}失败：{error}");
+                    return false;
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error($"海康MvCodeReader扫码枪[{DeviceName}]切换用户参数{userSet}异常：{ex.Message}", ex);
                 return false;
+            }
+            finally
+            {
+                _operationLock.Release();
             }
         }
 
@@ -200,7 +243,8 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                     return false;
                 }
 
-                MvCodeReader.MV_CODEREADER_DEVICE_INFO stDevInfo = SelectDevice(devList);
+                if (!TrySelectDevice(devList, out MvCodeReader.MV_CODEREADER_DEVICE_INFO stDevInfo))
+                    return false;
 
                 _device = new MvCodeReader();
 
@@ -229,8 +273,21 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                     return false;
                 }
 
-                _device.MV_CODEREADER_SetEnumValue_NET("TriggerMode", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_MODE.MV_CODEREADER_TRIGGER_MODE_ON);
-                _device.MV_CODEREADER_SetEnumValue_NET("TriggerSource", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_SOURCE.MV_CODEREADER_TRIGGER_SOURCE_SOFTWARE);
+                // 取流前加载默认用户参数组（内含重新设为软触发）；加载失败不连接，避免以错误的读码参数生产
+                if (DefaultUserSet >= 0)
+                {
+                    string? error = LoadUserSet(DefaultUserSet);
+                    if (error != null)
+                    {
+                        HardwareLogger.Error($"海康MvCodeReader扫码枪[{DeviceName}]连接时加载用户参数{DefaultUserSet}失败：{error}");
+                        CloseAndDestroy();
+                        return false;
+                    }
+                }
+                else
+                {
+                    ApplySoftwareTrigger();
+                }
 
                 ret = _device.MV_CODEREADER_StartGrabbing_NET();
                 if (ret != MvCodeReader.MV_CODEREADER_OK)
@@ -269,6 +326,93 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
             }
 
             return Task.CompletedTask;
+        }
+
+        #endregion
+
+        #region 私有辅助：用户参数组
+
+        /// <summary>
+        /// 在取流状态下切换用户参数组：先停止取流，加载完成后恢复取流（加载失败也恢复，保证扫码枪可继续使用）。
+        /// </summary>
+        /// <returns>成功返回 null，失败返回原因</returns>
+        private string? SwitchUserSet(int userSet)
+        {
+            bool wasGrabbing = _grabbing;
+            if (wasGrabbing)
+            {
+                int ret = _device.MV_CODEREADER_StopGrabbing_NET();
+                if (ret != MvCodeReader.MV_CODEREADER_OK)
+                    return $"停止取流失败，错误码={ret}，未切换。";
+                _grabbing = false;
+            }
+
+            string? error;
+            try
+            {
+                error = LoadUserSet(userSet);
+            }
+            catch (Exception ex)
+            {
+                error = $"加载异常：{ex.Message}";
+            }
+
+            if (wasGrabbing)
+            {
+                int ret = _device.MV_CODEREADER_StartGrabbing_NET();
+                if (ret == MvCodeReader.MV_CODEREADER_OK)
+                    _grabbing = true;
+                else
+                    error = $"{error ?? "参数已加载"}；恢复取流失败，错误码={ret}，扫码枪需重新连接。";
+            }
+            return error;
+        }
+
+        /// <summary>
+        /// 加载用户参数组（调用方保证未在取流）：校验序号在设备支持范围内 → 加载 → 重新设为软触发 → 回读确认。
+        /// </summary>
+        /// <returns>成功返回 null，失败返回原因</returns>
+        private string? LoadUserSet(int userSet)
+        {
+            var selector = new MvCodeReader.MV_CODEREADER_ENUMVALUE();
+            int ret = _device.MV_CODEREADER_GetEnumValue_NET("UserSetSelector", ref selector);
+            if (ret != MvCodeReader.MV_CODEREADER_OK)
+                return $"读取用户参数组列表失败，错误码={ret}（设备可能不支持 UserSetSelector 节点）。";
+
+            uint[] supported = (selector.nSupportValue ?? Array.Empty<uint>()).Take((int)selector.nSupportedNum).ToArray();
+            if (!supported.Contains((uint)userSet))
+                return $"设备不支持用户参数组 {userSet}，可选值：[{string.Join(", ", supported)}]。";
+
+            ret = _device.MV_CODEREADER_SetEnumValue_NET("UserSetSelector", (uint)userSet);
+            if (ret != MvCodeReader.MV_CODEREADER_OK)
+                return $"选择用户参数组失败，错误码={ret}。";
+
+            ret = _device.MV_CODEREADER_SetCommandValue_NET("UserSetLoad");
+            if (ret != MvCodeReader.MV_CODEREADER_OK)
+                return $"加载用户参数组失败，错误码={ret}。";
+
+            // 参数组内可能保存了其他触发方式，加载后必须重新设回软触发，否则 Tigger 会一直超时
+            ret = ApplySoftwareTrigger();
+            if (ret != MvCodeReader.MV_CODEREADER_OK)
+                return $"参数组已加载，但设置软触发失败，错误码={ret}。";
+
+            var check = new MvCodeReader.MV_CODEREADER_ENUMVALUE();
+            ret = _device.MV_CODEREADER_GetEnumValue_NET("UserSetSelector", ref check);
+            if (ret != MvCodeReader.MV_CODEREADER_OK || check.nCurValue != (uint)userSet)
+                return $"回读确认失败（错误码={ret}，当前参数组={check.nCurValue}）。";
+
+            CurrentUserSet = userSet;
+            HardwareLogger.Info($"海康MvCodeReader扫码枪[{DeviceName}]已加载用户参数{userSet}。");
+            return null;
+        }
+
+        /// <summary>设为软触发模式（触发模式开 + 触发源软件），返回首个失败的错误码，全部成功返回 OK。</summary>
+        private int ApplySoftwareTrigger()
+        {
+            int ret = _device.MV_CODEREADER_SetEnumValue_NET("TriggerMode", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_MODE.MV_CODEREADER_TRIGGER_MODE_ON);
+            if (ret != MvCodeReader.MV_CODEREADER_OK)
+                return ret;
+            return _device.MV_CODEREADER_SetEnumValue_NET("TriggerSource", (uint)MvCodeReader.MV_CODEREADER_TRIGGER_SOURCE.MV_CODEREADER_TRIGGER_SOURCE_SOFTWARE);
         }
 
         #endregion
@@ -422,13 +566,19 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
         /// 从枚举列表中选定目标设备：优先按 IP 匹配 GigE 设备，
         /// 命中失败或无法解析 IP 时回退到第一台并记录警告。
         /// </summary>
-        private MvCodeReader.MV_CODEREADER_DEVICE_INFO SelectDevice(MvCodeReader.MV_CODEREADER_DEVICE_INFO_LIST devList)
+        /// <remarks>
+        /// 配置了 IP 时必须精确匹配，匹配不到即连接失败，不回退到其他设备——多台读码器的机台上
+        /// 回退会让两个工位连到同一台读码器，读到另一个工位的标签。仅未配置 IP 且只在线一台时直接使用该台。
+        /// </remarks>
+        private bool TrySelectDevice(MvCodeReader.MV_CODEREADER_DEVICE_INFO_LIST devList, out MvCodeReader.MV_CODEREADER_DEVICE_INFO selected)
         {
+            selected = default;
             int count = (int)devList.nDeviceNum;
+            var onlineIps = new List<string>();
 
             for (int i = 0; i < count; i++)
             {
-                if (devList.pDeviceInfo[i] == IntPtr.Zero || string.IsNullOrEmpty(IPAdress))
+                if (devList.pDeviceInfo[i] == IntPtr.Zero)
                     continue;
 
                 var info = (MvCodeReader.MV_CODEREADER_DEVICE_INFO)Marshal.PtrToStructure(
@@ -441,15 +591,27 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                 var gigeInfo = (MvCodeReader.MV_CODEREADER_GIGE_DEVICE_INFO)Marshal.PtrToStructure(
                     gigeBuffer, typeof(MvCodeReader.MV_CODEREADER_GIGE_DEVICE_INFO));
 
-                if (FormatIp(gigeInfo.nCurrentIp) == IPAdress)
-                    return info;
+                string ip = FormatIp(gigeInfo.nCurrentIp);
+                onlineIps.Add(ip);
+                if (!string.IsNullOrEmpty(IPAdress) && ip == IPAdress)
+                {
+                    selected = info;
+                    return true;
+                }
             }
 
-            if (count > 1)
-                HardwareLogger.Debug($"海康MvCodeReader扫码枪发现 {count} 台设备，未匹配 IP={IPAdress}，回退使用第一台。");
+            if (string.IsNullOrEmpty(IPAdress) && count == 1 && devList.pDeviceInfo[0] != IntPtr.Zero)
+            {
+                selected = (MvCodeReader.MV_CODEREADER_DEVICE_INFO)Marshal.PtrToStructure(
+                    devList.pDeviceInfo[0], typeof(MvCodeReader.MV_CODEREADER_DEVICE_INFO));
+                HardwareLogger.Warn($"海康MvCodeReader扫码枪[{DeviceName}]未配置 IP，仅在线一台，直接使用该台。");
+                return true;
+            }
 
-            return (MvCodeReader.MV_CODEREADER_DEVICE_INFO)Marshal.PtrToStructure(
-                devList.pDeviceInfo[0], typeof(MvCodeReader.MV_CODEREADER_DEVICE_INFO));
+            HardwareLogger.Error(string.IsNullOrEmpty(IPAdress)
+                ? $"海康MvCodeReader扫码枪[{DeviceName}]未配置 IP，且在线 {count} 台无法确定使用哪一台，请配置 IP。在线设备：[{string.Join(", ", onlineIps)}]"
+                : $"海康MvCodeReader扫码枪[{DeviceName}]未找到 IP={IPAdress} 的读码器，请检查 IP 配置或网线。在线设备：[{string.Join(", ", onlineIps)}]");
+            return false;
         }
 
         /// <summary>将网络字节序的 32 位整型 IP 格式化为点分十进制字符串。</summary>

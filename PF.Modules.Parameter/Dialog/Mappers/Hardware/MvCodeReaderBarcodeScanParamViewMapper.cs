@@ -22,9 +22,11 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
 
                 config.ConnectionParameters.TryGetValue("IP",        out var ip);
                 config.ConnectionParameters.TryGetValue("TimeOutMs", out var timeOutMs);
+                config.ConnectionParameters.TryGetValue("UserSet",   out var userSet);
 
                 view.IP        = ip        ?? string.Empty;
                 view.TimeOutMs = timeOutMs ?? string.Empty;
+                view.UserSet   = userSet   ?? "1";
 
                 return true;
             }
@@ -50,7 +52,8 @@ namespace PF.Modules.Parameter.Dialog.Mappers.Hardware
                     ConnectionParameters  = new Dictionary<string, string>
                     {
                         ["IP"]        = view.IP        ?? string.Empty,
-                        ["TimeOutMs"] = view.TimeOutMs ?? string.Empty
+                        ["TimeOutMs"] = view.TimeOutMs ?? string.Empty,
+                        ["UserSet"]   = string.IsNullOrWhiteSpace(view.UserSet) ? "1" : view.UserSet.Trim()
                     }
                 };
             }

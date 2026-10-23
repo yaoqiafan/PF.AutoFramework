@@ -241,11 +241,11 @@ namespace PF.Application.Shell
             {
                 int channel = cfg.ConnectionParameters.TryGetValue("Channel", out var ch) && !string.IsNullOrWhiteSpace(ch)
                     ? int.Parse(ch) : 0;
-                var encoder = new Infrastructure.Hardware.Encoder.EtherCatAuxEncoder(
-                    cfg.DeviceId, cfg.DeviceName, channel, cfg.IsSimulated, LogService);
-                if (cfg.ConnectionParameters.TryGetValue("Multiplier", out var mul) && !string.IsNullOrWhiteSpace(mul))
-                    encoder.Multiplier = double.Parse(mul);
-                return encoder;
+                // 未配置倍率时沿用 BaseAuxEncoder 原默认值 2
+                double multiplier = cfg.ConnectionParameters.TryGetValue("Multiplier", out var mul) && !string.IsNullOrWhiteSpace(mul)
+                    ? double.Parse(mul) : 2;
+                return new Infrastructure.Hardware.Encoder.EtherCatAuxEncoder(
+                    cfg.DeviceId, cfg.DeviceName, channel, multiplier, cfg.IsSimulated, LogService);
             });
 
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
@@ -270,7 +270,9 @@ namespace PF.Application.Shell
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
                 int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var timeout) ? int.Parse(timeout) : 0;
-                return new Infrastructure.Hardware.BarcodeScan.Hikvision.MvCodeReaderBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+                // 未配置或填写非法时默认加载用户参数1
+                int userSet = cfg.ConnectionParameters.TryGetValue("UserSet", out var us) && int.TryParse(us, out var parsed) ? parsed : 1;
+                return new Infrastructure.Hardware.BarcodeScan.Hikvision.MvCodeReaderBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, userSet);
             });
 
             hwManager.RegisterFactory("KeyenceBarcodeScan", cfg =>

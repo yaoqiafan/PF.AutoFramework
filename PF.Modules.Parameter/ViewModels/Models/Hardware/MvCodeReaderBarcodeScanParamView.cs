@@ -70,6 +70,17 @@ namespace PF.Modules.Parameter.ViewModels.Models.Hardware
             set => SetProperty(ref _timeOutMs, value);
         }
 
+        private string _userSet;
+        /// <summary>获取或设置连接时加载的用户参数组</summary>
+        [Category("连接参数")]
+        [DisplayName("用户参数组")]
+        [Description("连接时加载的用户参数组：0=出厂默认，1~3=用户参数1~3（因型号而异），-1=不加载；为空默认 1")]
+        public string UserSet
+        {
+            get => _userSet;
+            set => SetProperty(ref _userSet, value);
+        }
+
         private string _remarks;
         /// <summary>获取或设置备注</summary>
         [Category("设备基本信息")]
