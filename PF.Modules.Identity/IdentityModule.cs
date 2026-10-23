@@ -26,6 +26,7 @@ namespace PF.Modules.Identity
             containerRegistry.RegisterForNavigation<LoginView, LoginViewModel>(NavigationConstants.Dialogs.LoginView);
             containerRegistry.RegisterForNavigation<PagePermissionView, PagePermissionViewModel>(NavigationConstants.Views.PagePermissionView);
             containerRegistry.RegisterForNavigation<UserManagementView, UserManagementViewModel>(NavigationConstants.Views.UserManagementView);
+            containerRegistry.RegisterForNavigation<AlarmPermissionView, AlarmPermissionViewModel>(NavigationConstants.Views.AlarmPermissionView);
         }
     }
 }

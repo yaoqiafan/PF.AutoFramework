@@ -5,8 +5,10 @@ namespace PF.Data.Entity.Alarm
 {
     /// <summary>
     /// 报警字典实体（持久化表：AlarmDefinitions）。
-    /// 用于存储由实施人员在数据库中扩展或覆盖的报警规则。
-    /// 数据库条目优先级高于代码内置的 AlarmInfoAttribute 定义。
+    /// 由程序启动时从代码 <c>[AlarmInfo]</c> 同步写入（同默认参数）：
+    /// <see cref="RequiredLevel"/> 以数据库为准（可在「异常权限配置」页面修改），
+    /// 其余文案字段每次启动按代码刷新，代码已删除的报警码会被移除。
+    /// 数据库条目不再覆盖代码定义的报警文案（已取消扩展报警码合并加载）。
     /// </summary>
     public class AlarmDefinitionEntity
     {
@@ -40,5 +42,11 @@ namespace PF.Data.Entity.Alarm
         /// <summary>报警信息英文文本(用于上传SECSGEM)，最长40 位</summary>
         [MaxLength(40)]
         public string MessageIDHex { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 手动清除/复位该报警所需的最低用户等级（以数据库为准）。
+        /// 老库没有此列时由 AlarmDictionaryService 启动时幂等补列，默认 0 = Operator。
+        /// </summary>
+        public UserLevel RequiredLevel { get; set; } = UserLevel.Operator;
     }
 }

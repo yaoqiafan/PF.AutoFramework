@@ -83,6 +83,10 @@ namespace PF.Core.Interfaces.Station
         /// <summary>
         /// 异步复位全线设备。
         /// 用于在报警解除后，指挥各机构执行清错、退刀、回安全位等自恢复动作，使设备重返待机状态。
+        /// <para>
+        /// 不做报警清除权限检查，供程序内部调用。界面上由用户触发的复位请调用
+        /// <see cref="RequestSystemResetAsync"/>（或发布 SystemResetRequestedEvent），否则会绕过权限管控。
+        /// </para>
         /// </summary>
         /// <returns>表示异步复位操作的任务</returns>
         Task ResetAllAsync();
@@ -104,9 +108,9 @@ namespace PF.Core.Interfaces.Station
         void RegisterHardwareResetHandler(Action<HardwareResetRequest> handler);
 
         /// <summary>
-        /// 系统全局复位入口：清除 AlarmService 中所有的活跃报警记录，
-        /// 然后执行 <see cref="ResetAllAsync"/> 使整个系统恢复至 Idle 待机状态。
-        /// 通常由 Shell 界面在收到 <c>SystemResetRequestedEvent</c> 时于后台线程调用。
+        /// 系统全局复位入口：先做报警清除权限检查（当前用户等级 ≥ 活跃报警中最高的清除等级），
+        /// 通过后执行 <see cref="ResetAllAsync"/> 清除所有活跃报警并使整个系统恢复至 Idle 待机状态；不通过则直接返回。
+        /// 通常由 Shell 界面在收到 <c>SystemResetRequestedEvent</c> 时于后台线程调用，界面复位按钮也应调用此方法。
         /// </summary>
         /// <returns>表示异步系统复位操作的任务</returns>
         Task RequestSystemResetAsync();

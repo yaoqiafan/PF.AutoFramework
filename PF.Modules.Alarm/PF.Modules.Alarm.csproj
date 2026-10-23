@@ -11,8 +11,23 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-10-23) — 报警清除与复位按用户等级管控
+
+[变更 — AlarmCenterView]
+- 单条清除 / 清除选中：当前用户等级低于报警码的清除等级时按钮置灰（禁用时仍显示悬浮提示），执行前再次校验。
+- 确认全部：只清除有权限的报警，跳过的条数弹窗提示。
+- 系统复位：要求当前用户等级 ≥ 活跃报警中最高的清除等级，不足时提示并拒绝，不发布 SystemResetRequestedEvent。
+- 切换登录用户或修改清除等级后，按钮状态自动刷新。
+
+[变更 — AlarmDetailCardView（报警弹窗）]
+- 「异常复位」同样按上述复位规则判定；权限不足时提示并保持弹窗打开、不发布复位事件
+  （否则其它报警弹窗会被一起关闭），并写入操作日志。
+
+清除等级在「权限管控 → 异常权限配置」页面配置（PF.Modules.Identity 1.0.6）；程序自动清除的报警不受管控。
+依赖：PF.Core 1.0.32（IAlarmPermissionService）、PF.Services 1.0.9（实现与注册）。
+
 v1.0.6 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

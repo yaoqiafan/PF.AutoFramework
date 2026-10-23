@@ -407,7 +407,7 @@
                                 FontWeight="Bold"
                                 Foreground="White"
                                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearAllAlarms}"
-                                ToolTip="清除报警服务中所有活跃记录（软确认，不触发硬件复位）" />
+                                ToolTip="清除当前用户有权限清除的所有活跃报警（软确认，不触发硬件复位），权限不足的条目保留" />
                             <Button
                                 Width="100"
                                 Height="30"
@@ -418,7 +418,8 @@
                                 Content="✓ 确认/清除"
                                 Foreground="White"
                                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearSelectedAlarm}"
-                                ToolTip="清除选中的单条报警记录（软确认）" />
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="清除选中的单条报警记录（软确认）；当前用户权限不足时不可用" />
                             <Button
                                 Width="110"
                                 Height="30"
@@ -429,7 +430,7 @@
                                 FontWeight="Bold"
                                 Foreground="White"
                                 oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.SystemReset}"
-                                ToolTip="触发全线系统复位：清除所有活跃报警并执行硬件回待机位（ResetAllAsync）" />
+                                ToolTip="触发全线系统复位：清除所有活跃报警并执行硬件回待机位；需当前用户权限覆盖所有活跃报警的清除等级" />
                         </StackPanel>
 
                         <!--  卡片式活跃报警列表  -->
@@ -581,7 +582,8 @@
                                                     FontSize="20"
                                                     Foreground="#000000"
                                                     oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysAlarm+AlarmCenterView.ClearSingleAlarm}"
-                                                    ToolTip="清除此报警"
+                                                    ToolTipService.ShowOnDisabled="True"
+                                                    ToolTip="清除此报警（当前用户权限不足时不可用）"
                                                     VerticalAlignment="Center" />
                                             </Grid>
 

@@ -1,17 +1,25 @@
 ﻿using PF.Core.Entities.Logging;
 using PF.Core.Interfaces.Logging;
 using PF.Modules.Logging.ViewModels;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace PF.Modules.Logging.Views
 {
     /// <summary>日志列表视图</summary>
     public partial class LogListView : UserControl
     {
+        // 离顶部多少像素以内视为"在顶部"（列表按时间倒序，顶部即最新）
+        private const double TopTolerance = 1.0;
+
         private ScrollViewer _scrollViewer;
+        private LogListViewModel _viewModel;
+        private object _anchorItem;
+        private double _anchorTop;
         private LogEntry _lastClickedItem;
         private object _lastClickedTime;
         private readonly IContainerProvider _containerProvider;
@@ -22,10 +30,11 @@ namespace PF.Modules.Logging.Views
         {
             InitializeComponent();
             _containerProvider = containerProvider;
+            logService = _containerProvider.Resolve<ILogService>();
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
 
-            // 添加鼠标点击事件
+            // 添加鼠标点击事件（挂在自身子控件上，随视图一起释放，无需在 Unloaded 中移除）
             LogListViewControl.AddHandler(ListViewItem.PreviewMouseLeftButtonDownEvent,
                 new MouseButtonEventHandler(OnListViewItemMouseDown), true);
         }
@@ -74,77 +83,156 @@ namespace PF.Modules.Logging.Views
             }
         }
 
+        // Loaded / Unloaded 成对处理：视图可能被多次卸载再加载，所有订阅都在这里挂、在 OnUnloaded 里摘
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            // 查找ScrollViewer
             _scrollViewer = FindVisualChild<ScrollViewer>(LogListViewControl);
-
-            // 订阅滚动事件
             if (_scrollViewer != null)
             {
                 _scrollViewer.ScrollChanged += OnScrollChanged;
             }
 
-            // 订阅数据上下文变化
-            DataContextChanged += OnDataContextChanged;
-
-            logService = _containerProvider.Resolve<ILogService>();
-        }
-
-        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            if (e.OldValue is LogListViewModel oldVm)
+            _viewModel = DataContext as LogListViewModel;
+            if (_viewModel != null)
             {
-                oldVm.Unsubscribe();
-            }
+                _viewModel.Subscribe();
+                _viewModel.LogAppended += OnLogAppended;
+                _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-            if (e.NewValue is LogListViewModel newVm)
-            {
-                // 延迟滚动到底部
-                Dispatcher.InvokeAsync(() =>
+                if (_viewModel.AutoScroll)
                 {
-                    ScrollToBottom();
-                }, System.Windows.Threading.DispatcherPriority.Background);
-            }
-        }
-
-        private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            if (DataContext is LogListViewModel vm && vm.AutoScroll)
-            {
-                // 如果用户手动滚动，暂时禁用自动滚动
-                if (e.VerticalChange > 0 && e.VerticalOffset != e.ExtentHeight)
-                {
-                    vm.AutoScroll = false;
+                    ScrollToTop();
                 }
             }
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            // 清理资源
             if (_scrollViewer != null)
             {
                 _scrollViewer.ScrollChanged -= OnScrollChanged;
+                _scrollViewer = null;
             }
 
-            if (DataContext is LogListViewModel vm)
+            if (_viewModel != null)
             {
-                vm.Unsubscribe();
+                _viewModel.LogAppended -= OnLogAppended;
+                _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+                _viewModel.Unsubscribe();
+                _viewModel = null;
             }
-
-            // 移除事件处理器
-            LogListViewControl.RemoveHandler(ListViewItem.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(OnListViewItemMouseDown));
         }
 
-        private void ScrollToBottom()
+        private void OnLogAppended()
         {
-            if (LogListViewControl.Items.Count > 0)
+            if (_viewModel == null)
+                return;
+
+            if (_viewModel.AutoScroll)
             {
-                var lastItem = LogListViewControl.Items[LogListViewControl.Items.Count - 1];
-                LogListViewControl.ScrollIntoView(lastItem);
+                ScrollToTop();
+                return;
             }
+
+            // 不跟随时，新日志插在顶部会把正在看的内容往下挤，需要锚定当前视口顶部那一行。
+            // 虚拟化下 ExtentHeight 是估算值，不能拿它的增量来补偿，改为：
+            // 插入后、布局前（此时已生成的行仍停在旧位置）记下锚点行及其位置，
+            // 布局完成后（Loaded 优先级低于布局所在的 Render 优先级）再找到该行，按位移差回滚。
+            // 同一批次连续插入多条时只在第一条记录锚点，此时布局尚未发生，位置仍是旧值
+            if (_anchorItem != null)
+                return;
+
+            if (!TryGetTopVisibleItem(out _anchorItem, out _anchorTop))
+                return;
+
+            Dispatcher.InvokeAsync(RestoreAnchor, DispatcherPriority.Loaded);
+        }
+
+        private void RestoreAnchor()
+        {
+            var anchorItem = _anchorItem;
+            _anchorItem = null;
+
+            if (_scrollViewer == null || anchorItem == null || _viewModel?.AutoScroll != false)
+                return;
+
+            // 锚点行被筛选掉、被挤出上限或已被虚拟化回收时取不到容器，放弃本次补偿
+            if (LogListViewControl.ItemContainerGenerator.ContainerFromItem(anchorItem) is not FrameworkElement container)
+                return;
+
+            double delta = container.TranslatePoint(new Point(0, 0), _scrollViewer).Y - _anchorTop;
+            if (Math.Abs(delta) > 0.5)
+            {
+                _scrollViewer.ScrollToVerticalOffset(_scrollViewer.VerticalOffset + delta);
+            }
+        }
+
+        /// <summary>取视口内最上面一行（允许部分可见）及其相对 ScrollViewer 顶部的位置</summary>
+        private bool TryGetTopVisibleItem(out object item, out double top)
+        {
+            item = null;
+            top = 0;
+
+            if (_scrollViewer == null)
+                return false;
+
+            var panel = FindVisualChild<VirtualizingStackPanel>(LogListViewControl);
+            if (panel == null)
+                return false;
+
+            // Recycling 模式下 Children 里可能残留已回收（未关联数据项）的容器，且不保证按显示顺序排列，
+            // 所以逐个过滤，取仍关联数据项、底边越过视口顶部、位置最靠上的那一个
+            double bestTop = double.MaxValue;
+            foreach (UIElement child in panel.Children)
+            {
+                if (child is not FrameworkElement element || element.Visibility != Visibility.Visible)
+                    continue;
+
+                var candidate = LogListViewControl.ItemContainerGenerator.ItemFromContainer(element);
+                if (candidate == null || candidate == DependencyProperty.UnsetValue)
+                    continue;
+
+                double y = element.TranslatePoint(new Point(0, 0), _scrollViewer).Y;
+                if (y + element.ActualHeight > 0 && y < bestTop)
+                {
+                    bestTop = y;
+                    item = candidate;
+                }
+            }
+
+            if (item == null)
+                return false;
+
+            top = bestTop;
+            return true;
+        }
+
+        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            // 用户手动勾选"自动滚动"时立即回到最新一条
+            if (e.PropertyName == nameof(LogListViewModel.AutoScroll) && _viewModel?.AutoScroll == true)
+            {
+                ScrollToTop();
+            }
+        }
+
+        private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            // 只响应滚动偏移的变化；新日志插入只改变 ExtentHeight，不影响跟随状态
+            if (_viewModel == null || e.VerticalChange == 0)
+                return;
+
+            // 离开顶部即停止跟随，回到顶部即恢复跟随
+            bool atTop = e.VerticalOffset <= TopTolerance;
+            if (_viewModel.AutoScroll != atTop)
+            {
+                _viewModel.AutoScroll = atTop;
+            }
+        }
+
+        private void ScrollToTop()
+        {
+            _scrollViewer?.ScrollToVerticalOffset(0);
         }
 
         private void LogListViewControl_MouseDoubleClick(object sender, MouseButtonEventArgs e)

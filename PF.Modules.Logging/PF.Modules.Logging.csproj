@@ -13,8 +13,26 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<PackageReleaseNotes>
+v1.0.6 (2026-10-23) — 实时日志跨天不更新、自动滚动无效修复；日志管理多选复制/导出；两个表格启用虚拟化
+
+[修复 — LogListView（实时日志）]
+- 软件连续运行跨天后仍只显示启动当天的日志：删除日期筛选（DateRanges 下拉框），实时日志始终显示内存中的最新日志。
+- 「自动滚动」无效果：新日志到达时滚动到顶部；手动离开顶部自动取消勾选，回到顶部自动重新勾选；
+  未勾选时新日志插入不会让当前查看位置跳动。
+- 页面离开/返回时订阅对称处理，返回后按日志服务内存缓冲重新同步，不丢不重。
+- OperationLogKeysLogging 删除 LogListView.SelectedDateRange 键。
+
+[新增 — LogManagementView（日志管理）]
+- 表格支持多选（Ctrl / Shift），右键菜单「复制选中」「导出选中」，Ctrl+C 复制；导出按表格顺序写文件。
+  OperationLogKeysLogging 新增 CopySelected / ExportSelected（关键）键。
+- 默认每页条数 200。
+- 去掉消息列悬浮提示（单条超长日志时提示框会导致界面卡顿；完整内容仍可在详情中查看）。
+
+[优化 — 虚拟化]
+- 两个页面的列表/表格启用 UI 虚拟化（按像素滚动、容器复用），大量日志时滚动与刷新不再卡顿。
+
 v1.0.5 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]

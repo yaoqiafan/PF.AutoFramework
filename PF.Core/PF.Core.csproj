@@ -5,20 +5,55 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.32</Version>
 		<PackageReleaseNotes>
-v1.0.32 (2026-10-12) — 线扫曝光与扫描速度匹配校验（像素精度 / 行频 / 最大曝光）
+v1.0.32 (2026-10-23) — 报警清除权限分级；线扫曝光/凑帧校验，扫描几何单位统一为微米；门锁手动接管 API（含破坏性变更）
 
-[新增 — ScanGeometry]
-- LineRateHz(像素精度) = 速度 × 1000 ÷ 像素精度；MaxExposureUs(像素精度) = 像素精度 ÷ 速度 × 1000（即行周期）；
-  MaxVelocityFor(曝光, 像素精度) 反算最大速度。速度按轴点位表工程单位 mm/s、像素精度 μm/行。
+[新增 — 报警清除权限]
+- AlarmInfoAttribute 新增可选命名参数 ClearLevel（UserLevel，默认 Operator）：手动清除该报警、以及该报警活跃时
+  执行复位所需的最低用户等级。构造函数不变，原有 [AlarmInfo(...)] 无需修改即可编译。
+  写法：[AlarmInfo("分类", "描述", ..., 50100, "Hex", ClearLevel = UserLevel.Engineer)]。
+  该值只是首次写入数据库的默认值，此后以数据库（「权限管控 → 异常权限配置」页面）为准。
+- AlarmInfo 新增 RequiredLevel（当前生效等级）/ DefaultRequiredLevel（代码默认等级）/ WithRequiredLevel(level)。
+- IAlarmDictionaryService 新增 GetRequiredLevel / UpdateRequiredLevelsAsync / RequiredLevelsChanged 事件。
+- 新增 IAlarmPermissionService：CanClear(record) / CanReset(out 所需等级) / GetResetRequiredLevel /
+  ClearAllAuthorized()（只清有权限的，返回清除/跳过条数）/ PermissionChanged 事件。
+  复位规则：当前用户等级 ≥ 活跃报警中最高的清除等级。
+- 新增 UserLevelExtensions.ToDisplayName()（操作员/工程师/管理员/超级用户/未登录）。
+- NavigationConstants.Views.AlarmPermissionView；DefaultPermissions 中管理员及以上默认可访问。
+- IMasterController 注释明确：ResetAllAsync 不做权限检查（供程序内部用），界面入口应调 RequestSystemResetAsync。
+
+[破坏性变更]
+- AlarmInfo.IsFromDatabase 标记 [Obsolete] 且恒为 false：已取消数据库扩展/覆盖报警码的合并加载，报警文案只来自代码。
+- IAlarmDictionaryService 新增成员：自行实现该接口的项目需补实现（框架内置实现已包含，正常使用无影响）。
+
+[新增 — ScanGeometry：曝光与速度匹配]
+- LineRateHz(像素精度) = 速度 ÷ 像素精度；MaxExposureUs(像素精度) = 像素精度 ÷ 速度 × 10⁶（即行周期）；
+  MaxVelocityFor(曝光, 像素精度) 反算最大速度。
 - CheckExposure(曝光, 像素精度) → ExposureCheck（Unknown / Ok / NearLimit / Exceeded）：硬上限 = 行周期，
   超过 ExposureWarnRatio（90%）为 NearLimit；DescribeExposureExceeded 给出含两种改法的中文说明。
 - 新增枚举 ExposureCheck。
+
+[新增 — ScanGeometry：行程凑帧校验]
+- ProducibleLines(像素精度) = 行程 ÷ 像素精度；RequiredScanLengthUm(帧高, 像素精度)；
+  CheckFrameFill(帧高, 像素精度) → FrameFillCheck（Unknown / Ok / Insufficient），行程凑不满一帧时取帧必超时；
+  DescribeFrameFillInsufficient 给出所需行程与终点应到的坐标。新增枚举 FrameFillCheck。
+- EstimatedFrameTimeMs 计入加减速（各 v/2a）与 S 曲线时间，避免短行程/小加速度时轴未走完就报取帧超时。
+
+[破坏性变更 — ScanGeometry 单位统一为微米]
+- 扫描轴点位表按脉冲填、1 脉冲 = 1μm，位置/速度/加减速一律按 μm、μm/s、μm/s² 计。
+  此前按 mm/s 换算行频/最大曝光，与点表实际单位差 1000 倍，曝光校验结果失真。
+- 属性改名：StartMm/EndMm → StartUm/EndUm，VelocityMmPerSec → VelocityUmPerSec，
+  AccelerationMmPerSec2/DecelerationMmPerSec2 → AccelerationUmPerSec2/DecelerationUmPerSec2，
+  ScanLengthMm → ScanLengthUm，TheoreticalAccelDistanceMm/TheoreticalDecelDistanceMm → …Um。
 
 [新增 — VisionRequest.WaitForDebugConnection]
 - 本次执行是否在过程入口暂停等调试器连接（默认 false）。仅 Debug 引擎、调试服务器已启动时生效（PF.Vision.Halcon 1.1.0）。
 
 [文档 — ILineScanCamera.LineSpacingUm]
 - 明确为"像素精度"：编码器模式下由编码器换算，否则取硬件配置（实现支持时），线扫模组据此算行频/最大曝光。
+
+[新增 — IHardwareInputMonitor：门锁手动接管]
+- GetDoorLockOutputs()（返回 DoorLockOutput：设备 Id / 端口 / 门名称）/ IsLockManualOverride /
+  TrySetLockManualOverride(enable)，供 IO 调试页手动操作门锁输出。均带默认实现，自实现的监控无需修改。
 
 v1.0.31 (2026-09-28) — 安全门门锁输出绑定：配置门锁输出端口/有效电平，Monitor 新增上锁许可 API；扫码结果 IsSuccess 语义调整
 

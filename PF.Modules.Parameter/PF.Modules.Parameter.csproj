@@ -15,7 +15,19 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.10</Version>
 		<PackageReleaseNotes>
-v1.0.10 (2026-10-12) — 海康线阵相机硬件参数新增「像素精度(μm/行)」
+v1.0.10 (2026-10-23) — 参数页加载遮罩、值列直接显示参数值；海康线阵相机新增「像素精度(μm/行)」；海康 SDK 扫码枪新增「用户参数组」
+
+[修复 — ParameterView 加载卡顿]
+- 参数类型初始化与参数项构建移到后台线程，加载期间显示遮罩，避免进入硬件配置等大分类时界面卡 1~2 秒；
+  快速切换分类时只采用最后一次加载的结果。
+
+[变更 — ParameterView 值列]
+- 「值」列不再显示原始 JSON：简单类型直接显示值（布尔显示 是/否），复杂类型按参数视图的显示名展开为
+  "名称=值；名称=值"，密码类字段打码，超过 300 字符截断。值列加宽并提供完整内容的悬浮提示。
+
+[新增 — MvCodeReaderBarcodeScanParamView]
+- 新增「用户参数组」（UserSet），读写 ConnectionParameters["UserSet"]，对应 PF.Infrastructure 1.0.30
+  MvCodeReaderBarcodeScan 连接时加载的用户参数组。
 
 [新增 — HikLineScanCameraParamView / HikLineScanCameraParamViewMapper]
 - 新增 LineSpacingUm（采集分类，显示名「像素精度(μm/行)」），读写 ConnectionParameters["LineSpacingUm"]，

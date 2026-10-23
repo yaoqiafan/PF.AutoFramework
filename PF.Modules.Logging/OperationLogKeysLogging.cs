@@ -26,10 +26,6 @@ namespace PF.Modules.Logging
             [Description("按级别筛选日志")]
             public const string SelectedLogLevel = nameof(SelectedLogLevel);
 
-            /// <summary>按时间范围筛选</summary>
-            [Description("按时间范围筛选日志")]
-            public const string SelectedDateRange = nameof(SelectedDateRange);
-
             /// <summary>自动滚动开关</summary>
             [Description("切换自动滚动")]
             public const string AutoScroll = nameof(AutoScroll);
@@ -75,6 +71,15 @@ namespace PF.Modules.Logging
             [Description("导出当前筛选结果为 CSV")]
             [OperationLogCritical]
             public const string ExportLogs = nameof(ExportLogs);
+
+            /// <summary>右键菜单：复制选中日志</summary>
+            [Description("复制选中的历史日志")]
+            public const string CopySelected = nameof(CopySelected);
+
+            /// <summary>右键菜单：导出选中日志</summary>
+            [Description("导出选中的历史日志为 CSV")]
+            [OperationLogCritical]
+            public const string ExportSelected = nameof(ExportSelected);
 
             /// <summary>切换每页显示条数</summary>
             [Description("切换每页显示条数")]

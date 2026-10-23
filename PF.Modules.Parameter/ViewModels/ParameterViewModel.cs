@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace PF.Modules.Parameter.ViewModels
 {
@@ -28,6 +29,15 @@ namespace PF.Modules.Parameter.ViewModels
         private readonly IEventAggregator _eventAggregator;
         private readonly IUserService _userService;
         private readonly IDefaultParam _defaultParam;
+
+        /// <summary>参数大类及其子分类的后台初始化任务，OnNavigatedTo 须等它完成再做选中</summary>
+        private readonly Task _initParamTypesTask;
+
+        /// <summary>
+        /// 加载序号：每次 LoadParametersAsync 自增，只有最新一次的结果写回界面、由它负责撤遮罩。
+        /// 切大类/切分类/ParamChanged 可能连续触发多次加载，查库在后台线程并发执行，必须丢弃过期结果，否则会出现重复行。
+        /// </summary>
+        private int _loadVersion;
 
         /// <summary>
         /// 实例化 <see cref="ParameterViewModel"/>。
@@ -51,8 +61,9 @@ namespace PF.Modules.Parameter.ViewModels
 
             InitializeCommands();
 
-            // 初始化左侧/顶部的参数数据表大类列表
-            InitializeParamTypes();
+            // 初始化左侧/顶部的参数数据表大类列表（后台执行，不阻塞页面创建）
+            ParamTypes = new ObservableCollection<ParamTypeViewModel>();
+            _initParamTypesTask = InitializeParamTypesAsync();
 
             // 初始化界面按钮与功能权限计算
             UpdatePermissions();
@@ -101,10 +112,25 @@ namespace PF.Modules.Parameter.ViewModels
         /// 拦截 Prism 的页面导航进入事件。
         /// 支持通过路由参数 "TargetParamType" 自动定位并展开对应的参数大类。
         /// </summary>
-        public override void OnNavigatedTo(NavigationContext navigationContext)
+        public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
             base.OnNavigatedTo(navigationContext);
 
+            // 首次进入时大类列表还在后台初始化，等它完成再按路由参数选中
+            await _initParamTypesTask;
+
+            int versionBefore = _loadVersion;
+            ApplyNavigationSelection(navigationContext);
+
+            // 选中逻辑没有触发加载（如重复进入同一页面）时，由这里撤掉初始化阶段的遮罩
+            if (_loadVersion == versionBefore)
+            {
+                IsLoading = false;
+            }
+        }
+
+        private void ApplyNavigationSelection(NavigationContext navigationContext)
+        {
             if (navigationContext.Parameters.ContainsKey("TargetParamType"))
             {
                 string targetType = navigationContext.Parameters.GetValue<string>("TargetParamType");
@@ -383,89 +409,129 @@ namespace PF.Modules.Parameter.ViewModels
         /// <summary>
         /// 利用反射扫描系统中所有的参数实体类，并转化为前端可绑定的 ViewModel 集合。
         /// </summary>
-        private async void InitializeParamTypes()
+        private async Task InitializeParamTypesAsync()
         {
-            var paramEntityTypes = TypeScanner<ParamEntity>.GetAllTypes();
-            ParamTypes = new ObservableCollection<ParamTypeViewModel>();
+            IsLoading = true;
+            StatusMessage = "正在加载参数分类...";
 
-            foreach (var type in paramEntityTypes)
+            try
             {
-                string displayName = type.Name switch
+                // SQLite 的 *Async 接口实际在调用线程上同步执行，首次查询还要承担 EF 建模/查询编译/dynamic 绑定的冷启动开销，
+                // 整体放到后台线程，避免首次进入页面时 UI 卡死
+                var paramTypeVms = await Task.Run(async () =>
                 {
-                    "CommonParam" => "通用参数",
-                    "SystemConfigParam" => "系统配置参数",
-                    "HardwareParam" => "硬件参数",
-                    "UserLoginParam" => "用户登录参数",
-                    _ => type.Name
-                };
+                    var result = new List<ParamTypeViewModel>();
+                    foreach (var type in TypeScanner<ParamEntity>.GetAllTypes())
+                    {
+                        string displayName = type.Name switch
+                        {
+                            "CommonParam" => "通用参数",
+                            "SystemConfigParam" => "系统配置参数",
+                            "HardwareParam" => "硬件参数",
+                            "UserLoginParam" => "用户登录参数",
+                            _ => type.Name
+                        };
 
-                var paramTypeVm = new ParamTypeViewModel()
-                {
-                    Name = displayName,
-                    TypeInstence = type
-                };
+                        var paramTypeVm = new ParamTypeViewModel()
+                        {
+                            Name = displayName,
+                            TypeInstence = type
+                        };
 
-                // 异步获取该实体类下存在的所有子分类（Category）
-                paramTypeVm.Category = await GetAllCategoryWithType(paramTypeVm);
-                ParamTypes.Add(paramTypeVm);
+                        // 获取该实体类下存在的所有子分类（Category）
+                        paramTypeVm.Category = await GetAllCategoryWithType(paramTypeVm);
+                        result.Add(paramTypeVm);
+                    }
+                    return result;
+                });
+
+                foreach (var paramTypeVm in paramTypeVms)
+                    ParamTypes.Add(paramTypeVm);
+            }
+            catch (Exception ex)
+            {
+                // 遮罩由 OnNavigatedTo 统一撤掉
+                StatusMessage = $"加载参数分类失败: {ex.Message}";
             }
         }
 
         /// <summary>
         /// 从底层服务异步加载并构建参数列表项。
+        /// 查库与条目构建（含值摘要计算）在后台线程完成，构建好后一次性替换 <see cref="Parameters"/>，
+        /// 加载期间旧数据保留在遮罩下方。
         /// </summary>
         private async Task LoadParametersAsync()
         {
+            if (SelectedParamType == null) return;
+
+            int version = ++_loadVersion;
+            string paramTypeFullName = SelectedParamType.TypeInstence.FullName;
+
+            string selectedCategory = "全部";
+            if (SelectedParamType.Category != null && SelectCategory >= 0 && SelectCategory < SelectedParamType.Category.Length)
+            {
+                selectedCategory = SelectedParamType.Category[SelectCategory];
+            }
+
             try
             {
-                if (SelectedParamType == null) return;
-
-                // 取消订阅旧条目，防止 Clear 后残留引用；同步清脏标志
-                foreach (var p in Parameters)
-                    UnsubscribeParam(p);
-
                 IsLoading = true;
                 StatusMessage = "正在加载参数...";
-                Parameters.Clear();
 
-                string selectedCategory = "全部";
-                if (SelectedParamType.Category != null && SelectCategory >= 0 && SelectCategory < SelectedParamType.Category.Length)
+                var items = await Task.Run(async () =>
                 {
-                    selectedCategory = SelectedParamType.Category[SelectCategory];
-                }
+                    var paramInfos = await _paramService.GetParamsByCategoryAsync(paramTypeFullName, selectedCategory);
 
-                var paramInfos = await _paramService.GetParamsByCategoryAsync(SelectedParamType.TypeInstence.FullName, selectedCategory);
-
-                foreach (var paramInfo in paramInfos)
-                {
-                    var item = new ParamItemViewModel
+                    var result = new List<ParamItemViewModel>(paramInfos.Count);
+                    foreach (var paramInfo in paramInfos)
                     {
-                        Id = paramInfo.Id,
-                        Name = paramInfo.Name,
-                        Description = paramInfo.Description,
-                        TypeFullName = paramInfo.TypeName,
-                        Category = paramInfo.Category,
-                        UpdateTime = paramInfo.UpdateTime,
-                        // 【修复1：删除异常】这里必须使用 FullName，否则底层反射确定仓储实体时会找不到正确的表
-                        ParamType = SelectedParamType.TypeInstence.FullName,
-                        JsonValue = paramInfo.Value?.ToString() ?? ""
-                    };
-                    SubscribeParam(item); // 订阅，以便后续直接编辑时能感知脏状态
-                    Parameters.Add(item);
-                }
+                        var item = new ParamItemViewModel
+                        {
+                            Id = paramInfo.Id,
+                            Name = paramInfo.Name,
+                            Description = paramInfo.Description,
+                            TypeFullName = paramInfo.TypeName,
+                            Category = paramInfo.Category,
+                            UpdateTime = paramInfo.UpdateTime,
+                            // 【修复1：删除异常】这里必须使用 FullName，否则底层反射确定仓储实体时会找不到正确的表
+                            ParamType = paramTypeFullName,
+                            JsonValue = paramInfo.Value?.ToString() ?? ""
+                        };
+                        _ = item.DisplayValue; // 在后台预先计算值摘要（反序列化 + 反射），避免渲染时占用 UI 线程
+                        result.Add(item);
+                    }
+                    return result;
+                });
+
+                // 期间又发起了新的加载，本次结果已过期
+                if (version != _loadVersion) return;
+
+                // 取消订阅旧条目，防止残留引用；新条目订阅以便后续直接编辑时能感知脏状态
+                foreach (var p in Parameters)
+                    UnsubscribeParam(p);
+                foreach (var p in items)
+                    SubscribeParam(p);
+
+                Parameters = new ObservableCollection<ParamItemViewModel>(items);
 
                 UpdateCounts();
                 StatusMessage = $"已加载 {Parameters.Count} 个参数";
                 ModifiedCount = 0;
                 HasUnsavedChanges = false; // 加载完成 = 数据与数据库同步
+
+                // 等表格完成首次布局再撤遮罩（Loaded 优先级低于布局所在的 Render 优先级），
+                // 否则行生成那一段 UI 线程忙碌时遮罩已经消失，界面表现为"冻住"
+                await Application.Current.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Loaded);
             }
             catch (Exception ex)
             {
-                StatusMessage = $"加载失败: {ex.Message}";
+                if (version == _loadVersion)
+                    StatusMessage = $"加载失败: {ex.Message}";
             }
             finally
             {
-                IsLoading = false;
+                if (version == _loadVersion)
+                    IsLoading = false;
             }
         }
 

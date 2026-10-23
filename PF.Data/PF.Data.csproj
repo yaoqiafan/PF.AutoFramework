@@ -12,8 +12,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<PackageReleaseNotes>
+v1.0.4 (2026-10-23) — 报警定义新增清除等级字段
+
+[数据库 Schema 变更 — 自动补列，无需手动迁移]
+- AlarmDefinitionEntity 新增 RequiredLevel（UserLevel，默认 Operator）：手动清除该报警及其活跃时复位所需的最低用户等级。
+- AlarmHistory.db 的 AlarmDefinitions 表对应新增 RequiredLevel INTEGER NOT NULL DEFAULT 0 列，
+  由 PF.Services 1.0.9 的 AlarmDictionaryService 启动时检测并自动补列；老库升级后全部为操作员，行为不变。
+
 v1.0.3 (2026-07-07) — 仓储查询性能优化 + 通讯实例默认配置契约
 
 [破坏性变更 — 补充说明，随通讯管理框架一并引入]

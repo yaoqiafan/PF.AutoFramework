@@ -1,4 +1,6 @@
 using System.Windows;
+using PF.Core.Enums;
+using PF.Core.Interfaces.Alarm;
 using PF.Core.Models;
 using PF.UI.Infrastructure.PrismBase;
 
@@ -14,12 +16,26 @@ namespace PF.Modules.Alarm.Views
         public Visibility ResetButtonVisibility { get; private set; } = Visibility.Visible;
 
         /// <summary>初始化报警详情卡片 ViewModel</summary>
-        public AlarmDetailCardViewModel()
+        public AlarmDetailCardViewModel(IAlarmPermissionService alarmPermission)
         {
             Title = "异常详情";
 
             ConfirmCommand = new DelegateCommand(() =>
             {
+                // 复位会清除全部活跃报警：权限不足时提示并保持弹窗，不发布复位事件（否则其它报警弹窗会被连带关闭）
+                if (!alarmPermission.CanReset(out var required))
+                {
+                    LogService.Info(
+                        $"[报警处理] 用户[{CurrentUserName}] 尝试复位被拒绝（需要{required.ToDisplayName()}及以上） | " +
+                        $"报警：{Alarm?.Message} | 代码：{Alarm?.ErrorCode} | 来源：{Alarm?.Source}",
+                        "操作日志");
+                    MessageService.ShowMessage(
+                        $"复位被拒绝：当前存在需要「{required.ToDisplayName()}」及以上权限才能清除的报警，" +
+                        $"当前用户为「{alarmPermission.CurrentUserLevel.ToDisplayName()}」。\n请登录更高权限账号后再复位。",
+                        "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 LogService.Info(
                     $"[报警处理] 用户[{CurrentUserName}] 触发系统复位 | " +
                     $"报警：{Alarm?.Message} | 代码：{Alarm?.ErrorCode} | 来源：{Alarm?.Source}",

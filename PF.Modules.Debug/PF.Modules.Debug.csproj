@@ -13,7 +13,21 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.21</Version>
 		<PackageReleaseNotes>
-v1.0.21 (2026-10-12) — 线扫检测模组调试页：显示扫描速度/像素精度/行频/最大曝光，曝光实时校验，终点速度快捷修改并保存；同步 PF.Core 1.0.32、PF.Infrastructure 1.0.30
+v1.0.21 (2026-10-23) — 线扫检测模组调试页：速度/像素精度/行频/最大曝光、曝光与凑帧实时校验，单位改为微米；IO 调试页门锁手动接管；工站调试页复位受报警清除权限控制；同步 PF.Core 1.0.32、PF.Infrastructure 1.0.30
+
+[变更 — StationDebugView 复位]
+- 复位命令由 IMasterController.ResetAllAsync() 改为 RequestSystemResetAsync()，受报警清除权限控制
+  （当前用户等级须 ≥ 活跃报警中最高的清除等级，见 PF.Core 1.0.32 / PF.Application.Base 1.0.10）。
+
+[新增 — IODebugView：门锁手动接管]
+- 按当前板卡的门锁输出（IHardwareInputMonitor.GetDoorLockOutputs）自动识别，门锁口打标记；无监控、无门锁或
+  非门锁所在板卡时页面不变。
+- 点「门锁手动接管」后才能手动写门锁输出（仅无上锁许可时允许），否则写出被拦截并提示——
+  解决手动改门锁输出被安全门监控 500ms 对账写回。离开页面、预上锁、取得上锁许可时自动收回。
+
+[变更 — LineScanDetectionModuleDebugView：微米制与凑帧]
+- 位置/行程/速度/加减速单位改为 μm、μm/s、μm/s²（随 PF.Core 1.0.32 ScanGeometry）。
+- 新增「凑帧」换算行：行程可产生行数 vs 相机帧高，不够时标红并禁用「开始扫描」；刷新按钮同时重读帧高。
 
 [新增 — LineScanDetectionModuleDebugView]
 - 选好起点/终点后显示扫描速度（终点点位）、像素精度（相机 LineSpacingUm）、行频、最大曝光（行周期）。

@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Logging;
 using PF.UI.Shared.Data;
 using Prism.Commands;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -36,6 +37,8 @@ namespace PF.Modules.Logging.ViewModels
             _uiLogger = CategoryLoggerFactory.UI(_logService);
 
             ExportLogsCommand = new DelegateCommand(ExportLogs);
+            CopySelectedCommand = new DelegateCommand<IList>(CopySelected);
+            ExportSelectedCommand = new DelegateCommand<IList>(ExportSelected);
             QueryHistoryCommand = new DelegateCommand(async () => await QueryHistory());
 
             FilterLevels = new ObservableCollection<string> { "全部" };
@@ -59,7 +62,7 @@ namespace PF.Modules.Logging.ViewModels
 
         #region 分页属性
 
-        private int _pageSize = 50;
+        private int _pageSize = 200;
         /// <summary>每页显示条数</summary>
         public int PageSize
         {
@@ -200,6 +203,10 @@ namespace PF.Modules.Logging.ViewModels
 
         /// <summary>导出日志命令</summary>
         public DelegateCommand ExportLogsCommand { get; }
+        /// <summary>复制选中日志命令（参数为 DataGrid.SelectedItems）</summary>
+        public DelegateCommand<IList> CopySelectedCommand { get; }
+        /// <summary>导出选中日志命令（参数为 DataGrid.SelectedItems）</summary>
+        public DelegateCommand<IList> ExportSelectedCommand { get; }
         /// <summary>查询历史日志命令</summary>
         public DelegateCommand QueryHistoryCommand { get; }
 
@@ -309,10 +316,66 @@ namespace PF.Modules.Logging.ViewModels
                 return;
             }
 
+            ExportToFile(_filteredLogs, "Log_Export");
+        }
+
+        private void ExportSelected(IList selectedItems)
+        {
+            var logs = GetSelectedLogs(selectedItems);
+            if (logs.Count == 0)
+            {
+                MessageService.ShowMessage("请先选中要导出的日志。", "提示");
+                return;
+            }
+
+            ExportToFile(logs, "Log_Selected");
+        }
+
+        private void CopySelected(IList selectedItems)
+        {
+            var logs = GetSelectedLogs(selectedItems);
+            if (logs.Count == 0)
+                return;
+
+            var sb = new StringBuilder();
+            foreach (var log in logs)
+            {
+                sb.Append($"[{log.Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{log.Level}]");
+                if (!string.IsNullOrEmpty(log.Category))
+                    sb.Append($" [{log.Category}]");
+                sb.Append(' ').AppendLine(log.Message);
+            }
+
+            try
+            {
+                Clipboard.SetText(sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                // 剪贴板被其他进程占用时 SetText 会抛 COMException
+                MessageService.ShowMessage($"复制失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// SelectedItems 的顺序是用户点选的先后顺序，这里按当前页的显示顺序重新排列，
+        /// 保证复制/导出出来的内容和界面上看到的上下顺序一致。
+        /// </summary>
+        private List<LogEntry> GetSelectedLogs(IList selectedItems)
+        {
+            if (selectedItems == null || selectedItems.Count == 0)
+                return new List<LogEntry>();
+
+            var selected = new HashSet<LogEntry>(selectedItems.OfType<LogEntry>());
+            return DataList.Where(selected.Contains).ToList();
+        }
+
+        private void ExportToFile(IReadOnlyCollection<LogEntry> logs, string filePrefix)
+        {
             var saveDialog = new SaveFileDialog
             {
                 Filter = "CSV 文件 (*.csv)|*.csv|文本文件 (*.txt)|*.txt",
-                FileName = $"Log_Export_{DateTime.Now:yyyyMMdd_HHmmss}",
+                FileName = $"{filePrefix}_{DateTime.Now:yyyyMMdd_HHmmss}",
                 DefaultExt = ".csv"
             };
 
@@ -323,15 +386,15 @@ namespace PF.Modules.Logging.ViewModels
                     var sb = new StringBuilder();
                     sb.AppendLine("时间,等级,分类,内容");
 
-                    foreach (var log in _filteredLogs)
+                    foreach (var log in logs)
                     {
                         string safeMsg = log.Message?.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ");
                         sb.AppendLine($"{log.Timestamp:yyyy-MM-dd HH:mm:ss.fff},{log.Level},{log.Category},\"{safeMsg}\"");
                     }
 
                     File.WriteAllText(saveDialog.FileName, sb.ToString(), Encoding.UTF8);
-                    _uiLogger.Info($"用户导出了 {_filteredLogs.Count} 条日志到 {saveDialog.FileName}");
-                    MessageService.ShowMessage($"导出成功！共 {_filteredLogs.Count} 条\n路径: {saveDialog.FileName}",
+                    _uiLogger.Info($"用户导出了 {logs.Count} 条日志到 {saveDialog.FileName}");
+                    MessageService.ShowMessage($"导出成功！共 {logs.Count} 条\n路径: {saveDialog.FileName}",
                         "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)

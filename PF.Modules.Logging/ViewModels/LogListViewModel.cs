@@ -31,8 +31,8 @@ namespace PF.Modules.Logging.ViewModels
         private bool _autoScroll = true;
         private int _totalLogCount;
         private int _filteredLogCount;
-        private bool _showOnlyCurrentDay = false;
-        private DateTime? _selectedDate = DateTime.Today;
+        private bool _isSubscribed;
+        private bool _needsResync;
 
         /// <summary>初始化日志列表 ViewModel</summary>
         public LogListViewModel()
@@ -55,7 +55,6 @@ namespace PF.Modules.Logging.ViewModels
             ExportLogsCommand = new DelegateCommand(ExportLogs);
             CopySelectedCommand = new DelegateCommand(CopySelected);
             CopyAllCommand = new DelegateCommand(CopyAll);
-            ToggleDateFilterCommand = new DelegateCommand(ToggleDateFilter);
             RefreshCommand = new DelegateCommand(Refresh);
 
             // 设置集合视图以支持筛选和排序
@@ -65,7 +64,7 @@ namespace PF.Modules.Logging.ViewModels
                 new SortDescription("Timestamp", ListSortDirection.Descending));
 
             // 订阅日志添加事件
-            _logService.OnLogAdded += OnLogAdded;
+            Subscribe();
 
             // 初始化日志级别选项（包括"全部"）
             LogLevels = new List<LogLevel?>();
@@ -75,15 +74,6 @@ namespace PF.Modules.Logging.ViewModels
             }
 
             SelectedLogLevel = LogLevel.All;
-            // 初始化日期范围
-            DateRanges = new List<DateRangeOption>
-            {
-                new DateRangeOption { Name = "当天", Days = 0 },
-                new DateRangeOption { Name = "最近7天", Days = 7 },
-                new DateRangeOption { Name = "最近30天", Days = 30 },
-                new DateRangeOption { Name = "全部", Days = -1 }
-            };
-            SelectedDateRange = DateRanges[0];
 
             // 更新统计信息
             UpdateStatistics();
@@ -148,40 +138,15 @@ namespace PF.Modules.Logging.ViewModels
             }
         }
 
-        /// <summary>获取或设置是否自动滚动</summary>
+        /// <summary>获取或设置是否自动滚动（列表按时间倒序，跟随即停在顶部最新一条）</summary>
         public bool AutoScroll
         {
             get => _autoScroll;
             set => SetProperty(ref _autoScroll, value);
         }
 
-        /// <summary>获取或设置是否仅显示当天日志</summary>
-        public bool ShowOnlyCurrentDay
-        {
-            get => _showOnlyCurrentDay;
-            set
-            {
-                if (SetProperty(ref _showOnlyCurrentDay, value))
-                {
-                    _logEntriesView.Refresh();
-                    UpdateStatistics();
-                }
-            }
-        }
-
-        /// <summary>获取或设置选中的日期</summary>
-        public DateTime? SelectedDate
-        {
-            get => _selectedDate;
-            set
-            {
-                if (SetProperty(ref _selectedDate, value))
-                {
-                    _logEntriesView.Refresh();
-                    UpdateStatistics();
-                }
-            }
-        }
+        /// <summary>新日志已插入列表后触发（UI 线程），供 View 执行自动滚动</summary>
+        public event Action LogAppended;
 
         /// <summary>获取日志总数</summary>
         public int TotalLogCount
@@ -199,23 +164,6 @@ namespace PF.Modules.Logging.ViewModels
 
         /// <summary>获取日志级别选项列表</summary>
         public List<LogLevel?> LogLevels { get; }
-
-        /// <summary>获取日期范围选项列表</summary>
-        public List<DateRangeOption> DateRanges { get; }
-
-        private DateRangeOption _selectedDateRange;
-        /// <summary>获取或设置选中的日期范围</summary>
-        public DateRangeOption SelectedDateRange
-        {
-            get => _selectedDateRange;
-            set
-            {
-                if (SetProperty(ref _selectedDateRange, value))
-                {
-                    ApplyDateFilter();
-                }
-            }
-        }
 
         private bool _isLoading;
         /// <summary>获取或设置是否正在加载</summary>
@@ -237,8 +185,6 @@ namespace PF.Modules.Logging.ViewModels
         public ICommand CopySelectedCommand { get; }
         /// <summary>复制全部日志命令</summary>
         public ICommand CopyAllCommand { get; }
-        /// <summary>切换日期过滤命令</summary>
-        public ICommand ToggleDateFilterCommand { get; }
         /// <summary>刷新命令</summary>
         public ICommand RefreshCommand { get; }
 
@@ -252,18 +198,11 @@ namespace PF.Modules.Logging.ViewModels
             if (item is not LogEntry logEntry)
                 return false;
 
-            // 1. 按日期筛选
-            if (ShowOnlyCurrentDay && SelectedDate.HasValue)
-            {
-                if (logEntry.Timestamp.Date != SelectedDate.Value.Date)
-                    return false;
-            }
-
-            // 2. 按级别筛选
+            // 1. 按级别筛选
             if (SelectedLogLevel != LogLevel.All && logEntry.Level != SelectedLogLevel)
                 return false;
 
-            // 3. 按搜索文本筛选
+            // 2. 按搜索文本筛选
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
                 var searchLower = SearchText.ToLower();
@@ -296,6 +235,7 @@ namespace PF.Modules.Logging.ViewModels
                 }
 
                 UpdateStatistics();
+                LogAppended?.Invoke();
             });
         }
 
@@ -459,11 +399,6 @@ namespace PF.Modules.Logging.ViewModels
             return $"[{entry.Timestamp:HH:mm:ss.fff}] [{entry.Level}] {entry.Message}";
         }
 
-        private void ToggleDateFilter()
-        {
-            ShowOnlyCurrentDay = !ShowOnlyCurrentDay;
-        }
-
         private void Refresh()
         {
             _logEntriesView.Refresh();
@@ -471,51 +406,43 @@ namespace PF.Modules.Logging.ViewModels
             _uiLogger.Info("日志列表已刷新");
         }
 
-        private void ApplyDateFilter()
+        #endregion
+
+        #region 订阅管理
+
+        /// <summary>订阅日志事件（幂等，View 重新 Loaded 时调用以恢复实时刷新）</summary>
+        public void Subscribe()
         {
-            if (SelectedDateRange.Days < 0) // 全部
+            if (_isSubscribed || _logService == null)
+                return;
+
+            _logService.OnLogAdded += OnLogAdded;
+            _isSubscribed = true;
+
+            // 退订期间产生的日志收不到事件，重新订阅时以服务端内存缓冲为准整体同步一次
+            if (_needsResync)
             {
-                ShowOnlyCurrentDay = false;
-                SelectedDate = null;
-            }
-            else if (SelectedDateRange.Days == 0) // 今天
-            {
-                ShowOnlyCurrentDay = true;
-                SelectedDate = DateTime.Today;
-            }
-            else // 最近N天
-            {
-                ShowOnlyCurrentDay = false;
-                SelectedDate = null;
-                // 注意：如果需要从文件加载更多历史日志，需要调用 _logService.QueryHistoricalLogs
-                // 现在的 LogEntries 只有内存中的日志
+                _needsResync = false;
+                LogEntries.Clear();
+                foreach (var entry in _logService.LogEntries ?? Enumerable.Empty<LogEntry>())
+                {
+                    LogEntries.Add(entry);
+                }
+                UpdateStatistics();
             }
         }
 
-        #endregion
-
-        #region 清理
-
-        /// <summary>取消订阅日志事件</summary>
+        /// <summary>取消订阅日志事件（幂等）</summary>
         public void Unsubscribe()
         {
-            if (_logService != null)
-            {
-                _logService.OnLogAdded -= OnLogAdded;
-            }
+            if (!_isSubscribed || _logService == null)
+                return;
+
+            _logService.OnLogAdded -= OnLogAdded;
+            _isSubscribed = false;
+            _needsResync = true;
         }
 
         #endregion
-    }
-
-    /// <summary>日期范围选项</summary>
-    public class DateRangeOption
-    {
-        /// <summary>获取或设置名称</summary>
-        public string Name { get; set; }
-        /// <summary>获取或设置天数</summary>
-        public int Days { get; set; }
-        /// <summary>获取起始日期</summary>
-        public DateTime? StartDate => Days >= 0 ? DateTime.Today.AddDays(-Days) : (DateTime?)null;
     }
 }

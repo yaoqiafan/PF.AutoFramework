@@ -16,8 +16,31 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.8</Version>
+		<Version>1.0.9</Version>
 		<PackageReleaseNotes>
+v1.0.9 (2026-10-23) — 报警码首次写库 + 清除等级以数据库为准，新增报警清除权限服务；门锁手动接管（含行为变更）
+
+[变更 — AlarmDictionaryService 报警码加载]
+- 取消数据库扩展/覆盖报警码的合并加载：报警文案（描述/分类/SOP 等）只来自代码 [AlarmInfo]。
+- 启动时与 AlarmHistory.db 的 AlarmDefinitions 表同步（与默认参数同一模式）：代码有、库里没有的插入（清除等级取
+  [AlarmInfo(ClearLevel)]）；库里已有的清除等级以数据库为准、文案按代码刷新；代码里已删除的报警码从库里移除，
+  移除前逐条写 Warn 日志。启动日志汇总各清除等级的条数。
+- 老库缺 RequiredLevel 列时启动自动补列（ALTER TABLE，默认 0 = 操作员），无需手动迁移，升级后行为不变。
+- UpdateRequiredLevelsAsync：写库后更新内存字典并立即生效，每条修改写入「操作日志」（用户、报警码、旧等级 → 新等级），
+  触发 RequiredLevelsChanged。
+
+[新增 — AlarmPermissionService（IAlarmPermissionService）]
+- 按当前登录用户等级与报警码清除等级判定手动清除/复位；ClearAllAuthorized 只清有权限的并记录跳过条数。
+- AddAlarmServices 中自动注册为单例，无需手写。仅服务于人为操作入口，程序自动清除（安全门关闭、硬件自恢复等）不受控。
+
+[新增 — HardwareInputMonitor：门锁手动接管]
+- 实现 GetDoorLockOutputs / IsLockManualOverride / TrySetLockManualOverride：仅无上锁许可、无预上锁时允许接管；
+  接管期间不写出、不对账门锁输出；预上锁、取得上锁许可、退出接管、Dispose 时自动收回并按期望重写。
+
+[行为变更 / 消费项目注意]
+- 代码中已删除的报警码会在启动时从 AlarmDefinitions 表删除（报警历史记录不受影响）。
+- 原先通过数据库新增或覆盖的报警码不再生效，如有需要请改为在代码中定义 [AlarmInfo]。
+
 v1.0.8 (2026-09-28) — HardwareInputMonitor 支持安全门门锁输出；Safety 线程常驻，检测受上锁许可约束
 
 [新增 — 门锁]

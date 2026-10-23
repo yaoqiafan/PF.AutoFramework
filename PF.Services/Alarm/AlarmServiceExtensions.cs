@@ -34,6 +34,9 @@ namespace PF.Services.Alarm
             // 业务服务：单例，管理全局活跃报警状态
             containerRegistry.RegisterSingleton<IAlarmService, AlarmService>();
 
+            // 清除/复位权限判定：单例，依赖 IUserService（由 Shell 另行注册）
+            containerRegistry.RegisterSingleton<IAlarmPermissionService, AlarmPermissionService>();
+
             return containerRegistry;
         }
     }

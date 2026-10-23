@@ -7,6 +7,7 @@ using PF.CommonTools.ServeTool;
 using PF.Core.Constants;
 using PF.Core.Entities.Communication;
 using PF.Core.Entities.Hardware;
+using PF.Core.Enums;
 using PF.Core.Events;
 using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Communication;
@@ -136,6 +137,14 @@ namespace PF.Application.Base
         /// 而真按提示做，就把别的项目正在用的服务抢走了。</para>
         /// </summary>
         protected virtual bool UsesSecsGemService => true;
+
+        /// <summary>
+        /// 启动时是否静默登录 SuperUser。默认仅在附加了调试器时（VS F5 调试）登录，
+        /// 直接运行 exe 时保持操作员，报警清除权限等管控从开机起就生效。
+        /// <para>用 <see cref="Debugger.IsAttached"/> 而不是 <c>#if DEBUG</c>：本类随 NuGet 包以
+        /// Release 编译发布，<c>#if</c> 在框架编译时就已求值，消费项目的配置管不到它。</para>
+        /// </summary>
+        protected virtual bool AutoLoginSuperUser => Debugger.IsAttached;
 
         /// <summary>
         /// 在任何配置读写之前完成项目名初始化。
@@ -474,11 +483,40 @@ namespace PF.Application.Base
 
             var authService = Container.Resolve<IUserService>();
             authService.ResetToOperator();
-            // 原 .GetAwaiter().GetResult() 同步阻塞 UI 线程（WPF SynchronizationContext 死锁风险），改 await。
-            await authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00"));
+            if (AutoLoginSuperUser)
+            {
+                // 原 .GetAwaiter().GetResult() 同步阻塞 UI 线程（WPF SynchronizationContext 死锁风险），改 await。
+                await authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00"));
+            }
 
             var controller = Container.Resolve<IMasterController>();
             var ea = Container.Resolve<IEventAggregator>();
+
+            // 人为复位（物理复位按钮 / SystemResetRequestedEvent）的权限检查：
+            // 复位会清除全部活跃报警，当前用户等级须 ≥ 活跃报警中最高的清除等级
+            if (controller is BaseMasterController masterController)
+            {
+                var alarmPermission = Container.Resolve<IAlarmPermissionService>();
+                masterController.ResetAuthorization = trigger =>
+                {
+                    if (alarmPermission.CanReset(out var required)) return true;
+
+                    var user = alarmPermission.CurrentUserName;
+                    var level = alarmPermission.CurrentUserLevel;
+                    LogService?.Warn(
+                        $"[报警处理] 用户[{user}]（{level.ToDisplayName()}）{trigger}被拒绝：" +
+                        $"当前活跃报警需要「{required.ToDisplayName()}」及以上权限才能复位",
+                        "操作日志");
+
+                    // 委托可能在后台线程（物理按钮轮询线程 / 事件后台线程）调用，提示切回 UI 线程且不阻塞
+                    Current?.Dispatcher.InvokeAsync(() =>
+                        Container.Resolve<IMessageService>().ShowMessage(
+                            $"复位被拒绝：当前存在需要「{required.ToDisplayName()}」及以上权限才能清除的报警。\n" +
+                            $"当前用户：{user}（{level.ToDisplayName()}），请登录更高权限账号后再复位。",
+                            "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning));
+                    return false;
+                };
+            }
 
             ea.GetEvent<HardwareResetRequestedEvent>()
               .Subscribe(req => (controller as BaseMasterController)?.OnHardwareResetRequested(req),

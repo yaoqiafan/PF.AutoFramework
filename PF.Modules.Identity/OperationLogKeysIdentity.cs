@@ -106,5 +106,31 @@ namespace PF.Modules.Identity
             [OperationLogCritical]
             public const string BatchDelete = nameof(BatchDelete);
         }
+
+        /// <summary>异常权限配置视图</summary>
+        public static class AlarmPermissionView
+        {
+            /// <summary>放弃修改并刷新</summary>
+            [Description("刷新报警码列表")]
+            public const string Refresh = nameof(Refresh);
+
+            /// <summary>按分类筛选</summary>
+            [Description("按分类筛选报警码")]
+            public const string FilterCategory = nameof(FilterCategory);
+
+            /// <summary>按清除等级筛选</summary>
+            [Description("按清除等级筛选报警码")]
+            public const string FilterLevel = nameof(FilterLevel);
+
+            /// <summary>把选中报警码设为指定清除等级（立即保存）</summary>
+            [Description("批量设置报警清除等级")]
+            [OperationLogCritical]
+            public const string ApplyBatch = nameof(ApplyBatch);
+
+            /// <summary>选中报警码恢复默认等级（立即保存）</summary>
+            [Description("报警清除等级恢复默认")]
+            [OperationLogCritical]
+            public const string RestoreDefault = nameof(RestoreDefault);
+        }
     }
 }

@@ -39,6 +39,16 @@ namespace PF.Core.Attributes
         /// </summary>
         public string MessageIDHex { get; }
 
+        /// <summary>
+        /// 手动清除/复位该报警所需的最低用户等级，默认 <see cref="UserLevel.Operator"/>（所有登录用户均可）。
+        /// <para>
+        /// 仅作为首次写入数据库的默认值：程序启动时同步到 AlarmHistory.db 的 AlarmDefinitions 表，
+        /// 此后以数据库为准（可在「权限管控 → 异常权限配置」页面修改），改这里不会覆盖现场已配置的等级。
+        /// </para>
+        /// <para>命名参数，可选：<c>[AlarmInfo(..., ClearLevel = UserLevel.Engineer)]</c>，老代码不写即保持原行为。</para>
+        /// </summary>
+        public UserLevel ClearLevel { get; set; } = UserLevel.Operator;
+
         /// <param name="category">分类</param>
         /// <param name="message">描述（中文）</param>
         /// <param name="messageEn">描述（英文，最长 35 字符）</param>

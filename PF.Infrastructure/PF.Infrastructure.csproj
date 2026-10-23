@@ -46,7 +46,36 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.30</Version>
 		<PackageReleaseNotes>
-v1.0.30 (2026-10-12) — 线扫模组曝光超限直接拦截；海康线扫相机支持在硬件配置里设像素精度；同步 PF.Core 1.0.32
+v1.0.30 (2026-10-23) — 主控复位权限钩子；线扫模组曝光超限/行程凑不满一帧直接拦截；海康线扫相机支持在硬件配置里设像素精度；海康 SDK 扫码枪按 IP 严格匹配；辅助编码器倍率可配（含破坏性变更）；同步 PF.Core 1.0.32
+
+[新增 — BaseMasterController.ResetAuthorization]
+- 新增 Func&lt;string, bool&gt;? ResetAuthorization：物理复位按钮（ExecuteHardwareResetAsync）与 RequestSystemResetAsync
+  执行前调用，参数为触发来源（"物理复位按钮" / "系统复位"），返回 false 则拒绝复位；委托抛异常按拒绝处理。
+  由 PF.Application.Base 1.0.10 注入"当前用户等级 ≥ 活跃报警最高清除等级"的判定，未注入时不做检查（行为同旧版）。
+- ResetAllAsync 不经过该检查（供程序内部调用），界面上的复位按钮应改调 RequestSystemResetAsync。
+
+[新增 — LineScanDetectionModule：凑帧校验与耗时分解]
+- ScanAsync 动轴前新增行程凑帧校验：读相机 Height/ImageHeight 作为帧高（ReadFrameHeightAsync），
+  可产生行数（行程 ÷ 像素精度）少于帧高时直接抛 InvalidOperationException，提示凑满一帧所需行程与终点应到的坐标。
+- 等帧超时按 ScanGeometry.EstimatedFrameTimeMs 计入加减速与 S 曲线时间。
+- 每次扫描结束（成功或失败）输出一行「扫描耗时分解」：下发配置 / 到起点 / 开流 / 帧触发 / 扫描运动+等帧
+  （附理论帧时间）/ 帧后等轴停 / 停流，并记录帧到达时扫描轴位置、是否已停、帧高，便于排查单帧返回慢。
+- 随 PF.Core 1.0.32 扫描几何改为微米制：扫描轴点位表按脉冲填（1 脉冲 = 1μm）。
+
+[变更 — HikLineScanCamera]
+- 取流轮询超时 500ms → 100ms：停流时 Join 取流线程不再等满一轮 GetImageBuffer 超时，停流从约 480ms 降到约 100ms，
+  不影响出帧时延。
+
+[变更 / 行为变更 — MvCodeReaderBarcodeScan（海康 SDK 扫码枪）]
+- 配置了 IP 时必须精确匹配，匹配不到即连接失败，不再回退到第一台读码器（多读码器机台会连错工位）。
+- 构造函数末尾新增可选参数 defaultUserSet（默认 1，即用户参数1；小于 0 不加载）：连接时加载该用户参数组，
+  加载失败则不连接。已有调用源码兼容，但连接行为变了：原先不加载，现在默认加载用户参数1。
+- ChangeUserParam：校验序号在设备支持范围内 → 停流 → 加载参数组 → 重设软触发 → 回读确认 → 恢复取流，与触发互斥。
+
+[破坏性变更 — 辅助编码器倍率]
+- BaseAuxEncoder / EtherCatAuxEncoder 构造函数在 channel 之后新增必填参数 multiplier（倍率），
+  消费项目的编码器工厂需补传（原先固定按 2 处理，未配置时可传 2 保持原行为）。
+- LTDMCMotionCard.GetLtcLatchPos 按传入的 Mulit 参数换算（默认 2），此前忽略该参数、固定除以 2。
 
 [新增 — LineScanDetectionModule.ScanAsync]
 - 动轴之前校验曝光与扫描速度：调用方指定了曝光且相机给得出像素精度时，曝光超过行周期（像素精度 ÷ 终点速度）

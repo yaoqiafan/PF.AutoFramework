@@ -179,8 +179,9 @@ namespace PF.Modules.Debug.ViewModels
                    || _controller.CurrentState == MachineState.Running
                    || _controller.CurrentState == MachineState.Paused);
 
+            // 走 RequestSystemResetAsync 而非 ResetAllAsync：前者带报警清除权限检查（权限不足时宿主弹窗提示）
             ResetAllCommand = new DelegateCommand(
-                async () => { try { await _controller.ResetAllAsync(); } catch (Exception ex) { Log(ex); } },
+                async () => { try { await _controller.RequestSystemResetAsync(); } catch (Exception ex) { Log(ex); } },
                 () => _controller.CurrentState == MachineState.InitAlarm
                    || _controller.CurrentState == MachineState.RunAlarm);
 

@@ -84,6 +84,9 @@ namespace PF.Core.Constants
 
             /// <summary>用户管理视图</summary>
             public const string UserManagementView = nameof(UserManagementView);
+
+            /// <summary>异常权限配置视图（按权限等级配置报警码的清除等级）</summary>
+            public const string AlarmPermissionView = nameof(AlarmPermissionView);
             #endregion
 
             #region 调试
