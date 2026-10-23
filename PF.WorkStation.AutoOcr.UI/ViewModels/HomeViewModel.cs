@@ -606,8 +606,9 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels
                    || _controller.CurrentState == MachineState.Paused
                    || _controller.CurrentState == MachineState.Initializing);
 
+            // 走 RequestSystemResetAsync 而非 ResetAllAsync：前者带报警清除权限检查（权限不足时宿主弹窗提示）
             ResetCommand = new DelegateCommand(
-                async () => { try { await _controller.ResetAllAsync(); } catch { } },
+                async () => { try { await _controller.RequestSystemResetAsync(); } catch { } },
                 () => _controller.CurrentState == MachineState.InitAlarm
                    || _controller.CurrentState == MachineState.RunAlarm);
 

@@ -137,16 +137,53 @@
                     </Grid>
 
                     <DataGrid
+                        x:Name="LogDataGrid"
                         Grid.Row="2"
                         AutoGenerateColumns="False"
                         BorderThickness="1"
                         EnableRowVirtualization="True"
                         GridLinesVisibility="Horizontal"
                         HeadersVisibility="Column"
-                         ScrollViewer.CanContentScroll="False"
                         IsReadOnly="True"
                         ItemsSource="{Binding DataList}"
-                        RowHeight="NaN">
+                        RowHeight="NaN"
+                        ScrollViewer.CanContentScroll="True"
+                        SelectionMode="Extended"
+                        SelectionUnit="FullRow"
+                        VirtualizingPanel.IsVirtualizing="True"
+                        VirtualizingPanel.ScrollUnit="Pixel"
+                        VirtualizingPanel.VirtualizationMode="Recycling">
+                        <!--  DataGrid 自带的 Ctrl+C 只复制文本列，消息列是模板列会被漏掉，改走与右键菜单相同的命令  -->
+                        <DataGrid.InputBindings>
+                            <KeyBinding
+                                Key="C"
+                                Command="{Binding CopySelectedCommand}"
+                                CommandParameter="{Binding SelectedItems, ElementName=LogDataGrid}"
+                                Modifiers="Control" />
+                        </DataGrid.InputBindings>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem
+                                    Command="{Binding PlacementTarget.DataContext.CopySelectedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    CommandParameter="{Binding PlacementTarget.SelectedItems, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    Header="复制选中"
+                                    InputGestureText="Ctrl+C"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.CopySelected}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📋" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem
+                                    Command="{Binding PlacementTarget.DataContext.ExportSelectedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    CommandParameter="{Binding PlacementTarget.SelectedItems, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    Header="导出选中"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LogManagementView.ExportSelected}">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="📤" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.RowStyle>
                             <Style BasedOn="{StaticResource DataGridRowStyle}" TargetType="DataGridRow">
                                 <Setter Property="MinHeight" Value="36" />
@@ -191,8 +228,7 @@
                                         <TextBlock
                                             Padding="5"
                                             Text="{Binding Message}"
-                                            TextWrapping="Wrap"
-                                            ToolTip="{Binding Message}" />
+                                            TextWrapping="Wrap" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

@@ -260,20 +260,7 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
 
-                            <ComboBox
-                                Width="100"
-                                Height="28"
-                                VerticalAlignment="Center"
-                                DisplayMemberPath="Name"
-                                ItemsSource="{Binding DateRanges}"
-                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.SelectedDateRange}"
-                                SelectedItem="{Binding SelectedDateRange}" />
-
-
-                            <Button
-                                Command="{Binding test}"
-                                Content="测试"
-                                Visibility="Collapsed" />
+                            
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -333,38 +320,14 @@
                             ItemTemplate="{StaticResource LogEntryTemplate}"
                             ItemsSource="{Binding LogEntriesView}"
                             oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysLogging+LoggingListView.SelectedLogEntry}"
-                            ScrollViewer.CanContentScroll="False"
+                            ScrollViewer.CanContentScroll="True"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                             SelectedItem="{Binding SelectedLogEntry, Mode=TwoWay}"
                             SelectionMode="Single"
                             VirtualizingPanel.IsVirtualizing="True"
-                            VirtualizingPanel.ScrollUnit="Item"
-                            VirtualizingPanel.VirtualizationMode="Standard">
-                            <ListView.GroupStyle>
-                                <GroupStyle>
-                                    <GroupStyle.HeaderTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="12,8" BorderThickness="0,0,0,1">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock
-                                                        FontSize="13"
-                                                        FontWeight="Bold"
-                                                        Foreground="#495057"
-                                                        Text="{Binding Name, StringFormat='📅 {0}'}" />
-                                                    <TextBlock
-                                                        Margin="8,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="{DynamicResource FontSize.Caption.Mini}"
-                                                        Foreground="#6C757D"
-                                                        Text="{Binding ItemCount, StringFormat=' ({0} 条)'}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </GroupStyle.HeaderTemplate>
-                                </GroupStyle>
-                            </ListView.GroupStyle>
-                        </ListView>
+                            VirtualizingPanel.ScrollUnit="Pixel"
+                            VirtualizingPanel.VirtualizationMode="Recycling" />
 
                         <Border
                             HorizontalAlignment="Stretch"

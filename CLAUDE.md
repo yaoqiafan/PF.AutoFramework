@@ -134,7 +134,7 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 
 4. `ConfigureModuleCatalog()` — 8 个 Prism 模块：`AlarmModule` / `LoggingModule` / `ParameterModule` / `IdentityModule` / `DebugModule` / `AutoOcrUIModule` / `SecsGemModule` / `ProductionRecordModule`
 
-5. `OnInitialized()` — 静默登录 SuperUser，Prism EventAggregator 桥接，启动 `AppTimerService`，注册日常定时任务（磁盘告警 08:00 / 图片清理 08:00）
+5. `OnInitialized()` — 仅附加调试器时静默登录 SuperUser（`AutoLoginSuperUser` 虚属性，默认 `Debugger.IsAttached`；直接运行 exe 为操作员），Prism EventAggregator 桥接，启动 `AppTimerService`，注册日常定时任务（磁盘告警 08:00 / 图片清理 08:00）
 
 **Prism 事件桥接**（解耦 Infrastructure 与 Prism）：
 ```
@@ -153,6 +153,7 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 | **HardwareManagerService** | `RegisterFactory(className, factory)` 注册，`LoadAndInitializeAsync()` 拓扑排序（父卡优先），`SetGlobalSimulationModeAsync()` 原子切换仿真模式，需配合 `ReloadAllAsync()` 热重载生效 |
 | **ParamService** | `RegisterParamType<TEntity, TModel>()` 显式类型映射（注意泛型顺序：实体在前、模型在后）；值未变更跳过写库；`ParamChanged` 事件携带审计信息（旧值/新值/用户/时间）；泛型约束 `where T : class`，不可直接用值类型 |
 | **AlarmService** | 复合键 `(Source, ErrorCode)` 幂等触发；`Channel<PersistJob>`（容量 10000）异步持久化；按年动态路由表 `AlarmRecord_{Year}` |
+| **AlarmDictionaryService / AlarmPermissionService** | 报警文案只来自代码 `[AlarmInfo]`（已取消数据库扩展报警码合并加载）；清除等级 `ClearLevel`（命名参数，默认 Operator）首次写入 `AlarmDefinitions` 表后以数据库为准，在「权限管控 → 异常权限配置」修改；人为清除/复位按当前用户等级判定，复位需 ≥ 活跃报警中最高等级，程序自动清除不受控 |
 | **LogService** | 内存循环缓冲 1000 条；`Channel` 异步文件写入；按小时滚动，30 天自动清理 |
 | **StationSyncService** | 命名信号量跨工站协同：`WaitAsync(name, token)` / `Release(name)` / `ResetSingleSignal(name, initialCount)` |
 | **ProductionDataService** | 泛型 `RecordAsync<TData>()` POCO → JSON 非阻塞写入；`DataRecorded` 事件实时订阅；支持 Excel（NPOI）/ CSV 导出 |
@@ -282,6 +283,8 @@ D:\PFConfig\PFAutoFrameWork\
 | 暂停后循环无法被打断 | 使用了不存在的 `_pauseEvent` | 暂停是 CancellationToken 取消式，循环用 `while (!token.IsCancellationRequested)` |
 | `GetMechanisms` 编译报错 | 返回类型是 `IEnumerable<BaseMechanism>` 非接口 | 改为 `IEnumerable<BaseMechanism>`，只能返回 `BaseMechanism` 子类 |
 | `StationSyncService.Reset` 不存在 | API 已更新 | 用 `ResetSingleSignal` / `ResetScope` / `ResetAll` |
+| 界面复位按钮绕过了报警清除权限 | 直接调了 `IMasterController.ResetAllAsync()`（不做权限检查，供程序内部用） | 界面入口改调 `RequestSystemResetAsync()` 或发布 `SystemResetRequestedEvent` |
+| 改了 `[AlarmInfo(ClearLevel = ...)]` 现场等级没变 | 清除等级只在首次写库时取特性值，之后以数据库为准 | 到「异常权限配置」页面修改，或对选中项「恢复默认」 |
 | 配了门锁输出但门从不上锁 | 主控没把 `IHardwareInputMonitor` / `IHardwareManagerService` 传给 `base(...)` | 构造函数末尾补传两个参数 |
 | 暂停后恢复运行，某扇门不上锁 | 工站 `OnPhysicalPauseAsync` 里调了 `SetSafetyDoorEnabled(false)` | 删掉，暂停解锁由主控按状态处理 |
 | 初始化中开门不停机 | 子类重写 `OnHardwareInputReceived` 对 SafeDoor 自行 `PauseAll()`（Initializing 下无效） | 交给基类，或改调 `HandleSafetyBreach(code)` |

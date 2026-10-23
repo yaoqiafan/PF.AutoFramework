@@ -182,21 +182,49 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTemplateColumn Width="auto" Header="值">
+                        <!--  显示可读摘要（复杂类型为「中文标签=值；…」，与值更改弹窗的标签一致），单行省略，完整内容在弹窗中查看  -->
+                        <DataGridTemplateColumn
+                            Width="*"
+                            MinWidth="200"
+                            Header="值">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBox
+                                    <TextBlock
+                                        Margin="5,0"
                                         VerticalAlignment="Center"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        IsReadOnly="True"
-                                        Text="{Binding JsonValue, UpdateSourceTrigger=PropertyChanged}" />
+                                        Text="{Binding DisplayValue}"
+                                        TextTrimming="CharacterEllipsis">
+                                        <!--  摘要已截断到 300 字以内，悬浮提示开销可控；折行显示被省略的部分  -->
+                                        <TextBlock.ToolTip>
+                                            <TextBlock
+                                                MaxWidth="600"
+                                                Text="{Binding DisplayValue}"
+                                                TextWrapping="Wrap" />
+                                        </TextBlock.ToolTip>
+                                    </TextBlock>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>
+
+            <!--  加载遮罩：覆盖表格区域并拦截操作，查库在后台线程进行，遮罩能正常显示  -->
+            <Grid Grid.Row="1" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <Border
+                    Background="{DynamicResource RegionBrush}"
+                    CornerRadius="3"
+                    Opacity="0.75" />
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <pf:LoadingCircle Width="50" Height="50" />
+                    <TextBlock
+                        Margin="0,15,0,0"
+                        HorizontalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.Body.Standard}"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        Text="{Binding StatusMessage}" />
+                </StackPanel>
+            </Grid>
 
             <Border
                 Grid.Row="2"

@@ -12,8 +12,25 @@
 		<PropertyGroup>
 			<IsModuleProject>true</IsModuleProject>
 			<IsPackable>true</IsPackable>
-			<Version>1.0.5</Version>
+			<Version>1.0.6</Version>
 			<PackageReleaseNotes>
+v1.0.6 (2026-10-23) — 新增「异常权限配置」页面；登录弹窗大写锁定提示
+
+[新增 — AlarmPermissionView（权限管控 → 异常权限配置）]
+- 侧边栏「权限管控」分组第 4 项，默认管理员及以上可访问（DefaultPermissions）。
+- 列出全部报警码及其默认等级、当前清除等级，可按分类、清除等级、关键字筛选；现场修改过的条目标记「自定义」。
+- 表格只读，修改统一走底部：多选报警码后「将选中项设为 → 应用到选中」或「选中项恢复默认」（恢复为代码
+  [AlarmInfo(ClearLevel)] 的值），确认后立即写库生效，无需另行保存。
+- 不能越级：管理员以下只能查看；只能修改清除等级不高于自己的报警码（灰色行不可修改），且只能设为不高于自己的等级。
+- 切换登录用户、其它入口修改等级后自动刷新。
+- OperationLogKeysIdentity 新增 AlarmPermissionView 键目录：Refresh / FilterCategory / FilterLevel /
+  ApplyBatch（关键）/ RestoreDefault（关键）。
+
+[新增 — LoginView]
+- 「密码」标签同一行显示"⚠ 大写锁定已开启"提示（弹窗加载、密码框获得焦点、按键抬起时刷新），不改变弹窗高度。
+
+依赖：PF.Core 1.0.32、PF.Services 1.0.9。
+
 v1.0.5 (2026-09-18) — 用户管理新增批量导入 / 批量删除 / 列表视图
 
 [新增 — 批量导入]

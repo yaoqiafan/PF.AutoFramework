@@ -33,7 +33,12 @@
 		<IsPackable>true</IsPackable>
 		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
-v1.0.7 (2026-10-10) — 修复弹窗偶发"消失"像卡死
+v1.0.7 (2026-10-23) — 修复弹窗偶发"消失"像卡死；依赖 PF.UI.Resources 升至 2.2.0
+
+[依赖 — PF.UI.Resources 2.1.0→2.2.0]
+- 2.2.0 依赖 PF.UI.Controls ≥ 1.2.0（ImageViewer 新模板，新旧控件与模板不能混用），会随本包自动升级；
+  消费项目若显式引用了 PF.UI.Controls 低于 1.2.0 的版本，需一并升到 1.2.0 以上。
+- 程序图标（-pfico.ico）改为 16~256 共 10 个方形尺寸，修复任务栏图标偶发模糊、变形或退回默认图标。
 
 [修复 — PFDialogBaseWindow]
 - Prism 打开弹窗时只取"当前激活的窗口"当所有者，那一刻程序没有激活窗口（刚点过别的程序、刚关掉提示框）时所有者为空；

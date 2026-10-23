@@ -5,7 +5,47 @@
     <IsPackable>true</IsPackable>
     <Version>1.0.45</Version>
     <PackageReleaseNotes>
-		v1.0.45 (2026-10-10) — 视觉资产包（.vpk）及编辑器取代 ROI 形状模板 .roipk；修复 HALCON 区域裁剪按线程缓存；修复弹窗偶发"消失"（含破坏性变更）
+		v1.0.45 (2026-10-23) — 视觉资产包（.vpk）取代 .roipk；报警清除权限分级；线扫凑帧校验与微米制；日志页修复；修复弹窗偶发"消失"（含破坏性变更）
+
+		[新增 — 报警清除权限：PF.Core 1.0.32 / PF.Data 1.0.3→1.0.4 / PF.Services 1.0.8→1.0.9 / PF.Infrastructure 1.0.30 /
+		 PF.Application.Base 1.0.9→1.0.10 / PF.Modules.Alarm 1.0.6→1.0.7 / PF.Modules.Identity 1.0.5→1.0.6 / PF.Modules.Debug 1.0.21]
+		- [AlarmInfo] 新增可选命名参数 ClearLevel（默认 Operator）；报警码启动时同步到 AlarmDefinitions 表，清除等级首次取代码值、
+		  此后以数据库为准，老库自动补 RequiredLevel 列。取消数据库扩展/覆盖报警码（AlarmInfo.IsFromDatabase 已废弃）。
+		- 新增 IAlarmPermissionService：手动清除需 当前用户等级 ≥ 报警清除等级；复位需 ≥ 活跃报警中最高的清除等级。
+		  报警中心单条/选中/全部清除、系统复位、报警弹窗「异常复位」、物理复位按钮、工站调试页复位均受控；程序自动清除不受控。
+		- 新增「权限管控 → 异常权限配置」页面（管理员及以上，不能越级），多选后批量设置/恢复默认，确认后立即生效。
+		- BaseMasterController.ResetAuthorization 钩子，由 PFApplicationBase 注入判定。
+		- 行为变更：PFApplicationBase 仅在附加调试器（VS F5）时静默登录超级用户，直接运行 exe 为操作员；
+		  需要旧行为重写 AutoLoginSuperUser => true。
+
+		[修复 / 变更 — PF.Modules.Logging 1.0.5→1.0.6 / PF.Modules.Parameter 1.0.10]
+		- 实时日志跨天后不更新、自动滚动无效；删除日期筛选。日志管理多选复制/导出，默认每页 200 条，两个表格启用虚拟化。
+		- 参数页加载改为后台 + 遮罩，值列直接显示参数值（不再是 JSON）。
+
+		[新增 / 破坏性变更 — PF.Core 1.0.32 / PF.Infrastructure 1.0.30 / PF.Modules.Debug 1.0.21：线扫凑帧与微米制]
+		- ScanGeometry 单位统一为 μm（扫描轴点位表 1 脉冲 = 1μm），属性 *Mm → *Um 改名；新增行程凑帧校验 CheckFrameFill，
+		  ScanAsync 行程凑不满一帧时动轴前拦截；理论帧时间计入加减速；扫描输出分段耗时日志。
+		- HikLineScanCamera 取流轮询 500ms→100ms，停流约 480ms→100ms。
+
+		[新增 / 变更 — PF.Core 1.0.32 / PF.Services 1.0.9 / PF.Modules.Debug 1.0.21：门锁手动接管]
+		- IO 调试页「门锁手动接管」，解决手动改门锁输出被安全门监控 500ms 对账写回。
+
+		[行为变更 / 破坏性变更 — PF.Infrastructure 1.0.30 / PF.Modules.Parameter 1.0.10：硬件]
+		- 海康 SDK 扫码枪（MvCodeReaderBarcodeScan）配置 IP 时严格匹配、不再回退第一台；连接时默认加载用户参数1（失败不连接），
+		  参数界面新增「用户参数组」。
+		- BaseAuxEncoder / EtherCatAuxEncoder 构造新增必填倍率参数 multiplier。
+
+		[依赖 — PF.UI.Infrastructure 1.0.7]
+		- PF.UI.Resources 2.1.0→2.2.0（连带 PF.UI.Controls ≥ 1.2.0，ImageViewer 新模板；程序图标改为多尺寸方形）。
+
+		[消费项目迁移（本次新增）]
+		- 界面复位按钮直接调 IMasterController.ResetAllAsync() 的，改调 RequestSystemResetAsync()，否则绕过权限检查；
+		- 报警码生成器按需输出 ClearLevel = UserLevel.XXX（不输出则为操作员）；
+		- 原先通过数据库新增/覆盖的报警码改为在代码中定义；
+		- 用到 ScanGeometry.*Mm 属性的改为 *Um，扫描轴点位表按 μm 填；
+		- 辅助编码器工厂补传 multiplier（原行为为 2）；
+		- 多台海康 SDK 扫码枪的机台核对各自 IP 配置；
+		- 升级后开机默认操作员，提前告知现场。
 
 		[新增 / 破坏性变更 — PF.Vision.Halcon 1.0.4→1.1.0（含此前未在元包登记的 1.0.5）]
 		- 1.0.5：dict 控制输出夹带图标量时拆分返回（图标量进 IconicOutputs，键 "{参数名}.{dict 键}"）。
@@ -37,7 +77,8 @@
 
 		子包版本对照：PF.Vision.Halcon 1.0.4→1.1.0，PF.Modules.Halcon 1.0.10→1.1.0，PF.UI.Infrastructure 1.0.6→1.0.7，
 		PF.Core 1.0.31→1.0.32，PF.Infrastructure 1.0.29→1.0.30，PF.Modules.Debug 1.0.20→1.0.21，
-		PF.Modules.Parameter 1.0.9→1.0.10；其余子包本次无变化。
+		PF.Modules.Parameter 1.0.9→1.0.10，PF.Data 1.0.3→1.0.4，PF.Services 1.0.8→1.0.9，PF.Application.Base 1.0.9→1.0.10，
+		PF.Modules.Alarm 1.0.6→1.0.7，PF.Modules.Identity 1.0.5→1.0.6，PF.Modules.Logging 1.0.5→1.0.6；其余子包本次无变化。
 
 		v1.0.44 (2026-09-28) — 安全门门锁输出绑定：按主控状态统一上锁/解锁；扫码枪未读到码改为返回成功+空条码（含行为变更）
 

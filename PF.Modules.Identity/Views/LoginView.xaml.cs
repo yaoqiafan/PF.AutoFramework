@@ -26,6 +26,17 @@ namespace PF.Modules.Identity.Views
         {
             InitializeComponent();
             //this.DataContext = containerExtension.Resolve<LoginViewModel>();
+            Loaded += (_, _) => UpdateCapsLockHint();
         }
+
+        // 大写锁定提示：弹窗加载、密码框获得焦点或任意按键抬起时刷新
+        private void PasswordBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+            => UpdateCapsLockHint();
+
+        private void LoginView_PreviewKeyUp(object sender, KeyEventArgs e)
+            => UpdateCapsLockHint();
+
+        private void UpdateCapsLockHint()
+            => CapsLockHint.Visibility = Keyboard.IsKeyToggled(Key.CapsLock) ? Visibility.Visible : Visibility.Collapsed;
     }
 }

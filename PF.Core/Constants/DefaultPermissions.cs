@@ -106,6 +106,7 @@ namespace PF.Core.Constants
                     NavigationConstants.Views.MechanismDebugView,
                     NavigationConstants.Views.StationDebugView,
                     NavigationConstants.Views.PagePermissionView,
+                    NavigationConstants.Views.AlarmPermissionView,
                 });
             }
 

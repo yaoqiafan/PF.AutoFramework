@@ -1,6 +1,6 @@
 # PF.Modules.Alarm
 
-PF.AutoFramework 报警管理 Prism 模块（当前 v1.0.4），以插件 DLL 方式加载，无需在 Shell 中显式引用类型。提供统一的报警中心视图：活跃报警看板、历史查询、SOP 排故面板三者合一。
+PF.AutoFramework 报警管理 Prism 模块（当前 v1.0.7），以插件 DLL 方式加载，无需在 Shell 中显式引用类型。提供统一的报警中心视图：活跃报警看板、历史查询、SOP 排故面板三者合一。
 
 ## 功能视图
 
@@ -9,8 +9,10 @@ PF.AutoFramework 报警管理 Prism 模块（当前 v1.0.4），以插件 DLL �
 - **活跃报警列表**：绑定 `IAlarmService.ActiveAlarms`，实时订阅 `AlarmTriggeredEvent` / `AlarmClearedEvent` 增量更新
 - **历史查询**：按时间段 / 等级 / 分类 / 来源 / 错误码 / 描述关键词过滤，分页展示
 - **SOP 排故面板**：选中一条报警后，右侧联动显示该报警字典里预置的排故指导文本（`SelectedSolution`），未选中时显示提示占位文案
-- **清除操作**：清除单条选中报警、清除全部活跃报警
-- **系统复位**：`SystemResetCommand` 发布 `SystemResetRequestedEvent`，由 Shell 桥接到 `IMasterController.RequestSystemResetAsync()`——是全线硬件复位+状态机跳转，不只是清掉报警记录
+- **清除操作**：清除单条选中报警、清除全部活跃报警。按当前登录用户等级与报警码的清除等级判定：单条权限不足时按钮置灰；「确认全部」只清有权限的，跳过的条数弹窗提示
+- **系统复位**：`SystemResetCommand` 发布 `SystemResetRequestedEvent`，由 Shell 桥接到 `IMasterController.RequestSystemResetAsync()`——是全线硬件复位+状态机跳转，不只是清掉报警记录。复位会清除全部活跃报警，所以要求当前用户等级 ≥ 活跃报警中最高的清除等级，不足时提示并拒绝（报警弹窗的「异常复位」、物理复位按钮同样受控）
+
+清除等级在「权限管控 → 异常权限配置」页面配置（管理员及以上，不能越级），程序自动清除的报警（安全门关闭、硬件自恢复等）不受管控。
 
 另有一个报警弹窗对话框 `PFAlarmBaseWindow`（承载 `AlarmDetailCardView`）：报警触发时弹出，展示详情大图（`DecodePixelHeight=900` 限制解码尺寸，避免大图撑爆内存）。
 
@@ -33,13 +35,16 @@ public static class AlarmCodes
             severity:    AlarmSeverity.Error,
             solution:    "1. 检查料仓是否有料;\n2. 检查取料轴是否卡滞;\n3. 复位后重试;",
             messageID:   50100,
-            messageIDHex:"Feed timeout")]
+            messageIDHex:"Feed timeout",
+            ClearLevel = UserLevel.Engineer)]   // 可选：手动清除/复位所需最低等级，不写默认 Operator
         public const string FeedTimeout = "HW_FEED_001";
     }
 }
 ```
 
 业务代码严禁硬编码错误码字符串，一律引用 `AlarmCodes.*` 常量。`AlarmDictionaryService` 启动时反射扫描全部程序集，把这些常量字段收集进报警字典。
+
+`ClearLevel` 只是**首次写入数据库的默认值**：启动时同步到 `AlarmHistory.db` 的 `AlarmDefinitions` 表，此后以数据库为准，改代码不会覆盖现场已配置的等级（需要时在配置页对选中项「恢复默认」）。报警文案（描述/分类/SOP 等）则每次启动按代码刷新；数据库不能再新增或覆盖报警码。
 
 ### 2. 注册报警服务（App.xaml.cs，`PFApplicationBase` 默认已注册，通常无需手写）
 

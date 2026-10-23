@@ -49,6 +49,8 @@ namespace PF.Modules.Parameter.ViewModels
             {
                 if (SetProperty(ref _typeFullName, value))
                 {
+                    InvalidateDisplayValue();
+
                     // 【核心修改】：拦截数据类型的切换，自动防呆赋初始 JSON 值，防止崩溃
                     if (value == typeof(string).FullName)
                         JsonValue = "\"\"";
@@ -68,7 +70,26 @@ namespace PF.Modules.Parameter.ViewModels
         public string JsonValue
         {
             get => _jsonValue;
-            set => SetProperty(ref _jsonValue, value);
+            set
+            {
+                if (SetProperty(ref _jsonValue, value))
+                {
+                    InvalidateDisplayValue();
+                }
+            }
+        }
+
+        private string _displayValue;
+        /// <summary>
+        /// 获取参数值的可读摘要（由 TypeFullName + JsonValue 派生，首次读取时计算并缓存）。
+        /// 批量加载时在后台线程预先读取一次，避免在 UI 线程上做反序列化。
+        /// </summary>
+        public string DisplayValue => _displayValue ??= ParamValueFormatter.Format(TypeFullName, JsonValue);
+
+        private void InvalidateDisplayValue()
+        {
+            _displayValue = null;
+            RaisePropertyChanged(nameof(DisplayValue));
         }
 
         private string _category;

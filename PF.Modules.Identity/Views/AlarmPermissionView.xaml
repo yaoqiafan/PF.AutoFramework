@@ -1,0 +1,285 @@
+<UserControl
+    x:Class="PF.Modules.Identity.Views.AlarmPermissionView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:conv="clr-namespace:PF.Modules.Identity.Converter"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Identity"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
+    oplog:OperationLog.PageName="{x:Static tokens:NavigationConstants+Views.AlarmPermissionView}"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <UserControl.Resources>
+        <conv:UserLevelToDisplayConverter x:Key="LevelToText" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <!--  等级下拉/文本共用的显示模板  -->
+        <DataTemplate x:Key="LevelItemTemplate">
+            <TextBlock Text="{Binding Converter={StaticResource LevelToText}}" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  ── 筛选栏 ─────────────────────────────────────────────  -->
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,8"
+                Padding="12,8"
+                Background="{DynamicResource SecondaryRegionColorBrush}"
+                CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock
+                            Margin="0,0,5,0"
+                            VerticalAlignment="Center"
+                            Text="分类：" />
+                        <ComboBox
+                            Width="150"
+                            Margin="0,0,15,0"
+                            ItemsSource="{Binding Categories}"
+                            SelectedItem="{Binding SelectedCategory}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+AlarmPermissionView.FilterCategory}" />
+
+                        <TextBlock
+                            Margin="0,0,5,0"
+                            VerticalAlignment="Center"
+                            Text="清除等级：" />
+                        <ComboBox
+                            Width="110"
+                            Margin="0,0,15,0"
+                            DisplayMemberPath="Name"
+                            ItemsSource="{Binding LevelFilters}"
+                            SelectedItem="{Binding SelectedLevelFilter}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+AlarmPermissionView.FilterLevel}" />
+
+                        <pf:SearchBar
+                            Width="240"
+                            pf:InfoElement.Placeholder="搜索报警码 / 描述 / 分类"
+                            Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Text="{Binding FilteredCount, StringFormat='显示 {0} 条'}" />
+                        <TextBlock
+                            Margin="4,0,12,0"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Text="{Binding Items.Count, StringFormat='/ 共 {0} 条'}" />
+                        <Button
+                            Width="28"
+                            Height="28"
+                            Padding="0"
+                            Command="{Binding RefreshCommand}"
+                            Content="↻"
+                            Style="{DynamicResource ButtonDefault}"
+                            ToolTip="重新加载"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+AlarmPermissionView.Refresh}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--  ── 权限说明横幅 ─────────────────────────────────────────  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,8"
+                Padding="12,8"
+                Background="#1A2196F3"
+                BorderBrush="#FF2196F3"
+                BorderThickness="1"
+                CornerRadius="6">
+                <StackPanel>
+                    <TextBlock FontSize="{DynamicResource FontSize.Body.Small}" TextWrapping="Wrap">
+                        <Run Text="当前用户：" />
+                        <Run FontWeight="SemiBold" Text="{Binding CurrentUserDisplay, Mode=OneWay}" />
+                        <Run Text="。清除等级 = 手动清除该报警、以及该报警活跃时执行复位所需的最低用户等级；程序自动恢复的报警不受影响。" />
+                    </TextBlock>
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        Text="在表格中选中报警码（Ctrl / Shift 多选），用右下角「将选中项设为」批量修改，应用后立即保存生效。只能修改清除等级不高于自己的报警码（灰色行不可修改），且只能设置为不高于自己的等级。"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        FontWeight="SemiBold"
+                        Foreground="#FFE53935"
+                        Text="当前用户无编辑权限（需要管理员及以上），仅可查看。"
+                        TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanEdit}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!--  ── 报警码列表 ───────────────────────────────────────────  -->
+            <Border
+                Grid.Row="2"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6">
+                <Grid>
+                    <DataGrid
+                        x:Name="AlarmGrid"
+                        AutoGenerateColumns="False"
+                        BorderThickness="0"
+                        CanUserAddRows="False"
+                        CanUserDeleteRows="False"
+                        GridLinesVisibility="Horizontal"
+                        HeadersVisibility="Column"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding ItemsView}"
+                        SelectionMode="Extended"
+                        SelectionUnit="FullRow">
+                        <DataGrid.RowStyle>
+                            <Style BasedOn="{StaticResource DataGridRowStyle}" TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <!--  等级高于当前用户、不可修改的行置灰  -->
+                                    <DataTrigger Binding="{Binding IsEditable}" Value="False">
+                                        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn
+                                Width="170"
+                                Binding="{Binding ErrorCode}"
+                                FontFamily="Consolas"
+                                Header="报警码" />
+                            <DataGridTextColumn
+                                Width="140"
+                                Binding="{Binding Category}"
+                                Header="分类" />
+                            <DataGridTextColumn
+                                Width="*"
+                                MinWidth="200"
+                                Binding="{Binding Message}"
+                                Header="描述" />
+                            <DataGridTextColumn
+                                Width="70"
+                                Binding="{Binding SeverityText}"
+                                Header="严重度" />
+                            <DataGridTextColumn
+                                Width="90"
+                                Binding="{Binding DefaultLevel, Converter={StaticResource LevelToText}}"
+                                Header="默认等级" />
+
+                            <!--  清除等级只读显示，修改统一走底部批量操作  -->
+                            <DataGridTextColumn
+                                Width="100"
+                                Binding="{Binding Level, Converter={StaticResource LevelToText}}"
+                                Header="清除等级" />
+
+                            <DataGridTemplateColumn Width="80" Header="状态">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="6,0" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCustomized}" Value="True">
+                                                            <Setter Property="Text" Value="自定义" />
+                                                            <Setter Property="Foreground" Value="#FF1E88E5" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!--  保存遮罩  -->
+                    <Border
+                        Background="{DynamicResource RegionColorBrush}"
+                        Opacity="0.8"
+                        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <pf:LoadingCircle Width="36" Height="36" />
+                            <TextBlock
+                                Margin="0,12,0,0"
+                                HorizontalAlignment="Center"
+                                Text="正在保存..." />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!--  ── 底部操作栏 ───────────────────────────────────────────  -->
+            <Grid Grid.Row="3" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel
+                    Grid.Column="2"
+                    IsEnabled="{Binding CanEdit}"
+                    Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        Text="将选中项设为：" />
+                    <ComboBox
+                        Width="110"
+                        Height="32"
+                        Margin="0,0,8,0"
+                        ItemTemplate="{StaticResource LevelItemTemplate}"
+                        ItemsSource="{Binding AssignableLevels}"
+                        SelectedItem="{Binding BatchLevel}" />
+                    <Button
+                        Height="32"
+                        Margin="0,0,8,0"
+                        Padding="15,0"
+                        Command="{Binding RestoreDefaultCommand}"
+                        CommandParameter="{Binding SelectedItems, ElementName=AlarmGrid}"
+                        Content="选中项恢复默认"
+                        ToolTip="恢复为代码中 [AlarmInfo(ClearLevel = ...)] 定义的默认等级，立即保存"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+AlarmPermissionView.RestoreDefault}" />
+                    <Button
+                        Height="32"
+                        Padding="20,0"
+                        Command="{Binding ApplyBatchCommand}"
+                        CommandParameter="{Binding SelectedItems, ElementName=AlarmGrid}"
+                        Content="应用到选中"
+                        FontWeight="SemiBold"
+                        Style="{StaticResource ButtonPrimary}"
+                        ToolTip="把选中的报警码设为左侧等级，立即保存生效"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+AlarmPermissionView.ApplyBatch}" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

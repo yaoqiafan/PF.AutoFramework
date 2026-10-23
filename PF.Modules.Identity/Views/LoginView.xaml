@@ -7,6 +7,7 @@
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     Width="380"
     Height="420" Background="{DynamicResource BackgroundBrush}"
+    PreviewKeyUp="LoginView_PreviewKeyUp"
     oplog:OperationLog.PageName="LoginView">
 
     <Border CornerRadius="15">
@@ -52,14 +53,24 @@
                     oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysIdentity+LoginView.UserName}" />
 
 
-                <TextBlock
-                    Margin="2,0,0,10"
-                    FontSize="{DynamicResource FontSize.Body.Small}"
-                    FontWeight="SemiBold"
-                    Text="密码" />
+                <!--  大写锁定提示放在"密码"标签同一行，不占额外高度（视图高度固定）  -->
+                <DockPanel Margin="2,0,0,10">
+                    <TextBlock
+                        x:Name="CapsLockHint"
+                        DockPanel.Dock="Right"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        Foreground="{DynamicResource WarningBrush}"
+                        Text="⚠ 大写锁定已开启"
+                        Visibility="Collapsed" />
+                    <TextBlock
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        FontWeight="SemiBold"
+                        Text="密码" />
+                </DockPanel>
 
                 <PasswordBox
                     Height="35"
+                    GotKeyboardFocus="PasswordBox_GotKeyboardFocus"
                     VerticalContentAlignment="Center"
                     pf:PasswordBoxAttach.Attach="True"
                     pf:PasswordBoxAttach.Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

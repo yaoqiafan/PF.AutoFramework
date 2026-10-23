@@ -10,7 +10,8 @@ PF.AutoFramework 核心业务服务实现层，当前版本 1.0.5。目录下共
 | `HardwareManagerService` | `IHardwareManagerService` | 硬件生命周期管理（工厂注册、拓扑加载、仿真模式切换） |
 | `CommunicationManagerService` | `ICommunicationManagerService` | 通讯实例（TCP/串口/文件传输等）生命周期管理，结构对齐 `HardwareManagerService` |
 | `AlarmService` | `IAlarmService` | 报警触发 / 消除 / 历史查询 |
-| `AlarmDictionaryService` | `IAlarmDictionaryService` | 报警码字典（`[AlarmInfo]` 反射扫描 + 数据库覆盖） |
+| `AlarmDictionaryService` | `IAlarmDictionaryService` | 报警码字典（`[AlarmInfo]` 反射扫描，清除权限等级与数据库同步） |
+| `AlarmPermissionService` | `IAlarmPermissionService` | 报警手动清除/复位的权限判定（当前用户等级 vs 报警码清除等级） |
 | `LogService` | `ILogService` | 结构化分类日志 |
 | `ProductionDataService` | `IProductionDataService` | 泛型生产数据记录 + 导出 |
 | `UserService` | `IUserService` | 登录 / 权限 / 用户管理 |
@@ -111,10 +112,32 @@ _alarmService.AlarmCleared   += (s, record) => { };
 ## AlarmDictionaryService
 
 ```csharp
-await _alarmDict.InitializeAsync();          // 启动时反射扫描 [AlarmInfo] + 加载数据库覆盖项
+await _alarmDict.InitializeAsync();          // 启动时反射扫描 [AlarmInfo] + 与 AlarmDefinitions 表同步
 AlarmInfo info = _alarmDict.GetAlarmInfo("HW_SRV_001");   // 未知报警码兜底返回 MessageID=-1 / MessageIDHex="NoneError"
 IReadOnlyDictionary<string, AlarmInfo> all = _alarmDict.GetAll();
+UserLevel level = _alarmDict.GetRequiredLevel("HW_SRV_001");   // 手动清除所需等级，未定义报警码为 Operator
+await _alarmDict.UpdateRequiredLevelsAsync(levels, userName);   // 写库 + 刷新内存 + 引发 RequiredLevelsChanged
 ```
+
+报警文案**只来自代码**（`[AlarmInfo]`），数据库不再新增或覆盖报警码（已取消扩展报警码合并加载）。`AlarmHistory.db` 的 `AlarmDefinitions` 表按默认参数的方式同步：
+
+- 代码有、库里没有 → 插入，清除等级取 `[AlarmInfo(..., ClearLevel = UserLevel.Engineer)]`（命名参数，可选，默认 `Operator`）
+- 库里已有 → **清除等级以数据库为准**（「权限管控 → 异常权限配置」页面修改），其余文案字段按代码刷新
+- 代码已删除的报警码 → 从库中删除（逐条写 Warn 日志）
+- 老库没有 `RequiredLevel` 列时启动幂等补列（默认 0 = Operator，升级后行为不变）
+
+## AlarmPermissionService
+
+只用于**人为操作入口**；程序自动清除（安全门关闭、硬件自恢复等）直接调 `IAlarmService`，不受管控。
+
+```csharp
+bool canClear = _alarmPermission.CanClear(record);              // 当前用户等级 ≥ 该报警码清除等级
+bool canReset = _alarmPermission.CanReset(out var required);    // 复位会清全部报警：需 ≥ 活跃报警中最高的清除等级
+var (cleared, skipped) = _alarmPermission.ClearAllAuthorized(); // 只清有权限的，返回跳过条数
+_alarmPermission.PermissionChanged += ...;                      // 用户切换 / 等级配置变化，刷新按钮状态
+```
+
+主控复位由宿主注入 `BaseMasterController.ResetAuthorization` 统一检查，覆盖物理复位按钮与 `RequestSystemResetAsync()`（`SystemResetRequestedEvent`）。**`IMasterController.ResetAllAsync()` 本身不检查**，界面上的复位按钮必须调用 `RequestSystemResetAsync()`，否则会绕过权限管控。
 
 ## LogService
 

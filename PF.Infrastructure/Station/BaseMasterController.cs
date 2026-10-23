@@ -88,6 +88,19 @@ namespace PF.Infrastructure.Station
         public event EventHandler<StationAlarmEventArgs>? MasterAlarmTriggered;
 
         /// <summary>
+        /// 人为复位的权限检查委托（参数为触发来源描述，如"物理复位按钮"/"系统复位"，返回是否允许复位）。
+        /// <para>
+        /// 由宿主（<c>PFApplicationBase</c>）在启动时注入，按"当前登录用户等级 ≥ 活跃报警中最高的清除等级"判定，
+        /// 拒绝时由委托自行记录日志并提示用户。为 null 时不做检查（保持旧行为）。
+        /// </para>
+        /// <para>
+        /// 生效范围：物理复位按钮、<see cref="RequestSystemResetAsync"/>（SystemResetRequestedEvent）。
+        /// <see cref="ResetAllAsync"/> 本身不受控，供程序内部调用；界面上的复位入口请改走 <see cref="RequestSystemResetAsync"/>。
+        /// </para>
+        /// </summary>
+        public Func<string, bool>? ResetAuthorization { get; set; }
+
+        /// <summary>
         /// 指示当前是否因参数变更而需要重新初始化设备。
         /// 基类默认返回 false，子类可 override 以提供实际状态。
         /// </summary>
@@ -526,7 +539,11 @@ namespace PF.Infrastructure.Station
                 _logger.Warn("【全局主控】Reset 指令被丢弃，硬件操作互斥门正忙。");
                 return;
             }
-            try { await ResetAllAsync().ConfigureAwait(false); }
+            try
+            {
+                if (!IsResetAuthorized("物理复位按钮")) return;
+                await ResetAllAsync().ConfigureAwait(false);
+            }
             catch (Exception ex) { _logger.Error($"【全局主控】硬件触发复位失败: {ex.Message}"); }
             finally { _hardwareOpGate.Release(); }
         }
@@ -852,13 +869,34 @@ namespace PF.Infrastructure.Station
         #region Hardware Reset Mechanisms
 
         /// <summary>
-        /// 系统全局复位入口，由 Shell 层在收到 SystemResetRequestedEvent 时调用。
-        /// 直接委托给 <see cref="ResetAllAsync"/>。
+        /// 系统全局复位入口，由 Shell 层在收到 SystemResetRequestedEvent 时调用，界面上的复位按钮也应走这里。
+        /// 先经 <see cref="ResetAuthorization"/> 权限检查，通过后委托给 <see cref="ResetAllAsync"/>。
         /// </summary>
         public Task RequestSystemResetAsync()
         {
+            if (!IsResetAuthorized("系统复位")) return Task.CompletedTask;
+
             _logger.Info("【主控】接收到系统复位请求，开始执行全线复位...");
             return ResetAllAsync();
+        }
+
+        /// <summary>执行 <see cref="ResetAuthorization"/> 检查；委托异常时按拒绝处理（宁可多按一次也不越权清警）。</summary>
+        private bool IsResetAuthorized(string trigger)
+        {
+            var authorize = ResetAuthorization;
+            if (authorize == null) return true;
+
+            try
+            {
+                if (authorize(trigger)) return true;
+                _logger.Warn($"【主控】{trigger}被拒绝：当前用户权限不足。");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"【主控】{trigger}权限检查异常，按拒绝处理: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>

@@ -3,8 +3,27 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.9</Version>
+		<Version>1.0.10</Version>
 		<PackageReleaseNotes>
+v1.0.10 (2026-10-23) — 复位接入报警清除权限；仅调试时静默登录超级用户（含行为变更）
+
+[新增 — 复位权限]
+- 启动时为主控注入 BaseMasterController.ResetAuthorization：物理复位按钮、RequestSystemResetAsync
+  （含 SystemResetRequestedEvent）要求当前用户等级 ≥ 活跃报警中最高的清除等级；拒绝时写「操作日志」并弹出非阻塞提示。
+
+[行为变更 — 启动登录]
+- 新增虚属性 protected virtual bool AutoLoginSuperUser，默认 Debugger.IsAttached：
+  仅在 VS 中按 F5 调试启动时静默登录超级用户；直接运行 exe（含开机自启、Ctrl+F5）时为操作员。
+  此前无论如何启动都静默登录超级用户，报警清除权限等管控在超时降级前形同虚设。
+- 用 Debugger.IsAttached 而非 #if DEBUG：本包以 Release 编译发布，#if 在框架编译时已求值，消费项目的配置管不到。
+- 需要保持旧行为（如现场调机阶段）：在 App 中重写 protected override bool AutoLoginSuperUser => true;
+
+[消费项目注意]
+- 界面上直接调 IMasterController.ResetAllAsync() 的复位按钮会绕过权限检查，应改调 RequestSystemResetAsync()。
+- 升级后现场开机默认是操作员，需要工程师及以上的操作要先登录，请提前告知现场。
+
+依赖：PF.Core 1.0.32、PF.Infrastructure 1.0.30、PF.Services 1.0.9。
+
 v1.0.9 (2026-09-28) — Safety 监控线程随 Standard 一起常驻启动；退出时兜底解锁安全门
 
 - 启动画面结束后同时 StartSafetyMonitoring（原由各项目主控在 Running 时启动）；是否检测/上锁由主控下发的上锁许可决定。
