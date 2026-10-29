@@ -4,8 +4,13 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <PackageReleaseNotes>
+v1.1.1 (2026-10-29) — 视觉总览页加页面切换过渡
+
+[变更]
+- HalconDashboardView 外层加 pf:TransitioningContentControl（Right2LeftWithFade），与其它侧边栏页面切换行为一致。
+
 v1.1.0 (2026-10-10) — 新增视觉资产包编辑器；删除 ROI 形状模板编辑/验证弹窗（含破坏性变更）；图像查看器自适应不再拉伸
 
 [新增 — VisionPackageEditorDialog]

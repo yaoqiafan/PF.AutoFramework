@@ -2,6 +2,7 @@
     x:Class="PF.Modules.Halcon.Views.HalconDashboardView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:local="clr-namespace:PF.Modules.Halcon"
     xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
     xmlns:prism="http://prismlibrary.com/"
@@ -33,76 +34,77 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!--  顶部 Tab 条  -->
-        <Border
-            Grid.Row="0"
-            BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Horizontal">
+            <!--  顶部 Tab 条  -->
+            <Border
+                Grid.Row="0"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal">
 
-                <!--  过程调试 Tab  -->
-                <Button Command="{Binding NavToDebugCommand}" oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+HalconDashboardView.NavToDebug}">
-                    <Button.Style>
-                        <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsDebugSelected}" Value="True">
-                                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                    <TextBlock FontSize="13" Text="过程调试">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                    <!--  过程调试 Tab  -->
+                    <Button Command="{Binding NavToDebugCommand}" oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+HalconDashboardView.NavToDebug}">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsDebugSelected}" Value="True">
-                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Button>
+                        </Button.Style>
+                        <TextBlock FontSize="13" Text="过程调试">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDebugSelected}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
 
-                <!--  管线运行 Tab  -->
-                <Button Command="{Binding NavToPipelineCommand}" oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+HalconDashboardView.NavToPipeline}">
-                    <Button.Style>
-                        <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsPipelineSelected}" Value="True">
-                                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                    <TextBlock FontSize="13" Text="管线运行">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                    <!--  管线运行 Tab  -->
+                    <Button Command="{Binding NavToPipelineCommand}" oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+HalconDashboardView.NavToPipeline}">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource NavTabStyle}" TargetType="Button">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsPipelineSelected}" Value="True">
-                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Button>
+                        </Button.Style>
+                        <TextBlock FontSize="13" Text="管线运行">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPipelineSelected}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
 
-            </StackPanel>
-        </Border>
+                </StackPanel>
+            </Border>
 
-        <!--  内容区域：由 Prism 区域导航控制  -->
-        <ContentControl Grid.Row="1" prism:RegionManager.RegionName="{x:Static local:HalconNavigationConstants+Regions.HalconContentRegion}" />
-    </Grid>
-
+            <!--  内容区域：由 Prism 区域导航控制  -->
+            <ContentControl Grid.Row="1" prism:RegionManager.RegionName="{x:Static local:HalconNavigationConstants+Regions.HalconContentRegion}" />
+        </Grid>
+    </pf:TransitioningContentControl>
 </UserControl>
