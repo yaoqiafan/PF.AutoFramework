@@ -342,20 +342,30 @@ namespace PF.Application.Base
             }
         }
 
+        private int _safetyReleased;
+
+        /// <summary>
+        /// 退出前的安全兜底：停止输入扫描、退出调试页的门锁手动接管、撤销上锁许可（门锁解锁）——
+        /// 软件退出后无人检测开门，门锁不能继续保持（否则人被锁在外面/里面）。只执行一次，重复调用直接返回。
+        /// <para><b>所有退出路径都必须调用。</b><see cref="OnExit"/> 只在 <c>Application.Shutdown</c> 时触发，
+        /// 主窗口关闭、加载失败退出走的是 <c>Environment.Exit</c>，不会经过 <see cref="OnExit"/>，须在调用前自行调用本方法。</para>
+        /// </summary>
+        public void ReleaseSafetyOnExit()
+        {
+            if (Interlocked.Exchange(ref _safetyReleased, 1) == 1) return;
+            try
+            {
+                // Dispose = 停扫描 + 退出手动接管 + 撤销上锁许可，比只撤许可多照顾了"调试页手动接管时锁停在上锁态"
+                if (Container?.IsRegistered<IHardwareInputMonitor>() == true)
+                    Container.Resolve<IHardwareInputMonitor>().Dispose();
+            }
+            catch (Exception ex) { Debug.WriteLine($"Exit unlock error: {ex.Message}"); }
+        }
+
         /// <summary>释放全局互斥锁并执行基类退出逻辑。</summary>
         protected override void OnExit(ExitEventArgs e)
         {
-            // 退出兜底解锁：软件退出后无人检测开门，门锁不能继续保持（否则人被锁在外面/里面）
-            try
-            {
-                if (Container?.IsRegistered<IHardwareInputMonitor>() == true)
-                {
-                    var inputMonitor = Container.Resolve<IHardwareInputMonitor>();
-                    inputMonitor.SetLockPermit(false);
-                    inputMonitor.StopAll();
-                }
-            }
-            catch (Exception ex) { Debug.WriteLine($"Exit unlock error: {ex.Message}"); }
+            ReleaseSafetyOnExit();
 
             base.OnExit(e);
             if (_isNewInstance)
@@ -458,6 +468,7 @@ namespace PF.Application.Base
                 if (res == ButtonResult.Yes)
                 {
                     splash.Close();
+                    ReleaseSafetyOnExit();   // Environment.Exit 不经过 OnExit，门锁兜底解锁须在此先做
                     Environment.Exit(0);
                 }
             }

@@ -3,8 +3,16 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.46</Version>
+    <Version>1.0.47</Version>
     <PackageReleaseNotes>
+		v1.0.47 (2026-10-29) — 修复软件退出时门锁兜底解锁从未执行
+
+		[修复 — PF.Application.Base 1.0.10→1.0.11]
+		- 主窗口关闭、启动加载失败退出走 Environment.Exit，不经过 OnExit，门锁兜底解锁此前从未执行；
+		  新增 ReleaseSafetyOnExit()，所有退出路径都调用（停输入扫描 + 退出门锁手动接管 + 撤销上锁许可）。消费项目无需改动。
+
+		子包版本对照：PF.Application.Base 1.0.10→1.0.11；其余子包本次无变化。
+
 		v1.0.46 (2026-10-23) — 设备连接/断开互斥，修复海康 SDK 扫码枪连接中重复点击导致读码器被独占
 
 		[修复 — PF.Infrastructure 1.0.30→1.0.31 / PF.Modules.Debug 1.0.21→1.0.22]

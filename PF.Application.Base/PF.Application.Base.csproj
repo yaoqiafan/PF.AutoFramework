@@ -3,8 +3,16 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.10</Version>
+		<Version>1.0.11</Version>
 		<PackageReleaseNotes>
+v1.0.11 (2026-10-29) — 修复软件退出时门锁兜底解锁从未执行
+
+[修复]
+- 主窗口关闭、启动加载失败两条退出路径走 Environment.Exit，不经过 Application.OnExit，
+  OnExit 里的门锁兜底解锁（停输入扫描 + 退出门锁手动接管 + 撤销上锁许可）此前从未执行。
+- 新增 public void ReleaseSafetyOnExit()（只执行一次）：OnExit、主窗口关闭（机构释放后、日志服务释放前）、
+  加载失败退出三处都调用。消费项目无需改动。
+
 v1.0.10 (2026-10-23) — 复位接入报警清除权限；仅调试时静默登录超级用户（含行为变更）
 
 [新增 — 复位权限]

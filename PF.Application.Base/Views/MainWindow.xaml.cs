@@ -327,6 +327,10 @@ namespace PF.Application.Base.Views
                 foreach (var item in _mechanismsList)
                     item.Dispose();
 
+                // 门锁兜底解锁：下面走 Environment.Exit，不会经过 PFApplicationBase.OnExit，须在此先做；
+                // 放在日志服务释放之前，"解锁"这条日志才写得进去
+                (System.Windows.Application.Current as PFApplicationBase)?.ReleaseSafetyOnExit();
+
                 // 异步释放顺序：AlarmService → ProductionDataService → LogService（最后）。
                 // LogService 必须最后——它一旦释放，前面服务在排空/超时时记的 Warn 日志会全部丢失，
                 // 而"排空超时"恰恰是最需要留下证据的场景。
