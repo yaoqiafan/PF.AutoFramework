@@ -15,6 +15,7 @@
     <UserControl.Resources>
         <local:LogLevelToBrushConverter x:Key="LogLevelToBrushConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:LogMessageDisplayConverter x:Key="LogMessageDisplayConverter" />
     </UserControl.Resources>
 
     <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
@@ -227,7 +228,7 @@
                                     <DataTemplate>
                                         <TextBlock
                                             Padding="5"
-                                            Text="{Binding Message}"
+                                            Text="{Binding Message, Converter={StaticResource LogMessageDisplayConverter}}"
                                             TextWrapping="Wrap" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

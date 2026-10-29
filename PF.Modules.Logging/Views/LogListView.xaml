@@ -24,6 +24,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:NullToTextConverter x:Key="NullToTextConverter" NullText="全部" />
         <local:ExceptionToExpanderVisibilityConverter x:Key="ExceptionToExpanderVisibilityConverter" />
+        <local:LogMessageDisplayConverter x:Key="LogMessageDisplayConverter" />
 
         <Style x:Key="LogItemStyle" TargetType="ListViewItem">
             <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" />
@@ -133,7 +134,7 @@
                         Margin="0,0,8,0"
                         VerticalAlignment="Top"
                         FontSize="13"
-                        Text="{Binding Message}"
+                        Text="{Binding Message, Converter={StaticResource LogMessageDisplayConverter}}"
                         TextWrapping="Wrap" />
 
                     <Border

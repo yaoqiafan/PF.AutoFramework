@@ -13,8 +13,15 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.6</Version>
+		<Version>1.0.7</Version>
 		<PackageReleaseNotes>
+v1.0.7 (2026-10-29) — 超长日志消息截断显示，防止单条大日志卡死界面
+
+[修复]
+- 实时日志区与日志管理页的消息列超过 2000 字符或 40 行时只显示开头，末尾注明总字符数 / 行数（LogMessageDisplayConverter）。
+  此前单条几 MB 的消息（如整条检测结果报文）在界面线程上自动换行排版要数秒，之后每次刷新、滚动还要重排，整个界面卡死。
+- 只截显示：复制、导出、搜索与日志文件仍是完整内容。
+
 v1.0.6 (2026-10-23) — 实时日志跨天不更新、自动滚动无效修复；日志管理多选复制/导出；两个表格启用虚拟化
 
 [修复 — LogListView（实时日志）]
