@@ -6,6 +6,7 @@ using PF.Core.Constants;
 using PF.Core.Entities.Communication.FileTransfer;
 using PF.Core.Enums;
 using PF.Core.Enums.FileTransfer;
+using PF.Core.Enums.Hardware.Vision;
 using PF.Core.Interfaces.Communication;
 using PF.Core.Interfaces.Communication.Serial;
 using PF.Core.Interfaces.Communication.TCP;
@@ -290,6 +291,37 @@ namespace PF.Application.Shell
 
                 return new Infrastructure.Hardware.Camera.IntelligentCamera.Keyence.KeyenceIntelligentCamera(
                     triggerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
+            });
+
+            // 海康网络摄像机（HCNetSDK 私有协议，IPC/NVR）。
+            // 原生库部署：HCNetSDK.dll 及 HCNetSDKCom\ 子目录共 35 个文件，见 PF.Infrastructure.csproj 注释。
+            // ConnectionParameters：IP / Port(默认8000) / UserName / Password /
+            //                       Channel(可选，0=自动选第一个可用通道) /
+            //                       CaptureBufferMB(抓图缓冲区起始大小，默认8，不足时自动翻倍至上限64MB)
+            hwManager.RegisterFactory("HikNetworkCamera", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue("IP", out var ip);
+                cfg.ConnectionParameters.TryGetValue("UserName", out var user);
+                cfg.ConnectionParameters.TryGetValue("Password", out var pwd);
+                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 8000;
+                int channel = cfg.ConnectionParameters.TryGetValue("Channel", out var ch) ? int.Parse(ch) : 0;
+                int bufferMb = cfg.ConnectionParameters.TryGetValue("CaptureBufferMB", out var bm) ? int.Parse(bm) : 8;
+
+                // 存图格式/目录是设备级参数（不进系统参数）：不填则用设备内部默认值
+                // （格式 Jpeg、目录 {ConfigPath}\NetworkCamera\{DeviceId}）。
+                // 解析失败回退 Jpeg，不让一个拼错的格式名阻断设备实例化。
+                ImageFileFormat format = ImageFileFormat.Jpeg;
+                if (cfg.ConnectionParameters.TryGetValue("SaveFormat", out var fmt)
+                    && !string.IsNullOrWhiteSpace(fmt))
+                {
+                    if (!Enum.TryParse(fmt, true, out format))
+                        format = ImageFileFormat.Jpeg;
+                }
+                cfg.ConnectionParameters.TryGetValue("SaveDirectory", out var saveDir);
+
+                return new Infrastructure.Hardware.Camera.Network.Hikvision.HikNetworkCamera(
+                    ip, port, user, pwd, channel, bufferMb,
+                    cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, format, saveDir);
             });
 
             hwManager.RegisterFactory("CTS_LightController", cfg =>

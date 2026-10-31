@@ -5,6 +5,7 @@ using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.BarcodeScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.IntelligentCamera;
 using PF.Core.Interfaces.Device.Hardware.Camera.LineScan;
+using PF.Core.Interfaces.Device.Hardware.Camera.NetworkCamera;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
@@ -197,8 +198,28 @@ namespace PF.Modules.Debug.ViewModels
                 TreeNodes.Add(cardNode);
             }
 
+            // 网络摄像机独立成组：与板卡/采集卡同级（点分组节点进"多台摄像机集合页"），
+            // 不进下方「独立设备」——那是单设备调试页的入口，语义不同
+            var networkCameras = allDevices.OfType<INetworkCamera>()
+                .OrderBy(c => c.DeviceName)
+                .ToList();
+
+            if (networkCameras.Count > 0)
+            {
+                var groupNode = new DebugTreeNode
+                {
+                    NodeName = "[网络摄像机]",
+                    Payload  = new NetworkCameraGroup(networkCameras)
+                };
+                foreach (var cam in networkCameras)
+                    groupNode.Children.Add(new DebugTreeNode { NodeName = cam.DeviceName, Payload = cam });
+                TreeNodes.Add(groupNode);
+            }
+
             var orphans = allDevices
-                .Where(d => !hostIds.Contains(d.DeviceId) && !attachedIds.Contains(d.DeviceId))
+                .Where(d => !hostIds.Contains(d.DeviceId)
+                         && !attachedIds.Contains(d.DeviceId)
+                         && d is not INetworkCamera)      // 已进「网络摄像机」组，不再重复出现在「独立设备」
                 .OrderBy(d => d.Category.ToString())
                 .ThenBy(d => d.DeviceName)
                 .ToList();
@@ -292,6 +313,20 @@ namespace PF.Modules.Debug.ViewModels
                 parameters.Add("Device", intelligentCamera);
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.CameraDebugView, parameters);
+            }
+            else if (payload is NetworkCameraGroup networkCameraGroup)
+            {
+                // 点「网络摄像机」分组节点 → 参数表单页：组内全部摄像机，可改、统一保存、不自动重载
+                parameters.Add("Cameras", networkCameraGroup.Cameras);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.NetworkCameraGroupView, parameters);
+            }
+            else if (payload is INetworkCamera networkCamera)
+            {
+                // 点某台摄像机叶子节点 → 单实例页：只读参数 + 预览/抓图
+                parameters.Add("Device", networkCamera);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.NetworkCameraDebugView, parameters);
             }
             else if (payload is ILightController lightcontroller)
             {

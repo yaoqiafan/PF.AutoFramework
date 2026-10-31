@@ -116,6 +116,28 @@ namespace PF.Core.Constants
     50010, "Line scan frame timeout",
     "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
             public const string LineScanFrameTimeout = "HW_CAM_003";
+
+            /// <summary>网络摄像机登录失败</summary>
+            [AlarmInfo("硬件异常", "网络摄像机登录失败", "Network camera login failed", AlarmSeverity.Error,
+    "1. 检查相机 IP 与端口(默认8000)是否可达;\n" +
+                "2. 核对用户名密码（默认 admin，出厂密码见相机标签）;\n" +
+                "3. 查看错误码：1=密码错 7=网络不通 89=密码错误次数过多被锁定 96=IP白名单;\n" +
+                "4. 用浏览器访问 http://相机IP 验证相机是否在线;\n" +
+                "5. 修正后点击【复位】重新登录;",
+    50027, "Network camera login failed",
+    "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
+            public const string NetworkCameraLoginFailed = "HW_CAM_004";
+
+            /// <summary>网络摄像机抓图失败</summary>
+            [AlarmInfo("硬件异常", "网络摄像机抓图失败", "Network camera capture failed", AlarmSeverity.Error,
+    "1. 确认相机已登录（未登录时先复位重新连接）;\n" +
+                "2. 检查通道号是否正确（NVR 下通道号不等于 1）;\n" +
+                "3. 错误码 43=缓冲区太小，调大抓图缓冲区配置;\n" +
+                "4. 错误码 4=通道号错误，检查通道高低位拼接;\n" +
+                "5. 确认相机码流正常（用浏览器页面能看到画面）;",
+    50028, "Network camera capture failed",
+    "/PF.UI.Infrastructure;component/HardwareImage/相机.png")]
+            public const string NetworkCameraCaptureFailed = "HW_CAM_005";
             #endregion
 
             #region 采集卡 (FG)

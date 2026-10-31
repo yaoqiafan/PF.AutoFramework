@@ -3,8 +3,46 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.47</Version>
+    <Version>1.0.49</Version>
     <PackageReleaseNotes>
+		v1.0.49 (2026-10-31) — 网络摄像机「抓图并保存」：存图格式/目录作为设备参数
+
+		[新增 — PF.Core 1.0.33→1.0.34]
+		- INetworkCamera 追加 CaptureAndSaveAsync / SaveFormat / SaveDirectory：抓图后直接从内存落盘，返回最终路径。
+		  格式默认 Jpeg，目录默认 {ConfigPath}\NetworkCamera\{设备Id}，调用方不配置也能用。
+
+		[新增 — PF.Infrastructure 1.0.32→1.0.33]
+		- BaseNetworkCamera.CaptureAndSaveAsync：JPEG 原样写 SDK 字节（不二次编码），Bmp/Tiff/Png 经 System.Drawing 转码；
+		  构造参数新增 saveFormat / saveDirectory（均有默认值，且不在静态字段初始化器里捕获 ConfigPath）。
+		- HikNetworkCamera 透传这两个参数；设备不关心存图，抓图仍走 CaptureJpegAsync。
+
+		[新增 — PF.Modules.Debug 1.0.23→1.0.24]
+		- 单实例页预览工具条新增「抓图并保存」，共用同一把抓图门（手动抓图与预览轮询打的是同一个 SDK 句柄）。
+		- 分组参数页卡片与「参数设置」弹窗追加「存图格式」「存图目录」；保存前校验格式枚举，写错整批不保存。
+
+		[新增 — PF.Modules.Parameter 1.0.11→1.0.12]
+		- HikNetworkCameraParamView + 映射器追加「存图」分组（存图格式 / 存图目录），设备参数不进系统参数表。
+
+		v1.0.48 (2026-10-31) — 海康网络摄像机（HCNetSDK）接入：登录 + JPEG 抓图 + 集合调试页
+
+		[新增 — PF.Core 1.0.32→1.0.33]
+		- INetworkCamera 接口、NetworkCameraFrame/NetworkCameraChannel 实体、报警码 HW_CAM_004/HW_CAM_005（50027/50028）、
+		  NavigationConstants.Views.NetworkCameraDebugView。
+
+		[新增 — PF.Infrastructure 1.0.31→1.0.32]
+		- HikNetworkCamera 设备实现（NET_DVR_Login_V40 登录、NET_DVR_CaptureJPEGPicture_NEW 抓图、
+		  HCNetSdkLifetime 引用计数生命周期、错误码中文解码）。
+		- 原生库 35 个文件 53.8MB 入库 DLL\Infrastructure\HCNetSDK\（根 19 + HCNetSDKCom\ 16，SDK V6.1.11.5 Win64），
+		  构建时保持 HCNetSDKCom\ 层级复制到输出目录。仅 Win64：进程须以 x64 运行；
+		  外部消费项目需从仓库复制该目录到输出目录（nupkg 不含原生库，NuGet runtimes 平铺保不住子目录层级）。
+
+		[新增 — PF.Modules.Debug 1.0.22→1.0.23]
+		- 硬件调试树「网络摄像机」分组 + 集合调试页（左侧列表 / 右侧参数编辑+登录注销复位 / 抓图 / 300ms 轮询预览 /
+		  配置保存只写库不自动重载，显式按钮+确认弹窗才全量重载）。
+
+		[新增 — PF.Modules.Parameter 1.0.10→1.0.11]
+		- HikNetworkCameraParamView 参数视图 + 映射器注册（IP/端口/账号/通道/抓图缓冲区）。
+
 		v1.0.47 (2026-10-29) — 修复软件退出时门锁兜底解锁从未执行；超长日志消息截断显示
 
 		[修复 — PF.Application.Base 1.0.10→1.0.11]

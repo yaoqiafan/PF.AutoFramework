@@ -3,8 +3,29 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.32</Version>
+		<Version>1.0.34</Version>
 		<PackageReleaseNotes>
+v1.0.34 (2026-10-31) — 网络摄像机新增「抓图并落盘」接口约定
+
+[新增 — INetworkCamera 存图成员]
+- CaptureAndSaveAsync(int? channel, string? fileNameWithoutExtension, CancellationToken)：抓图后直接从内存写盘
+  （不产生中间文件、不二次解码），返回最终绝对路径。文件名省略时由设备层按「通道_时间戳」生成。
+- SaveFormat（ImageFileFormat，默认 Jpeg）与 SaveDirectory（默认 {ConfigPath}\NetworkCamera\{设备Id}）：
+  取值的来源是设备自身的连接参数（SaveFormat / SaveDirectory 两个键），**不纳入系统参数**；两者都给了默认值，
+  调用方不配置也能直接用。
+
+v1.0.33 (2026-10-31) — 网络摄像机接口与实体（海康 HCNetSDK，登录 + 抓图）
+
+[新增 — INetworkCamera 通道]
+- 新增 INetworkCamera 接口（Interfaces/Device/Hardware/Camera/NetworkCamera/）：网络摄像机（IPC/NVR，面阵、单次整幅 JPEG）
+  与智能相机（触发→结果字符串）、线阵相机（原始像素流+运动扫描）三种相机语义并列，互不复用。
+- 新增实体 NetworkCameraFrame（JPEG 字节 + 通道/序列号/时间戳）与 NetworkCameraChannel（通道号/名称/是否IP通道）；
+  设备层只交原样数据、不依赖视觉库，与 LineScanFrame 同一约定。
+
+[新增 — 报警码 / 导航常量]
+- Hardware 相机 region 追加 HW_CAM_004 网络摄像机登录失败（ID 50027）、HW_CAM_005 网络摄像机抓图失败（ID 50028）。
+- NavigationConstants.Views 追加 NetworkCameraDebugView（集合调试页）。
+
 v1.0.32 (2026-10-23) — 报警清除权限分级；线扫曝光/凑帧校验，扫描几何单位统一为微米；门锁手动接管 API（含破坏性变更）
 
 [新增 — 报警清除权限]

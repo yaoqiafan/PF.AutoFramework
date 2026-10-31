@@ -630,5 +630,51 @@ namespace PF.Modules.Debug
             [Description("确认保存参数"), OperationLogCritical]
             public const string Confirm = nameof(Confirm);
         }
+
+        /// <summary>
+        /// 网络摄像机调试视图（单台实例：顶部设备状态 + 预览/抓图；参数走顶部弹窗）。
+        /// 批量参数表单在 <see cref="NetworkCameraGroupView"/>。
+        /// </summary>
+        public static class NetworkCameraDebugView
+        {
+            [Description("登录"), OperationLogCritical]
+            public const string Connect = nameof(Connect);
+            [Description("注销"), OperationLogCritical]
+            public const string Disconnect = nameof(Disconnect);
+            [Description("复位(登出重登)"), OperationLogCritical]
+            public const string Reset = nameof(Reset);
+            [Description("模拟硬件报警"), OperationLogCritical]
+            public const string SimulateAlarm = nameof(SimulateAlarm);
+            [Description("抓图")]
+            public const string Capture = nameof(Capture);
+            [Description("抓图并保存到文件")]
+            public const string CaptureAndSave = nameof(CaptureAndSave);
+            [Description("开始预览(轮询抓图)")]
+            public const string StartPreview = nameof(StartPreview);
+            [Description("停止预览")]
+            public const string StopPreview = nameof(StopPreview);
+            [Description("打开参数设置弹窗")]
+            public const string ShowParamDialog = nameof(ShowParamDialog);
+        }
+
+        /// <summary>网络摄像机参数修改对话框（单台实例页顶部的「参数设置」）</summary>
+        public static class NetworkCameraParamDialog
+        {
+            [Description("取消")]
+            public const string Cancel = nameof(Cancel);
+            [Description("确认保存参数"), OperationLogCritical]
+            public const string Confirm = nameof(Confirm);
+        }
+
+        /// <summary>网络摄像机分组参数视图（组内全部摄像机的参数表单，可改、不自动重载）</summary>
+        public static class NetworkCameraGroupView
+        {
+            [Description("保存全部摄像机参数"), OperationLogCritical]
+            public const string SaveAll = nameof(SaveAll);
+            [Description("撤销全部未保存改动")]
+            public const string RevertAll = nameof(RevertAll);
+            [Description("重新加载全部硬件"), OperationLogCritical]
+            public const string ReloadAllHardware = nameof(ReloadAllHardware);
+        }
     }
 }

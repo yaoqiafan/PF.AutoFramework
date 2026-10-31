@@ -1,0 +1,332 @@
+<UserControl
+    x:Class="PF.Modules.Debug.Views.Hardware.NetworkCameraGroupView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="900"
+    d:DesignWidth="1400"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    oplog:OperationLog.PageName="NetworkCameraGroupView"
+    mc:Ignorable="d">
+
+    <!--  样式键与 LineScanCameraDebugView 同一套（各页面本地各放一份是本仓库现状）  -->
+    <UserControl.Resources>
+        <Style x:Key="GroupBorder" TargetType="Border" BasedOn="{StaticResource BorderRegion}">
+            <Setter Property="Padding" Value="15" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.H2.Title}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#475569" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,8,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body.Small}" />
+            <Setter Property="Foreground" Value="#64748B" />
+        </Style>
+        <Style
+            x:Key="FieldBox"
+            BasedOn="{StaticResource TextBoxBaseStyle}"
+            TargetType="TextBox">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style
+            x:Key="FieldPassword"
+            BasedOn="{StaticResource PasswordBoxBaseStyle}"
+            TargetType="PasswordBox">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption.Mini}" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!--  分组页的「未保存改动」横幅。Visibility 直接由 HasChanges 驱动，
+              这里用本地布尔转换器而非全局键——仓库里各页都是本地定义一份。  -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  ══ 头部 ══  -->
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,12"
+                Style="{StaticResource GroupBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Grid.Column="0"
+                        Margin="4,0,16,0"
+                        VerticalAlignment="Center"
+                        FontSize="28"
+                        Foreground="{DynamicResource TextIconBrush}"
+                        Text="📷" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="{DynamicResource FontSize.H1.Large}"
+                            FontWeight="Bold"
+                            Text="网络摄像机 · 参数" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            FontSize="{DynamicResource FontSize.Body.Small}"
+                            Foreground="#64748B"
+                            Text="{Binding HeaderInfo, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                        <Button
+                            Height="32"
+                            Margin="0,0,8,0"
+                            Command="{Binding RevertAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+NetworkCameraGroupView.RevertAll}"
+                            Content="撤销"
+                            Style="{DynamicResource ButtonDefault}" />
+                        <Button
+                            Height="32"
+                            Command="{Binding SaveAllCommand}"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+NetworkCameraGroupView.SaveAll}"
+                            Content="保存全部"
+                            Style="{DynamicResource ButtonPrimary}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--  ══ 未保存改动横幅 ══  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,12"
+                Padding="12,8"
+                Background="#FEF3C7"
+                BorderBrush="#F59E0B"
+                BorderThickness="1"
+                CornerRadius="6"
+                Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        Foreground="#92400E"
+                        Text="⚠ " />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        Foreground="#92400E"
+                        Text="{Binding ChangeSummary, Mode=OneWay}" />
+                    <Button
+                      
+                        Margin="12,0,0,0"
+                        Command="{Binding ReloadAllHardwareCommand}"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+NetworkCameraGroupView.ReloadAllHardware}"
+                        Content="保存后：重新加载全部硬件"
+                        Style="{DynamicResource ButtonWarning}" />
+                </StackPanel>
+            </Border>
+
+            <!--  ══ 参数卡片（纵向，一行三张自适应） ══  -->
+            <Border Grid.Row="2" Style="{StaticResource GroupBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock
+                        Grid.Row="0"
+                        Style="{StaticResource GroupTitle}"
+                        Text="摄像机参数" FontSize="{StaticResource FontSize.H1.Large}" />
+
+                    <ScrollViewer
+                        Grid.Row="1"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Cards}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Width="360"
+                                        Margin="0,0,12,12"
+                                        Padding="14"
+                                      
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                        <Border.Style>
+                                            <Style TargetType="Border" >
+                                                <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+                                                <Style.Triggers>
+                                                    <!--  有未保存改动的卡片标黄，一眼看出改了哪几台  -->
+                                                    <DataTrigger Binding="{Binding IsDirty}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource SecondaryBorderBrush}" />
+                                                        <Setter Property="BorderBrush" Value="#F59E0B" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+
+                                        <StackPanel>
+                                            <!--  卡片标题：设备名 + 运行态  -->
+                                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="{DynamicResource FontSize.H2.Title}"
+                                                    FontWeight="SemiBold"
+                                                    
+                                                    Text="{Binding DeviceName}" />
+                                                <Border
+                                                    Margin="8,0,0,0"
+                                                    Padding="5,1"
+                                                    VerticalAlignment="Center"
+                                                    Background="#E0E7FF"
+                                                    CornerRadius="3"
+                                                    Visibility="{Binding IsSimulated, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock
+                                                        FontSize="{DynamicResource FontSize.Caption.Mini}"
+                                                        Foreground="#4338CA"
+                                                        Text="模拟" />
+                                                </Border>
+                                                <TextBlock
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Style="{StaticResource Hint}"
+                                                    Text="● 未保存"
+                                                    Visibility="{Binding IsDirty, Converter={StaticResource BoolToVis}}" />
+                                            </StackPanel>
+
+                                            <TextBlock
+                                                Margin="0,0,0,10"
+                                                Style="{StaticResource Hint}"
+                                                Text="{Binding RuntimeInfo, Mode=OneWay}" />
+
+                                            <!--  连接参数  -->
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="IP 地址" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding Ip, UpdateSourceTrigger=PropertyChanged}"
+                                                ToolTip="设备 IP，不含端口" />
+
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="端口（默认 8000）" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="用户名" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="密码" />
+                                            <PasswordBox
+                                                pf:PasswordBoxAttach.Attach="True"
+                                                pf:PasswordBoxAttach.Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource FieldPassword}" />
+
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="通道号（0 = 自动选第一个）" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding Channel, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="抓图缓冲区(MB)" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding BufferMb, UpdateSourceTrigger=PropertyChanged}" />
+
+                                            <!--  存图：格式与目录都是设备参数（不纳入系统参数）  -->
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="存图格式（Bmp / Jpeg / Tiff / Png）" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding SaveFormat, UpdateSourceTrigger=PropertyChanged}"
+                                                ToolTip="留空按 Jpeg。JPEG 直接写 SDK 返回的字节，其余格式转码保存" />
+
+                                            <TextBlock Style="{StaticResource FieldLabel}" Text="存图目录（留空 = 默认目录）" />
+                                            <TextBox
+                                                Style="{StaticResource FieldBox}"
+                                                Text="{Binding SaveDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                                ToolTip="默认 {配置目录}\NetworkCamera\{设备ID}" />
+
+                                            <!--  开关项  -->
+                                            <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                                                <CheckBox
+                                                    VerticalAlignment="Center"
+                                                    Content="启用"
+                                                    IsChecked="{Binding IsEnabled}" />
+                                                <CheckBox
+                                                    Margin="20,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Content="仿真模式"
+                                                    IsChecked="{Binding IsSimulated}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!--  ══ 底部状态条 ══  -->
+            <Border
+                Grid.Row="3"
+                Margin="0,8,0,0"
+                Padding="10,6"
+                Background="#F8FAFC"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        FontSize="{DynamicResource FontSize.Body.Small}"
+                        Foreground="#475569"
+                        Text="{Binding StatusText, Mode=OneWay}" />
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource Hint}"
+                        Text="参数只在此页修改；连接/预览/抓图请在左侧选择具体摄像机" />
+                </Grid>
+            </Border>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

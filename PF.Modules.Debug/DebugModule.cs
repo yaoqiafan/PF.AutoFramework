@@ -72,6 +72,12 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterForNavigation<LineScanCameraDebugView, LineScanCameraDebugViewModel>(NavigationConstants.Views.LineScanCameraDebugView);
             containerRegistry.RegisterForNavigation<FrameGrabberDebugView, FrameGrabberDebugViewModel>(NavigationConstants.Views.FrameGrabberDebugView);
 
+            // 网络摄像机分两个页面，按设备树节点层级路由（与其他设备"一设备一页"不同）：
+            //   分组节点 [网络摄像机] → GroupView：组内全部摄像机的参数表单，可改、统一保存、不自动重载
+            //   叶子节点 某台摄像机   → DebugView：该实例的只读参数 + 预览/抓图
+            containerRegistry.RegisterForNavigation<NetworkCameraGroupView, NetworkCameraGroupViewModel>(NavigationConstants.Views.NetworkCameraGroupView);
+            containerRegistry.RegisterForNavigation<NetworkCameraDebugView, NetworkCameraDebugViewModel>(NavigationConstants.Views.NetworkCameraDebugView);
+
             containerRegistry.RegisterDialog<AxisParamDialog, AxisParamDialogViewModel>(nameof(AxisParamDialog));
 
             // 5. 注册通讯综合调试容器视图 + 三个叶子调试视图
@@ -90,6 +96,7 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterDialog<ModbusRtuParamDialog, ModbusRtuParamDialogViewModel>(nameof(ModbusRtuParamDialog));
             containerRegistry.RegisterDialog<ModbusTcpParamDialog, ModbusTcpParamDialogViewModel>(nameof(ModbusTcpParamDialog));
             containerRegistry.RegisterDialog<SerialPortParamDialog, SerialPortParamDialogViewModel>(nameof(SerialPortParamDialog));
+            containerRegistry.RegisterDialog<NetworkCameraParamDialog, NetworkCameraParamDialogViewModel>(nameof(NetworkCameraParamDialog));
         }
     }
 }

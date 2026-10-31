@@ -613,6 +613,41 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "线阵相机直连示例（默认禁用）。GigE 链路，打开后会自动探测并设置网络最佳包大小"
             };
 
+            // ── 海康网络摄像机示例（HCNetSDK 私有协议，IPC/NVR，与线阵相机的 MVS SDK 是两套独立 SDK）──
+            //
+            // 与线阵/智能相机不同：网络摄像机在硬件调试树里按 INetworkCamera 独立成组（不是"独立设备"），
+            // 调试页为多台摄像机的集合页。默认仿真态，无硬件也能演示连接/抓图/预览全链路。
+            // 原生库部署要求（35 个文件 53.8MB，含 HCNetSDKCom 子目录）见 PF.Infrastructure.csproj 注释。
+            HardwareConfig networkCamera = new HardwareConfig
+            {
+                DeviceId = "NetworkCamera_0",
+                DeviceName = "海康网络摄像机",
+                Category = "Camera",
+                ImplementationClassName = "HikNetworkCamera",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = string.Empty,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    ["IP"] = "192.168.1.64",
+                    ["Port"] = "8000",
+                    ["UserName"] = "admin",
+                    ["Password"] = "",
+                    // 通道号 0 = 登录后自动选第一个可用通道（NVR 下建议显式指定）
+                    ["Channel"] = "0",
+                    // 抓图缓冲区起始大小（MB）：SDK 无"查询所需大小"接口，
+                    // 不足时设备层按错误码 43 自动翻倍（上限 64MB）
+                    ["CaptureBufferMB"] = "8",
+                    // 存图格式：Bmp / Jpeg / Tiff / Png（不填按 Jpeg）。
+                    // Jpeg 时直接把 SDK 返回的字节写盘，不二次编码
+                    ["SaveFormat"] = "Jpeg",
+                    // 存图根目录（不填按 {ConfigPath}\NetworkCamera\{DeviceId}）。
+                    // 留空即用设备内部默认路径，现场要改再填绝对路径
+                    ["SaveDirectory"] = ""
+                },
+                Remarks = "海康网络摄像机，IP/端口/账号改到现场实际值后关闭仿真"
+            };
+
             // ── 海康串口光源控制器示例 ─────────────────────────────────────────────
             //
             // 与上面康视达那条（CTS_LightController）的差别：串口不写在硬件配置里，
@@ -872,6 +907,17 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = lineScanCameraStandalone.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(lineScanCameraStandalone),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    networkCamera.DeviceId, new HardwareParam
+                    {
+                        Name         = networkCamera.DeviceId,
+                        Description  = networkCamera.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(networkCamera),
                         Category     = "Hardware",
                         Version      = 1
                     }

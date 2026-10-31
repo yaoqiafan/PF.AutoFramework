@@ -51,6 +51,7 @@ namespace PF.Modules.Parameter
             ViewFactory.RegisterHardwareConfigType<CTSLightControllerParamView,       CTSLightControllerParamViewMapper>      ("CTS_LightController");
             ViewFactory.RegisterHardwareConfigType<HikFrameGrabberCardParamView,      HikFrameGrabberCardParamViewMapper>     ("HikFrameGrabberCard");
             ViewFactory.RegisterHardwareConfigType<HikLineScanCameraParamView,        HikLineScanCameraParamViewMapper>       ("HikLineScanCamera");
+            ViewFactory.RegisterHardwareConfigType<HikNetworkCameraParamView,        HikNetworkCameraParamViewMapper>        ("HikNetworkCamera");
             ViewFactory.RegisterHardwareConfigType<HikComLightControllerParamView,    HikComLightControllerParamViewMapper>   ("HikComLightController");
         }
     }

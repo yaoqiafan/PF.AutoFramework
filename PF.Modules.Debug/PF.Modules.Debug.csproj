@@ -11,8 +11,51 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.22</Version>
+		<Version>1.0.24</Version>
 		<PackageReleaseNotes>
+v1.0.24 (2026-10-31) — 网络摄像机「抓图并保存」；存图格式/目录进参数编辑；同步 PF.Core 1.0.34 / PF.Infrastructure 1.0.33
+
+[新增 — 单实例调试页「抓图并保存」]
+- 预览工具条新增按钮，走 INetworkCamera.CaptureAndSaveAsync，直接从内存落盘后把绝对路径回填到底部状态条。
+- 与「抓图」共用同一把抓图门（_captureGate）：手动抓图与 300ms 预览轮询打的是同一个 SDK 句柄，
+  SDK 未保证并发调用安全，串行化后既防重入也防两路互踩。
+
+[新增 — 存图参数（设备参数，不纳入系统参数）]
+- 分组参数页卡片追加「存图格式」（Bmp / Jpeg / Tiff / Png，留空按 Jpeg）与「存图目录」（留空用设备默认目录）；
+  保存前整体校验格式枚举，写错整批不保存，避免存了一半的中间态。
+- 单实例页顶部「参数设置」弹窗同步追加这两个字段（PropertyGrid 的「存图」分组）。
+- 卡片基准快照同步扩展：SaveDirectory 允许为空，空串也如实回填，否则撤销后残留旧目录、脏标记失真。
+
+v1.0.23 (2026-10-31) — 网络摄像机双页面（分组参数页 + 单实例调试页）；同步 PF.Core 1.0.33 / PF.Infrastructure 1.0.32
+
+[新增 — 设备树「网络摄像机」分组]
+- 硬件调试树新增「网络摄像机」分组（NetworkCameraGroup 作 Payload，与板卡/采集卡同级），组内每台摄像机为子节点，
+  并从「独立设备」排除。分组节点必须带 Payload——TreeView_SelectedItemChanged 只对 Payload != null 的节点发起导航。
+
+[页面一 — NetworkCameraGroupView（分组节点 → 参数表单页）]
+- 组内全部摄像机的参数卡片（纵向布局，WrapPanel 一行三张自适应）。可编辑：设备名/启用/仿真/IP/端口/用户名/密码/
+  通道号/抓图缓冲。卡片有未保存改动时整体标黄。
+- 统一保存 + 撤销：「保存全部」一次性写库、「撤销」回到最近一次加载/保存的值（每张卡片持一份基准快照做脏判定）。
+  先整体校验数字字段再批量保存，避免"存了一半"的中间态；单台写库失败不中断其余台，末尾汇总提示。
+- **保存不自动重载**：ReloadAllAsync 是全量断开所有设备再重新实例化，产线运行中触发会打断运动轴/工站/其他相机。
+  顶部黄条横幅 + 显式「保存后：重新加载全部硬件」按钮（带确认）。
+- 本页不做任何设备操作（无连接/预览/抓图）——调试职责归单实例页。
+
+[页面二 — NetworkCameraDebugView（叶子节点 → 单实例页）]
+- 只读参数展示（IP/端口/用户名/当前通道/抓图缓冲/仿真/序列号/连接态），并提示"要修改请到设备树「网络摄像机」节点"。
+- 设备操作：登录/注销/复位/模拟报警；抓图与预览用 pf:ImageViewer（缩放/平移/适应窗口）。
+- 预览采用定时抓图轮询（300ms，P1 方案）：零新增原生依赖、无 HWND 互操作；_previewBusy 防重入跳过慢帧，
+  离开页面停表（否则持续向相机发抓图请求把相机打满）；JPEG→BitmapFrame 用 BitmapCacheOption.OnLoad
+  解码（不写则流释放后渲染空白）。
+- 手动抓图与预览轮询共用 SemaphoreSlim 串行化（两路可能同时打同一个 SDK 句柄）；耗时用局部 Stopwatch，
+  共享字段会被并发 Restart/Stop 踩出对方的数值。
+- 离开页面解除设备 PropertyChanged 订阅：设备实例由 HardwareManagerService 长期持有，本页 KeepAlive 恒为 false，
+  不解绑会随设备活到进程结束。
+
+[OperationLogKeysDebug]
+- 新增 NetworkCameraGroupView（保存全部/撤销/重载全部硬件）与 NetworkCameraDebugView（登录/注销/复位/模拟报警/
+  抓图/开始预览/停止预览）两个键组，关键操作默认启用记录。
+
 v1.0.22 (2026-10-23) — 扫码枪调试页连接按钮防重复点击；同步 PF.Infrastructure 1.0.31
 
 [变更 — BarcodeScanDebugView 连接按钮]

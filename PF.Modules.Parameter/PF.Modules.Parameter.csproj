@@ -13,8 +13,21 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.10</Version>
+		<Version>1.0.12</Version>
 		<PackageReleaseNotes>
+v1.0.12 (2026-10-31) — 海康网络摄像机参数视图新增「存图」分组；同步 PF.Core 1.0.34
+
+[新增 — 存图格式 / 存图目录]
+- HikNetworkCameraParamView 与映射器追加 SaveFormat（Bmp / Jpeg / Tiff / Png，留空按 Jpeg）与 SaveDirectory
+  （留空用设备默认目录 {配置目录}\NetworkCamera\{设备ID}）。这两个是设备参数，不进系统参数表。
+
+v1.0.11 (2026-10-31) — 海康网络摄像机参数视图；同步 PF.Core 1.0.33
+
+[新增 — HikNetworkCameraParamView]
+- ImplementationClassName = "HikNetworkCamera" 的参数视图 + 映射器：连接参数（IP/端口/用户名/密码/通道号，
+  通道 0 = 自动选第一个，NVR 数字通道建议显式指定）+ 采集（抓图缓冲区 MB，不足自动翻倍上限 64MB）。
+  与调试页编辑的是同一份 HardwareConfig，仅入口与重载时机不同。
+
 v1.0.10 (2026-10-23) — 参数页加载遮罩、值列直接显示参数值；海康线阵相机新增「像素精度(μm/行)」；海康 SDK 扫码枪新增「用户参数组」
 
 [修复 — ParameterView 加载卡顿]

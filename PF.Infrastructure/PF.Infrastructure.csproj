@@ -42,10 +42,63 @@
 	  </Reference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <!-- 海康网络摄像机 SDK（HCNetSDK，IPC/NVR 私有协议，与 MVS/MvCodeReader 是三套彼此独立的 SDK）。
+	       源文件在 DLL\Infrastructure\HCNetSDK\（根 19 个 + HCNetSDKCom\ 16 个，合计 53.8MB，
+	       取自 SDK V6.1.11.5_build20251204_Win64，不含 ClientDemo.exe / *.lib / LocalXml.zip）。
+	       纯 P/Invoke（HCNetSdkApi.cs 按文件名 DllImport），无 <Reference>，全靠复制到输出目录加载。
+	       通配符 + %(RecursiveDir) 自动保持 HCNetSDKCom\ 子目录层级 —— 该目录名与相对位置写死在
+	       SDK 内部，层级丢了组件就加载不到。SDK 升级换文件无需改本条。
+	       ⚠️ 部署要求：① 仅 Win64（PE Machine=0x8664），进程必须以 x64 运行
+	       （AnyCPU 在 64 位 Windows 上默认如此），改 x86/Prefer32Bit 会 BadImageFormatException；
+	       ② 本条只在源码构建时经 ProjectReference 传递链复制文件，nupkg 不含这些原生库 ——
+	       外部消费项目需自行从本仓库 DLL\Infrastructure\HCNetSDK\ 复制全套文件到输出目录
+	       （NuGet runtimes\native 平铺结构保不住 HCNetSDKCom\ 层级，无法走 PF.Vendor.Infrastructure）。 -->
+	  <None Include="..\DLL\Infrastructure\HCNetSDK\**\*.dll"
+	        Link="%(RecursiveDir)%(Filename)%(Extension)"
+	        CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.31</Version>
+		<Version>1.0.33</Version>
 		<PackageReleaseNotes>
+v1.0.33 (2026-10-31) — 网络摄像机存图：抓图后内存直接落盘，格式/目录为设备参数
+
+[新增 — BaseNetworkCamera.CaptureAndSaveAsync]
+- 抓图与写盘在同一次调用里完成：拿到 JPEG 字节后直接 File.WriteAllBytes，不经中间文件。
+  SaveFormat = Jpeg 时原样写 SDK 返回的字节（再解一遍纯粹是白搭一次有损压缩）；
+  Bmp / Tiff / Png 走 System.Drawing 转码（会多一次解码+编码，非必要不建议）。
+- 目录缺省派生：构造函数新增 saveFormat / saveDirectory 两个可选参数，都已给默认值；
+  目录留空时回退 {ConfigPath}\NetworkCamera\{设备Id}，**在实例构造时求值**——不要在静态字段初始化器里捕获 ConfigPath，
+  否则会先于 ConstGlobalParam.Initialize 求值抛 TypeInitializationException。
+- 文件名：省略时 {通道}_{yyyyMMdd_HHmmss_fff}，显式指定时净化非法字符；扩展名按 SaveFormat 推导。
+- 失败统一抛 InvalidOperationException（含目录与格式），写盘异常不吞。
+
+[同步 — HikNetworkCamera]
+- 构造函数透传 saveFormat / saveDirectory 到基类；设备本身不关心存图，抓图仍走 CaptureJpegAsync。
+
+v1.0.32 (2026-10-31) — 海康网络摄像机设备实现（HCNetSDK 登录 + JPEG 抓图）+ 原生库随仓库分发
+
+[新增 — HikNetworkCamera（Hardware/Camera/Network/）]
+- BaseNetworkCamera 抽象基类：连接参数、通道/序列号状态转发、仿真模式合成 JPEG（无硬件可演示抓图全链路）。
+- Hikvision/HikNetworkCamera：NET_DVR_Login_V40 登录（数字通道总数拼高低位 byIPChanNum + byHighDChanNum×256，
+  起始通道 byStartDChan 为 0 时回退 byStartChan+byChanNum）；NET_DVR_CaptureJPEGPicture_NEW 抓图，
+  缓冲区不足（错误码 43）自动翻倍重试上限 64MB；复位 = 登出重登（不触碰 SDK 引用计数，避免计数泄漏）；
+  健康判定复用 UpdateAutoClearableHealth 防抖自动消警。
+- HCNetSdkLifetime 进程级引用计数（对标 MvSdkLifetime）：首台连接 NET_DVR_Init、末台断开 NET_DVR_Cleanup；
+  Init 失败或原生库缺失抛中文异常并指明补齐方法——老项目教训：Init 静默失败后现场只见"登录失败"，排查方向全错。
+- HCNetSdkError 错误码中文字典（移植自老项目 AutomaticWeighingSystem，现场验证过的一版）。
+- 结构体尺寸照抄 SDK V6.1.11.5 Demo（CHCNetSDK.cs），保留字节（byRes2=243 等）必须预分配，勿改。
+
+[新增 — 原生库分发（DLL\Infrastructure\HCNetSDK\）]
+- 35 个原生文件（根 19 + HCNetSDKCom\ 16，53.8MB，SDK V6.1.11.5 Win64）随仓库分发，跳过 ClientDemo.exe/*.lib/LocalXml.zip。
+- csproj 用通配符 None Include + Link="%(RecursiveDir)%(Filename)%(Extension)" 复制到输出目录——
+  HCNetSDKCom\ 子目录层级是 SDK 硬要求，层级丢失组件就加载不到；SDK 升级换文件无需改 csproj。
+- ⚠️ 部署要求：仅 Win64，进程必须以 x64 运行（AnyCPU 在 64 位 Windows 默认满足；改 x86/Prefer32Bit 会
+  BadImageFormatException）。nupkg 不含这些原生库（NuGet runtimes\native 平铺结构保不住 HCNetSDKCom\ 层级），
+  外部消费项目需从仓库 DLL\Infrastructure\HCNetSDK\ 复制全套文件到输出目录。
+
 v1.0.31 (2026-10-23) — 设备连接/断开互斥；修复海康 SDK 扫码枪连接中重复连接导致句柄泄漏
 
 [修复 — BaseDevice 连接/断开互斥]
