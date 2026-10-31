@@ -76,6 +76,13 @@ namespace PF.Infrastructure.Hardware.Camera.Network
         /// <summary>抓图缓冲区起始大小（字节）。SDK 无"查询所需大小"接口，不足时由子类按错误码 43 翻倍重试。</summary>
         protected int CaptureBufferBytes { get; }
 
+        /// <summary>
+        /// 抓图串行化门。厂商 SDK 通常不保证同一登录句柄的并发调用安全，
+        /// 而生产流程的视觉判定与调试页预览可能同时抓同一台相机——
+        /// 真实抓图路径应共用本门排队（每台相机实例各自一把，不跨设备互斥）。
+        /// </summary>
+        protected readonly SemaphoreSlim _captureGate = new(1, 1);
+
         /// <inheritdoc/>
         public ImageFileFormat SaveFormat { get; }
 

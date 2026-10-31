@@ -114,6 +114,11 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
                 byRes2 = new byte[243],
             };
 
+            // 登录前取一次代次：登录调用期间若 SDK 被 Cleanup + 重新 Init（正常路径不可能——
+            // 本设备登录时自持引用，计数不会归零；只有引用计数被错账虚减时才会发生），
+            // 登录后比对不一致就按失败处理，让 BaseDevice 重试拿干净句柄。
+            // 不能对这个句柄补 Logout：数值可能已被新代次的其他设备复用，Logout 会误踢对方。
+            int epochBefore = HCNetSdkLifetime.Epoch;
             int userId = HCNetSdkApi.NET_DVR_Login_V40(ref loginInfo, ref deviceInfo);
             if (userId < 0)
             {
@@ -124,8 +129,15 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
                 return false;
             }
 
+            if (epochBefore != HCNetSdkLifetime.Epoch)
+            {
+                HardwareLogger.Warn($"[{DeviceName}] 登录期间 SDK 被重新初始化（代次 {epochBefore} → " +
+                    $"{HCNetSdkLifetime.Epoch}），本次句柄归属无法判定，按登录失败处理等待重试");
+                return false;
+            }
+
             _userId = userId;
-            _loginEpoch = HCNetSdkLifetime.Epoch;   // 记下句柄属于哪一代 SDK
+            _loginEpoch = epochBefore;   // 记下句柄属于哪一代 SDK
             SerialNumber = ReadFixedString(deviceInfo.struDeviceV30.sSerialNumber);
             Channels = BuildChannelList(deviceInfo.struDeviceV30);
             ActiveChannel = ResolveChannel();
@@ -137,6 +149,7 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
         /// <summary>
         /// 当前 userID 是否仍然有效（登录后没经历过 NET_DVR_Cleanup）。
         /// 失效时它只是一个普通整数，数值上很可能已被别的设备的新会话占用。
+        /// <para>抓图拒绝、登出跳过、健康监控报警三处共用本判定，是句柄有效性的唯一事实源。</para>
         /// </summary>
         private bool IsHandleAlive => _userId >= 0 && _loginEpoch == HCNetSdkLifetime.Epoch;
 
@@ -147,7 +160,7 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
 
             // 句柄已失效就必须放弃：这个数值此刻可能正被别的相机使用，
             // 直接 NET_DVR_Logout 会把对方当场踢下线（对方随后抓图全失败）。
-            if (_loginEpoch != HCNetSdkLifetime.Epoch)
+            if (!IsHandleAlive)
             {
                 HardwareLogger.Warn($"[{DeviceName}] 登录句柄已随 SDK 重新初始化而失效，跳过登出" +
                     $"（当前句柄值 {_userId} 可能已被其他设备复用）");
@@ -277,7 +290,7 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
             // 失效的 userID 数值上可能已被别的相机的新会话占用，照抓会静默返回**别人的画面**。
             // 这种情况只能是 SDK 被提前 Cleanup 了（引用计数错账），属于必须修掉的缺陷，
             // 所以这里直接报错并留下可追踪的日志，而不是悄悄自动重登把问题掩盖掉。
-            if (_loginEpoch != HCNetSdkLifetime.Epoch)
+            if (!IsHandleAlive)
             {
                 HardwareLogger.Error($"[{DeviceName}] 登录句柄已失效（SDK 曾被重新初始化），" +
                     $"拒绝抓图以避免抓到其他相机的画面。请重新登录本相机。");
@@ -288,65 +301,80 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
                     "继续抓图可能返回其他相机的画面，已拒绝。请重新登录本相机。");
             }
 
-            return await Task.Run(() =>
+            // 抓图串行化：SDK 不保证同一登录句柄的并发调用安全，而生产流程的判定
+            // 与调试页预览可能同时抓同一台相机——真实抓图共用 _captureGate 排队
+            await _captureGate.WaitAsync(token).ConfigureAwait(false);
+            try
             {
-                var para = new NET_DVR_JPEGPARA
+                return await Task.Run(() =>
                 {
-                    wPicSize    = 0xFF,   // 自动按当前码流分辨率
-                    wPicQuality = 0,      // 最好质量
-                };
-
-                // SDK 无"查询所需大小"接口：按配置起始大小分配，
-                // 错误码 43（缓冲区太小）时翻倍重试至上限
-                int size = CaptureBufferBytes;
-                for (int attempt = 0; attempt < MaxCaptureRetries; attempt++)
-                {
-                    token.ThrowIfCancellationRequested();
-                    var buffer = new byte[size];
-                    uint returned = 0;
-
-                    if (HCNetSdkApi.NET_DVR_CaptureJPEGPicture_NEW(
-                            _userId, ch, ref para, buffer, (uint)buffer.Length, ref returned))
+                    var para = new NET_DVR_JPEGPARA
                     {
-                        if (returned == 0)
-                            throw new InvalidOperationException($"相机[{DeviceName}]抓图返回空数据（通道 {ch}）");
+                        wPicSize    = 0xFF,   // 自动按当前码流分辨率
+                        wPicQuality = 0,      // 最好质量
+                    };
 
-                        return new NetworkCameraFrame
+                    // SDK 无"查询所需大小"接口：按配置起始大小分配，
+                    // 错误码 43（缓冲区太小）时翻倍重试至上限
+                    int size = CaptureBufferBytes;
+                    for (int attempt = 0; attempt < MaxCaptureRetries; attempt++)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        var buffer = new byte[size];
+                        uint returned = 0;
+
+                        if (HCNetSdkApi.NET_DVR_CaptureJPEGPicture_NEW(
+                                _userId, ch, ref para, buffer, (uint)buffer.Length, ref returned))
                         {
-                            Data = buffer[..(int)returned],
-                            Channel = ch,
-                            SerialNumber = SerialNumber,
-                        };
+                            if (returned == 0)
+                                throw new InvalidOperationException($"相机[{DeviceName}]抓图返回空数据（通道 {ch}）");
+
+                            return new NetworkCameraFrame
+                            {
+                                Data = buffer[..(int)returned],
+                                Channel = ch,
+                                SerialNumber = SerialNumber,
+                            };
+                        }
+
+                        uint error = HCNetSdkApi.NET_DVR_GetLastError();
+                        if (error != 43)
+                            throw new InvalidOperationException(
+                                $"相机[{DeviceName}]抓图失败（通道 {ch}）: {HCNetSdkError.GetMessage(error)}");
+
+                        size *= 2;
+                        HardwareLogger.Warn($"[{DeviceName}] 抓图缓冲区不足，翻倍至 {size / 1024 / 1024}MB 重试");
+                        if (size > MaxCaptureBufferBytes)
+                            throw new InvalidOperationException(
+                                $"相机[{DeviceName}]抓图失败: 缓冲区已达上限 {MaxCaptureBufferBytes / 1024 / 1024}MB 仍不足");
                     }
 
-                    uint error = HCNetSdkApi.NET_DVR_GetLastError();
-                    if (error != 43)
-                        throw new InvalidOperationException(
-                            $"相机[{DeviceName}]抓图失败（通道 {ch}）: {HCNetSdkError.GetMessage(error)}");
-
-                    size *= 2;
-                    HardwareLogger.Warn($"[{DeviceName}] 抓图缓冲区不足，翻倍至 {size / 1024 / 1024}MB 重试");
-                    if (size > MaxCaptureBufferBytes)
-                        throw new InvalidOperationException(
-                            $"相机[{DeviceName}]抓图失败: 缓冲区已达上限 {MaxCaptureBufferBytes / 1024 / 1024}MB 仍不足");
-                }
-
-                throw new InvalidOperationException($"相机[{DeviceName}]抓图失败: 缓冲区重试用尽");
-            }, token);
+                    throw new InvalidOperationException($"相机[{DeviceName}]抓图失败: 缓冲区重试用尽");
+                }, token).ConfigureAwait(false);
+            }
+            finally
+            {
+                _captureGate.Release();
+            }
         }
 
         // ── 健康监控 ─────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 连接类健康判定：句柄仍在但已注销（如复位重登失败）→ 报警，恢复登录后防抖自动消警。
+        /// 连接类健康判定：未登录（如复位重登失败）或句柄已随 SDK 重新初始化而失效，
+        /// 均属"需重新登录"的状态——用 <see cref="IsHandleAlive"/> 判定而非只看 _userId &lt; 0：
+        /// 失效句柄是个正整数，只看符号发现不了，会拖到第一次抓图才暴露；
+        /// 这里让健康监控每秒主动发现并报警，重新登录后防抖自动消警。
         /// 网络瞬断由 SDK 内部重连 + 抓图时的错误码兜底，此处只看登录态。
         /// </summary>
         protected override Task InternalCheckHealthAsync(CancellationToken token)
         {
             if (!IsSimulated)
             {
-                UpdateAutoClearableHealth(_userId < 0, AlarmCodes.Hardware.CameraHeartbeatTimeout,
-                    $"相机[{DeviceName}]未登录（{IPAddress}:{Port}），连接可能已断开");
+                UpdateAutoClearableHealth(!IsHandleAlive, AlarmCodes.Hardware.CameraHeartbeatTimeout,
+                    _userId < 0
+                        ? $"相机[{DeviceName}]未登录（{IPAddress}:{Port}），连接可能已断开"
+                        : $"相机[{DeviceName}]登录句柄已失效（SDK 被重新初始化），需重新登录");
             }
             return Task.CompletedTask;
         }
