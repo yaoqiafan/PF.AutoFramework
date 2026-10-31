@@ -33,6 +33,17 @@ namespace PF.Infrastructure.Hardware
         // 连接/断开互斥：连接过程要数秒（含重试），期间重复点击或并发断开会让子类 SDK 句柄互相踩踏、泄漏
         private readonly SemaphoreSlim _lifecycleLock = new SemaphoreSlim(1, 1);
 
+        /// <summary>
+        /// 本次连接是否为**仿真连接**（连接建立那一刻的模式）。
+        /// <para><b>必须单独记这个标志，不能断开时再看 <see cref="IsSimulated"/></b>：
+        /// <see cref="IsSimulated"/> 是可写属性，调试页的仿真开关就是"先改 IsSimulated 再 Disconnect"。
+        /// 若断开时按当时的值决定是否调 <see cref="InternalDisconnectAsync"/>，
+        /// 就会出现"仿真态连接（未 Acquire）→ 切成真实模式 → 断开时 Release"的错账。
+        /// 对 HCNetSDK 这类进程级 SDK，引用计数被虚减会提前触发 Cleanup，
+        /// 把其余仍在用的设备会话一起杀掉，表现为"抓到别的相机的图"。</para>
+        /// </summary>
+        private bool _connectedInSimulation;
+
         #region INotifyPropertyChanged
 
         /// <summary>
@@ -205,6 +216,7 @@ namespace PF.Infrastructure.Hardware
                 bool simResult = await InternalConnectSimulatedAsync(token);
                 if (simResult)
                 {
+                    _connectedInSimulation = true;   // 断开时据此决定不调 InternalDisconnectAsync
                     IsConnected = true;
                     HasAlarm    = false;
                     StartHealthMonitor();
@@ -224,6 +236,7 @@ namespace PF.Infrastructure.Hardware
                     bool success = await InternalConnectAsync(token);
                     if (success)
                     {
+                        _connectedInSimulation = false;
                         IsConnected = true;
                         HasAlarm    = false;
                         StartHealthMonitor();
@@ -272,7 +285,11 @@ namespace PF.Infrastructure.Hardware
 
                 try
                 {
-                    if (!IsSimulated)
+                    // 必须按"连接时"的模式决定，不能按断开这一刻的 IsSimulated：
+                    // 调试页的仿真开关是先改 IsSimulated 再断开，按当下值判断会造成
+                    // "仿真态连接（未 Acquire）→ 断开时 Release" 的单边错账。
+                    // 进程级 SDK 的引用计数被虚减会提前 Cleanup，连带杀掉其余设备的会话。
+                    if (!_connectedInSimulation)
                         await InternalDisconnectAsync();
                 }
                 catch (Exception ex)
@@ -281,6 +298,7 @@ namespace PF.Infrastructure.Hardware
                 }
                 finally
                 {
+                    _connectedInSimulation = false;
                     IsConnected = false;
                 }
             }

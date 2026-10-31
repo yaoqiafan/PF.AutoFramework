@@ -26,6 +26,13 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
         private int _userId = -1;
 
         /// <summary>
+        /// 登录时 SDK 的代次号（见 <see cref="HCNetSdkLifetime.Epoch"/>）。
+        /// <para>与当前代次不一致，说明期间执行过 NET_DVR_Cleanup——本实例的 userID 已经作废，
+        /// 但数值上可能正好等于别的设备新登录占用的槽位。此时必须拒绝抓图，否则会静默抓到别人的画面。</para>
+        /// </summary>
+        private int _loginEpoch;
+
+        /// <summary>
         /// 构造海康网络摄像机。构造函数只存配置，登录延迟到 InternalConnectAsync。
         /// </summary>
         /// <param name="ip">设备 IP（不含端口）</param>
@@ -118,6 +125,7 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
             }
 
             _userId = userId;
+            _loginEpoch = HCNetSdkLifetime.Epoch;   // 记下句柄属于哪一代 SDK
             SerialNumber = ReadFixedString(deviceInfo.struDeviceV30.sSerialNumber);
             Channels = BuildChannelList(deviceInfo.struDeviceV30);
             ActiveChannel = ResolveChannel();
@@ -126,10 +134,26 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
             return true;
         }
 
+        /// <summary>
+        /// 当前 userID 是否仍然有效（登录后没经历过 NET_DVR_Cleanup）。
+        /// 失效时它只是一个普通整数，数值上很可能已被别的设备的新会话占用。
+        /// </summary>
+        private bool IsHandleAlive => _userId >= 0 && _loginEpoch == HCNetSdkLifetime.Epoch;
+
         /// <summary>仅登出（不动 SDK 引用计数），供断开与复位共用。</summary>
         private void LogoutInternal()
         {
             if (_userId < 0) return;
+
+            // 句柄已失效就必须放弃：这个数值此刻可能正被别的相机使用，
+            // 直接 NET_DVR_Logout 会把对方当场踢下线（对方随后抓图全失败）。
+            if (_loginEpoch != HCNetSdkLifetime.Epoch)
+            {
+                HardwareLogger.Warn($"[{DeviceName}] 登录句柄已随 SDK 重新初始化而失效，跳过登出" +
+                    $"（当前句柄值 {_userId} 可能已被其他设备复用）");
+                _userId = -1;
+                return;
+            }
 
             HCNetSdkApi.NET_DVR_Logout(_userId);
             _userId = -1;
@@ -248,6 +272,21 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
 
             if (_userId < 0)
                 throw new InvalidOperationException($"相机[{DeviceName}]未登录，无法抓图（先连接/复位）");
+
+            // 句柄失效必须显式拒绝，不能照常抓图：
+            // 失效的 userID 数值上可能已被别的相机的新会话占用，照抓会静默返回**别人的画面**。
+            // 这种情况只能是 SDK 被提前 Cleanup 了（引用计数错账），属于必须修掉的缺陷，
+            // 所以这里直接报错并留下可追踪的日志，而不是悄悄自动重登把问题掩盖掉。
+            if (_loginEpoch != HCNetSdkLifetime.Epoch)
+            {
+                HardwareLogger.Error($"[{DeviceName}] 登录句柄已失效（SDK 曾被重新初始化），" +
+                    $"拒绝抓图以避免抓到其他相机的画面。请重新登录本相机。");
+                RaiseAlarm(AlarmCodes.Hardware.NetworkCameraCaptureFailed,
+                    $"网络摄像机[{DeviceName}]登录句柄失效，需重新登录");
+                throw new InvalidOperationException(
+                    $"相机[{DeviceName}]登录句柄已失效（SDK 被重新初始化），" +
+                    "继续抓图可能返回其他相机的画面，已拒绝。请重新登录本相机。");
+            }
 
             return await Task.Run(() =>
             {

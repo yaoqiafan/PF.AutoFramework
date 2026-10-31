@@ -17,6 +17,22 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
         private static readonly object _gate = new();
         private static int _refCount;
 
+        /// <summary>
+        /// SDK 代次号：每次 <see cref="HCNetSdkApi.NET_DVR_Init"/> 成功后自增。
+        /// <para><b>用途是防"句柄串号"</b>：<see cref="HCNetSdkApi.NET_DVR_Cleanup"/> 会杀掉本进程**所有**
+        /// 登录会话，但各设备实例手里的 userID 并不会跟着失效——它只是个整数，SDK 重新 Init 后，
+        /// 新登录的设备会拿到刚刚空出来的槽位号。此时旧设备拿自己的老 userID 去抓图，
+        /// 实际抓的是新设备那台相机的画面，且不报任何错。
+        /// 设备在登录时记下当时的代次，抓图前比对：代次变了就说明句柄已失效，必须重新登录。</para>
+        /// </summary>
+        private static int _epoch;
+
+        /// <summary>当前 SDK 代次号。设备登录时记录，抓图前比对以识别失效句柄。</summary>
+        public static int Epoch
+        {
+            get { lock (_gate) return _epoch; }
+        }
+
         /// <summary>获取一次 SDK 引用（首次调用时 NET_DVR_Init 并设置超时/重连参数）。</summary>
         /// <exception cref="InvalidOperationException">SDK 初始化失败，或原生库未部署。</exception>
         public static void Acquire()
@@ -35,6 +51,9 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
                         // 网络异常的设备会让登录阻塞过久
                         HCNetSdkApi.NET_DVR_SetConnectTime(5000, 1);
                         HCNetSdkApi.NET_DVR_SetReconnect(10000, 1);
+
+                        // 新一代 SDK：此前所有登录句柄全部作废（见 Epoch 注释）
+                        _epoch++;
                     }
                     catch (DllNotFoundException ex)
                     {
