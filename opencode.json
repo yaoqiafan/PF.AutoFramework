@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": {
+    "allow": [
+      "bash(dotnet build:*)",
+      "bash(dotnet restore:*)",
+      "bash(dotnet pack:*)",
+      "bash(dotnet publish:*)",
+      "bash(dotnet clean:*)",
+      "bash(dotnet list:*)",
+      "bash(dotnet package:*)",
+      "bash(dotnet new:*)",
+      "bash(dotnet ef:*)",
+      "bash(dotnet dev-certs:*)",
+      "bash(dotnet --list-sdks)",
+      "bash(git:*)",
+      "bash(Test-Path:*)",
+      "bash(Get-ChildItem:*)",
+      "bash(Get-Content:*)",
+      "bash(Get-Item:*)",
+      "bash(Get-Process:*)",
+      "bash(node DOC/validate-alarms.js:*)",
+      "bash(node DOC/generate-alarm-table.js:*)",
+      "bash(cmd /c publish-only.bat:*)",
+      "bash(cmd /c push-only.bat:*)",
+      "bash(powershell -NoProfile -ExecutionPolicy Bypass -File:*)",
+      "webfetch(domain:api.nuget.org)",
+      "webfetch(domain:nuget.powerfocus.com.cn)",
+      "webfetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
