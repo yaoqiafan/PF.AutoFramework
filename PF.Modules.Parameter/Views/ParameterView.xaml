@@ -5,14 +5,14 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PF.Modules.Parameter.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
     xmlns:opkeys="clr-namespace:PF.Modules.Parameter"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
     xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
     xmlns:tokens="clr-namespace:PF.Core.Constants;assembly=PF.Core"
     d:DesignHeight="450"
     d:DesignWidth="800"
-    mc:Ignorable="d"
-    oplog:OperationLog.PageName="{x:Static tokens:NavigationConstants+Views.ParameterView}">
+    oplog:OperationLog.PageName="{x:Static tokens:NavigationConstants+Views.ParameterView}"
+    mc:Ignorable="d">
 
     <UserControl.Resources>
         <local:BindingProxy x:Key="MyProxy" Data="{Binding}" />
@@ -64,8 +64,8 @@
                             Text="参数分类：" />
                         <ComboBox
                             Width="150"
-                            ItemsSource="{Binding SelectedParamType.Category}"
                             oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.SelectCategory}"
+                            ItemsSource="{Binding SelectedParamType.Category}"
                             SelectedIndex="{Binding SelectCategory}" />
                     </StackPanel>
 
@@ -79,23 +79,23 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal">
                         <Button
                             Margin="0,0,5,0"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.RefreshParameters}"
                             pf:IconElement.Geometry="{StaticResource RotateLeftGeometry}"
                             pf:IconElement.Height="16"
                             pf:IconElement.Width="16"
                             Command="{Binding LoadCommand}"
                             Content="刷新"
-                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.RefreshParameters}"
                             Style="{StaticResource ButtonPrimary}"
                             ToolTip="重新加载参数"
                             Visibility="{Binding CanRefreshAndReset, Converter={StaticResource BoolToVis}}" />
 
                         <Button
                             Margin="0,0,5,0"
+                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.ResetDefaults}"
                             pf:IconElement.Geometry="{StaticResource ClockGeometry}"
                             pf:IconElement.Height="16"
                             pf:IconElement.Width="16"
                             Command="{Binding ResetDefaultsCommand}"
-                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.ResetDefaults}"
                             Style="{StaticResource ButtonWarning}"
                             ToolTip="重置为默认参数"
                             Visibility="{Binding CanRefreshAndReset, Converter={StaticResource BoolToVis}}">
@@ -114,6 +114,7 @@
                 CornerRadius="3">
                 <DataGrid
                     x:Name="ParametersGrid"
+                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.SelectParameterRow}"
                     AutoGenerateColumns="False"
                     CanUserAddRows="False"
                     CanUserDeleteRows="False"
@@ -121,7 +122,6 @@
                     GridLinesVisibility="Horizontal"
                     IsReadOnly="False"
                     ItemsSource="{Binding Parameters}"
-                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.SelectParameterRow}"
                     SelectedItem="{Binding SelectedParameter}"
                     SelectionMode="Single">
 
@@ -139,16 +139,12 @@
                             Header="名称"
                             IsReadOnly="True" />
 
-                        <DataGridTextColumn
-                            Width="auto"
-                            Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                            Header="描述"
-                            IsReadOnly="True" />
+
 
                         <DataGridTemplateColumn
                             Width="180"
-                            Header="数据类型"
                             oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.EditParamDataType}"
+                            Header="数据类型"
                             Visibility="{Binding Data.CanRefreshAndReset, Converter={StaticResource BoolToVis}, Source={StaticResource MyProxy}}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -173,10 +169,10 @@
                                 <DataTemplate>
                                     <Button
                                         Width="80"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.OpenChangeValueDialog}"
                                         Command="{Binding DataContext.ChangeValueCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding}"
                                         Content="值更改"
-                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.OpenChangeValueDialog}"
                                         Style="{StaticResource ButtonDashedSuccess}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -205,6 +201,12 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+
+                        <DataGridTextColumn
+                            Width="*"
+                            Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                            Header="描述"
+                            IsReadOnly="True" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>
@@ -235,11 +237,11 @@
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <Button
                         Margin="0,0,10,0"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.AddParameter}"
                         pf:IconElement.Geometry="{StaticResource AddGeometry}"
                         pf:IconElement.Height="16"
                         pf:IconElement.Width="16"
                         Command="{Binding AddCommand}"
-                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.AddParameter}"
                         Style="{StaticResource ButtonSuccess}"
                         ToolTip="添加新参数"
                         Visibility="{Binding CanAddAndDelete, Converter={StaticResource BoolToVis}}">
@@ -250,12 +252,12 @@
 
                     <Button
                         Margin="0,0,10,0"
+                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.DeleteParameter}"
                         pf:IconElement.Geometry="{StaticResource DeleteGeometry}"
                         pf:IconElement.Height="16"
                         pf:IconElement.Width="16"
                         Command="{Binding DeleteCommand}"
                         CommandParameter="{Binding ElementName=ParametersGrid, Path=SelectedItem}"
-                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysParameter+ParameterView.DeleteParameter}"
                         Style="{StaticResource ButtonDanger}"
                         ToolTip="删除选中参数"
                         Visibility="{Binding CanAddAndDelete, Converter={StaticResource BoolToVis}}">
