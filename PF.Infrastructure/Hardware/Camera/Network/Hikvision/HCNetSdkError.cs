@@ -106,7 +106,8 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
             [100]  = "加载语音对讲库失败",
             [102]  = "用户还未登录成功",
             [104]  = "端口池已耗尽",
-            [107]  = "预览组件加载失败",
+            // 抓图（CaptureJPEGPicture_NEW）也走预览组件，真机实测缺 HCNetSDKCom\HCPreview.dll 即报此码
+            [107]  = "预览组件加载失败（抓图依赖 HCNetSDKCom\\HCPreview.dll 与 HCCoreDevCfg.dll，检查文件是否缺失或子目录层级丢失）",
             [108]  = "语音组件加载失败",
             [109]  = "报警组件加载失败",
             [110]  = "回放组件加载失败",

@@ -617,7 +617,7 @@ namespace PF.Application.Shell.CustomConfiguration.Param
             //
             // 与线阵/智能相机不同：网络摄像机在硬件调试树里按 INetworkCamera 独立成组（不是"独立设备"），
             // 调试页为多台摄像机的集合页。默认仿真态，无硬件也能演示连接/抓图/预览全链路。
-            // 原生库部署要求（35 个文件 53.8MB，含 HCNetSDKCom 子目录）见 PF.Infrastructure.csproj 注释。
+            // 原生库部署要求（6 个文件 13.0MB，含 HCNetSDKCom 子目录）见 PF.Infrastructure.csproj 注释。
             HardwareConfig networkCamera = new HardwareConfig
             {
                 DeviceId = "NetworkCamera_0",

@@ -3,8 +3,21 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.49</Version>
+    <Version>1.0.50</Version>
     <PackageReleaseNotes>
+		v1.0.50 (2026-11-03) — 海康网络摄像机原生库精简为 6 个文件（真机实测），外部项目可经 PF.Vendor.Infrastructure 获取
+
+		[变更 — PF.Infrastructure 1.0.33→1.0.34]
+		- HCNetSDK 原生库从全套 35 个（53.8MB）精简为 6 个（13.0MB）：HCNetSDK / HCCore / libcrypto-3-x64 / libssl-3-x64 +
+		  HCNetSDKCom\HCCoreDevCfg / HCNetSDKCom\HCPreview。真机（DS-2CD6B45FWD-CX3）实测登录/抓图/落盘/登出全部通过；
+		  缺 HCNetSDKCom 下两个时登录成功但抓图报 [107]（抓图走预览组件，抓图时才懒加载）。未覆盖 NVR / 数字通道 / 实时预览。
+		- 错误码 107 的中文说明补充排查提示；原生库缺失异常改为列出 6 个文件。
+		- 输出目录是增量复制，老的 31 个文件不会自动删除，验证时需清空输出目录。
+
+		子包版本对照：PF.Infrastructure 1.0.33→1.0.34；其余子包本次无变化。
+		（同批另发 PF.Vendor.Infrastructure 1.2.5→1.3.0：新增上述 6 个文件，经 buildTransitive targets 按 HCNetSDKCom\ 层级复制到输出目录。
+		该包不在 Meta 内，用到网络摄像机的外部项目需单独引用。）
+
 		v1.0.49 (2026-10-31) — 网络摄像机「抓图并保存」：存图格式/目录作为设备参数
 
 		[新增 — PF.Core 1.0.33→1.0.34]

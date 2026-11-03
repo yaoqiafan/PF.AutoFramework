@@ -294,7 +294,8 @@ namespace PF.Application.Shell
             });
 
             // 海康网络摄像机（HCNetSDK 私有协议，IPC/NVR）。
-            // 原生库部署：HCNetSDK.dll 及 HCNetSDKCom\ 子目录共 35 个文件，见 PF.Infrastructure.csproj 注释。
+            // 原生库部署：6 个文件（含 HCNetSDKCom\ 子目录下 2 个），外部项目装 PF.Vendor.Infrastructure ≥ 1.3.0，
+            // 清单与实测依据见 PF.Infrastructure.csproj 注释。
             // ConnectionParameters：IP / Port(默认8000) / UserName / Password /
             //                       Channel(可选，0=自动选第一个可用通道) /
             //                       CaptureBufferMB(抓图缓冲区起始大小，默认8，不足时自动翻倍至上限64MB)

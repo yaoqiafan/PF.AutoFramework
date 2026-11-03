@@ -58,10 +58,10 @@ namespace PF.Infrastructure.Hardware.Camera.Network.Hikvision
                     catch (DllNotFoundException ex)
                     {
                         throw new InvalidOperationException(
-                            "未找到 HCNetSDK 原生库。部署方法见 PF.Infrastructure.csproj 内注释：" +
-                            "从 DLL\\Infrastructure\\HCNetSDK\\ 复制 HCNetSDK.dll / HCCore.dll / " +
-                            "libcrypto-3-x64.dll / libssl-3-x64.dll 四个文件到程序输出目录" +
-                            "（登录 + 抓图路径实测只需这四个；若用实时预览等高级功能才需要全套 35 个）。", ex);
+                            "未找到 HCNetSDK 原生库。外部项目请安装 PF.Vendor.Infrastructure ≥ 1.3.0；" +
+                            "或手动把以下 6 个文件复制到程序输出目录：HCNetSDK.dll / HCCore.dll / " +
+                            "libcrypto-3-x64.dll / libssl-3-x64.dll / HCNetSDKCom\\HCCoreDevCfg.dll / " +
+                            "HCNetSDKCom\\HCPreview.dll（必须保持 HCNetSDKCom 子目录层级，缺后两个会登录成功但抓图失败）。", ex);
                     }
                 }
                 _refCount++;

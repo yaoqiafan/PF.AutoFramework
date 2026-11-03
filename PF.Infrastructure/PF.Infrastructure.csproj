@@ -21,8 +21,9 @@
 	  <!-- DLL\Infrastructure\ 下这批第三方 SDK 全部由 PF.Vendor.Infrastructure 包对外分发
 	       （lib 资产 = 有 <Reference> 的托管封装；runtimes\win-x64\native = 纯 P/Invoke 原生库），
 	       两边源文件保持一致，改动/升级时两处都要同步。 -->
-	  <!-- ⚠️ 部署要求：托管层内部仍会 P/Invoke 原生 MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll
-	       （已随 PF.Vendor.Infrastructure 一并分发，无 <Reference>，纯靠文件名加载）。 -->
+	  <!-- ⚠️ 部署要求：托管层内部仍会 P/Invoke 原生 MvCodeReaderCtrl.dll 及其依赖，这些文件不在本仓库、
+	       也不随 PF.Vendor.Infrastructure 分发（随包版本与现场 SDK 不一致会导致扫码枪异常，Vendor v1.2.5 已移除），
+	       须使用现场机器上扫码枪 SDK 安装的版本。 -->
 	  <Reference Include="MvCodeReaderSDK.Net">
 	    <HintPath>..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll</HintPath>
 	  </Reference>
@@ -44,41 +45,51 @@
 
 	<ItemGroup>
 	  <!-- 海康网络摄像机 SDK（HCNetSDK，IPC/NVR 私有协议，与 MVS/MvCodeReader 是三套彼此独立的 SDK）。
-	       源文件在 DLL\Infrastructure\HCNetSDK\（根 19 个 + HCNetSDKCom\ 16 个，合计 53.8MB，
-	       取自 SDK V6.1.11.5_build20251204_Win64，不含 ClientDemo.exe / *.lib / LocalXml.zip）。
 	       纯 P/Invoke（HCNetSdkApi.cs 按文件名 DllImport），无 <Reference>，全靠复制到输出目录加载。
-	       ⚠️ 部署要求：① 仅 Win64（PE Machine=0x8664），进程必须以 x64 运行
-	       （AnyCPU 在 64 位 Windows 上默认如此），改 x86/Prefer32Bit 会 BadImageFormatException；
-	       ② nupkg 不含这些原生库 —— 外部消费项目需自行从本仓库 DLL\Infrastructure\HCNetSDK\
-	       复制下述 4 个文件到输出目录（NuGet runtimes\native 平铺结构保不住 HCNetSDKCom\ 层级，
-	       无法走 PF.Vendor.Infrastructure）。
+	       文件实体与其他 SDK 一样在 DLL\Infrastructure\HCNetSDK\；SDK 全套（V6.1.11.5_build20251204_Win64，
+	       35 个 53.8MB）存档于 DLL\Infrastructure\HCNetSDK.rar，不参与构建。
+	       源码构建：本项目把 PFHCNetSdkNativeDir 指向该目录后 Import Vendor 包里的同一个 targets（ItemGroup 外，见下方），
+	       复制规则与外部 PackageReference 消费项目完全一致，经 ProjectReference 传到 Shell 输出目录。
+	       外部消费项目：nupkg 不含原生库，装 PF.Vendor.Infrastructure ≥ 1.3.0 即可。
+	       ⚠️ 部署要求：仅 Win64（PE Machine=0x8664），进程必须以 x64 运行
+	       （AnyCPU 在 64 位 Windows 上默认如此），改 x86/Prefer32Bit 会 BadImageFormatException。
 
-	       ── 只复制 4 个文件的依据（2026-11-02 用 HikCameraMinDemo 实测）──
-	       框架只用 SDK 的「登录 + JPEG 抓图」：Init / Cleanup / SetConnectTime / SetReconnect /
-	       Login_V40 / Logout / CaptureJPEGPicture_NEW / GetLastError 共 8 个函数，全部由
-	       HCNetSDK.dll 自身导出（dumpbin /exports 核实，无转发）；HCNetSDK.dll 静态导入仅
-	       HCCore.dll。模块快照（进程运行期枚举 LoadedModules）证明 Init+Login 路径 SDK 只
-	       加载 HCNetSDK / HCCore / libcrypto-3-x64 / libssl-3-x64 四个，其余 31 个文件
-	       （PlayCtrl / SuperRender / OpenAL32 等 + 整个 HCNetSDKCom\）全部是实时预览、回放、
-	       语音对讲、报警布防、透明通道等未用功能的懒加载组件，全套在场也不会被加载。
-	       libssl/libcrypto 虽非静态必需（缺了私有协议登录仍正常），但 SDK 在 Init 路径主动
-	       加载它们，且设备开启「视频加密」时抓图解密要用，保留。
-
-	       若未来接入实时预览（NET_DVR_RealPlay）等能力，改回通配符即可恢复全套复制：
-	       <None Include="..\DLL\Infrastructure\HCNetSDK\**\*.dll"
-	             Link="%(RecursiveDir)%(Filename)%(Extension)"
-	             CopyToOutputDirectory="PreserveNewest" />
-	       （通配符 + %(RecursiveDir) 自动保持 HCNetSDKCom\ 子目录层级，SDK 升级换文件无需改 csproj。） -->
-	  <None Include="..\DLL\Infrastructure\HCNetSDK\HCNetSDK.dll"        Link="HCNetSDK.dll"        CopyToOutputDirectory="PreserveNewest" />
-	  <None Include="..\DLL\Infrastructure\HCNetSDK\HCCore.dll"          Link="HCCore.dll"          CopyToOutputDirectory="PreserveNewest" />
-	  <None Include="..\DLL\Infrastructure\HCNetSDK\libcrypto-3-x64.dll" Link="libcrypto-3-x64.dll" CopyToOutputDirectory="PreserveNewest" />
-	  <None Include="..\DLL\Infrastructure\HCNetSDK\libssl-3-x64.dll"    Link="libssl-3-x64.dll"    CopyToOutputDirectory="PreserveNewest" />
+	       ── 只复制 6 个文件（2026-11-03 真机实测，相机 DS-2CD6B45FWD-CX3，SDK V6.1.11.5）──
+	       全套 35 个在场时，进程实际加载：登录后 HCNetSDK / HCCore / libcrypto-3-x64 / libssl-3-x64，
+	       抓图时（NET_DVR_CaptureJPEGPicture_NEW）再懒加载 HCNetSDKCom\HCCoreDevCfg + HCNetSDKCom\HCPreview。
+	       只留这 6 个复跑「登录 → 抓图 → 落盘 → 登出」全部通过；只留前 4 个则登录成功、抓图报
+	       [107] 预览组件加载失败 —— 抓图走的是预览组件，且在抓图那一刻才加载，只测登录发现不了。
+	       HCNetSDKCom\ 子目录层级是 SDK 硬要求（目录名与相对位置写死在 SDK 内部），targets 用 %(RecursiveDir) 保持层级。
+	       未覆盖：NVR / 数字通道（仅测单台 IPC）、实时预览（NET_DVR_RealPlay，框架未用）——
+	       若接入这些能力需按同样方法重测，必要时从 DLL\Infrastructure\HCNetSDK.rar 解出补进
+	       DLL\Infrastructure\HCNetSDK\（保持子目录层级），本项目与 Vendor 包均无需改动。 -->
 	</ItemGroup>
+	<PropertyGroup>
+		<PFHCNetSdkNativeDir>$(MSBuildThisFileDirectory)..\DLL\Infrastructure\HCNetSDK\</PFHCNetSdkNativeDir>
+	</PropertyGroup>
+	<Import Project="..\PF.Vendor.Infrastructure\buildTransitive\PF.Vendor.Infrastructure.targets" />
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.33</Version>
+		<Version>1.0.34</Version>
 		<PackageReleaseNotes>
+v1.0.34 (2026-11-03) — 海康网络摄像机原生库精简为 6 个文件（真机实测），外部项目改由 PF.Vendor.Infrastructure 分发
+
+[变更 — 原生库部署]
+- 源码构建复制的 HCNetSDK 原生库从全套 35 个（53.8MB）精简为 6 个（13.0MB）：HCNetSDK / HCCore /
+  libcrypto-3-x64 / libssl-3-x64 + HCNetSDKCom\HCCoreDevCfg / HCNetSDKCom\HCPreview（子目录层级保留）。
+- 依据：真机（DS-2CD6B45FWD-CX3）全套在场时抓取进程实际加载模块，再只留该集复跑登录/抓图/落盘/登出全部通过；
+  只留登录所需 4 个时抓图报 [107] 预览组件加载失败（抓图走预览组件，抓图时才懒加载）。
+- 未覆盖 NVR / 数字通道 / 实时预览；SDK 全套 35 个存档为 DLL\Infrastructure\HCNetSDK.rar（不参与构建），需要时按同法重测补齐。
+- 文件实体仍在 DLL\Infrastructure\HCNetSDK\（其余 29 个删除，全套另存 HCNetSDK.rar）；本项目改为 Import Vendor 包的
+  buildTransitive targets（PFHCNetSdkNativeDir 指向 DLL 目录），源码构建与外部 NuGet 消费共用同一份复制规则，不再各自维护清单。
+- 注意：输出目录是 PreserveNewest 增量复制，老的 31 个文件不会自动删除；要验证精简效果需清空输出目录重新构建。
+
+[变更 — 外部消费项目]
+- nupkg 仍不含原生库；改为安装 PF.Vendor.Infrastructure ≥ 1.3.0，由其 buildTransitive targets 按层级复制这 6 个文件，
+  不再需要手动从仓库复制。
+- 原生库缺失时的异常提示同步改为指向这 6 个文件。
+
 v1.0.33 (2026-10-31) — 网络摄像机存图：抓图后内存直接落盘，格式/目录为设备参数
 
 [新增 — BaseNetworkCamera.CaptureAndSaveAsync]

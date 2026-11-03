@@ -175,6 +175,16 @@ HmMerge.dll(0.4)  MP_Render.dll(0.4)  AudioRender.dll(0.2)
 
 > **建议首版带全套 53.8 MB**。理由：`HCNetSDK.dll` 是按需延迟加载，字符串里出现的模块名不等于"只有对应功能才加载"——SDK 初始化时可能就探测这些组件是否存在。精简省下 37 MB，换来的是一类"登录成功但某个操作返回含糊错误码"的难查问题。真要精简，单独跑一轮完整回归（登录、抓图、错误场景、长时间运行）再定。
 
+> **2026-11-03 真机实测更新（已落地，PF.Infrastructure 1.0.34 / PF.Vendor.Infrastructure 1.3.0）**：上面按导入表推导的 10 个、以及更早只看"登录失败"路径得出的 4 个**都不准**，以运行期实际加载模块为准，最小集是 **6 个 / 13.0 MB**：
+>
+> ```
+> HCNetSDK.dll  HCCore.dll  libcrypto-3-x64.dll  libssl-3-x64.dll
+> HCNetSDKCom\  HCCoreDevCfg.dll  HCPreview.dll
+> ```
+>
+> 方法：相机 DS-2CD6B45FWD-CX3，全套 35 个在场时分别在登录成功后、抓图成功后枚举进程模块 → 登录后只加载前 4 个，**抓图（`CaptureJPEGPicture_NEW`）那一刻才懒加载** `HCCoreDevCfg` + `HCPreview` → 只留这 6 个复跑「登录 → 抓图 → 落盘 → 登出」全部通过；只留前 4 个则登录成功、抓图报 `[107] 预览组件加载失败`。`zlib1` / `hlog` / `hpr` / `HCGeneralCfgMgr` / `StreamTransClient` 均未被加载。
+> 结论要点：**抓图走的是预览组件**；判断依赖必须在目标操作成功之后取模块快照，进程启动时或登录失败路径上的快照不能用。未覆盖：NVR / 数字通道 / 实时预览（P2）。
+
 **架构**：已用 PE 头核实 `HCNetSDK.dll` / `HCCore.dll` 的 Machine = `0x8664`，即 **x64**。而本仓库 `Common.props` 是 `net8.0` + `AnyCPU`（`Common.Desktop.props` 是 `net8.0-windows` + AnyCPU），全库没有任何 `PlatformTarget` / `RuntimeIdentifier` 设置。
 
 > ⚠️ **这是最大的落地风险**：AnyCPU 程序在 64 位 Windows 上默认以 x64 运行，加载 x64 的 `HCNetSDK.dll` 没问题。但如果哪天有人给项目加了 `Prefer32Bit=true` 或改成 x86，会立刻 `BadImageFormatException`。同理，SDK 只有 Win64 版本（本目录名就写着 `_Win64_`），**没有 x86 回退方案**。
@@ -976,6 +986,8 @@ ViewFactory.RegisterHardwareConfigType<HikNetworkCameraParamView, HikNetworkCame
 > **方案 B 的致命问题**：`HCNetSDK.dll` 强制要求 `HCNetSDKCom\` 子目录存在于**它自己的同级**。而 NuGet 的 `runtimes\<rid>\native\` 资产落地时是**平铺到输出目录根部**的 —— `HCNetSDKCom\` 下的 16 个 DLL 会跟根目录那 19 个混在一起，目录层级丢失，SDK 找不到组件。NuGet 没有"保持子目录"的 native 资产机制。
 >
 > 而且 `PF.Vendor.Infrastructure` 的 `<None Include>` 是逐个文件列的，加 35 条可行但啰嗦。更麻烦的是 **它是所有框架项目的公共依赖** —— 塞 53.8 MB 进去会让所有下游项目都被迫承担，哪怕根本不用摄像机。
+>
+> **2026-11-03 更新**：「`runtimes\native` 平铺子目录」已实测属实，但 NuGet 并非没有办法 —— 把文件放进包内普通路径（`native\HCNetSDK\`，保留 `HCNetSDKCom\`），再附带一个与包 ID 同名的 `buildTransitive\PF.Vendor.Infrastructure.targets`，在消费项目构建时用 `%(RecursiveDir)` 按层级复制到输出目录。实测 dotnet build / publish 都生效、经中间包间接引用同样生效，且不需要设置 RuntimeIdentifier。加上精简到 6 个 / 13.0 MB 后体积也不再是问题，因此 PF.Vendor.Infrastructure 1.3.0 起已按此方式分发。文件实体与其他 SDK 一样放在仓库 `DLL\Infrastructure\HCNetSDK\`（打包时进包内 `native\HCNetSDK\`），`PF.Infrastructure.csproj` 把 `PFHCNetSdkNativeDir` 指向该目录后 Import 同一个 targets 完成源码构建的复制，不存在两份清单。
 
 **建议：方案 A**。理由：这是"用到了才需要"的资产，跟 `DLL\HALCON\`（只有 Halcon 模块用）的处理一致；而且 `PF.Infrastructure` 目前的 `MvCameraControl.Net.dll` 也是走 HintPath 就近取用。
 
@@ -983,6 +995,7 @@ ViewFactory.RegisterHardwareConfigType<HikNetworkCameraParamView, HikNetworkCame
 
 - **全套（推荐首版）**：35 个 / **53.8 MB**，避免"某个功能间接触发了没带的组件"这种难查的问题
 - **精简**：10 个 / **16.4 MB**（清单见 3.5 节，已按 PE 导入表 + 字符串引用推导）。理论上登录 + 抓图够用，但**需要实测验证**。若走精简，建议单独跑一轮完整回归（登录、抓图、错误场景、长时间运行），确认没有模块加载失败
+- **2026-11-03 已定：精简为 6 个 / 13.0 MB**（真机实测，清单与方法见 3.5 节末尾的更新）。SDK 全套 35 个存档为 `DLL\Infrastructure\HCNetSDK.rar`（不参与构建），日后接入实时预览等能力时从中解出补进 `DLL\Infrastructure\HCNetSDK\`
 
 ### 决策 3：预览方式 —— 已定：定时抓图轮询（P1）
 
@@ -998,6 +1011,8 @@ ViewFactory.RegisterHardwareConfigType<HikNetworkCameraParamView, HikNetworkCame
 ### 决策 4：原生库入库方式 —— 已定：本地化入库
 
 已确认采用**方案 A**：全部 35 个原生 DLL（53.8 MB）放入 `DLL\Infrastructure\HCNetSDK\`，随代码库提交。
+
+> **2026-11-03 更新**：已改为构建只用实测最小集 6 个，实体仍在 `DLL\Infrastructure\HCNetSDK\`（其余 29 个已删除）；全套另存为 `DLL\Infrastructure\HCNetSDK.rar`，不参与构建。
 
 两个配套动作：
 

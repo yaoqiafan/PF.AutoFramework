@@ -43,9 +43,9 @@
 		     但和前两者同属 CTS 光源控制器 SDK 的同一批次文件，Windows 加载器解析
 		     ControllerDll.dll/CommonToolDll.dll 时很可能要在同目录找到它们，因此一并打包、
 		     不单独拆分，也不删除——四个文件当一个不可分割的 SDK 整体维护版本。
-		     MvCodeReaderCtrl.dll / MvCodeReaderCtrlWrapper.dll 是从一台真实跑通的机器上核实出来的——
-		     MvCodeReaderSDK.Net.dll（海康扫码枪托管封装）内部实际 P/Invoke 这两个原生库，此前
-		     PF.Infrastructure.csproj 里完全没有任何注释提示过，属于遗漏，v1.2.0 补上。
+		     MvCodeReaderSDK.Net.dll（海康扫码枪托管封装）内部 P/Invoke 的原生 MvCodeReaderCtrl.dll
+		     不随本包分发：v1.2.0 曾打包，随包版本与现场扫码枪 SDK 不一致会导致扫码枪异常，v1.2.5 移除，
+		     必须使用现场机器上扫码枪 SDK 安装的那一份（仓库里的副本也已删除）。
 		     消费项目需要设置 <RuntimeIdentifier>win-x64</RuntimeIdentifier> 才能让 dotnet build
 		     （而不仅是 dotnet publish）自动把这些文件复制到输出目录。 ===== -->
 		<None Include="..\DLL\Infrastructure\LTDMC.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
@@ -53,13 +53,33 @@
 		<None Include="..\DLL\Infrastructure\CommonToolDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="..\DLL\Infrastructure\sControllerDll.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="..\DLL\Infrastructure\ControllerDllCSharp.dll" Pack="true" PackagePath="runtimes\win-x64\native\" CopyToOutputDirectory="PreserveNewest" />
-		
-		
+
+		<!-- ===== 海康网络摄像机 SDK（HCNetSDK）：唯一一组有子目录要求的原生库，不能走 runtimes\win-x64\native\ =====
+		     NuGet 落地 native 资产会把子目录平铺（已实测），而 HCNetSDK.dll 要求组件位于同级 HCNetSDKCom\ 下，
+		     层级丢了抓图报 [107] 预览组件加载失败。
+		     文件实体与其他 SDK 一样放在 DLL\Infrastructure\HCNetSDK\（DLL\Infrastructure\HCNetSDK.rar 是 SDK 全套 35 个的存档，
+		     不参与构建）。清单 = 2026-11-03 真机实测的「登录 + JPEG 抓图」最小集 6 个，增删文件只需改这个目录。
+		     打包时放进包内 native\HCNetSDK\；三条路径共用 buildTransitive\PF.Vendor.Infrastructure.targets 这一份复制规则：
+		     · PackageReference 消费项目：NuGet 自动导入包内同名 targets，默认从包内 native\HCNetSDK\ 取（不需要 RuntimeIdentifier）
+		     · PF.Infrastructure 源码构建：其 csproj 设 PFHCNetSdkNativeDir 指向 DLL 目录后 Import 该 targets，经 ProjectReference 传到 Shell
+		     · 本项目被 ProjectReference 时：下面同样设属性后 Import（替代 v1.2.4 的 CopyToOutputDirectory 写法） -->
+		<!-- 仅打包用（不复制）；PackagePath 写完整文件路径，避免 NuGet 再拼接相对目录 -->
+		<None Include="..\DLL\Infrastructure\HCNetSDK\**\*.dll" Pack="true" PackagePath="native\HCNetSDK\%(RecursiveDir)%(Filename)%(Extension)" />
+		<!-- SDK 项目默认已把它收为 None，这里用 Update 只追加打包元数据，避免重复项。
+		     PackagePath 必须写完整文件路径：只写目录 "buildTransitive\" 时 NuGet 会再拼上项目内的相对目录，
+		     打成 buildTransitive\buildTransitive\xxx.targets，消费项目不会导入（已实测踩到）。 -->
+		<None Update="buildTransitive\PF.Vendor.Infrastructure.targets" Pack="true" PackagePath="buildTransitive\PF.Vendor.Infrastructure.targets" />
 	</ItemGroup>
+
+	<!-- 本项目被 ProjectReference 时的 HCNetSDK 复制规则（与打进包里的是同一个文件，源目录改指仓库 DLL 目录） -->
+	<PropertyGroup>
+		<PFHCNetSdkNativeDir>$(MSBuildThisFileDirectory)..\DLL\Infrastructure\HCNetSDK\</PFHCNetSdkNativeDir>
+	</PropertyGroup>
+	<Import Project="buildTransitive\PF.Vendor.Infrastructure.targets" />
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.2.5</Version>
+		<Version>1.3.0</Version>
 		<Description>PF.Infrastructure 依赖的第三方硬件 SDK 原生资产合集（雷赛 LTDMC 运动控制卡、
 			CTS 三色灯光源控制器 SDK、基恩士 Keyence.AutoID.SDK、Communication 通讯基础库、
 			海康 MvCodeReaderSDK 扫码枪 SDK 含原生驱动、海康 MvCameraControl.Net 相机 SDK 托管封装）。
@@ -68,9 +88,8 @@
 			托管封装（Keyence.AutoID.SDK.dll / Communication.dll / MvCodeReaderSDK.Net.dll /
 			MvCameraControl.Net.dll，均为 AnyCPU）走 lib\net8.0\，PackageReference 后即可编译期
 			直接引用；纯原生库（LTDMC.dll / ControllerDll.dll / CommonToolDll.dll /
-			sControllerDll.dll / ControllerDllCSharp.dll / MvCodeReaderCtrl.dll /
-			MvCodeReaderCtrlWrapper.dll）走 runtimes\win-x64\native\，没有任何 &lt;Reference&gt;，
-			全靠 DllImport 按文件名在运行期加载。
+			sControllerDll.dll / ControllerDllCSharp.dll）走 runtimes\win-x64\native\，没有任何 &lt;Reference&gt;，
+			全靠 DllImport 按文件名在运行期加载。扫码枪原生库 MvCodeReaderCtrl.dll 不随包分发，须用现场扫码枪 SDK 安装的版本。
 			部署要求：消费项目须设置 &lt;RuntimeIdentifier&gt;win-x64&lt;/RuntimeIdentifier&gt;
 			（不需要 SelfContained=true），否则 runtimes 下的原生库只在 dotnet publish 时才会被复制，
 			dotnet build / F5 调试拿不到文件——不过即便不设置，.NET 的 deps.json 运行期原生库探测机制
@@ -79,8 +98,31 @@
 			另外：装了本包不代表线扫相机/CameraLink 采集卡就能直接用——MvCameraControl.Net.dll
 			内部仍要 P/Invoke 真正的原生 MvCameraControl.dll，那个文件本包没有也无法提供，
 			必须从海康 MVS SDK 安装目录的 Libraries\win64 下手动复制，CameraLink/CXP/XoF 链路
-			还要另装 MVFG 采集卡驱动。</Description>
+			还要另装 MVFG 采集卡驱动。
+			海康网络摄像机 SDK（HCNetSDK V6.1.11.5 Win64）：登录 + JPEG 抓图最小集 6 个文件，带 HCNetSDKCom\ 子目录，
+			不走 runtimes（NuGet 会平铺子目录），由 buildTransitive targets 构建时按层级复制到输出目录，无需设置 RuntimeIdentifier。</Description>
 		<PackageReleaseNotes>
+			v1.3.0 — 新增海康网络摄像机 SDK（HCNetSDK）原生库
+
+			[新增]
+			- 6 个文件（13.0MB）：HCNetSDK / HCCore / libcrypto-3-x64 / libssl-3-x64 +
+			  HCNetSDKCom\HCCoreDevCfg / HCNetSDKCom\HCPreview。供 PF.Infrastructure ≥ 1.0.34 的 HikNetworkCamera 使用，
+			  外部项目装本包即可，不再需要从框架仓库手动复制。
+			- 清单来自 2026-11-03 真机实测（DS-2CD6B45FWD-CX3）：全套 35 个在场时抓取进程实际加载模块，
+			  只留这 6 个复跑登录/抓图/落盘/登出全部通过；缺 HCNetSDKCom 下两个时登录成功但抓图报 [107]。
+			  未覆盖 NVR / 数字通道 / 实时预览。
+			- 文件实体与其他 SDK 一样放在仓库 DLL\Infrastructure\HCNetSDK\，打包进包内 native\HCNetSDK\；PF.Infrastructure
+			  源码构建 Import 同一份 buildTransitive targets（PFHCNetSdkNativeDir 指向 DLL 目录）；SDK 全套存档为
+			  DLL\Infrastructure\HCNetSDK.rar，不参与构建。
+
+			[清理]
+			- 删除仓库中已不打包的 DLL\Infrastructure\MvCodeReaderCtrl.dll（v1.2.5 已移出包），订正描述里仍称其随包分发的说明。
+
+			[分发方式 — 与本包其他原生库不同]
+			- HCNetSDK.dll 要求组件位于同级 HCNetSDKCom\ 子目录；runtimes\win-x64\native\ 落地时会平铺子目录（已实测），
+			  所以这 6 个文件放在包内 native\HCNetSDK\，由 buildTransitive\PF.Vendor.Infrastructure.targets 在构建时
+			  按层级复制到输出目录。dotnet build / publish 都生效，经其他包间接引用同样生效，不需要设置 RuntimeIdentifier。
+
 			v1.2.5 — 删除MvCodeReaderCtrl.dll引用。
 
 			v1.2.4 — 修复被 ProjectReference 引用时资产不复制的问题

@@ -1,0 +1,23 @@
+<Project>
+  <!-- 海康网络摄像机 SDK（HCNetSDK）原生库：按 HCNetSDKCom\ 子目录层级复制到消费项目输出目录。
+       为什么不走 runtimes\win-x64\native\：NuGet 落地 native 资产时会把子目录平铺（实测
+       runtimes\win-x64\native\sub\x.dll 落到输出根），而 HCNetSDK.dll 要求组件位于同级
+       HCNetSDKCom\ 子目录，层级丢了抓图报 [107] 预览组件加载失败。
+       文件名必须与包 ID 同名，NuGet 才会自动导入；放在 buildTransitive\ 下，
+       经 PF.Infrastructure 等间接引用本包的项目同样生效；不需要设置 RuntimeIdentifier。
+
+       文件来源目录 PFHCNetSdkNativeDir：
+       · 包内默认 = 本文件旁的 ..\native\HCNetSDK\（打包时 6 个文件放在那里）
+       · 仓库内源码构建：文件实体在 DLL\Infrastructure\HCNetSDK\，PF.Infrastructure.csproj 和
+         PF.Vendor.Infrastructure.csproj 在 Import 本文件前把该属性设为那个目录
+       复制规则只有这一份；这里不能加 Pack 等元数据（会被带进消费项目自己的包里）。 -->
+  <PropertyGroup>
+    <PFHCNetSdkNativeDir Condition="'$(PFHCNetSdkNativeDir)' == ''">$(MSBuildThisFileDirectory)..\native\HCNetSDK\</PFHCNetSdkNativeDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(PFHCNetSdkNativeDir)**\*.dll"
+          Link="%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+</Project>
