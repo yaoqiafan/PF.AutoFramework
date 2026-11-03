@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<RootNamespace>HikCameraMinDemo</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<IsPackable>false</IsPackable>
+		<!-- HCNetSDK 仅 Win64，进程必须 x64（AnyCPU 默认即 x64，显式声明防 Prefer32Bit） -->
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- ProjectReference → PF.Infrastructure 的 None(CopyToOutputDirectory) 会沿引用链
+		     把 DLL\Infrastructure\HCNetSDK\ 全套 35 个文件（含 HCNetSDKCom\ 子目录）铺到输出目录，
+		     天然就是"全套基线"；精简实验在输出目录里做减法，不动框架。 -->
+		<ProjectReference Include="..\PF.Infrastructure\PF.Infrastructure.csproj" />
+		<!-- 现场实测一键脚本：跑用例 + 抓证据 + 打包 zip，随 publish 自动带走 -->
+		<None Include="Run-FieldTest.bat" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

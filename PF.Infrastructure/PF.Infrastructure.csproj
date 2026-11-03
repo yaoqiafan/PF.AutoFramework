@@ -47,16 +47,32 @@
 	       源文件在 DLL\Infrastructure\HCNetSDK\（根 19 个 + HCNetSDKCom\ 16 个，合计 53.8MB，
 	       取自 SDK V6.1.11.5_build20251204_Win64，不含 ClientDemo.exe / *.lib / LocalXml.zip）。
 	       纯 P/Invoke（HCNetSdkApi.cs 按文件名 DllImport），无 <Reference>，全靠复制到输出目录加载。
-	       通配符 + %(RecursiveDir) 自动保持 HCNetSDKCom\ 子目录层级 —— 该目录名与相对位置写死在
-	       SDK 内部，层级丢了组件就加载不到。SDK 升级换文件无需改本条。
 	       ⚠️ 部署要求：① 仅 Win64（PE Machine=0x8664），进程必须以 x64 运行
 	       （AnyCPU 在 64 位 Windows 上默认如此），改 x86/Prefer32Bit 会 BadImageFormatException；
-	       ② 本条只在源码构建时经 ProjectReference 传递链复制文件，nupkg 不含这些原生库 ——
-	       外部消费项目需自行从本仓库 DLL\Infrastructure\HCNetSDK\ 复制全套文件到输出目录
-	       （NuGet runtimes\native 平铺结构保不住 HCNetSDKCom\ 层级，无法走 PF.Vendor.Infrastructure）。 -->
-	  <None Include="..\DLL\Infrastructure\HCNetSDK\**\*.dll"
-	        Link="%(RecursiveDir)%(Filename)%(Extension)"
-	        CopyToOutputDirectory="PreserveNewest" />
+	       ② nupkg 不含这些原生库 —— 外部消费项目需自行从本仓库 DLL\Infrastructure\HCNetSDK\
+	       复制下述 4 个文件到输出目录（NuGet runtimes\native 平铺结构保不住 HCNetSDKCom\ 层级，
+	       无法走 PF.Vendor.Infrastructure）。
+
+	       ── 只复制 4 个文件的依据（2026-11-02 用 HikCameraMinDemo 实测）──
+	       框架只用 SDK 的「登录 + JPEG 抓图」：Init / Cleanup / SetConnectTime / SetReconnect /
+	       Login_V40 / Logout / CaptureJPEGPicture_NEW / GetLastError 共 8 个函数，全部由
+	       HCNetSDK.dll 自身导出（dumpbin /exports 核实，无转发）；HCNetSDK.dll 静态导入仅
+	       HCCore.dll。模块快照（进程运行期枚举 LoadedModules）证明 Init+Login 路径 SDK 只
+	       加载 HCNetSDK / HCCore / libcrypto-3-x64 / libssl-3-x64 四个，其余 31 个文件
+	       （PlayCtrl / SuperRender / OpenAL32 等 + 整个 HCNetSDKCom\）全部是实时预览、回放、
+	       语音对讲、报警布防、透明通道等未用功能的懒加载组件，全套在场也不会被加载。
+	       libssl/libcrypto 虽非静态必需（缺了私有协议登录仍正常），但 SDK 在 Init 路径主动
+	       加载它们，且设备开启「视频加密」时抓图解密要用，保留。
+
+	       若未来接入实时预览（NET_DVR_RealPlay）等能力，改回通配符即可恢复全套复制：
+	       <None Include="..\DLL\Infrastructure\HCNetSDK\**\*.dll"
+	             Link="%(RecursiveDir)%(Filename)%(Extension)"
+	             CopyToOutputDirectory="PreserveNewest" />
+	       （通配符 + %(RecursiveDir) 自动保持 HCNetSDKCom\ 子目录层级，SDK 升级换文件无需改 csproj。） -->
+	  <None Include="..\DLL\Infrastructure\HCNetSDK\HCNetSDK.dll"        Link="HCNetSDK.dll"        CopyToOutputDirectory="PreserveNewest" />
+	  <None Include="..\DLL\Infrastructure\HCNetSDK\HCCore.dll"          Link="HCCore.dll"          CopyToOutputDirectory="PreserveNewest" />
+	  <None Include="..\DLL\Infrastructure\HCNetSDK\libcrypto-3-x64.dll" Link="libcrypto-3-x64.dll" CopyToOutputDirectory="PreserveNewest" />
+	  <None Include="..\DLL\Infrastructure\HCNetSDK\libssl-3-x64.dll"    Link="libssl-3-x64.dll"    CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<PropertyGroup>
