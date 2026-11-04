@@ -13,8 +13,13 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.12</Version>
+		<Version>1.0.13</Version>
 		<PackageReleaseNotes>
+v1.0.13 (2026-11-04) — 参数页「描述」列移到最后一列并占满剩余宽度
+
+[界面]
+- 参数页「描述」列移到最后一列，宽度改为 *（原为 Auto，夹在名称与数据类型之间）；其余为 XAML 属性顺序整理，无功能变化。
+
 v1.0.12 (2026-10-31) — 海康网络摄像机参数视图新增「存图」分组；同步 PF.Core 1.0.34
 
 [新增 — 存图格式 / 存图目录]

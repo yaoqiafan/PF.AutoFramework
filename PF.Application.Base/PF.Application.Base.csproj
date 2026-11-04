@@ -3,8 +3,23 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.11</Version>
+		<Version>1.0.12</Version>
 		<PackageReleaseNotes>
+v1.0.12 (2026-11-04) — 状态栏设备条目支持点击执行操作（重新连接 / 断开 / 清除报警等）
+
+[新增 — 状态栏可点击操作]
+- 新增 StatusItemAction：Header + Execute(CancellationToken → Task&lt;bool&gt;)，可选 MinUserLevel（默认 Engineer）、
+  AllowWhileMachineBusy（默认 false）、ConfirmText、Timeout（默认 30 秒）。
+- 新增 StatusItemActions 工厂：Reconnect / Disconnect / ClearAlarm（IHardwareDevice）、SecsReconnect / SecsDisconnect（ISecsGemManager）；
+  设备以委托传入、执行时解析（条目通常在硬件加载完成前创建）。
+- DeviceStatusItem 新增 Actions / HasActions / IsBusy / AddAction() / AddDeviceActions()，均可链式调用。
+- MainWindowViewModelBase 新增 protected virtual ExecuteStatusActionAsync：权限 → 机台状态（Running / Initializing / Resetting 禁止）
+  → 二次确认 → 线程池带超时执行 → 结果提示 → 「操作日志」记录 [状态栏]；条目加入 DeviceStatusItems 时自动注入。
+- 主窗口状态栏：挂有操作的条目显示为左键展开的菜单，执行中状态文本显示“执行中...”；未挂操作的条目显示与原先一致。
+
+[消费项目注意]
+- 纯新增，未挂操作时行为不变，无需改动。需要时在主窗口 ViewModel 构造中调用 item.AddDeviceActions(() =&gt; 设备) 或 AddAction(...)。
+
 v1.0.11 (2026-10-29) — 修复软件退出时门锁兜底解锁从未执行
 
 [修复]

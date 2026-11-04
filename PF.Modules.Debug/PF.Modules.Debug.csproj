@@ -11,8 +11,16 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.24</Version>
+		<Version>1.0.25</Version>
 		<PackageReleaseNotes>
+v1.0.25 (2026-11-04) — 工站调试页手动释放/复位信号量增加权限与状态守卫（含行为变更）
+
+[行为变更 — 信号量右键菜单]
+- 手动「释放」「复位」信号量需工程师及以上权限。
+- 主控处于 Running / Initializing / Resetting 时禁止操作，提示先暂停：运行中手动释放会让下游在流程未到位时提前动作
+  （如物料未扫码即开始检测）；手动复位会广播取消整个作用域内正在等待的工站，使其业务线程静默退出。
+- 操作前二次确认，操作后写入「操作日志」（[信号量] 用户、信号、主控状态）。
+
 v1.0.24 (2026-10-31) — 网络摄像机「抓图并保存」；存图格式/目录进参数编辑；同步 PF.Core 1.0.34 / PF.Infrastructure 1.0.33
 
 [新增 — 单实例调试页「抓图并保存」]
