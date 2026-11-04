@@ -1,3 +1,6 @@
+using PF.Core.Interfaces.Device.Hardware;
+using Prism.Commands;
+using System.Collections.ObjectModel;
 using System.Windows.Media;
 
 namespace PF.Application.Base.Models;
@@ -52,4 +55,65 @@ public class DeviceStatusItem : BindableBase
     /// 否则回退到 <see cref="IsConnected"/> 二值灯。
     /// </summary>
     public bool UseCustomStatus => !string.IsNullOrEmpty(_statusText);
+
+    #region 可点击操作
+
+    /// <summary>条目上的可点击操作列表；为空时条目只做显示。通过 <see cref="AddAction"/> 添加。</summary>
+    public ObservableCollection<StatusItemAction> Actions { get; } = new();
+
+    /// <summary>是否挂有可点击操作（状态栏据此切换为可点击的菜单样式）。</summary>
+    public bool HasActions => Actions.Count > 0;
+
+    private bool _isBusy;
+    /// <summary>是否有操作正在执行（执行期间菜单项禁用，防止重复点击）。</summary>
+    public bool IsBusy
+    {
+        get => _isBusy;
+        internal set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                foreach (var action in Actions)
+                    (action.Command as DelegateCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 操作执行器，由 MainWindowViewModelBase 在条目加入状态栏时注入
+    /// （统一做权限、机台状态、确认、超时、提示与日志）。未注入时直接执行动作。
+    /// </summary>
+    internal Func<DeviceStatusItem, StatusItemAction, Task>? Executor { get; set; }
+
+    /// <summary>添加一个可点击操作，返回自身以便链式调用。</summary>
+    public DeviceStatusItem AddAction(StatusItemAction action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        action.Command = new DelegateCommand(async () => await RunAsync(action), () => !IsBusy);
+        Actions.Add(action);
+        RaisePropertyChanged(nameof(HasActions));
+        return this;
+    }
+
+    /// <summary>添加硬件设备常用操作：重新连接 / 断开连接 / 清除报警。</summary>
+    public DeviceStatusItem AddDeviceActions(Func<IHardwareDevice?> device) =>
+        AddAction(StatusItemActions.Reconnect(device))
+            .AddAction(StatusItemActions.Disconnect(device))
+            .AddAction(StatusItemActions.ClearAlarm(device));
+
+    private async Task RunAsync(StatusItemAction action)
+    {
+        if (Executor != null)
+        {
+            await Executor(this, action);
+            return;
+        }
+
+        IsBusy = true;
+        try { await action.Execute(CancellationToken.None); }
+        catch { /* 未注入执行器时无提示通道，静默失败 */ }
+        finally { IsBusy = false; }
+    }
+
+    #endregion
 }

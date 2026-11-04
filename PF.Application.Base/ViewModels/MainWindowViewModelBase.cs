@@ -103,6 +103,77 @@ namespace PF.Application.Base.ViewModels
                 RegionManager.RequestNavigate(
                     NavigationConstants.Regions.SoftwareViewRegion,
                     NavigationConstants.Views.AlarmCenterView));
+
+            // 状态栏条目加入时注入统一的操作执行器（子类通常在自身构造函数中 Add 条目，晚于此处订阅）
+            DeviceStatusItems.CollectionChanged += (_, e) =>
+            {
+                if (e.NewItems == null) return;
+                foreach (DeviceStatusItem item in e.NewItems)
+                    item.Executor = ExecuteStatusActionAsync;
+            };
+        }
+
+        #endregion
+
+        #region 状态栏操作
+
+        /// <summary>
+        /// 状态栏条目操作的统一执行入口：权限 → 机台状态 → 二次确认 → 带超时执行 → 结果提示 → 操作日志。
+        /// 子类可重写以追加项目特有的限制（如某些设备在特定工站状态下禁止重连）。
+        /// </summary>
+        protected virtual async Task ExecuteStatusActionAsync(DeviceStatusItem item, StatusItemAction action)
+        {
+            string target = item.Label.TrimEnd('：', ':', ' ');
+            string title = $"{target} - {action.Header}";
+
+            if (!UserService.IsAuthorized(action.MinUserLevel))
+            {
+                MessageService.ShowMessage($"“{action.Header}”需要 {action.MinUserLevel} 及以上权限。",
+                    "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var state = _masterController.CurrentState;
+            if (!action.AllowWhileMachineBusy && IsMachineLocked(state))
+            {
+                MessageService.ShowMessage($"设备{MachineStateText}期间禁止执行“{action.Header}”，请先暂停或停止设备。",
+                    "操作受限", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(action.ConfirmText))
+            {
+                var confirm = await MessageService.ShowMessageAsync($"{action.ConfirmText}\n\n确定对【{target}】执行“{action.Header}”吗？",
+                    title, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (confirm != ButtonResult.Yes) return;
+            }
+
+            item.IsBusy = true;
+            bool success = false;
+            string? error = null;
+            try
+            {
+                using var cts = new CancellationTokenSource(action.Timeout);
+                // 放到线程池执行，避免设备 SDK 的同步阻塞卡住 UI
+                success = await Task.Run(() => action.Execute(cts.Token), cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                error = $"执行超时（{action.Timeout.TotalSeconds:F0} 秒）";
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+            }
+            finally
+            {
+                item.IsBusy = false;
+            }
+
+            string result = success ? "成功" : $"失败{(error == null ? "" : $"：{error}")}";
+            LogService?.Info($"[状态栏] 用户[{CurrentUserName}] 对 {target} 执行「{action.Header}」→ {result}（机台状态：{state}）", "操作日志");
+            MessageService.ShowMessage($"{target}“{action.Header}”{result}", title, MessageBoxButton.OK,
+                success ? MessageBoxImage.Information : MessageBoxImage.Error);
         }
 
         #endregion

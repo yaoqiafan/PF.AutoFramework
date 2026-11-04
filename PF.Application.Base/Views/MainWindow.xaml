@@ -31,6 +31,49 @@
         <baseConverter:DeviceConnectedTextConverter x:Key="DeviceConnectedTextConverter" />
         <baseConverter:DeviceConnectedBrushConverter x:Key="DeviceConnectedBrushConverter" />
 
+        <!--  状态栏设备条目的显示内容（标签 + 灯 + 状态文本），只读条目与可点击条目共用  -->
+        <DataTemplate x:Key="DeviceStatusContentTemplate">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Text="{Binding Label}" />
+                <!--  灯：UseCustomStatus 为真时用外接转换器提供的 StatusBrush，否则回退 IsConnected 二值灯  -->
+                <Ellipse
+                    Width="8"
+                    Height="8"
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding UseCustomStatus}" Value="True">
+                                    <Setter Property="Fill" Value="{Binding StatusBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <!--  文本：UseCustomStatus 为真时显示 StatusText，否则回退 IsConnected 已连接/未连接  -->
+                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
+                            <Setter Property="Text" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedTextConverter}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding UseCustomStatus}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding StatusBrush}" />
+                                    <Setter Property="Text" Value="{Binding StatusText}" />
+                                </DataTrigger>
+                                <!--  有操作正在执行时提示  -->
+                                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                    <Setter Property="Text" Value="执行中..." />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
         <Style x:Key="IconStyle" TargetType="Image" />
         <Style x:Key="TitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18px" />
@@ -369,44 +412,44 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <StatusBarItem>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Label}" />
-                                    <!--  灯：UseCustomStatus 为真时用外接转换器提供的 StatusBrush，否则回退 IsConnected 二值灯  -->
-                                    <Ellipse
-                                        Width="8"
-                                        Height="8"
-                                        Margin="0,0,4,0">
-                                        <Ellipse.Style>
-                                            <Style TargetType="Ellipse">
-                                                <Setter Property="Fill" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding UseCustomStatus}" Value="True">
-                                                        <Setter Property="Fill" Value="{Binding StatusBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Ellipse.Style>
-                                    </Ellipse>
-                                    <!--  文本：UseCustomStatus 为真时显示 StatusText，否则回退 IsConnected 已连接/未连接  -->
-                                    <TextBlock FontWeight="SemiBold">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedBrushConverter}}" />
-                                                <Setter Property="Text" Value="{Binding IsConnected, Converter={StaticResource DeviceConnectedTextConverter}}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding UseCustomStatus}" Value="True">
-                                                        <Setter Property="Foreground" Value="{Binding StatusBrush}" />
-                                                        <Setter Property="Text" Value="{Binding StatusText}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
+                        <Grid>
+                            <!--  只读条目：未挂操作时与原先一致，仅显示状态  -->
+                            <StatusBarItem x:Name="PlainItem">
+                                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource DeviceStatusContentTemplate}" />
                             </StatusBarItem>
-                        </StackPanel>
+
+                            <!--  可点击条目：挂有操作（Actions 非空）时显示为菜单，左键点击展开操作列表  -->
+                            <Menu
+                                x:Name="ActionMenu"
+                                Margin="0,4,0,0"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                Visibility="Collapsed">
+                                <MenuItem
+                                    Padding="4,0"
+                                    Background="Transparent"
+                                    Cursor="Hand"
+                                    ItemsSource="{Binding Actions}"
+                                    ToolTip="点击查看可执行的操作">
+                                    <MenuItem.Header>
+                                        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource DeviceStatusContentTemplate}" />
+                                    </MenuItem.Header>
+                                    <MenuItem.ItemContainerStyle>
+                                        <Style BasedOn="{StaticResource {x:Type MenuItem}}" TargetType="MenuItem">
+                                            <Setter Property="Header" Value="{Binding Header}" />
+                                            <Setter Property="Command" Value="{Binding Command}" />
+                                        </Style>
+                                    </MenuItem.ItemContainerStyle>
+                                </MenuItem>
+                            </Menu>
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding HasActions}" Value="True">
+                                <Setter TargetName="PlainItem" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="ActionMenu" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

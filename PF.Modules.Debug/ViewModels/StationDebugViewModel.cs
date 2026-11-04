@@ -185,20 +185,12 @@ namespace PF.Modules.Debug.ViewModels
                 () => _controller.CurrentState == MachineState.InitAlarm
                    || _controller.CurrentState == MachineState.RunAlarm);
 
-            // 信号量操作命令
+            // 信号量操作命令：手动操作会绕过工站间正常握手，统一走权限/状态/确认/审计守卫
             ReleaseSignalCommand = new DelegateCommand<SignalTreeNode>(node =>
-            {
-                if (node == null) return;
-                try { _syncService.Release(node.SignalName, node.ParentScope); }
-                catch (Exception ex) { Log(ex); }
-            });
+                ExecuteSignalOperation(node, "释放", n => _syncService.Release(n.SignalName, n.ParentScope)));
 
             ResetSignalCommand = new DelegateCommand<SignalTreeNode>(node =>
-            {
-                if (node == null) return;
-                try { _syncService.ResetSingleSignal(node.SignalName, node.ParentScope); }
-                catch (Exception ex) { Log(ex); }
-            });
+                ExecuteSignalOperation(node, "复位", n => _syncService.ResetSingleSignal(n.SignalName, n.ParentScope)));
 
             // 初始化并启动 UI 定时轮询器 (数据绑定优先级)
             _pollTimer = new DispatcherTimer(DispatcherPriority.DataBind)
@@ -346,6 +338,54 @@ namespace PF.Modules.Debug.ViewModels
         /// </summary>
         private static void Log(Exception ex) =>
             System.Diagnostics.Debug.WriteLine($"[StationDebug] 指令执行失败: {ex.Message}");
+
+        /// <summary>
+        /// 手动释放/复位信号量的统一守卫。
+        /// <list type="number">
+        ///   <item>权限：工程师及以上。</item>
+        ///   <item>状态：主控 Running / Initializing / Resetting 时禁止。运行中手动释放会让下游在流程未到位时提前动作
+        ///         （如未扫码即检测）；手动复位会广播取消整个作用域内正在等待的工站，使其业务线程静默退出。
+        ///         流程卡死时应先暂停再操作。</item>
+        ///   <item>二次确认，并写入操作日志便于追溯。</item>
+        /// </list>
+        /// </summary>
+        private async void ExecuteSignalOperation(SignalTreeNode? node, string action, Action<SignalTreeNode> operation)
+        {
+            if (node == null) return;
+            string signal = $"{node.ParentScope}/{node.SignalName}";
+
+            try
+            {
+                if (UserService?.IsAuthorized(UserLevel.Engineer) != true)
+                {
+                    MessageService.ShowMessage($"手动{action}信号量需要工程师及以上权限。", "权限不足",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                var state = _controller.CurrentState;
+                if (state is MachineState.Running or MachineState.Initializing or MachineState.Resetting)
+                {
+                    MessageService.ShowMessage($"设备处于【{state}】状态，禁止手动{action}信号量。\n如流程卡死，请先暂停后再操作。",
+                        "操作受限", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                var confirm = await MessageService.ShowMessageAsync(
+                    $"确定要手动{action}信号量 [{signal}] 吗？\n\n手动操作信号量会绕过工站间的正常握手，可能导致流程错乱" +
+                    "（例如物料未扫码即开始检测）。仅在确认流程卡死且清楚后果时使用。",
+                    "手动操作信号量", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+                if (confirm != ButtonResult.Yes) return;
+
+                operation(node);
+                LogService?.Warn($"[信号量] 用户[{CurrentUserName}] 手动{action}信号量 [{signal}]（主控状态：{state}）", "操作日志");
+            }
+            catch (Exception ex)
+            {
+                Log(ex);
+                LogService?.Error($"[信号量] 手动{action}信号量 [{signal}] 失败：{ex.Message}", "操作日志");
+            }
+        }
 
         /// <summary>
         /// 停止定时器并注销全局事件监听，防止内存泄漏
