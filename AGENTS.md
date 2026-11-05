@@ -27,7 +27,7 @@ push-only.bat      # 推送 nupkg 到私有 BaGet 服务器 https://nuget.powerf
 
 ```
 /00. Global Config    — Directory.Build.props / Common.props / Directory.Packages.props
-/01. Foundation       — PF.Core（42 接口，零外部依赖）/ PF.Infrastructure（硬件/模组/工站基类）
+/01. Foundation       — PF.Core（43 接口，零外部依赖）/ PF.Infrastructure（硬件/模组/工站基类）
 /02. UI               — PF.UI.Controls / PF.UI.Infrastructure / PF.UI.Resources / PF.UI.Shared
 /03. Data             — PF.Data（EF Core + Repository）/ PF.SecsGem.DataBase
 /04. Tools/Services   — PF.CommonTools / PF.Services（8 个服务实现）
@@ -88,13 +88,13 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 
 ---
 
-## PF.Core 接口全览（42 个，零外部依赖）
+## PF.Core 接口全览（43 个，零外部依赖）
 
 **硬件设备**：`IHardwareDevice` / `IMotionCard` / `IAttachedDevice` / `IAxis` / `IIOController` / `ILightController` / `IBarcodeScan` / `IIntelligentCamera` / `IHardwareManagerService`
 
 **机构 & 工站**：`IMechanism` / `IStation` / `IMasterController`
 
-**服务**：`IParamService` / `ILogService` / `IAlarmService` / `IAlarmDictionaryService` / `IAlarmEventPublisher` / `IUserService` / `IProductionDataService` / `IRecipeService<T>` / `ITowerLightService` / `ITowerLightDoWriter` / `IAppTimerService` / `IStationSyncService`
+**服务**：`IParamService` / `ILogService` / `IAlarmService` / `IAlarmDictionaryService` / `IAlarmEventPublisher` / `IUserService` / `IProductionDataService` / `IRecipeService<T>` / `ITowerLightService` / `ITowerLightDoWriter` / `IAppTimerService` / `IStationSyncService` / `ISpeechService`
 
 **数据**：`IEntity` / `IGenericRepository<T>` / `IDataBase` / `IParamRepository`
 
@@ -130,7 +130,7 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 
    **工站**（5 个）：`WS1FeedingStation` / `WS2FeedingStation` / `WSDetectionStation` / `WS1MaterialPullingStation` / `WS2MaterialPullingStation`
 
-   **单例服务**：`ILogService` / `IParamService` / `IHardwareManagerService` / `IAlarmService` / `IAlarmDictionaryService` / `IAlarmEventPublisher` / `IProductionDataService` / `IUserService` / `IAppTimerService` / `IStationSyncService` / `IHardwareInputMonitor` / `ITowerLightService` / `IMasterController`（`AutoOCRMachineController`）/ `IRecipeService<OCRRecipeParam>`
+   **单例服务**：`ILogService` / `IParamService` / `IHardwareManagerService` / `IAlarmService` / `IAlarmDictionaryService` / `IAlarmEventPublisher` / `IProductionDataService` / `IUserService` / `IAppTimerService` / `IStationSyncService` / `IHardwareInputMonitor` / `ITowerLightService` / `ISpeechService`（`SpeechService`，PF.CommonTools）/ `IMasterController`（`AutoOCRMachineController`）/ `IRecipeService<OCRRecipeParam>`
 
 4. `ConfigureModuleCatalog()` — 8 个 Prism 模块：`AlarmModule` / `LoggingModule` / `ParameterModule` / `IdentityModule` / `DebugModule` / `AutoOcrUIModule` / `SecsGemModule` / `ProductionRecordModule`
 
@@ -156,6 +156,7 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 | **AlarmDictionaryService / AlarmPermissionService** | 报警文案只来自代码 `[AlarmInfo]`（已取消数据库扩展报警码合并加载）；清除等级 `ClearLevel`（命名参数，默认 Operator）首次写入 `AlarmDefinitions` 表后以数据库为准，在「权限管控 → 异常权限配置」修改；人为清除/复位按当前用户等级判定，复位需 ≥ 活跃报警中最高等级，程序自动清除不受控 |
 | **LogService** | 内存循环缓冲 1000 条；`Channel` 异步文件写入；按小时滚动，30 天自动清理 |
 | **StationSyncService** | 命名信号量跨工站协同：`WaitAsync(name, token)` / `Release(name)` / `ResetSingleSignal(name, initialCount)` |
+| **SpeechService**（PF.CommonTools） | System.Speech（SAPI5，离线）；`Speak(text, priority, source)` 入队立即返回、`SpeakAsync` 等这一句结束，全局串行，`High` 插队并打断当前普通播报；`source` 由调用方显式传入（工站名等），只进播报记录（内存 200 条 + `RecordUpdated`）；`SaveToWaveFileAsync` 用独立合成器出 WAV，不占扬声器；无语音包时 `IsAvailable=false` 全部空操作；语音/音量/语速/静音/常用语存 `speech_config.json`（防抖 500ms），调试页「语音播报调试」仅超级用户。实测打断时 System.Speech 把 `OperationCanceledException` 放进 `e.Error` 而不置 `Cancelled` |
 | **ProductionDataService** | 泛型 `RecordAsync<TData>()` POCO → JSON 非阻塞写入；`DataRecorded` 事件实时订阅；支持 Excel（NPOI）/ CSV 导出 |
 
 ---
@@ -168,7 +169,7 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 D:\PFConfig\PFAutoFrameWork\
 ├─ PF.Application.Shell\        ← 项目 A（= 入口程序集名）
 │   ├─ SystemParamsCollection.db / ProductionHistory.db / AlarmHistory.db / SecsGemConfig.db
-│   ├─ user.config / timer_schedule.json / log_config.json / SecsGem*.xlsx
+│   ├─ user.config / timer_schedule.json / log_config.json / speech_config.json / SecsGem*.xlsx
 │   └─ Recipe\ AxisPoints\ DataMemory\ Vision\ StationMemoryParam\
 └─ ProjectB.Shell\              ← 项目 B
 ```

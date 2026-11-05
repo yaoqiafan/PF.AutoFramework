@@ -31,6 +31,9 @@ namespace PF.Modules.Debug
 
             // 通讯综合调试视图跟硬件/工站调试一样，仅限工程师及以上权限可见
             DefaultPermissions.RegisterViews(UserLevel.Engineer, NavigationConstants.Views.CommunicationDebugView);
+
+            // 语音播报调试页改的是全局语音设置（直接影响运行中的工站播报并落盘），只给超级用户
+            DefaultPermissions.RegisterViews(UserLevel.SuperUser, NavigationConstants.Views.SpeechDebugView);
         }
 
         /// <summary>注册调试模块的视图和对话框</summary>
@@ -88,6 +91,9 @@ namespace PF.Modules.Debug
             containerRegistry.RegisterForNavigation<ModbusRtuDebugView, ModbusRtuDebugViewModel>(NavigationConstants.Views.ModbusRtuDebugView);
             containerRegistry.RegisterForNavigation<ModbusTcpDebugView, ModbusTcpDebugViewModel>(NavigationConstants.Views.ModbusTcpDebugView);
             containerRegistry.RegisterForNavigation<SerialPortDebugView, SerialPortDebugViewModel>(NavigationConstants.Views.SerialPortDebugView);
+
+            // 语音播报调试（ISpeechService 由 PF.Application.Base 注册）
+            containerRegistry.RegisterForNavigation<SpeechDebugView, SpeechDebugViewModel>(NavigationConstants.Views.SpeechDebugView);
 
             // 6. 注册三个通讯实例参数修改对话框
             containerRegistry.RegisterDialog<TcpServerParamDialog, TcpServerParamDialogViewModel>(nameof(TcpServerParamDialog));

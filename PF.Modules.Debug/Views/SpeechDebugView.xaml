@@ -1,0 +1,826 @@
+﻿<UserControl
+    x:Class="PF.Modules.Debug.Views.SpeechDebugView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:opkeys="clr-namespace:PF.Modules.Debug"
+    xmlns:oplog="clr-namespace:PF.UI.Infrastructure.Operation;assembly=PF.UI.Infrastructure"
+    xmlns:pf="clr-namespace:PF.UI.Controls;assembly=PF.UI.Controls"
+    d:DesignHeight="900"
+    d:DesignWidth="1600"
+    oplog:OperationLog.PageName="SpeechDebugView"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!--  卡片  -->
+        <Style x:Key="SpeechCard" TargetType="Border">
+            <Setter Property="Padding" Value="15,12" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+
+        <!--  卡片标题 / 标题右侧说明 / 字段标签  -->
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#475569" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="CardHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#888888" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#3D3D3D" />
+            <Setter Property="Margin" Value="0,10,0,6" />
+        </Style>
+
+        <!--  标题栏的统计项：上灰色小字、下粗体值  -->
+        <Style x:Key="StatKey" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#888888" />
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="StatCell" TargetType="Border">
+            <Setter Property="Padding" Value="20,0" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <pf:TransitioningContentControl TransitionMode="Right2LeftWithFade" TransitionStoryboard="{StaticResource Right2LeftWithFadeTransition}">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  ══════════ 标题栏：实时状态 ══════════  -->
+            <Border
+                Grid.Row="0"
+                Padding="15,10"
+                Style="{StaticResource SpeechCard}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="200" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="200" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Width="40"
+                        Height="40"
+                        Margin="0,0,12,0"
+                        CornerRadius="8">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="20"
+                            Text="🔊" />
+                    </Border>
+
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="0,0,28,0"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Text="语音播报调试" />
+                        <TextBlock Style="{StaticResource StatKey}" Text="System.Speech 离线语音合成" />
+                    </StackPanel>
+
+                    <Border Grid.Column="2" Style="{StaticResource StatCell}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource StatKey}" Text="当前语音" />
+                            <TextBlock Style="{StaticResource StatValue}" Text="{Binding SelectedVoice, TargetNullValue=-}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="3" Style="{StaticResource StatCell}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource StatKey}" Text="正在播报" />
+                            <TextBlock Text="{Binding CurrentText}" ToolTip="{Binding CurrentText}">
+                                <TextBlock.Style>
+                                    <Style BasedOn="{StaticResource StatValue}" TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#888888" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                                <Setter Property="Foreground" Value="#02AD8B" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Style="{StaticResource StatCell}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource StatKey}" Text="排队" />
+                            <TextBlock Style="{StaticResource StatValue}" Text="{Binding PendingText}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="5" Style="{StaticResource StatCell}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource StatKey}" Text="配置文件" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                Text="{Binding ConfigFilePathText}"
+                                TextTrimming="CharacterEllipsis"
+                                ToolTip="{Binding ConfigFilePathText}" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel
+                        Grid.Column="6"
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                        <TextBlock
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center"
+                            Foreground="#64748B"
+                            Text="引擎" />
+                        <Border Padding="10,4" CornerRadius="4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#E81123" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsAvailable}" Value="True">
+                                            <Setter Property="Background" Value="#02AD8B" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock FontWeight="SemiBold" Foreground="White">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="不可用" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsAvailable}" Value="True">
+                                                <Setter Property="Text" Value="可用" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--  ══════════ 引擎不可用提示条 ══════════  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,12,0,0"
+                Padding="12,8"
+                Background="#FFF8E0"
+                BorderBrush="#FFB900"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding IsUnavailable, Converter={StaticResource BoolToVis}}">
+                <TextBlock Foreground="#CC9400" Text="⚠ 未检测到可用的语音包，语音播报不可用。请在 Windows「设置 → 时间和语言 → 语音」中安装中文语音后重启软件；详见日志【语音播报】。" />
+            </Border>
+
+            <!--  ══════════ 主体 ══════════  -->
+            <Grid
+                Grid.Row="2"
+                Margin="0,12,0,0"
+                IsEnabled="{Binding IsAvailable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="360" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!--  ───── 左列 ─────  -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!--  播报设置  -->
+                    <Border Grid.Row="0" Style="{StaticResource SpeechCard}">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Style="{StaticResource CardTitle}" Text="播报设置" />
+                                <TextBlock
+                                    HorizontalAlignment="Right"
+                                    Style="{StaticResource CardHint}"
+                                    Text="修改即生效并自动保存" />
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="语音" />
+                            <ComboBox
+                                Height="32"
+                                oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.Voice}"
+                                ItemsSource="{Binding Voices}"
+                                SelectedItem="{Binding SelectedVoice}" />
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="音量" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="90" />
+                                </Grid.ColumnDefinitions>
+                                <Slider
+                                    Margin="0,0,10,0"
+                                    VerticalAlignment="Center"
+                                    IsSnapToTickEnabled="True"
+                                    Maximum="100"
+                                    Minimum="0"
+                                    TickFrequency="1"
+                                    Value="{Binding Volume, UpdateSourceTrigger=PropertyChanged}" />
+                                <pf:NumericUpDown
+                                    Grid.Column="1"
+                                    Height="30"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.Volume}"
+                                    DecimalPlaces="0"
+                                    Increment="1"
+                                    Maximum="100"
+                                    Minimum="0"
+                                    Value="{Binding Volume, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="语速" />
+                                <TextBlock
+                                    Margin="6,10,0,6"
+                                    FontSize="12"
+                                    Foreground="#AAAAAA"
+                                    Text="（-10 慢 ~ 10 快）" />
+                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="90" />
+                                </Grid.ColumnDefinitions>
+                                <Slider
+                                    Margin="0,0,10,0"
+                                    VerticalAlignment="Center"
+                                    IsSnapToTickEnabled="True"
+                                    Maximum="10"
+                                    Minimum="-10"
+                                    TickFrequency="1"
+                                    Value="{Binding Rate, UpdateSourceTrigger=PropertyChanged}" />
+                                <pf:NumericUpDown
+                                    Grid.Column="1"
+                                    Height="30"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.Rate}"
+                                    DecimalPlaces="0"
+                                    Increment="1"
+                                    Maximum="10"
+                                    Minimum="-10"
+                                    Value="{Binding Rate, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
+                            <Grid Margin="0,12,0,0">
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontSize="13"
+                                    Foreground="#3D3D3D"
+                                    Text="静音" />
+                                <TextBlock
+                                    Margin="40,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="#CC9400"
+                                    Text="静音中，播报请求将被丢弃"
+                                    Visibility="{Binding IsMuted, Converter={StaticResource BoolToVis}}" />
+                                <ToggleButton
+                                    HorizontalAlignment="Right"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.Mute}"
+                                    IsChecked="{Binding IsMuted}"
+                                    Style="{StaticResource ToggleButtonSwitch.Small}" />
+                            </Grid>
+
+                            <UniformGrid Margin="0,14,0,0" Columns="2">
+                                <Button
+                                    Height="34"
+                                    Margin="0,0,5,0"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.Preview}"
+                                    Command="{Binding PreviewCommand}"
+                                    Content="试听"
+                                    Style="{DynamicResource ButtonSuccess}" />
+                                <Button
+                                    Height="34"
+                                    Margin="5,0,0,0"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.ResetSettings}"
+                                    Command="{Binding ResetSettingsCommand}"
+                                    Content="恢复默认"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </UniformGrid>
+
+                            <TextBlock
+                                Margin="0,10,0,0"
+                                FontSize="12"
+                                Foreground="#02AD8B"
+                                Text="{Binding SavedText}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--  常用语  -->
+                    <Border Grid.Row="2" Style="{StaticResource SpeechCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Margin="0,0,0,6">
+                                <TextBlock Style="{StaticResource CardTitle}" Text="常用语" />
+                                <TextBlock
+                                    HorizontalAlignment="Right"
+                                    Style="{StaticResource CardHint}"
+                                    Text="点「普/高」切换是否插队，▶ 直接播报" />
+                            </Grid>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Phrases}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border
+                                                Height="38"
+                                                BorderBrush="#F0F0F0"
+                                                BorderThickness="0,0,0,1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!--  优先级切换：普 / 高  -->
+                                                    <Button
+                                                        Width="26"
+                                                        Height="20"
+                                                        Margin="0,0,8,0"
+                                                        Padding="0"
+                                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.TogglePhrasePriority}"
+                                                        Command="{Binding DataContext.TogglePhrasePriorityCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        FontSize="11"
+                                                        ToolTip="点击切换：普通 / 高优先级（插队）">
+                                                        <Button.Style>
+                                                            <Style BasedOn="{StaticResource ButtonDefault}" TargetType="Button">
+                                                                <Setter Property="Content" Value="普" />
+                                                                <Setter Property="Foreground" Value="#888888" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsHighPriority}" Value="True">
+                                                                        <Setter Property="Content" Value="高" />
+                                                                        <Setter Property="Foreground" Value="#CC9400" />
+                                                                        <Setter Property="BorderBrush" Value="#FFB900" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="13"
+                                                        Text="{Binding Text}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        ToolTip="{Binding Text}" />
+
+                                                    <Button
+                                                        Grid.Column="2"
+                                                        Width="28"
+                                                        Height="26"
+                                                        Margin="6,0,0,0"
+                                                        Padding="0"
+                                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.PlayPhrase}"
+                                                        Command="{Binding DataContext.PlayPhraseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Content="▶"
+                                                        FontSize="11"
+                                                        Foreground="#02AD8B"
+                                                        Style="{DynamicResource ButtonDefault}"
+                                                        ToolTip="播报" />
+
+                                                    <Button
+                                                        Grid.Column="3"
+                                                        Width="28"
+                                                        Height="26"
+                                                        Margin="6,0,0,0"
+                                                        Padding="0"
+                                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.RemovePhrase}"
+                                                        Command="{Binding DataContext.RemovePhraseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Content="✕"
+                                                        FontSize="11"
+                                                        Foreground="#AAAAAA"
+                                                        Style="{DynamicResource ButtonDefault}"
+                                                        ToolTip="删除" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <TextBlock
+                                Grid.Row="1"
+                                Margin="0,12,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Top"
+                                FontSize="12"
+                                Foreground="#AAAAAA"
+                                Text="暂无常用语，在下方输入后添加">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Phrases.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Grid Grid.Row="2" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox
+                                    Height="32"
+                                    VerticalContentAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.NewPhraseText}"
+                                    pf:InfoElement.Placeholder="输入新的常用语..."
+                                    Text="{Binding NewPhraseText, UpdateSourceTrigger=PropertyChanged}">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding AddPhraseCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <CheckBox
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.NewPhraseHigh}"
+                                    Content="插队"
+                                    IsChecked="{Binding NewPhraseIsHigh}" />
+                                <Button
+                                    Grid.Column="2"
+                                    Height="32"
+                                    Margin="8,0,0,0"
+                                    Padding="12,0"
+                                    oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.AddPhrase}"
+                                    Command="{Binding AddPhraseCommand}"
+                                    Content="＋ 添加"
+                                    Style="{DynamicResource ButtonDefault}" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!--  ───── 右列 ─────  -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="380" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  播报测试  -->
+                        <Border Grid.Column="0" Style="{StaticResource SpeechCard}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="0,0,0,10">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="播报测试" />
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        Style="{StaticResource CardHint}"
+                                        Text="插队播报会打断当前正在播的普通播报" />
+                                </Grid>
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="120" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox
+                                        Height="118"
+                                        Padding="6"
+                                        VerticalContentAlignment="Top"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.TestText}"
+                                        pf:InfoElement.Placeholder="输入要播报的文字（生成 WAV 也使用这里的文字）"
+                                        AcceptsReturn="True"
+                                        Text="{Binding TestText, UpdateSourceTrigger=PropertyChanged}"
+                                        TextWrapping="Wrap"
+                                        VerticalScrollBarVisibility="Auto" />
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                        <Button
+                                            Height="34"
+                                            HorizontalAlignment="Stretch"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.Speak}"
+                                            Command="{Binding SpeakCommand}"
+                                            Content="播报"
+                                            Style="{DynamicResource ButtonPrimary}" />
+                                        <Button
+                                            Height="34"
+                                            Margin="0,8,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.SpeakHigh}"
+                                            Command="{Binding SpeakHighCommand}"
+                                            Content="插队播报"
+                                            Style="{DynamicResource ButtonWarning}" />
+                                        <Button
+                                            Height="34"
+                                            Margin="0,8,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.StopAll}"
+                                            Command="{Binding StopAllCommand}"
+                                            Content="停止全部"
+                                            Style="{DynamicResource ButtonDanger}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!--  生成 WAV  -->
+                        <Border Grid.Column="2" Style="{StaticResource SpeechCard}">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,10"
+                                    Style="{StaticResource CardTitle}"
+                                    Text="生成 WAV 文件" />
+                                <TextBlock
+                                    Margin="0,0,0,6"
+                                    FontSize="13"
+                                    Foreground="#3D3D3D"
+                                    Text="输出路径" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox
+                                        Height="32"
+                                        VerticalContentAlignment="Center"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.WavPath}"
+                                        FontFamily="Consolas"
+                                        FontSize="12"
+                                        Text="{Binding WavPath, UpdateSourceTrigger=PropertyChanged}"
+                                        ToolTip="{Binding WavPath}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Height="32"
+                                        Margin="8,0,0,0"
+                                        Padding="12,0"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.BrowseWav}"
+                                        Command="{Binding BrowseWavCommand}"
+                                        Content="浏览"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </Grid>
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    FontSize="12"
+                                    Foreground="#888888"
+                                    Text="使用「播报测试」框中的文字，沿用左侧语音 / 音量 / 语速，不经过扬声器。"
+                                    TextWrapping="Wrap" />
+                                <UniformGrid Margin="0,10,0,0" Columns="2">
+                                    <Button
+                                        Height="34"
+                                        Margin="0,0,5,0"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.GenerateWav}"
+                                        Command="{Binding GenerateWavCommand}"
+                                        Content="生成文件"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Height="34"
+                                        Margin="5,0,0,0"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.OpenWavFolder}"
+                                        Command="{Binding OpenWavFolderCommand}"
+                                        Content="打开文件夹"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </UniformGrid>
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    FontSize="12"
+                                    Text="{Binding WavResultText}"
+                                    TextWrapping="Wrap">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#02AD8B" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding WavResultOk}" Value="False">
+                                                    <Setter Property="Foreground" Value="#E81123" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!--  播报记录  -->
+                    <Border Grid.Row="2" Style="{StaticResource SpeechCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="0,0,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="播报记录" />
+                                    <TextBlock
+                                        Margin="8,0,0,0"
+                                        Style="{StaticResource CardHint}"
+                                        Text="最近 200 条，含工站运行中的播报，仅保存在内存" />
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                    <TextBlock
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="#3D3D3D"
+                                        Text="仅异常" />
+                                    <ToggleButton
+                                        VerticalAlignment="Center"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.RecordFilter}"
+                                        IsChecked="{Binding OnlyAbnormal}"
+                                        Style="{StaticResource ToggleButtonSwitch.Small}" />
+                                    <Button
+                                        Height="28"
+                                        Margin="12,0,0,0"
+                                        Padding="12,0"
+                                        oplog:OperationLog.Key="{x:Static opkeys:OperationLogKeysDebug+SpeechDebugView.ClearRecords}"
+                                        Command="{Binding ClearRecordsCommand}"
+                                        Content="清空"
+                                        Style="{DynamicResource ButtonDefault}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <DataGrid
+                                Grid.Row="1"
+                                AutoGenerateColumns="False"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="1"
+                                CanUserAddRows="False"
+                                CanUserDeleteRows="False"
+                                CanUserReorderColumns="False"
+                                GridLinesVisibility="Horizontal"
+                                HeadersVisibility="Column"
+                                IsReadOnly="True"
+                                ItemsSource="{Binding RecordsView}"
+                                RowHeight="34"
+                                SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn
+                                        Width="110"
+                                        Binding="{Binding TimeText}"
+                                        FontFamily="Consolas"
+                                        Header="时间" />
+                                    <DataGridTemplateColumn Width="70" Header="优先级">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock VerticalAlignment="Center" Text="{Binding PriorityText}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHigh}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#CC9400" />
+                                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="*" Header="内容">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    Text="{Binding Text}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    ToolTip="{Binding ToolTipText}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="90" Header="结果">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border
+                                                    Padding="8,1"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center"
+                                                    CornerRadius="3"
+                                                    ToolTip="{Binding ToolTipText}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#F0F0F0" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Queued">
+                                                                    <Setter Property="Background" Value="#E5F1FB" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Playing">
+                                                                    <Setter Property="Background" Value="#E6F7F2" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                                    <Setter Property="Background" Value="#E3F4EA" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Interrupted">
+                                                                    <Setter Property="Background" Value="#FFF8E0" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Dropped">
+                                                                    <Setter Property="Background" Value="#FFF8E0" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                                    <Setter Property="Background" Value="#FDECEE" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock FontSize="12" Text="{Binding StatusText}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="#888888" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Queued">
+                                                                        <Setter Property="Foreground" Value="#0078D4" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Playing">
+                                                                        <Setter Property="Foreground" Value="#02AD8B" />
+                                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                                        <Setter Property="Foreground" Value="#10893E" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Interrupted">
+                                                                        <Setter Property="Foreground" Value="#CC9400" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Dropped">
+                                                                        <Setter Property="Foreground" Value="#CC9400" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                                        <Setter Property="Foreground" Value="#E81123" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn
+                                        Width="80"
+                                        Binding="{Binding DurationText}"
+                                        FontFamily="Consolas"
+                                        Header="耗时" />
+                                    <DataGridTextColumn
+                                        Width="200"
+                                        Binding="{Binding SourceText}"
+                                        Foreground="#888888"
+                                        Header="来源" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+    </pf:TransitioningContentControl>
+</UserControl>

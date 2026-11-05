@@ -3,8 +3,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.12</Version>
+		<Version>1.0.13</Version>
 		<PackageReleaseNotes>
+v1.0.13 (2026-11-05) — 注册语音播报服务
+
+[新增]
+- RegisterTypes 中注册 ISpeechService → SpeechService（单例，PF.CommonTools）。工站 / 机构 / ViewModel 构造注入
+  ISpeechService 即可调用 Speak("...")；首次解析时初始化引擎，系统无语音包时为空操作。
+- 纯新增，消费项目无需改动。
+
 v1.0.12 (2026-11-04) — 状态栏设备条目支持点击执行操作（重新连接 / 断开 / 清除报警等）
 
 [新增 — 状态栏可点击操作]

@@ -137,6 +137,9 @@ namespace PF.Core.Constants
             /// <summary>串口调试视图</summary>
             public const string SerialPortDebugView = nameof(SerialPortDebugView);
 
+            /// <summary>语音播报调试视图（ISpeechService 的设置、试播、生成 WAV、播报记录）</summary>
+            public const string SpeechDebugView = nameof(SpeechDebugView);
+
             #endregion
 
             #region 主界面

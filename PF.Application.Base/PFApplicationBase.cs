@@ -4,6 +4,7 @@ using PF.Application.Base.Services;
 using PF.Application.Base.ViewModels;
 using PF.Application.Base.Views;
 using PF.CommonTools.ServeTool;
+using PF.CommonTools.Speech;
 using PF.Core.Constants;
 using PF.Core.Entities.Communication;
 using PF.Core.Entities.Hardware;
@@ -22,6 +23,7 @@ using PF.Core.Interfaces.SecsGem.Command;
 using PF.Core.Interfaces.SecsGem.Communication;
 using PF.Core.Interfaces.SecsGem.DataBase;
 using PF.Core.Interfaces.SecsGem.Params;
+using PF.Core.Interfaces.Speech;
 using PF.Core.Interfaces.Station;
 using PF.Core.Interfaces.Sync;
 using PF.Core.Interfaces.Timer;
@@ -597,6 +599,7 @@ namespace PF.Application.Base
 
 
             containerRegistry.RegisterSingleton<IUserService, UserService>();
+            containerRegistry.RegisterSingleton<ISpeechService, SpeechService>();
 
             containerRegistry.RegisterDialog<MessageDialogView, MessageDialogViewModel>("MessageDialog");
             containerRegistry.RegisterDialog<InputDialogView, InputDialogViewModel>("InputDialog");

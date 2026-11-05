@@ -676,5 +676,54 @@ namespace PF.Modules.Debug
             [Description("重新加载全部硬件"), OperationLogCritical]
             public const string ReloadAllHardware = nameof(ReloadAllHardware);
         }
+
+        /// <summary>语音播报调试视图</summary>
+        public static class SpeechDebugView
+        {
+            [Description("切换语音"), OperationLogCritical]
+            public const string Voice = nameof(Voice);
+            [Description("音量"), OperationLogCritical]
+            public const string Volume = nameof(Volume);
+            [Description("语速"), OperationLogCritical]
+            public const string Rate = nameof(Rate);
+            [Description("静音开关"), OperationLogCritical]
+            public const string Mute = nameof(Mute);
+            [Description("试听当前设置")]
+            public const string Preview = nameof(Preview);
+            [Description("恢复默认设置"), OperationLogCritical]
+            public const string ResetSettings = nameof(ResetSettings);
+            [Description("播报测试文字")]
+            public const string TestText = nameof(TestText);
+            [Description("播报")]
+            public const string Speak = nameof(Speak);
+            [Description("插队播报")]
+            public const string SpeakHigh = nameof(SpeakHigh);
+            [Description("停止全部播报")]
+            public const string StopAll = nameof(StopAll);
+            [Description("播报常用语")]
+            public const string PlayPhrase = nameof(PlayPhrase);
+            [Description("切换常用语优先级")]
+            public const string TogglePhrasePriority = nameof(TogglePhrasePriority);
+            [Description("删除常用语"), OperationLogCritical]
+            public const string RemovePhrase = nameof(RemovePhrase);
+            [Description("新常用语文字")]
+            public const string NewPhraseText = nameof(NewPhraseText);
+            [Description("新常用语插队")]
+            public const string NewPhraseHigh = nameof(NewPhraseHigh);
+            [Description("添加常用语"), OperationLogCritical]
+            public const string AddPhrase = nameof(AddPhrase);
+            [Description("WAV 输出路径")]
+            public const string WavPath = nameof(WavPath);
+            [Description("浏览 WAV 输出路径")]
+            public const string BrowseWav = nameof(BrowseWav);
+            [Description("生成 WAV 文件")]
+            public const string GenerateWav = nameof(GenerateWav);
+            [Description("打开 WAV 所在文件夹")]
+            public const string OpenWavFolder = nameof(OpenWavFolder);
+            [Description("播报记录筛选")]
+            public const string RecordFilter = nameof(RecordFilter);
+            [Description("清空播报记录")]
+            public const string ClearRecords = nameof(ClearRecords);
+        }
     }
 }

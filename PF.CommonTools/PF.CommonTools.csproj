@@ -4,6 +4,7 @@
 	
 	<ItemGroup>
 		<PackageReference Include="System.ServiceProcess.ServiceController" />
+		<PackageReference Include="System.Speech" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -13,8 +14,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-11-05) — 新增语音播报服务 SpeechService（System.Speech，离线）
+
+[新增]
+- Speech\SpeechService：ISpeechService 的实现，基于 System.Speech（SAPI5），不依赖网络。
+  · Speak 入队立即返回；SpeakAsync 等这一句结束。全局串行播报，High 优先级插队并打断当前普通播报。
+  · 静音 / 音量（0~100）/ 语速（-10~10）/ 语音 / 常用语保存在 {ConfigPath}\speech_config.json：
+    修改后防抖 500ms 写盘（临时文件 + 替换），启动时加载；文件里的语音本机未安装时回退 zh-CN 并记 Warn。
+    配置路径未初始化的宿主照常播报，只是不保存。
+  · 播报记录：最近 200 条内存记录 + RecordUpdated 事件，含来源、结果、耗时。
+  · SaveToWaveFileAsync：文字转 WAV 文件，使用独立合成器，不占用扬声器和播报队列。
+  · 系统没有可用语音包或初始化失败时 IsAvailable=false，播报为空操作，不抛异常。
+- 新增依赖 System.Speech 10.0.10。
+
 v1.0.4 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
 
 [修复]
@@ -52,7 +66,7 @@ v1.0.2 (2026-07-07) — 修复 Release 下诊断日志被裁剪问题
 
 v1.0.1 - 框架初始独立版本
 		</PackageReleaseNotes>
-		<Description>通用工具集：EnumParameterExtensions、JSON 序列化、反射辅助工具</Description>
+		<Description>通用工具集：EnumParameterExtensions、JSON 序列化、反射辅助工具、语音播报</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	</PropertyGroup>
 

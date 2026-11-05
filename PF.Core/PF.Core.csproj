@@ -3,8 +3,24 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.34</Version>
+		<Version>1.0.35</Version>
 		<PackageReleaseNotes>
+v1.0.35 (2026-11-05) — 新增语音播报接口 ISpeechService
+
+[新增]
+- Interfaces/Speech/ISpeechService：
+  · 播报：Speak(text, priority, source) / SpeakAsync(text, priority, source, token) / CancelAll；
+    source 为调用方显式传入的来源（如工站名），只用于播报记录。
+  · 状态：IsAvailable / CurrentText / PendingHighCount / PendingNormalCount。
+  · 设置：IsMuted / Volume / Rate / CurrentVoice / GetInstalledVoices / SelectVoice / GetPhrases / SetPhrases /
+    ResetSettings / ConfigFilePath / LastSavedTime / SettingsSaved；修改后自动保存到 {ConfigPath}\speech_config.json。
+  · 记录：GetRecentRecords（最近 200 条，内存）/ ClearRecords / RecordUpdated 事件。
+  · 文件：SaveToWaveFileAsync。
+- Entities/Speech：SpeechRecord（播报记录快照）、SpeechPhrase（常用语）。
+- Enums：SpeechPriority（Normal / High）、SpeechStatus（排队中 / 播报中 / 已播完 / 被打断 / 已取消 / 静音丢弃 / 积压丢弃 / 失败）。
+- NavigationConstants.Views.SpeechDebugView。
+- 实现位于 PF.CommonTools（SpeechService），由 PF.Application.Base 注册为单例。
+
 v1.0.34 (2026-10-31) — 网络摄像机新增「抓图并落盘」接口约定
 
 [新增 — INetworkCamera 存图成员]
