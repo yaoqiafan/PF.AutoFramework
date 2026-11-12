@@ -165,6 +165,10 @@ public static class OperationLogKeysHalcon
         [OperationLogCritical]
         public const string ImportImage = nameof(ImportImage);
 
+        [Description("使用当前采集图像替换原图")]
+        [OperationLogCritical]
+        public const string UseCurrentImage = nameof(UseCurrentImage);
+
         [Description("全部重新生成")]
         public const string RegenerateAll = nameof(RegenerateAll);
 

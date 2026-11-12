@@ -73,9 +73,10 @@ namespace PF.Core.Interfaces.Device.Hardware.Card
         /// <param name="HomeAcc">回零加速度</param>
         /// <param name="HomeDec">回零减速度</param>
         /// <param name="HomeOffset">回零偏移量</param>
+        /// <param name="homeLowVelRatio">回零低速倍率（除数）：低速 = <paramref name="HomeVel"/> ÷ 本值，默认 10；小于 1 时按 10 处理</param>
         /// <param name="token">取消令牌</param>
         /// <returns></returns>
-        Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, CancellationToken token = default);
+        Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, double homeLowVelRatio = 10, CancellationToken token = default);
 
         /// <summary>指定轴绝对位置定位</summary>
         /// <param name="axisIndex">板卡内物理轴索引</param>

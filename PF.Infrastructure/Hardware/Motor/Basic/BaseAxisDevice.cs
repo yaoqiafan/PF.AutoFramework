@@ -277,7 +277,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = 0; return true; }
 
-            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffset, token).ConfigureAwait(false);
+            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffset, Param.HomeLowVelRatio, token).ConfigureAwait(false);
         }
 
         /// <summary>绝对位置定位</summary>

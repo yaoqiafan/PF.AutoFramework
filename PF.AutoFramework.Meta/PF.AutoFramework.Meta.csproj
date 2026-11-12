@@ -3,8 +3,22 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.52</Version>
+    <Version>1.0.53</Version>
     <PackageReleaseNotes>
+		v1.0.53 (2026-11-11) — 轴参数开放回零低速倍率；视觉资产包编辑器支持用当前采集图像替换原图
+
+		[新增 — PF.Core 1.0.35→1.0.36]
+		- AxisParam.HomeLowVelRatio（默认 10）；IMotionCard.HomeAxisAsync 新增 homeLowVelRatio 参数。
+
+		[变更 — PF.Infrastructure 1.0.34→1.0.35]
+		- 雷赛卡回零低速 = 回零速度 ÷ 倍率（原写死 ÷10）。
+
+		[新增 — PF.Modules.Debug 1.0.26→1.0.27]
+		- 轴参数弹窗新增「回零低速倍率」。
+
+		[新增 — PF.Modules.Halcon 1.1.1→1.1.2（不在元包依赖内，需单独引用）]
+		- 视觉资产包编辑器原图页「使用当前采集图像替换」（DialogParameters "CurrentImagePath" / "CurrentImageCaption"）。
+
 		v1.0.52 (2026-11-05) — 新增语音播报服务 ISpeechService（System.Speech，离线）
 
 		[新增 — PF.Core 1.0.34→1.0.35]

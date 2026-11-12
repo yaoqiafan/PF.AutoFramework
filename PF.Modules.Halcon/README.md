@@ -25,7 +25,7 @@ HalconDashboardView（侧边栏根入口）
 
 包格式、布局声明、依赖与状态规则见 `PF.Vision.Halcon` README 与框架仓库 `DOC/视觉资产包设计稿.md`；本弹窗是它的通用编辑界面。
 
-**打开**：`DialogParameters` 传 `"Layout"`（`VisionPackageLayout`，必需）+ `"PackagePath"`（string）或 `"PackageName"`（string，按 `VisionPackage.PathOf` 拼路径）——文件存在则打开，否则新建；`"ImagePath"`（string，可选）新建时预填第一张原图。关闭带回 `"PackagePath"`、`"Revision"`（int）、`"Saved"`（bool，本次是否保存过；保存过结果为 OK）。
+**打开**：`DialogParameters` 传 `"Layout"`（`VisionPackageLayout`，必需）+ `"PackagePath"`（string）或 `"PackageName"`（string，按 `VisionPackage.PathOf` 拼路径）——文件存在则打开，否则新建；`"ImagePath"`（string，可选）新建时预填第一张原图。`"CurrentImagePath"`（string，可选，v1.1.2 起）调用方当前那张图：给了原图页就多一个「使用当前采集图像替换」，与「导入 / 替换原图」走同一比对确认流程；`"CurrentImageCaption"`（string，可选）按钮下方的说明，缺省为文件名。关闭带回 `"PackagePath"`、`"Revision"`（int）、`"Saved"`（bool，本次是否保存过；保存过结果为 OK）。
 
 ```csharp
 var p = new DialogParameters { { "Layout", layout }, { "PackageName", "产品A" } };
@@ -39,7 +39,7 @@ DialogService.ShowDialog(HalconNavigationConstants.Dialogs.VisionPackageEditor, 
 
 - 左侧条目树按布局分组生成，状态符号：● 正常、◐ 需重新生成 / 需确认、○ 未建立、✕ 无效（或多余）；悬停看原因。
 - 右侧按条目类型切换编辑页：
-  - 原图：预览、尺寸/来源/存储方式、导入/替换（替换时按与当前图的比对结论提示）；
+  - 原图：预览、尺寸/来源/存储方式、导入/替换（替换时按与当前图的比对结论提示）；调用方传了 `"CurrentImagePath"` 时还可「使用当前采集图像替换」；
   - ROI：复用 `HalconRoiEditor` 在依赖的原图上画，「应用 ROI」写入会话，换图后「确认位置」；
   - 形状模型：建模参数（PropertyGrid）、生成、试找（可另选一张图）并叠加命中轮廓；
   - 参数（`Data<T>`）：按类型生成 PropertyGrid，显示自校验错误；

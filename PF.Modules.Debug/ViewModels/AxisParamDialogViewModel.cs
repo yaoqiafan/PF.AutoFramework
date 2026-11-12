@@ -60,7 +60,7 @@ namespace PF.Modules.Debug.ViewModels
             LogService.Info(
                 $"[轴参数] 用户[{CurrentUserName}] 确认修改轴参数 | " +
                 $"速度:{ParamInstence.Vel} 加速度:{ParamInstence.Acc} 减速度:{ParamInstence.Dec} " +
-                $"定位精度:{ParamInstence.PositioningAccuracy} 回零速度:{ParamInstence.HomeVel}",
+                $"定位精度:{ParamInstence.PositioningAccuracy} 回零速度:{ParamInstence.HomeVel} 回零低速倍率:{ParamInstence.HomeLowVelRatio}",
                 "操作日志");
 
             DialogParameters paras = new DialogParameters();
@@ -98,6 +98,7 @@ namespace PF.Modules.Debug.ViewModels
                 ORGVisEnabled = model.ORGVisEnabled,
                 HomeModel = model.HomeModel,
                 HomeVel = model.HomeVel,
+                HomeLowVelRatio = model.HomeLowVelRatio,
                 HomeAcc = model.HomeAcc,
                 HomeDec = model.HomeDec,
                 HomeOffset = model.HomeOffset,
@@ -128,6 +129,7 @@ namespace PF.Modules.Debug.ViewModels
                 ORGVisEnabled = viewModel.ORGVisEnabled,
                 HomeModel = viewModel.HomeModel,
                 HomeVel = viewModel.HomeVel,
+                HomeLowVelRatio = viewModel.HomeLowVelRatio,
                 HomeAcc = viewModel.HomeAcc,
                 HomeDec = viewModel.HomeDec,
                 HomeOffset = viewModel.HomeOffset,
@@ -322,10 +324,22 @@ namespace PF.Modules.Debug.ViewModels
             set { SetProperty(ref _homeVel, value); }
         }
 
+        private double _homeLowVelRatio = 10;
+        /// <summary>获取或设置回零低速倍率（除数）</summary>
+        [CategoryAttribute("C. 回零参数")]
+        [DisplayNameAttribute("6.回零低速倍率")]
+        [DescriptionAttribute("回零低速 = 回零速度 ÷ 本值，默认 10。低速用于回零第二段（反向慢速寻原点 / 寻 Z 相）；需 ≥ 1，小于 1 按 10 处理。")]
+        [BrowsableAttribute(true)]
+        public double HomeLowVelRatio
+        {
+            get { return _homeLowVelRatio; }
+            set { SetProperty(ref _homeLowVelRatio, value); }
+        }
+
         private double _homeAcc;
         /// <summary>获取或设置回零加速度</summary>
         [CategoryAttribute("C. 回零参数")]
-        [DisplayNameAttribute("6.回零加速度")]
+        [DisplayNameAttribute("7.回零加速度")]
         [BrowsableAttribute(true)]
         public double HomeAcc
         {
@@ -336,7 +350,7 @@ namespace PF.Modules.Debug.ViewModels
         private double _homeDec;
         /// <summary>获取或设置回零减速度</summary>
         [CategoryAttribute("C. 回零参数")]
-        [DisplayNameAttribute("7.回零减速度")]
+        [DisplayNameAttribute("8.回零减速度")]
         [BrowsableAttribute(true)]
         public double HomeDec
         {
@@ -347,7 +361,7 @@ namespace PF.Modules.Debug.ViewModels
         private double _homeOffest;
         /// <summary>获取或设置回零偏移</summary>
         [CategoryAttribute("C. 回零参数")]
-        [DisplayNameAttribute("8.回零偏移")]
+        [DisplayNameAttribute("9.回零偏移")]
         [BrowsableAttribute(true)]
         public double HomeOffset
         {

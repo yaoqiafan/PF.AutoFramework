@@ -134,7 +134,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         /// <summary>
         /// 异步触发单轴回原点 (Homing)
         /// </summary>
-        public override async Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, CancellationToken token = default)
+        public override async Task<bool> HomeAxisAsync(int axisIndex, int HomeModel, int HomeVel, int HomeAcc, int HomeDec, int HomeOffset, double homeLowVelRatio = 10, CancellationToken token = default)
         {
             try
             {
@@ -154,16 +154,25 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                 var hodec = HomeDec / equiv;
                 var homeOffset = HomeOffset / equiv;
 
+                // 回零低速 = 高速 ÷ 倍率（轴参数 HomeLowVelRatio，默认 10）；小于 1 会让低速不低于高速，按 10 处理
+                if (!(homeLowVelRatio >= 1))
+                {
+                    HardwareLogger.Warn($"轴[{axisIndex}]回零低速倍率 {homeLowVelRatio} 无效（需 ≥ 1），按 10 处理");
+                    homeLowVelRatio = 10;
+                }
+                double highVel = hovel.Value;
+                double lowVel = highVel / homeLowVelRatio;
+
                 // 根据速度和加速度计算加速时间 (Tacc) 与减速时间 (Tdec)
-                // 公式：T = V / A。这里为了平滑处理，使用了最高速度的 90% 来计算加减速时间
-                var Tacc = ((double)hovel - (double)hovel / 10.0) / (double)hoacc;
-                var Tdec = ((double)hovel - (double)hovel / 10.0) / (double)hodec;
+                // 公式：T = V / A，V 取低速到高速的速度差
+                var Tacc = (highVel - lowVel) / (double)hoacc;
+                var Tdec = (highVel - lowVel) / (double)hodec;
 
                 // 1. 设置回原点参数曲线
-                short ret = CardAPI.LTDMC.nmc_set_home_profile((ushort)CardIndex, (ushort)axisIndex, (ushort)HomeModel, hovel.Value / 10, hovel.Value, Tacc, Tdec, homeOffset.Value);
+                short ret = CardAPI.LTDMC.nmc_set_home_profile((ushort)CardIndex, (ushort)axisIndex, (ushort)HomeModel, lowVel, highVel, Tacc, Tdec, homeOffset.Value);
                 if (ret != 0)
                 {
-                    throw new Exception($"设置轴回零参数失败，函数名：nmc_set_home_profile，返回值：{ret}");
+                    throw new Exception($"设置轴回零参数失败，函数名：nmc_set_home_profile，返回值：{ret}（高速 {highVel} / 低速 {lowVel} 脉冲/秒，倍率 {homeLowVelRatio}）");
                 }
 
                 // 2. 清除轴先前的停止原因状态

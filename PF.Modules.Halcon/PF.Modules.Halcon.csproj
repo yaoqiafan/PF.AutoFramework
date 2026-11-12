@@ -4,8 +4,19 @@
   <PropertyGroup>
     <IsModuleProject>true</IsModuleProject>
     <IsPackable>true</IsPackable>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <PackageReleaseNotes>
+v1.1.2 (2026-11-11) — 视觉资产包编辑器原图页支持「使用当前采集图像替换」
+
+[新增]
+- DialogParameters 新增 "CurrentImagePath"（string，可选）与 "CurrentImageCaption"（string，可选）：
+  给了路径，原图页在「导入 / 替换原图…」下方多一个「使用当前采集图像替换」，并显示说明（缺省为文件名）；
+  点击后与文件导入走同一比对确认流程（尺寸相同 ROI 保留待确认、尺寸不同 ROI 失效），文件已不存在时提示。没给路径时不显示。
+- 操作日志键 OperationLogKeysHalcon.VisionPackageEditorDialog.UseCurrentImage。
+
+[变更 — 接口]
+- IPackageEditorHost 新增只读属性 CurrentImagePath / CurrentImageCaption（编辑器主窗口已实现；自行实现该接口的需补上）。
+
 v1.1.1 (2026-10-29) — 视觉总览页加页面切换过渡
 
 [变更]

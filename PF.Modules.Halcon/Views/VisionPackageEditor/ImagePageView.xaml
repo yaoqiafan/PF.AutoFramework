@@ -42,6 +42,24 @@
                 Content="导入 / 替换原图…"
                 oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.ImportImage}"
                 Style="{DynamicResource ButtonPrimary}" />
+            <!--  调用方传了当前图像（DialogParameters "CurrentImagePath"）才显示  -->
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding HasCurrentImage, Converter={StaticResource VpkBoolToVis}}">
+                <Button
+                    Padding="10,6"
+                    HorizontalAlignment="Stretch"
+                    Command="{Binding UseCurrentImageCommand}"
+                    Content="使用当前采集图像替换"
+                    oplog:OperationLog.Key="{x:Static local:OperationLogKeysHalcon+VisionPackageEditorDialog.UseCurrentImage}"
+                    Style="{DynamicResource ButtonDefault}"
+                    ToolTip="{Binding CurrentImageText}" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Text="{Binding CurrentImageText}"
+                    TextTrimming="CharacterEllipsis"
+                    ToolTip="{Binding CurrentImageText}" />
+            </StackPanel>
             <TextBlock
                 Margin="0,10,0,0"
                 FontSize="12"

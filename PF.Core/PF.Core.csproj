@@ -3,8 +3,18 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.35</Version>
+		<Version>1.0.36</Version>
 		<PackageReleaseNotes>
+v1.0.36 (2026-11-11) — 轴参数开放回零低速倍率
+
+[新增]
+- AxisParam.HomeLowVelRatio（回零低速倍率，除数，默认 10）：回零低速 = HomeVel ÷ 本值。
+  老配置没有该字段时读出默认 10，与原先写死的"高速 / 10"一致。
+
+[变更 — 接口签名]
+- IMotionCard.HomeAxisAsync 在 HomeOffset 之后新增参数 double homeLowVelRatio = 10（位于 token 之前）。
+  自行实现 IMotionCard 的项目需同步修改签名；按命名参数传 token 的调用方不受影响。
+
 v1.0.35 (2026-11-05) — 新增语音播报接口 ISpeechService
 
 [新增]

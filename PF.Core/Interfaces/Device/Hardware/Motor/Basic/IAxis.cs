@@ -273,6 +273,13 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         public double HomeVel { get; set; }
 
         /// <summary>
+        /// 回零低速倍率（除数）：回零低速 = <see cref="HomeVel"/> ÷ 本值，默认 10。
+        /// <para>低速用于回零第二段（压原点后反向慢速寻原点 / 寻 Z 相），高速即 <see cref="HomeVel"/>。
+        /// 升级前的老配置没有这个字段，读出来是默认 10，与原先写死的"高速 / 10"一致；小于 1 的值由运动控制卡按 10 处理。</para>
+        /// </summary>
+        public double HomeLowVelRatio { get; set; } = 10;
+
+        /// <summary>
         /// 回零加速度
         /// </summary>
         public double HomeAcc { get; set; }

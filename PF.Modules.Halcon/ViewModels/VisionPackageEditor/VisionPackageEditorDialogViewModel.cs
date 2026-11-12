@@ -46,6 +46,12 @@ public sealed class VisionPackageEditorDialogViewModel : PFDialogViewModelBase, 
     /// <inheritdoc/>
     public VisionPackageLayout Layout => _layout ?? throw new InvalidOperationException("布局尚未指定。");
 
+    /// <inheritdoc/>
+    public string? CurrentImagePath { get; private set; }
+
+    /// <inheritdoc/>
+    public string? CurrentImageCaption { get; private set; }
+
     /// <summary>条目树。</summary>
     public ObservableCollection<PackageTreeNode> Nodes { get; } = [];
 
@@ -142,6 +148,8 @@ public sealed class VisionPackageEditorDialogViewModel : PFDialogViewModelBase, 
         if (string.IsNullOrWhiteSpace(_packagePath) && !string.IsNullOrWhiteSpace(name))
             _packagePath = VisionPackage.PathOf(name);
         string? imagePath = parameters.GetValue<string>("ImagePath");
+        CurrentImagePath    = parameters.GetValue<string>("CurrentImagePath");
+        CurrentImageCaption = parameters.GetValue<string>("CurrentImageCaption");
 
         bool exists = _packagePath != null && File.Exists(_packagePath);
         if (exists)

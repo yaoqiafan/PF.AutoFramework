@@ -11,8 +11,14 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.26</Version>
+		<Version>1.0.27</Version>
 		<PackageReleaseNotes>
+v1.0.27 (2026-11-11) — 轴参数弹窗新增「回零低速倍率」（依赖 PF.Core 1.0.36）
+
+[新增]
+- 轴参数弹窗「C. 回零参数」新增「6.回零低速倍率」（回零低速 = 回零速度 ÷ 本值，默认 10），其后各项序号顺延；
+  确认修改的操作日志同时记录该值。
+
 v1.0.26 (2026-11-05) — 新增「语音播报调试」页面（仅超级用户）
 
 [新增]

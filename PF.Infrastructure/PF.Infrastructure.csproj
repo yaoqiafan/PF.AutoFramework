@@ -71,8 +71,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.34</Version>
+		<Version>1.0.35</Version>
 		<PackageReleaseNotes>
+v1.0.35 (2026-11-11) — 雷赛卡回零低速改按轴参数倍率计算（依赖 PF.Core 1.0.36）
+
+[变更]
+- BaseMotionCard.HomeAxisAsync 签名随 IMotionCard 增加 homeLowVelRatio；BaseAxisDevice.HomeAsync 传入 Param.HomeLowVelRatio。
+- LTMDCMotionCard.HomeAxisAsync：nmc_set_home_profile 的低速 = 高速 ÷ 倍率（原写死 ÷10），加减速时间按"高速 − 低速"计算；
+  倍率小于 1（含 0）时按 10 处理并记警告日志；设置失败的异常信息带上高速 / 低速 / 倍率。默认倍率 10 时行为与之前完全一致。
+
 v1.0.34 (2026-11-03) — 海康网络摄像机原生库精简为 6 个文件（真机实测），外部项目改由 PF.Vendor.Infrastructure 分发
 
 [变更 — 原生库部署]

@@ -37,6 +37,15 @@ public interface IPackageEditorHost
     /// <summary>给原图条目导入图片（含与当前图比对、替换确认）。</summary>
     Task ImportImageAsync(string imageEntryId, string path);
 
+    /// <summary>
+    /// 调用方当前那张图的文件路径（DialogParameters <c>"CurrentImagePath"</c>，可选）。非空时原图页显示
+    /// 「使用当前采集图像替换」，点了按 <see cref="ImportImageAsync"/> 同一流程导入；为 null 时不显示该按钮。
+    /// </summary>
+    string? CurrentImagePath { get; }
+
+    /// <summary>当前图的说明（DialogParameters <c>"CurrentImageCaption"</c>，可选），显示在按钮下方；没给时显示文件名。</summary>
+    string? CurrentImageCaption { get; }
+
     /// <summary>删除条目（含下游影响提示）。</summary>
     Task RemoveEntryAsync(string entryId);
 }
@@ -149,11 +158,23 @@ public sealed class ImagePageViewModel : EntryPageViewModel
     public ImagePageViewModel(IPackageEditorHost host, string entryId) : base(host, entryId)
     {
         ImportCommand = new DelegateCommand(ExecuteImport);
+        UseCurrentImageCommand = new DelegateCommand(ExecuteUseCurrentImage, () => HasCurrentImage);
         UpdateInfo();
     }
 
     /// <summary>导入/替换原图。</summary>
     public DelegateCommand ImportCommand { get; }
+
+    /// <summary>用调用方传入的当前图像（<see cref="IPackageEditorHost.CurrentImagePath"/>）导入/替换原图。</summary>
+    public DelegateCommand UseCurrentImageCommand { get; }
+
+    /// <summary>调用方是否传了当前图像（决定「使用当前采集图像替换」是否显示）。</summary>
+    public bool HasCurrentImage => !string.IsNullOrWhiteSpace(Host.CurrentImagePath);
+
+    /// <summary>当前图像说明：调用方给的说明，没给时为文件名。</summary>
+    public string CurrentImageText => !HasCurrentImage ? string.Empty
+        : !string.IsNullOrWhiteSpace(Host.CurrentImageCaption) ? Host.CurrentImageCaption!
+        : Path.GetFileName(Host.CurrentImagePath!);
 
     private string _info = string.Empty;
     /// <summary>原图信息。</summary>
@@ -220,6 +241,18 @@ public sealed class ImagePageViewModel : EntryPageViewModel
         };
         if (dlg.ShowDialog() != true) return;
         await Host.ImportImageAsync(EntryId, dlg.FileName);
+    }
+
+    private async void ExecuteUseCurrentImage()
+    {
+        var path = Host.CurrentImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (!File.Exists(path))
+        {
+            await Host.AskAsync($"当前采集图像文件已不存在：{path}", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        await Host.ImportImageAsync(EntryId, path);
     }
 
     /// <inheritdoc/>
