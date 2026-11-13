@@ -3,8 +3,19 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.53</Version>
+    <Version>1.0.54</Version>
     <PackageReleaseNotes>
+		v1.0.54 (2026-11-12) — 修复基恩士 IV 相机连接失败一次后再也连不上
+
+		[新增 — PF.Core 1.0.36→1.0.37]
+		- IClient 新增 WaitSentReceiveUntilAsync（按结束符收完整报文）与 IsAsyncReceiveMode。自行实现 IClient 的项目需补齐。
+
+		[修复 — PF.Infrastructure 1.0.35→1.0.36]
+		- KeyenceIntelligent_IVCamera：握手失败后无法重连、超时后响应错位、取消后孤儿读吃响应、并发指令互抢、半包截断、复位后不重连等；
+		  DetermineProgramExists 区分"不存在"与"通讯失败"，并保证探测后切回原程式；Trigger 返回值去首尾空白。
+
+		子包版本对照：PF.Core 1.0.36→1.0.37 / PF.Infrastructure 1.0.35→1.0.36；其余子包本次无变化。
+
 		v1.0.53 (2026-11-11) — 轴参数开放回零低速倍率；视觉资产包编辑器支持用当前采集图像替换原图
 
 		[新增 — PF.Core 1.0.35→1.0.36]

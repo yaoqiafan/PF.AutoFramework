@@ -61,6 +61,9 @@ namespace PF.Infrastructure.Communication.TCP
         // 新增：用于记录当前是否启用了后台异步接收
         private bool _isAsyncMode;
 
+        /// <inheritdoc/>
+        public bool IsAsyncReceiveMode => _isAsyncMode;
+
         // 断开事件去重标记：主动断开与接收循环的异常路径可能并发各走一次 OnDisconnected，
         // 事件每个连接周期只对外发一次（成功连接时归零）
         private int _disconnectNotified;
@@ -387,6 +390,50 @@ namespace PF.Infrastructure.Communication.TCP
             catch (OperationCanceledException)
             {
                 throw new TimeoutException($"接收响应超时 ({timeoutMs}ms)。");
+            }
+        }
+
+        /// <summary>
+        /// 发送数据并持续接收直到收到结束符或超时（仅在 IsAsync=false 时可用）。
+        /// 超时是整条报文的总时限，不是单次读取的时限。
+        /// </summary>
+        public async Task<byte[]> WaitSentReceiveUntilAsync(byte[] data, byte terminator, int timeoutMs)
+        {
+            if (_isAsyncMode)
+                throw new InvalidOperationException("当前处于异步接收模式，无法使用同步阻塞读取，请在连接时将 IsAsync 设为 false。");
+
+            if (!await SendAsync(data).ConfigureAwait(false))
+                throw new Exception("数据发送失败，无法等待响应。");
+
+            using var cts = new CancellationTokenSource(timeoutMs);
+            var buffer = new byte[ReceiveBufferSize];
+            using var ms = new MemoryStream();
+
+            try
+            {
+                while (true)
+                {
+                    // 读取过程中可能被并发断开，每轮重新取流
+                    var stream = _stream ?? throw new InvalidOperationException("客户端未连接");
+                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false);
+
+                    if (bytesRead == 0)
+                    {
+                        OnDisconnected("服务器断开连接", false);
+                        await CleanupConnection().ConfigureAwait(false);
+                        return Array.Empty<byte>();
+                    }
+
+                    ms.Write(buffer, 0, bytesRead);
+                    if (Array.IndexOf(buffer, terminator, 0, bytesRead) >= 0)
+                        return ms.ToArray();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw new TimeoutException(ms.Length == 0
+                    ? $"接收响应超时 ({timeoutMs}ms)。"
+                    : $"接收响应超时 ({timeoutMs}ms)，已收到 {ms.Length} 字节但未收到结束符。");
             }
         }
 

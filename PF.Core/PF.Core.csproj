@@ -3,8 +3,16 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.36</Version>
+		<Version>1.0.37</Version>
 		<PackageReleaseNotes>
+v1.0.37 (2026-11-12) — IClient 新增按结束符收包与接收模式查询
+
+[新增 — 接口成员，破坏性]
+- IClient.WaitSentReceiveUntilAsync(byte[] data, byte terminator, int timeoutMs)：发送后持续接收直到收到结束符（含）或超时，
+  解决单次读取只拿到半包的问题；超时为整条报文总时限，超时抛 TimeoutException，对端关闭返回空数组；仅 IsAsync=false 时可用。
+- IClient.IsAsyncReceiveMode：当前连接是否为后台异步接收模式，依赖同步收发的上层据此判断连接是否可用。
+  自行实现 IClient 的项目需补齐这两个成员（框架内唯一实现 TCPClient 已同步，见 PF.Infrastructure 1.0.36）。
+
 v1.0.36 (2026-11-11) — 轴参数开放回零低速倍率
 
 [新增]

@@ -71,8 +71,31 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.35</Version>
+		<Version>1.0.36</Version>
 		<PackageReleaseNotes>
+v1.0.36 (2026-11-12) — 修复基恩士 IV 相机连接失败一次后再也连不上（依赖 PF.Core 1.0.37）
+
+[修复 — KeyenceIntelligent_IVCamera]
+- 连接失败后无法重连：TCP 已通但握手（PR/OF）失败时 TCPClient 停留在 Connected，之后每次 ConnectAsync 都抛
+  "Client is already connected"，只能重启软件。现连接前先清理残留连接，握手失败/取消时断开。
+- 指令超时后相机的迟到响应滞留缓冲区导致后续指令全部错位：通讯失败（超时/IO/对端关闭）即断开，下一条指令自动重连。
+- 取消时底层读仍挂在流上，会吃掉下一条指令的响应：等底层读结束后再释放指令锁。
+- 新增"发+收"整体指令锁，调试页触发与工站流程并发时不再互抢响应。
+- 按 \r 结束符收完整报文（WaitSentReceiveUntilAsync），不再因半包截断识别结果。
+- 触发通道被以异步接收模式连接（如 TCP 调试页）时，断开后按同步模式重连接管。
+- 复位不再调 ReconnectAsync（AutoReconnect=false 时只断不连，复位后相机反而断开），改为真正重连并恢复 OF 输出格式。
+- ChangeResultFormat 失败返回 false 而非抛异常（原调用方的 if (!await ...) 分支走不到）。
+- 超时参数 ≤0 时兜底 5000ms（原为 0 时所有指令立即超时）。
+- Trigger 返回值去除首尾空白（空格 / \r / \n）。
+- 程式列表 Excel 遇空行/空单元格不再导致整个列表为空。
+
+[变更 — KeyenceIntelligent_IVCamera.DetermineProgramExists 语义]
+- 区分"相机回 ER（程式不存在）→ false"与"通讯失败 / 探测后无法切回原程式 → 抛 InvalidOperationException"；
+  发出过 PW 即保证尝试切回原程式（含取消、超时），切回失败间隔 1s 重试共 3 次；原程式号无法解析时不探测。
+
+[新增 — TCPClient]
+- 实现 IClient.WaitSentReceiveUntilAsync / IsAsyncReceiveMode。
+
 v1.0.35 (2026-11-11) — 雷赛卡回零低速改按轴参数倍率计算（依赖 PF.Core 1.0.36）
 
 [变更]
