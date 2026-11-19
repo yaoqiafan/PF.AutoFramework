@@ -99,6 +99,9 @@ namespace PF.SecsGem.Service
             // 缓冲区从何时起有残留但拼不出完整消息；成功提取或缓冲区清空时归零
             private DateTime? _stalledSince;
 
+            /// <summary>最近一次提取时遇到非法长度头并已清空缓冲区（由调用方读取后记日志并复位）</summary>
+            public bool InvalidLengthDetected { get; set; }
+
             /// <summary>
             /// 向缓冲区添加数据
             /// </summary>
@@ -126,6 +129,17 @@ namespace PF.SecsGem.Service
                             Array.Reverse(lengthBytes);
 
                         int messageLength = BitConverter.ToInt32(lengthBytes, 0);
+
+                        // HSMS 消息至少含 10 字节头部；上限防异常大包。此前不校验：长度为负时 Take/RemoveRange
+                        // 抛异常，坏字节永远留在缓冲区头部，此后每次收包都重复抛错（滞留清理因异常走不到）
+                        if (messageLength < 10 || messageLength > 10 * 1024 * 1024)
+                        {
+                            _buffer.Clear();
+                            _stalledSince = null;
+                            InvalidLengthDetected = true;
+                            break;
+                        }
+
                         int totalLength = 4 + messageLength;
 
                         if (_buffer.Count >= totalLength)
@@ -319,6 +333,13 @@ namespace PF.SecsGem.Service
                 // 否则 Host 连得上却无人应答报文，只能干等 T3 超时。
                 // 外层的 ID 守卫同时保证：迟到的旧连接断开事件不会误关新会话刚开启的监听
                 await _hsms.StopAsync("主程序已断开本机通道");
+
+                // StopAsync 先摘订阅再断开主机连接（避免把主动关闭记成主机异常断线），所以
+                // SecsGemServer_ClientDisconnected 不会被调用——Host 连接状态必须在这里手动复位。
+                // 此前不复位：主程序重连后收到的状态帧仍是"已连接"，照常发报文，全部因无主机连接被丢弃
+                _SecsStatus = false;
+                this.SecsGemClientId = string.Empty;
+                _secsGemClientBuffers.Clear();
             }
         }
 
@@ -362,6 +383,11 @@ namespace PF.SecsGem.Service
                 buffer.AppendData(e.Data);
 
                 var completeMessages = buffer.ExtractCompleteMessages();
+                if (buffer.InvalidLengthDetected)
+                {
+                    buffer.InvalidLengthDetected = false;
+                    _commLogger.Warn($"客户端 {e.ClientId} 收到非法 HSMS 长度头，已清空缓冲区重新同步");
+                }
 
                 // 滞留检测下沉到每个缓冲区自身，避免旧实现中跨客户端共享全局标志的误判
                 if (buffer.ClearIfStalled(TimeSpan.FromSeconds(20)))
@@ -427,12 +453,9 @@ namespace PF.SecsGem.Service
                 {
                     await Task.Delay(10, token);
 
-                    if (this.SecsGemMessageQueue.IsEmpty)
-                    {
-                        continue;
-                    }
-
-                    if (this.SecsGemMessageQueue.TryDequeue(out var data))
+                    // 一轮取空队列：此前每 10ms 只处理一条，Host 突发多条报文（批量 S1F3、连发事件应答等）时
+                    // 吞吐被限制在约 100 条/秒，排在后面的报文转发延迟累积，逼近 T3
+                    while (this.SecsGemMessageQueue.TryDequeue(out var data))
                     {
                         await ProcessSecsGemMessage(data, token);
                     }
@@ -600,18 +623,27 @@ namespace PF.SecsGem.Service
 
             if (_secsGemSystemParam == null)
             {
-                // 数据库无系统配置时 IPAddress/Port 均不可用，继续执行只会 NRE 后静默空转
-                _commLogger.Error("未能从数据库加载 SecsGem 系统配置（SystemConfigs 为空），服务无法启动，请先配置后重启服务");
-                return;
+                // 不再直接退出工作线程：此前新装机器上服务先于配置导入启动即 return，进程还在但什么也不做，
+                // 主程序导入配置后也必须手动重启服务。现照常启动本机通道——主程序每次接入都会重读配置
+                // （LocationServer_ClientConnected），配置就绪后自然开启 HSMS 监听
+                _commLogger.Warn("未能从数据库加载 SecsGem 系统配置（SystemConfigs 为空）。本机通道照常启动，" +
+                                 "请在主程序中导入系统配置，主程序重连后自动生效");
             }
 
             try
             {
                 LocationServer = new TcpServer("服务本地服务器");
-                await LocationServer.StartAsync("127.0.0.1", 6800);
+                // 先订阅再启动：主程序本机通道自动重连（3s 一次），启动与订阅之间接入的连接会丢失
+                // ClientConnected——状态帧不推、HSMS 监听不开
                 LocationServer.DataReceived += LocationServer_DataReceived;
                 LocationServer.ClientConnected += LocationServer_ClientConnected;
                 LocationServer.ClientDisconnected += LocationServer_ClientDisconnected;
+                if (!await LocationServer.StartAsync("127.0.0.1", 6800))
+                {
+                    // 此前不检查返回值，端口被占用（另一服务实例、残留进程）时照样打印"待命中"
+                    _commLogger.Error("本机通道 127.0.0.1:6800 启动失败（端口可能被占用：另一个 SecsGemService 实例或残留进程），服务无法工作");
+                    return;
+                }
 
                 // HSMS 监听不在此处开启：改由主程序接入回环通道时按需开启（见 LocationServer_ClientConnected）。
                 // 事件只订阅一次——HsmsListener 内部反复创建/销毁 TcpServer 实例对这里透明。
@@ -662,9 +694,9 @@ namespace PF.SecsGem.Service
         {
             try
             {
+                // ReadAsync 本身在无数据时挂起等待，不需要再 Delay；此前每条固定等 10ms，突发时协议日志积压
                 while (true)
                 {
-                    await Task.Delay(10, token);
                     var info = await SecsGemWriteLog.Reader.ReadAsync(token);
                     WriteCustomLog(info);
                 }

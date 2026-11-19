@@ -72,7 +72,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -95,13 +95,17 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
 
         /// <summary>
-        /// 获取指定轴的当前实际位置（转换为工程单位，如 mm 或度）
+        /// 获取指定轴的当前实际位置（工程单位）。
+        /// <para>单位约定：本驱动所有 <c>_unit</c> 系列 API 一律直接收发工程单位，脉冲换算由板卡按轴的脉冲当量
+        /// （equiv，1 工程单位对应的脉冲数，dmc_set_equiv / 雷赛 Motion 设置）自行完成。
+        /// 此前在外层又除/乘了一次 equiv，抵消了板卡的换算：equiv=1 时无影响，≠1 时位置实为脉冲、
+        /// 速度却是工程单位，锁存读数又是工程单位，口径互相对不上。</para>
         /// </summary>
         public override double? GetAxisCurrentPosition(int axisIndex)
         {
@@ -109,19 +113,11 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             try
             {
                 double pos = 0;
-                double? equiv = this.GetCurEquiv(axisIndex);
-                if (equiv == null)
-                {
-                    return null;
-                }
-                // 获取以单位 (Unit) 为基准的位置
                 short ret = CardAPI.LTDMC.dmc_get_position_unit((ushort)CardIndex, (ushort)axisIndex, ref pos);
                 if (ret != 0)
                 {
                     throw new Exception($"获取轴当前位置错误，函数名：dmc_get_position_unit，返回值：{ret}");
                 }
-                // 乘以脉冲当量转换为实际工程物理量
-                pos *= equiv.Value;
                 return pos;
             }
             catch (Exception ex)
@@ -148,7 +144,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                     throw new Exception($"获取轴[{axisIndex}]脉冲当量失败");
                 }
 
-                // 将传入的工程单位参数转换为控制卡底层所需的脉冲单位
+                // TODO(equiv≠1 前必须核对)：nmc_set_home_profile 不是 _unit 版 API，需按雷赛手册确认其速度/偏移单位。
+                // 若收脉冲，应为"工程单位 × equiv"，而这里是除以 equiv（方向存疑）。现场 equiv=1，两者结果相同，暂不改动。
                 var hovel = HomeVel / equiv;
                 var hoacc = HomeAcc / equiv;
                 var hodec = HomeDec / equiv;
@@ -192,7 +189,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return false;
             }
         }
@@ -320,7 +317,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -334,15 +331,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             {
                 if (IsSimulated) { return Task.FromResult(true); }
 
-                double? equiv = this.GetCurEquiv(axisIndex);
-                if (!equiv.HasValue)
-                {
-                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
-                }
-
                 double tAcc = (velocity - velocity / 10.0) / (double)Acc;
                 double tDec = (velocity - velocity / 10.0) / (double)Dec;
-                targetPosition /= equiv.Value; // 转换为底层脉冲数
+                // 目标位置为工程单位，直接交给 dmc_pmove_unit（板卡按 equiv 换算成脉冲），见 GetAxisCurrentPosition 注释
 
                 ushort pos_mode = 1; // 运动模式：1 = 绝对坐标模式
 
@@ -370,7 +361,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -384,15 +375,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             {
                 if (IsSimulated) { return Task.FromResult(true); }
 
-                double? equiv = this.GetCurEquiv(axisIndex);
-                if (!equiv.HasValue)
-                {
-                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
-                }
-
                 double tAcc = (velocity - velocity / 10.0) / (double)Acc;
                 double tDec = (velocity - velocity / 10.0) / (double)Dec;
-                distance /= equiv.Value; // 转换为底层脉冲数
+                // 距离为工程单位，直接交给 dmc_pmove_unit（板卡按 equiv 换算成脉冲）
 
                 ushort pos_mode = 0; // 运动模式：0 = 相对坐标模式
 
@@ -420,7 +405,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -495,7 +480,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -519,7 +504,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return false;
             }
         }
@@ -638,7 +623,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return false;
             }
         }
@@ -699,7 +684,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return false;
             }
         }
@@ -720,7 +705,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.CompletedTask;
             }
         }
@@ -775,7 +760,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -838,7 +823,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -942,7 +927,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -1018,15 +1003,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                     throw new Exception("PTT 数据表参数错误：times 与 positions 长度须一致且不少于 2 个点");
                 }
 
-                double? equiv = this.GetCurEquiv(axisIndex);
-                if (!equiv.HasValue)
-                {
-                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
-                }
-
-                double[] pulsePositions = positions.Select(p => p / equiv.Value).ToArray();
-
-                short ret = CardAPI.LTDMC.dmc_ptt_table_unit((ushort)CardIndex, (ushort)axisIndex, (uint)times.Length, times, pulsePositions);
+                // 位置为工程单位，直接交给 _unit 版 API（板卡按 equiv 换算）
+                short ret = CardAPI.LTDMC.dmc_ptt_table_unit((ushort)CardIndex, (ushort)axisIndex, (uint)times.Length, times, positions);
                 if (ret != 0)
                 {
                     throw new Exception($"传送 PTT 数据表失败 函数名：dmc_ptt_table_unit  返回值：{ret}");
@@ -1035,7 +1013,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -1054,15 +1032,8 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
                     throw new Exception("PTS 数据表参数错误：times / positions / percents 长度须一致且不少于 2 个点");
                 }
 
-                double? equiv = this.GetCurEquiv(axisIndex);
-                if (!equiv.HasValue)
-                {
-                    throw new Exception($"获取轴[{axisIndex}] 脉冲当量失败");
-                }
-
-                double[] pulsePositions = positions.Select(p => p / equiv.Value).ToArray();
-
-                short ret = CardAPI.LTDMC.dmc_pts_table_unit((ushort)CardIndex, (ushort)axisIndex, (uint)times.Length, times, pulsePositions, percents);
+                // 位置为工程单位，直接交给 _unit 版 API（板卡按 equiv 换算）
+                short ret = CardAPI.LTDMC.dmc_pts_table_unit((ushort)CardIndex, (ushort)axisIndex, (uint)times.Length, times, positions, percents);
                 if (ret != 0)
                 {
                     throw new Exception($"传送 PTS 数据表失败 函数名：dmc_pts_table_unit  返回值：{ret}");
@@ -1071,7 +1042,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -1099,7 +1070,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -1141,7 +1112,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }
@@ -1199,7 +1170,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return Task.FromResult(false);
             }
         }

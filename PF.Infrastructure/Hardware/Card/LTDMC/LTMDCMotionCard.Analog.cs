@@ -75,7 +75,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return false;
             }
         }
@@ -119,7 +119,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return false;
             }
         }

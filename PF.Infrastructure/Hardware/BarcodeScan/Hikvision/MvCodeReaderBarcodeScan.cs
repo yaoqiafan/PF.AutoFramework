@@ -136,12 +136,11 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
                     return BarcodeScanResult.Fail($"海康MvCodeReader扫码枪软触发失败，错误码={ret}。");
                 }
 
-                Task waitTask = Task.Run(() => _resultEvent.Wait(), token);
-                Task timeoutTask = Task.Delay(TimeOutMs, token);
-                Task finished = await Task.WhenAny(waitTask, timeoutTask);
+                // 有超时的等待：此前 Task.Run(() => _resultEvent.Wait()) 无超时，取图超时后该线程一直挂到下次出图
+                bool signaled = await WaitSignalAsync(_resultEvent, TimeOutMs, token);
 
                 // 只要收到图像帧就视为触发成功：读到码返回条码列表，未读到码返回空列表，两种情况都带图
-                if (finished == waitTask && _resultEvent.IsSet)
+                if (signaled)
                 {
                     if (LastCodes.Count == 0)
                         HardwareLogger.Debug("海康MvCodeReader扫码枪本次触发未识别到条码，返回空条码及图像。");
@@ -155,7 +154,7 @@ namespace PF.Infrastructure.Hardware.BarcodeScan.Hikvision
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error(ex.Message, ex);
                 return BarcodeScanResult.Fail(ex.Message);
             }
             finally

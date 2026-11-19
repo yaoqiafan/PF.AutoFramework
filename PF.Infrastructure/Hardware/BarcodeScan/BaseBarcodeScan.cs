@@ -77,5 +77,14 @@ namespace PF.Infrastructure.Hardware.BarcodeScan
         public virtual Task<bool> FetchLatestImageAsync(CancellationToken token = default)
             => Task.FromResult(LastImageData != null && LastImageData.Length > 0);
 
+        /// <summary>
+        /// 在线程池上等待信号，最多 <paramref name="timeoutMs"/> 毫秒；收到信号返回 true，超时返回 false，取消抛 OperationCanceledException。
+        /// <para>替代此前的 <c>Task.WhenAny(Task.Run(() =&gt; evt.Wait()), Task.Run(() =&gt; Thread.Sleep(timeout)))</c>：
+        /// 那种写法每次都占两个线程池线程——Sleep 线程无论成败都睡满超时，无超时的 Wait 线程在超时后一直挂到下次收到数据。
+        /// 扫码频繁、偶尔不应答时线程池被逐渐占满，整个程序的异步操作随之变慢。</para>
+        /// </summary>
+        protected static Task<bool> WaitSignalAsync(ManualResetEventSlim signal, int timeoutMs, CancellationToken token)
+            => Task.Run(() => signal.Wait(timeoutMs, token), token);
+
     }
 }

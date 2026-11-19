@@ -59,11 +59,19 @@ public class Program
         }
 
         var host = CreateHostBuilder(args).Build();
-        // 确保数据库已创建
-        using (var scope = host.Services.CreateScope())
+        // 确保数据库已创建。此前在 try 之外：新机器上项目配置目录还不存在时 SQLite 无法建文件，
+        // 未处理异常直接崩进程，startup-error.log 里什么也没有——而它正是服务起不来时唯一的排查依据
+        try
         {
+            Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
+            using var scope = host.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<SecsGemDbContext>();
             dbContext?.Database.EnsureCreated();
+        }
+        catch (Exception ex)
+        {
+            FailFast($"打开/创建 SECS/GEM 配置库失败：{filePath}。{ex.Message}");
+            return;
         }
         host.Run();
     }
