@@ -242,8 +242,7 @@ namespace PF.Modules.Debug.ViewModels
             config.ConnectionParameters["StopBits"] = paramItem.StopBits;
             await _commManager.SaveConfigAsync(config);
 
-            AppendLog("[参数] 已保存，正在重新加载全部通讯实例...");
-            await _commManager.ReloadAllAsync();
+            if (!await PF.Modules.Debug.Models.CommunicationReloadHelper.ReloadAsync(_commManager, MessageService, AppendLog)) return;
 
             UnsubscribeEvents();
             _serial = _commManager.ActiveCommunications.FirstOrDefault(c => c.InstanceId == _instanceId) as ISerialCommunication;

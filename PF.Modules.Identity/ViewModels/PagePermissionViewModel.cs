@@ -150,7 +150,14 @@ namespace PF.Modules.Identity.ViewModels
             try
             {
                 var users = await _userService.GetUserListAsync();
-                Users = new ObservableCollection<UserInfo>(users);
+
+                // 只列出等级低于自己的账号（超级用户全部可见），与「用户管理」页同一门槛。
+                // 此前列出全部账号：能进本页的人可以给自己或更高等级的账号勾选任意页面，
+                // 绕过等级体系拿到本不该有的页面权限
+                var current = _userService.CurrentUser;
+                var currentLevel = current?.Root ?? UserLevel.Null;
+                var visible = users.Where(u => currentLevel == UserLevel.SuperUser || u.Root < currentLevel);
+                Users = new ObservableCollection<UserInfo>(visible);
 
                 if (Users != null && Users.Any()) SelectedUser = Users.First();
             }
@@ -219,15 +226,36 @@ namespace PF.Modules.Identity.ViewModels
             IsLoading = true;
             try
             {
-                var currentAllowed = PermissionList.Where(p => p.IsAuthorized).Select(p => p.ViewName).ToList();
+                // 自己没有的页面不能授予别人，也不能替别人取消：这类页面保持该账号原来的状态
+                var original = SelectedUser.AccessibleViews ?? new List<string>();
+                int untouched = 0;
+                var currentAllowed = new List<string>();
+                foreach (var p in PermissionList)
+                {
+                    bool granted;
+                    if (_userService.HasPagePermission(p.ViewName))
+                    {
+                        granted = p.IsAuthorized;
+                    }
+                    else
+                    {
+                        granted = original.Contains(p.ViewName);
+                        if (granted != p.IsAuthorized) untouched++;
+                    }
+                    if (granted) currentAllowed.Add(p.ViewName);
+                }
                 SelectedUser.AccessibleViews = currentAllowed;
                 bool isSuccess = await _userService.SaveUserAsync(SelectedUser);
 
                 if (isSuccess)
                 {
                     HasUnsavedDefaults = false;
-                    _uiLogger.Info($"用户 [{SelectedUser.UserName}] 权限配置（{currentAllowed.Count} 个页面）已持久化到数据库");
-                    MessageService.ShowMessage($"用户 [{SelectedUser.UserName}] 权限配置已保存！", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _uiLogger.Info($"用户 [{CurrentUserName}] 修改了 [{SelectedUser.UserName}] 的页面权限（{currentAllowed.Count} 个页面）并持久化到数据库");
+                    LoadPermissionsForUser(SelectedUser); // 回显实际保存的结果（未生效的勾选会被还原）
+                    MessageService.ShowMessage(
+                        $"用户 [{SelectedUser.UserName}] 权限配置已保存！" +
+                        (untouched > 0 ? $"\n\n其中 {untouched} 个页面当前账号自己没有权限，不能授予或取消，已保持原状。" : string.Empty),
+                        "保存成功", MessageBoxButton.OK, untouched > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
                 }
                 else
                 {

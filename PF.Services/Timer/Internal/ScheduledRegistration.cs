@@ -53,7 +53,7 @@ namespace PF.Services.Timer.Internal
             {
                 ScheduleType.Daily   => true,
                 ScheduleType.Weekly  => now.DayOfWeek == DayOfWeek!.Value,
-                ScheduleType.Monthly => now.Day == DayOfMonth!.Value,
+                ScheduleType.Monthly => now.Day == EffectiveDayOfMonth(now),
                 _                    => false
             };
         }
@@ -69,9 +69,16 @@ namespace PF.Services.Timer.Internal
             {
                 ScheduleType.Daily   => true,
                 ScheduleType.Weekly  => now.DayOfWeek == DayOfWeek!.Value,
-                ScheduleType.Monthly => now.Day == DayOfMonth!.Value,
+                ScheduleType.Monthly => now.Day == EffectiveDayOfMonth(now),
                 _                    => false
             };
         }
+
+        /// <summary>
+        /// 当月实际触发日：配置的日期超过当月天数时取月末（如每月 31 号在 4 月取 30 号）。
+        /// 此前在小月/2 月永远不触发。
+        /// </summary>
+        private int EffectiveDayOfMonth(DateTime now)
+            => Math.Min(DayOfMonth!.Value, DateTime.DaysInMonth(now.Year, now.Month));
     }
 }

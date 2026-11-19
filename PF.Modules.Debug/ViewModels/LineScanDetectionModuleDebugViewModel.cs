@@ -332,7 +332,8 @@ namespace PF.Modules.Debug.ViewModels
         {
             InitializeModuleCommand = new DelegateCommand(() => RunAsync("初始化模组", async () =>
             {
-                if (SelectedModule != null) await SelectedModule.InitializeAsync();
+                // 调试页单独初始化：没有后续回零流程，初始化后立即恢复健康监控
+                if (SelectedModule != null) await SelectedModule.InitializeStandaloneAsync();
                 RefreshModuleInfo();
                 RefreshPointNames();
                 await RefreshFrameHeightAsync();
@@ -617,6 +618,15 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>统一的异步命令外壳：吞掉异常并落到日志栏与顶部反馈，不让 async void 击穿进程。</summary>
         private async void RunAsync(string opName, Func<Task> action)
         {
+            // 初始化/复位/走点/扫描都会动轴和相机，运行中这套模组归工站使用。
+            // 停止不拦（任何时候都要能停），刷新点位只读不动硬件
+            if (opName is not ("停止模组" or "刷新点位与帧高")
+                && !DebugOperationGuard.EnsureHardwareOperationAllowed(MessageService, opName))
+            {
+                DebugMessage = $"设备运行中，未执行{opName}";
+                return;
+            }
+
             try
             {
                 DebugMessage = $"{opName}中...";

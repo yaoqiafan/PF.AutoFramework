@@ -92,9 +92,10 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>初始化板卡调试 ViewModel</summary>
         public CardDebugViewModel()
         {
-            ConnectCommand    = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
-            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
-            ResetCommand      = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
+            // 断开/复位运动控制卡会让卡上所有轴和 IO 同时失效，运行中禁止
+            ConnectCommand    = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("连接板卡")) await _baseDevice.ConnectAsync(CancellationToken.None); });
+            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("断开板卡")) await _baseDevice.DisconnectAsync(); });
+            ResetCommand      = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("复位板卡")) await _baseDevice.ResetAsync(CancellationToken.None); });
             SimulateAlarmCommand = new DelegateCommand(() =>
             {
                 _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.MotionCardBusError, "调试页面手动模拟板卡通讯报警");
@@ -135,6 +136,8 @@ namespace PF.Modules.Debug.ViewModels
             base.OnNavigatedFrom(navigationContext);
             _pollingTimer.Stop();
         }
+
+        private bool Allowed(string action) => PF.Modules.Debug.Models.DebugOperationGuard.EnsureHardwareOperationAllowed(MessageService, action);
 
         // ── 定时轮询 ──────────────────────────────────────────────────────────
 

@@ -462,8 +462,7 @@ namespace PF.Modules.Debug.ViewModels
             config.ConnectionParameters["InMemoryReceiveThresholdMb"] = channelParam.InMemoryReceiveThresholdMb.ToString();
             await _commManager.SaveConfigAsync(config);
 
-            AppendLog("[参数] 已保存，正在重新加载全部通讯实例...");
-            await _commManager.ReloadAllAsync();
+            if (!await PF.Modules.Debug.Models.CommunicationReloadHelper.ReloadAsync(_commManager, MessageService, AppendLog)) return;
 
             // 重载后旧实例已被释放，必须重新从管理服务里取回刷新后的实例并重新订阅事件
             _pollTimer.Stop();

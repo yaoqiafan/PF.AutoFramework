@@ -3,8 +3,47 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>1.0.54</Version>
+    <Version>1.0.55</Version>
     <PackageReleaseNotes>
+		v1.0.55 (2026-11-18) — 新增模拟量 IO（AI/AO）
+
+		[新增 — PF.Core 1.0.37→1.0.38]
+		- IAnalogIOController / IAnalogCard / IAnalogCarrier / IAnalogScanSource（预留）、通道配置模型与枚举、
+		  HardwareCategory.AnalogIO、报警码 HW_AIO_001 / HW_AIO_002（预留）。
+
+		[新增 — PF.Infrastructure 1.0.36→1.0.37]
+		- AnalogChannelEngine、CardAnalogIODevice、EtherCatAnalogIO；BaseIODevice 可作模拟量父设备；
+		  LTMDCMotionCard 实现模拟量原语（⚠ 未上机验证）；BaseMechanism.EnsureAnalogChannelsAsync。
+
+		[新增 — PF.Modules.Debug 1.0.27→1.0.28]
+		- 模拟量 IO 调试页（实时监控 / AO 写出 / 仿真注入 / 通道配置 + 预设库）。
+
+		[新增 / 修复 — PF.Modules.Parameter 1.0.13→1.0.14]
+		- EtherCatAnalogIO 参数视图（节点号）。
+		- 修复：参数页改硬件参数会冲掉视图不编辑的连接参数（如 AxisParam）；只保存真正改过的项；
+		  改用户名留下旧账号；新增/改名重名静默覆盖；外部改参数自动重载丢失未保存编辑；切换分类静默丢弃修改；
+		  未保存新增行删不掉；对话框确认失败仍按已修改关闭。
+
+		[修复 — PF.Core 1.0.38 / PF.Infrastructure 1.0.37 基础层]
+		- 点位表原子写入 + 读失败备份（此前断电可导致示教点位被空表覆盖）；点表加锁。
+		- 初始化/复位失败与超时、业务异常均带真实报警码上报（此前初始化报警时报警列表可能为空）。
+		- 设备连接失败统一报警；健康监控抑制按持有者计数并在初始化结束时兜底恢复（此前可能永不报掉线）。
+		- 消费项目注意：调试页手动初始化模组请改调 InitializeStandaloneAsync；
+		  旧报警码 ERR_CONN_FAILED / ERR_RESET_FAILED / ERR_HEALTH_CHECK 改为 HW_DEV_001~003。
+
+		[修复 — PF.Services 1.0.9→1.0.10 / PF.Data 1.0.4→1.0.5 / PF.Application.Base 1.0.13→1.0.14]
+		- 新建用户账号重启后不再被参数清理删除；其余废弃参数删除逐条记日志。
+		- 设备自恢复不再触发工站无人值守的自动复位（人工清除报警仍触发局部复位）。
+		- 生产数据：一次写库失败不再导致此后全部写入失败；"最近 N 条"查询修正；中文不再转义。
+		- 报警历史保存运行时信息；硬件/通讯热重载按挂载顺序断开、串行化。
+		- 通讯调试页保存参数改为确认后联动重载全部硬件（PF.Modules.Debug）。
+
+		消费项目接入：App.xaml.cs 注册 "EtherCatAnalogIO" 工厂（参照 Demo Shell），在硬件配置里加设备即可。
+
+		子包版本对照：PF.Core 1.0.37→1.0.38 / PF.Infrastructure 1.0.36→1.0.37 / PF.Modules.Debug 1.0.27→1.0.28 /
+		PF.Modules.Parameter 1.0.13→1.0.14 / PF.Services 1.0.9→1.0.10 / PF.Data 1.0.4→1.0.5 /
+		PF.Application.Base 1.0.13→1.0.14；其余子包本次无变化。
+
 		v1.0.54 (2026-11-12) — 修复基恩士 IV 相机连接失败一次后再也连不上
 
 		[新增 — PF.Core 1.0.36→1.0.37]

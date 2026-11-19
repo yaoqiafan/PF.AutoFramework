@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
 using PF.Infrastructure.Hardware;
 using PF.Infrastructure.Hardware.Motor.Basic;
 using PF.Modules.Debug.Dialogs;
+using PF.Modules.Debug.Models;
 using PF.UI.Infrastructure.PrismBase;
 using Prism.Commands;
 using System;
@@ -27,6 +28,7 @@ namespace PF.Modules.Debug.ViewModels
         private BaseDevice _baseDevice;
         private DispatcherTimer _pollingTimer;
         private CancellationTokenSource _cts;
+        private bool _isJogging;
         private readonly IParamService _paramService;
 
         /// <summary>初始化轴调试 ViewModel</summary>
@@ -108,6 +110,26 @@ namespace PF.Modules.Debug.ViewModels
             base.OnNavigatedFrom(navigationContext);
             _pollingTimer.Stop();
             _cts?.Cancel();
+
+            StopJogIfActive("离开页面");
+        }
+
+        /// <summary>
+        /// 点动兜底停轴。点动只在按钮松开时停；按住期间按钮丢了鼠标捕获（报警弹窗、切换窗口、触摸屏抬手丢事件）
+        /// 或页面被移走（空闲降权、运行中自动退出调试页——外层区域换页时内层页面收不到 OnNavigatedFrom），
+        /// 松开事件不会再到达按钮，轴会一直走到限位。由按钮 LostMouseCapture、视图 Unloaded、离开导航三处调用。
+        /// </summary>
+        public void StopJogIfActive(string reason)
+        {
+            if (!_isJogging || _axis == null) return;
+            _isJogging = false;
+            var axis = _axis;
+            LogService?.Warn($"[轴调试] {reason}时点动仍在进行，已自动停止轴 [{DeviceName}]", "Debug");
+            _ = Task.Run(async () =>
+            {
+                try { await axis.StopAsync(); }
+                catch (Exception ex) { LogService?.Error($"[轴调试] 自动停止点动失败：{ex.Message}", "Debug", ex); }
+            });
         }
 
         #endregion
@@ -122,9 +144,13 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>获取或设置设备描述</summary>
         public string DeviceDescription { get => _deviceDescription; set => SetProperty(ref _deviceDescription, value); }
 
-        private int  _currentPosition;
+        private double _currentPosition;
         /// <summary>获取或设置当前位置</summary>
-        public int  CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
+        /// <remarks>
+        /// 必须是 double：「示教」把它直接写进点位。此前是 int，小数部分被截掉，
+        /// 以毫米为单位的项目示教 12.7 存成 12，差 0.7mm。
+        /// </remarks>
+        public double CurrentPosition { get => _currentPosition; set => SetProperty(ref _currentPosition, value); }
 
         private bool _isMoving;
         /// <summary>获取或设置是否运动中</summary>
@@ -237,6 +263,8 @@ namespace PF.Modules.Debug.ViewModels
         public DelegateCommand JogNegativeCommand { get; private set; }
         /// <summary>轴停止命令</summary>
         public DelegateCommand AxisStop { get; private set; }
+        /// <summary>点动按钮失去鼠标捕获时的兜底停轴命令（仅在点动中才停）</summary>
+        public DelegateCommand JogCaptureLostCommand { get; private set; }
         /// <summary>模拟硬件报警命令</summary>
         public DelegateCommand SimulateAlarmCommand { get; private set; }
 
@@ -255,40 +283,50 @@ namespace PF.Modules.Debug.ViewModels
             // ===== 基础硬件命令 =====
             ShowAxisParamDialog = new DelegateCommand(() =>
             {
+                // 确认后参数立即替换到运行中的轴上（速度、软限位、回零参数），工站下一次运动就用新值
+                if (_axis == null || !Allowed("修改轴参数")) return;
                 var param = new DialogParameters { { "Data", _axis.Param } };
                 DialogService.ShowDialog(nameof(AxisParamDialog), param, ValueChangeCallBack);
             });
 
 
-            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(CancellationToken.None); });
-            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
-            EnableCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.EnableAsync(); });
-            DisableCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.DisableAsync(); });
-            HomeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.HomeAsync(CancellationToken.None); });
+            // 运动 / 使能 / 连接类命令统一过机台状态守卫：运行中这根轴归工站线程控制。
+            // 停止类命令（StopCommand / AxisStop）不过守卫，任何时候都必须能停。
+            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("连接轴")) await _baseDevice.ConnectAsync(CancellationToken.None); });
+            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("断开轴")) await _baseDevice.DisconnectAsync(); });
+            EnableCommand = new DelegateCommand(async () => { if (_axis != null && Allowed("使能轴")) await _axis.EnableAsync(); });
+            DisableCommand = new DelegateCommand(async () => { if (_axis != null && Allowed("去使能轴")) await _axis.DisableAsync(); });
+            HomeCommand = new DelegateCommand(async () => { if (_axis != null && Allowed("回原点")) await _axis.HomeAsync(CancellationToken.None); });
             StopCommand = new DelegateCommand(async () =>
             {
                 _cts?.Cancel();
+                _isJogging = false;
                 if (_axis != null) await _axis.StopAsync();
             });
-            ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(CancellationToken.None); });
+            ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("复位轴")) await _baseDevice.ResetAsync(CancellationToken.None); });
 
             MoveAbsoluteCommand = new DelegateCommand(async () =>
             {
-                if (_axis == null) return;
+                if (_axis == null || !Allowed("运动轴")) return;
                 RefreshCancellationToken();
                 await _axis.MoveAbsoluteAsync(TargetPosition, AbsVelocity, AbsVelocity * 5, AbsVelocity * 5, 0.08, _cts.Token);
             });
 
             MoveRelativeCommand = new DelegateCommand(async () =>
             {
-                if (_axis == null) return;
+                if (_axis == null || !Allowed("运动轴")) return;
                 RefreshCancellationToken();
                 await _axis.MoveRelativeAsync(RelativeDistance, RelVelocity, RelVelocity * 5, RelVelocity * 5, 0.08, _cts.Token);
             });
 
-            JogPositiveCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, true, JogVelocity * 5, JogVelocity * 5); });
-            JogNegativeCommand = new DelegateCommand(async () => { if (_axis != null) await _axis.JogAsync(JogVelocity, false, JogVelocity * 5, JogVelocity * 5); });
-            AxisStop = new DelegateCommand(async () => { if (_axis != null) await _axis.StopAsync(); });
+            JogPositiveCommand = new DelegateCommand(async () => await StartJogAsync(true));
+            JogNegativeCommand = new DelegateCommand(async () => await StartJogAsync(false));
+            AxisStop = new DelegateCommand(async () =>
+            {
+                _isJogging = false;
+                if (_axis != null) await _axis.StopAsync();
+            });
+            JogCaptureLostCommand = new DelegateCommand(() => StopJogIfActive("点动按钮失去鼠标捕获"));
             SimulateAlarmCommand = new DelegateCommand(() =>
             {
                 _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.ServoError, "调试页面手动模拟伺服报警");
@@ -322,7 +360,7 @@ namespace PF.Modules.Debug.ViewModels
 
             GoToPointCommand = new DelegateCommand(async () =>
             {
-                if (_axis == null || SelectedPoint == null) return;
+                if (_axis == null || SelectedPoint == null || !Allowed("运动轴")) return;
                 RefreshCancellationToken();
                 await _axis.MoveToPointAsync(SelectedPoint.Name, _cts.Token);
             });
@@ -363,9 +401,25 @@ namespace PF.Modules.Debug.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                    // 此前只写调试输出：参数已在内存生效但没存上，界面不提示，重启后改动丢失
+                    LogService?.Error($"[轴调试] 保存轴参数失败：{ex.Message}", "Debug", ex);
+                    MessageService.ShowMessage(message: $"轴参数已在内存生效，但保存失败，重启后会丢失：\n{ex.Message}",
+                        title: "保存失败", buttons: MessageBoxButton.OK, image: MessageBoxImage.Error);
                 }
             }
+        }
+
+        private bool Allowed(string action) => DebugOperationGuard.EnsureHardwareOperationAllowed(MessageService, action);
+
+        /// <summary>
+        /// 按下点动按钮开始连续运动，松开（AxisStop）停止。
+        /// 记下点动状态，供离开页面时兜底停轴：点动是"按住才走"的语义，人已经不在这个页面上，轴不能继续走。
+        /// </summary>
+        private async Task StartJogAsync(bool positive)
+        {
+            if (_axis == null || !DebugOperationGuard.EnsureJogAllowed(MessageService, "点动轴")) return;
+            _isJogging = true;
+            await _axis.JogAsync(JogVelocity, positive, JogVelocity * 5, JogVelocity * 5);
         }
 
         private void RefreshCancellationToken()
@@ -383,7 +437,7 @@ namespace PF.Modules.Debug.ViewModels
             if (_axis == null) return;
             var axisio = _axis.AxisIOStatus;
             IsConnected = _axis.IsConnected;
-            CurrentPosition = (int )(_axis.CurrentPosition ?? 0);
+            CurrentPosition = _axis.CurrentPosition ?? 0;
             IsMoving = axisio?.Moving ?? false;
             IsEnabled = axisio?.SVO ?? false;
             IsPositiveLimit = axisio?.PEL ?? false;

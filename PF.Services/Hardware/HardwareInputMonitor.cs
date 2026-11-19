@@ -312,7 +312,7 @@ namespace PF.Services.Hardware
                         // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
                         int prev = Interlocked.Exchange(ref _consecutiveStandardReadFails, 0);
                         if (prev >= MonitorFailThreshold)
-                            _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+                            _alarmService?.ClearAlarmAutomatically("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
                     }
                     else
                     {
@@ -369,7 +369,7 @@ namespace PF.Services.Hardware
                         // 本周期读取成功：重置失败计数，若此前已达阈值则自动清除自警
                         int prev = Interlocked.Exchange(ref _consecutiveSafetyReadFails, 0);
                         if (prev >= MonitorFailThreshold)
-                            _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
+                            _alarmService?.ClearAlarmAutomatically("HardwareInputMonitor", AlarmCodes.Safety.MonitorFailure);
                     }
                     else
                     {
@@ -413,8 +413,9 @@ namespace PF.Services.Hardware
                     bool muted = await _paramService.GetParamAsync<bool>(state.Config.MuteParamKey, false)
                         .ConfigureAwait(false);
                     state.Config.IsMuted = muted;
+                    // 屏蔽状态跨重启保持：此前只记一条 Info，现场不易察觉安全门检测处于关闭状态
                     if (muted)
-                        _logger.Info($"【硬件输入监控】安全门 [{state.Config.Name}] 已屏蔽（调试模式）。");
+                        _logger.Warn($"【硬件输入监控】安全门 [{state.Config.Name}] 处于屏蔽状态（调试模式），开门检测与门锁均不生效，调试完成后请解除屏蔽。");
                 }
                 catch (Exception ex)
                 {
@@ -583,7 +584,7 @@ namespace PF.Services.Hardware
             var notClosed = GetOpenArmedDoors();
             if (notClosed.Count == 0)
             {
-                _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed);
+                _alarmService?.ClearAlarmAutomatically("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed);
                 // 锁定监控型门报警后一解锁信号就恒为"开"，永远等不到恢复沿，报警要在这里补发恢复事件清掉
                 foreach (var state in _safetyInputs.Where(s => s.WasTriggeredWhileEnabled && IsLockMonitored(s)))
                     PublishRestore(state);
@@ -694,7 +695,7 @@ namespace PF.Services.Hardware
                 if (closed)
                 {
                     state.LastValue = signal!.Value;
-                    _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed);
+                    _alarmService?.ClearAlarmAutomatically("HardwareInputMonitor", AlarmCodes.Safety.DoorNotClosed);
                     if (state.WasTriggeredWhileEnabled) PublishRestore(state);
                     _logger.Info($"【硬件输入监控】安全门 [{name}] 已上锁并确认关闭。");
                     return true;
@@ -826,7 +827,7 @@ namespace PF.Services.Hardware
             else if (ok && _lockWriteFailed)
             {
                 _lockWriteFailed = false;
-                _alarmService?.ClearAlarm("HardwareInputMonitor", AlarmCodes.Safety.DoorLockFailure);
+                _alarmService?.ClearAlarmAutomatically("HardwareInputMonitor", AlarmCodes.Safety.DoorLockFailure);
             }
         }
 

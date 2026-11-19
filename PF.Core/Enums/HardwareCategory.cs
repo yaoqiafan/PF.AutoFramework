@@ -27,5 +27,7 @@
         FrameGrabber,
         /// <summary> 辅助编码器（挂在运动控制卡下单独使用，或挂在某根轴下随轴分组）</summary>
         AuxEncoder,
+        /// <summary> 模拟量 IO（AI/AO，挂在运动控制卡下单独使用，或挂在某个 IO 模块下随其分组）</summary>
+        AnalogIO,
     }
 }

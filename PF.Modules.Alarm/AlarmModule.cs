@@ -48,9 +48,15 @@ namespace PF.Modules.Alarm
         /// <summary>模块初始化时加载报警字典并注册菜单</summary>
         public async void OnInitialized(IContainerProvider containerProvider)
         {
+            // 菜单与操作日志键必须同步注册、放在任何 await 之前：async void 在第一个真正让出的 await 处就返回，
+            // 之后的代码可能晚于宿主的 PermissionHelper.Initialize / 主窗口菜单刷新执行，报警中心就不在菜单里
+            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
+            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
+            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
+
             try
             {
-                // 初始化报警字典（反射扫描 + 数据库加载）
+                // 宿主（PFApplicationBase）已在 Splash 第一步加载过字典，这里幂等兜底，供不继承 PFApplicationBase 的宿主使用
                 var dictService = containerProvider.Resolve<IAlarmDictionaryService>();
                 await dictService.InitializeAsync();
 
@@ -60,12 +66,6 @@ namespace PF.Modules.Alarm
             {
                 _uiLogger.Error("报警模块初始化失败", ex);
             }
-
-            // 扫描当前程序集，自动注册菜单导航项
-            var navMenuService = containerProvider.Resolve<INavigationMenuService>();
-            navMenuService.RegisterAssembly(Assembly.GetExecutingAssembly());
-
-            OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
     }
 }

@@ -24,6 +24,9 @@ namespace PF.Modules.Debug.Views
         public AxisDebugView()
         {
             InitializeComponent();
+
+            // 外层区域换页时（空闲降权、运行中自动退出调试页）本页收不到 OnNavigatedFrom，靠 Unloaded 兜底停点动
+            Unloaded += (_, _) => (DataContext as ViewModels.AxisDebugViewModel)?.StopJogIfActive("页面卸载");
         }
     }
 }

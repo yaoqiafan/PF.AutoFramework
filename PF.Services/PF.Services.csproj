@@ -16,8 +16,39 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.9</Version>
+		<Version>1.0.10</Version>
 		<PackageReleaseNotes>
+v1.0.10 (2026-11-18) — 服务层修复合集（依赖 PF.Core 1.0.38 / PF.Data 1.0.5 / PF.Infrastructure 1.0.37）
+
+[行为变更 — 设备自恢复不再自动复位工站]
+- AlarmService 新增 ClearAlarmAutomatically：只撤销报警，不发硬件复位请求。主控的子站自恢复、安全门/监控恢复、
+  HardwareInputMonitor 的各类恢复都改走它。此前设备掉线后自动恢复会让主控在无人操作时对报警态工站执行
+  ExecuteResetAsync（可能含回零），与"自恢复只撤销显示、仍需操作员复位"的约定相悖。
+  报警中心人工清除（ClearAlarm）仍触发局部复位；ClearAllActiveAlarms（复位成功后）不再逐条发复位请求。
+
+[修复 — 数据丢失]
+- ProductionDataService：一次写库失败（如 database is locked）后失败实体残留在长生命周期 DbContext，此后所有生产数据
+  都写不进去直到重启，且失败只输出到调试器 → 失败后清空跟踪并记 Error（含数据内容）。
+- ProductionDataService：QueryAsync 的 MaxCount 在排序前截断，"最近 N 条"实际是任意（通常最早的）N 条 → 先排序再截断。
+- ProductionDataService：JSON 不再把中文转义为 \uXXXX（关键字搜中文搜不到、导出不可读）；仅对新记录生效。
+  Excel 导出遇到超过 32767 字符的单元格不再整体失败（截断并提示改用 CSV）。
+- ParamService：未注册的 POCO 参数类型落到系统参数表时记 Warn（每类型一次）——该表启动时会清理不在默认参数集里的行。
+- AlarmService：运行时信息（失败原因等）随报警历史持久化（新列 RuntimeMessage，老库年度分表自动补列），
+  历史查询优先显示；年度分表 DDL 每年份每进程只执行一次（此前每条报警执行 5 条 DDL）。
+- TimerPersistence：并发触发时串行 + 原子写入，避免写坏后丢失全部末次执行时间。
+
+[修复 — 热重载]
+- HardwareManagerService.ReloadAllAsync：子设备先于父设备断开（此前按字典顺序，可能先关板卡）；重载串行化；
+  单个设备释放异常不再中断整轮重载。
+- CommunicationManagerService.ReloadAllAsync：同样串行化并隔离单实例异常。
+
+[修复 — 其他]
+- TowerLightDoWriter：IO 板卡不可用的警告只在状态变化时记一次（闪烁时此前每 0.5 s 一条）；板卡重新连上后按当前状态重写输出。
+- TowerLightService：蜂鸣器屏蔽参数改按实体全名写入（此前写的是 Demo 的枚举名 "E_Params"，框架内无法解析）。
+- HardwareInputMonitor：安全门处于屏蔽状态时启动日志升为 Warn。
+- AppTimerService：每月任务配置的日期超过当月天数时取月末（此前每月 31 号在小月永不触发）。
+- LogService：异常堆栈不再在日志文件里出现两遍。
+
 v1.0.9 (2026-10-23) — 报警码首次写库 + 清除等级以数据库为准，新增报警清除权限服务；门锁手动接管（含行为变更）
 
 [变更 — AlarmDictionaryService 报警码加载]

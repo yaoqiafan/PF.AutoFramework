@@ -106,6 +106,7 @@ namespace PF.Services.Alarm
                 IsActive = true,
                 Category = info.Category,
                 Message = runtimeMessage ?? info.Message,  // 运行时消息优先
+                RuntimeMessage = runtimeMessage,
                 MessageEn = info.MessageEn,
                 Severity = info.Severity,
                 ImagePath = info.ImagePath,
@@ -121,28 +122,42 @@ namespace PF.Services.Alarm
 
             EnqueuePersist(new PersistJob.Insert(record));
 
-            _logger?.Warn($"[报警触发] [{info.Severity}] [{errorCode}] {source}: {info.Message}", "AlarmService");
+            _logger?.Warn($"[报警触发] [{info.Severity}] [{errorCode}] {source}: {record.Message}", "AlarmService");
             AlarmTriggered?.Invoke(this, record);
             _publisher?.PublishAlarmTriggered(record);
             return true;
         }
 
         /// <inheritdoc/>
-        public void ClearAlarm(string source)
+        public void ClearAlarm(string source) => ClearBySource(source, requestHardwareReset: true);
+
+        /// <inheritdoc/>
+        public void ClearAlarm(string source, string errorCode)
+        {
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(errorCode)) return;
+            ClearAlarmInternal((source, errorCode), DateTime.Now, requestHardwareReset: true);
+        }
+
+        /// <inheritdoc/>
+        public void ClearAlarmAutomatically(string source, string? errorCode = null)
+        {
+            if (errorCode == null)
+            {
+                ClearBySource(source, requestHardwareReset: false);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(errorCode)) return;
+            ClearAlarmInternal((source, errorCode), DateTime.Now, requestHardwareReset: false);
+        }
+
+        private void ClearBySource(string source, bool requestHardwareReset)
         {
             if (string.IsNullOrWhiteSpace(source)) return;
 
             var now = DateTime.Now;
             var keys = _activeMap.Keys.Where(k => k.Source == source).ToList();
             foreach (var key in keys)
-                ClearAlarmInternal(key, now);
-        }
-
-        /// <inheritdoc/>
-        public void ClearAlarm(string source, string errorCode)
-        {
-            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(errorCode)) return;
-            ClearAlarmInternal((source, errorCode), DateTime.Now);
+                ClearAlarmInternal(key, now, requestHardwareReset);
         }
 
         /// <inheritdoc/>
@@ -151,7 +166,7 @@ namespace PF.Services.Alarm
             var now = DateTime.Now;
             var keys = _activeMap.Keys.ToList();
             foreach (var key in keys)
-                ClearAlarmInternal(key, now);
+                ClearAlarmInternal(key, now, requestHardwareReset: false);
 
             _logger?.Info("所有活跃报警已清除（复位操作）", "AlarmService");
         }
@@ -210,7 +225,9 @@ namespace PF.Services.Alarm
                             ClearTime = entity.ClearTime,
                             IsActive = entity.IsActive,
                             Category = info.Category,
-                            Message = info.Message,
+                            // 有运行时信息（如具体失败原因）优先显示，与活跃报警一致
+                            Message = string.IsNullOrEmpty(entity.RuntimeMessage) ? info.Message : entity.RuntimeMessage,
+                            RuntimeMessage = entity.RuntimeMessage,
                             MessageEn = info.MessageEn,
                             Severity = info.Severity,
                             ImagePath = info.ImagePath,
@@ -234,7 +251,7 @@ namespace PF.Services.Alarm
 
         // ── 私有方法 ────────────────────────────────────────────────────────
 
-        private void ClearAlarmInternal((string Source, string ErrorCode) key, DateTime clearTime)
+        private void ClearAlarmInternal((string Source, string ErrorCode) key, DateTime clearTime, bool requestHardwareReset)
         {
             if (!_activeMap.TryRemove(key, out var state)) return;
 
@@ -243,14 +260,20 @@ namespace PF.Services.Alarm
 
             EnqueuePersist(new PersistJob.UpdateClear(state.Record));
 
-            _logger?.Info($"[报警清除] [{key.ErrorCode}] {key.Source}", "AlarmService");
+            _logger?.Info($"[报警清除] [{key.ErrorCode}] {key.Source}{(requestHardwareReset ? string.Empty : "（自动）")}", "AlarmService");
             AlarmCleared?.Invoke(this, state.Record);
             _publisher?.PublishAlarmCleared(state.Record);
-            _publisher?.PublishHardwareResetRequested(new HardwareResetRequest
+
+            // 只有人工清除才请求局部复位。此前自动清除（设备自恢复）也发请求，
+            // 主控会在无人操作时对报警态工站执行 ExecuteResetAsync（可能含回零动作）
+            if (requestHardwareReset)
             {
-                Source = key.Source,
-                ErrorCodes = new[] { key.ErrorCode }
-            });
+                _publisher?.PublishHardwareResetRequested(new HardwareResetRequest
+                {
+                    Source = key.Source,
+                    ErrorCodes = new[] { key.ErrorCode }
+                });
+            }
         }
 
         /// <summary>
@@ -325,7 +348,8 @@ namespace PF.Services.Alarm
                     ErrorCode = record.ErrorCode,
                     Source = record.Source,
                     TriggerTime = record.TriggerTime,
-                    IsActive = true
+                    IsActive = true,
+                    RuntimeMessage = Truncate(record.RuntimeMessage),
                 };
 
                 ctx.AlarmRecords.Add(entity);
@@ -360,7 +384,8 @@ namespace PF.Services.Alarm
                         Source = record.Source,
                         TriggerTime = record.TriggerTime,
                         ClearTime = record.ClearTime,
-                        IsActive = false
+                        IsActive = false,
+                        RuntimeMessage = Truncate(record.RuntimeMessage),
                     });
                     await ctx.SaveChangesAsync();
                     return;
@@ -385,7 +410,37 @@ namespace PF.Services.Alarm
         /// 后续跨年时，数据库已存在，EnsureCreated 不会建新表，
         /// 故额外使用 CREATE TABLE IF NOT EXISTS 兜底建表。
         /// </summary>
-        private static async Task EnsureYearTableAsync(AlarmDbContext ctx)
+        // 已确认建好（且已补齐列）的年度分表：每个年份每次进程只做一次 DDL。
+        // 此前每插入一条报警都要执行 EnsureCreated + 4 条 DDL
+        private readonly HashSet<int> _ensuredYears = new();
+        private readonly SemaphoreSlim _ensureLock = new(1, 1);
+
+        private async Task EnsureYearTableAsync(AlarmDbContext ctx)
+        {
+            lock (_ensuredYears)
+            {
+                if (_ensuredYears.Contains(ctx.CurrentYear)) return;
+            }
+
+            await _ensureLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                lock (_ensuredYears)
+                {
+                    if (_ensuredYears.Contains(ctx.CurrentYear)) return;
+                }
+
+                await EnsureYearTableCoreAsync(ctx).ConfigureAwait(false);
+
+                lock (_ensuredYears) _ensuredYears.Add(ctx.CurrentYear);
+            }
+            finally
+            {
+                _ensureLock.Release();
+            }
+        }
+
+        private static async Task EnsureYearTableCoreAsync(AlarmDbContext ctx)
         {
             bool dbJustCreated = await ctx.Database.EnsureCreatedAsync();
             if (dbJustCreated) return;
@@ -393,14 +448,18 @@ namespace PF.Services.Alarm
             var tableName = $"AlarmRecord_{ctx.CurrentYear}";
             await ctx.Database.ExecuteSqlRawAsync($"""
                 CREATE TABLE IF NOT EXISTS "{tableName}" (
-                    "Id"          INTEGER NOT NULL CONSTRAINT "PK_{tableName}" PRIMARY KEY AUTOINCREMENT,
-                    "ErrorCode"   TEXT    NOT NULL DEFAULT '',
-                    "Source"      TEXT    NOT NULL DEFAULT '',
-                    "TriggerTime" TEXT    NOT NULL,
-                    "ClearTime"   TEXT    NULL,
-                    "IsActive"    INTEGER NOT NULL DEFAULT 0
+                    "Id"             INTEGER NOT NULL CONSTRAINT "PK_{tableName}" PRIMARY KEY AUTOINCREMENT,
+                    "ErrorCode"      TEXT    NOT NULL DEFAULT '',
+                    "Source"         TEXT    NOT NULL DEFAULT '',
+                    "TriggerTime"    TEXT    NOT NULL,
+                    "ClearTime"      TEXT    NULL,
+                    "IsActive"       INTEGER NOT NULL DEFAULT 0,
+                    "RuntimeMessage" TEXT    NULL
                 )
                 """);
+
+            // 老库的年度分表没有 RuntimeMessage 列，EF 查询会直接报 "no such column"，这里幂等补列
+            await AddColumnIfMissingAsync(ctx, tableName, "RuntimeMessage", "TEXT NULL");
 
             await ctx.Database.ExecuteSqlRawAsync($"""
                 CREATE INDEX IF NOT EXISTS "IX_{tableName}_Source_IsActive"
@@ -417,6 +476,30 @@ namespace PF.Services.Alarm
                 ON "{tableName}" ("IsActive")
                 """);
         }
+
+        /// <summary>SQLite 幂等补列：先 PRAGMA table_info 检查，缺列才 ALTER TABLE ADD COLUMN</summary>
+        private static async Task AddColumnIfMissingAsync(AlarmDbContext ctx, string tableName, string columnName, string columnDefinition)
+        {
+            var connection = ctx.Database.GetDbConnection();
+            if (connection.State != System.Data.ConnectionState.Open)
+                await connection.OpenAsync();
+
+            await using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = $"PRAGMA table_info(\"{tableName}\");";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+                        return;
+                }
+            }
+
+            await ctx.Database.ExecuteSqlRawAsync($"ALTER TABLE \"{tableName}\" ADD COLUMN \"{columnName}\" {columnDefinition};");
+        }
+
+        private static string? Truncate(string? text, int max = 1024)
+            => text is { Length: > 0 } && text.Length > max ? text[..max] : text;
 
         // ── IDisposable / IAsyncDisposable ──────────────────────────────────
 

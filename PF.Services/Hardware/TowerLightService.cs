@@ -43,7 +43,8 @@ namespace PF.Services.Hardware
         };
 
         private const string BuzzerMutedParamKey = "BuzzerMuted"; // 数据库中的参数名
-        private const string EParamsTypeName = "E_Params";       // 参数所属的类型名
+        // 参数所在的表：直接给实体全名。此前写的是 Demo 的枚举名 "E_Params"，框架里解析不到该类型，只是碰巧落到了同一张表
+        private static readonly string EParamsTypeName = typeof(PF.Data.Entity.Category.SystemConfigParam).FullName!;
         private bool _isBuzzerMuted;                             // 缓存当前的蜂鸣器屏蔽状态
 
         /// <summary>

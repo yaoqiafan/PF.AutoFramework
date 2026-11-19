@@ -166,7 +166,7 @@ namespace PF.Modules.Debug.ViewModels
                 () => _controller.CurrentState == MachineState.Idle);
 
             PauseAllCommand = new DelegateCommand(
-                () => { try { _controller.PauseAll(); } catch { } },
+                () => { try { _controller.PauseAll(); } catch (Exception ex) { Log(ex); } },
                 () => _controller.CurrentState == MachineState.Running);
 
             ResumeAllCommand = new DelegateCommand(
@@ -174,7 +174,7 @@ namespace PF.Modules.Debug.ViewModels
                 () => _controller.CurrentState == MachineState.Paused);
 
             StopAllCommand = new DelegateCommand(
-                async () => { try { await _controller.StopAllAsync(); } catch { } },
+                async () => { try { await _controller.StopAllAsync(); } catch (Exception ex) { Log(ex); } },
                 () => _controller.CurrentState == MachineState.Idle
                    || _controller.CurrentState == MachineState.Running
                    || _controller.CurrentState == MachineState.Paused);
@@ -336,8 +336,13 @@ namespace PF.Modules.Debug.ViewModels
         /// <summary>
         /// 日志输出辅助方法
         /// </summary>
-        private static void Log(Exception ex) =>
-            System.Diagnostics.Debug.WriteLine($"[StationDebug] 指令执行失败: {ex.Message}");
+        /// <remarks>此前只写调试输出：停机、暂停失败时界面无反应，日志里也查不到。</remarks>
+        private void Log(Exception ex)
+        {
+            LogService?.Error($"[工站调试] 指令执行失败：{ex.Message}", "Debug", ex);
+            MessageService?.ShowMessage($"指令执行失败：{ex.Message}", "工站调试",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
 
         /// <summary>
         /// 手动释放/复位信号量的统一守卫。
@@ -382,8 +387,9 @@ namespace PF.Modules.Debug.ViewModels
             }
             catch (Exception ex)
             {
-                Log(ex);
                 LogService?.Error($"[信号量] 手动{action}信号量 [{signal}] 失败：{ex.Message}", "操作日志");
+                MessageService?.ShowMessage($"手动{action}信号量 [{signal}] 失败：{ex.Message}", "手动操作信号量",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

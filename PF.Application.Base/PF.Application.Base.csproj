@@ -3,8 +3,16 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.13</Version>
+		<Version>1.0.14</Version>
 		<PackageReleaseNotes>
+v1.0.14 (2026-11-18) — 启动参数清理不再删除用户账号（含行为变更）
+
+[修复 — 新建账号重启后消失]
+- AppParamDbContext.EnsureDefaultParametersCreatedAsync：用户表（UserLoginParams）只补不删。此前每次启动都把
+  不在代码默认集里的行当废弃参数删除，「用户管理」里新建的账号重启即消失。
+- 系统 / 硬件 / 通讯三张表仍清理废弃行，但每删一行都写 Warn 日志（参数名 + 原值），此前静默删除。
+  新增重载 EnsureDefaultParametersCreatedAsync(defaultParam, onRemoved, token)，原签名保持不变。
+
 v1.0.13 (2026-11-05) — 注册语音播报服务
 
 [新增]

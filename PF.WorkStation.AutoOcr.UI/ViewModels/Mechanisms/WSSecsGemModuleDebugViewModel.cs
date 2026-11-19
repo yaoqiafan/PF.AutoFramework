@@ -58,7 +58,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             _secsgemModule = containerProvider.Resolve<IMechanism>(nameof(WSSecsGemModule)) as WSSecsGemModule;
 
             // --- 绑定全局生命周期指令 ---
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _secsgemModule?.InitializeAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _secsgemModule?.InitializeStandaloneAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _secsgemModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _secsgemModule?.StopAsync()));
         }

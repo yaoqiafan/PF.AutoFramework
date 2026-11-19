@@ -51,23 +51,27 @@ namespace PF.Services.Timer.Internal
             }
         }
 
+        // 多个定点任务同一分钟触发时会并发写同一个文件：串行化 + 原子写入，避免写坏后丢失全部末次执行时间
+        private readonly SemaphoreSlim _writeLock = new(1, 1);
+
         private async Task SaveToDiskAsync()
         {
+            await _writeLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 string json;
                 lock (_lock)
                     json = JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true });
 
-                var dir = Path.GetDirectoryName(_filePath);
-                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
-
-                await File.WriteAllTextAsync(_filePath, json).ConfigureAwait(false);
+                PF.Infrastructure.Persistence.AtomicFile.WriteAllText(_filePath, json);
             }
             catch
             {
                 // 持久化失败不影响运行时行为
+            }
+            finally
+            {
+                _writeLock.Release();
             }
         }
     }

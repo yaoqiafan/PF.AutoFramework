@@ -39,6 +39,12 @@ namespace PF.Modules.Parameter.ViewModels
         /// </summary>
         private int _loadVersion;
 
+        /// <summary>批量保存进行中：期间 SetParamAsync 触发的 ParamChanged 不刷新列表（保存结束会统一重载）</summary>
+        private bool _isSaving;
+
+        /// <summary>切换大类时内部把子分类拨回"全部"，此时已确认过放弃修改，不再重复询问</summary>
+        private bool _suppressDiscardConfirm;
+
         /// <summary>
         /// 实例化 <see cref="ParameterViewModel"/>。
         /// </summary>
@@ -203,9 +209,19 @@ namespace PF.Modules.Parameter.ViewModels
             get => _selectedParamType;
             set
             {
+                if (value == _selectedParamType) return;
+                if (!ConfirmDiscardUnsavedChanges())
+                {
+                    // 用户取消切换：把界面选中项拨回原值（必须延后，当前正处于绑定写回过程中）
+                    Application.Current.Dispatcher.BeginInvoke(() => RaisePropertyChanged(nameof(SelectedParamType)));
+                    return;
+                }
+
                 if (SetProperty(ref _selectedParamType, value))
                 {
-                    SelectCategory = 0; // 切换大类时，子分类标签默认切回"全部"
+                    _suppressDiscardConfirm = true;
+                    try { SelectCategory = 0; } // 切换大类时，子分类标签默认切回"全部"
+                    finally { _suppressDiscardConfirm = false; }
                     UpdatePermissions(); // 动态计算该表下的添加/删除权限
                     UpdateAvailableTypes(); // 切换大类时动态更新允许新增的数据类型
                     _ = LoadParametersAsync();
@@ -223,6 +239,14 @@ namespace PF.Modules.Parameter.ViewModels
             get => _SelectCategory;
             set
             {
+                if (value == _SelectCategory) return;
+                // 切换大类时 SelectedParamType 已确认过，此处 HasUnsavedChanges 由那次确认负责，不重复弹窗
+                if (!_suppressDiscardConfirm && !ConfirmDiscardUnsavedChanges())
+                {
+                    Application.Current.Dispatcher.BeginInvoke(() => RaisePropertyChanged(nameof(SelectCategory)));
+                    return;
+                }
+
                 if (SetProperty(ref _SelectCategory, value))
                 {
                     _ = LoadParametersAsync();
@@ -332,19 +356,52 @@ namespace PF.Modules.Parameter.ViewModels
         private void UnsubscribeParam(ParamItemViewModel p)
             => p.PropertyChanged -= OnParamItemPropertyChanged;
 
-        /// <summary>任意参数项的属性发生变更时，标记页面为"有未保存修改"。</summary>
+        /// <summary>任意参数项的属性发生变更时，按各项与数据库基准的差异重算"有未保存修改"。</summary>
         private void OnParamItemPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-            => HasUnsavedChanges = true;
+            => RefreshDirtyState();
+
+        /// <summary>
+        /// 按各项 <see cref="ParamItemViewModel.IsDirty"/> 重算未保存数量。
+        /// 此前任何属性变化（包括只是重算显示摘要）都会把页面标成"有修改"，改回原值也不会消失。
+        /// </summary>
+        private void RefreshDirtyState()
+        {
+            ModifiedCount = Parameters.Count(p => p.IsDirty);
+            HasUnsavedChanges = ModifiedCount > 0;
+        }
+
+        /// <summary>有未保存修改时询问是否放弃（切换大类/子分类前调用）。UI 线程上 ShowMessageAsync 为内联模态，可同步取结果。</summary>
+        private bool ConfirmDiscardUnsavedChanges()
+        {
+            if (!HasUnsavedChanges) return true;
+            var result = MessageService.ShowMessageAsync(
+                "当前有未保存的参数修改，切换后将丢失更改。\n确认要切换吗？",
+                "未保存的修改", MessageBoxButton.YesNo, MessageBoxImage.Warning).GetAwaiter().GetResult();
+            return result == ButtonResult.Yes;
+        }
 
         private void InitializeCommands()
         {
-            LoadCommand = new DelegateCommand(async () => await LoadParametersAsync());
+            LoadCommand = new DelegateCommand(async () =>
+            {
+                if (!ConfirmDiscardUnsavedChanges()) return;
+                await LoadParametersAsync();
+            });
             SaveCommand = new DelegateCommand(async () => await SaveChangesAsync());
-            AddCommand = new DelegateCommand(AddNewParameter);
-            DeleteCommand = new DelegateCommand<object>(async obj => await DeleteParameterAsync(obj));
-            ResetDefaultsCommand = new DelegateCommand(async () => await ResetToDefaultsAsync(_defaultParam));
+            // 权限此前只靠按钮 Visibility 控制，命令本身不校验（快捷键、隐藏前已显示的按钮、未来复用命令都会绕过）
+            AddCommand = new DelegateCommand(() => { if (EnsurePermission(() => CanAddAndDelete, "新增参数")) AddNewParameter(); });
+            DeleteCommand = new DelegateCommand<object>(async obj => { if (EnsurePermission(() => CanAddAndDelete, "删除参数")) await DeleteParameterAsync(obj); });
+            ResetDefaultsCommand = new DelegateCommand(async () => { if (EnsurePermission(() => CanRefreshAndReset, "恢复默认参数")) await ResetToDefaultsAsync(_defaultParam); });
             ViewHistoryCommand = new DelegateCommand<object>(ViewParameterHistory);
             ChangeValueCommand = new DelegateCommand<ParamItemViewModel>(OnValueChanged);
+        }
+
+        private bool EnsurePermission(Func<bool> allowed, string action)
+        {
+            UpdatePermissions(); // 以当前用户实时计算，不依赖可能滞后的界面状态
+            if (allowed()) return true;
+            MessageService.ShowMessage($"当前用户无权{action}。", "权限不足", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
         }
 
         /// <summary>
@@ -497,6 +554,7 @@ namespace PF.Modules.Parameter.ViewModels
                             ParamType = paramTypeFullName,
                             JsonValue = paramInfo.Value?.ToString() ?? ""
                         };
+                        item.MarkClean(); // 与数据库一致的基准，用于判断哪些项真正被改过
                         _ = item.DisplayValue; // 在后台预先计算值摘要（反序列化 + 反射），避免渲染时占用 UI 线程
                         result.Add(item);
                     }
@@ -567,6 +625,17 @@ namespace PF.Modules.Parameter.ViewModels
                 // 回到 UI 线程刷新数据列表（用 InvokeAsync 避免同步阻塞，async void 防 fire-and-forget 异常丢失）
                 Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
+                    // 本页批量保存中：保存结束会统一重载，逐条重载只会让列表在保存过程中闪烁/重复加载
+                    if (_isSaving) return;
+
+                    // 其他功能（调试页存轴参数、机构补全通道表等）改了参数时，若本页有未保存修改，
+                    // 自动重载会把用户正在编辑的内容静默丢掉——改为提示，由用户保存或手动刷新
+                    if (HasUnsavedChanges)
+                    {
+                        StatusMessage = $"参数「{e.ParamName}」已在其他地方被修改；当前页有未保存修改，未自动刷新（保存后或点刷新可见）";
+                        return;
+                    }
+
                     await LoadParametersAsync();
                 });
 
@@ -602,7 +671,6 @@ namespace PF.Modules.Parameter.ViewModels
         {
             if (result.Result == ButtonResult.Yes)
             {
-                HasUnsavedChanges = true; // 弹窗确认修改 = 有未保存内容
                 try
                 {
                     var paramItem = result.Parameters.GetValue<ParamItemViewModel>("CallBackParamItem");
@@ -625,8 +693,12 @@ namespace PF.Modules.Parameter.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"同步参数名称失败: {ex.Message}");
+                    // 用户名没同步到参数名：保存后账号仍以旧名登录，需要留痕
+                    LogService?.Error($"[参数修改] 同步用户账号名称失败：{ex.Message}", "操作日志", ex);
                 }
+
+                // 按实际差异判定（确认但值没变的不算修改）
+                RefreshDirtyState();
             }
         }
 
@@ -635,27 +707,44 @@ namespace PF.Modules.Parameter.ViewModels
         /// </summary>
         private async Task SaveChangesAsync()
         {
+            // 只保存真正改过的项（此前整页全部重写一遍，"成功保存 N 个"与"需重启"提示都不准）。
+            // 必须是副本：保存过程中 ParamChanged 可能触发列表重载
+            var modifiedParams = Parameters.Where(p => p.IsDirty).ToList();
+            if (!modifiedParams.Any())
+            {
+                StatusMessage = "没有需要保存的修改";
+                return;
+            }
+
             try
             {
                 IsLoading = true;
                 StatusMessage = "正在保存参数...";
 
-                // 【关键修复】：这里必须加上 .ToList()，创建一个列表副本！
-                // 因为 SaveParameterAsync 内部调用服务后会触发 ParamChanged 事件，
-                // 导致 OnParamChanged 方法调用 LoadParametersAsync 清空原 Parameters 集合，
-                // 若不使用副本，会引发集合在 foreach 遍历过程中被修改的 InvalidOperationException 异常。
-                var modifiedParams = Parameters.ToList();
-
-                if (!modifiedParams.Any())
+                // 名称冲突必须在写库前整体拦下：SetParamAsync 按名称 upsert，
+                // 新增/改名撞上已有名称会静默覆盖那条记录（如把用户 A 改名为 B，B 的账号被 A 覆盖）
+                string? conflict = await FindNameConflictAsync(modifiedParams);
+                if (conflict != null)
                 {
-                    StatusMessage = "没有参数";
+                    StatusMessage = "保存已取消：" + conflict;
+                    await MessageService.ShowMessageAsync(conflict + "\n\n本次未保存任何参数。", "名称冲突",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
+                _isSaving = true;
                 foreach (var paramVm in modifiedParams)
                 {
                     await SaveParameterAsync(paramVm);
+
+                    // 改名（目前只有用户账号会随用户名改名）：新名称已写入，删掉旧名称那条，
+                    // 否则旧账号仍留在库里、旧用户名依然能登录
+                    if (paramVm.IsRenamed)
+                        await _paramService.DeleteParamAsync(paramVm.ParamType, paramVm.OriginalName!, _userService.CurrentUser);
+
+                    paramVm.MarkClean();
                 }
+                _isSaving = false;
 
                 UpdateCounts();
                 StatusMessage = $"成功保存 {modifiedParams.Count} 个参数";
@@ -676,13 +765,53 @@ namespace PF.Modules.Parameter.ViewModels
             }
             catch (Exception ex)
             {
+                // 已保存成功的项已 MarkClean，剩下的仍标记为未保存
+                RefreshDirtyState();
                 StatusMessage = $"保存失败: {ex.Message}";
                 await MessageService.ShowMessageAsync($"保存参数时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
+                _isSaving = false;
                 IsLoading = false;
             }
+        }
+
+        /// <summary>
+        /// 检查新增/改名项的名称是否与本批其他项或数据库中已有记录冲突；无冲突返回 null。
+        /// </summary>
+        private async Task<string?> FindNameConflictAsync(IReadOnlyList<ParamItemViewModel> modified)
+        {
+            var renamedOrNew = modified.Where(p => p.IsNew || p.IsRenamed).ToList();
+            if (renamedOrNew.Count == 0) return null;
+
+            foreach (var p in renamedOrNew)
+            {
+                if (string.IsNullOrWhiteSpace(p.Name))
+                    return "参数名称不能为空。";
+            }
+
+            // 1. 列表内重名（含与未改动项重名）
+            var dup = Parameters
+                .GroupBy(p => (p.ParamType, p.Name))
+                .FirstOrDefault(g => g.Count() > 1 && g.Any(p => renamedOrNew.Contains(p)));
+            if (dup != null)
+                return $"列表中有多个名为「{dup.Key.Name}」的参数。";
+
+            // 2. 与数据库中已有记录重名（列表可能只显示了某个子分类）
+            foreach (var group in renamedOrNew.GroupBy(p => p.ParamType))
+            {
+                var existing = await _paramService.GetParamsByCategoryAsync(group.Key);
+                var namesInDb = existing.Select(e => e.Name).ToHashSet();
+                foreach (var p in group)
+                {
+                    if (namesInDb.Contains(p.Name) && p.Name != p.OriginalName)
+                        return p.IsNew
+                            ? $"新参数「{p.Name}」与已有参数重名，保存会覆盖原有参数。"
+                            : $"「{p.OriginalName}」改名为「{p.Name}」与已有参数重名，保存会覆盖原有参数。";
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -775,6 +904,7 @@ namespace PF.Modules.Parameter.ViewModels
                 Category = currentCategory,
                 // 【修复1：删除异常】新增的对象也必须使用 FullName 映射正确的物理表
                 ParamType = SelectedParamType.TypeInstence.FullName,
+                IsNew = true,
             };
 
             SubscribeParam(newParam); // 新增条目立即监听属性变更
@@ -782,8 +912,7 @@ namespace PF.Modules.Parameter.ViewModels
             SelectedParameter = newParam;
 
             UpdateCounts();
-            ModifiedCount++;
-            HasUnsavedChanges = true; // 新增 = 有未保存内容
+            RefreshDirtyState(); // 新增项恒为脏
             StatusMessage = "已添加新参数（未保存）";
         }
 
@@ -797,18 +926,33 @@ namespace PF.Modules.Parameter.ViewModels
             if (await MessageService.ShowMessageAsync($"确定要删除参数 '{paramVm.Name}' 吗？", "确认删除",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != ButtonResult.Yes) return;
 
+            // 界面新增、还没保存过的行：数据库里本来就没有，直接从列表移除（此前会报"删除失败"且删不掉）
+            if (paramVm.IsNew)
+            {
+                UnsubscribeParam(paramVm);
+                Parameters.Remove(paramVm);
+                UpdateCounts();
+                RefreshDirtyState();
+                StatusMessage = $"已移除未保存的新参数 '{paramVm.Name}'";
+                return;
+            }
+
             try
             {
                 IsLoading = true;
 
-                bool success = await _paramService.DeleteParamAsync(paramVm.ParamType, paramVm.Name, _userService.CurrentUser);
+                // 改过名但未保存的项，数据库里的记录仍是原名
+                string nameInDb = paramVm.OriginalName ?? paramVm.Name;
+                bool success = await _paramService.DeleteParamAsync(paramVm.ParamType, nameInDb, _userService.CurrentUser);
 
                 if (success)
                 {
                     _ = Application.Current.Dispatcher.InvokeAsync(() =>
                     {
+                        UnsubscribeParam(paramVm);
                         Parameters.Remove(paramVm);
                         UpdateCounts();
+                        RefreshDirtyState();
                     });
                     StatusMessage = $"参数 '{paramVm.Name}' 已删除";
                 }

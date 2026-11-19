@@ -29,9 +29,17 @@ namespace PF.Modules.Production
         /// <summary>模块初始化回调</summary>
         public void OnInitialized(IContainerProvider containerProvider)
         {
-            // 初始化生产数据服务（建表）
+            // 宿主（PFApplicationBase）已在启动加载阶段初始化过，这里幂等兜底，供不继承 PFApplicationBase 的宿主使用。
+            // 此前 fire-and-forget 且不观察结果：建表失败无任何痕迹，生产数据从此不落库
             var service = containerProvider.Resolve<IProductionDataService>();
-            _ = service.InitializeAsync();
+            var logService = containerProvider.IsRegistered<PF.Core.Interfaces.Logging.ILogService>()
+                ? containerProvider.Resolve<PF.Core.Interfaces.Logging.ILogService>()
+                : null;
+            _ = service.InitializeAsync().ContinueWith(t =>
+                    logService?.Error(
+                        $"生产数据服务初始化失败，生产数据将无法保存：{t.Exception?.GetBaseException().Message}",
+                        "ProductionData", t.Exception?.GetBaseException()),
+                TaskContinuationOptions.OnlyOnFaulted);
 
             // 扫描当前程序集自动注册菜单
             var navMenuService = containerProvider.Resolve<INavigationMenuService>();

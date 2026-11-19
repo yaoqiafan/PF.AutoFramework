@@ -264,7 +264,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             _feedingModule = containerProvider.Resolve<IMechanism>(nameof(WS1FeedingModel)) as WS1FeedingModel;
 
             // --- 绑定全局生命周期指令 ---
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.InitializeStandaloneAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _feedingModule?.StopAsync()));
 

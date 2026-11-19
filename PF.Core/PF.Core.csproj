@@ -3,8 +3,39 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.37</Version>
+		<Version>1.0.38</Version>
 		<PackageReleaseNotes>
+v1.0.38 (2026-11-18) — 新增模拟量 IO 抽象（AI/AO）
+
+[新增 — 接口（Interfaces/Device/Hardware/IO/Analog）]
+- IAnalogIOController：业务接口，读写工程值。同步读 ReadAnalogInput / ReadAnalogInputDetail / ReadAnalogOutput（契约：不得阻塞 I/O）；
+  写 WriteAnalogOutput（同步）+ WriteAnalogOutputAsync；WaitAnalogInputInRangeAsync（区间 + 稳定时间，取消时抛异常）；
+  ApplySafeOutputsAsync；UpdateChannels（校验后整表原子替换）。均有按枚举名的泛型重载，枚举 int 值即通道号。
+  AO 越限一律拒绝写出返回 false，不截断。
+- IAnalogCard：板卡模拟量通道原语（原始值，同步）。不并入 IMotionCard，自行实现 IMotionCard 的项目不受影响。
+- IAnalogCarrier：模拟量宿主（AnalogCard 属性），与 IEncoderCarrier 同构；板卡与 IO 模块均可作为父设备。
+- IAnalogScanSource：通讯类模拟量数据源（异步），预留扩展点，框架内暂无实现。
+
+[新增 — 模型 / 枚举 / 常量]
+- Models/Device/Hardware/IO/Analog：AnalogChannelConfig（通道表一行：量程、断线阈值、输出限幅、安全值、模式、仿真）、
+  AnalogAddress、AnalogReading、AnalogConfigResult。
+- Enums/Hardware：AnalogDirection、AnalogSignalType、AnalogStatus、AnalogSimMode（JSON 按名称序列化）。
+- HardwareCategory.AnalogIO（追加在末尾，已有成员数值不变）。
+- AlarmCodes.Hardware.AnalogModuleUnavailable（HW_AIO_001，50029）、AnalogCommLost（HW_AIO_002，50030，预留）。
+- NavigationConstants.Views.AnalogIODebugView。
+
+[新增 — 报警码（配合 PF.Infrastructure 1.0.37 的报警根因修复）]
+- Hardware：DeviceConnectFailed（HW_DEV_001）/ DeviceResetFailed（HW_DEV_002）/ DeviceHealthCheckError（HW_DEV_003），
+  替代 BaseDevice 里此前硬编码、字典中不存在的 "ERR_CONN_FAILED" / "ERR_RESET_FAILED" / "ERR_HEALTH_CHECK"。
+- System：StationInitFailed（SYS_INIT_002）/ StationNotReady（SYS_INIT_003）/ StationResetFailed（SYS_RESET_001）/
+  ResetTimeout（SYS_RESET_002）/ StationWorkflowException（SYS_FLOW_001）。
+  现场若在「异常权限配置」里改过旧 ERR_* 码的清除等级，需对新码重新配置。
+
+[新增 — 报警]
+- IAlarmService.ClearAlarmAutomatically(source, errorCode = null)：程序自动清除，不发硬件复位请求（带默认实现，
+  自行实现 IAlarmService 的项目无需修改）。ClearAlarm 的注释明确为"人工清除，会触发局部复位"。
+- AlarmRecord.RuntimeMessage：触发时的运行时信息，随历史持久化。
+
 v1.0.37 (2026-11-12) — IClient 新增按结束符收包与接收模式查询
 
 [新增 — 接口成员，破坏性]

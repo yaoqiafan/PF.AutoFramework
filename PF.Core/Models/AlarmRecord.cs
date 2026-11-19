@@ -31,8 +31,11 @@ namespace PF.Core.Models
         /// <summary>报警分类</summary>
         public string Category { get; set; } = string.Empty;
 
-        /// <summary>报警描述文本（中文）</summary>
+        /// <summary>报警描述文本（中文）：有运行时信息时为运行时信息，否则为字典文案</summary>
         public string Message { get; set; } = string.Empty;
+
+        /// <summary>触发时携带的运行时信息（无则为 null），随报警历史一并持久化</summary>
+        public string? RuntimeMessage { get; set; }
 
         /// <summary>报警描述文本（英文）</summary>
         public string MessageEn { get; set; } = string.Empty;

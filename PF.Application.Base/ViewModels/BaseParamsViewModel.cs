@@ -16,10 +16,19 @@ namespace PF.Application.Base.ViewModels
         public BaseParamsViewModel(CommonSettings commonSettings)
         {
             _commonSettings = commonSettings;
-            SaveCommmand = new DelegateCommand(() => 
-            { 
-                _commonSettings.Save();
-                MessageService.ShowMessage("参数保存成功！");
+            SaveCommmand = new DelegateCommand(() =>
+            {
+                // 此前不论成败都提示"保存成功"（Save 内部吞掉异常），磁盘满/无写权限时用户以为改好了
+                if (_commonSettings.Save())
+                {
+                    MessageService.ShowMessage("参数保存成功！");
+                }
+                else
+                {
+                    LogService?.Error($"公共参数保存失败：{_commonSettings.LastSaveError}", "Parameter");
+                    MessageService.ShowMessage($"参数保存失败：{_commonSettings.LastSaveError}", "保存失败",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
             });
         }
 

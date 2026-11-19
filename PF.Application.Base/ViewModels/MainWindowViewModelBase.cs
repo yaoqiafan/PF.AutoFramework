@@ -437,12 +437,14 @@ namespace PF.Application.Base.ViewModels
 
         private void StartPolling()
         {
+            // Loaded 可能不止触发一次，重复启动会出现两条轮询循环
+            if (_runningTask != null && !_runningTask.IsCompleted) return;
+
             _cts = new CancellationTokenSource();
-            _runningTask = Task.Factory.StartNew(
-                () => WorkerMethod(_cts.Token),
-                _cts.Token,
-                TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
-                TaskScheduler.Default);
+            var token = _cts.Token;
+            // 用 Task.Run 而不是 Task.Factory.StartNew：后者传入异步委托时返回 Task<Task>，
+            // 外层任务在循环第一次 await 时就完成了，StopAsync 等到的并不是循环结束
+            _runningTask = Task.Run(() => WorkerMethod(token), token);
         }
 
         /// <summary>停止设备状态轮询任务并释放 CancellationTokenSource。</summary>
@@ -455,18 +457,32 @@ namespace PF.Application.Base.ViewModels
 
         private async Task WorkerMethod(CancellationToken ct)
         {
-            try
+            // 异常按轮次捕获：此前整个循环外一个 catch 吞掉，子类 PollDeviceStatuses 抛一次异常
+            // 轮询就永久停止——时间、状态栏冻结，MachineState 不再更新，
+            // 运行中自动退出参数/调试页、按机台状态拦截受保护页面也随之失效。
+            string? lastError = null;
+            while (!ct.IsCancellationRequested)
             {
-                while (!ct.IsCancellationRequested)
+                try
                 {
                     SysTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     MachineState = _masterController.CurrentState;
                     PollDeviceStatuses();
-                    await Task.Delay(500, ct);
+                    lastError = null;
                 }
+                catch (Exception ex)
+                {
+                    // 同一异常每 500ms 重复，只在首次出现/内容变化时记一条
+                    if (ex.Message != lastError)
+                    {
+                        lastError = ex.Message;
+                        LogService?.Error($"[主窗口] 状态轮询异常：{ex.Message}", "System", ex);
+                    }
+                }
+
+                try { await Task.Delay(500, ct); }
+                catch (OperationCanceledException) { break; }
             }
-            catch (OperationCanceledException) { }
-            catch (Exception) { }
         }
 
         /// <summary>

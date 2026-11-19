@@ -106,5 +106,40 @@ namespace PF.Modules.Parameter.ViewModels
         public DateTime UpdateTime { get; set; }
         /// <summary>获取或设置参数类型</summary>
         public string ParamType { get; set; }
+
+        #region 脏状态
+
+        /// <summary>是否为界面新增、尚未写入数据库的参数</summary>
+        public bool IsNew { get; set; }
+
+        /// <summary>最近一次与数据库同步时的名称（新增项为 null）。用户改名时据此删除旧记录。</summary>
+        public string? OriginalName { get; private set; }
+
+        private string? _originalJsonValue;
+        private string? _originalDescription;
+        private string? _originalTypeFullName;
+
+        /// <summary>记录当前值为"与数据库一致"的基准（加载完成、保存成功后调用）</summary>
+        public void MarkClean()
+        {
+            IsNew = false;
+            OriginalName = Name;
+            _originalJsonValue = JsonValue;
+            _originalDescription = Description;
+            _originalTypeFullName = TypeFullName;
+        }
+
+        /// <summary>相对基准是否有改动（新增项恒为 true）</summary>
+        public bool IsDirty =>
+            IsNew ||
+            Name != OriginalName ||
+            JsonValue != _originalJsonValue ||
+            Description != _originalDescription ||
+            TypeFullName != _originalTypeFullName;
+
+        /// <summary>是否为已存在记录的改名（保存后需删除旧名称的记录）</summary>
+        public bool IsRenamed => !IsNew && OriginalName != null && Name != OriginalName;
+
+        #endregion
     }
 }

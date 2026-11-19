@@ -8,6 +8,7 @@ using PF.Core.Interfaces.Device.Hardware.Camera.LineScan;
 using PF.Core.Interfaces.Device.Hardware.Camera.NetworkCamera;
 using PF.Core.Interfaces.Device.Hardware.Card;
 using PF.Core.Interfaces.Device.Hardware.Encoder.Basic;
+using PF.Core.Interfaces.Device.Hardware.IO.Analog;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Device.Hardware.LightController;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
@@ -97,6 +98,15 @@ namespace PF.Modules.Debug.ViewModels
 
         private async Task ExecuteToggleGlobalAsync()
         {
+            // 按钮只对超级用户可见，但命令本身此前不校验；且下面会立即改写所有活跃设备的 IsSimulated——
+            // 运行中切换等于当场让 IO 读入恒为 false、安全门扫描跳过
+            if (!_userService.IsAuthorized(UserLevel.SuperUser))
+            {
+                MessageService.ShowMessage("全局仿真切换仅限超级用户。", "权限不足", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+            if (!DebugOperationGuard.EnsureSimulationSwitchAllowed(MessageService, "切换全局仿真模式")) return;
+
             IsBusy = true;
             try
             {
@@ -125,6 +135,19 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (node?.Payload is not IHardwareDevice device) return;
 
+            // ToggleButton 双向绑定已预先翻转 node.IsSimulated；被拦下时要把界面翻回去
+            if (!_userService.IsAuthorized(UserLevel.Engineer))
+            {
+                node.IsSimulated = device.IsSimulated;
+                MessageService.ShowMessage("切换设备仿真模式需要工程师及以上权限。", "权限不足", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+            if (!DebugOperationGuard.EnsureSimulationSwitchAllowed(MessageService, $"切换 [{device.DeviceName}] 的仿真模式"))
+            {
+                node.IsSimulated = device.IsSimulated;
+                return;
+            }
+
             IsBusy = true;
             try
             {
@@ -134,9 +157,6 @@ namespace PF.Modules.Debug.ViewModels
                 await device.DisconnectAsync();
                 await device.ConnectAsync();
 
-                // 回写真实状态（ConnectAsync 失败时修正 UI）
-                node.IsSimulated = device.IsSimulated;
-
                 // 持久化，使下次 ReloadAllAsync 后仍生效
                 var config = _hardwareManager.GetConfig(device.DeviceId);
                 if (config != null)
@@ -144,11 +164,19 @@ namespace PF.Modules.Debug.ViewModels
                     config.IsSimulated = device.IsSimulated;
                     await _hardwareManager.SaveConfigAsync(config);
                 }
-
-                UpdateGlobalSimulatedState();
+                LogService?.Warn($"[硬件调试] 用户[{CurrentUserName}] 将设备 [{device.DeviceName}] 切换为{(device.IsSimulated ? "仿真" : "真机")}模式", "操作日志");
+            }
+            catch (Exception ex)
+            {
+                // 此前无 catch：异常直接抛给全局处理器，界面开关停在翻转后的位置，与设备实际状态不符
+                LogService?.Error($"[硬件调试] 切换设备 [{device.DeviceName}] 仿真模式失败：{ex.Message}", "Debug", ex);
+                MessageService.ShowMessage($"切换仿真模式失败：{ex.Message}", "硬件调试", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
             finally
             {
+                // 回写真实状态（ConnectAsync 失败或抛异常时修正 UI）
+                node.IsSimulated = device.IsSimulated;
+                UpdateGlobalSimulatedState();
                 IsBusy = false;
             }
         }
@@ -289,6 +317,13 @@ namespace PF.Modules.Debug.ViewModels
                 parameters.Add("Device", io);
                 RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
                     NavigationConstants.Views.IODebugView, parameters);
+            }
+            else if (payload is IAnalogIOController analogIO)
+            {
+                // 内置设备类型走硬编码分发而非 [HardwareUI]：该特性 Inherited = false，标在基类上对子类无效
+                parameters.Add("Device", analogIO);
+                RegionManager.RequestNavigate(NavigationConstants.Regions.DebugViewRegion,
+                    NavigationConstants.Views.AnalogIODebugView, parameters);
             }
             else if (payload is IBarcodeScan barcodeScan)
             {

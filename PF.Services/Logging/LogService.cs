@@ -1053,8 +1053,9 @@ namespace PF.Services.Logging
                 string logMessage = entry.Message;
                 if (entry.Exception != null)
                 {
+                    // 堆栈不再手工拼接：布局里没有 %exception 时 log4net 会在消息后自动写出完整的异常（含堆栈），
+                    // 此前两边都写，每个异常的堆栈在日志文件里出现两遍
                     logMessage = $"{entry.Message} | Exception: {entry.Exception.Message}";
-                    if (entry.Exception.StackTrace != null) logMessage += $"\n{entry.Exception.StackTrace}";
                 }
 
                 switch (entry.Level)

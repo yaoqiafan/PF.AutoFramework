@@ -19,7 +19,7 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
     /// 雷赛 (Leadshine) EtherCAT 总线运动控制卡底层驱动实现类。
     /// 封装了雷赛 LTDMC 系列（如 E5032/E3032）控制卡的初始化、轴控制、IO 读写及高级锁存功能。
     /// </summary>
-    public class LTMDCMotionCard : BaseMotionCard
+    public partial class LTMDCMotionCard : BaseMotionCard
     {
         /// <summary>
         /// 实例化雷赛运动控制卡对象
@@ -534,6 +534,9 @@ namespace PF.Infrastructure.Hardware.Card.LTDMC
         {
             try
             {
+                // 板卡重新初始化后 DA 使能需重新下发（见 LTMDCMotionCard.Analog.cs）
+                _onboardDaEnabled = false;
+
                 /******* 控制卡库初始化 *******/
                 short ret = CardAPI.LTDMC.dmc_board_init();
                 if (ret <= 0 || ret > 8)

@@ -5,7 +5,10 @@ using PF.Core.Entities.Hardware;
 using PF.Core.Entities.Identity;
 using PF.Core.Enums;
 using PF.Core.Enums.FileTransfer;
+using PF.Core.Enums.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Motor.Basic;
+using PF.Core.Models.Device.Hardware.IO.Analog;
+using PF.Infrastructure.Hardware.IO.Analog;
 using PF.Data.Entity.Category;
 using PF.Data.Entity.Category.Basic;
 using PF.UI.Shared.Data;
@@ -457,6 +460,81 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                 Remarks = "IO耦合器，挂载于 LTDMC_Card_0"
             };
 
+            // 模拟量示例 1：挂在 IO 模块下（随 IO_Collectorll 分组、初始化顺序在其后、IO 模块断开时联动报警），
+            // 演示闭环仿真——AI0 按一阶滞后跟随 AO0：调试页把比例阀写到 50%，真空压力约 300ms 内逼近 -50kPa；
+            // 写 90% 会因超过限幅 80% 被拒绝。挂 IO 模块不继承节点号，NodeId 仍单独配置。
+            HardwareConfig analogUnderIO = new()
+            {
+                DeviceId = "AIO_UnderIO",
+                DeviceName = "模拟量模块(挂IO模块)",
+                Category = "AnalogIO",
+                ImplementationClassName = "EtherCatAnalogIO",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = IOControll.DeviceId,
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    [AnalogChannelJson.NodeIdKey] = "2",
+                    [AnalogChannelJson.ChannelsKey] = AnalogChannelJson.Serialize(new[]
+                    {
+                        new AnalogChannelConfig
+                        {
+                            Direction = AnalogDirection.Input, Channel = 0, Name = "真空压力", Unit = "kPa", Decimals = 1,
+                            SignalType = AnalogSignalType.Current4To20, RawMin = 4, RawMax = 20, EngMin = -100, EngMax = 0,
+                            WireBreakBelowRaw = 3.6,
+                            SimMode = AnalogSimMode.FollowOutput, SimValue = 0, SimFollowChannel = 0, SimLagMs = 300,
+                        },
+                        new AnalogChannelConfig
+                        {
+                            Direction = AnalogDirection.Output, Channel = 0, Name = "比例阀开度", Unit = "%", Decimals = 0,
+                            SignalType = AnalogSignalType.Voltage0To10, RawMin = 0, RawMax = 10, EngMin = 0, EngMax = 100,
+                            OutputMin = 0, OutputMax = 80, SafeValue = 0, SimValue = 0,
+                        },
+                    }),
+                },
+                Remarks = "模拟量示例：挂载于 IO 模块 IO_Collectorll，AI0 仿真跟随 AO0"
+            };
+
+            // 模拟量示例 2：直接挂在运动控制卡下单独使用，板卡本体 AD/DA（NodeId 留空），
+            // 演示另外两种仿真模式：AI0 固定值（可在调试页拖动修改）、AI1 等待直接通过（默认）。
+            HardwareConfig analogStandalone = new()
+            {
+                DeviceId = "AIO_Standalone",
+                DeviceName = "模拟量模块(单独使用)",
+                Category = "AnalogIO",
+                ImplementationClassName = "EtherCatAnalogIO",
+                IsSimulated = true,
+                IsEnabled = true,
+                ParentDeviceId = "LTDMC_Card_0",
+                ConnectionParameters = new Dictionary<string, string>
+                {
+                    [AnalogChannelJson.NodeIdKey] = string.Empty,
+                    [AnalogChannelJson.ChannelsKey] = AnalogChannelJson.Serialize(new[]
+                    {
+                        new AnalogChannelConfig
+                        {
+                            Direction = AnalogDirection.Input, Channel = 0, Name = "激光位移", Unit = "mm", Decimals = 3,
+                            SignalType = AnalogSignalType.Voltage0To10, RawMin = 0, RawMax = 10, EngMin = 0, EngMax = 50,
+                            SimMode = AnalogSimMode.Fixed, SimValue = 25,
+                        },
+                        new AnalogChannelConfig
+                        {
+                            Direction = AnalogDirection.Input, Channel = 1, Name = "加热温度", Unit = "℃", Decimals = 1,
+                            SignalType = AnalogSignalType.Current4To20, RawMin = 4, RawMax = 20, EngMin = 0, EngMax = 200,
+                            WireBreakBelowRaw = 3.6,
+                            SimMode = AnalogSimMode.AlwaysPass, SimValue = 25,
+                        },
+                        new AnalogChannelConfig
+                        {
+                            Direction = AnalogDirection.Output, Channel = 0, Name = "电气比例调压阀", Unit = "MPa", Decimals = 3,
+                            SignalType = AnalogSignalType.Voltage0To10, RawMin = 0, RawMax = 10, EngMin = 0, EngMax = 0.9,
+                            OutputMin = 0, OutputMax = 0.6, SafeValue = 0, SimValue = 0,
+                        },
+                    }),
+                },
+                Remarks = "模拟量示例：直接挂载于 LTDMC_Card_0 单独使用，板卡本体 AD/DA"
+            };
+
 
             HardwareConfig scancode1 = new HardwareConfig
             {
@@ -816,6 +894,28 @@ namespace PF.Application.Shell.CustomConfiguration.Param
                         Description  = IOControll.Remarks,
                         TypeFullName = typeof(HardwareConfig).FullName,
                         JsonValue    = JsonSerializer.Serialize(IOControll),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    analogUnderIO.DeviceId, new HardwareParam
+                    {
+                        Name         = analogUnderIO.DeviceId,
+                        Description  = analogUnderIO.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(analogUnderIO),
+                        Category     = "Hardware",
+                        Version      = 1
+                    }
+                },
+                {
+                    analogStandalone.DeviceId, new HardwareParam
+                    {
+                        Name         = analogStandalone.DeviceId,
+                        Description  = analogStandalone.Remarks,
+                        TypeFullName = typeof(HardwareConfig).FullName,
+                        JsonValue    = JsonSerializer.Serialize(analogStandalone),
                         Category     = "Hardware",
                         Version      = 1
                     }

@@ -434,8 +434,13 @@ namespace PF.Infrastructure.Station.Basic
             try
             {
                 await ProcessLoopAsync(token).ConfigureAwait(false);
+
+                // 业务循环自己 return 了（而不是被 Stop/Pause/报警取消）：工站会一直显示 Running、实际已不再执行。
+                // 按业务异常处理，让主控和现场看到
+                if (!token.IsCancellationRequested && !_stopRequested)
+                    throw new InvalidOperationException("业务循环意外结束（ProcessNormalLoopAsync / ProcessDryRunLoopAsync 未被取消就返回了）");
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested || _stopRequested)
             {
                 // 区分三种取消来源，给出精确日志
                 if (_pauseRequested) _logger?.Info($"[{StationName}] 工站响应暂停命令，等待续跑...");
@@ -445,15 +450,25 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (Exception ex)
             {
+                // 也包括"不是本工站令牌触发的取消"（如等待中的同步信号量被复位）：此前按正常退出处理，
+                // 工站停在 Running 却不再执行任何动作
                 _logger?.Error($"[{StationName}] 业务异常: {ex.Message}");
 
                 // 用户主动 Stop 时不触发报警，避免误判
                 if (_stopRequested) return;
 
-                // 仅在尚无更具体的报警快照时才填入默认码，保留更有诊断价值的现场信息
+                // 仅在尚无更具体的报警快照时才填入默认码，保留更有诊断价值的现场信息。
+                // 此前兜底码是 StationSyncError（"工站同步服务异常"），与实际原因无关，且不带异常信息
                 var defaultAlarm = new PendingAlarm(
-                    AlarmCodes.System.StationSyncError,
-                    new StationAlarmEventArgs { ErrorCode = AlarmCodes.System.StationSyncError });
+                    AlarmCodes.System.StationWorkflowException,
+                    new StationAlarmEventArgs
+                    {
+                        ErrorCode = AlarmCodes.System.StationWorkflowException,
+                        RuntimeMessage = ex is OperationCanceledException
+                            ? $"工站 [{StationName}] 的等待被外部取消（不是暂停/停止，如等待中的同步信号量被复位），业务流程已中断"
+                            : $"工站 [{StationName}] 业务异常：{ex.Message}",
+                        InternalException = ex,
+                    });
                 Interlocked.CompareExchange(ref _pendingAlarm, defaultAlarm, null);
 
                 // 在独立 Task 中触发状态机，避免在 workflowTask 上下文中回调 Fire 造成死锁。
@@ -498,8 +513,14 @@ namespace PF.Infrastructure.Station.Basic
         public void Pause()
         {
             _pauseRequested = true;
-            try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
-            Fire(MachineTrigger.Pause);
+            // 取消 workflow 由 Running.OnExit 完成。此前在 Fire 之前先取消：Fire 失败时（如锁超时）
+            // 工站仍是 Running、业务线程却已退出；且不在 Running 时也照样执行物理暂停
+            if (!Fire(MachineTrigger.Pause))
+            {
+                _pauseRequested = false;
+                _logger?.Debug($"[{StationName}] 当前状态 {CurrentState} 不接受暂停，忽略。");
+                return;
+            }
             _ = Task.Run(async () =>
             {
                 try { await OnPhysicalPauseAsync().ConfigureAwait(false); }
@@ -618,6 +639,7 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (OperationCanceledException)
             {
+                // 被取消多半是别的工站失败或全线超时（主控负责报出根因），本站按级联处理
                 _logger?.Warn($"[{StationName}] 初始化操作被取消。");
                 Fire(MachineTrigger.Error);
                 throw;
@@ -625,8 +647,25 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 初始化异常: {ex.Message}");
+                // 必须带真实报警码：无码 Error 是 CascadeAlarm，会被主控过滤，现场只看到"初始化报警"、报警列表却是空的
+                SetPendingAlarm(new PendingAlarm(AlarmCodes.System.StationInitFailed, new StationAlarmEventArgs
+                {
+                    ErrorCode = AlarmCodes.System.StationInitFailed,
+                    RuntimeMessage = $"工站 [{StationName}] 初始化失败：{ex.Message}",
+                    InternalException = ex,
+                }));
                 Fire(MachineTrigger.Error);
                 throw;
+            }
+            finally
+            {
+                // 兜底恢复健康监控：机构初始化时会抑制监控，正常由工站在回零完成后调用 ResumeHealthMonitoring；
+                // 漏调或初始化失败时，这些设备之后掉线不会报警。只作用于 GetMechanisms() 声明的机构，重复恢复无副作用
+                foreach (var m in GetMechanisms())
+                {
+                    try { m.ResumeHealthMonitoring(); }
+                    catch (Exception ex) { _logger?.Warn($"[{StationName}] 恢复机构 [{m.MechanismName}] 健康监控失败: {ex.Message}"); }
+                }
             }
         }
 
@@ -654,6 +693,12 @@ namespace PF.Infrastructure.Station.Basic
             catch (Exception ex)
             {
                 _logger?.Error($"[{StationName}] 复位异常: {ex.Message}");
+                SetPendingAlarm(new PendingAlarm(AlarmCodes.System.StationResetFailed, new StationAlarmEventArgs
+                {
+                    ErrorCode = AlarmCodes.System.StationResetFailed,
+                    RuntimeMessage = $"工站 [{StationName}] 复位失败：{ex.Message}",
+                    InternalException = ex,
+                }));
                 Fire(MachineTrigger.Error);
                 throw;
             }
@@ -766,7 +811,13 @@ namespace PF.Infrastructure.Station.Basic
 
             _alarmInterrupted = true;
             try { _runCts?.Cancel(); } catch (ObjectDisposedException) { }
-            Fire(MachineTrigger.Error);
+            if (!Fire(MachineTrigger.Error))
+            {
+                // 当前状态不接受 Error（如 Uninitialized）：报警快照若留在槽位里，
+                // 这次故障不显示，却会被下一次无关的报警带出来，显示成错误的报警码。
+                // 取走并直接上报，让它进入活跃报警列表（无码的级联触发仍被丢弃）
+                DispatchConcurrentAlarm();
+            }
         }
 
         /// <summary>
@@ -1108,7 +1159,9 @@ namespace PF.Infrastructure.Station.Basic
             }
             catch (Exception ex)
             {
-                _logger?.Error($"[{StationName}] 读取记忆参数失败: {ex.Message}");
+                // 下次落盘会用新对象覆盖原文件：先备份，断点数据还能人工恢复
+                var backup = Persistence.AtomicFile.BackupCorrupt(MemoryFilePath);
+                _logger?.Error($"[{StationName}] 读取记忆参数失败，按默认值启动（原文件已备份为 {backup ?? "（备份失败）"}）: {ex.Message}");
             }
 
             MemoryParam ??= new T();
@@ -1129,21 +1182,11 @@ namespace PF.Infrastructure.Station.Basic
             if (snapshot == null) return;
             try
             {
-                Directory.CreateDirectory(MemoryFileDir);
                 snapshot.IsWrite = graceful;
                 snapshot.LastWriteTime = DateTime.Now;
 
-                // 原子写入：先写 .tmp 临时文件，成功后 Replace 正式文件，
-                // 避免进程在写入中途崩溃时损坏已有的 JSON 文件
-                var finalPath = MemoryFilePath;
-                var tempPath = finalPath + ".tmp";
-                var json = JsonSerializer.Serialize(snapshot);
-                File.WriteAllText(tempPath, json);
-
-                if (File.Exists(finalPath))
-                    File.Replace(tempPath, finalPath, null);
-                else
-                    File.Move(tempPath, finalPath);
+                // 原子写入（临时文件 + 刷盘 + Replace），避免进程在写入中途崩溃/断电时损坏已有的 JSON 文件
+                Persistence.AtomicFile.WriteAllText(MemoryFilePath, JsonSerializer.Serialize(snapshot));
             }
             catch (Exception ex)
             {

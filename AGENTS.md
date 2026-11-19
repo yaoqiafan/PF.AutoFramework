@@ -27,7 +27,7 @@ push-only.bat      # 推送 nupkg 到私有 BaGet 服务器 https://nuget.powerf
 
 ```
 /00. Global Config    — Directory.Build.props / Common.props / Directory.Packages.props
-/01. Foundation       — PF.Core（43 接口，零外部依赖）/ PF.Infrastructure（硬件/模组/工站基类）
+/01. Foundation       — PF.Core（71 个公开接口，零外部依赖）/ PF.Infrastructure（硬件/模组/工站基类）
 /02. UI               — PF.UI.Controls / PF.UI.Infrastructure / PF.UI.Resources / PF.UI.Shared
 /03. Data             — PF.Data（EF Core + Repository）/ PF.SecsGem.DataBase
 /04. Tools/Services   — PF.CommonTools / PF.Services（8 个服务实现）
@@ -50,11 +50,14 @@ push-only.bat      # 推送 nupkg 到私有 BaGet 服务器 https://nuget.powerf
 BaseMotionCard    ← 厂商 SDK 封装，21 个抽象成员（4 属性 + 17 方法）+ 3 个 BaseDevice 钩子
     ↓ AttachToCard()
 BaseAxisDevice    ← 代理到 ParentCard，子类只需提供 AxisIndex / Param
-BaseIODevice      ← 代理到 ParentCard，WaitInputAsync 以 20ms 轮询，泛型枚举重载
+BaseIODevice      ← 代理到 ParentCard，WaitInputAsync 以 20ms 轮询，泛型枚举重载；同时是 IAnalogCarrier（可做模拟量设备的父设备）
+CardAnalogIODevice← 模拟量（AI/AO），父设备类型 IAnalogCarrier（板卡或 IO 模块），经 AnalogCard 落到板卡的 IAnalogCard 原语
 ```
 
+- **模拟量**：业务只依赖 `IAnalogIOController`（读写**工程值**）。传感器型号差异全部放在通道表 `AnalogChannelConfig`（`ConnectionParameters["Channels"]` JSON），**不按型号建类**。换算/限幅/仿真集中在 `AnalogChannelEngine`（普通类，卡类设备与将来的扫描型通讯设备共用）。同步读契约上**不得阻塞**（卡类直调 SDK、通讯类读扫描缓存），写有同步+异步两版，AO 越限**拒绝写出返回 false**。通讯类数据源接口 `IAnalogScanSource` 已预留，尚无实现
+
 - **BaseDevice**：3 次重试连接（间隔 2s），`ConnectAsync` / `DisconnectAsync` 互斥（连接中重复调用等前一次结束，不并发进 `InternalConnectAsync`），健康监控循环（默认 1000ms，仿真模式 ×5），抽象钩子 `InternalConnectAsync` / `InternalDisconnectAsync` / `InternalResetAsync`
-- **BaseMechanism**：聚合多硬件，`RegisterHardwareDevice()` 自动订阅报警聚合 + 批量复位，内置 `WaitAxisMoveDoneAsync`（50ms 轮询，30s 超时）/ `EnsurePointsExist<TEnum>(IAxis)`（点表自动补全 + 持久化）/ `CheckReady()`（防呆保护）
+- **BaseMechanism**：聚合多硬件，`RegisterHardwareDevice()` 自动订阅报警聚合 + 批量复位，内置 `WaitAxisMoveDoneAsync`（50ms 轮询，30s 超时）/ `EnsurePointsExist<TEnum>(IAxis)`（点表自动补全 + 持久化）/ `EnsureAnalogChannelsAsync<TIn,TOut>(IAnalogIOController)`（模拟量通道表按枚举补全 + 持久化）/ `CheckReady()`（防呆保护）
 - **StationBase\<T\>**：8 状态机（Stateless）+ `SemaphoreSlim(1,1)` 状态锁 + `CancellationTokenSource _runCts` 取消式暂停，子类实现 `ProcessNormalLoopAsync` / `ProcessDryRunLoopAsync`
 - **BaseMasterController**：编排所有 `IStation`，并行初始化（最大并发度 4），初始化超时 120s，复位超时 30s，防撕裂守卫（子站意外跌落 Uninitialized 时全局报警）
 
@@ -88,9 +91,11 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 
 ---
 
-## PF.Core 接口全览（43 个，零外部依赖）
+## PF.Core 主要接口（共 71 个公开接口，下列为常用部分；零外部依赖）
 
 **硬件设备**：`IHardwareDevice` / `IMotionCard` / `IAttachedDevice` / `IAxis` / `IIOController` / `ILightController` / `IBarcodeScan` / `IIntelligentCamera` / `IHardwareManagerService`
+
+**模拟量**：`IAnalogIOController`（业务接口）/ `IAnalogCard`（板卡通道原语）/ `IAnalogCarrier`（宿主：板卡或 IO 模块）/ `IAnalogScanSource`（通讯类数据源，预留）
 
 **机构 & 工站**：`IMechanism` / `IStation` / `IMasterController`
 
@@ -104,7 +109,7 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
 
 **关键枚举**：
 - `MachineState`（8 个）/ `MachineTrigger`（10 个）/ `OperationMode`（Normal / DryRun）
-- `HardwareCategory`（General / Axis / IOController / Camera / Robot / Scanner / Instrument / MotionCard / LightController）
+- `HardwareCategory`（General / Axis / IOController / Camera / Robot / Scanner / Instrument / MotionCard / LightController / FrameGrabber / AuxEncoder / AnalogIO）
 - `UserLevel`（Null=-1 / Operator=0 / Engineer=1 / Administrator=2 / SuperUser=3）
 
 ---
@@ -125,6 +130,7 @@ Uninitialized ──(Initialize)──► Initializing ──(InitializeDone)─
    - `HikComLightController` — 海康串口光源控制器（`CommInstanceId` 指向一条 `SerialPort` 通讯实例）
    - `HikFrameGrabberCard` — 海康图像采集卡（`SerialNumber` / `Index`）
    - `HikLineScanCamera` — 海康线阵相机（`SerialNumber` / `Index` / `ImageNodeNum`；`ParentDeviceId` 指向采集卡则走采集卡链路，留空为 GigE/USB 直连）
+   - `EtherCatAnalogIO` — 模拟量模块（`NodeId` 留空 = 板卡本体 AD/DA / `Channels` 通道表 JSON；`ParentDeviceId` 指向运动控制卡 = 单独使用，指向 IO 模块 = 随其分组）。Demo 配了 `AIO_UnderIO`（挂 `IO_Collectorll`）与 `AIO_Standalone`（挂 `LTDMC_Card_0`）两条仿真示例。雷赛卡的 `IAnalogCard` 实现（`LTMDCMotionCard.Analog.cs`）按 SDK 声明注释映射，**尚未上机验证**
 
    **机构**（7 个，DryIoc 多键注册）：`WS1FeedingModel` / `WS2FeedingModel` / `WSDetectionModule` / `WS1MaterialPullingModule` / `WS2MaterialPullingModule` / `WSDataModule` / `WSSecsGemModule`
 
@@ -152,7 +158,7 @@ ReinitializationRequired    → ReinitializeRequiredEvent
 |------|---------|
 | **HardwareManagerService** | `RegisterFactory(className, factory)` 注册，`LoadAndInitializeAsync()` 拓扑排序（父卡优先），`SetGlobalSimulationModeAsync()` 原子切换仿真模式，需配合 `ReloadAllAsync()` 热重载生效 |
 | **ParamService** | `RegisterParamType<TEntity, TModel>()` 显式类型映射（注意泛型顺序：实体在前、模型在后）；值未变更跳过写库；`ParamChanged` 事件携带审计信息（旧值/新值/用户/时间）；泛型约束 `where T : class`，不可直接用值类型 |
-| **AlarmService** | 复合键 `(Source, ErrorCode)` 幂等触发；`Channel<PersistJob>`（容量 10000）异步持久化；按年动态路由表 `AlarmRecord_{Year}` |
+| **AlarmService** | 复合键 `(Source, ErrorCode)` 幂等触发；`Channel<PersistJob>`（容量 10000）异步持久化；按年动态路由表 `AlarmRecord_{Year}`（含 `RuntimeMessage` 列，老表自动补列）。**`ClearAlarm` = 人工清除，会发硬件复位请求**（主控对同名报警态工站执行局部复位）；程序自动清除（自恢复、门关闭等）必须用 `ClearAlarmAutomatically`，否则会在无人操作时触发工站复位动作 |
 | **AlarmDictionaryService / AlarmPermissionService** | 报警文案只来自代码 `[AlarmInfo]`（已取消数据库扩展报警码合并加载）；清除等级 `ClearLevel`（命名参数，默认 Operator）首次写入 `AlarmDefinitions` 表后以数据库为准，在「权限管控 → 异常权限配置」修改；人为清除/复位按当前用户等级判定，复位需 ≥ 活跃报警中最高等级，程序自动清除不受控 |
 | **LogService** | 内存循环缓冲 1000 条；`Channel` 异步文件写入；按小时滚动，30 天自动清理 |
 | **StationSyncService** | 命名信号量跨工站协同：`WaitAsync(name, token)` / `Release(name)` / `ResetSingleSignal(name, initialCount)` |
@@ -174,7 +180,7 @@ D:\PFConfig\PFAutoFrameWork\
 └─ ProjectB.Shell\              ← 项目 B
 ```
 
-**为什么要隔离**：`AppParamDbContext.EnsureDefaultParametersCreatedAsync` 会删除"不在本项目默认参数集里"的参数行（废弃参数清理）。同机换项目运行时，A 的参数在 B 眼里全是废弃行，四张表会被整批清空。`Recipe\` / `AxisPoints\` / `user.config` 同样存在同名互相覆盖问题。
+**为什么要隔离**：`AppParamDbContext.EnsureDefaultParametersCreatedAsync` 会删除"不在本项目默认参数集里"的参数行（废弃参数清理，系统/硬件/通讯三张表；用户表只补不删，删除逐条记 Warn 日志）。同机换项目运行时，A 的参数在 B 眼里全是废弃行，三张表会被整批清空。`Recipe\` / `AxisPoints\` / `user.config` 同样存在同名互相覆盖问题。
 
 **项目名来源**：
 - 主程序：`PFApplicationBase.ProjectName` 虚属性，默认取入口程序集名，在**实例构造函数**中调用 `ConstGlobalParam.Initialize()`（必须早于任何触碰 `ConfigPath` 的代码）
@@ -269,6 +275,11 @@ D:\PFConfig\PFAutoFrameWork\
 |------|------|------|
 | Start 后旧任务仍在运行 | 用了同步 `Fire()` 触发 Running | **必须用 `await FireAsync()`** |
 | 机构初始化取不到设备 | 构造函数调用了 `GetDevice` | 在 `InternalInitializeAsync` 延迟解析 |
+| 设备掉线/限位不报警 | 机构 `InitializeAsync` 会抑制其设备的健康监控，成功后保持抑制，等工站回零后 `ResumeHealthMonitoring()` | 工站流程回零完成后调用 `ResumeHealthMonitoring()`；重写 `GetMechanisms()` 后 `ExecuteInitializeAsync` 结束时框架会兜底恢复。调试页手动初始化模组用 `InitializeStandaloneAsync()` |
+| 自定义 POCO 参数保存成功、重启后没了 | 没 `RegisterParamType` 注册，落到系统参数表，且不在项目默认参数集里，启动清理删掉了（日志有"参数类型…未注册"和"[参数清理]"） | `RegisterParamType<实体, 模型>()` 注册到合适的表，或把它写进 `GetSystemDefaults()` |
+| 工站在空跑/某模式下一启动就报"业务循环意外结束" | 该模式的 `ProcessXxxLoopAsync` 直接 `return` 了 | 实现循环；暂不支持的模式也要 `await Task.Delay(Timeout.Infinite, token)` 等待取消，而不是返回 |
+| 写 JSON 配置/数据文件断电后损坏、被空数据覆盖 | 直接 `File.WriteAllText` 覆盖 | 用 `PF.Infrastructure.Persistence.AtomicFile.WriteAllText`；读失败先 `AtomicFile.BackupCorrupt` 再按默认值继续 |
+| 初始化/复位失败但报警列表为空 | 进报警时没带真实报警码（无码 Error 是 CascadeAlarm，被主控过滤） | 钩子里直接抛异常即可（基类按 `StationInitFailed`/`StationResetFailed` 带异常信息上报）；自行触发用 `RaiseAlarm(code, message)` |
 | View 导航失败 | key 不匹配 | 检查特性 ViewName 与 `RegisterForNavigation` key |
 | 仿真模式切换未生效 | 仅改配置未重载 | 切换后调用 `ReloadAllAsync()` |
 | 信号量死锁 | ResetAll 时线程未停 | 先 `StopAllAsync()` 再 `ResetAllAsync()` |
@@ -293,3 +304,9 @@ D:\PFConfig\PFAutoFrameWork\
 | 锁定监控型门永远拒绝启动 | 没配门锁输出，信号永远不可信 | `SignalValidOnlyWhenLocked` 必须配 `LockOutputPorts`（ConfigGen 校验会拦） |
 | 仿真模式下门禁检查/门锁不生效 | 仿真 IO `ReadInput` 恒为 false，Monitor 在仿真下跳过 Safety 扫描与门禁检查 | 属预期，门锁行为需在真机验证 |
 | IO 调试页手动改门锁输出被写回（日志"门锁输出与期望不一致，重新写出"） | 锁输出由 Monitor 每 500ms 对账 | 调试页点「门锁手动接管」（`TrySetLockManualOverride`，仅无上锁许可时允许；离开页面、预上锁、取得许可时自动收回）。页面按 `GetDoorLockOutputs()` 自动识别，无门锁的项目/板卡不显示 |
+| 模拟量挂到 IO 模块下后读数全是通讯失败 | 挂 IO 模块**不继承节点号**，`NodeId` 仍按模拟量设备自己的配置 | 在模拟量设备参数里单独填 `NodeId`（留空 = 板卡本体 AD/DA） |
+| 模拟量设备报"所在板卡不支持模拟量" | 父设备（或 IO 模块所在的板卡）没实现 `IAnalogCard` | 检查 `ParentDeviceId`；自定义板卡需实现 `IAnalogCard` + `IAnalogCarrier`（`AnalogCard => this`） |
+| AO 写出返回 false、硬件没动 | 值超出通道 `OutputMin/OutputMax`，按设计拒绝写出（不截断），日志有"已拒绝写出" | 调整业务计算或通道限幅 |
+| 停机后比例阀等 AO 仍保持输出 | 框架不自动写安全值 | 在机构 `InternalStopAsync` / 工站 `OnPhysicalStopAsync` 里显式 `await ApplySafeOutputsAsync()`；掉线保障在模块硬件上配置 |
+| 自己实现的模拟量设备卡 UI | 在同步读里做了网络/串口 I/O | 同步读契约上不得阻塞：通讯类设备用后台扫描维护缓存，同步读只读缓存 |
+| 自写硬件 ParamViewMapper 后担心冲掉其他连接参数 | Mapper 提取时只写自己视图里的键 | 无需处理：`CommonChangeParamDialogViewModel` 确认时统一补回"原来有、提取结果没有"的键（`AxisParam` / `Channels` 等）。Mapper 只要对自己编辑的键**总是写出**（空也写空串）即可 |

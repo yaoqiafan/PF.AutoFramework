@@ -19,7 +19,8 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             _log = log;
 
-            // 服务名带项目后缀，与安装器和服务自身的命名规则同源（均由项目名推导）
+            // 服务名全机固定（SecsGemService，不按项目区分：本机通道端口 6800 两端硬编码，全机只能有一个实例）；
+            // 可执行文件路径取 SCM 中实际注册的 ImagePath，与启动时的项目绑定校验同源
             _serviceNameForManagement = ServicePathResolver.SecsServiceName;
             _serviceExePath           = ServicePathResolver.ResolveSecsServiceExePath();
 

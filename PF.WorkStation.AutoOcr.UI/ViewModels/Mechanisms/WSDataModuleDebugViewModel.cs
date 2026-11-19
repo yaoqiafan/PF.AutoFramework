@@ -207,7 +207,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             _dataModule = containerProvider.Resolve<IMechanism>(nameof(WSDataModule))
                 as WSDataModule;
 
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.InitializeAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.InitializeStandaloneAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _dataModule?.StopAsync()));
             Station1ChangeLotCommand = new DelegateCommand(ChangeStation1Lot);

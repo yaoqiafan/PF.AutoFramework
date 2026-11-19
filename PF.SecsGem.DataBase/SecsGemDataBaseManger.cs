@@ -39,8 +39,12 @@ namespace PF.SecsGem.DataBase
         /// <summary>
         /// 初始化数据库：若库不存在则自动创建表结构（独立短 context，不经作用域）。
         /// </summary>
+        /// <summary>最近一次 <see cref="InitializationDataBase"/> 失败的原因；成功时为 null。</summary>
+        public string? LastInitializationError { get; private set; }
+
         public async Task<bool> InitializationDataBase()
         {
+            LastInitializationError = null;
             try
             {
                 using var ctx = new SecsGemDbContext(_options);
@@ -49,7 +53,9 @@ namespace PF.SecsGem.DataBase
             }
             catch (Exception ex)
             {
-                // 写日志或向上抛均可，此处先返回 false 避免阻断启动
+                // 本项目不引用日志组件：返回 false 由调用方记日志（PFApplicationBase 启动阶段 / SecsGemModule）。
+                // 原因保存在 LastInitializationError 供调用方展示
+                LastInitializationError = ex.Message;
                 System.Diagnostics.Trace.WriteLine($"[SecsGemDataBaseManger] InitializationDataBase failed: {ex.Message}");
                 return false;
             }

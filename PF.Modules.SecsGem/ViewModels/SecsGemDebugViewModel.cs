@@ -63,9 +63,19 @@ namespace PF.Modules.SecsGem.ViewModels
 
             _ = Task.Run(async () =>
             {
-                await CommandBuilder.LoadCommandTreesAsync();
-                await Connection.CheckDbEmptyAsync();
-                Parameter.LoadParamRows(0);
+                // 此前无 catch：命令树加载抛异常时后两步不执行、页面空着，异常也没人观察
+                try
+                {
+                    await CommandBuilder.LoadCommandTreesAsync();
+                    await Connection.CheckDbEmptyAsync();
+                    Parameter.LoadParamRows(0);
+                }
+                catch (Exception ex)
+                {
+                    Application.Current?.Dispatcher.InvokeAsync(() =>
+                        Log.Append(null, $"页面数据加载失败: {ex.Message}", isSystem: true));
+                    LogService?.Error($"[SECS调试] 页面数据加载失败：{ex.Message}", "SecsGem", ex);
+                }
             });
         }
 
@@ -91,13 +101,15 @@ namespace PF.Modules.SecsGem.ViewModels
 
         private void OnMessageReceived(object sender, SecsMessageReceivedEventArgs e)
         {
+            // InvokeAsync 而非 Invoke：这里跑在 SECS 报文接收线程上，同步 Invoke 会让接收线程等 UI 线程。
+            // UI 忙（加载大表、弹窗）时 Host 报文处理随之停顿，T3 回复超时；UI 线程反过来等该线程时还会死锁
             if (e?.Message != null)
-                Application.Current?.Dispatcher.Invoke(() => Log.AppendReceived(e.Message));
+                Application.Current?.Dispatcher.InvokeAsync(() => Log.AppendReceived(e.Message));
         }
 
         private void OnFormulaValidateError(object sender, FormulaValidateErrorEventArgs e)
         {
-            Application.Current?.Dispatcher.Invoke(() =>
+            Application.Current?.Dispatcher.InvokeAsync(() =>
                 Log.Append(null, $"⚠ Formula 校验错误: {e.ErrorMessage}", isSystem: true));
         }
     }

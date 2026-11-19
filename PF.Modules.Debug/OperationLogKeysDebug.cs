@@ -119,6 +119,43 @@ namespace PF.Modules.Debug
             public const string SetMode = nameof(SetMode);
         }
 
+        /// <summary>模拟量 IO 调试视图</summary>
+        public static class AnalogIODebugView
+        {
+            [Description("连接硬件"), OperationLogCritical]
+            public const string Connect = nameof(Connect);
+            [Description("断开连接"), OperationLogCritical]
+            public const string Disconnect = nameof(Disconnect);
+            [Description("模块复位"), OperationLogCritical]
+            public const string Reset = nameof(Reset);
+            [Description("模拟报警测试"), OperationLogCritical]
+            public const string SimulateAlarm = nameof(SimulateAlarm);
+            [Description("全部 AO 回安全值"), OperationLogCritical]
+            public const string ApplySafeOutputs = nameof(ApplySafeOutputs);
+            [Description("AO 待写入值")]
+            public const string OutputTarget = nameof(OutputTarget);
+            [Description("AO 写出"), OperationLogCritical]
+            public const string WriteOutput = nameof(WriteOutput);
+            [Description("AO 按百分比快捷写出"), OperationLogCritical]
+            public const string QuickWrite = nameof(QuickWrite);
+            [Description("AI 仿真值")]
+            public const string SimValue = nameof(SimValue);
+            [Description("注入 AI 仿真值")]
+            public const string ApplySimValue = nameof(ApplySimValue);
+            [Description("通道配置-新增通道")]
+            public const string AddChannel = nameof(AddChannel);
+            [Description("通道配置-删除选中通道")]
+            public const string RemoveChannel = nameof(RemoveChannel);
+            [Description("通道配置-套用预设")]
+            public const string ApplyPreset = nameof(ApplyPreset);
+            [Description("通道配置-选中行存为预设")]
+            public const string SaveAsPreset = nameof(SaveAsPreset);
+            [Description("通道配置-撤销修改")]
+            public const string RevertChannels = nameof(RevertChannels);
+            [Description("通道配置-校验并保存"), OperationLogCritical]
+            public const string SaveChannels = nameof(SaveChannels);
+        }
+
         /// <summary>扫码枪调试视图</summary>
         public static class BarcodeScanDebugView
         {

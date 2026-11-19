@@ -74,8 +74,16 @@ namespace PF.Application.Base.Configuration
             return await base.SaveChangesAsync(cancellationToken);
         }
 
-        /// <summary>确保数据库已建表，并根据 <paramref name="defaultParam"/> 补全缺失的默认参数行、移除已废弃行。</summary>
+        /// <summary>
+        /// 确保数据库已建表，并根据 <paramref name="defaultParam"/> 补全缺失的默认参数行、移除已废弃行。
+        /// <para>用户表（UserLoginParams）只补不删：运行时新建的账号不在默认集里，不能当废弃行处理。
+        /// 其余三张表的废弃行逐条经 <paramref name="onRemoved"/> 报告后删除。</para>
+        /// </summary>
         public async Task EnsureDefaultParametersCreatedAsync(IDefaultParam defaultParam, CancellationToken cancellationToken = default)
+            => await EnsureDefaultParametersCreatedAsync(defaultParam, onRemoved: null, cancellationToken);
+
+        /// <inheritdoc cref="EnsureDefaultParametersCreatedAsync(IDefaultParam, CancellationToken)"/>
+        public async Task EnsureDefaultParametersCreatedAsync(IDefaultParam defaultParam, Action<string>? onRemoved, CancellationToken cancellationToken = default)
         {
             await Database.EnsureCreatedAsync(cancellationToken);
 
@@ -127,10 +135,12 @@ namespace PF.Application.Base.Configuration
             await AddColumnIfMissingAsync("HardwareParams", "Remarks", "TEXT", cancellationToken);
             await AddColumnIfMissingAsync("CommunicationParams", "Remarks", "TEXT", cancellationToken);
 
-            await EnsureParametersExistAsync(UserLoginParams, defaultParam.GetUsersDefaults(), cancellationToken);
-            await EnsureParametersExistAsync(SystemConfigParams, defaultParam.GetSystemDefaults(), cancellationToken);
-            await EnsureParametersExistAsync(HardwareParams, defaultParam.GetHardwareDefaults(), cancellationToken);
-            await EnsureParametersExistAsync(CommunicationParams, defaultParam.GetCommunicationDefaults(), cancellationToken);
+            // 用户表不做废弃清理：「用户管理」里新建的账号本来就不在代码默认集里，
+            // 此前每次启动都会被当成废弃行删掉（新建账号重启即消失）
+            await EnsureParametersExistAsync(UserLoginParams, defaultParam.GetUsersDefaults(), removeStale: false, onRemoved, cancellationToken);
+            await EnsureParametersExistAsync(SystemConfigParams, defaultParam.GetSystemDefaults(), removeStale: true, onRemoved, cancellationToken);
+            await EnsureParametersExistAsync(HardwareParams, defaultParam.GetHardwareDefaults(), removeStale: true, onRemoved, cancellationToken);
+            await EnsureParametersExistAsync(CommunicationParams, defaultParam.GetCommunicationDefaults(), removeStale: true, onRemoved, cancellationToken);
         }
 
         /// <summary>
@@ -162,6 +172,8 @@ namespace PF.Application.Base.Configuration
         private async Task EnsureParametersExistAsync<T>(
             DbSet<T> dbSet,
             Dictionary<string, T> defaultParameters,
+            bool removeStale,
+            Action<string>? onRemoved,
             CancellationToken cancellationToken) where T : ParamEntity
         {
             if (defaultParameters == null || !defaultParameters.Any())
@@ -169,12 +181,16 @@ namespace PF.Application.Base.Configuration
 
             var allExisting = await dbSet.ToListAsync(cancellationToken);
 
-            var staleParameters = allExisting
-                .Where(p => !defaultParameters.ContainsKey(p.Name))
-                .ToList();
+            var staleParameters = removeStale
+                ? allExisting.Where(p => !defaultParameters.ContainsKey(p.Name)).ToList()
+                : new List<T>();
 
             if (staleParameters.Any())
             {
+                // 此前静默删除：参数"保存成功"、重启后却没了，日志里找不到任何痕迹
+                foreach (var p in staleParameters)
+                    onRemoved?.Invoke($"[参数清理] 表 {typeof(T).Name} 中的参数「{p.Name}」不在本项目默认参数集里，已按废弃参数删除。原值：{p.JsonValue}");
+
                 dbSet.RemoveRange(staleParameters);
                 await SaveChangesAsync(cancellationToken);
             }

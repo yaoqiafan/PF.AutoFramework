@@ -11,8 +11,28 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.27</Version>
+		<Version>1.0.28</Version>
 		<PackageReleaseNotes>
+v1.0.28 (2026-11-18) — 新增模拟量 IO 调试页（依赖 PF.Core 1.0.38 / PF.Infrastructure 1.0.37）
+
+[新增 — AnalogIODebugView]
+- 硬件调试树点击 IAnalogIOController 设备进入（HardwareDebugViewModel 新增分支；未用 [HardwareUI]，因其 Inherited = false）。
+- 实时监控页：AI 卡片（工程值/单位/状态色块/量程进度条/原始值/采样时间），AO 卡片（回读、写出、0/50/100% 快捷写出，
+  越限被拒绝时提示原因），顶部「全部回安全值」。100ms 刷新，同步读直接在 UI 线程（接口契约保证不阻塞），写出走异步。
+- 仿真面板（仅仿真模式显示）：逐路切换仿真模式、注入仿真值，只改内存。
+- 通道配置页：DataGrid 编辑整张通道表、增删通道、套用预设 / 按信号类型填原始量程 / 选中行存为预设；
+  「校验并保存」需工程师及以上权限，校验失败整表不改，成功后热更新到设备并写回 ConnectionParameters["Channels"]。
+- 预设库 {ConfigPath}\AnalogPresets.json，缺失时写入内置通用信号类型。
+- OperationLogKeysDebug 新增 AnalogIODebugView 键组。
+
+[修复]
+- 线扫检测模组调试页「初始化模组」改调 InitializeStandaloneAsync：此前手动初始化后该模组设备的健康监控一直处于抑制状态。
+
+[行为变更 — 通讯调试页保存参数]
+- TCP 服务端/客户端、文件传输、Modbus RTU/TCP、串口六个通讯调试页保存参数后，改为"确认后一并重新加载全部通讯实例
+  和全部硬件设备"（新增 Models/CommunicationReloadHelper）。此前只重载通讯实例，扫码枪/相机/串口光源等设备手里
+  仍是已释放的旧实例，直到硬件也重载前都无法通讯。机台未停止（非未初始化）时只保存不重载，并提示稍后生效。
+
 v1.0.27 (2026-11-11) — 轴参数弹窗新增「回零低速倍率」（依赖 PF.Core 1.0.36）
 
 [新增]

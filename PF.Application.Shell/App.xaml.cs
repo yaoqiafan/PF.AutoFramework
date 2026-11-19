@@ -249,6 +249,23 @@ namespace PF.Application.Shell
                     cfg.DeviceId, cfg.DeviceName, channel, multiplier, cfg.IsSimulated, LogService);
             });
 
+            // 模拟量模块：ParentDeviceId 填运动控制卡 DeviceId → 挂在卡下单独使用；
+            // 填某个 IO 模块的 DeviceId → 挂在该 IO 模块下随其分组（按 IAnalogCarrier 类型匹配自动挂载，不继承节点号）。
+            // NodeId 留空 = 板卡本体 AD/DA；Channels 为通道表 JSON（在硬件调试页「通道配置」编辑）。
+            hwManager.RegisterFactory("EtherCatAnalogIO", cfg =>
+            {
+                cfg.ConnectionParameters.TryGetValue(Infrastructure.Hardware.IO.Analog.AnalogChannelJson.NodeIdKey, out var nodeText);
+                if (!Infrastructure.Hardware.IO.Analog.AnalogChannelJson.TryParseNodeId(nodeText, out var nodeId))
+                    throw new InvalidOperationException($"模拟量设备 [{cfg.DeviceId}] 的节点号 '{nodeText}' 不是非负整数（留空表示板卡本体）");
+
+                cfg.ConnectionParameters.TryGetValue(Infrastructure.Hardware.IO.Analog.AnalogChannelJson.ChannelsKey, out var channelsJson);
+                var channels = Infrastructure.Hardware.IO.Analog.AnalogChannelJson.Parse(channelsJson,
+                    msg => LogService.Error($"[{cfg.DeviceName}] {msg}"));
+
+                return new Infrastructure.Hardware.IO.Analog.EtherCatAnalogIO(
+                    cfg.DeviceId, cfg.DeviceName, nodeId, channels, cfg.IsSimulated, LogService);
+            });
+
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
             {
                 int timeout = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var to) ? int.Parse(to) : 0;

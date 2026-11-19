@@ -71,8 +71,69 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.36</Version>
+		<Version>1.0.37</Version>
 		<PackageReleaseNotes>
+v1.0.37 (2026-11-18) — 新增模拟量 IO 实现（依赖 PF.Core 1.0.38）
+
+[新增 — Hardware/IO/Analog]
+- AnalogChannelEngine：通道表快照、线性换算、断线/超量程判定、AO 限幅（越限拒绝）、仿真状态
+  （AlwaysPass / Fixed / FollowOutput 一阶滞后，惰性计算无定时器）。卡类与将来的扫描型设备共用。
+- CardAnalogIODevice（抽象）：AttachedDeviceBase&lt;IAnalogCarrier&gt;，挂在运动控制卡下单独使用，或挂在 IO 模块下随其分组
+  （不继承节点号）。连接时按通道下发 Mode；断开时尽力写安全值（兜底）；健康检查报 HW_AIO_001 并自动消除。
+- EtherCatAnalogIO：薄壳，ImplementationClassName = "EtherCatAnalogIO"。
+- AnalogChannelJson：ConnectionParameters 键名（NodeId / Channels）与通道表 JSON 读写（中文不转义）。
+- IAnalogSimulationControl：调试页仿真注入入口（只改内存）。
+
+[变更]
+- BaseIODevice 实现 IAnalogCarrier（AnalogCard => ParentCard as IAnalogCard），可作为模拟量设备父设备；
+  只加在本基类，不改 IIOController。
+- LTMDCMotionCard 改为 partial，新增 LTMDCMotionCard.Analog.cs 实现 IAnalogCard / IAnalogCarrier：
+  NodeId 为空走 dmc_get_ad_input / dmc_set_da_output / dmc_get_da_output（首次写出前 dmc_set_da_enable），
+  否则走 nmc_get_ad_input / nmc_set_da_output / nmc_get_da_output / nmc_set_ad_mode / nmc_set_da_mode。
+  ⚠ 按 SDK 声明注释实现、尚未上机验证；E5032 上 EtherCAT 模拟量从站是否需改走 PDO、返回值单位、mode 含义待手册确认。
+- BaseMechanism 新增 EnsureAnalogChannelsAsync&lt;TIn, TOut&gt;(IAnalogIOController)：按枚举补全缺失通道并持久化。
+
+[修复 — 点位表可能永久丢失]
+- 点表保存改为原子写入（新增 Persistence.AtomicFile：临时文件 + 刷盘 + File.Replace）。此前直接覆盖，写入中断电后
+  读取失败按空表处理，随后 EnsurePointsExist/SavePointTable 用空表覆盖原文件，示教点位永久丢失。
+- 点表读取失败时先备份为 {文件}.corrupt-时间戳 并记 Error。
+- 点表加锁：调试页增删改与工站线程读取并发时不再可能抛"集合已修改"；PointTable 返回快照（与 IAxis 注释一致）。
+- 工站记忆参数改用同一工具写入（增加刷盘），读取失败同样先备份。
+
+[修复 — 报警根因丢失（初始化失败报警列表为空）]
+- 工站 OnInitializeAsync / OnResetAsync 抛异常、业务循环未处理异常：此前以无码 CascadeAlarm（被主控过滤）或
+  与原因无关的 StationSyncError 进入报警，现分别带 StationInitFailed / StationResetFailed / StationWorkflowException
+  与异常信息上报。
+- 主控全线初始化超时、复位超时此前只记日志，现报 InitializationTimeout / ResetTimeout 并列出未完成工站；
+  初始化异常不再误报"设备复位时间过长"。超时时长改为可重写的 InitializeTimeout / ResetTimeout（默认 120 s / 30 s）。
+- 初始化结束时若有工站未进入 Idle（其状态机拒绝了 Initialize），不再进入 Idle，报 StationNotReady。
+- 工站在不接受 Error 的状态（如 Uninitialized）下收到带码报警：此前快照残留在槽位，下一次无关报警会带出旧码；
+  现直接上报并清空槽位。
+
+[修复 — 设备掉线不报警]
+- BaseDevice 连接重试用尽时，驱动返回 false（多数驱动吞掉异常）也报 DeviceConnectFailed；此前只有抛异常才报警。
+- 健康监控抑制改为按持有者计数（BaseDevice.SetHealthMonitoringSuppressed(owner, bool)），多个模组共用同一设备时
+  互不干扰；SuppressHealthMonitoring 属性 setter 保持兼容。
+- BaseMechanism 初始化失败/异常时立即恢复健康监控；StationBase.ExecuteInitializeAsync 结束时（成功或失败）
+  对 GetMechanisms() 兜底恢复。此前漏调 ResumeHealthMonitoring 或初始化失败后，这些设备掉线永不报警。
+- 新增 BaseMechanism.InitializeStandaloneAsync：调试页手动初始化模组用，初始化后立即恢复监控
+  （LineScanDetectionModuleDebugView 与 Demo 各模组调试页已改用）。
+
+[修复 — 工站/主控状态与实际不符]
+- 业务循环未被取消就自行返回、或因"非本工站令牌"的取消退出（如等待中的同步信号量被复位）：此前工站停在
+  Running 却不再执行，现按 StationWorkflowException 报警。⚠ 业务循环直接 return 的工站（如 Demo 两个拉料工站的
+  ProcessDryRunLoopAsync）在对应模式下启动会报警，请实现或改为等待取消。
+- 主控逐站 Start / Resume 后核对子站确实进入 Running，否则报 StationNotReady 并进入报警（此前静默）。
+- StationBase.Pause：状态机拒绝暂停时不再执行物理暂停；取消业务线程统一由 Running.OnExit 完成。
+- 主控自动清除的报警（子站自恢复、安全门恢复等）改走 IAlarmService.ClearAlarmAutomatically，不再触发工站自动复位。
+
+[修复 — 运动]
+- WaitAxisMoveDoneAsync：轴参数 PositioningAccuracy 未配置（0）时不再做到位校验——此前按"误差 > 0"判超限，
+  真机上 MoveAbsAndWaitAsync 几乎每次都会误报。
+- MoveToPointAndWaitAsync 现在也做到位校验（PositioningAccuracy > 0 时），此前最常用的点位运动从不校验。
+- BaseMechanism.RegisterHardwareDevice：同 DeviceId 的新实例（硬件热重载后）替换旧实例；此前旧实例一直留在列表里，
+  残留的报警状态让模组无法自动清警，复位也作用在已释放的设备上。
+
 v1.0.36 (2026-11-12) — 修复基恩士 IV 相机连接失败一次后再也连不上（依赖 PF.Core 1.0.37）
 
 [修复 — KeyenceIntelligent_IVCamera]

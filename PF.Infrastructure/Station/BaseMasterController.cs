@@ -361,6 +361,7 @@ namespace PF.Infrastructure.Station
                 try { await s.StartAsync().ConfigureAwait(false); }
                 catch (Exception ex) { _logger.Error($"【主控】启动工站 [{s.StationName}] 失败: {ex.Message}"); }
             }
+            VerifySubStationsRunning("启动");
         }
 
         /// <summary>
@@ -373,6 +374,32 @@ namespace PF.Infrastructure.Station
                 try { await s.ResumeAsync().ConfigureAwait(false); }
                 catch (Exception ex) { _logger.Error($"【主控】续跑工站 [{s.StationName}] 失败: {ex.Message}"); }
             }
+            VerifySubStationsRunning("续跑");
+        }
+
+        /// <summary>
+        /// 逐站启动/续跑后核对子站确实进入 Running。
+        /// 子站状态机拒绝 Start/Resume 时（如它处于 Uninitialized）StartAsync 会静默返回：
+        /// 此前主控照样显示 Running，那个工站却根本没在跑，也没有任何报警。
+        /// 已进入报警态的工站会自己上报根因，这里不重复。
+        /// </summary>
+        private void VerifySubStationsRunning(string action)
+        {
+            var notRunning = _subStations
+                .Where(s => s.CurrentState is not (MachineState.Running or MachineState.InitAlarm or MachineState.RunAlarm))
+                .ToList();
+            if (notRunning.Count == 0) return;
+
+            var detail = string.Join("、", notRunning.Select(s => $"{s.StationName}({s.CurrentState})"));
+            _logger.Error($"【主控】{action}后有工站未进入运行：{detail}，全线进入报警。");
+            _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationNotReady, $"{action}后有工站未进入运行：{detail}");
+
+            // 当前处于状态机 OnEntry 内（持有状态锁），必须在独立线程触发，否则死锁
+            _ = Task.Run(() =>
+            {
+                try { Fire(MachineTrigger.Error); }
+                catch (Exception ex) { _logger.Error($"【主控】切入报警状态失败: {ex.Message}"); }
+            });
         }
 
         /// <summary>
@@ -420,7 +447,7 @@ namespace PF.Infrastructure.Station
         /// 以"主控"为来源清除指定报警，供子类在 OnHardwareInputRestored 重写中调用。
         /// </summary>
         protected void ClearMasterAlarm(string errorCode)
-            => _alarmService?.ClearAlarm("主控", errorCode);
+            => _alarmService?.ClearAlarmAutomatically("主控", errorCode);
 
         /// <summary>
         /// 处理来自 <see cref="HardwareInputEventBus"/> 的物理按钮输入。
@@ -479,7 +506,7 @@ namespace PF.Infrastructure.Station
             switch (inputType)
             {
                 case HardwareInputType.SafeDoor:
-                    _alarmService?.ClearAlarm("主控", AlarmCodes.Safety.SafeDoorOpen);
+                    _alarmService?.ClearAlarmAutomatically("主控", AlarmCodes.Safety.SafeDoorOpen);
                     _logger.Info("【全局主控】安全门已关闭，清除安全门报警记录。");
                     break;
             }
@@ -634,7 +661,8 @@ namespace PF.Infrastructure.Station
         {
             var source = (sender as IStation)?.StationName ?? "未知工站";
             _logger.Info($"【主控】工站 [{source}] 硬件自恢复，主动清除报警服务记录。");
-            _alarmService?.ClearAlarm(source);
+            // 自恢复只撤销显示，不触发工站局部复位（设备自己好了不代表可以无人值守地执行复位动作，仍需操作员复位）
+            _alarmService?.ClearAlarmAutomatically(source);
         }
 
         #endregion
@@ -748,7 +776,10 @@ namespace PF.Infrastructure.Station
             // 否则本轮初始化成功后会跳过 InitializeDone，主控永久卡在 Initializing
             _abortInitRequested = false;
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            // 超时单独一个 CTS：_initCts 还会被"某工站失败 / 安全门 / Stop"主动取消，
+            // 只有拆开才能在取消后分辨出"是不是超时"，从而报出超时这一根因
+            var timeoutCts = new CancellationTokenSource(InitializeTimeout);
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token);
             // 原子替换 _initCts，取消并释放上次遗留的（若有）
             var oldCts = Interlocked.Exchange(ref _initCts, cts);
             try { oldCts?.Cancel(); oldCts?.Dispose(); } catch { }
@@ -763,13 +794,27 @@ namespace PF.Infrastructure.Station
                         catch (Exception ex) { _logger.Error($"【主控】初始化工站 [{station.StationName}] 异常: {ex.Message}"); }
                     }).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) { /* 某工站失败触发 _initCts.Cancel()，属于预期流程 */ }
+            catch (OperationCanceledException)
+            {
+                // 某工站失败触发 _initCts.Cancel() 属于预期流程（该工站已带真实报警码上报）；
+                // 超时则没有任何工站会上报根因，此前现场只看到"初始化报警"、报警列表为空
+                if (timeoutCts.IsCancellationRequested && !_abortInitRequested)
+                {
+                    var pending = string.Join("、", _subStations
+                        .Where(s => s.CurrentState == MachineState.Initializing)
+                        .Select(s => s.StationName));
+                    _logger.Error($"【主控】全线初始化超时（{InitializeTimeout.TotalSeconds:0} s），未完成工站：{pending}");
+                    _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout,
+                        $"全线初始化超过 {InitializeTimeout.TotalSeconds:0} s 未完成" + (pending.Length > 0 ? $"，未完成工站：{pending}" : string.Empty));
+                }
+            }
             catch (Exception ex)
             {
                 _logger.Error($"【主控】初始化异常: {ex.Message}");
                 // 提前 return 也必须消费中止标志，防止残留污染下一轮初始化
                 _abortInitRequested = false;
-                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.InitializationTimeout, "设备复位时间过长，请调整复位参数！");
+                // 此前误报为 InitializationTimeout +"设备复位时间过长"，与实际原因无关
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationInitFailed, $"全线初始化异常：{ex.Message}");
                 Fire(MachineTrigger.Error);
                 return;
             }
@@ -778,6 +823,7 @@ namespace PF.Infrastructure.Station
                 // 仅在 _initCts 仍为本次 cts 时才清空，防止并发调用时误清另一次的 cts
                 Interlocked.CompareExchange(ref _initCts, null, cts);
                 try { cts.Dispose(); } catch { }
+                try { timeoutCts.Dispose(); } catch { }
             }
 
             // 外部 StopAllAsync 请求中止初始化：跳过后续状态触发，由 Stop 路径负责状态机
@@ -795,12 +841,29 @@ namespace PF.Infrastructure.Station
             {
                 _logger.Error("【主控】部分工站初始化失败，进入初始化报警。");
                 Fire(MachineTrigger.Error);
+                return;
             }
-            else
+
+            // 工站状态机拒绝 Initialize 时（如它处于 Paused）ExecuteInitializeAsync 会静默返回，
+            // 既不报警也不就绪；若不检查，主控会带着没就绪的工站进入 Idle，之后 Start 时它静默不启动
+            var notReady = _subStations.Where(s => s.CurrentState != MachineState.Idle).ToList();
+            if (notReady.Count > 0)
             {
-                Fire(MachineTrigger.InitializeDone);
+                var detail = string.Join("、", notReady.Select(s => $"{s.StationName}({s.CurrentState})"));
+                _logger.Error($"【主控】初始化结束时有工站未就绪：{detail}");
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationNotReady, $"初始化结束时有工站未就绪：{detail}");
+                Fire(MachineTrigger.Error);
+                return;
             }
+
+            Fire(MachineTrigger.InitializeDone);
         }
+
+        /// <summary>全线初始化超时（默认 120 s），子类可按设备规模重写</summary>
+        protected virtual TimeSpan InitializeTimeout => TimeSpan.FromSeconds(120);
+
+        /// <summary>全线复位超时（默认 30 s），子类可按设备规模重写</summary>
+        protected virtual TimeSpan ResetTimeout => TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// 全线并行复位（限流模式，最多 4 路并发，全局超时 30 s）。
@@ -812,7 +875,7 @@ namespace PF.Infrastructure.Station
             _logger.Info("【主控】开始全线复位(限流并行模式)...");
             if (!Fire(MachineTrigger.Reset)) return;
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var cts = new CancellationTokenSource(ResetTimeout);
             try
             {
                 await Parallel.ForEachAsync(_subStations,
@@ -827,15 +890,26 @@ namespace PF.Infrastructure.Station
             catch (OperationCanceledException)
             {
                 if (cts.IsCancellationRequested)
-                    _logger.Error("【主控】全线复位超时（30 s），系统重新回到报警状态。");
+                {
+                    var pending = string.Join("、", _subStations
+                        .Where(s => s.CurrentState == MachineState.Resetting)
+                        .Select(s => s.StationName));
+                    _logger.Error($"【主控】全线复位超时（{ResetTimeout.TotalSeconds:0} s），系统重新回到报警状态。未完成工站：{pending}");
+                    // 此前只记日志：主控回到报警态，报警列表里却没有"复位超时"这一条
+                    _alarmService?.TriggerAlarm("主控", AlarmCodes.System.ResetTimeout,
+                        $"全线复位超过 {ResetTimeout.TotalSeconds:0} s 未完成" + (pending.Length > 0 ? $"，未完成工站：{pending}" : string.Empty));
+                }
                 else
+                {
                     _logger.Warn("【主控】全线复位操作已被人工打断/取消。");
+                }
                 Fire(MachineTrigger.Error);
                 return;
             }
             catch (Exception ex)
             {
                 _logger.Error($"【主控】复位失败: {ex.Message}，重新回到报警状态。");
+                _alarmService?.TriggerAlarm("主控", AlarmCodes.System.StationResetFailed, $"全线复位异常：{ex.Message}");
                 Fire(MachineTrigger.Error);
                 return;
             }
@@ -1091,7 +1165,7 @@ namespace PF.Infrastructure.Station
                 return false;
             }
 
-            _alarmService?.ClearAlarm("主控", AlarmCodes.Safety.DoorNotClosed);
+            _alarmService?.ClearAlarmAutomatically("主控", AlarmCodes.Safety.DoorNotClosed);
             lock (_doorLockSync)
             {
                 // 代次 +1 使尚未完成的延迟解锁任务作废
@@ -1148,7 +1222,7 @@ namespace PF.Infrastructure.Station
                 }
                 finally
                 {
-                    if (alarmed) _alarmService?.ClearAlarm("主控", AlarmCodes.Safety.DoorUnlockBlocked);
+                    if (alarmed) _alarmService?.ClearAlarmAutomatically("主控", AlarmCodes.Safety.DoorUnlockBlocked);
                 }
             });
         }

@@ -33,7 +33,11 @@ namespace PF.Data.Entity.Alarm
         /// <summary>是否仍处于活跃状态</summary>
         public bool IsActive { get; set; }
 
-
-        
+        /// <summary>
+        /// 触发时携带的运行时信息（如"工站 X 初始化失败：原因…"），可为 null。
+        /// 字典文案只有通用描述，现场排查要靠这一列；老库的年度分表由 AlarmService 启动时自动补列。
+        /// </summary>
+        [MaxLength(1024)]
+        public string? RuntimeMessage { get; set; }
     }
 }

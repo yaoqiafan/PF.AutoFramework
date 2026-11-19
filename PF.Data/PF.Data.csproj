@@ -12,8 +12,14 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<PackageReleaseNotes>
+v1.0.5 (2026-11-18) — 报警流水记录新增运行时信息列
+
+[新增]
+- AlarmRecordEntity.RuntimeMessage（TEXT，可空，≤1024）：报警触发时的运行时信息（如具体失败原因）。
+  老库的年度分表 AlarmRecord_YYYY 由 PF.Services 1.0.10 的 AlarmService 启动后首次访问时自动补列，无需手工迁移。
+
 v1.0.4 (2026-10-23) — 报警定义新增清除等级字段
 
 [数据库 Schema 变更 — 自动补列，无需手动迁移]

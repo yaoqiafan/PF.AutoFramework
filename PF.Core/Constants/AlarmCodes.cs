@@ -258,6 +258,55 @@ namespace PF.Core.Constants
     "/PF.UI.Infrastructure;component/HardwareImage/运动控制卡.png")]
             public const string AuxEncoderCardDisconnected = "HW_ENC_001";
             #endregion
+
+            #region 模拟量模块 (AIO)
+            /// <summary>模拟量模块所在板卡/IO 模块已断开，或所在板卡不支持模拟量</summary>
+            [AlarmInfo("硬件异常", "模拟量模块不可用（所在板卡断开或不支持模拟量）", "Analog IO module unavailable", AlarmSeverity.Error,
+    "1. 检查运动控制卡与工控机之间的总线连接是否松动或断开;\n" +
+                "2. 若模拟量模块挂在某个 IO 模块下，先确认该 IO 模块自身是否可正常连接;\n" +
+                "3. 报警信息为\"所在板卡不支持模拟量\"时，检查硬件配置的父设备是否填错;\n" +
+                "4. 点击【复位】重新连接;",
+    50029, "Analog IO module unavailable",
+    "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
+            public const string AnalogModuleUnavailable = "HW_AIO_001";
+
+            /// <summary>模拟量通讯中断或数据过期（扫描型通讯类模拟量设备预留，当前版本未启用）</summary>
+            [AlarmInfo("硬件异常", "模拟量通讯中断或数据过期", "Analog IO comm lost or data stale", AlarmSeverity.Error,
+    "1. 检查模拟量模块通讯线（网线/485 线）是否松动;\n" +
+                "2. 检查模块供电与通讯参数（站号、波特率、IP）是否正确;\n" +
+                "3. 在通讯调试页面确认主站能正常收发;\n" +
+                "4. 恢复后点击【复位】;",
+    50030, "Analog IO comm lost or data stale",
+    "/PF.UI.Infrastructure;component/HardwareImage/IO模块.png")]
+            public const string AnalogCommLost = "HW_AIO_002";
+            #endregion
+
+            #region 通用设备 (DEV) —— BaseDevice 生命周期内置报警
+            /// <summary>设备连接失败（重试次数用尽）</summary>
+            [AlarmInfo("硬件异常", "设备连接失败（已重试）", "Device connect failed", AlarmSeverity.Error,
+    "1. 查看报警详情中的设备名称;\n" +
+                "2. 检查该设备供电、通讯线及通讯参数（IP/端口/串口/卡号）;\n" +
+                "3. 在硬件调试页手动【连接】确认;\n" +
+                "4. 排除后点击【复位】;",
+    50031, "Device connect failed")]
+            public const string DeviceConnectFailed = "HW_DEV_001";
+
+            /// <summary>设备复位失败</summary>
+            [AlarmInfo("硬件异常", "设备复位失败", "Device reset failed", AlarmSeverity.Error,
+    "1. 查看日志中的复位失败原因;\n" +
+                "2. 检查设备是否仍处于报警或断开状态;\n" +
+                "3. 排除后再次点击【复位】;",
+    50032, "Device reset failed")]
+            public const string DeviceResetFailed = "HW_DEV_002";
+
+            /// <summary>设备健康检查异常（健康检查代码本身抛出异常）</summary>
+            [AlarmInfo("硬件异常", "设备健康检查异常", "Device health check error", AlarmSeverity.Error,
+    "1. 查看日志中的异常信息;\n" +
+                "2. 检查设备通讯是否正常;\n" +
+                "3. 反复出现请联系开发人员;",
+    50033, "Device health check error")]
+            public const string DeviceHealthCheckError = "HW_DEV_003";
+            #endregion
         }
 
        
@@ -330,6 +379,46 @@ namespace PF.Core.Constants
                 "4. 提供日志文件给技术支持;",
     50021, "State machine undefined step")]
             public const string UndefinedStep = "SYS_SYNC_002";
+
+            /// <summary>工站初始化失败（初始化钩子抛出异常；具体原因见报警的运行时信息）</summary>
+            [AlarmInfo("系统异常", "工站初始化失败", "Station initialization failed", AlarmSeverity.Error,
+    "1. 查看报警详情中的失败原因;\n" +
+                "2. 检查该工站所用硬件是否已连接、是否有报警;\n" +
+                "3. 排除后点击【复位】，再重新初始化;",
+    50034, "Station initialization failed")]
+            public const string StationInitFailed = "SYS_INIT_002";
+
+            /// <summary>初始化结束后有工站未进入 Idle，或启动/续跑后有工站未进入 Running</summary>
+            [AlarmInfo("系统异常", "有工站未进入预期状态（初始化/启动/续跑后）", "Station not in expected state", AlarmSeverity.Error,
+    "1. 查看报警详情中的工站及其当前状态;\n" +
+                "2. 在工站调试页确认该工站状态（是否被单独停止或未初始化）;\n" +
+                "3. 复位后重新初始化;",
+    50038, "Station not in expected state")]
+            public const string StationNotReady = "SYS_INIT_003";
+
+            /// <summary>工站复位失败（复位钩子抛出异常；具体原因见报警的运行时信息）</summary>
+            [AlarmInfo("系统异常", "工站复位失败", "Station reset failed", AlarmSeverity.Error,
+    "1. 查看报警详情中的失败原因;\n" +
+                "2. 检查该工站所用硬件是否已连接、是否有报警;\n" +
+                "3. 排除后再次点击【复位】;",
+    50035, "Station reset failed")]
+            public const string StationResetFailed = "SYS_RESET_001";
+
+            /// <summary>全线复位超时</summary>
+            [AlarmInfo("系统异常", "全线复位超时", "System reset timeout", AlarmSeverity.Error,
+    "1. 查看日志确认哪个工站复位未完成;\n" +
+                "2. 检查该工站复位动作（回原点等）是否卡住;\n" +
+                "3. 排除后再次点击【复位】;",
+    50036, "System reset timeout")]
+            public const string ResetTimeout = "SYS_RESET_002";
+
+            /// <summary>工站业务流程抛出未处理异常（具体原因见报警的运行时信息）</summary>
+            [AlarmInfo("系统异常", "工站业务流程异常", "Station workflow exception", AlarmSeverity.Error,
+    "1. 查看报警详情中的异常信息;\n" +
+                "2. 记录当时的步序与操作，联系开发人员;\n" +
+                "3. 复位后重新运行;",
+    50037, "Station workflow exception")]
+            public const string StationWorkflowException = "SYS_FLOW_001";
 
         }
 

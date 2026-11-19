@@ -24,10 +24,23 @@ namespace PF.Application.Base.Services
             _timer.Tick += OnTimerTick;
         }
 
-        /// <summary>启动监控：注册全局输入事件并开始计时。</summary>
+        private bool _running;
+
+        /// <summary>
+        /// 启动监控：注册全局输入事件并开始计时。已在运行时只重新计时。
+        /// <para>必须幂等：用户从工程师直接切到管理员等连续登录会重复调用 Start。此前每次都追加一份输入订阅，
+        /// Stop 只摘掉一份，降回操作员后残留的订阅一有输入就把计时器重新拉起，
+        /// 于是操作员停手 NoUseTime 秒后当前页面被自动关掉，且每次都记一条"无操作超时"。</para>
+        /// </summary>
         public void Start()
         {
-            InputManager.Current.PreProcessInput += OnInputActivity;
+            if (_disposed) return;
+            if (!_running)
+            {
+                InputManager.Current.PreProcessInput += OnInputActivity;
+                _running = true;
+            }
+            _timer.Stop();
             _timer.Start();
         }
 
@@ -35,7 +48,9 @@ namespace PF.Application.Base.Services
         public void Stop()
         {
             _timer.Stop();
+            if (!_running) return;
             InputManager.Current.PreProcessInput -= OnInputActivity;
+            _running = false;
         }
 
         private void OnInputActivity(object sender, PreProcessInputEventArgs e)

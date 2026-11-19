@@ -6,6 +6,7 @@ using PF.Core.Interfaces.Alarm;
 using PF.Core.Interfaces.Device.Mechanisms;
 using PF.Core.Interfaces.Logging;
 using PF.Core.Interfaces.Production;
+using PF.Core.Interfaces.Station;
 using Prism;
 using PF.UI.Controls;
 using PF.UI.Infrastructure.Dialog.Basic;
@@ -311,14 +312,39 @@ namespace PF.Application.Base.Views
             e.Cancel = true;
             _isClosing = true;
 
+            var controller = _containerProvider.IsRegistered<IMasterController>()
+                ? _containerProvider.Resolve<IMasterController>()
+                : null;
+            var state = controller?.CurrentState ?? MachineState.Uninitialized;
+            bool machineActive = state is not (MachineState.Uninitialized or MachineState.Idle);
+
             var result = await _messageService.ShowMessageAsync(
-                "确定要退出系统吗？", "退出提示",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                machineActive
+                    ? $"设备当前处于「{state}」状态，退出前将先停止全部工站。\n\n确定要退出系统吗？"
+                    : "确定要退出系统吗？",
+                "退出提示", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (result != ButtonResult.Yes)
             {
                 _isClosing = false; // 用户取消，恢复以允许下次关闭尝试
                 return;
+            }
+
+            // 此前运行中直接退出：工站循环没停就释放机构，然后撤销门锁许可、Environment.Exit。
+            // 运动控制卡上已下发的运动不随进程结束而停止，门却已解锁——人可以在轴还在走的时候开门。
+            // 先停机（工站物理制动、等停稳），再释放机构和解锁。超时也继续退出，避免卡死在关闭流程里。
+            if (controller != null && machineActive)
+            {
+                try
+                {
+                    var stopTask = controller.StopAllAsync();
+                    if (await Task.WhenAny(stopTask, Task.Delay(TimeSpan.FromSeconds(15))) != stopTask)
+                        LogService()?.Warn("[退出] 停机超过 15 秒仍未完成，继续退出流程", "Shutdown");
+                }
+                catch (Exception ex)
+                {
+                    LogService()?.Error($"[退出] 停机异常：{ex.Message}", "Shutdown", ex);
+                }
             }
 
             try
@@ -344,6 +370,9 @@ namespace PF.Application.Base.Views
             catch { }
             Environment.Exit(0);
         }
+
+        private ILogService? LogService() =>
+            _containerProvider.IsRegistered<ILogService>() ? _containerProvider.Resolve<ILogService>() : null;
 
         #region 主题切换
 

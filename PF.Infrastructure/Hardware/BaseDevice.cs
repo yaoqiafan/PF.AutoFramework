@@ -1,3 +1,4 @@
+using PF.Core.Constants;
 using PF.Core.Enums;
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Logging;
@@ -135,12 +136,35 @@ namespace PF.Infrastructure.Hardware
         public event EventHandler HardwareAlarmAutoCleared;
 
         /// <summary>
-        /// 暂停健康监控报警上报（由模组在初始化期间设置，防止瞬态信号级联中断初始化流程）
+        /// 暂停健康监控报警上报（由模组在初始化期间设置，防止瞬态信号级联中断初始化流程）。
+        /// <para>按"持有者"计数：同一设备被多个模组共用时（如一块卡挂在多个机构下），
+        /// 只要还有任一持有者在抑制就保持抑制，避免 A 模组重新初始化时把 B 模组正在依赖的监控关掉、
+        /// 或 A 恢复时提前打开 B 仍在回零中的抑制。</para>
+        /// <para>本属性的 setter 等价于以"匿名持有者"调用 <see cref="SetHealthMonitoringSuppressed"/>，兼容旧代码。</para>
         /// </summary>
         public bool SuppressHealthMonitoring
         {
             get => _suppressHealthMonitoring;
-            set => _suppressHealthMonitoring = value;
+            set => SetHealthMonitoringSuppressed(LegacySuppressOwner, value);
+        }
+
+        // 旧调用方（直接写 SuppressHealthMonitoring 属性）共用的持有者
+        private static readonly object LegacySuppressOwner = new();
+        private readonly HashSet<object> _healthSuppressOwners = new(ReferenceEqualityComparer.Instance);
+
+        /// <summary>
+        /// 以 <paramref name="owner"/> 身份抑制 / 解除抑制健康监控。同一持有者重复抑制只计一次；
+        /// 所有持有者都解除后才恢复监控。
+        /// </summary>
+        public void SetHealthMonitoringSuppressed(object owner, bool suppressed)
+        {
+            ArgumentNullException.ThrowIfNull(owner);
+            lock (_healthSuppressOwners)
+            {
+                if (suppressed) _healthSuppressOwners.Add(owner);
+                else _healthSuppressOwners.Remove(owner);
+                _suppressHealthMonitoring = _healthSuppressOwners.Count > 0;
+            }
         }
 
         /// <summary>
@@ -226,6 +250,7 @@ namespace PF.Infrastructure.Hardware
 
             // 2. 真实硬件连接与重试逻辑（默认重试 3 次）
             int maxRetries = 3;
+            Exception? lastError = null;
             for (int i = 1; i <= maxRetries; i++)
             {
                 try
@@ -256,15 +281,27 @@ namespace PF.Infrastructure.Hardware
                 }
                 catch (Exception ex)
                 {
+                    lastError = ex;
                     _logger?.Error($"[{DeviceName}] 第 {i} 次连接发生异常: {ex.Message}");
 
-                    if (i == maxRetries)
-                        RaiseAlarm("ERR_CONN_FAILED", $"设备连接彻底失败，已重试 {maxRetries} 次", ex);
-                    else
-                        await Task.Delay(2000, token);
+                    if (i < maxRetries)
+                    {
+                        try { await Task.Delay(2000, token); }
+                        catch (OperationCanceledException)
+                        {
+                            _logger?.Warn($"[{DeviceName}] 连接操作被外部取消。");
+                            return false;
+                        }
+                    }
                 }
             }
 
+            // 重试用尽：无论最后一次是抛异常还是返回 false 都必须报警。
+            // 此前只有抛异常的路径报警，而多数驱动（如雷赛卡）在 InternalConnectAsync 内吞掉异常返回 false，
+            // 结果板卡连不上只有一条警告日志
+            RaiseAlarm(AlarmCodes.Hardware.DeviceConnectFailed,
+                $"设备 [{DeviceName}] 连接失败，已重试 {maxRetries} 次" + (lastError != null ? $"：{lastError.Message}" : "（驱动返回失败，详见硬件日志）"),
+                lastError);
             return false;
         }
 
@@ -324,7 +361,7 @@ namespace PF.Infrastructure.Hardware
             }
             catch (Exception ex)
             {
-                RaiseAlarm("ERR_RESET_FAILED", "设备复位失败", ex);
+                RaiseAlarm(AlarmCodes.Hardware.DeviceResetFailed, $"设备 [{DeviceName}] 复位失败：{ex.Message}", ex);
                 return false;
             }
         }
@@ -436,7 +473,7 @@ namespace PF.Infrastructure.Hardware
                 catch (Exception ex)
                 {
                     if (!HasAlarm)
-                        RaiseAlarm("ERR_HEALTH_CHECK", $"健康检查异常: {ex.Message}", ex);
+                        RaiseAlarm(AlarmCodes.Hardware.DeviceHealthCheckError, $"设备 [{DeviceName}] 健康检查异常: {ex.Message}", ex);
                 }
             }
         }

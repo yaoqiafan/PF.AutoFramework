@@ -218,11 +218,20 @@ namespace PF.Modules.Identity.ViewModels
 
         // ── CRUD 实现 ─────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 加载时各账号的原始用户名与等级（按对象引用）。新增草稿不在其中。
+        /// 用于判断改名（用户名是存储主键，改名必须删旧记录）与等级是否真的变了。
+        /// </summary>
+        private readonly Dictionary<UserInfo, (string UserName, UserLevel Root)> _loadedState =
+            new(ReferenceEqualityComparer.Instance);
+
         private async Task SaveUserDirectAsync(UserInfo user)
         {
             if (user == null) return;
-            // 保存前根据当前 Root 重新计算可访问视图
-            user.AccessibleViews = PermissionHelper.GetDefaultAccessibleViews(user.Root);
+            // 只有等级变了才按新等级重置可访问页面。此前每次保存都重置：在卡片里改个密码，
+            // 「窗体权限更改」页为该账号单独配置的页面权限就被冲回等级默认值
+            if (!_loadedState.TryGetValue(user, out var loaded) || loaded.Root != user.Root)
+                user.AccessibleViews = PermissionHelper.GetDefaultAccessibleViews(user.Root);
             SelectedUser = user;
             await SaveAsync();
         }
@@ -238,6 +247,9 @@ namespace PF.Modules.Identity.ViewModels
                 var filtered = (list ?? new ObservableCollection<UserInfo>())
                     .Where(u => (int)u.Root < (int)currentLevel || u.UserId == _userService.CurrentUser?.UserId)
                     .ToList();
+
+                _loadedState.Clear();
+                foreach (var u in filtered) _loadedState[u] = (u.UserName, u.Root);
 
                 // 批量删除门槛：只能勾选权限等级严格低于自己的账号（同级/更高级不可选，天然排除自己）
                 var items = filtered.Select(u => CreateSelectableItem(u, (int)u.Root < (int)currentLevel));
@@ -309,9 +321,43 @@ namespace PF.Modules.Identity.ViewModels
                 return;
             }
 
+            var currentLevel = _userService.CurrentUser?.Root ?? UserLevel.Null;
+            if (SelectedUser.Root > currentLevel)
+            {
+                // 等级下拉框已按当前用户限制，这里是命令层的防御
+                _messageService.ShowMessage("不能把账号的权限等级设置得高于当前登录用户。", "操作被拒绝",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
+                // 用户名是账号的存储主键，按名称 upsert：
+                // ① 新名称与另一个账号相同 → 静默覆盖那个账号（两个都叫"新用户"的草稿，后存的冲掉先存的）；
+                // ② 改名 → 新记录写入、旧记录仍在，旧用户名照样能登录。
+                bool isExisting = _loadedState.TryGetValue(SelectedUser, out var loaded);
+                bool renamed = isExisting && !string.Equals(loaded.UserName, SelectedUser.UserName, StringComparison.OrdinalIgnoreCase);
+                if (!isExisting || renamed)
+                {
+                    var all = await _userService.GetUserListAsync();
+                    if (all.Any(u => string.Equals(u.UserName, SelectedUser.UserName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _messageService.ShowMessage($"用户名「{SelectedUser.UserName}」已被其他账号使用，请换一个用户名。",
+                            "用户名重复", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+
                 var ok = await _userService.SaveUserAsync(SelectedUser);
+
+                if (ok && renamed)
+                {
+                    var oldAccount = new UserInfo { UserName = loaded.UserName };
+                    if (!await _userService.DeleteUserAsync(oldAccount))
+                        _logger.Warn($"[用户管理] 账号已改名为 '{SelectedUser.UserName}'，但删除旧用户名 '{loaded.UserName}' 的记录失败，旧用户名仍可登录。");
+                    else
+                        _logger.Info($"[用户管理] 账号 '{loaded.UserName}' 已改名为 '{SelectedUser.UserName}'。");
+                }
 
                 if (ok)
                 {
@@ -347,6 +393,19 @@ namespace PF.Modules.Identity.ViewModels
         private async Task DeleteAsync(UserInfo user)
         {
             if (user == null) return;
+
+            // 与批量删除同一门槛：只能删比自己等级低的账号。此前单条删除不校验，
+            // 列表里能看到自己的账号，于是可以删掉正在登录的自己
+            var current = _userService.CurrentUser;
+            bool isSelf = current != null && (user.UserId == current.UserId
+                || string.Equals(user.UserName, current.UserName, StringComparison.OrdinalIgnoreCase));
+            if (isSelf || user.Root >= (current?.Root ?? UserLevel.Null))
+            {
+                _messageService.ShowMessage(
+                    isSelf ? "不能删除当前登录的账号。" : "只能删除权限等级低于自己的账号。",
+                    "操作被拒绝", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             // 二次确认，防止误操作
             var result = await _messageService.ShowMessageAsync(

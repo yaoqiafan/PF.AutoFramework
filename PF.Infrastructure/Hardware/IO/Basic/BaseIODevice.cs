@@ -1,5 +1,6 @@
 using PF.Core.Interfaces.Device.Hardware;
 using PF.Core.Interfaces.Device.Hardware.Card;
+using PF.Core.Interfaces.Device.Hardware.IO.Analog;
 using PF.Core.Interfaces.Device.Hardware.IO.Basic;
 using PF.Core.Interfaces.Logging;
 using System.Runtime.CompilerServices;
@@ -25,7 +26,7 @@ namespace PF.Infrastructure.Hardware.IO.Basic
     ///   超时返回 false 并记录警告日志；外部取消令牌触发时上抛 OperationCanceledException。
     ///   若板卡 SDK 提供原生等待机制，子类可 override 此方法以获得更低延迟。
     /// </summary>
-    public abstract class BaseIODevice : AttachedDeviceBase<IMotionCard>, IIOController
+    public abstract class BaseIODevice : AttachedDeviceBase<IMotionCard>, IIOController, IAnalogCarrier
     {
         #region 板卡挂载
 
@@ -34,6 +35,13 @@ namespace PF.Infrastructure.Hardware.IO.Basic
         /// 保持既有调用点与日志语义不变）。
         /// </summary>
         public IMotionCard? ParentCard => Parent;
+
+        /// <summary>
+        /// 模拟量宿主能力：本 IO 模块可作为模拟量设备的父设备（随本模块分组），
+        /// 通道原语转发到本模块所在的板卡；板卡不支持模拟量或尚未挂载时为 null。
+        /// <para>只在本基类实现，不进入 <see cref="IIOController"/>，自行实现 IIOController 的类不受影响。</para>
+        /// </summary>
+        public IAnalogCard? AnalogCard => ParentCard as IAnalogCard;
 
         /// <summary>将本 IO 设备挂载到运动控制卡。等价于 <see cref="AttachedDeviceBase{TParent}.AttachTo"/>。</summary>
         public void AttachToCard(IMotionCard card) => AttachTo(card);

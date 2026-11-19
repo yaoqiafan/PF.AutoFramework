@@ -42,18 +42,33 @@ namespace PF.Core.Interfaces.Alarm
         /// <summary>
         /// 触发报警（携带运行时消息）。
         /// <paramref name="runtimeMessage"/> 非空时覆盖活跃报警的 Message 字段（如 "X轴位置偏差 3.5mm"），
-        /// 历史查询仍回落到字典静态描述（运行时消息不持久化）。
+        /// 运行时消息随报警历史一并持久化，历史查询时优先显示。
         /// </summary>
         /// <returns><c>true</c> 表示本次为首次触发（已记录）；<c>false</c> 表示复合键已存在被幂等跳过。</returns>
         bool TriggerAlarm(string source, string errorCode, string? runtimeMessage);
 
-        /// <summary>清除指定来源的所有活跃报警</summary>
+        /// <summary>
+        /// 清除指定来源的所有活跃报警（人工清除语义：每条都会发出硬件复位请求，
+        /// 主控收到后对处于报警态的同名工站执行局部复位）。
+        /// </summary>
         void ClearAlarm(string source);
 
-        /// <summary>精确清除指定来源下单条报警（按复合键匹配）</summary>
+        /// <summary>精确清除指定来源下单条报警（按复合键匹配；人工清除语义，同上会发出硬件复位请求）</summary>
         void ClearAlarm(string source, string errorCode);
 
-        /// <summary>一键清除所有活跃报警（关联【复位】按钮）</summary>
+        /// <summary>
+        /// 程序自动清除（硬件自恢复、安全门关闭、监控恢复等）：只撤销报警显示与活跃记录，
+        /// <b>不发出硬件复位请求</b>——设备自己恢复了不代表可以无人值守地让工站执行复位动作，仍需操作员复位。
+        /// <paramref name="errorCode"/> 为 null 时清除该来源全部报警。
+        /// <para>默认实现退化为 <see cref="ClearAlarm(string)"/> / <see cref="ClearAlarm(string, string)"/>，兼容自行实现本接口的项目。</para>
+        /// </summary>
+        void ClearAlarmAutomatically(string source, string? errorCode = null)
+        {
+            if (errorCode == null) ClearAlarm(source);
+            else ClearAlarm(source, errorCode);
+        }
+
+        /// <summary>一键清除所有活跃报警（复位成功后调用；系统已复位，不再逐条发出硬件复位请求）</summary>
         void ClearAllActiveAlarms();
 
         // ── 历史查询 ───────────────────────────────────────────────────────

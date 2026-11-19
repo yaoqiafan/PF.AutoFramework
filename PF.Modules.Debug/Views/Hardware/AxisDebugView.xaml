@@ -400,6 +400,11 @@
                                         <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
                                             <i:InvokeCommandAction Command="{Binding AxisStop}" />
                                         </i:EventTrigger>
+
+                                        <!--  按住期间丢失鼠标捕获（弹窗、切窗口、页面移走）收不到松开事件，兜底停轴  -->
+                                        <i:EventTrigger EventName="LostMouseCapture">
+                                            <i:InvokeCommandAction Command="{Binding JogCaptureLostCommand}" />
+                                        </i:EventTrigger>
                                     </i:Interaction.Triggers>
                                 </Button>
                                 <TextBlock
@@ -430,6 +435,10 @@
 
                                         <i:EventTrigger EventName="PreviewMouseLeftButtonUp">
                                             <i:InvokeCommandAction Command="{Binding AxisStop}" />
+                                        </i:EventTrigger>
+
+                                        <i:EventTrigger EventName="LostMouseCapture">
+                                            <i:InvokeCommandAction Command="{Binding JogCaptureLostCommand}" />
                                         </i:EventTrigger>
                                     </i:Interaction.Triggers>
                                 </Button>

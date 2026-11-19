@@ -322,17 +322,53 @@ namespace PF.Services.Hardware
         /// </summary>
         public async Task ReloadAllAsync()
         {
-            _logger.Info("[HardwareManager] 热重载：正在释放所有活跃设备...");
-            foreach (var (id, device) in _activeDevices)
+            // 串行化：双击重载、或重载与切换全局仿真同时触发时，两轮"释放→重建"交错会让设备被重复释放、
+            // 活跃列表里混入半初始化的实例
+            await _reloadLock.WaitAsync().ConfigureAwait(false);
+            try
             {
-                await device.DisconnectAsync();
-                await device.DisposeAsync();   // 异步释放（替换原同步 Dispose，避免 sync-over-async）
-                DeviceRemoved?.Invoke(this, id);
-            }
-            _activeDevices.Clear();
+                _logger.Info("[HardwareManager] 热重载：正在释放所有活跃设备...");
 
-            // LoadAndInitializeAsync 内部会重新调用 LoadConfigsAsync 从数据库加载最新配置
-            await LoadAndInitializeAsync();
+                // 子设备先于父设备断开：此前按字典顺序，板卡可能先被关闭，
+                // 挂在它下面的轴/IO/模拟量随后的断开动作（如 AO 回安全值）只能打在已关闭的句柄上
+                foreach (var (id, device) in _activeDevices.OrderByDescending(kv => AttachDepth(kv.Value)).ToList())
+                {
+                    try
+                    {
+                        await device.DisconnectAsync();
+                        await device.DisposeAsync();   // 异步释放（替换原同步 Dispose，避免 sync-over-async）
+                    }
+                    catch (Exception ex)
+                    {
+                        // 单个设备释放失败不能中断整轮重载，否则其余设备既没释放也没重建
+                        _logger.Error($"[HardwareManager] 释放设备 '{id}' 时异常: {ex.Message}");
+                    }
+                    DeviceRemoved?.Invoke(this, id);
+                }
+                _activeDevices.Clear();
+
+                // LoadAndInitializeAsync 内部会重新调用 LoadConfigsAsync 从数据库加载最新配置
+                await LoadAndInitializeAsync();
+            }
+            finally
+            {
+                _reloadLock.Release();
+            }
+        }
+
+        private readonly SemaphoreSlim _reloadLock = new(1, 1);
+
+        /// <summary>挂载深度：顶级设备为 0，挂在它下面的为 1，以此类推（防环）</summary>
+        private static int AttachDepth(IHardwareDevice device)
+        {
+            int depth = 0;
+            var current = (device as IAttachedDevice)?.ParentDevice;
+            while (current != null && depth < 16)
+            {
+                depth++;
+                current = (current as IAttachedDevice)?.ParentDevice;
+            }
+            return depth;
         }
 
         /// <summary>

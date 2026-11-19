@@ -395,9 +395,9 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                                      ?? new ValidateConfiguration();
                 _manager.ParamsManager.SetParam(ParamType.Validate, validateConfig);
                 await NPOIHelper.LoadValidateFromExcel(dlg.FileName, validateConfig);
-                await SaveValidateToDbAsync(validateConfig);
+                bool saved = await SaveValidateToDbAsync(validateConfig);
                 LoadParamRows(_selectedParamIndex);
-                _log.Append(null, $"参数导入完成: {dlg.FileName}", isSystem: true);
+                ReportPersistResult(saved, $"参数导入完成: {dlg.FileName}");
             }
             catch (Exception ex)
             {
@@ -434,25 +434,26 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             var paramType = _selectedParamIndex switch { 1 => ParamType.Validate, 2 => ParamType.Formula, _ => ParamType.System };
             try
             {
+                bool saved = true;
                 if (paramType == ParamType.System)
                 {
                     ApplySystemParamEdits();
                     _manager.ParamsManager.SaveParam(paramType);
                     var sys = _manager.ParamsManager.GetParamOrDefault<SecsGemSystemParam>(ParamType.System, null);
-                    if (sys != null) await SaveSystemToDbAsync(sys);
+                    if (sys != null) saved = await SaveSystemToDbAsync(sys);
                 }
                 else if (paramType == ParamType.Validate)
                 {
                     SyncValidateRowsToConfig();
                     var cfg = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null);
-                    if (cfg != null) await SaveValidateToDbAsync(cfg);
+                    if (cfg != null) saved = await SaveValidateToDbAsync(cfg);
                 }
                 else if (paramType == ParamType.Formula)
                 {
                     _manager.ParamsManager.SaveParam(paramType);
-                    await SaveFormulaToDbAsync();
+                    saved = await SaveFormulaToDbAsync();
                 }
-                _log.Append(null, $"参数已保存 ({paramType})", isSystem: true);
+                ReportPersistResult(saved, $"参数已保存 ({paramType})");
             }
             catch (Exception ex)
             {
@@ -473,17 +474,19 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 if (resoult.res)
                 {
                     _manager.ParamsManager.SetParam(ParamType.System, param);
-                    await SaveSystemToDbAsync(param);
+                    bool saved = await SaveSystemToDbAsync(param);
                     await ExecuteRefreshDbViewAsync();
-                    _log.Append(null, $"系统参数导入完成: {dlg.FileName}", isSystem: true);
+                    ReportPersistResult(saved, $"系统参数导入完成: {dlg.FileName}");
                 }
                 else
                 {
-                    _log.Append(null, $"系统参数导入失败: {resoult.errmessage}", isSystem: true);
-                    _manager.ParamsManager.SetParam(ParamType.System, param);
-                    await SaveSystemToDbAsync(param);
-                    await ExecuteRefreshDbViewAsync();
-                    _log.Append(null, $"系统参数导入完成默认参数", isSystem: true);
+                    // 此前导入失败时把 new 出来的默认参数当成导入结果写进内存和数据库：
+                    // 选错一个文件，Host IP、端口、DeviceID 等现场配置全部被冲成默认值，与 Host 断联。
+                    // 失败就什么都不改。
+                    _log.Append(null, $"系统参数导入失败，现有配置未改动: {resoult.errmessage}", isSystem: true);
+                    MessageBox.Show($"系统参数导入失败，现有配置未做任何修改：\n{resoult.errmessage}", "导入失败",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
             }
             catch (Exception ex)
@@ -501,10 +504,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 var cfg = new ValidateConfiguration();
                 await NPOIHelper.LoadValidateFromExcel(dlg.FileName, cfg);
                 _manager.ParamsManager.SetParam(ParamType.Validate, cfg);
-                await SaveValidateToDbAsync(cfg);
+                bool saved = await SaveValidateToDbAsync(cfg);
                 LoadParamRows(_selectedParamIndex);
                 await ExecuteRefreshDbViewAsync();
-                _log.Append(null, $"变量参数导入完成: {dlg.FileName}", isSystem: true);
+                ReportPersistResult(saved, $"变量参数导入完成: {dlg.FileName}");
             }
             catch (Exception ex)
             {
@@ -522,10 +525,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 await NPOIHelper.LoadIncentiveCommandFromExcel(dlg.FileName, formula.IncentiveCommandDictionary);
                 await NPOIHelper.LoadResponseCommandFromExcel(dlg.FileName, formula.ResponseCommandDictionary);
                 await _manager.CommandManager.UPDataCommondCollection(formula);
-                await SaveFormulaToDbAsync();
+                bool saved = await SaveFormulaToDbAsync();
                 await _reloadCommandTrees();
                 await ExecuteRefreshDbViewAsync();
-                _log.Append(null, $"配方参数导入完成: {dlg.FileName}", isSystem: true);
+                ReportPersistResult(saved, $"配方参数导入完成: {dlg.FileName}");
             }
             catch (Exception ex)
             {
@@ -586,7 +589,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         // ── 数据库持久化辅助 ───────────────────────────────────────────────────
 
-        private async Task SaveValidateToDbAsync(ValidateConfiguration cfg)
+        // 以下三个持久化方法返回是否写库成功。此前异常被吞掉、只在页面日志里记一行，
+        // 调用方随后照常打印"参数已保存 / 导入完成"——现场以为配置已落库，SECS 服务和下次启动读到的仍是旧配置。
+
+        private async Task<bool> SaveValidateToDbAsync(ValidateConfiguration cfg)
         {
             try
             {
@@ -596,35 +602,51 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 await ReplaceAllAsync<ReportIDEntity>(scope, SecsDbSet.ReportIDs, cfg.ReportIDS.Values.Select(r => r.ToEntity()));
                 await ReplaceAllAsync<CommandIDEntity>(scope, SecsDbSet.CommnadIDs, cfg.CommandIDS.Values.Select(c => c.ToEntity()));
                 await scope.SaveChangesAsync();
+                return true;
             }
-            catch (Exception ex) { _log.Append(null, $"Validate 参数持久化失败: {ex.Message}", isSystem: true); }
+            catch (Exception ex) { _log.Append(null, $"Validate 参数持久化失败: {ex.Message}", isSystem: true); return false; }
         }
 
-        private async Task SaveSystemToDbAsync(SecsGemSystemParam sys)
+        private async Task<bool> SaveSystemToDbAsync(SecsGemSystemParam sys)
         {
             try
             {
                 using var scope = _db.BeginScope();
                 await ReplaceAllAsync<SecsGemSystemEntity>(scope, SecsDbSet.SystemConfigs, [sys.ToEntity()]);
                 await scope.SaveChangesAsync();
+                return true;
             }
-            catch (Exception ex) { _log.Append(null, $"System 参数持久化失败: {ex.Message}", isSystem: true); }
+            catch (Exception ex) { _log.Append(null, $"System 参数持久化失败: {ex.Message}", isSystem: true); return false; }
         }
 
-        private async Task SaveFormulaToDbAsync()
+        private async Task<bool> SaveFormulaToDbAsync()
         {
             try
             {
                 var formula = _manager.CommandManager.FormulaConfiguration;
-                if (formula == null) return;
+                if (formula == null) return true;
                 using var scope = _db.BeginScope();
                 await ReplaceAllAsync<IncentiveEntity>(scope, SecsDbSet.IncentiveCommands,
                     formula.IncentiveCommandDictionary.Values.Select(c => c.GetIncentiveEntityFormSFCommand()));
                 await ReplaceAllAsync<ResponseEntity>(scope, SecsDbSet.ResponseCommands,
                     formula.ResponseCommandDictionary.Values.Select(c => c.GetResponseEntityFormSFCommand()));
                 await scope.SaveChangesAsync();
+                return true;
             }
-            catch (Exception ex) { _log.Append(null, $"Formula 参数持久化失败: {ex.Message}", isSystem: true); }
+            catch (Exception ex) { _log.Append(null, $"Formula 参数持久化失败: {ex.Message}", isSystem: true); return false; }
+        }
+
+        /// <summary>写库成功记成功日志；失败则明确提示"已在内存生效但未写入数据库"。</summary>
+        private void ReportPersistResult(bool saved, string successText)
+        {
+            if (saved)
+            {
+                _log.Append(null, successText, isSystem: true);
+                return;
+            }
+            _log.Append(null, "⚠ 参数已在内存生效，但写入 SecsGemConfig.db 失败（原因见上一条），重启或 SECS 服务重载后会丢失", isSystem: true);
+            MessageBox.Show("参数已在内存生效，但写入数据库（SecsGemConfig.db）失败，重启后会丢失。\n失败原因见页面日志。",
+                "保存失败", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         // ── 通用 DB 操作辅助 ────────────────────────────────────────────────────

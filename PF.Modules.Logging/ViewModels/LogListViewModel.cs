@@ -218,25 +218,51 @@ namespace PF.Modules.Logging.ViewModels
             return true;
         }
 
-        private void OnLogAdded(LogEntry logEntry)
+        private const int MaxUiEntries = 2000;
+
+        /// <summary>
+        /// 后台线程写入的新日志先进队列，由 UI 定时器每 200ms 批量并入列表。
+        /// <para>此前每条日志一次 Dispatcher.InvokeAsync，并在 UI 线程上把整个筛选视图数一遍（2000 条）。
+        /// 这个列表常驻主界面，启动加载、通讯调试、报警连发时日志成百上千条地涌入，
+        /// UI 线程被逐条插入 + 逐条全表计数占满，整个界面卡顿，急停、暂停按钮也跟着反应迟钝。</para>
+        /// </summary>
+        private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _pending = new();
+        private System.Windows.Threading.DispatcherTimer? _flushTimer;
+
+        private void OnLogAdded(LogEntry logEntry) => _pending.Enqueue(logEntry);
+
+        private void EnsureFlushTimer()
         {
-            // 确保在UI线程执行
-            Application.Current?.Dispatcher.InvokeAsync(() =>
+            if (_flushTimer != null) return;
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null) return;
+            _flushTimer = new System.Windows.Threading.DispatcherTimer(
+                System.Windows.Threading.DispatcherPriority.Background, dispatcher)
             {
-                // [关键修复] 将新日志添加到 ObservableCollection
-                // LogService 是插入到开头(0)，我们也插入到开头保持一致性
-                // 虽然 View 有 SortDescription，但保持源数据顺序也是好的
-                LogEntries.Insert(0, logEntry);
+                Interval = TimeSpan.FromMilliseconds(200)
+            };
+            _flushTimer.Tick += (_, _) => FlushPending();
+        }
 
-                // 限制 UI 列表大小，防止内存溢出 (例如限制显示最近 2000 条)
-                if (LogEntries.Count > 2000)
-                {
-                    LogEntries.RemoveAt(LogEntries.Count - 1);
-                }
+        private void FlushPending()
+        {
+            if (_pending.IsEmpty) return;
 
-                UpdateStatistics();
-                LogAppended?.Invoke();
-            });
+            // 一批里按到达顺序取出，逐条插到头部 → 最新的在最前，与服务端内存缓冲顺序一致
+            int added = 0;
+            while (added < MaxUiEntries && _pending.TryDequeue(out var entry))
+            {
+                LogEntries.Insert(0, entry);
+                added++;
+            }
+            // 突发量超过列表上限时，超出部分本就会被立即挤掉，直接丢弃
+            while (_pending.TryDequeue(out _)) { }
+
+            while (LogEntries.Count > MaxUiEntries)
+                LogEntries.RemoveAt(LogEntries.Count - 1);
+
+            UpdateStatistics();
+            LogAppended?.Invoke();
         }
 
         private void UpdateStatistics()
@@ -380,9 +406,8 @@ namespace PF.Modules.Logging.ViewModels
         {
             if (SelectedLogEntry is LogEntry selectedEntry)
             {
-                string logText = FormatLogForCopy(selectedEntry);
-                Clipboard.SetText(logText);
-                _uiLogger.Info("日志内容已复制到剪贴板");
+                if (TrySetClipboard(FormatLogForCopy(selectedEntry)))
+                    _uiLogger.Info("日志内容已复制到剪贴板");
             }
         }
 
@@ -390,8 +415,23 @@ namespace PF.Modules.Logging.ViewModels
         {
             var logs = _logEntriesView.Cast<LogEntry>().ToList();
             var text = string.Join(Environment.NewLine, logs.Select(FormatLogForCopy));
-            Clipboard.SetText(text);
-            _uiLogger.Info($"已复制 {logs.Count} 条日志到剪贴板");
+            if (TrySetClipboard(text))
+                _uiLogger.Info($"已复制 {logs.Count} 条日志到剪贴板");
+        }
+
+        /// <summary>剪贴板被其他进程占用时 SetText 抛 COMException，此前直接冒到全局异常处理弹"系统错误"</summary>
+        private bool TrySetClipboard(string text)
+        {
+            try
+            {
+                Clipboard.SetText(text);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageService.ShowMessage($"复制失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
         }
 
         private string FormatLogForCopy(LogEntry entry)
@@ -418,6 +458,8 @@ namespace PF.Modules.Logging.ViewModels
 
             _logService.OnLogAdded += OnLogAdded;
             _isSubscribed = true;
+            EnsureFlushTimer();
+            _flushTimer?.Start();
 
             // 退订期间产生的日志收不到事件，重新订阅时以服务端内存缓冲为准整体同步一次
             if (_needsResync)
@@ -441,6 +483,8 @@ namespace PF.Modules.Logging.ViewModels
             _logService.OnLogAdded -= OnLogAdded;
             _isSubscribed = false;
             _needsResync = true;
+            _flushTimer?.Stop();
+            while (_pending.TryDequeue(out _)) { } // 重新订阅时会按服务端缓冲整体同步
         }
 
         #endregion

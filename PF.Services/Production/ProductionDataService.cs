@@ -34,6 +34,14 @@ namespace PF.Services.Production
         private Task? _consumerTask;
         private bool _disposed;
 
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
+
+        // Excel 单元格文本上限，超出 NPOI 抛 ArgumentException 导致整次导出失败
+        private const int ExcelCellMaxLength = 32767;
+
         /// <summary>
         /// DataRecorded
         /// </summary>
@@ -54,20 +62,39 @@ namespace PF.Services.Production
         /// <summary>
         /// 初始化
         /// </summary>
+        /// <remarks>
+        /// 幂等：只有第一次成功的调用会建表并启动消费者，之后的调用直接返回；失败可重试。
+        /// <para>消费者只在这里启动。此前唯一调用方是 UI 模块 ProductionRecordModule（fire-and-forget）：
+        /// 项目不装该模块、或初始化抛异常，数据就只进队列不落库，攒满 10000 条后 RecordAsync 永久阻塞，
+        /// 调用它的工站线程停在记录那一步。重复调用则会起两个消费者共用一个 DbContext。
+        /// 现由 PFApplicationBase 在启动加载阶段调用。</para>
+        /// </remarks>
         public async Task InitializeAsync()
         {
-            // 建表（若不存在）
-            await using var ctx = new ProductionDbContext(_dbOptions);
-            await ctx.Database.EnsureCreatedAsync();
+            await _initLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (_consumerTask != null) return;
 
-            // 创建写专用 DbContext 并启动消费者线程
-            _writeContext = new ProductionDbContext(_dbOptions);
-            // Task.Run 接收 Func<Task> 时自动解包，返回内层 Task，
-            // Dispose 时的 Wait(5s) 才能真正等待消费循环结束。
-            // （原 Task.Factory.StartNew 未 Unwrap，_consumerTask 在首个 await 即"完成"，
-            //   Wait 从未等过消费循环；LongRunning + async 也是无效组合——首个 await 后专用线程即归还。）
-            _consumerTask = Task.Run(ConsumeAsync, _cts.Token);
+                // 建表（若不存在）
+                await using var ctx = new ProductionDbContext(_dbOptions);
+                await ctx.Database.EnsureCreatedAsync().ConfigureAwait(false);
+
+                // 创建写专用 DbContext 并启动消费者线程
+                _writeContext = new ProductionDbContext(_dbOptions);
+                // Task.Run 接收 Func<Task> 时自动解包，返回内层 Task，
+                // Dispose 时的 Wait(5s) 才能真正等待消费循环结束。
+                // （原 Task.Factory.StartNew 未 Unwrap，_consumerTask 在首个 await 即"完成"，
+                //   Wait 从未等过消费循环；LongRunning + async 也是无效组合——首个 await 后专用线程即归还。）
+                _consumerTask = Task.Run(ConsumeAsync, _cts.Token);
+            }
+            finally
+            {
+                _initLock.Release();
+            }
         }
+
+        private readonly SemaphoreSlim _initLock = new(1, 1);
 
         // ══════════════════════════════════════════════════════
         //  写入
@@ -81,7 +108,8 @@ namespace PF.Services.Production
             var entity = new ProductionDataEntity
             {
                 ID = Guid.NewGuid().ToString(),
-                JsonValue = JsonSerializer.Serialize(data),
+                // 中文不转义：默认编码器会把中文存成 \uXXXX，关键字搜索中文永远搜不到，导出的 CSV/Excel 也无法阅读
+                JsonValue = JsonSerializer.Serialize(data, JsonOptions),
                 TypeFullName = typeof(TData).FullName,
                 RecordType = recordType,
                 RecordTime = DateTime.Now,
@@ -112,8 +140,14 @@ namespace PF.Services.Production
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[ProductionDataService] 写入失败: {ex.Message}");
+                        // 写失败的实体仍以 Added 留在长生命周期的 _writeContext 里：不清掉的话，
+                        // 之后每一次 SaveChanges 都会连带重试它并再次失败——一次"database is locked"
+                        // 就让此后所有生产数据全部写不进去，直到重启。此前还只输出到调试器，现场毫无痕迹
+                        _writeContext?.ChangeTracker.Clear();
+                        Logging.LogService.Instance?.Error(
+                            $"[ProductionDataService] 生产数据写入失败，本条已丢弃（类型 {entity.TypeFullName}，记录类型 {entity.RecordType}，" +
+                            $"时间 {entity.RecordTime:yyyy-MM-dd HH:mm:ss.fff}）：{ex.Message}。数据内容：{entity.JsonValue}",
+                            "ProductionData", ex);
                     }
                 }
             }
@@ -130,8 +164,11 @@ namespace PF.Services.Production
         public async Task<IReadOnlyList<ProductionRecord>> QueryAsync(ProductionQueryFilter filter)
         {
             await using var ctx = new ProductionDbContext(_dbOptions);
-            var q = BuildQuery(ctx, filter);
-            var entities = await q.OrderByDescending(x => x.RecordTime).ToListAsync();
+            var q = BuildQuery(ctx, filter).OrderByDescending(x => x.RecordTime).AsQueryable();
+            // 必须先排序再截断：此前 Take 在排序之前，"最近 N 条"实际取到的是任意（通常最早的）N 条
+            if (filter.MaxCount.HasValue)
+                q = q.Take(filter.MaxCount.Value);
+            var entities = await q.ToListAsync();
             return entities.Select(MapToRecord).ToList();
         }
 
@@ -164,8 +201,7 @@ namespace PF.Services.Production
                 q = q.Where(x => x.RecordType == filter.RecordType);
             if (!string.IsNullOrEmpty(filter.Keyword))
                 q = q.Where(x => x.JsonValue.Contains(filter.Keyword));
-            if (filter.MaxCount.HasValue)
-                q = q.Take(filter.MaxCount.Value);
+            // MaxCount 由调用方在排序之后应用
 
             return q;
         }
@@ -243,7 +279,10 @@ namespace PF.Services.Production
                     row.CreateCell(1).SetCellValue(r.RecordType ?? "");
                     row.CreateCell(2).SetCellValue(r.RecordTime.ToString("yyyy-MM-dd HH:mm:ss"));
                     row.CreateCell(3).SetCellValue(r.TypeFullName ?? "");
-                    row.CreateCell(4).SetCellValue(r.JsonValue);
+                    var json = r.JsonValue ?? string.Empty;
+                    row.CreateCell(4).SetCellValue(json.Length > ExcelCellMaxLength
+                        ? json[..(ExcelCellMaxLength - 20)] + "…（超长已截断，完整内容请导出 CSV）"
+                        : json);
                     row.CreateCell(5).SetCellValue(r.CreateTime.ToString("yyyy-MM-dd HH:mm:ss"));
                 }
 

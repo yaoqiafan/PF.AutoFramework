@@ -50,9 +50,10 @@ namespace PF.Modules.Debug.ViewModels
                 .ObservesProperty(() => CanLockManualOverride);
 
             // 初始化命令
-            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ConnectAsync(System.Threading.CancellationToken.None); });
-            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.DisconnectAsync(); });
-            ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null) await _baseDevice.ResetAsync(System.Threading.CancellationToken.None); });
+            // 运行中这张卡的输入/输出归工站和安全门监控使用，断开或复位会让它们读到全 false
+            ConnectCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("连接 IO 板卡")) await _baseDevice.ConnectAsync(System.Threading.CancellationToken.None); });
+            DisconnectCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("断开 IO 板卡")) await _baseDevice.DisconnectAsync(); });
+            ResetCommand = new DelegateCommand(async () => { if (_baseDevice != null && Allowed("复位 IO 板卡")) await _baseDevice.ResetAsync(System.Threading.CancellationToken.None); });
             SimulateAlarmCommand = new DelegateCommand(() =>
             {
                 _baseDevice?.SimulateAlarm(AlarmCodes.Hardware.IoModuleError, "调试页面手动模拟IO模块报警");
@@ -281,15 +282,14 @@ namespace PF.Modules.Debug.ViewModels
                 return;
             }
 
+            // 运行中翻转输出等于替工站动气缸/真空，可能撞机或掉料
+            if (!Allowed($"切换输出 [{port.PortName}]")) return;
+
             bool targetState = !port.State; // 取反
-
-            // =========================================================================
-            // ⚠️ TODO: 替换为你实际的 IO 写入方法 (例如 WriteDO, SetOutput 等)
-            // =========================================================================
-             _ioController.WriteOutput(port.Index, targetState);
-
-
+            _ioController.WriteOutput(port.Index, targetState);
         }
+
+        private bool Allowed(string action) => PF.Modules.Debug.Models.DebugOperationGuard.EnsureHardwareOperationAllowed(MessageService, action);
 
         #endregion
 

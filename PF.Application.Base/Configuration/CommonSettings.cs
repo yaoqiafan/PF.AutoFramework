@@ -1,5 +1,6 @@
 using PF.Core.Constants;
 using PF.Core.Interfaces.Configuration;
+using PF.Infrastructure.Persistence;
 using PF.UI.Shared.Data;
 using System.ComponentModel;
 using System.IO;
@@ -142,24 +143,35 @@ namespace PF.Application.Base.Configuration
         [JsonIgnore]
         public static string ConfigFilePath => Path.Combine(ConstGlobalParam.ConfigPath, "user.config");
 
-        /// <summary>将当前配置序列化为 JSON 并写入 <see cref="ConfigFilePath"/>。</summary>
-        public void Save()
+        /// <summary>最近一次 <see cref="Save"/> 失败的原因；成功时为 null。</summary>
+        [Browsable(false)]
+        [JsonIgnore]
+        public string? LastSaveError { get; private set; }
+
+        /// <summary>
+        /// 将当前配置序列化为 JSON 并原子写入 <see cref="ConfigFilePath"/>。返回是否成功，失败原因见 <see cref="LastSaveError"/>。
+        /// <para>原子写入：此前直接覆盖，断电时文件只写一半，下次启动解析失败按默认值运行，再一保存原配置就没了。</para>
+        /// </summary>
+        public bool Save()
         {
             try
             {
-                if (!Directory.Exists(ConstGlobalParam.ConfigPath))
-                    Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
-
                 string json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(ConfigFilePath, json);
+                AtomicFile.WriteAllText(ConfigFilePath, json);
+                LastSaveError = null;
+                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"保存配置失败: {ex.Message}");
+                LastSaveError = ex.Message;
+                return false;
             }
         }
 
-        /// <summary>从 <see cref="ConfigFilePath"/> 读取 JSON 并反序列化；文件不存在或损坏时返回默认实例。</summary>
+        /// <summary>
+        /// 从 <see cref="ConfigFilePath"/> 读取 JSON 并反序列化；文件不存在或损坏时返回默认实例。
+        /// 损坏的文件先另存为 <c>user.config.corrupt-时间戳</c>，避免随后的保存把它覆盖掉后无从恢复。
+        /// </summary>
         public static CommonSettings Load()
         {
             if (File.Exists(ConfigFilePath))
@@ -171,6 +183,7 @@ namespace PF.Application.Base.Configuration
                 }
                 catch
                 {
+                    AtomicFile.BackupCorrupt(ConfigFilePath);
                     return new CommonSettings();
                 }
             }

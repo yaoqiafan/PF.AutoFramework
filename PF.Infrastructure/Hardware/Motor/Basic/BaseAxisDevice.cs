@@ -38,6 +38,16 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         private readonly List<AxisPoint> _pointTable = new();
         private readonly string _pointTableFilePath;
 
+        // 点表会被调试页（UI 线程）增删改、被工站线程同时读取：所有访问经此锁，
+        // 对外只给快照，避免"集合已修改"异常和读到改了一半的点位
+        private readonly object _pointLock = new();
+
+        /// <summary>锁内按名称取点位</summary>
+        private AxisPoint? FindPoint(Func<AxisPoint, bool> predicate)
+        {
+            lock (_pointLock) return _pointTable.FirstOrDefault(predicate);
+        }
+
         // 模拟模式下的虚拟轴位置：由运动指令更新，替代真实板卡的位置反馈，
         // 保证 IsAtPoint / IsInSafePosition 等位置判断在模拟模式下结果确定
         private double _simulatedPosition;
@@ -120,32 +130,41 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         // ── IAxis 点表管理 ──────────────────────────────────────────────────────
 
         /// <summary>
-        /// 点位表（只读）
+        /// 点位表（只读快照）。
+        /// <para>返回的是调用时刻的副本：之后的增删不会反映到已取得的列表上，需要最新数据请重新读取本属性。
+        /// 列表中的 <see cref="AxisPoint"/> 对象与点表共享，修改请走 <see cref="AddOrUpdatePoint"/>。</para>
         /// </summary>
-        public IReadOnlyList<AxisPoint> PointTable => _pointTable.AsReadOnly();
+        public IReadOnlyList<AxisPoint> PointTable
+        {
+            get { lock (_pointLock) return _pointTable.ToList().AsReadOnly(); }
+        }
 
         /// <summary>
         /// 新增或更新点位
         /// </summary>
         public void AddOrUpdatePoint(AxisPoint point)
         {
-            var existing = _pointTable.FirstOrDefault(p => p.Name == point.Name);
-            if (existing != null)
+            bool updated;
+            lock (_pointLock)
             {
-                existing.TargetPosition = point.TargetPosition;
-                existing.Speed = point.Speed;
-                existing.Acc = point.Acc;
-                existing.Dec = point.Dec;
-                existing.STime = point.STime;
-                existing.Description = point.Description;
-                existing.SortOrder = point.SortOrder;
-                _logger?.Info($"[{DeviceName}] 更新点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
+                var existing = _pointTable.FirstOrDefault(p => p.Name == point.Name);
+                updated = existing != null;
+                if (existing != null)
+                {
+                    existing.TargetPosition = point.TargetPosition;
+                    existing.Speed = point.Speed;
+                    existing.Acc = point.Acc;
+                    existing.Dec = point.Dec;
+                    existing.STime = point.STime;
+                    existing.Description = point.Description;
+                    existing.SortOrder = point.SortOrder;
+                }
+                else
+                {
+                    _pointTable.Add(point);
+                }
             }
-            else
-            {
-                _pointTable.Add(point);
-                _logger?.Info($"[{DeviceName}] 新增点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
-            }
+            _logger?.Info($"[{DeviceName}] {(updated ? "更新" : "新增")}点表 '{point.Name}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
         }
 
         /// <summary>
@@ -153,24 +172,29 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// </summary>
         public bool DeletePoint(string pointName)
         {
-            var target = _pointTable.FirstOrDefault(p => p.Name == pointName);
-            if (target == null) return false;
-            _pointTable.Remove(target);
+            lock (_pointLock)
+            {
+                var target = _pointTable.FirstOrDefault(p => p.Name == pointName);
+                if (target == null) return false;
+                _pointTable.Remove(target);
+            }
             _logger?.Info($"[{DeviceName}] 删除点表 '{pointName}'");
             return true;
         }
 
         /// <summary>
-        /// 保存点位表到文件
+        /// 保存点位表到文件（原子写入：断电/崩溃时磁盘上要么是完整旧表、要么是完整新表）
         /// </summary>
         public void SavePointTable()
         {
             try
             {
-                var sorted = _pointTable.OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToList();
+                List<AxisPoint> sorted;
+                lock (_pointLock) sorted = _pointTable.OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToList();
+
                 var json = JsonSerializer.Serialize(sorted, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_pointTableFilePath, json);
-                _logger?.Success($"[{DeviceName}] 点表已保存（{_pointTable.Count} 条）→ {_pointTableFilePath}");
+                Persistence.AtomicFile.WriteAllText(_pointTableFilePath, json);
+                _logger?.Success($"[{DeviceName}] 点表已保存（{sorted.Count} 条）→ {_pointTableFilePath}");
             }
             catch (Exception ex)
             {
@@ -183,7 +207,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// </summary>
         public async Task<bool> MoveToPointAsync(string pointName, CancellationToken token = default)
         {
-            var point = _pointTable.FirstOrDefault(p => p.Name == pointName)
+            var point = FindPoint(p => p.Name == pointName)
                 ?? throw new KeyNotFoundException($"[{DeviceName}] 点表中未找到点位 '{pointName}'，请先在点表中添加。");
 
             _logger?.Info($"[{DeviceName}] MoveToPoint '{pointName}' → {point.TargetPosition:F2} mm @ {point.Speed} mm/s");
@@ -502,7 +526,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         public bool IsAtPoint(string pointName, double tolerance = 0.5)
         {
             if (CurrentPosition == null) return false;
-            var point = _pointTable.FirstOrDefault(p => p.Name == pointName);
+            var point = FindPoint(p => p.Name == pointName);
             return point != null && Math.Abs(CurrentPosition.Value - point.TargetPosition) <= tolerance;
         }
 
@@ -512,7 +536,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             get
             {
                 if (CurrentPosition == null) return true;
-                var safePoint = _pointTable.FirstOrDefault(p => p.Name.Contains("待机"));
+                var safePoint = FindPoint(p => p.Name.Contains("待机"));
                 if (safePoint == null) return true;
                 return Math.Abs(CurrentPosition.Value - safePoint.TargetPosition) <= 0.5;
             }
@@ -543,13 +567,17 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
                 var loaded = JsonSerializer.Deserialize<List<AxisPoint>>(json);
                 if (loaded != null)
                 {
-                    _pointTable.AddRange(loaded);
-                    _logger?.Info($"[{DeviceName}] 加载点表成功（{_pointTable.Count} 条）");
+                    lock (_pointLock) _pointTable.AddRange(loaded);
+                    _logger?.Info($"[{DeviceName}] 加载点表成功（{loaded.Count} 条）");
                 }
             }
             catch (Exception ex)
             {
-                _logger?.Warn($"[{DeviceName}] 点表加载失败，将使用空表: {ex.Message}");
+                // 读不出来时随后的 EnsurePointsExist/SavePointTable 会用空表覆盖原文件——
+                // 先把坏文件另存一份，示教数据至少还能人工恢复
+                var backup = Persistence.AtomicFile.BackupCorrupt(_pointTableFilePath);
+                _logger?.Error($"[{DeviceName}] 点表加载失败，将使用空表（原文件已备份为 {backup ?? "（备份失败）"}，" +
+                               $"请核对后恢复，否则现场示教点位需重新示教）: {ex.Message}");
             }
         }
 

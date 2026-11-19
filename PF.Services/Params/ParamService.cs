@@ -622,9 +622,34 @@ namespace PF.Services.Params
             if (typeof(ParamEntity).IsAssignableFrom(type))
                 return type;
 
-            return _paramTypeMapping.TryGetValue(type, out var entityType)
-                ? entityType
-                : typeof(SystemConfigParam); // 默认兜底映射到系统配置表
+            if (_paramTypeMapping.TryGetValue(type, out var entityType))
+                return entityType;
+
+            // 基础类型（bool/int/double/string…）按约定就存系统参数表，不提示；POCO 未注册才是遗漏
+            if (!IsSimpleType(type))
+                WarnFallback(type.FullName ?? type.Name);
+            return typeof(SystemConfigParam); // 默认兜底映射到系统配置表
+        }
+
+        private static bool IsSimpleType(Type type)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            return type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal)
+                   || type == typeof(DateTime) || type == typeof(TimeSpan);
+        }
+
+        // 每个未注册类型只提示一次，避免高频读写刷屏
+        private readonly ConcurrentDictionary<string, byte> _fallbackWarned = new();
+
+        /// <summary>
+        /// 未注册类型落到系统参数表时提示：系统参数表在启动时会清理"不在默认参数集里"的行，
+        /// 这类参数若没写进项目默认参数，保存成功后下次启动就会被删除（此前完全静默）。
+        /// </summary>
+        private void WarnFallback(string typeName)
+        {
+            if (!_fallbackWarned.TryAdd(typeName, 0)) return;
+            _dbLogger.Warn($"参数类型 [{typeName}] 未通过 RegisterParamType 注册，已按系统参数表（SystemConfigParams）存取。" +
+                           "该表在启动时会删除不在项目默认参数集里的行：若此类参数未写进默认参数，下次启动会被清理。");
         }
 
         /// <summary>
@@ -633,14 +658,21 @@ namespace PF.Services.Params
         private Type DetermineEntityType(string typename)
         {
             var type = GetTypeFromAnyAssembly(typename);
-            if (type == null) return typeof(SystemConfigParam);
+            if (type == null)
+            {
+                WarnFallback(typename);
+                return typeof(SystemConfigParam);
+            }
 
             if (typeof(ParamEntity).IsAssignableFrom(type))
                 return type;
 
-            return _paramTypeMapping.TryGetValue(type, out var entityType)
-                ? entityType
-                : typeof(SystemConfigParam);
+            if (_paramTypeMapping.TryGetValue(type, out var entityType))
+                return entityType;
+
+            if (!IsSimpleType(type))
+                WarnFallback(type.FullName ?? type.Name);
+            return typeof(SystemConfigParam);
         }
 
         /// <summary>

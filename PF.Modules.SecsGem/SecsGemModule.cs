@@ -41,10 +41,24 @@ namespace PF.Modules.SecsGem
 
             OperationLogKeyRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
 
+            // 宿主（PFApplicationBase）已在启动加载阶段、模组初始化之前建好库；这里幂等兜底
+            // （EnsureCreated 对已存在的库是空操作），供不继承 PFApplicationBase 的宿主使用。
+            // 此前结果不看：建表失败没有任何痕迹
+            var logService = containerProvider.IsRegistered<PF.Core.Interfaces.Logging.ILogService>()
+                ? containerProvider.Resolve<PF.Core.Interfaces.Logging.ILogService>()
+                : null;
             Task.Run(async () =>
             {
-                var db = containerProvider.Resolve<ISecsGemDataBase>();
-                await db.InitializationDataBase();
+                try
+                {
+                    var db = containerProvider.Resolve<ISecsGemDataBase>();
+                    if (!await db.InitializationDataBase())
+                        logService?.Error("SECS/GEM 数据库初始化失败（SecsGemConfig.db），SECS 功能可能不可用", "SecsGem");
+                }
+                catch (Exception ex)
+                {
+                    logService?.Error($"SECS/GEM 数据库初始化异常：{ex.Message}", "SecsGem", ex);
+                }
             });
         }
     }

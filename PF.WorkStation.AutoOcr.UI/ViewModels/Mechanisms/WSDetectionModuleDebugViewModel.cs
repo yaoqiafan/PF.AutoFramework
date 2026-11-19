@@ -191,7 +191,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
             // 依赖注入获取模组实例
             _detectionModule = containerProvider.Resolve<IMechanism>(nameof(WSDetectionModule)) as WSDetectionModule;
             // --- 绑定全局生命周期指令 ---
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.InitializeAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.InitializeStandaloneAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _detectionModule?.StopAsync()));
 

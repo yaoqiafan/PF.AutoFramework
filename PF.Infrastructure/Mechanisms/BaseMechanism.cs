@@ -1,5 +1,11 @@
 ﻿using PF.Core.Constants;
 using PF.Core.Entities.Hardware;
+using PF.Core.Enums.Hardware;
+using PF.Core.Interfaces.Device.Hardware.IO.Analog;
+using PF.Core.Models.Device.Hardware.IO.Analog;
+using PF.Infrastructure.Hardware.IO.Analog;
+using System.ComponentModel;
+using System.Reflection;
 using PF.Core.Events;
 using PF.Core.Interfaces.Configuration;
 using PF.Core.Interfaces.Device.Hardware;
@@ -115,22 +121,27 @@ namespace PF.Infrastructure.Mechanisms
             _logger?.Info($"[模组 {MechanismName}] 开始初始化...");
             HasAlarm = false;
 
-            // 初始化前：抑制所有已注册硬件的健康监控，防止瞬态信号级联中断初始化
-            foreach (var hw in SnapshotHardwares())
-                hw.SuppressHealthMonitoring = true;
+            // 初始化前：抑制所有已注册硬件的健康监控，防止瞬态信号级联中断初始化。
+            // 成功时保持抑制，由工站在回零等后续动作完成后调用 ResumeHealthMonitoring（StationBase 初始化结束时也会兜底恢复）
+            SuppressHealthMonitoring();
 
             try
             {
                 IsInitialized = await InternalInitializeAsync(token);
 
                 // InternalInitializeAsync 可能注册新硬件，确保也被抑制
-                foreach (var hw in SnapshotHardwares())
-                    hw.SuppressHealthMonitoring = true;
+                SuppressHealthMonitoring();
 
                 if (IsInitialized)
+                {
                     _logger?.Success($"[模组 {MechanismName}] 初始化完成！");
+                }
                 else
+                {
                     _logger?.Warn($"[模组 {MechanismName}] 初始化未成功完成。");
+                    // 失败后不会再有回零等后续动作需要保护；不恢复的话这些设备之后掉线也不会报警
+                    ResumeHealthMonitoring();
+                }
 
                 return IsInitialized;
             }
@@ -140,8 +151,33 @@ namespace PF.Infrastructure.Mechanisms
                 // 重初始化中途异常时必须清掉旧的已初始化标记，否则复位清警后 CheckReady 会放行半初始化的机构
                 IsInitialized = false;
                 _logger?.Error($"[模组 {MechanismName}] 初始化过程发生异常: {ex.Message}");
+                ResumeHealthMonitoring();
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 单独初始化（调试页手动初始化模组用）：初始化后立即恢复健康监控。
+        /// <para>工站流程里应调用 <see cref="InitializeAsync"/>，回零完成后再恢复；
+        /// 调试页没有后续流程，若也调用 InitializeAsync，这些设备的健康监控会一直处于抑制状态。</para>
+        /// </summary>
+        public async Task<bool> InitializeStandaloneAsync(CancellationToken token = default)
+        {
+            try { return await InitializeAsync(token).ConfigureAwait(false); }
+            finally { ResumeHealthMonitoring(); }
+        }
+
+        private void SuppressHealthMonitoring()
+        {
+            foreach (var hw in SnapshotHardwares())
+                SetSuppressed(hw, true);
+        }
+
+        // 以本模组为持有者抑制，多个模组共用同一设备时互不干扰（见 BaseDevice.SetHealthMonitoringSuppressed）
+        private void SetSuppressed(IHardwareDevice hw, bool suppressed)
+        {
+            if (hw is Hardware.BaseDevice device) device.SetHealthMonitoringSuppressed(this, suppressed);
+            else hw.SuppressHealthMonitoring = suppressed;
         }
 
         /// <summary>
@@ -196,7 +232,7 @@ namespace PF.Infrastructure.Mechanisms
         public void ResumeHealthMonitoring()
         {
             foreach (var hw in SnapshotHardwares())
-                hw.SuppressHealthMonitoring = false;
+                SetSuppressed(hw, false);
         }
 
         /// <summary>
@@ -248,10 +284,23 @@ namespace PF.Infrastructure.Mechanisms
         protected void RegisterHardwareDevice(IHardwareDevice device)
         {
             if (device == null) return;
+            IHardwareDevice? stale = null;
             lock (_hardwaresLock)
             {
                 if (_internalHardwares.Contains(device)) return;
+
+                // 硬件热重载后同一 DeviceId 是新实例：替换掉旧实例。此前旧实例一直留在列表里，
+                // 它残留的 HasAlarm 让模组永远无法自动清警，复位也会作用到已释放的设备上
+                stale = _internalHardwares.FirstOrDefault(h => h.DeviceId == device.DeviceId);
+                if (stale != null) _internalHardwares.Remove(stale);
+
                 _internalHardwares.Add(device);
+            }
+            if (stale != null)
+            {
+                stale.AlarmTriggered -= OnHardwareAlarmTriggered;
+                stale.HardwareAlarmAutoCleared -= OnHardwareAlarmAutoCleared;
+                SetSuppressed(stale, false);
             }
             device.AlarmTriggered += OnHardwareAlarmTriggered;
             device.HardwareAlarmAutoCleared += OnHardwareAlarmAutoCleared;
@@ -324,7 +373,8 @@ namespace PF.Infrastructure.Mechanisms
                     {
                         var currentpose = axis.CurrentPosition;
 
-                        if (pose.HasValue)
+                        // 定位精度未配置（默认 0）时不校验：此前按"误差 > 0"判超限，真机上几乎每次绝对运动都会误报
+                        if (pose.HasValue && axis.Param.PositioningAccuracy > 0)
                         {
                             if (currentpose.HasValue)
                             {
@@ -535,7 +585,11 @@ namespace PF.Infrastructure.Mechanisms
             if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
                 return false;
 
-            bool success = await WaitAxisMoveDoneAsync(axis, timeoutMs, token: token).ConfigureAwait(false);
+            // 与 MoveAbsAndWaitAsync 一致做到位精度校验（轴参数 PositioningAccuracy > 0 时生效）。
+            // 此前点位运动这条最常用的路径不传目标位置，从不校验是否真的到位
+            double? target = axis.PointTable.FirstOrDefault(p => p.Name == pointName)?.TargetPosition;
+
+            bool success = await WaitAxisMoveDoneAsync(axis, timeoutMs, target, token).ConfigureAwait(false);
             if (success) return true;
 
             // 运动未完成且存在暂停感知 → 暂停恢复后重新发起运动
@@ -544,7 +598,7 @@ namespace PF.Infrastructure.Mechanisms
                 _logger?.Info($"[{MechanismName}] 轴 [{axisName}] 暂停恢复，重新移动到 [{pointName}]");
                 if (!await axis.MoveToPointAsync(pointName, token).ConfigureAwait(false))
                     return false;
-                return await WaitAxisMoveDoneAsync(axis, timeoutMs, token: token).ConfigureAwait(false);
+                return await WaitAxisMoveDoneAsync(axis, timeoutMs, target, token).ConfigureAwait(false);
             }
 
             return false;
@@ -648,6 +702,76 @@ namespace PF.Infrastructure.Mechanisms
             {
                 axis.SavePointTable();
             }
+        }
+
+        /// <summary>
+        /// 确保模拟量设备的通道表包含两个业务枚举定义的全部通道（与 <see cref="EnsurePointsExist{TEnum}"/> 同一思路）。
+        /// <para>缺失的 <c>(方向, 通道号)</c> 按默认值补一行：名称取 [Description]（无则取枚举名），
+        /// 0~10V 对应 0~10、仿真模式为【等待直接通过】；已有的行一律不动。
+        /// 有新增时写回 <c>HardwareConfig.ConnectionParameters["Channels"]</c> 并持久化，再热更新到设备。</para>
+        /// <para>与点表不同，通道表存在 HardwareConfig 里，必须经 <see cref="HardwareManagerService"/> 保存，
+        /// 因此是实例方法；在 <c>InternalInitializeAsync</c> 末尾调用。</para>
+        /// </summary>
+        /// <typeparam name="TIn">AI 枚举（int 值 = AI 通道号）</typeparam>
+        /// <typeparam name="TOut">AO 枚举（int 值 = AO 通道号）</typeparam>
+        protected async Task EnsureAnalogChannelsAsync<TIn, TOut>(IAnalogIOController device)
+            where TIn : struct, Enum
+            where TOut : struct, Enum
+        {
+            ArgumentNullException.ThrowIfNull(device);
+
+            var rows = device.InputChannels.Concat(device.OutputChannels).ToList();
+            var keys = rows.Select(r => (r.Direction, r.Channel)).ToHashSet();
+            int added = 0;
+
+            void AddMissing<TEnum>(AnalogDirection direction) where TEnum : struct, Enum
+            {
+                foreach (TEnum value in Enum.GetValues(typeof(TEnum)))
+                {
+                    int channel = Convert.ToInt32(value);
+                    if (!keys.Add((direction, channel))) continue;
+
+                    string name = typeof(TEnum).GetField(value.ToString())?
+                        .GetCustomAttribute<DescriptionAttribute>()?.Description ?? value.ToString();
+                    var row = new AnalogChannelConfig
+                    {
+                        Direction = direction,
+                        Channel = channel,
+                        Name = name,
+                        SignalType = AnalogSignalType.Voltage0To10,
+                        EngMin = 0,
+                        EngMax = 10,
+                        OutputMin = 0,
+                        OutputMax = 10,
+                        SimMode = AnalogSimMode.AlwaysPass,
+                    };
+                    row.ApplySignalTypeDefaults();
+                    rows.Add(row);
+                    added++;
+                }
+            }
+
+            AddMissing<TIn>(AnalogDirection.Input);
+            AddMissing<TOut>(AnalogDirection.Output);
+            if (added == 0) return;
+
+            var result = device.UpdateChannels(rows);
+            if (!result.Success)
+            {
+                HardwareLogger.Error($"[{MechanismName}] 补全模拟量设备 [{device.DeviceName}] 通道表失败：{string.Join("；", result.Errors)}");
+                return;
+            }
+
+            var config = HardwareManagerService.GetConfig(device.DeviceId);
+            if (config == null)
+            {
+                HardwareLogger.Warn($"[{MechanismName}] 未找到模拟量设备 [{device.DeviceId}] 的硬件配置，补全的 {added} 个通道只在内存中生效");
+                return;
+            }
+
+            config.ConnectionParameters[AnalogChannelJson.ChannelsKey] = AnalogChannelJson.Serialize(rows);
+            await HardwareManagerService.SaveConfigAsync(config);
+            HardwareLogger.Info($"[{MechanismName}] 已为模拟量设备 [{device.DeviceName}] 补全 {added} 个通道并保存");
         }
     }
 }

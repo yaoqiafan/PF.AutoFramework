@@ -397,10 +397,28 @@ namespace PF.Application.Base
             var str = error != null
                 ? $"未处理异常: {error.Message}\r\n堆栈: {error.StackTrace}"
                 : $"未处理错误: {e}";
-            Container.Resolve<IMessageService>().ShowMessage(
-                "发生错误，请查看程序日志！\n" + str, "系统错误",
-                MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
+
+            // 此前只弹框不写日志，提示里却让人"请查看程序日志"，日志里什么也没有
+            try
+            {
+                PF.Services.Logging.LogService.Instance?.Error(
+                    $"[UI 线程未处理异常] {error?.Message}", "Dispatcher", error);
+            }
+            catch { /* 日志组件自身异常不得掩盖原始错误 */ }
+
+            try
+            {
+                Container.Resolve<IMessageService>().ShowMessage(
+                    "发生错误，请查看程序日志！\n" + str, "系统错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch
+            {
+                // 启动早期容器/对话框服务尚不可用时退回系统消息框，不能在异常处理器里再抛
+                MessageBox.Show("发生错误，请查看程序日志！\n" + str, "系统错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
@@ -457,10 +475,6 @@ namespace PF.Application.Base
             if (splash.ShowDialog() == true)
             {
                 splash.Close();
-                var inputMonitor = Container.Resolve<IHardwareInputMonitor>();
-                inputMonitor.StartStandardMonitoring();
-                // Safety 组常驻：是否触发/是否上锁由主控按机台状态下发的上锁许可决定
-                inputMonitor.StartSafetyMonitoring();
             }
             else
             {
@@ -474,6 +488,14 @@ namespace PF.Application.Base
                     Environment.Exit(0);
                 }
             }
+
+            // 加载失败但选择继续时也必须启动：此前只在成功分支启动，继续进入主界面后
+            // 安全门 / 物理按钮整体不扫描，而人员仍可在界面上初始化、启动设备。
+            // IO 板卡本身没起来时由监控服务自行报警（Safety 组配了输入却拿不到板卡会触发 MonitorFailure）。
+            var inputMonitor = Container.Resolve<IHardwareInputMonitor>();
+            inputMonitor.StartStandardMonitoring();
+            // Safety 组常驻：是否触发/是否上锁由主控按机台状态下发的上锁许可决定
+            inputMonitor.StartSafetyMonitoring();
 
             return Container.Resolve<MainWindow>();
         }
@@ -558,6 +580,18 @@ namespace PF.Application.Base
                 Debug.WriteLine($"[OnInitialized] 初始化阶段异常: {ex.Message}");
                 PF.Services.Logging.LogService.Instance?.Error(
                     $"初始化阶段异常: {ex.Message}", "Startup", ex);
+
+                // 主窗口由 base.OnInitialized() 显示，走到这里时它多半还没执行。
+                // 此前只记日志：ShutdownMode 是 OnExplicitShutdown，进程无窗口地挂在后台、还占着单实例互斥锁，
+                // 现场再双击只会提示"已经在运行"，只能去任务管理器结束。
+                // 也不能硬把窗口显示出来：复位权限校验、三色灯、事件桥接可能都没接上，带着残缺的接线运行更危险。
+                try
+                {
+                    MessageBox.Show($"软件初始化失败，程序将退出。\n\n{ex.Message}\n\n详细信息请查看程序日志。",
+                        "系统错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                catch { /* 提示失败不影响退出 */ }
+                Shutdown();   // 经 OnExit：门锁兜底解锁 + 释放互斥锁
             }
         }
 
@@ -719,7 +753,14 @@ namespace PF.Application.Base
 
         #region 私有注册方法
 
-        private async void RegisterParamDbContext(IContainerRegistry containerRegistry)
+        /// <summary>
+        /// 建库、补全默认参数并注册参数库上下文。
+        /// <para>必须同步完成：紧随其后的 AddParameterServices 就要用到这里注册的实例。
+        /// 此前是 async void，注册发生在 await 之后——能用只是因为 SQLite 的异步实现恰好同步完成，
+        /// 一旦真的让出线程，后续注册就会拿不到上下文，异常也会脱离这里的 try/catch 直接崩进程。
+        /// 放到线程池上阻塞等待，避免在 UI 线程同步上下文里 GetResult 自锁。</para>
+        /// </summary>
+        private void RegisterParamDbContext(IContainerRegistry containerRegistry)
         {
             try
             {
@@ -727,9 +768,13 @@ namespace PF.Application.Base
                 var filePath = Path.Combine(ConstGlobalParam.ConfigPath, "SystemParamsCollection.db");
                 DbContextFactory<AppParamDbContext>.Initialize($"Data Source={filePath}");
 
-                using var ctx = DbContextFactory<AppParamDbContext>.CreateDbContext();
-                await ctx.Database.EnsureCreatedAsync();
-                await ctx.EnsureDefaultParametersCreatedAsync(CreateDefaultParameters());
+                var defaults = CreateDefaultParameters();
+                Task.Run(async () =>
+                {
+                    using var ctx = DbContextFactory<AppParamDbContext>.CreateDbContext();
+                    await ctx.Database.EnsureCreatedAsync().ConfigureAwait(false);
+                    await ctx.EnsureDefaultParametersCreatedAsync(defaults, msg => _dbLogger.Warn(msg)).ConfigureAwait(false);
+                }).GetAwaiter().GetResult();
 
                 var opts = DbContextFactory<AppParamDbContext>.CreateDbContextOptions();
                 container.RegisterInstance(opts);
@@ -923,6 +968,52 @@ namespace PF.Application.Base
                 {
                     await Task.Delay(500);
                     UpdateStage("本项目不使用SecsGem服务，跳过服务检查。。。");
+                }
+
+                // 报警字典必须先于通讯/硬件/模组初始化加载。Prism 的启动顺序是 CreateShell（本 Splash）在前、
+                // InitializeModules 在后，此前字典由 AlarmModule.OnInitialized 加载——启动阶段的连接失败、
+                // 模组初始化失败等报警查字典时字典还是空的，全部显示为"未定义报警 (未知代码)"、
+                // 严重级别一律按 Error、清除等级取默认值，恰恰是最需要看清原因的时候看不清。
+                // InitializeAsync 幂等，模块里那次调用随之变为空操作。
+                try
+                {
+                    await Container.Resolve<IAlarmDictionaryService>().InitializeAsync();
+                }
+                catch (Exception ex)
+                {
+                    // 字典加载失败不阻断启动：报警仍能触发，只是文案退化为兜底条目
+                    UpdateStage($"报警字典加载失败：{ex.Message}", MsgType.Warning);
+                }
+
+                // 生产数据服务的写库线程只在 InitializeAsync 里启动。此前只由 UI 模块 ProductionRecordModule 调用：
+                // 项目不装该模块就永远不落库，攒满队列后 RecordAsync 阻塞住调用它的工站线程。
+                // 放在宿主启动阶段，与是否装 UI 模块无关；InitializeAsync 幂等，模块里那次调用随之变为空操作。
+                try
+                {
+                    await Container.Resolve<IProductionDataService>().InitializeAsync();
+                }
+                catch (Exception ex)
+                {
+                    UpdateStage($"生产数据库初始化失败，生产数据将无法保存：{ex.Message}", MsgType.Error);
+                }
+
+                // SECS/GEM 库建表必须先于模组初始化：SECS 机构（如 Demo 的 WSSecsGemModule）在下面的
+                // InitializeMechanismsAsync 里就读参数表。此前建表放在 SecsGemModule.OnInitialized 里
+                // fire-and-forget，晚于本 Splash 且不等结果——新机器首次启动时 SecsGemConfig.db 还没有表，
+                // SECS 机构初始化读表失败；建表失败也只写 Trace，日志里没有痕迹。
+                if (UsesSecsGemService && Container.IsRegistered<ISecsGemDataBase>())
+                {
+                    var secsDb = Container.Resolve<ISecsGemDataBase>();
+                    bool secsDbOk;
+                    string? reason = null;
+                    try
+                    {
+                        secsDbOk = await secsDb.InitializationDataBase();
+                        if (!secsDbOk) reason = (secsDb as SecsGemDataBaseManger)?.LastInitializationError;
+                    }
+                    catch (Exception ex) { secsDbOk = false; reason = ex.Message; }
+                    if (!secsDbOk)
+                        UpdateStage($"SECS/GEM 数据库初始化失败（SecsGemConfig.db），SECS 功能可能不可用：{reason ?? "未知原因"}", MsgType.Error);
                 }
 
                 await Task.Delay(500);

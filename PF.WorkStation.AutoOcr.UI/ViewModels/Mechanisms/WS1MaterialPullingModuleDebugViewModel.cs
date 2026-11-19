@@ -332,7 +332,7 @@ namespace PF.WorkStation.AutoOcr.UI.ViewModels.Mechanisms
 
             _materialPullingModule = containerProvider.Resolve<IMechanism>(nameof(WS1MaterialPullingModule)) as WS1MaterialPullingModule;
 
-            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.InitializeAsync()));
+            InitializeModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.InitializeStandaloneAsync()));
             ResetModuleCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.ResetAsync()));
             StopCommand = new DelegateCommand(async () => await ExecuteAsync(() => _materialPullingModule?.StopAsync()));
             IsCanResetCommand = new DelegateCommand(async () => await ExecuteMechResultAsync("可初始化动作", () => _materialPullingModule?.CheckTrackIsMaterial()));

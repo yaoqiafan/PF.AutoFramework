@@ -367,6 +367,12 @@ namespace PF.Modules.Alarm.ViewModels
                 RefreshFilterDropdowns(results);
                 RecalculateHistoryPagination();
             }
+            catch (Exception ex)
+            {
+                // 此前无 catch：查询异常（库文件被占用、年度分表缺失等）冒到全局处理器弹"系统错误"
+                HistoryStatusMessage = $"查询失败：{ex.Message}";
+                LogService?.Error($"[报警中心] 历史报警查询失败：{ex.Message}", "Alarm", ex);
+            }
             finally
             {
                 IsQuerying = false;

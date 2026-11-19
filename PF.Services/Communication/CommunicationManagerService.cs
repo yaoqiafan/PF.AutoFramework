@@ -199,17 +199,36 @@ namespace PF.Services.Communication
         /// <inheritdoc/>
         public async Task ReloadAllAsync()
         {
-            _logger.Info("[CommunicationManager] 热重载：正在停止所有活跃实例...");
-            foreach (var (id, comm) in _activeCommunications)
+            // 串行化：多个通讯调试页先后保存时，两轮"停止→重建"交错会重复释放实例
+            await _reloadLock.WaitAsync().ConfigureAwait(false);
+            try
             {
-                await comm.StopAsync();
-                if (comm is IDisposable disposable) disposable.Dispose();
-                CommunicationRemoved?.Invoke(this, id);
-            }
-            _activeCommunications.Clear();
+                _logger.Info("[CommunicationManager] 热重载：正在停止所有活跃实例...");
+                foreach (var (id, comm) in _activeCommunications.ToList())
+                {
+                    try
+                    {
+                        await comm.StopAsync();
+                        if (comm is IDisposable disposable) disposable.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        // 单个实例停止失败不能中断整轮重载，否则其余实例既没停也没重建
+                        _logger.Error($"[CommunicationManager] 停止实例 '{id}' 时异常: {ex.Message}");
+                    }
+                    CommunicationRemoved?.Invoke(this, id);
+                }
+                _activeCommunications.Clear();
 
-            await LoadAndInitializeAsync();
+                await LoadAndInitializeAsync();
+            }
+            finally
+            {
+                _reloadLock.Release();
+            }
         }
+
+        private readonly SemaphoreSlim _reloadLock = new(1, 1);
 
         /// <inheritdoc/>
         public T GetCommunication<T>(string instanceId) where T : class
