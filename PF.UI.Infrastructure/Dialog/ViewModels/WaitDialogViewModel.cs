@@ -12,6 +12,9 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
     /// </summary>
     public class WaitDialogViewModel : PFDialogViewModelBase
     {
+        /// <summary>对话框结果参数中携带任务异常的键</summary>
+        public const string WorkExceptionKey = "WorkException";
+
         private string _message;
         /// <summary>
         /// 初始化实例
@@ -32,6 +35,7 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
             var workAction = parameters.GetValue<Func<Task>>("WorkAction");
             if (workAction != null)
             {
+                Exception? failure = null;
                 try
                 {
                     // 让出一次调度：DialogService 在调用 OnDialogOpened 之后才真正完成窗口显示 /
@@ -46,10 +50,15 @@ namespace PF.UI.Infrastructure.Dialog.ViewModels
                 catch (Exception ex)
                 {
                     LogService.Error($"[等待弹窗] 等待任务异常 | 标题：{Title}", "操作日志", ex);
+                    failure = ex;
                 }
                 finally
                 {
-                    RequestClose.Invoke(new DialogResult(ButtonResult.OK));
+                    // 异常经对话框结果交回 MessageService.ExecuteWithWaitAsync 重新抛给调用方。
+                    // 此前在这里吞掉，调用方 await 之后照常往下走、提示"完成"，实际任务已失败
+                    var result = new DialogResult(failure == null ? ButtonResult.OK : ButtonResult.Abort);
+                    if (failure != null) result.Parameters.Add(WorkExceptionKey, failure);
+                    RequestClose.Invoke(result);
                 }
             }
         }

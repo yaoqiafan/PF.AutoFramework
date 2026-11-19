@@ -23,12 +23,23 @@ namespace PF.Infrastructure.SecsGem
         /// <summary>
         /// 构造SecsGem管理器
         /// </summary>
-        public SecsGemManger(IParams paramManger, ICommandManager commandManager, IinternalClient secsGemClient, ISecsGemMessageUpdater messageUpdater)
+        public SecsGemManger(IParams paramManger, ICommandManager commandManager, IinternalClient secsGemClient, ISecsGemMessageUpdater messageUpdater,
+            PF.Core.Interfaces.Logging.ILogService? logService = null)
         {
             _paramManger = paramManger ?? throw new ArgumentNullException(nameof(paramManger));
             _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
             _secsGemClient = secsGemClient ?? throw new ArgumentNullException(nameof(secsGemClient));
             _messageUpdater = messageUpdater ?? throw new ArgumentNullException(nameof(messageUpdater));
+            _logger = logService == null ? null : PF.Infrastructure.Logging.CategoryLoggerFactory.SecsGem(logService);
+        }
+
+        /// <summary>此前错误全部写 Console.WriteLine，WPF 程序没有控制台，等于没记</summary>
+        private readonly PF.Infrastructure.Logging.CategoryLogger? _logger;
+
+        private void LogError(string message, Exception ex)
+        {
+            if (_logger != null) _logger.Error(message, ex);
+            else System.Diagnostics.Trace.WriteLine($"[SecsGemManger] {message}: {ex.Message}");
         }
 
         /// <summary>
@@ -82,7 +93,7 @@ namespace PF.Infrastructure.SecsGem
             catch (Exception ex)
             {
                 // 记录日志
-                Console.WriteLine($"InitializeAsync failed: {ex.Message}");
+                LogError("InitializeAsync failed", ex);
                 return false;
             }
         }
@@ -109,7 +120,7 @@ namespace PF.Infrastructure.SecsGem
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ConnectAsync failed: {ex.Message}");
+                LogError("ConnectAsync failed", ex);
                 return false;
             }
         }
@@ -128,7 +139,7 @@ namespace PF.Infrastructure.SecsGem
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"DisconnectAsync failed: {ex.Message}");
+                LogError("DisconnectAsync failed", ex);
             }
         }
 
@@ -154,7 +165,7 @@ namespace PF.Infrastructure.SecsGem
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SendMessageAsync failed: {ex.Message}");
+                LogError("SendMessageAsync failed", ex);
                 throw;
             }
         }
@@ -190,7 +201,7 @@ namespace PF.Infrastructure.SecsGem
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WaitSendMessageAsync failed: {ex.Message}");
+                LogError("WaitSendMessageAsync failed", ex);
                 return (false, null);
             }
         }
@@ -237,7 +248,7 @@ namespace PF.Infrastructure.SecsGem
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error during disposal: {ex.Message}");
+                        LogError("Error during disposal", ex);
                     }
 
                     MessageReceived = null;

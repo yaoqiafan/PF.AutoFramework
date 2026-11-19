@@ -80,11 +80,19 @@ namespace PF.Infrastructure.SecsGem.Incentive
         /// </summary>
         public InternalClient(IParams @params, ICommandManager commandManager, SecsGemMessageProcessor secsGemMessageProcessor, ILogService logService)
         {
-            _client = new TCPClient();
+            // 本机通道自动重连：SECS 服务重启（或被安装器重装）后，此前主程序这一侧永远停在未连接，
+            // 发送全部被拒，只能重启软件。重连成功后服务会推送 0x02 状态帧，SecsGemStatus 随之恢复；
+            // 处理循环在 Close 前一直运行，无需重启。主动 Close/Disconnect 会终止重连。
+            _client = new TCPClient("SecsGem本机通道", logger: logService)
+            {
+                AutoReconnect = true,
+                ReconnectInterval = 3000,
+            };
             _paramConfig = @params;
             _commandManager = commandManager;
             _secsGemMessageProcessor = secsGemMessageProcessor;
             _secsGemLogger = CategoryLoggerFactory.SecsGem(logService);
+            SecsGemTrace.Attach(logService);
         }
 
         /// <summary>
@@ -96,7 +104,11 @@ namespace PF.Infrastructure.SecsGem.Incentive
             {
                 var systemparams = _paramConfig.GetParam<SecsGemSystemParam>(ParamType.System);
                 if (systemparams == null) { return false; }
-                _deviceId = BitConverter.GetBytes(Convert.ToInt16(systemparams.DeviceID));
+                // SECS/HSMS 报文头的 Device ID（Session ID）是大端序 2 字节。此前用 BitConverter.GetBytes，
+                // 在 x86 上得到小端序：DeviceID=1 写成 01 00，Host 看到的是 256；而服务端原样转发不重写头部，
+                // 严格校验设备号的 Host 会以 S9F1（Unrecognized Device ID）拒收
+                ushort deviceId = (ushort)Convert.ToInt16(systemparams.DeviceID);
+                _deviceId = new[] { (byte)(deviceId >> 8), (byte)(deviceId & 0xFF) };
 
                 // 必须在建立连接之前订阅事件：服务端在连接瞬间就会推送 0x02 状态帧，
                 // 连接成功后再订阅会丢失该帧，导致 SecsGemStatus 一直为 false（表现为已连接却拒绝发送）
@@ -114,7 +126,8 @@ namespace PF.Infrastructure.SecsGem.Incentive
             }
             catch (Exception ex)
             {
-                _secsGemLogger.Debug($"客户端初始化失败: {ex.Message}");
+                // 此前以 Debug 级别记录，现场默认日志级别下完全看不到
+                _secsGemLogger.Error($"客户端初始化失败: {ex.Message}", ex);
                 return false;
             }
         }
@@ -132,26 +145,31 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 // 必须在 ConnectAsync 之前清，连接成功后到达的数据不能被误清
                 _frameBuffer.Clear();
 
+                // 取消上一轮处理循环再启动新循环，避免重连后同一 Channel 上的消费循环越积越多。
+                // 处理循环与连接是否成功无关：首连失败转入后台重连，连上后到达的数据要有人消费
+                try { _cts.Cancel(); } catch (ObjectDisposedException) { /* Close() 后 CTS 已释放，属正常路径 */ }
+                _cts = new CancellationTokenSource();
+                _ = Task.Run(() => ProcessActiveAsync(_cts.Token));
+                _ = Task.Run(() => ProcessPassiveAsync(_cts.Token));
+
                 // 连接服务器
                 var connected = await _client.ConnectAsync("127.0.0.1", 6800);
                 if (!connected)
                 {
+                    // 此前首连失败直接返回、不再尝试：开机时主程序先于 SECS 服务启动就永远连不上。
+                    // 仍返回 false 让调用方（机构初始化）如实报警，后台持续重连，服务起来后自动恢复
+                    _secsGemLogger.Warn("连接本机 SECS/GEM 服务（127.0.0.1:6800）失败，转入后台自动重连");
+                    _ = _client.ReconnectAsync().ContinueWith(
+                        t => _secsGemLogger.Warn($"本机通道后台重连异常: {t.Exception?.GetBaseException().Message}"),
+                        TaskContinuationOptions.OnlyOnFaulted);
                     return false;
                 }
-
-                // 取消上一轮处理循环再启动新循环，避免重连后同一 Channel 上的消费循环越积越多
-                try { _cts.Cancel(); } catch (ObjectDisposedException) { /* Close() 后 CTS 已释放，属正常路径 */ }
-                _cts = new CancellationTokenSource();
-
-                // 启动处理任务
-                _ = Task.Run(() => ProcessActiveAsync(_cts.Token));
-                _ = Task.Run(() => ProcessPassiveAsync(_cts.Token));
 
                 return true;
             }
             catch (Exception ex)
             {
-                _secsGemLogger.Debug($"启动客户端失败: {ex.Message}");
+                _secsGemLogger.Error($"启动客户端失败: {ex.Message}", ex);
                 return false;
             }
         }
@@ -309,15 +327,18 @@ namespace PF.Infrastructure.SecsGem.Incentive
 
         private void Client_Disconnected(object? sender, ClientDisconnectedEventArgs e)
         {
-            _secsGemLogger.Debug($"客户端 {e.ClientId} 断开连接: {e.Reason}");
+            _secsGemLogger.Warn($"与本机 SECS/GEM 服务的连接断开: {e.Reason}");
+            bool wasConnected = _status;
             _status = false;
+            // 本机通道断开 = 与 Host 的链路对主程序也断了，按 Host 断开通知订阅方（此前状态静默变 false）
+            if (wasConnected) SecsGemHostDisconnected?.Invoke(this, EventArgs.Empty);
             // 断线时丢弃未拼接完的半截帧
             _frameBuffer.Clear();
         }
 
         private void Client_ErrorOccurred(object? sender, ErrorOccurredEventArgs e)
         {
-            _secsGemLogger.Debug($"客户端发生错误: {e.ErrorMessage}");
+            _secsGemLogger.Warn($"本机通道发生错误: {e.ErrorMessage}");
         }
 
         private void Client_DataReceived(object? sender, DataReceivedEventArgs e)
@@ -559,12 +580,12 @@ namespace PF.Infrastructure.SecsGem.Incentive
                 }
                 else
                 {
-                    _secsGemLogger.Debug($"发送SECS/GEM消息失败: S{msg.Stream}F{msg.Function}");
+                    _secsGemLogger.Warn($"发送SECS/GEM消息失败: S{msg.Stream}F{msg.Function}");
                 }
             }
             catch (Exception ex)
             {
-                _secsGemLogger.Debug($"发送消息时出错: {ex.Message}");
+                _secsGemLogger.Error($"发送 S{msg?.Stream}F{msg?.Function} 时出错: {ex.Message}", ex);
                 throw;
             }
         }

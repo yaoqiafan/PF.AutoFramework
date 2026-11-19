@@ -24,9 +24,12 @@ namespace PF.UI.Infrastructure.Dialog.Basic
         /// </summary>
         Task<ButtonResult> ShowMessageAsync(string message, string title = "提示", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.Information);
 
-        // 3. 自定义提示弹窗 (非阻塞，提供回调函数，代码会立即往下执行)
+        // 3. 自定义提示弹窗（结果经回调返回）
         /// <summary>
-        /// 初始化实例
+        /// 显示提示弹窗，结果经 <paramref name="callback"/> 返回。
+        /// <para>在 UI 线程上调用时是<b>模态</b>的：方法在弹窗关闭后才返回，回调已在返回前执行完——
+        /// 调用方可以在返回后直接读取回调里设置的结果（调试页状态守卫、参数页放弃修改确认都依赖这一点）。
+        /// 在后台线程上调用时排队到 UI 线程、立即返回，回调稍后执行。</para>
         /// </summary>
         void ShowMessage(string message, string title = "提示", MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.Information, Action<ButtonResult>? callback = null);
 

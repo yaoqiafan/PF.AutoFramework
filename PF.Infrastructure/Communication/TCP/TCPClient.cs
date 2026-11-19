@@ -237,8 +237,12 @@ namespace PF.Infrastructure.Communication.TCP
 
                     if (IsAsync)
                     {
-                        // 仅当启用异步时，启动后台接收循环
-                        _ = Task.Run(() => ReceiveLoopAsync(_receiveCancellationTokenSource.Token), _receiveCancellationTokenSource.Token);
+                        // 仅当启用异步时，启动后台接收循环。把本次连接的 client/stream 交给循环：
+                        // 循环只读、只清理自己这一代连接，不会误关之后新建的连接
+                        var ownClient = _tcpClient;
+                        var ownStream = _stream;
+                        var receiveToken = _receiveCancellationTokenSource.Token;
+                        _ = Task.Run(() => ReceiveLoopAsync(ownClient, ownStream, receiveToken), receiveToken);
                     }
 
                     OnConnected($"已连接到服务器 {serverIp}:{serverPort}");
@@ -259,7 +263,7 @@ namespace PF.Infrastructure.Communication.TCP
             }
         }
 
-        private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
+        private async Task ReceiveLoopAsync(System.Net.Sockets.TcpClient ownClient, NetworkStream ownStream, CancellationToken cancellationToken)
         {
             var buffer = new byte[ReceiveBufferSize];
 
@@ -267,18 +271,17 @@ namespace PF.Infrastructure.Communication.TCP
             {
                 try
                 {
-                    if (_stream == null || !_stream.CanRead)
+                    if (ownStream == null || !ownStream.CanRead)
                     {
                         await Task.Delay(100, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
 
-                    var bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+                    var bytesRead = await ownStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
 
                     if (bytesRead == 0)
                     {
-                        OnDisconnected("连接已关闭", false);
-                        await CleanupConnection().ConfigureAwait(false);
+                        HandleUnexpectedDrop(ownClient, "连接已关闭");
                         break;
                     }
 
@@ -292,22 +295,56 @@ namespace PF.Infrastructure.Communication.TCP
                 }
                 catch (IOException ioEx) when (ioEx.InnerException is SocketException socketEx)
                 {
-                    OnDisconnected($"IO异常: {socketEx.Message}", false);
-                    await CleanupConnection().ConfigureAwait(false);
+                    HandleUnexpectedDrop(ownClient, $"IO异常: {socketEx.Message}");
                     break;
                 }
                 catch (SocketException socketEx)
                 {
-                    OnDisconnected($"Socket异常: {socketEx.Message}", false);
-                    await CleanupConnection().ConfigureAwait(false);
+                    HandleUnexpectedDrop(ownClient, $"Socket异常: {socketEx.Message}");
                     break;
+                }
+                catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested || !ReferenceEquals(_tcpClient, ownClient))
+                {
+                    break; // 本代连接已被主动断开/替换
                 }
                 catch (Exception ex)
                 {
                     OnErrorOccurred($"接收数据时发生错误: {ex.Message}", ex);
-                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                    try { await Task.Delay(1000, cancellationToken).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { break; }
                 }
             }
+        }
+
+        /// <summary>
+        /// 接收循环发现自己这一代连接意外断开时调用。
+        /// <para>只在 <see cref="_tcpClient"/> 仍是 <paramref name="ownClient"/> 时才清理并发断开事件。
+        /// 此前顺序是"先发 Disconnected 事件、再清理字段上的当前连接"：订阅方在事件里立刻重连时，
+        /// 随后的清理关掉的是刚建好的新连接，且把新连接的状态改回 Disconnected。
+        /// 已被主动断开或替换的旧连接，直接静默退出。</para>
+        /// </summary>
+        private void HandleUnexpectedDrop(System.Net.Sockets.TcpClient ownClient, string reason)
+        {
+            if (!ReferenceEquals(Interlocked.CompareExchange(ref _tcpClient, null, ownClient), ownClient))
+                return;
+
+            try
+            {
+                _receiveCancellationTokenSource?.Cancel();
+                _stream?.Close();
+                _stream = null;
+                ownClient?.Close();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warn($"[TCPClient:{_clientId}] 清理断开的连接异常: {ex.Message}", ex);
+            }
+
+            OnDisconnected(reason, false);
+
+            // AutoReconnect 此前只在有人调用 ReconnectAsync 时才生效，连接意外断开并不会自动重连
+            if (AutoReconnect && !_disposedValue)
+                StartReconnectLoop();
         }
 
         /// <summary>
@@ -488,6 +525,9 @@ namespace PF.Infrastructure.Communication.TCP
         /// </summary>
         public async Task DisconnectAsync()
         {
+            // 主动断开即放弃后台自动重连，否则断开后几秒又被重连回去
+            _reconnectCts?.Cancel();
+
             // 锁超时分支在 try 外：超时未获锁不进入 finally 的 Release（断开不应长时间阻塞）。
             if (!await _connectLock.WaitAsync(ConnectTimeout).ConfigureAwait(false))
             {
@@ -510,7 +550,10 @@ namespace PF.Infrastructure.Communication.TCP
         }
 
         /// <summary>
-        /// 异步重连
+        /// 异步重连：先断开，再立即按上次的地址与接收模式连接一次；
+        /// 这次失败且 <see cref="AutoReconnect"/> 为 true 时，转入后台按 <see cref="ReconnectInterval"/> 持续重试。
+        /// <para>此前 AutoReconnect=false（默认值）时只断开不连接：海康扫码枪切换用户参数后调用本方法，
+        /// 触发口从此断开、扫码全部失败；基恩士相机复位时调用本方法"重连"，复位后相机反而一直是断的。</para>
         /// </summary>
         public async Task ReconnectAsync()
         {
@@ -521,35 +564,42 @@ namespace PF.Infrastructure.Communication.TCP
 
             await DisconnectAsync().ConfigureAwait(false);
 
-            if (AutoReconnect)
-            {
-                _reconnectCts?.Cancel();
-                _reconnectCts?.Dispose();
-                _reconnectCts = new CancellationTokenSource();
-                var cts = _reconnectCts;
+            // 保持上一次连接的 IsAsync 模式
+            bool ok = await ConnectAsync(_serverIp, _serverPort, _isAsyncMode).ConfigureAwait(false);
+            if (!ok && AutoReconnect && !_disposedValue)
+                StartReconnectLoop();
+        }
 
-                _ = Task.Run(async () =>
+        /// <summary>后台按间隔重试连接，直到连上、关闭 AutoReconnect、被主动断开或释放。</summary>
+        private void StartReconnectLoop()
+        {
+            _reconnectCts?.Cancel();
+            _reconnectCts?.Dispose();
+            _reconnectCts = new CancellationTokenSource();
+            var cts = _reconnectCts;
+
+            _ = Task.Run(async () =>
+            {
+                while (!cts.IsCancellationRequested && AutoReconnect && Status != ClientStatus.Connected)
                 {
-                    while (!cts.IsCancellationRequested && AutoReconnect && Status != ClientStatus.Connected)
+                    try
                     {
-                        try
-                        {
-                            await Task.Delay(ReconnectInterval, cts.Token).ConfigureAwait(false);
-                            // 保持上一次连接的 IsAsync 模式
-                            await ConnectAsync(_serverIp, _serverPort, _isAsyncMode).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger?.Warn($"[TCPClient:{_clientId}] 重连失败: {ex.Message}", ex);
-                            // 重连失败，继续尝试
-                        }
+                        await Task.Delay(ReconnectInterval, cts.Token).ConfigureAwait(false);
+                        // 重试期间有人主动连接成功或正在连接，交给那一次，不再插手
+                        if (Status == ClientStatus.Connected || Status == ClientStatus.Connecting) break;
+                        await ConnectAsync(_serverIp, _serverPort, _isAsyncMode).ConfigureAwait(false);
                     }
-                }, cts.Token);
-            }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.Warn($"[TCPClient:{_clientId}] 重连失败: {ex.Message}", ex);
+                        // 重连失败，继续尝试
+                    }
+                }
+            }, cts.Token);
         }
 
         private async Task CleanupConnection()

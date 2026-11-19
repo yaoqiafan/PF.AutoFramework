@@ -81,8 +81,8 @@ namespace PF.Infrastructure.SecsGem.Command
                     return true;
                 }
 
-                Console.WriteLine($"开始初始化SECS/GEM命令管理器...");
-                Console.WriteLine($"主动命令文件: {CommandExcelPath}");
+                SecsGemTrace.Debug($"开始初始化SECS/GEM命令管理器...");
+                SecsGemTrace.Debug($"主动命令文件: {CommandExcelPath}");
                 _allCommandsCache.Clear();
                 FormulaConfiguration = formulaConfiguration;
 
@@ -91,7 +91,7 @@ namespace PF.Infrastructure.SecsGem.Command
                 if (_incentiveCommands is IncentiveCommand incentive)
                 {
                     res1 = await incentive.InitializeCommands();
-                    Console.WriteLine($"主动命令初始化完成: {await incentive.CommandCount} 个命令");
+                    SecsGemTrace.Debug($"主动命令初始化完成: {await incentive.CommandCount} 个命令");
                 }
 
                 await Task.Delay(500);
@@ -100,7 +100,7 @@ namespace PF.Infrastructure.SecsGem.Command
                 if (_responseCommands is ResponseCommand response)
                 {
                    res2= await response.InitializeCommands();
-                    Console.WriteLine($"应答命令初始化完成: {await response.CommandCount} 个命令");
+                    SecsGemTrace.Debug($"应答命令初始化完成: {await response.CommandCount} 个命令");
                 }
 
                 // 重建缓存
@@ -109,12 +109,12 @@ namespace PF.Infrastructure.SecsGem.Command
                 _isInitialized = true;
                 _lastInitialized = DateTime.Now;
 
-                Console.WriteLine($"命令管理器初始化完成，总共 {_allCommandsCache.Count} 个命令");
+                SecsGemTrace.Debug($"命令管理器初始化完成，总共 {_allCommandsCache.Count} 个命令");
             }
             catch (Exception ex)
             {
                
-                Console.WriteLine($"初始化命令管理器失败: {ex.Message}");
+                SecsGemTrace.Warn($"初始化命令管理器失败: {ex.Message}");
                 return false;
             }
             finally
@@ -180,14 +180,14 @@ namespace PF.Infrastructure.SecsGem.Command
                 {
                     await UpdateCacheAsync(command);
                     _lastOperationCount++;
-                    Console.WriteLine($"添加命令成功: {key}");
+                    SecsGemTrace.Debug($"添加命令成功: {key}");
                 }
 
                 return added;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"添加命令失败 {key}: {ex.Message}");
+                SecsGemTrace.Warn($"添加命令失败 {key}: {ex.Message}");
                 return false;
             }
         }
@@ -214,14 +214,14 @@ namespace PF.Infrastructure.SecsGem.Command
                 {
                     _allCommandsCache.TryRemove(key, out _);
                     _lastOperationCount++;
-                    Console.WriteLine($"移除命令成功: {key}");
+                    SecsGemTrace.Debug($"移除命令成功: {key}");
                 }
 
                 return removed;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"移除命令失败 {key}: {ex.Message}");
+                SecsGemTrace.Warn($"移除命令失败 {key}: {ex.Message}");
                 return false;
             }
         }
@@ -316,7 +316,7 @@ namespace PF.Infrastructure.SecsGem.Command
             await _initSemaphore.WaitAsync();
             try
             {
-                Console.WriteLine("重新加载所有命令...");
+                SecsGemTrace.Debug("重新加载所有命令...");
                 _isInitialized = false;
                 _allCommandsCache.Clear();
             }
@@ -326,7 +326,7 @@ namespace PF.Infrastructure.SecsGem.Command
             }
 
             await InitializeAsync(formulaConfiguration);
-            Console.WriteLine("重新加载完成");
+            SecsGemTrace.Debug("重新加载完成");
         }
 
         /// <summary>
@@ -336,27 +336,27 @@ namespace PF.Infrastructure.SecsGem.Command
         {
             try
             {
-                Console.WriteLine("保存所有命令到Excel...");
+                SecsGemTrace.Debug("保存所有命令到Excel...");
 
                 // 保存主动命令
                 if (_incentiveCommands is IncentiveCommand incentive)
                 {
                     await NPOIHelper.SaveIncentiveCommandToExcel(CommandExcelPath, _incentiveCommands._commandDictionary);
-                    Console.WriteLine($"主动命令已保存到: {CommandExcelPath}");
+                    SecsGemTrace.Debug($"主动命令已保存到: {CommandExcelPath}");
                 }
 
                 // 保存应答命令
                 if (_responseCommands is ResponseCommand response)
                 {
                     await NPOIHelper.SaveResponseCommandToExcel(CommandExcelPath, _responseCommands._commandDictionary);
-                    Console.WriteLine($"应答命令已保存到: {CommandExcelPath}");
+                    SecsGemTrace.Debug($"应答命令已保存到: {CommandExcelPath}");
                 }
 
-                Console.WriteLine("所有命令保存完成");
+                SecsGemTrace.Debug("所有命令保存完成");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"保存命令到Excel失败: {ex.Message}");
+                SecsGemTrace.Warn($"保存命令到Excel失败: {ex.Message}");
                 throw;
             }
         }
@@ -370,7 +370,7 @@ namespace PF.Infrastructure.SecsGem.Command
             if (_incentiveCommands is IncentiveCommand incentive)
             {
                 await incentive.Save(filePath);
-                Console.WriteLine($"主动命令已保存到: {filePath ?? CommandExcelPath}");
+                SecsGemTrace.Debug($"主动命令已保存到: {filePath ?? CommandExcelPath}");
             }
         }
 
@@ -382,7 +382,7 @@ namespace PF.Infrastructure.SecsGem.Command
             if (_responseCommands is ResponseCommand response)
             {
                 await response.Save(filePath);
-                Console.WriteLine($"应答命令已保存到: {filePath ?? CommandExcelPath}");
+                SecsGemTrace.Debug($"应答命令已保存到: {filePath ?? CommandExcelPath}");
             }
         }
 
@@ -424,7 +424,7 @@ namespace PF.Infrastructure.SecsGem.Command
                 return;
             }
 
-            Console.WriteLine("清除所有命令...");
+            SecsGemTrace.Debug("清除所有命令...");
 
             // 清除主动命令
             var incentiveCommands = await _incentiveCommands.GetAllCommands();
@@ -443,7 +443,7 @@ namespace PF.Infrastructure.SecsGem.Command
             // 清除缓存
             _allCommandsCache.Clear();
 
-            Console.WriteLine("所有命令已清除");
+            SecsGemTrace.Debug("所有命令已清除");
         }
 
         /// <summary>
@@ -586,12 +586,12 @@ namespace PF.Infrastructure.SecsGem.Command
                 }
 
                 await File.WriteAllLinesAsync(filePath, csvLines);
-                Console.WriteLine($"命令对已导出到CSV: {filePath}");
+                SecsGemTrace.Debug($"命令对已导出到CSV: {filePath}");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"导出命令对到CSV失败: {ex.Message}");
+                SecsGemTrace.Warn($"导出命令对到CSV失败: {ex.Message}");
                 return false;
             }
         }

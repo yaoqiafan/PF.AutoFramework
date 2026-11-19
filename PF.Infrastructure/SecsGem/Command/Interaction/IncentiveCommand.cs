@@ -182,13 +182,13 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
         {
             if (!_commandDictionary.TryGetValue(oldKey, out var command))
             {
-                Console.WriteLine($"更新命令失败: 未找到命令 {oldKey}");
+                SecsGemTrace.Warn($"更新命令失败: 未找到命令 {oldKey}");
                 return false;
             }
             // 验证新命令
             if (!await ValidateCommand(updatedCommand))
             {
-                Console.WriteLine($"更新命令失败: 新命令格式验证失败 {updatedCommand.Key}");
+                SecsGemTrace.Warn($"更新命令失败: 新命令格式验证失败 {updatedCommand.Key}");
                 return false;
             }
 
@@ -196,7 +196,7 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
 
             if (oldKey != newKey && _commandDictionary.ContainsKey(newKey))
             {
-                Console.WriteLine($"更新命令失败: 新键 {newKey} 已存在");
+                SecsGemTrace.Warn($"更新命令失败: 新键 {newKey} 已存在");
                 return false;
             }
 
@@ -208,7 +208,7 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
 
             // 添加/更新命令
             _commandDictionary[newKey] = updatedCommand;
-            Console.WriteLine($"更新命令成功: {oldKey} -> {newKey}");
+            SecsGemTrace.Debug($"更新命令成功: {oldKey} -> {newKey}");
             return true;
         }
 

@@ -16,8 +16,15 @@ namespace PF.UI.Infrastructure.Operation
         private static readonly string[] Header = { "Key", "Description", "Enabled" };
 
         private readonly string _filePath;
+        /// <summary>键为工作表名（<see cref="SanitizeSheetName"/> 之后），不是原始页面名——见 <see cref="PageEntries"/></summary>
         private readonly Dictionary<string, Dictionary<string, OperationLogEntry>> _data = new();
         private bool _loaded;
+
+        /// <summary>
+        /// 文件存在但读取失败（被 Excel 打开占用、损坏）时置位：本次运行不再写回。
+        /// 此前读失败按空配置继续，等工程师关掉 Excel 后下一个新 Key 一来就整表重写，工程师改过的启用开关全部丢失。
+        /// </summary>
+        private bool _readOnly;
 
         /// <summary>构造时立即从 <see cref="ConstGlobalParam.ConfigPath"/> 下的配置文件加载已有数据</summary>
         public OperationLogConfigStore()
@@ -58,10 +65,34 @@ namespace PF.UI.Infrastructure.Operation
                     _data[sheet.SheetName] = pageEntries;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 文件损坏/被占用：退化为空配置，不阻塞主流程；后续新键仍会按默认值追加。
+                // 文件损坏/被占用：本次运行按默认值记录、不阻塞主流程，但不再写回，避免覆盖工程师的配置。
+                // 解析失败另存一份，便于人工恢复
+                _readOnly = true;
+                if (ex is not IOException)
+                {
+                    try { File.Copy(_filePath, $"{_filePath}.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}", overwrite: true); }
+                    catch { /* 备份失败不影响主流程 */ }
+                }
+                System.Diagnostics.Trace.WriteLine($"[OperationLogConfigStore] 读取 {_filePath} 失败，本次运行不写回：{ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 按工作表名取页面条目。Excel 工作表名最多 31 字符，保存时会截断；此前读取后以截断名为键、查询时却用完整页面名，
+        /// 长页面名（如 LineScanDetectionModuleDebugView，32 字符）永远查不到：工程师的修改不生效，
+        /// 且该页每点一次带标记的控件都会在 UI 线程上整表重写一次 Excel。
+        /// </summary>
+        private Dictionary<string, OperationLogEntry> PageEntries(string pageName)
+        {
+            var sheetName = SanitizeSheetName(pageName);
+            if (!_data.TryGetValue(sheetName, out var pageEntries))
+            {
+                pageEntries = new Dictionary<string, OperationLogEntry>();
+                _data[sheetName] = pageEntries;
+            }
+            return pageEntries;
         }
 
         /// <summary>
@@ -70,14 +101,9 @@ namespace PF.UI.Infrastructure.Operation
         /// </summary>
         public OperationLogEntry GetOrCreate(string pageName, string key, string defaultDescription, bool defaultEnabled)
         {
-            if (_data.TryGetValue(pageName, out var pageEntries) && pageEntries.TryGetValue(key, out var entry))
+            var pageEntries = PageEntries(pageName);
+            if (pageEntries.TryGetValue(key, out var entry))
                 return entry;
-
-            if (!_data.TryGetValue(pageName, out pageEntries))
-            {
-                pageEntries = new Dictionary<string, OperationLogEntry>();
-                _data[pageName] = pageEntries;
-            }
 
             entry = new OperationLogEntry { Description = defaultDescription, Enabled = defaultEnabled };
             pageEntries[key] = entry;
@@ -91,11 +117,7 @@ namespace PF.UI.Infrastructure.Operation
         /// </summary>
         public void EnsurePage(string pageName, IEnumerable<(string Key, string Description, bool Enabled)> rows)
         {
-            if (!_data.TryGetValue(pageName, out var pageEntries))
-            {
-                pageEntries = new Dictionary<string, OperationLogEntry>();
-                _data[pageName] = pageEntries;
-            }
+            var pageEntries = PageEntries(pageName);
 
             var added = false;
             foreach (var (key, description, enabled) in rows)
@@ -110,15 +132,16 @@ namespace PF.UI.Infrastructure.Operation
 
         private void Save()
         {
+            if (_readOnly) return;
             try
             {
                 if (!Directory.Exists(ConstGlobalParam.ConfigPath))
                     Directory.CreateDirectory(ConstGlobalParam.ConfigPath);
 
                 var workbook = new XSSFWorkbook();
-                foreach (var (pageName, entries) in _data)
+                foreach (var (sheetName, entries) in _data)
                 {
-                    var sheet = workbook.CreateSheet(SanitizeSheetName(pageName));
+                    var sheet = workbook.CreateSheet(sheetName);
                     var headerRow = sheet.CreateRow(0);
                     for (var c = 0; c < Header.Length; c++)
                         headerRow.CreateCell(c).SetCellValue(Header[c]);
@@ -133,8 +156,18 @@ namespace PF.UI.Infrastructure.Operation
                     }
                 }
 
-                using var stream = new FileStream(_filePath, FileMode.Create, FileAccess.Write);
-                workbook.Write(stream);
+                // 原子写入：先写临时文件再替换。此前直接以 FileMode.Create 覆盖，写到一半断电文件即损坏，
+                // 下次启动读取失败按空配置重写，工程师的配置随之丢失
+                var tempPath = _filePath + ".tmp";
+                using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+                {
+                    workbook.Write(stream, leaveOpen: true);
+                    stream.Flush(flushToDisk: true);
+                }
+                if (File.Exists(_filePath))
+                    File.Replace(tempPath, _filePath, destinationBackupFileName: null);
+                else
+                    File.Move(tempPath, _filePath);
             }
             catch
             {

@@ -471,8 +471,8 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
 
         /// <summary>
         /// 内部复位实现：连接断开时重连并恢复输出格式，再刷新当前程序号。
-        /// 注意不能用 IClient.ReconnectAsync：它只在 AutoReconnect=true 时才重连（默认 false），
-        /// 否则只做断开——原实现复位后相机反而一直是断的。
+        /// 用 EnsureClientConnectedAsync 而非 IClient.ReconnectAsync：这里还要确保切回同步收包模式。
+        /// （ReconnectAsync 早期在 AutoReconnect=false 时只断开不重连，原实现复位后相机一直是断的；该问题已在 TCPClient 修复。）
         /// </summary>
         protected async override Task InternalResetAsync(CancellationToken token)
         {

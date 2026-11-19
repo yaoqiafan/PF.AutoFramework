@@ -205,10 +205,20 @@ namespace PF.Infrastructure.Communication.TCP
                     // 监听器已关闭，正常退出
                     break;
                 }
+                catch (Exception) when (cancellationToken.IsCancellationRequested)
+                {
+                    // StopAsync 关闭监听器时挂起的 accept 以 SocketException(OperationAborted) 结束，属正常停止，不报错
+                    break;
+                }
                 catch (Exception ex)
                 {
                     // 单次 accept 失败服务器仍在运行，此前误报 ServerStopped 会让订阅方以为服务器已停
                     OnErrorOccurred($"接受客户端连接时发生错误: {ex.Message}", ex);
+
+                    // 退避：监听器进入异常状态时 accept 会立即反复失败，此前无间隔重试，
+                    // 原地空转占满一个核并以每秒成千上万条的速度刷错误日志
+                    try { await Task.Delay(1000, cancellationToken); }
+                    catch (OperationCanceledException) { break; }
                 }
             }
         }

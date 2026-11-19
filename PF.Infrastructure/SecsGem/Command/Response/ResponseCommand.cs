@@ -105,19 +105,19 @@ namespace PF.Infrastructure.SecsGem.Command.Response
 
             if (!await ValidateCommand(command))
             {
-                Console.WriteLine($"添加命令失败: 验证未通过 {command.Key}");
+                SecsGemTrace.Warn($"添加命令失败: 验证未通过 {command.Key}");
                 return false;
             }
 
             var key = command.Key;
             if (_commandDictionary.ContainsKey(key))
             {
-                Console.WriteLine($"添加命令失败: 命令 {key} 已存在");
+                SecsGemTrace.Warn($"添加命令失败: 命令 {key} 已存在");
                 return false;
             }
 
             _commandDictionary[key] = command;
-            Console.WriteLine($"添加应答命令成功: {key}");
+            SecsGemTrace.Debug($"添加应答命令成功: {key}");
             return true;
         }
 
@@ -129,7 +129,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
             // 先尝试直接按字典 Key (S{n}F{n}) 删除
             if (_commandDictionary.TryRemove(idOrKey, out _))
             {
-                Console.WriteLine($"移除应答命令成功: {idOrKey}");
+                SecsGemTrace.Debug($"移除应答命令成功: {idOrKey}");
                 return Task.FromResult(true);
             }
 
@@ -138,7 +138,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
             if (pair.Value != null)
             {
                 bool removed = _commandDictionary.TryRemove(pair.Key, out _);
-                if (removed) Console.WriteLine($"移除应答命令成功: {pair.Key}");
+                if (removed) SecsGemTrace.Debug($"移除应答命令成功: {pair.Key}");
                 return Task.FromResult(removed);
             }
 
@@ -192,7 +192,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
 
             if (!isEvenFunction)
             {
-                Console.WriteLine($"验证失败: Function {command.Function} 不是偶数（应答命令必须为偶数）");
+                SecsGemTrace.Warn($"验证失败: Function {command.Function} 不是偶数（应答命令必须为偶数）");
             }
 
             return Task.FromResult(isValid && isEvenFunction);
@@ -206,13 +206,13 @@ namespace PF.Infrastructure.SecsGem.Command.Response
             
             if (!_commandDictionary.TryGetValue(oldKey, out var command))
             {
-                Console.WriteLine($"更新命令失败: 未找到命令 {oldKey}");
+                SecsGemTrace.Warn($"更新命令失败: 未找到命令 {oldKey}");
                 return false;
             }
             // 验证新命令
             if (!await ValidateCommand(updatedCommand))
             {
-                Console.WriteLine($"更新命令失败: 新命令格式验证失败 {updatedCommand.Key}");
+                SecsGemTrace.Warn($"更新命令失败: 新命令格式验证失败 {updatedCommand.Key}");
                 return false;
             }
 
@@ -220,7 +220,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
            
             if (oldKey != newKey && _commandDictionary.ContainsKey(newKey))
             {
-                Console.WriteLine($"更新命令失败: 新键 {newKey} 已存在");
+                SecsGemTrace.Warn($"更新命令失败: 新键 {newKey} 已存在");
                 return false;
             }
 
@@ -232,7 +232,7 @@ namespace PF.Infrastructure.SecsGem.Command.Response
 
             // 添加/更新命令
             _commandDictionary[newKey] = updatedCommand;
-            Console.WriteLine($"更新命令成功: {oldKey} -> {newKey}");
+            SecsGemTrace.Debug($"更新命令成功: {oldKey} -> {newKey}");
             return true;
         }
 

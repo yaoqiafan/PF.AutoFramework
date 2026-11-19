@@ -1,4 +1,5 @@
-﻿using PF.Core.Entities.SecsGem.Command;
+﻿using PF.Infrastructure.SecsGem.Tools;
+using PF.Core.Entities.SecsGem.Command;
 using PF.Core.Entities.SecsGem.Params;
 using PF.Core.Entities.SecsGem.Params.FormulaParam;
 using PF.Core.Entities.SecsGem.Params.ValidateParam;
@@ -259,7 +260,7 @@ namespace PF.Infrastructure.SecsGem.Param
                     return true;
                 }
 
-                Console.WriteLine(errorMessage);
+                SecsGemTrace.Warn(errorMessage);
                 return false;
             }
 

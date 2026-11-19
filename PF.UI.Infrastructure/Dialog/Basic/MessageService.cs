@@ -124,6 +124,7 @@ namespace PF.UI.Infrastructure.Dialog.Basic
         /// <summary>
         /// ExecuteWithWaitAsync异步操作
         /// </summary>
+        /// <remarks>任务抛出的异常会原样重新抛给调用方（等待框照常关闭）。</remarks>
         public async Task ExecuteWithWaitAsync(Func<Task> action, string message = "请稍候，正在处理中...", string title = "请稍候")
         {
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -138,7 +139,12 @@ namespace PF.UI.Infrastructure.Dialog.Basic
             {
                 _dialogService.ShowDialog("WaitDialog", parameters, result =>
                 {
-                    tcs.TrySetResult(true);
+                    if (result?.Parameters != null &&
+                        result.Parameters.TryGetValue<Exception>(ViewModels.WaitDialogViewModel.WorkExceptionKey, out var ex) &&
+                        ex != null)
+                        tcs.TrySetException(ex);
+                    else
+                        tcs.TrySetResult(true);
                 });
             });
 

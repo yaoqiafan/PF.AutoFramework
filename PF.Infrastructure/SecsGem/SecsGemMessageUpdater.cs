@@ -1,3 +1,4 @@
+using PF.Infrastructure.SecsGem.Tools;
 using PF.Core.Interfaces.SecsGem.Params;
 using System;
 using System.Collections.Generic;
@@ -80,7 +81,7 @@ namespace PF.Core.Interfaces.SecsGem
                 catch (Exception ex)
                 {
                     // 记录日志或处理异常
-                    Console.WriteLine($"更新VID节点失败，VID ID: {vidId}, 错误: {ex.Message}");
+                    SecsGemTrace.Warn($"更新VID节点失败，VID ID: {vidId}, 错误: {ex.Message}");
                 }
             }
         }
@@ -181,7 +182,7 @@ namespace PF.Core.Interfaces.SecsGem
                     if (vid.Value != null)
                     {
                         // 可以添加更多类型的处理逻辑
-                        Console.WriteLine($"未处理的VID数据类型: {vid.DataType}, VID ID: {vid.ID}");
+                        SecsGemTrace.Warn($"未处理的VID数据类型: {vid.DataType}, VID ID: {vid.ID}");
                     }
                     break;
             }

@@ -38,7 +38,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"保存配置失败: {ex.Message}");
+                    SecsGemTrace.Warn($"保存配置失败: {ex.Message}");
                     throw;
                 }
             }
@@ -126,7 +126,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"加载CEID行{i}时出错: {ex.Message}");
+                    SecsGemTrace.Warn($"加载CEID行{i}时出错: {ex.Message}");
                 }
             }
         }
@@ -170,7 +170,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"加载ReportID行{i}时出错: {ex.Message}");
+                    SecsGemTrace.Warn($"加载ReportID行{i}时出错: {ex.Message}");
                 }
             }
         }
@@ -212,7 +212,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"加载CommandID行{i}时出错: {ex.Message}");
+                    SecsGemTrace.Warn($"加载CommandID行{i}时出错: {ex.Message}");
                 }
             }
         }
@@ -262,7 +262,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"加载VID行{i}时出错: {ex.Message}");
+                    SecsGemTrace.Warn($"加载VID行{i}时出错: {ex.Message}");
                 }
             }
         }
@@ -467,7 +467,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 // 如果Excel文件不存在，初始化空字典
                 if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 {
-                    Console.WriteLine($"Excel文件不存在，初始化空的应答命令集: {filePath}");
+                    SecsGemTrace.Warn($"Excel文件不存在，初始化空的应答命令集: {filePath}");
                     return true;
                 }
                 // 读取Excel文件
@@ -578,7 +578,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                             catch (JsonException ex)
                             {
                                 // 记录反序列化错误，但继续处理其他行
-                                Console.WriteLine($"第 {rowIndex + 1} 行Message反序列化失败: {ex.Message}");
+                                SecsGemTrace.Warn($"第 {rowIndex + 1} 行Message反序列化失败: {ex.Message}");
                             }
                         }
 
@@ -593,13 +593,13 @@ namespace PF.Infrastructure.SecsGem.Tools
                         else
                         {
                             // 如果键已存在，记录警告或跳过
-                            Console.WriteLine($"警告: 第 {rowIndex + 1} 行的命令 {key} 已存在，跳过");
+                            SecsGemTrace.Warn($"警告: 第 {rowIndex + 1} 行的命令 {key} 已存在，跳过");
                         }
 
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"第 {rowIndex + 1} 行处理失败: {ex.Message}");
+                        SecsGemTrace.Warn($"第 {rowIndex + 1} 行处理失败: {ex.Message}");
                         return false;
                         // 继续处理其他行
                     }
@@ -737,7 +737,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 // 如果Excel文件不存在，初始化空字典
                 if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 {
-                    Console.WriteLine($"Excel文件不存在，初始化空的应答命令集: {filePath}");
+                    SecsGemTrace.Warn($"Excel文件不存在，初始化空的应答命令集: {filePath}");
                     return true;
                 }
                 // 读取Excel文件
@@ -848,7 +848,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                             catch (JsonException ex)
                             {
                                 // 记录反序列化错误，但继续处理其他行
-                                Console.WriteLine($"第 {rowIndex + 1} 行Message反序列化失败: {ex.Message}");
+                                SecsGemTrace.Warn($"第 {rowIndex + 1} 行Message反序列化失败: {ex.Message}");
                             }
                         }
 
@@ -861,13 +861,13 @@ namespace PF.Infrastructure.SecsGem.Tools
                         else
                         {
                             // 如果键已存在，记录警告或跳过
-                            Console.WriteLine($"警告: 第 {rowIndex + 1} 行的命令 {key} 已存在，跳过");
+                            SecsGemTrace.Warn($"警告: 第 {rowIndex + 1} 行的命令 {key} 已存在，跳过");
                         }
 
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"第 {rowIndex + 1} 行处理失败: {ex.Message}");
+                        SecsGemTrace.Warn($"第 {rowIndex + 1} 行处理失败: {ex.Message}");
                         return false;
                         // 继续处理其他行
                     }
