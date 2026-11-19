@@ -87,12 +87,16 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
         _watcher = CreateWatcher();
 
-        // LongRunning：为 HDevEngine 分配专用系统线程，避免线程池复用导致的线程亲和性问题
+        // LongRunning + 同步委托：整个 Worker 生命周期都在这一条专用线程上。
+        // 此前委托是 async 方法（StartNew(...).Unwrap()），第一个 await 之后后续作业就跑在任意线程池线程上，
+        // 专用线程只用到了初始化那一下。而 HALCON 的 clip_region / width / height 按线程生效，
+        // ROI 生成、建模板等工具代码会在线程池线程上关掉 clip_region（HalconThreadContext.EnsureRegionClipOff）——
+        // 引擎作业碰巧落到这样的线程上就以"不裁剪"执行，同一过程同一张图结果随线程而变，偶发且无法复现
         _workerTask = Task.Factory.StartNew(
-            RunWorkerAsync,
+            RunWorker,
             CancellationToken.None,
             TaskCreationOptions.LongRunning,
-            TaskScheduler.Default).Unwrap();
+            TaskScheduler.Default);
     }
 
     // ── 包内访问（HalconDebugService 使用）───────────────────────────────────
@@ -214,8 +218,9 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
 
     // ── Worker 核心（仅此方法内访问 HDevEngine / HDevProgram / HDevProcedure） ──
 
-    private async Task RunWorkerAsync()
+    private void RunWorker()
     {
+        Thread.CurrentThread.Name ??= "HalconVisionWorker";
         try
         {
             _engine = new HDevEngine();
@@ -230,22 +235,26 @@ internal sealed class HalconVisionService : IVisionService, IDisposable
             return;
         }
 
-        await foreach (var job in _channel.Reader.ReadAllAsync())
+        // 同步阻塞等待（专用线程、无同步上下文，不会死锁）：保证每个作业都在本线程上执行
+        while (_channel.Reader.WaitToReadAsync().AsTask().GetAwaiter().GetResult())
         {
-            try
+            while (_channel.Reader.TryRead(out var job))
             {
-                ProcessJob(job);
-            }
-            catch (Exception ex)
-            {
-                // 最后防线：任何未预期异常不得杀死 Worker（否则所有后续调用方将永久挂起）
-                _logger.Fatal("[Vision] Worker 处理作业时发生未预期异常，已拦截以保持引擎存活", LogCategories.Vision, ex);
-                if (job.IsEngineAction)
-                    job.ActionCompletion?.TrySetException(ex);
-                else
-                    job.Completion?.TrySetResult(HalconVisionResult.Failure(
-                        job.Request?.ProcedureName ?? job.Pipeline?.PipelineId ?? "unknown",
-                        $"未预期异常: {ex.Message}", TimeSpan.Zero));
+                try
+                {
+                    ProcessJob(job);
+                }
+                catch (Exception ex)
+                {
+                    // 最后防线：任何未预期异常不得杀死 Worker（否则所有后续调用方将永久挂起）
+                    _logger.Fatal("[Vision] Worker 处理作业时发生未预期异常，已拦截以保持引擎存活", LogCategories.Vision, ex);
+                    if (job.IsEngineAction)
+                        job.ActionCompletion?.TrySetException(ex);
+                    else
+                        job.Completion?.TrySetResult(HalconVisionResult.Failure(
+                            job.Request?.ProcedureName ?? job.Pipeline?.PipelineId ?? "unknown",
+                            $"未预期异常: {ex.Message}", TimeSpan.Zero));
+                }
             }
         }
 
