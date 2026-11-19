@@ -181,7 +181,9 @@ namespace PF.CommonTools.ServeTool
                     writer.WriteEndObject();
                 }
 
-                File.WriteAllBytes(settingsPath, buffer.ToArray());
+                // 原子写入：写到一半断电会留下截断的 appsettings.json，服务读不到 ProjectName 将拒绝启动
+                PF.Infrastructure.Persistence.AtomicFile.WriteAllText(settingsPath,
+                    System.Text.Encoding.UTF8.GetString(buffer.ToArray()));
                 return true;
             }
             catch

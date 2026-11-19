@@ -84,6 +84,12 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
     // 记下已拒收的 TransferId 避免每条 Lane 都重复回 Nack、重复发 TransferFailed 事件
     private readonly ConcurrentDictionary<Guid, DateTime> _rejectedInbound = new();
 
+    // 已成功完成的入站传输（值为完成时间，供清扫过期）：分片数少于 Lane 数时，
+    // 没分到分片的 Lane 上的 Begin 帧可能在传输完成之后才到，若不记下会被当成新传输重新登记，
+    // 永远收不满，超时后误报一次 TransferFailed，期间还占着一个并发接收名额。
+    // 中止的传输不记入：发送端收到 Nack 后可能用同一 TransferId 整体重传，不能把重传挡掉
+    private readonly ConcurrentDictionary<Guid, DateTime> _finishedInbound = new();
+
     // Begin 登记的"检查-创建-登记"临界区：Begin 帧几乎同时从多条 Lane 到达，
     // 无锁时两条 Lane 都能通过 ContainsKey 检查而重复创建接收缓冲（落盘模式下第二个 Create
     // 因文件独占打开抛异常，触发虚假的 TransferFailed 事件）
@@ -178,6 +184,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         // Lane 已全部停止，不会再有新分片到达，中止所有在途接收（关句柄、删未完成的临时文件）
         AbortAllInboundTransfers(FileTransferFailureReason.Cancelled, "通道停止");
         _rejectedInbound.Clear();
+        _finishedInbound.Clear();
 
         if (_sweepTask != null)
         {
@@ -312,15 +319,29 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
 
             var metadataJson = JsonSerializer.Serialize(metadata);
 
-            // Begin 帧广播到每条 Lane，且必须在该 Lane 的任何 Chunk 帧之前发出——
-            // 每条 Lane 是独立 TCP 连接、独立 FIFO 发送队列，天然保证顺序，不会出现 Chunk 先于 Begin 到达。
-            foreach (var lane in connectedLanes)
-                await lane.EnqueueBeginAsync(metadata.TransferId, totalLength, flags, finalHash, metadataJson, token).ConfigureAwait(false);
+            try
+            {
+                // Begin 帧广播到每条 Lane，且必须在该 Lane 的任何 Chunk 帧之前发出——
+                // 每条 Lane 是独立 TCP 连接、独立 FIFO 发送队列，天然保证顺序，不会出现 Chunk 先于 Begin 到达。
+                foreach (var lane in connectedLanes)
+                    await lane.EnqueueBeginAsync(metadata.TransferId, totalLength, flags, finalHash, metadataJson, token).ConfigureAwait(false);
 
-            if (fileHandle is null)
-                await DistributeChunksAsync(memoryData, metadata.TransferId, chunkSize, connectedLanes, _options.VerifyChunkCrc, token).ConfigureAwait(false);
-            else
-                await DistributeChunksFromFileAsync(fileHandle, totalLength, metadata.TransferId, chunkSize, connectedLanes, _options.VerifyChunkCrc, token).ConfigureAwait(false);
+                if (fileHandle is null)
+                    await DistributeChunksAsync(memoryData, metadata.TransferId, chunkSize, connectedLanes, _options.VerifyChunkCrc, token).ConfigureAwait(false);
+                else
+                    await DistributeChunksFromFileAsync(fileHandle, totalLength, metadata.TransferId, chunkSize, connectedLanes, _options.VerifyChunkCrc, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return BuildFailureResult(metadata.TransferId, stopwatch.Elapsed, FileTransferFailureReason.Cancelled, "调用方取消");
+            }
+            catch (Exception ex) when (ex is IOException or System.Threading.Channels.ChannelClosedException)
+            {
+                // 分发途中全部 Lane 断开 / Lane 停止（队列已关闭）/ 文件被截断：与"开始时无 Lane 连接"一样
+                // 以失败结果返回，而不是把异常抛给调用方（调用方按 FileTransferResult 判断成败）
+                var reason = ex is EndOfStreamException ? FileTransferFailureReason.Unknown : FileTransferFailureReason.ConnectionLost;
+                return BuildFailureResult(metadata.TransferId, stopwatch.Elapsed, reason, $"分发分片失败：{ex.Message}");
+            }
 
             var ackResult = await WaitForAckAsync(tcs, totalLength, token).ConfigureAwait(false);
             stopwatch.Stop();
@@ -515,6 +536,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         var fields = await FrameCodec.ReadBeginFieldsAsync(stream, token).ConfigureAwait(false);
 
         if (_rejectedInbound.ContainsKey(transferId)) return; // 已由其他 Lane 的 Begin 拒收并回过 Nack，幂等跳过
+        if (_finishedInbound.ContainsKey(transferId)) return; // 迟到的 Begin：该传输已完成/已中止，不能重新登记
 
         if (fields.TotalLength <= 0 || fields.TotalLength > _options.MaxTransferSizeBytes)
         {
@@ -541,6 +563,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         lock (_inboundRegistrationLock)
         {
             if (_inboundTransfers.ContainsKey(transferId)) return; // 已由其他 Lane 广播的 Begin 帧登记过，幂等跳过
+            if (_finishedInbound.ContainsKey(transferId)) return; // 与收尾并发：上面检查之后恰好完成
 
             if (_inboundTransfers.Count >= _options.MaxConcurrentInboundTransfers)
             {
@@ -680,7 +703,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         // TryRemove 兼做完成判定的并发去重：多条 Lane 同时写完最后几个分片时，只有移除成功的那条执行收尾。
         // 收尾（落盘模式的整体哈希回读可能耗时数秒）放到线程池执行，避免阻塞本 Lane 的接收循环——
         // 阻塞期间读不到对端心跳，会被本端心跳看门狗误判断线。
-        if (transfer.IsComplete && _inboundTransfers.TryRemove(transfer.TransferId, out _))
+        if (transfer.IsComplete && TryRetireInbound(transfer.TransferId, completed: true))
             _ = Task.Run(() => FinalizeInboundTransferAsync(transfer, laneId, CancellationToken.None), CancellationToken.None);
     }
 
@@ -734,10 +757,25 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
         }
     }
 
+    /// <summary>
+    /// 把在途传输从登记表移出并记入"已结束"集合。登记与结束标记在同一把锁内完成，
+    /// 与 <see cref="HandleBeginFrameAsync"/> 的"检查-创建-登记"互斥，迟到的 Begin 不会在两步之间钻空子。
+    /// 返回 false 表示已被其他路径移出（并发去重）。
+    /// </summary>
+    private bool TryRetireInbound(Guid transferId, bool completed = false)
+    {
+        lock (_inboundRegistrationLock)
+        {
+            if (!_inboundTransfers.TryRemove(transferId, out _)) return false;
+            if (completed) _finishedInbound[transferId] = DateTime.UtcNow;
+            return true;
+        }
+    }
+
     private void AbortTransfer(InFlightTransfer transfer, int laneId, FileTransferFailureReason reason, string message)
     {
         transfer.Abort();
-        _inboundTransfers.TryRemove(transfer.TransferId, out _);
+        TryRetireInbound(transfer.TransferId);
         RaiseTransferFailed(transfer.TransferId, reason, message);
 
         if (_lanes.TryGetValue(laneId, out var lane))
@@ -749,7 +787,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
     {
         foreach (var (id, transfer) in _inboundTransfers)
         {
-            if (!_inboundTransfers.TryRemove(id, out _)) continue;
+            if (!TryRetireInbound(id)) continue;
             transfer.Abort();
             RaiseTransferFailed(id, reason, message);
         }
@@ -771,7 +809,7 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
             foreach (var (id, transfer) in _inboundTransfers)
             {
                 if ((now - transfer.LastActivityUtc).TotalMilliseconds <= _options.TransferTimeoutMs) continue;
-                if (!_inboundTransfers.TryRemove(id, out _)) continue;
+                if (!TryRetireInbound(id)) continue;
 
                 transfer.Abort();
                 RaiseTransferFailed(id, FileTransferFailureReason.TransferTimeout,
@@ -783,6 +821,13 @@ public sealed class FileTransferChannel : IFileTransferChannel, ICommunication
             {
                 if ((now - rejectedAt).TotalMilliseconds > _options.TransferTimeoutMs * 2L)
                     _rejectedInbound.TryRemove(id, out _);
+            }
+
+            // 已结束记录同理：只需覆盖迟到 Begin 的窗口
+            foreach (var (id, finishedAt) in _finishedInbound)
+            {
+                if ((now - finishedAt).TotalMilliseconds > _options.TransferTimeoutMs * 2L)
+                    _finishedInbound.TryRemove(id, out _);
             }
         }
     }

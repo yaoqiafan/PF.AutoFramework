@@ -34,23 +34,40 @@ namespace PF.Infrastructure.Hardware.LightController.HikCom
 
         }
 
+        /// <summary>
+        /// 串口数据到达：追加到应答缓冲而不是覆盖。串口一条应答可能分几次 DataReceived 到达
+        /// （如 "SA05" + "00#"），覆盖写法只留下最后一段，读回的亮度就是错的。
+        /// </summary>
         private void LightSerial_DataReceived(object? sender, Core.Events.DataReceivedEventArgs e)
         {
-            receivestr = Encoding.UTF8.GetString(e.Data);
+            lock (_rxLock)
+            {
+                _rxBuffer.Append(Encoding.UTF8.GetString(e.Data));
+            }
             lightEvent.Set();
+        }
+
+        private readonly object _rxLock = new();
+        private readonly StringBuilder _rxBuffer = new();
+
+        /// <summary>收到首段应答后，若暂未见帧尾 '#'，再等后续分段的静默窗口（毫秒）。</summary>
+        private const int FragmentQuietMs = 50;
+
+        private string SnapshotReply()
+        {
+            lock (_rxLock) return _rxBuffer.ToString();
         }
 
         private readonly ISerialCommunication lightSerial;
 
         private ManualResetEventSlim lightEvent = new ManualResetEventSlim(false);
 
-        private string receivestr = string.Empty;
 
         /// <summary>单条指令等待应答的超时（毫秒）。</summary>
         private const int ReplyTimeoutMs = 3000;
 
         /// <summary>
-        /// 串口事务锁。应答是靠 <see cref="lightEvent"/> + <see cref="receivestr"/> 这一对共享字段收的，
+        /// 串口事务锁。应答是靠 <see cref="lightEvent"/> + <see cref="_rxBuffer"/> 这一对共享字段收的，
         /// 一条链路上同时只能有一笔问答在途——否则并发的读与写会抢走对方的应答
         /// （调试页一边读回亮度、一边拖滑块下发，就是必现场景）。
         /// </summary>
@@ -156,19 +173,37 @@ namespace PF.Infrastructure.Hardware.LightController.HikCom
             await _txGate.WaitAsync(token);
             try
             {
-                lightEvent.Reset();
-                receivestr = string.Empty;
+                // 发送前清掉缓冲：上一笔超时后才迟到的应答不能算到这一笔头上
+                lock (_rxLock)
+                {
+                    _rxBuffer.Clear();
+                    lightEvent.Reset();
+                }
 
                 await lightSerial.SendStringAsync(send);
 
-                bool replied = await Task.Run(() => lightEvent.Wait(ReplyTimeoutMs, token), token);
-                if (!replied)
+                string reply = await Task.Run(() =>
                 {
-                    throw new TimeoutException(
-                        $"{DeviceName} 光源控制器接收数据超时（{ReplyTimeoutMs}ms），发送数据为{send}");
-                }
+                    if (!lightEvent.Wait(ReplyTimeoutMs, token))
+                    {
+                        throw new TimeoutException(
+                            $"{DeviceName} 光源控制器接收数据超时（{ReplyTimeoutMs}ms），发送数据为{send}");
+                    }
 
-                string reply = receivestr;
+                    // 首段已到：见到帧尾 '#' 即完整；否则只要静默窗口内还有新分段到达就继续收，
+                    // 窗口内再无数据则按已收内容作为整条应答（兼容不带 '#' 的应答格式）
+                    while (true)
+                    {
+                        lock (_rxLock)
+                        {
+                            if (_rxBuffer.ToString().Contains('#')) break;
+                            lightEvent.Reset();
+                        }
+                        if (!lightEvent.Wait(FragmentQuietMs, token)) break;
+                    }
+                    return SnapshotReply();
+                }, token);
+
                 HardwareLogger.Debug($"{DeviceName} 光源控制器 发送数据{send} ,接收数据{reply}");
                 return reply;
             }

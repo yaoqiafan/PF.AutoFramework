@@ -467,13 +467,14 @@ foreach ($svc in $serviceInfos) {
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_svc_files.iss'), $svcFiles.ToString(), $utf8NoBom)
 
 # ── 8c. _svc_uninstall.iss ───────────────────────────────────────────────────
-# [UninstallRun] entries to stop and delete services on uninstall
+# Intentionally empty now. Uninstall used to run an unconditional `sc delete` here, but the
+# service name is machine-wide (see $serviceInfos above): uninstalling project A would delete
+# the service that project B -- the last one installed -- currently owns. Uninstall now goes
+# through UninstallAllServices() in _svc_code.iss, which only removes the service when its
+# registered ImagePath points into this installation's {app} directory.
+# The file is still generated because Setup.iss includes it.
 $svcUninst = [System.Text.StringBuilder]::new()
-[void]$svcUninst.AppendLine('; Auto-generated -- service uninstall commands')
-foreach ($svc in $serviceInfos) {
-    [void]$svcUninst.AppendLine("Filename: `"{sys}\sc.exe`"; Parameters: `"stop $($svc.Name)`";   Flags: runhidden; RunOnceId: `"SvcStop_$($svc.Name)`"")
-    [void]$svcUninst.AppendLine("Filename: `"{sys}\sc.exe`"; Parameters: `"delete $($svc.Name)`"; Flags: runhidden; RunOnceId: `"SvcDel_$($svc.Name)`"")
-}
+[void]$svcUninst.AppendLine('; Auto-generated -- services are removed by UninstallAllServices() in [Code]')
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_svc_uninstall.iss'), $svcUninst.ToString(), $utf8NoBom)
 
 # ── 8d. _svc_code.iss ────────────────────────────────────────────────────────
@@ -488,24 +489,53 @@ if ($serviceInfos.Count -eq 0) {
     # No services: provide empty stubs so CurStepChanged compiles
     [void]$svcCode.AppendLine('procedure StopAllServices(); begin end;')
     [void]$svcCode.AppendLine('procedure InstallAllServices(); begin end;')
+    [void]$svcCode.AppendLine('procedure UninstallAllServices(); begin end;')
 }
 else {
-    # StopAllServices: called before file copy to allow overwriting locked binaries
-    [void]$svcCode.AppendLine('procedure StopAllServices();')
+    # Shared helpers
+    [void]$svcCode.AppendLine('function ServiceRegistered(const Name: String): Boolean;')
+    [void]$svcCode.AppendLine('begin')
+    [void]$svcCode.AppendLine("  Result := RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\' + Name);")
+    [void]$svcCode.AppendLine('end;')
+    [void]$svcCode.AppendLine('')
+    # `sc stop` only *requests* a stop and returns immediately; the old fixed Sleep(2000) was
+    # not enough when the service takes longer to shut down -> locked exe during file copy and
+    # a still-running process that makes the following sc create fail. `net stop` blocks until
+    # the service has actually stopped (or reports failure).
+    [void]$svcCode.AppendLine('procedure StopServiceAndWait(const Name: String);')
     [void]$svcCode.AppendLine('var')
     [void]$svcCode.AppendLine('  ResultCode: Integer;')
     [void]$svcCode.AppendLine('begin')
+    [void]$svcCode.AppendLine('  if not ServiceRegistered(Name) then Exit;')
+    [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\net.exe'), 'stop ' + Name, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
+    [void]$svcCode.AppendLine('  Sleep(1000);')
+    [void]$svcCode.AppendLine('end;')
+    [void]$svcCode.AppendLine('')
+    # Ownership check used at uninstall: the registered ImagePath must live under our {app}
+    [void]$svcCode.AppendLine('function ServiceBelongsToThisApp(const Name: String): Boolean;')
+    [void]$svcCode.AppendLine('var')
+    [void]$svcCode.AppendLine('  ImagePath: String;')
+    [void]$svcCode.AppendLine('begin')
+    [void]$svcCode.AppendLine('  Result := False;')
+    [void]$svcCode.AppendLine("  if RegQueryStringValue(HKLM, 'SYSTEM\CurrentControlSet\Services\' + Name, 'ImagePath', ImagePath) then")
+    [void]$svcCode.AppendLine("    Result := Pos(Lowercase(AddBackslash(ExpandConstant('{app}'))), Lowercase(ImagePath)) > 0;")
+    [void]$svcCode.AppendLine('end;')
+    [void]$svcCode.AppendLine('')
+
+    # StopAllServices: called before file copy to allow overwriting locked binaries
+    [void]$svcCode.AppendLine('procedure StopAllServices();')
+    [void]$svcCode.AppendLine('begin')
     foreach ($svc in $serviceInfos) {
-        [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\sc.exe'), 'stop $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
+        [void]$svcCode.AppendLine("  StopServiceAndWait('$($svc.Name)');")
     }
-    [void]$svcCode.AppendLine('  Sleep(2000);')
     [void]$svcCode.AppendLine('end;')
     [void]$svcCode.AppendLine('')
 
     # InstallAllServices: called after files are in place
     [void]$svcCode.AppendLine('procedure InstallAllServices();')
     [void]$svcCode.AppendLine('var')
-    [void]$svcCode.AppendLine('  ResultCode: Integer;')
+    [void]$svcCode.AppendLine('  ResultCode, i: Integer;')
+    [void]$svcCode.AppendLine('  Created: Boolean;')
     [void]$svcCode.AppendLine('  BinPath: String;')
     [void]$svcCode.AppendLine('begin')
     foreach ($svc in $serviceInfos) {
@@ -513,20 +543,55 @@ else {
         # BinPath includes double-quotes so sc.exe handles paths with spaces
         [void]$svcCode.AppendLine("  BinPath := ExpandConstant('${dq}{app}\$($svc.Subdir)\$($svc.Exe)${dq}');")
         # Delete any previous registration (upgrade scenario, and takeover when another
-        # project previously owned this service -- see the $serviceInfos comment above)
+        # project previously owned this service -- see the $serviceInfos comment above).
+        # Stop it first in case it was started again after StopAllServices.
+        [void]$svcCode.AppendLine("  StopServiceAndWait('$($svc.Name)');")
         [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\sc.exe'), 'delete $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
-        [void]$svcCode.AppendLine('  Sleep(500);')
-        # Register service
-        [void]$svcCode.AppendLine("  Exec(ExpandConstant('{sys}\sc.exe'),")
-        [void]$svcCode.AppendLine("    'create $($svc.Name) binPath= ' + BinPath + ' start= auto DisplayName= ${dq}$($svc.DisplayName)${dq}',")
-        [void]$svcCode.AppendLine("    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
-        [void]$svcCode.AppendLine('  if ResultCode = 0 then')
+        # Register service. While a handle to the old service is still open the deletion is only
+        # "marked" and sc create fails with 1072; this used to fail silently after a fixed 500 ms,
+        # leaving the machine with no service at all. Retry for up to ~15 s, then tell the user.
+        [void]$svcCode.AppendLine('  Created := False;')
+        [void]$svcCode.AppendLine('  for i := 1 to 15 do')
+        [void]$svcCode.AppendLine('  begin')
+        [void]$svcCode.AppendLine('    Sleep(1000);')
+        [void]$svcCode.AppendLine("    Exec(ExpandConstant('{sys}\sc.exe'),")
+        [void]$svcCode.AppendLine("      'create $($svc.Name) binPath= ' + BinPath + ' start= auto DisplayName= ${dq}$($svc.DisplayName)${dq}',")
+        [void]$svcCode.AppendLine("      '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
+        [void]$svcCode.AppendLine('    if ResultCode = 0 then')
+        [void]$svcCode.AppendLine('    begin')
+        [void]$svcCode.AppendLine('      Created := True;')
+        [void]$svcCode.AppendLine('      Break;')
+        [void]$svcCode.AppendLine('    end;')
+        [void]$svcCode.AppendLine('  end;')
+        [void]$svcCode.AppendLine('  if Created then')
         [void]$svcCode.AppendLine('  begin')
         # Set description
         [void]$svcCode.AppendLine("    Exec(ExpandConstant('{sys}\sc.exe'), 'description $($svc.Name) ${dq}$($svc.Description)${dq}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
         # Start service
         [void]$svcCode.AppendLine("    Exec(ExpandConstant('{sys}\sc.exe'), 'start $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
+        [void]$svcCode.AppendLine('  end')
+        [void]$svcCode.AppendLine('  else')
+        [void]$svcCode.AppendLine('  begin')
+        # Message text lives in Setup.iss (UTF-8 with codepage pragma): this script has no BOM and
+        # Windows PowerShell 5.1 would read any non-ASCII literal here as ANSI and garble it.
+        [void]$svcCode.AppendLine("    SuppressibleMsgBox(ServiceRegisterFailedMessage('$($svc.Name)', ResultCode), mbError, MB_OK, IDOK);")
         [void]$svcCode.AppendLine('  end;')
+    }
+    [void]$svcCode.AppendLine('end;')
+    [void]$svcCode.AppendLine('')
+
+    # UninstallAllServices: called at usUninstall (before files are removed)
+    [void]$svcCode.AppendLine('procedure UninstallAllServices();')
+    [void]$svcCode.AppendLine('var')
+    [void]$svcCode.AppendLine('  ResultCode: Integer;')
+    [void]$svcCode.AppendLine('begin')
+    foreach ($svc in $serviceInfos) {
+        [void]$svcCode.AppendLine("  if ServiceBelongsToThisApp('$($svc.Name)') then")
+        [void]$svcCode.AppendLine('  begin')
+        [void]$svcCode.AppendLine("    StopServiceAndWait('$($svc.Name)');")
+        [void]$svcCode.AppendLine("    Exec(ExpandConstant('{sys}\sc.exe'), 'delete $($svc.Name)', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);")
+        [void]$svcCode.AppendLine('  end;')
+        [void]$svcCode.AppendLine("  { otherwise the service belongs to another project installed later -- leave it alone }")
     }
     [void]$svcCode.AppendLine('end;')
 }

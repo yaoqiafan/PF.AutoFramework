@@ -95,6 +95,27 @@ if ($dirtyWal) {
     $dirtyWal | ForEach-Object { Write-Host "        $($_.Name)  ($($_.Length) bytes)" -ForegroundColor Yellow }
     Warn "建议：确认主程序已完全退出后重新运行本脚本。继续迁移仍会连同 -wal/-shm 一起搬走。"
 }
+# 主程序是否还开着：服务检查覆盖不到主程序（exe 名随项目变化），直接看根目录下的数据库能否独占打开。
+# 被占用时 Move-Item 会在搬到一半时失败，留下"一部分在新目录、一部分在根目录"的状态。
+$lockedDb = @()
+foreach ($db in @(Get-ChildItem -Path $ConfigRoot -Filter '*.db' -File -ErrorAction SilentlyContinue)) {
+    try {
+        $fs = [System.IO.File]::Open($db.FullName, 'Open', 'ReadWrite', 'None')
+        $fs.Dispose()
+    }
+    catch {
+        $lockedDb += $db.Name
+    }
+}
+if ($lockedDb.Count -gt 0) {
+    $names = $lockedDb -join "`n  "
+    if ($WhatIfPreference) {
+        Warn "以下数据库正被其它进程占用，正式执行前必须关闭主程序：`n  $names"
+    }
+    else {
+        Fail "以下数据库正被其它进程占用（主程序可能仍在运行），请先关闭：`n  $names"
+    }
+}
 Write-Host "      OK"
 
 # ── 3. 备份 ──────────────────────────────────────────────────────────────────
@@ -105,7 +126,9 @@ $stamp     = Get-Date -Format 'yyyyMMddHHmmss'
 $backupZip = Join-Path (Split-Path $ConfigRoot -Parent) "PFAutoFrameWork_backup_$stamp.zip"
 
 if ($PSCmdlet.ShouldProcess($backupZip, "创建备份")) {
-    Compress-Archive -Path (Join-Path $ConfigRoot '*') -DestinationPath $backupZip -Force
+    # -Path 'root\*' 会漏掉隐藏文件，而下面的迁移用 -Force 枚举、会搬走隐藏文件，备份必须同样包含它们
+    $toBackup = @(Get-ChildItem -Path $ConfigRoot -Force | ForEach-Object { $_.FullName })
+    Compress-Archive -LiteralPath $toBackup -DestinationPath $backupZip -Force
     Write-Host "      -> $backupZip"
 }
 else {
@@ -121,9 +144,15 @@ Write-Host "[3/5] 枚举待迁移条目..."
 # 首次迁移时由本脚本写入。
 # 用 foreach 语句而非 ForEach-Object 管道：管道块内的 += 只会写到块的局部作用域，
 # 父作用域的 $existingProjects 拿不到结果。
+#
+# 只认标记文件不够：新版程序在全新安装时会自己建 {ConfigRoot}\{项目名}\，但不写标记。
+# 这类目录同样是某个项目的独立配置目录，搬进本项目会让那个项目的参数整体消失。
+# 旧布局下数据库都在根目录，子目录（Recipe\ AxisPoints\ 等）里不会直接有参数库，
+# 所以子目录顶层含 SystemParamsCollection.db 即可判定为项目配置目录。
 $existingProjects = @()
 foreach ($dir in @(Get-ChildItem -Path $ConfigRoot -Directory -ErrorAction SilentlyContinue)) {
-    if (Test-Path (Join-Path $dir.FullName '.pf-project')) {
+    if ((Test-Path (Join-Path $dir.FullName '.pf-project')) -or
+        (Test-Path (Join-Path $dir.FullName 'SystemParamsCollection.db'))) {
         $existingProjects += $dir.Name
     }
 }

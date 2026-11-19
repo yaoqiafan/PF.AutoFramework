@@ -15,7 +15,7 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
     /// （通常来自 ICommunicationManagerService 按配置创建的 IClient 实例，AutoStart=false，
     /// 连接生命周期交由本类的 InternalConnectAsync/InternalDisconnectAsync 驱动）。
     /// <para>
-    /// ASCII 协议：RUN（切运行模式）、TRG（触发）、PL,1,{程序号:F4}（切程序）、
+    /// ASCII 协议：RUN（切运行模式）、TRG（触发）、PL,1,{程序号:D4}（切程序）、
     /// PR（查询当前程序，响应 "PR,{状态},{程序号}"）；错误响应以 "ER," 开头。
     /// </para>
     /// </summary>
@@ -36,7 +36,8 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
             : base(deviceId: deviceId, deviceName: deviceName, isSimulated: isSimulated, logger: logger)
         {
             _triggerClient = triggerClient;
-            this.TimeOutMs = timeoutms;
+            // 未配置（0/负数）时用 3000ms：超时为 0 的话每条指令都会立即判定"无响应"
+            this.TimeOutMs = timeoutms > 0 ? timeoutms : 3000;
         }
 
         /// <summary>
@@ -138,7 +139,8 @@ namespace PF.Infrastructure.Hardware.Camera.IntelligentCamera.Keyence
 
                 await EnsureRunModeAsync(token);
 
-                var cmd  = $"PL,1,{ProgramID:F4}\r\n";
+                // 程序号补零到 4 位（12 → "0012"）。此前写成 :F4，对整数输出的是定点小数 "12.0000"
+                var cmd  = $"PL,1,{ProgramID:D4}\r\n";
                 var resp = await SendCommandAsync(cmd, token);
                 if (!resp.Trim().Contains("PL"))
                 {

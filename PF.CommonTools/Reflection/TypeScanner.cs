@@ -10,8 +10,13 @@ namespace PF.CommonTools.Reflection
     /// </summary>
     public static class TypeScanner<TBaseType>
     {
-        private static readonly ConcurrentDictionary<TypeScanOptions, List<Type>> _typeCache = new();
-        private static readonly ConcurrentDictionary<string, List<Type>> _assemblyTypeCache = new();
+        // 值里带上缓存时 AppDomain 的程序集数量：Prism 模块等程序集是启动后才加载的，
+        // 早于它们的扫描结果不能一直沿用，程序集数量变化时重新扫描
+        private static readonly ConcurrentDictionary<TypeScanOptions, (int AssemblyCount, List<Type> Types)> _typeCache = new();
+
+        // 按程序集缓存其全部类型（未经筛选）。此前按 "程序集名_选项哈希" 缓存筛选后的结果，
+        // 而哈希不含 CustomFilter，两个不同筛选条件会互相拿到对方的结果；筛选本身很便宜，每次重做即可
+        private static readonly ConcurrentDictionary<Assembly, Type[]> _assemblyTypeCache = new();
         private static readonly object _initializationLock = new();
         private static bool _isInitialized = false;
 
@@ -61,8 +66,8 @@ namespace PF.CommonTools.Reflection
                        IncludeInterface == other.IncludeInterface &&
                        IncludeGenericDefinitions == other.IncludeGenericDefinitions &&
                        CacheResults == other.CacheResults &&
-                       Equals(AssemblyNames, other.AssemblyNames) &&
-                       Equals(Namespaces, other.Namespaces) &&
+                       SequenceEquals(AssemblyNames, other.AssemblyNames) &&
+                       SequenceEquals(Namespaces, other.Namespaces) &&
                        Equals(CustomFilter, other.CustomFilter);
             }
 
@@ -83,9 +88,30 @@ namespace PF.CommonTools.Reflection
                     hash = hash * 23 + IncludeInterface.GetHashCode();
                     hash = hash * 23 + IncludeGenericDefinitions.GetHashCode();
                     hash = hash * 23 + CacheResults.GetHashCode();
-                    hash = hash * 23 + (AssemblyNames?.GetHashCode() ?? 0);
-                    hash = hash * 23 + (Namespaces?.GetHashCode() ?? 0);
+                    hash = hash * 23 + SequenceHash(AssemblyNames);
+                    hash = hash * 23 + SequenceHash(Namespaces);
+                    hash = hash * 23 + (CustomFilter?.GetHashCode() ?? 0);
                     return hash;
+                }
+            }
+
+            // 数组按内容比较：调用方每次都 new 一个新数组传进来，按引用比较时缓存永远命中不了，
+            // 而且每次都往缓存里新增一项，字典只增不减
+            private static bool SequenceEquals(string[] a, string[] b)
+            {
+                if (ReferenceEquals(a, b)) return true;
+                if (a is null || b is null) return false;
+                return a.SequenceEqual(b, StringComparer.OrdinalIgnoreCase);
+            }
+
+            private static int SequenceHash(string[] items)
+            {
+                if (items is null) return 0;
+                unchecked
+                {
+                    int h = 19;
+                    foreach (var s in items) h = h * 31 + (s is null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(s));
+                    return h;
                 }
             }
         }
@@ -108,16 +134,18 @@ namespace PF.CommonTools.Reflection
         {
             options ??= DefaultOptions;
 
-            if (options.CacheResults && _typeCache.TryGetValue(options, out var cachedTypes))
+            int assemblyCount = AppDomain.CurrentDomain.GetAssemblies().Length;
+            if (options.CacheResults && _typeCache.TryGetValue(options, out var cached)
+                && cached.AssemblyCount == assemblyCount)
             {
-                return cachedTypes.ToList(); // 返回副本
+                return cached.Types.ToList(); // 返回副本
             }
 
             var types = ScanTypesInternal(options).ToList();
 
             if (options.CacheResults)
             {
-                _typeCache[options] = types;
+                _typeCache[options] = (assemblyCount, types);
             }
 
             return types.ToList();
@@ -292,41 +320,28 @@ namespace PF.CommonTools.Reflection
 
         private static List<Type> GetTypesFromAssembly(Assembly assembly, TypeScanOptions options)
         {
-            var cacheKey = $"{assembly.FullName}_{options.GetHashCode()}";
-
-            if (options.CacheResults && _assemblyTypeCache.TryGetValue(cacheKey, out var cached))
-            {
-                return cached;
-            }
-
-            List<Type> assemblyTypes;
-
             try
             {
-                Type[] types;
-                try
+                if (!_assemblyTypeCache.TryGetValue(assembly, out var types))
                 {
-                    types = assembly.GetTypes();
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    types = ex.Types.Where(t => t != null).ToArray();
+                    try
+                    {
+                        types = assembly.GetTypes();
+                    }
+                    catch (ReflectionTypeLoadException ex)
+                    {
+                        types = ex.Types.Where(t => t != null).ToArray()!;
+                    }
+                    _assemblyTypeCache[assembly] = types;
                 }
 
-                assemblyTypes = FilterTypes(types, options).ToList();
+                return FilterTypes(types, options).ToList();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.WriteLine($"[TypeScanner] 程序集类型扫描失败: {ex.Message}");
-                assemblyTypes = new List<Type>();
+                return new List<Type>();
             }
-
-            if (options.CacheResults)
-            {
-                _assemblyTypeCache[cacheKey] = assemblyTypes;
-            }
-
-            return assemblyTypes;
         }
 
         private static IEnumerable<Type> FilterTypes(IEnumerable<Type> types, TypeScanOptions options)

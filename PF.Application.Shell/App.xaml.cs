@@ -83,8 +83,8 @@ namespace PF.Application.Shell
             commManager.RegisterFactory("TcpServer", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
-                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 0;
-                int backlog = cfg.ConnectionParameters.TryGetValue("Backlog", out var bl) ? int.Parse(bl) : 10;
+                int port = ConfigInt(cfg.ConnectionParameters, "Port", 0);
+                int backlog = ConfigInt(cfg.ConnectionParameters, "Backlog", 10);
                 return new PF.Infrastructure.Communication.TCP.TcpServer(cfg.DisplayName, cfg.InstanceId, logger)
                 {
                     BindIp = ip ?? "0.0.0.0",
@@ -96,7 +96,7 @@ namespace PF.Application.Shell
             commManager.RegisterFactory("TcpClient", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("ServerIp", out var serverIp);
-                int serverPort = cfg.ConnectionParameters.TryGetValue("ServerPort", out var sp) ? int.Parse(sp) : 0;
+                int serverPort = ConfigInt(cfg.ConnectionParameters, "ServerPort", 0);
                 return new PF.Infrastructure.Communication.TCP.TCPClient(cfg.DisplayName, cfg.InstanceId, logger)
                 {
                     TargetServerIp = serverIp ?? string.Empty,
@@ -187,6 +187,32 @@ namespace PF.Application.Shell
         /// 解析 Modbus 主站的可选公共配置键（TimeoutMs / AutoReconnect / ReconnectIntervalMs）。
         /// 缺省或解析失败返回 null，保留实现内的默认值（1000ms / true / 5000ms）。
         /// </summary>
+        /// <summary>
+        /// 读取整数型连接参数：缺键或空串取默认值；填了但不是整数时抛出带键名的异常
+        /// （此前直接 int.Parse，空串也会抛一个看不出是哪个键的 FormatException，设备实例化失败）。
+        /// </summary>
+        private static int ConfigInt(Dictionary<string, string> parameters, string key, int defaultValue)
+        {
+            if (!parameters.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw)) return defaultValue;
+            if (int.TryParse(raw.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var v)) return v;
+            throw new InvalidOperationException($"连接参数 {key} 的值 '{raw}' 不是整数");
+        }
+
+        /// <summary>读取浮点型连接参数，规则同 <see cref="ConfigInt"/>。</summary>
+        private static double ConfigDouble(Dictionary<string, string> parameters, string key, double defaultValue)
+        {
+            if (!parameters.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw)) return defaultValue;
+            if (double.TryParse(raw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v)) return v;
+            throw new InvalidOperationException($"连接参数 {key} 的值 '{raw}' 不是数字");
+        }
+
+        /// <summary>读取必填连接参数，缺键或为空时抛出带设备与键名的异常（此前是看不出键名的 KeyNotFoundException）。</summary>
+        private static string RequireParam(Dictionary<string, string> parameters, string key, string ownerId)
+        {
+            if (parameters.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v)) return v;
+            throw new InvalidOperationException($"设备 [{ownerId}] 缺少必填连接参数 {key}");
+        }
+
         private static (int? TimeoutMs, bool? AutoReconnect, int? ReconnectIntervalMs) ParseModbusCommonOptions(
             Dictionary<string, string> parameters)
         {
@@ -210,16 +236,14 @@ namespace PF.Application.Shell
 
             hwManager.RegisterFactory("LTDMCMotionCard", cfg =>
             {
-                int cardIndex = cfg.ConnectionParameters.TryGetValue("CardIndex", out var ci)
-                    ? int.Parse(ci) : 0;
+                int cardIndex = ConfigInt(cfg.ConnectionParameters, "CardIndex", 0);
                 return new PF.Infrastructure.Hardware.Card.LTDMC.LTMDCMotionCard(
                     cardIndex, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
             hwManager.RegisterFactory("EtherCatAxis", cfg =>
             {
-                int axisIndex = cfg.ConnectionParameters.TryGetValue("AxisIndex", out var idx)
-                    ? int.Parse(idx) : 0;
+                int axisIndex = ConfigInt(cfg.ConnectionParameters, "AxisIndex", 0);
                 string axisParamStr = cfg.ConnectionParameters.TryGetValue("AxisParam", out var ap)
                     ? ap : System.Text.Json.JsonSerializer.Serialize(new AxisParam());
                 var axisParam = System.Text.Json.JsonSerializer.Deserialize<AxisParam>(axisParamStr) ?? new AxisParam();
@@ -229,8 +253,8 @@ namespace PF.Application.Shell
 
             hwManager.RegisterFactory("EtherCatIO", cfg =>
             {
-                int inCount = cfg.ConnectionParameters.TryGetValue("InPutCount", out var ic) ? int.Parse(ic) : 0;
-                int outCount = cfg.ConnectionParameters.TryGetValue("OutPutCount", out var oc) ? int.Parse(oc) : 0;
+                int inCount = ConfigInt(cfg.ConnectionParameters, "InPutCount", 0);
+                int outCount = ConfigInt(cfg.ConnectionParameters, "OutPutCount", 0);
                 return new Infrastructure.Hardware.IO.EtherCatIO(
                     inCount, outCount, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
@@ -240,11 +264,9 @@ namespace PF.Application.Shell
             // IEncoderCarrier 类型匹配自动完成挂载，本工厂无需关心挂在哪一层）。
             hwManager.RegisterFactory("EtherCatAuxEncoder", cfg =>
             {
-                int channel = cfg.ConnectionParameters.TryGetValue("Channel", out var ch) && !string.IsNullOrWhiteSpace(ch)
-                    ? int.Parse(ch) : 0;
+                int channel = ConfigInt(cfg.ConnectionParameters, "Channel", 0);
                 // 未配置倍率时沿用 BaseAuxEncoder 原默认值 2
-                double multiplier = cfg.ConnectionParameters.TryGetValue("Multiplier", out var mul) && !string.IsNullOrWhiteSpace(mul)
-                    ? double.Parse(mul) : 2;
+                double multiplier = ConfigDouble(cfg.ConnectionParameters, "Multiplier", 2);
                 return new Infrastructure.Hardware.Encoder.EtherCatAuxEncoder(
                     cfg.DeviceId, cfg.DeviceName, channel, multiplier, cfg.IsSimulated, LogService);
             });
@@ -268,13 +290,13 @@ namespace PF.Application.Shell
 
             hwManager.RegisterFactory("HKBarcodeScan", cfg =>
             {
-                int timeout = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var to) ? int.Parse(to) : 0;
+                int timeout = ConfigInt(cfg.ConnectionParameters, "TimeOutMs", 0);
 
                 // 底层两条 TCP 通道由通讯管理服务按配置创建（AutoStart=false，实际连接时机仍由本设备的
                 // InternalConnectAsync 驱动，避免和通讯管理器抢先连接冲突）；IP/端口从注入的 IClient 自身读取，
                 // 不再由 HardwareConfig 重复提供
-                var triggerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["TriggerCommInstanceId"]);
-                var userPowerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["UserPowerCommInstanceId"]);
+                var triggerClient = commManager.GetCommunication<IClient>(RequireParam(cfg.ConnectionParameters, "TriggerCommInstanceId", cfg.DeviceId));
+                var userPowerClient = commManager.GetCommunication<IClient>(RequireParam(cfg.ConnectionParameters, "UserPowerCommInstanceId", cfg.DeviceId));
 
                 // HKBarcodeScan（TCP 透传协议版）已弃用，新开发请用 MvCodeReaderBarcodeScan；
                 // 此处保留工厂注册仅为兼容现网已部署的 "HKBarcodeScan" 配置，故显式抑制 Obsolete 警告。
@@ -287,7 +309,7 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("MvCodeReaderBarcodeScan", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
-                int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var timeout) ? int.Parse(timeout) : 0;
+                int timeouts = ConfigInt(cfg.ConnectionParameters, "TimeOutMs", 0);
                 // 未配置或填写非法时默认加载用户参数1
                 int userSet = cfg.ConnectionParameters.TryGetValue("UserSet", out var us) && int.TryParse(us, out var parsed) ? parsed : 1;
                 return new Infrastructure.Hardware.BarcodeScan.Hikvision.MvCodeReaderBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, userSet);
@@ -296,15 +318,15 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("KeyenceBarcodeScan", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
-                int timeouts = cfg.ConnectionParameters.TryGetValue("TimeOutMs", out var timeout) ? int.Parse(timeout) : 0;
+                int timeouts = ConfigInt(cfg.ConnectionParameters, "TimeOutMs", 0);
                 return new Infrastructure.Hardware.BarcodeScan.Keyence.KeyenceBarcodeScan(ip, timeouts, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
 
             hwManager.RegisterFactory("KeyenceIntelligentCamera", cfg =>
             {
-                int timeout = cfg.ConnectionParameters.TryGetValue("TimeOutms", out var to) ? int.Parse(to) : 0;
+                int timeout = ConfigInt(cfg.ConnectionParameters, "TimeOutms", 0);
 
-                var triggerClient = commManager.GetCommunication<IClient>(cfg.ConnectionParameters["CommInstanceId"]);
+                var triggerClient = commManager.GetCommunication<IClient>(RequireParam(cfg.ConnectionParameters, "CommInstanceId", cfg.DeviceId));
 
                 return new Infrastructure.Hardware.Camera.IntelligentCamera.Keyence.KeyenceIntelligentCamera(
                     triggerClient, timeout, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
@@ -321,9 +343,9 @@ namespace PF.Application.Shell
                 cfg.ConnectionParameters.TryGetValue("IP", out var ip);
                 cfg.ConnectionParameters.TryGetValue("UserName", out var user);
                 cfg.ConnectionParameters.TryGetValue("Password", out var pwd);
-                int port = cfg.ConnectionParameters.TryGetValue("Port", out var p) ? int.Parse(p) : 8000;
-                int channel = cfg.ConnectionParameters.TryGetValue("Channel", out var ch) ? int.Parse(ch) : 0;
-                int bufferMb = cfg.ConnectionParameters.TryGetValue("CaptureBufferMB", out var bm) ? int.Parse(bm) : 8;
+                int port = ConfigInt(cfg.ConnectionParameters, "Port", 8000);
+                int channel = ConfigInt(cfg.ConnectionParameters, "Channel", 0);
+                int bufferMb = ConfigInt(cfg.ConnectionParameters, "CaptureBufferMB", 8);
 
                 // 存图格式/目录是设备级参数（不进系统参数）：不填则用设备内部默认值
                 // （格式 Jpeg、目录 {ConfigPath}\NetworkCamera\{DeviceId}）。
@@ -345,7 +367,7 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("CTS_LightController", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("COM", out var com);
-                int channelCount = cfg.ConnectionParameters.TryGetValue("ChannelCount", out var cc) ? int.Parse(cc) : 4;
+                int channelCount = ConfigInt(cfg.ConnectionParameters, "ChannelCount", 4);
                 return new Infrastructure.Hardware.LightController.CTS.CTSLightController(
                     com, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, channelCount);
             });
@@ -360,8 +382,8 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("HikComLightController", cfg =>
             {
                 var serial = commManager.GetCommunication<ISerialCommunication>(
-                    cfg.ConnectionParameters["CommInstanceId"]);
-                int channelCount = cfg.ConnectionParameters.TryGetValue("ChannelCount", out var cc) ? int.Parse(cc) : 4;
+                    RequireParam(cfg.ConnectionParameters, "CommInstanceId", cfg.DeviceId));
+                int channelCount = ConfigInt(cfg.ConnectionParameters, "ChannelCount", 4);
                 return new Infrastructure.Hardware.LightController.HikCom.HikComLightController(
                     serial, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService, channelCount);
             });
@@ -387,7 +409,7 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("HikFrameGrabberCard", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("SerialNumber", out var sn);
-                int index = cfg.ConnectionParameters.TryGetValue("Index", out var idx) ? int.Parse(idx) : 0;
+                int index = ConfigInt(cfg.ConnectionParameters, "Index", 0);
                 return new Infrastructure.Hardware.FrameGrabber.Hikvision.HikFrameGrabberCard(
                     sn, index, cfg.DeviceId, cfg.DeviceName, cfg.IsSimulated, LogService);
             });
@@ -397,11 +419,11 @@ namespace PF.Application.Shell
             hwManager.RegisterFactory("HikLineScanCamera", cfg =>
             {
                 cfg.ConnectionParameters.TryGetValue("SerialNumber", out var sn);
-                int index = cfg.ConnectionParameters.TryGetValue("Index", out var idx) ? int.Parse(idx) : 0;
+                int index = ConfigInt(cfg.ConnectionParameters, "Index", 0);
 
                 // 缓存节点数直接决定 SDK 侧内存占用（≈ 单帧字节数 × 本值），
                 // 线扫大帧下必须按实际帧长下调，故做成可配置项而非固定值
-                int nodeNum = cfg.ConnectionParameters.TryGetValue("ImageNodeNum", out var nn) ? int.Parse(nn) : 3;
+                int nodeNum = ConfigInt(cfg.ConnectionParameters, "ImageNodeNum", 3);
 
                 // 像素精度（μm/行）：非编码器直连时相机算不出行间距，由这里配置；线扫模组据此校验曝光不超过行周期
                 double lineSpacingUm = cfg.ConnectionParameters.TryGetValue("LineSpacingUm", out var ls)
@@ -696,10 +718,9 @@ namespace PF.Application.Shell
                     return;
                 }
 
-                // 兼容 "E//path"、"E:\\path"、"E:/path" 等多种路径格式
-                var normalized = imagePath.Replace("//", "\\").Replace("/", "\\");
+                var normalized = NormalizeImagePath(imagePath);
                 var root = Path.GetPathRoot(normalized);
-                if (string.IsNullOrEmpty(root))
+                if (string.IsNullOrEmpty(root) || !Path.IsPathFullyQualified(normalized))
                 {
                     UILogger.Warn($"[磁盘预警] 无法从路径 [{imagePath}] 解析驱动器，跳过检查");
                     return;
@@ -764,8 +785,12 @@ namespace PF.Application.Shell
                     return;
                 }
 
-                // 兼容 "E//path"、"E:\\path"、"E:/path" 格式
-                var basePath = rawPath.Replace("//", "\\").Replace("/", "\\");
+                var basePath = NormalizeImagePath(rawPath);
+                if (!IsSafeCleanupRoot(basePath, out var unsafeReason))
+                {
+                    UILogger.Error($"[图片清理] 图片保存路径 [{rawPath}] 不允许作为清理目录（{unsafeReason}），已跳过本次清理，请检查参数");
+                    return;
+                }
                 if (!Directory.Exists(basePath))
                 {
                     UILogger.Info($"[图片清理] 路径不存在，跳过: {basePath}");
@@ -784,11 +809,14 @@ namespace PF.Application.Shell
                     {
                         try
                         {
-                            var info = new DirectoryInfo(dir);
-                            if (info.CreationTime >= cutoff)
+                            // 按目录里最新文件的修改时间判断，而不是目录创建时间：批次目录可能很早就建了、
+                            // 最近还在往里存图，按创建时间会把仍在使用的目录整个删掉。
+                            // 只要有一个文件在保留期内，整个目录就保留。
+                            var newest = GetNewestWriteTime(dir);
+                            if (newest >= cutoff)
                                 continue;
 
-                            UILogger.Info($"[图片清理] 准备删除: {dir}（创建于 {info.CreationTime:yyyy-MM-dd}）");
+                            UILogger.Info($"[图片清理] 准备删除: {dir}（最后写入 {newest:yyyy-MM-dd}）");
 
                             if (TryDeleteDirectorySafe(dir))
                                 deleted++;
@@ -809,6 +837,82 @@ namespace PF.Application.Shell
             {
                 UILogger.Error("[图片清理] 清理过程发生异常", ex);
             }
+        }
+
+        /// <summary>
+        /// 归一化图片路径参数。兼容 "E:/path"、"E:\path" 以及缺冒号的 "E//path"、"E\path"
+        /// （默认值写成了 "E//OCRImagePath"，此前只把 "//" 换成 "\"，得到的 "E\OCRImagePath"
+        /// 是个相对路径：磁盘预警因取不到盘符永远跳过）。
+        /// </summary>
+        private static string NormalizeImagePath(string raw)
+        {
+            var s = raw.Trim().Replace('/', '\\');
+            while (s.Contains("\\\\") && !s.StartsWith("\\\\")) s = s.Replace("\\\\", "\\");
+            // 单个盘符字母后直接跟分隔符、缺冒号 → 补上冒号
+            if (s.Length >= 2 && char.IsAsciiLetter(s[0]) && s[1] == '\\')
+                s = $"{s[0]}:{s[1..]}";
+            return s;
+        }
+
+        /// <summary>
+        /// 判断路径能否作为图片清理的根目录。清理会删除其下所有过期的一级子目录，
+        /// 参数一旦误配成盘符根目录或系统/配置/日志/程序目录，后果是整片目录被删，所以这里严格拦截。
+        /// </summary>
+        private static bool IsSafeCleanupRoot(string path, out string reason)
+        {
+            reason = string.Empty;
+            if (!Path.IsPathFullyQualified(path))
+            {
+                reason = "不是完整的绝对路径";
+                return false;
+            }
+
+            string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+            string? root = Path.GetPathRoot(full);
+            if (root != null && string.Equals(Path.TrimEndingDirectorySeparator(root), full, StringComparison.OrdinalIgnoreCase))
+            {
+                reason = "不能是盘符根目录";
+                return false;
+            }
+
+            var protectedDirs = new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty,
+                ConstGlobalParam.ConfigRoot,
+                @"D:\PF_Logs",
+                AppContext.BaseDirectory,
+            };
+
+            foreach (var dir in protectedDirs)
+            {
+                if (string.IsNullOrWhiteSpace(dir)) continue;
+                string p = Path.TrimEndingDirectorySeparator(Path.GetFullPath(dir));
+                bool same = string.Equals(full, p, StringComparison.OrdinalIgnoreCase);
+                bool isAncestor = p.StartsWith(full + "\\", StringComparison.OrdinalIgnoreCase);
+                bool isInside = full.StartsWith(p + "\\", StringComparison.OrdinalIgnoreCase);
+                if (same || isAncestor || isInside)
+                {
+                    reason = $"与受保护目录 {p} 重叠";
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>目录下（递归）最新文件的修改时间；没有文件时取目录自身的修改时间。</summary>
+        private static DateTime GetNewestWriteTime(string dir)
+        {
+            var newest = Directory.GetLastWriteTime(dir);
+            foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                var t = File.GetLastWriteTime(file);
+                if (t > newest) newest = t;
+            }
+            return newest;
         }
 
         /// <summary>

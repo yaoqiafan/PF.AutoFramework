@@ -349,8 +349,10 @@ internal sealed class TransferLane : IAsyncDisposable
                 case FrameCodec.FrameType.Heartbeat:
                     // 心跳回复也必须经由发送队列，不能在接收循环里直接写 Stream——
                     // 否则会和 SendLoopAsync 并发写同一个连接，导致帧交织损坏。
-                    await _sendQueue.Writer.WriteAsync(
-                        (s, ct) => FrameCodec.WriteHeartbeatFrameAsync(s, isAck: true, ct), token).ConfigureAwait(false);
+                    // 用 TryWrite 而非 await WriteAsync：队列满说明本端正在持续发数据，对端看门狗
+                    // 收到的数据帧本身就算活动，这次应答丢掉无妨；若在这里阻塞等队列，双向同时
+                    // 大传输时两端的接收循环都卡在入队、都不再读 Socket，发送端随之写阻塞，形成互锁。
+                    _sendQueue.Writer.TryWrite((s, ct) => FrameCodec.WriteHeartbeatFrameAsync(s, isAck: true, ct));
                     break;
 
                 case FrameCodec.FrameType.HeartbeatAck:

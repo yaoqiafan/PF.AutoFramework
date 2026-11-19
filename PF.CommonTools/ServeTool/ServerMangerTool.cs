@@ -80,7 +80,7 @@ namespace PF.CommonTools.ServeTool
                     }
                     else
                     {
-                        _systemLogger.Info($"重启程序失败：{ex.Message}");
+                        _systemLogger.Warn($"重启程序失败：{ex.Message}");
                     }
                     return false;
                 }
@@ -192,15 +192,15 @@ namespace PF.CommonTools.ServeTool
                     }
                     else
                     {
-                        _systemLogger.Info($"服务安装失败！错误码：{process.ExitCode}");
-                        _systemLogger.Info($"错误信息：{error}");
+                        _systemLogger.Error($"服务安装失败！错误码：{process.ExitCode}");
+                        _systemLogger.Error($"错误信息：{error}{output}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _systemLogger.Info($"安装服务时发生异常：{ex.Message}");
+                _systemLogger.Error($"安装服务时发生异常：{ex.Message}", ex);
                 return false;
             }
         }
@@ -249,15 +249,15 @@ namespace PF.CommonTools.ServeTool
                     }
                     else
                     {
-                        _systemLogger.Info($"服务卸载失败！错误码：{process.ExitCode}");
-                        _systemLogger.Info($"错误信息：{error}");
+                        _systemLogger.Error($"服务卸载失败！错误码：{process.ExitCode}");
+                        _systemLogger.Error($"错误信息：{error}{output}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _systemLogger.Warn($"卸载服务时发生异常：{ex.Message}");
+                _systemLogger.Error($"卸载服务时发生异常：{ex.Message}", ex);
                 return false;
             }
         }
@@ -312,12 +312,12 @@ namespace PF.CommonTools.ServeTool
                         }
                         else
                         {
-                            _systemLogger.Info($"服务【{serviceName}】启动超时/状态异常，当前状态：{service.Status}");
+                            _systemLogger.Warn($"服务【{serviceName}】启动超时/状态异常，当前状态：{service.Status}");
                             return false;
                         }
                     default:
                         // 暂停、停止中、暂停中等状态
-                        _systemLogger.Info($"服务【{serviceName}】当前状态为{service.Status}，无法直接启动");
+                        _systemLogger.Warn($"服务【{serviceName}】当前状态为{service.Status}，无法直接启动");
                         return false;
                 }
             }

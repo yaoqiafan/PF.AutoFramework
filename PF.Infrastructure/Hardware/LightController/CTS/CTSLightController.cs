@@ -52,20 +52,34 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
                 {
                     return Task.CompletedTask;
                 }
-                if (CtsAPI.SetDigitalValue(CtsAPI.Rs232Mode, Channel, LightValue, controllerHandle) == CtsAPI.SUCCESS)
+                EnsureChannel(Channel);
+                int ret = CtsAPI.SetDigitalValue(CtsAPI.Rs232Mode, Channel, LightValue, controllerHandle);
+                if (ret == CtsAPI.SUCCESS)
                 {
                     return Task.CompletedTask;
                 }
                 else
                 {
-                    throw new Exception($"设置康视达光源控制器亮度失败，Channel：{Channel}，LightValue：{LightValue}");
+                    throw new Exception($"设置康视达光源控制器亮度失败，Channel：{Channel}，LightValue：{LightValue}，返回码：{ret}");
                 }
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                // 下发失败不外抛（与海康串口光源一致：工站流程直接 await，抛出会带停产线），
+                // 但必须记 Error——原先记 Debug，现场日志里看不到
+                HardwareLogger.Error($"[{DeviceName}] {ex.Message}", ex);
                 return Task.CompletedTask;
             }
+        }
+
+        /// <summary>
+        /// 下发前确认串口已打开。通道号不在此校验：SDK 的 ChannelIndex 起始值（0/1）未经上机确认，
+        /// 误判会把原本能用的通道挡掉，越界交给 SDK 返回码报告。
+        /// </summary>
+        private void EnsureChannel(int channel)
+        {
+            if (controllerHandle <= 0)
+                throw new InvalidOperationException($"{DeviceName} 光源控制器串口未打开");
         }
         private Int64 controllerHandle = 0;
         /// <summary>
@@ -100,7 +114,7 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
             }
             catch (Exception ex)
             {
-                HardwareLogger.Debug(ex.Message, ex);
+                HardwareLogger.Error($"[{DeviceName}] {ex.Message}", ex);
                 return Task.FromResult(false);
             }
 
@@ -117,18 +131,22 @@ namespace PF.Infrastructure.Hardware.LightController.CTS
                 {
                     return Task.FromResult(true);
                 }
-                int RT3 = CtsAPI.ReleaseSerialPort(controllerHandle);
-                if (RT3 == CtsAPI.SUCCESS)
+                if (controllerHandle <= 0)
                 {
                     return Task.CompletedTask;
                 }
-                else
+                int RT3 = CtsAPI.ReleaseSerialPort(controllerHandle);
+                // 无论释放成功与否句柄都作废：留着旧值会让健康检查一直判定"已连接"
+                controllerHandle = 0;
+                if (RT3 != CtsAPI.SUCCESS)
                 {
                     throw new Exception($"关闭康视达光源控制器失败，错误码：{RT3}");
                 }
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
+                HardwareLogger.Warn($"[{DeviceName}] {ex.Message}", ex);
                 return Task.CompletedTask;
             }
         }

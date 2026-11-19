@@ -170,7 +170,18 @@ begin
   end;
 end;
 
-{ ─── 服务管理过程（由 _svc_code.iss 生成，StopAllServices / InstallAllServices）── }
+{ 服务注册失败提示（供 _svc_code.iss 调用；文案放在本文件是因为生成脚本无 BOM，写中文会乱码） }
+function ServiceRegisterFailedMessage(const Name: String; Code: Integer): String;
+begin
+  if ActiveLanguage = 'chs' then
+    Result := '服务 ' + Name + ' 注册失败（sc create 返回码 ' + IntToStr(Code) + '）。' + #13#10 + #13#10 +
+              '程序文件已安装，但该服务当前不可用。请重启电脑后重新运行安装包。'
+  else
+    Result := 'Failed to register service ' + Name + ' (sc create returned ' + IntToStr(Code) + ').' + #13#10 + #13#10 +
+              'Files are installed but the service is unavailable. Reboot and run the installer again.';
+end;
+
+{ ─── 服务管理过程（由 _svc_code.iss 生成，StopAllServices / InstallAllServices / UninstallAllServices）── }
 { 无服务时生成空实现；有服务时生成完整的停止和安装逻辑                               }
 
 #include "_build\_svc_code.iss"
@@ -183,4 +194,12 @@ begin
     ssInstall:     StopAllServices();     { 覆盖安装前先停服务 }
     ssPostInstall: InstallAllServices();  { 文件落地后注册并启动服务 }
   end;
+end;
+
+{ 卸载：仅当已注册服务的 ImagePath 位于本安装目录时才停止并删除。
+  服务名全机唯一，一机多项目时服务归属最后安装的项目，卸载别的项目不能把它删掉。 }
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    UninstallAllServices();
 end;
