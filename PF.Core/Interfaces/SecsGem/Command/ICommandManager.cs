@@ -44,7 +44,7 @@ namespace PF.Core.Interfaces.SecsGem.Command
         /// <summary>
         /// 根据指定的 Key 异步获取对应的命令实例。
         /// </summary>
-        /// <param name="key">命令的唯一标识键（通常由 Stream 和 Function 组合而成）。</param>
+        /// <param name="key">命令名称（<see cref="SFCommand.Name"/>，命令字典的唯一键）。同一 SxFy 可有多条命令，按 Stream/Function 查找请用 <see cref="ISFCommand.FindCommands"/>。</param>
         /// <returns>返回一个表示异步操作的任务。任务结果包含匹配的 <see cref="SFCommand"/> 实例，若未找到则返回 <c>null</c>。</returns>
         Task<SFCommand> GetCommandAsync(string key);
 

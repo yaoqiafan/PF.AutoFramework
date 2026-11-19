@@ -38,6 +38,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         private int _selectedParamIndex;
 
+        /// <summary>消息服务（本类继承 BindableBase，不经 ViewModelBase 注入，按需从容器解析）</summary>
+        private static PF.UI.Infrastructure.Dialog.Basic.IMessageService MessageService =>
+            ContainerLocator.Container.Resolve<PF.UI.Infrastructure.Dialog.Basic.IMessageService>();
+
         /// <summary>初始化实例</summary>
         public SecsParameterViewModel(
             ISecsGemManager manager,
@@ -389,12 +393,18 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             var dlg = new OpenFileDialog { Title = "导入参数配置 (Excel)", Filter = "Excel 文件 (*.xlsx;*.xls)|*.xlsx;*.xls" };
             if (dlg.ShowDialog() != true) return;
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "导入变量参数")) return;
             try
             {
-                var validateConfig = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null)
-                                     ?? new ValidateConfiguration();
+                // 合并到现有配置的副本上，读取成功后再整体替换（见 SecsConfigSafety.LoadValidateStagedAsync）
+                var current = _manager.ParamsManager.GetParamOrDefault<ValidateConfiguration>(ParamType.Validate, null);
+                var validateConfig = await SecsConfigSafety.LoadValidateStagedAsync(dlg.FileName, current);
+                if (validateConfig == null)
+                {
+                    MessageBox.Show("读取 Excel 失败，现有变量配置未做任何修改。详见日志。", "导入失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 _manager.ParamsManager.SetParam(ParamType.Validate, validateConfig);
-                await NPOIHelper.LoadValidateFromExcel(dlg.FileName, validateConfig);
                 bool saved = await SaveValidateToDbAsync(validateConfig);
                 LoadParamRows(_selectedParamIndex);
                 ReportPersistResult(saved, $"参数导入完成: {dlg.FileName}");
@@ -432,6 +442,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         private async Task ExecuteSaveParamAsync()
         {
             var paramType = _selectedParamIndex switch { 1 => ParamType.Validate, 2 => ParamType.Formula, _ => ParamType.System };
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, $"保存 SECS/GEM 参数（{paramType}）")) return;
             try
             {
                 bool saved = true;
@@ -467,6 +478,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             var dlg = new OpenFileDialog { Title = "导入系统参数 (JSON)", Filter = "JSON 文件 (*.json)|*.json" };
             if (dlg.ShowDialog() != true) return;
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "导入系统参数（Host 地址、端口、DeviceID）")) return;
             try
             {
                 var param = new SecsGemSystemParam();
@@ -499,10 +511,16 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             var dlg = new OpenFileDialog { Title = "导入变量参数 (Excel)", Filter = "Excel 文件 (*.xlsx;*.xls)|*.xlsx;*.xls" };
             if (dlg.ShowDialog() != true) return;
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "整表替换变量参数（VID/CEID/ReportID/CommandID）")) return;
             try
             {
-                var cfg = new ValidateConfiguration();
-                await NPOIHelper.LoadValidateFromExcel(dlg.FileName, cfg);
+                // 整表替换：基于空配置加载；此前不检查读取结果，读失败也把空/半截配置写进内存和数据库
+                var cfg = await SecsConfigSafety.LoadValidateStagedAsync(dlg.FileName, baseConfig: null);
+                if (cfg == null)
+                {
+                    MessageBox.Show("读取 Excel 失败，现有变量配置未做任何修改。详见日志。", "导入失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 _manager.ParamsManager.SetParam(ParamType.Validate, cfg);
                 bool saved = await SaveValidateToDbAsync(cfg);
                 LoadParamRows(_selectedParamIndex);
@@ -519,12 +537,18 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         {
             var dlg = new OpenFileDialog { Title = "导入配方参数 (Excel)", Filter = "Excel 文件 (*.xlsx;*.xls)|*.xlsx;*.xls" };
             if (dlg.ShowDialog() != true) return;
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "整表替换配方命令")) return;
             try
             {
-                var formula = _manager.CommandManager.FormulaConfiguration ?? new FormulaConfiguration();
-                await NPOIHelper.LoadIncentiveCommandFromExcel(dlg.FileName, formula.IncentiveCommandDictionary);
-                await NPOIHelper.LoadResponseCommandFromExcel(dlg.FileName, formula.ResponseCommandDictionary);
-                await _manager.CommandManager.UPDataCommondCollection(formula);
+                // 先读进新字典，两类都读取成功才换入（见 SecsConfigSafety.LoadFormulaStagedAsync）
+                var staged = await SecsConfigSafety.LoadFormulaStagedAsync(dlg.FileName);
+                if (staged == null)
+                {
+                    MessageBox.Show("读取 Excel 失败（需包含 IncentiveCommands 与 ResponseCommands 两个工作表），现有命令未做任何修改。详见日志。",
+                        "导入失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                await SecsConfigSafety.ApplyFormulaAsync(_manager, staged.Value.Incentive, staged.Value.Response);
                 bool saved = await SaveFormulaToDbAsync();
                 await _reloadCommandTrees();
                 await ExecuteRefreshDbViewAsync();

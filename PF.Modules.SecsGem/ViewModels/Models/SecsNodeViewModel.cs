@@ -312,6 +312,21 @@ namespace PF.Modules.SecsGem.ViewModels
                 return;
             }
 
+            // 数值类型允许空格分隔的多个值（多元素项），逐个校验
+            if (IsNumericType(_dataType) && SplitTokens(val).Length > 1)
+            {
+                foreach (var token in SplitTokens(val))
+                {
+                    ValidateValue(token);
+                    if (HasValidationError)
+                    {
+                        ValidationErrorMessage = $"「{token}」：{ValidationErrorMessage}";
+                        return;
+                    }
+                }
+                return;
+            }
+
             switch (_dataType)
             {
                 case DataType.U1:
@@ -413,8 +428,18 @@ namespace PF.Modules.SecsGem.ViewModels
         {
             if (node.DataType == DataType.LIST) return string.Empty;
 
+            // 多元素数值项（解析器还原为 T[]）：空格分隔显示。此前直接 ToString() 显示成 "System.UInt32[]"，
+            // 再保存/发送时按这串文字解析必然失败
+            // Binary：解析器还原的 TypedValue 是 byte[]，按十六进制显示（与 HexStringToBytes 的输入格式一致）。
+            // 此前同样显示成 "System.Byte[]"，再保存时十六进制解析失败
+            if (node.DataType == DataType.Binary && node.TypedValue is byte[] bin)
+                return BitConverter.ToString(bin).Replace("-", " ");
+
+            if (node.TypedValue is Array arr && node.DataType != DataType.Binary)
+                return string.Join(" ", arr.Cast<object>().Select(FormatInvariant));
+
             if (node.TypedValue != null)
-                return node.TypedValue.ToString();
+                return FormatInvariant(node.TypedValue);
 
             if (node.Data != null && node.Data.Length > 0)
             {
@@ -428,9 +453,31 @@ namespace PF.Modules.SecsGem.ViewModels
             return string.Empty;
         }
 
+        /// <summary>浮点按 InvariantCulture 显示，与解析侧一致（避免区域设置用逗号作小数点时往返失败）</summary>
+        private static string FormatInvariant(object v) =>
+            v is IFormattable f ? f.ToString(null, System.Globalization.CultureInfo.InvariantCulture) : v?.ToString() ?? string.Empty;
+
+        private static bool IsNumericType(DataType dt) => dt is DataType.U1 or DataType.U2 or DataType.U4 or DataType.U8
+            or DataType.I1 or DataType.I2 or DataType.I4 or DataType.I8 or DataType.F4 or DataType.F8;
+
+        private static string[] SplitTokens(string value) =>
+            value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+
         private static object ParseTypedValue(string value, DataType dt)
         {
             if (string.IsNullOrEmpty(value)) return null;
+
+            // 数值类型输入多个空格分隔的值 → 数组（构造 SecsGemNodeMessage 时编码为多元素项）
+            if (IsNumericType(dt))
+            {
+                var tokens = SplitTokens(value);
+                if (tokens.Length > 1)
+                {
+                    try { return tokens.Select(t => ParseTypedValue(t, dt)).ToArray(); }
+                    catch { return value; }
+                }
+            }
+
             try
             {
                 return dt switch

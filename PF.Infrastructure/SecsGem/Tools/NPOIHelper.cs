@@ -80,6 +80,8 @@ namespace PF.Infrastructure.SecsGem.Tools
             }
             catch (Exception ex)
             {
+                // 此前不留任何痕迹，导入失败只能看到界面上"失败"两个字
+                SecsGemTrace.Warn($"从 Excel 加载变量配置失败（{filePath}）：{ex.Message}");
                 return false;
             }
 
@@ -331,10 +333,8 @@ namespace PF.Infrastructure.SecsGem.Tools
             // 保存VID
             SaveVIDs(workbook, config);
 
-            using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                workbook.Write(fs);
-            }
+            // 原子写入，断电不会留下写了一半的配置文件
+            WriteWorkbookAtomic(workbook, filePath);
         }
 
         private static void SaveCEIDs(IWorkbook workbook, ValidateConfiguration config)
@@ -638,50 +638,8 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// </summary>
         public static async Task SaveIncentiveCommandToExcel(string filePath,ConcurrentDictionary<string, SFCommand> _commandDictionary)
         {
-            IWorkbook workbook;
-            var savePath = filePath ;
-            if (string.IsNullOrEmpty(savePath))
-            {
-                throw new ArgumentException("保存路径不能为空");
-            }
-
-            if (File.Exists(filePath))
-            {
-                using var fileStreamread = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                if (savePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new XSSFWorkbook(fileStreamread);
-                }
-                else if (savePath.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new HSSFWorkbook(fileStreamread);
-                }
-                else
-                {
-                    // 默认使用.xlsx格式
-                    savePath = Path.ChangeExtension(savePath, ".xlsx");
-                    workbook = new XSSFWorkbook(fileStreamread);
-                }
-            }
-            else
-            {
-                if (savePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new XSSFWorkbook();
-                }
-                else if (savePath.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new HSSFWorkbook();
-                }
-                else
-                {
-                    // 默认使用.xlsx格式
-                    savePath = Path.ChangeExtension(savePath, ".xlsx");
-                    workbook = new XSSFWorkbook();
-                }
-            }
-
-            var sheet = workbook.CreateSheet("IncentiveCommands");
+            var workbook = LoadOrCreateWorkbook(filePath, out var savePath);
+            var sheet = RecreateSheet(workbook, "IncentiveCommands");
 
             // 创建表头
             var headerRow = sheet.CreateRow(0);
@@ -712,11 +670,63 @@ namespace PF.Infrastructure.SecsGem.Tools
                 row.CreateCell(5).SetCellValue(command.ResponseID ?? string.Empty);
             }
 
-            // 保存文件
-            using var fileStream = new FileStream(savePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-            workbook.Write(fileStream);
-
+            WriteWorkbookAtomic(workbook, savePath);
             await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 打开已有工作簿（读完立即关闭文件）或新建；非 .xls/.xlsx 扩展名按 .xlsx 保存。
+        /// <para>此前读文件的 FileStream 用 using var 一直开到方法结束，写回时同一文件还被自己占着。</para>
+        /// </summary>
+        private static IWorkbook LoadOrCreateWorkbook(string filePath, out string savePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentException("保存路径不能为空");
+
+            bool isXls = filePath.EndsWith(".xls", StringComparison.OrdinalIgnoreCase);
+            savePath = isXls || filePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)
+                ? filePath
+                : Path.ChangeExtension(filePath, ".xlsx");
+
+            if (!File.Exists(filePath))
+                return isXls ? new HSSFWorkbook() : new XSSFWorkbook();
+
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return isXls ? new HSSFWorkbook(fs) : new XSSFWorkbook(fs);
+        }
+
+        /// <summary>
+        /// 删除同名工作表后重建。此前直接 CreateSheet：文件里已有该表时 NPOI 抛"已存在同名工作表"，
+        /// 同一文件只有第一次能保存成功
+        /// </summary>
+        private static ISheet RecreateSheet(IWorkbook workbook, string sheetName)
+        {
+            int existing = workbook.GetSheetIndex(sheetName);
+            if (existing >= 0) workbook.RemoveSheetAt(existing);
+            return workbook.CreateSheet(sheetName);
+        }
+
+        /// <summary>
+        /// 原子写出工作簿：写同目录临时文件并刷盘，再替换目标。
+        /// <para>此前用 FileMode.OpenOrCreate 直接写：不截断原文件，新内容比旧文件短时尾部残留旧字节，
+        /// xlsx（zip）从文件尾找目录区，读到的是旧内容或直接报损坏；写到一半断电同样损坏。</para>
+        /// </summary>
+        private static void WriteWorkbookAtomic(IWorkbook workbook, string savePath)
+        {
+            var dir = Path.GetDirectoryName(Path.GetFullPath(savePath));
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+            var tempPath = savePath + ".tmp";
+            using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                workbook.Write(fs, leaveOpen: true);
+                fs.Flush(flushToDisk: true);
+            }
+
+            if (File.Exists(savePath))
+                File.Replace(tempPath, savePath, destinationBackupFileName: null);
+            else
+                File.Move(tempPath, savePath);
         }
 
         #endregion
@@ -887,50 +897,8 @@ namespace PF.Infrastructure.SecsGem.Tools
         /// </summary>
         public static async Task SaveResponseCommandToExcel(string filePath, ConcurrentDictionary<string, SFCommand> _commandDictionary)
         {
-            IWorkbook workbook;
-            var savePath = filePath;
-            if (string.IsNullOrEmpty(savePath))
-            {
-                throw new ArgumentException("保存路径不能为空");
-            }
-
-            if (File.Exists(filePath))
-            {
-                using var fileStreamread = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                if (savePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new XSSFWorkbook(fileStreamread);
-                }
-                else if (savePath.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new HSSFWorkbook(fileStreamread);
-                }
-                else
-                {
-                    // 默认使用.xlsx格式
-                    savePath = Path.ChangeExtension(savePath, ".xlsx");
-                    workbook = new XSSFWorkbook(fileStreamread);
-                }
-            }
-            else
-            {
-                if (savePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new XSSFWorkbook();
-                }
-                else if (savePath.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
-                {
-                    workbook = new HSSFWorkbook();
-                }
-                else
-                {
-                    // 默认使用.xlsx格式
-                    savePath = Path.ChangeExtension(savePath, ".xlsx");
-                    workbook = new XSSFWorkbook();
-                }
-            }
-
-            var sheet = workbook.CreateSheet("ResponseCommands");
+            var workbook = LoadOrCreateWorkbook(filePath, out var savePath);
+            var sheet = RecreateSheet(workbook, "ResponseCommands");
 
             // 创建表头
             var headerRow = sheet.CreateRow(0);
@@ -960,10 +928,7 @@ namespace PF.Infrastructure.SecsGem.Tools
                 }
             }
 
-            // 保存文件
-            using var fileStream = new FileStream(savePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-            workbook.Write(fileStream);
-
+            WriteWorkbookAtomic(workbook, savePath);
             await Task.CompletedTask;
         }
         #endregion

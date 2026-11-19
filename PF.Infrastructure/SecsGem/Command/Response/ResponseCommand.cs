@@ -109,7 +109,13 @@ namespace PF.Infrastructure.SecsGem.Command.Response
                 return false;
             }
 
-            var key = command.Key;
+            // 字典统一以命令名称为键（与数据库加载、Excel 导入一致），见 IncentiveCommand.AddCommand
+            if (string.IsNullOrWhiteSpace(command.Name))
+            {
+                SecsGemTrace.Warn($"添加命令失败: {command.Key} 未填写命令名称");
+                return false;
+            }
+            var key = command.Name;
             if (_commandDictionary.ContainsKey(key))
             {
                 SecsGemTrace.Warn($"添加命令失败: 命令 {key} 已存在");

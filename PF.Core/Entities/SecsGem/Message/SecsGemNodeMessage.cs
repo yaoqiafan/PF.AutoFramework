@@ -132,93 +132,36 @@ namespace PF.Core.Entities.SecsGem.Message
                     break;
 
                 case DataType.I1:
-                    {
-                        sbyte v = _value is byte ub ? unchecked((sbyte)ub) : Convert.ToSByte(_value);
-                        Data = new[] { unchecked((byte)v) };
-                        Length = 1;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.I2:
-                    {
-                        short v = Convert.ToInt16(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 2;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.I4:
-                    {
-                        int v = Convert.ToInt32(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 4;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.I8:
-                    {
-                        long v = Convert.ToInt64(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 8;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.U1:
-                    {
-                        byte v = _value is sbyte sb ? unchecked((byte)sb) : Convert.ToByte(_value);
-                        Data = new[] { v };
-                        Length = 1;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.U2:
-                    {
-                        ushort v = Convert.ToUInt16(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 2;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.U4:
-                    {
-                        uint v = Convert.ToUInt32(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 4;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.U8:
-                    {
-                        ulong v = Convert.ToUInt64(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 8;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.F4:
-                    {
-                        float v = Convert.ToSingle(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 4;
-                        TypedValue = v;
-                    }
-                    break;
-
                 case DataType.F8:
+                    // 数值项可以是单值或数组（SECS-II 允许一个数值项含多个元素，如 <U4 1 2 3>）。
+                    // 此前只支持单值：解析器把多元素项还原成 T[]，再交回这里时 Convert.ToUInt32(uint[]) 抛异常——
+                    // 含数组项的命令在 SECS 调试页既发不出去也存不了
+                    if (_value is System.Collections.IEnumerable items && _value is not string)
                     {
-                        double v = Convert.ToDouble(_value);
-                        Data = ToBigEndian(BitConverter.GetBytes(v));
-                        Length = 8;
-                        TypedValue = v;
+                        var buffer = new List<byte>();
+                        var typed = new List<object>();
+                        foreach (var item in items)
+                        {
+                            var (elementBytes, elementValue) = EncodeNumeric(dataType, item);
+                            buffer.AddRange(elementBytes);
+                            typed.Add(elementValue);
+                        }
+                        Data = buffer.ToArray();
+                        TypedValue = ToTypedArray(dataType, typed);
                     }
+                    else
+                    {
+                        (Data, TypedValue) = EncodeNumeric(dataType, _value);
+                    }
+                    Length = Data.Length;
                     break;
 
                 default:
@@ -238,6 +181,41 @@ namespace PF.Core.Entities.SecsGem.Message
                 throw new ArgumentException($"无法为类型 {dataType} 构造 SecsGemNodeMessage：值类型 {_value?.GetType().Name ?? "null"} 不匹配");
             }
         }
+
+        /// <summary>单个数值按目标类型转换并编码为大端字节（与原各分支逻辑一致）</summary>
+        private static (byte[] Data, object Typed) EncodeNumeric(DataType dataType, object value)
+        {
+            switch (dataType)
+            {
+                case DataType.I1: { sbyte v = value is byte ub ? unchecked((sbyte)ub) : Convert.ToSByte(value); return (new[] { unchecked((byte)v) }, v); }
+                case DataType.U1: { byte v = value is sbyte sb ? unchecked((byte)sb) : Convert.ToByte(value); return (new[] { v }, v); }
+                case DataType.I2: { short v = Convert.ToInt16(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.I4: { int v = Convert.ToInt32(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.I8: { long v = Convert.ToInt64(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.U2: { ushort v = Convert.ToUInt16(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.U4: { uint v = Convert.ToUInt32(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.U8: { ulong v = Convert.ToUInt64(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.F4: { float v = Convert.ToSingle(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                case DataType.F8: { double v = Convert.ToDouble(value); return (ToBigEndian(BitConverter.GetBytes(v)), v); }
+                default: throw new ArgumentException($"{dataType} 不是数值类型");
+            }
+        }
+
+        /// <summary>多元素数值项的 TypedValue：强类型数组，与 SecsGemMessageProcessor 解析出的 T[] 一致</summary>
+        private static object ToTypedArray(DataType dataType, List<object> values) => dataType switch
+        {
+            DataType.I1 => values.Cast<sbyte>().ToArray(),
+            DataType.U1 => values.Cast<byte>().ToArray(),
+            DataType.I2 => values.Cast<short>().ToArray(),
+            DataType.I4 => values.Cast<int>().ToArray(),
+            DataType.I8 => values.Cast<long>().ToArray(),
+            DataType.U2 => values.Cast<ushort>().ToArray(),
+            DataType.U4 => values.Cast<uint>().ToArray(),
+            DataType.U8 => values.Cast<ulong>().ToArray(),
+            DataType.F4 => values.Cast<float>().ToArray(),
+            DataType.F8 => values.Cast<double>().ToArray(),
+            _ => values.ToArray(),
+        };
 
         /// <summary>
         /// 主机序转大端序（SECS-II 线格式）；直接在传入数组上就地转换并返回

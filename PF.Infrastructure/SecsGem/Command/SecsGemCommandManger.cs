@@ -106,10 +106,18 @@ namespace PF.Infrastructure.SecsGem.Command
                 // 重建缓存
                 await RebuildCacheAsync();
 
-                _isInitialized = true;
-                _lastInitialized = DateTime.Now;
-
-                SecsGemTrace.Debug($"命令管理器初始化完成，总共 {_allCommandsCache.Count} 个命令");
+                // 只有两类命令都初始化成功才记为已初始化。此前无条件置 true：一次部分失败之后，
+                // 后续调用全部走开头的 _isInitialized 快速返回 true，失败被永久掩盖、重试也不会真正重新加载
+                if (res1 && res2)
+                {
+                    _isInitialized = true;
+                    _lastInitialized = DateTime.Now;
+                    SecsGemTrace.Debug($"命令管理器初始化完成，总共 {_allCommandsCache.Count} 个命令");
+                }
+                else
+                {
+                    SecsGemTrace.Warn($"命令管理器初始化未完全成功（主动命令={res1}，应答命令={res2}），下次调用将重新初始化");
+                }
             }
             catch (Exception ex)
             {
@@ -254,17 +262,12 @@ namespace PF.Infrastructure.SecsGem.Command
         public async Task<List<SFCommand>> GetAllCommandsAsync()
         {
             
-            await _cacheSemaphore.WaitAsync();
-            try
-            {
-                // 确保缓存是最新的
-                await RebuildCacheAsync();
-                return _allCommandsCache.Values.ToList();
-            }
-            finally
-            {
-                _cacheSemaphore.Release();
-            }
+            // 直接合并两个命令集合，不经缓存：主动与应答命令可能同名，合并进同一缓存会互相覆盖。
+            // （此前还在持有 _cacheSemaphore 时调用 RebuildCacheAsync，后者再次获取同一非重入信号量——必然死锁）
+            var incentive = await _incentiveCommands.GetAllCommands();
+            var response = await _responseCommands.GetAllCommands();
+            await RebuildCacheAsync();
+            return incentive.Concat(response).ToList();
         }
 
         /// <summary>
@@ -479,14 +482,16 @@ namespace PF.Infrastructure.SecsGem.Command
                 var incentiveCommands = await _incentiveCommands.GetAllCommands();
                 var responseCommands = await _responseCommands.GetAllCommands();
 
+                // 以命令名称为键（与各命令字典一致）。此前按 Key（SxFy）：同一 SxFy 下的多条命令在缓存里只剩最后一条，
+                // GetAllCommandsAsync / 按 Stream 查询 / 统计都会漏掉命令
                 foreach (var command in incentiveCommands)
                 {
-                    _allCommandsCache[command.Key] = command;
+                    _allCommandsCache[CacheKey(command)] = command;
                 }
 
                 foreach (var command in responseCommands)
                 {
-                    _allCommandsCache[command.Key] = command;
+                    _allCommandsCache[CacheKey(command)] = command;
                 }
             }
             finally
@@ -503,13 +508,17 @@ namespace PF.Infrastructure.SecsGem.Command
             await _cacheSemaphore.WaitAsync();
             try
             {
-                _allCommandsCache[command.Key] = command;
+                _allCommandsCache[CacheKey(command)] = command;
             }
             finally
             {
                 _cacheSemaphore.Release();
             }
         }
+
+        /// <summary>缓存键：命令名称（为空时退回 SxFy）</summary>
+        private static string CacheKey(SFCommand command) =>
+            string.IsNullOrWhiteSpace(command.Name) ? command.Key : command.Name;
 
         /// <summary>
         /// 验证命令列表

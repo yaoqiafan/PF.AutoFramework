@@ -65,11 +65,13 @@ namespace PF.Infrastructure.SecsGem.Param
                 res4 = await _commandManager.InitializeAsync((FormulaConfiguration)_params[ParamType.Formula]);
 
 
+                if (!res4) SecsGemTrace.Warn("SECS/GEM 命令管理器初始化失败");
                 return res1 & res2 & res3 & res4;
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SecsGemTrace.Warn($"SECS/GEM 参数初始化异常：{ex.Message}");
                 return false;
             }
         }
@@ -269,6 +271,9 @@ namespace PF.Infrastructure.SecsGem.Param
 
         #region 私有方法
 
+        // 三段加载此前全部 catch { return false; } 不留任何痕迹：SECS 机构初始化失败时现场只看到"初始化失败"，查不到原因。
+        // 现统一记 Warn，并对按 Description/Name 建字典时的重名做容错（此前重名直接抛"已添加相同键"，整段配置加载失败）。
+
         private async Task<bool> LoadSystemConfiguration()
         {
             try
@@ -276,11 +281,14 @@ namespace PF.Infrastructure.SecsGem.Param
                 using var scope = _secsGemDataBase.BeginScope();
                 var manger0 = scope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
                 var systemParams = (await manger0.GetAllAsync()).Select(t => t.GetSecsGemSystemFormSecsGemSystemEntity()).ToList().FirstOrDefault();
+                if (systemParams == null)
+                    SecsGemTrace.Warn("SECS/GEM 系统参数表（SystemConfigs）为空，请先在 SECS 调试页导入系统参数");
                 (_params[ParamType.System]) = systemParams;
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SecsGemTrace.Warn($"加载 SECS/GEM 系统参数失败：{ex.Message}");
                 return false;
             }
         }
@@ -291,16 +299,16 @@ namespace PF.Infrastructure.SecsGem.Param
             {
                 using var scope = _secsGemDataBase.BeginScope();
                 var manger1 = scope.GetRepository<CommandIDEntity>(SecsDbSet.CommnadIDs);
-                var commandids = new ConcurrentDictionary<string, CommandID>((await manger1.GetAllAsync()).Select(t => t.GetCommandIDFormCommandIDEntity()).ToList().Select(item => new KeyValuePair<string, CommandID>(item.Description, item)));
+                var commandids = ToConcurrentDictionary((await manger1.GetAllAsync()).Select(t => t.GetCommandIDFormCommandIDEntity()), i => i.Description, "CommandID");
 
                 var manger2 = scope.GetRepository<CEIDEntity>(SecsDbSet.CEIDs);
-                var ceids = new ConcurrentDictionary<string, CEID>((await manger2.GetAllAsync()).Select(t => t.GetCEIDFormCEIDEntity()).ToList().Select(item => new KeyValuePair<string, CEID>(item.Description, item)));
+                var ceids = ToConcurrentDictionary((await manger2.GetAllAsync()).Select(t => t.GetCEIDFormCEIDEntity()), i => i.Description, "CEID");
 
                 var manger3 = scope.GetRepository<ReportIDEntity>(SecsDbSet.ReportIDs);
-                var reoprtids = new ConcurrentDictionary<string, ReportID>((await manger3.GetAllAsync()).Select(t => t.GetReportIDFormReportIDEntity()).ToList().Select(item => new KeyValuePair<string, ReportID>(item.Description, item)));
+                var reoprtids = ToConcurrentDictionary((await manger3.GetAllAsync()).Select(t => t.GetReportIDFormReportIDEntity()), i => i.Description, "ReportID");
 
                 var manger4 = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs);
-                var vids = new ConcurrentDictionary<string, VID>((await manger4.GetAllAsync()).Select(t => t.GetVIDFormVIDEntity()).ToList().Select(item => new KeyValuePair<string, VID>(item.Description, item)));
+                var vids = ToConcurrentDictionary((await manger4.GetAllAsync()).Select(t => t.GetVIDFormVIDEntity()), i => i.Description, "VID");
 
                 ((ValidateConfiguration)_params[ParamType.Validate]).CommandIDS = commandids;
                 ((ValidateConfiguration)_params[ParamType.Validate]).CEIDS = ceids;
@@ -309,8 +317,9 @@ namespace PF.Infrastructure.SecsGem.Param
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SecsGemTrace.Warn($"加载 SECS/GEM 变量配置（VID/CEID/ReportID/CommandID）失败：{ex.Message}");
                 return false;
             }
         }
@@ -319,31 +328,37 @@ namespace PF.Infrastructure.SecsGem.Param
         {
             try
             {
+                // 此前内层 catch {} 吞掉读库异常后照常以空命令集返回 true：SECS "初始化成功"却一条命令都没有，
+                // Host 的请求全部无人应答。读库失败必须如实返回 false
+                using var scope = _secsGemDataBase.BeginScope();
+                var manger1 = scope.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
+                var incentiveCommands = ToConcurrentDictionary((await manger1.GetAllAsync()).Select(t => t.GetSFCommandFormIncentiveEntity()), i => i.Name, "主动命令");
 
-                var incentiveCommands = new ConcurrentDictionary<string, SFCommand>();
-                var responseCommands = new ConcurrentDictionary<string, SFCommand>();
-                try
-                {
-                    using var scope = _secsGemDataBase.BeginScope();
-                    var manger1 = scope.GetRepository<IncentiveEntity>(SecsDbSet.IncentiveCommands);
-                    incentiveCommands = new ConcurrentDictionary<string, SFCommand>((await manger1.GetAllAsync()).Select(t => t.GetSFCommandFormIncentiveEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
-
-                    var manger2 = scope.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
-                    responseCommands = new ConcurrentDictionary<string, SFCommand>((await manger2.GetAllAsync()).Select(t => t.GetSFCommandFormResponseEntity()).ToList().Select(item => new KeyValuePair<string, SFCommand>(item.Name, item)));
-                }
-                catch (Exception)
-                {
-                }
-
+                var manger2 = scope.GetRepository<ResponseEntity>(SecsDbSet.ResponseCommands);
+                var responseCommands = ToConcurrentDictionary((await manger2.GetAllAsync()).Select(t => t.GetSFCommandFormResponseEntity()), i => i.Name, "应答命令");
 
                 ((FormulaConfiguration)_params[ParamType.Formula]).IncentiveCommandDictionary = incentiveCommands;
                 ((FormulaConfiguration)_params[ParamType.Formula]).ResponseCommandDictionary = responseCommands;
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SecsGemTrace.Warn($"加载 SECS/GEM 配方命令失败：{ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>按键建字典；重名时保留第一条并记 Warn，不让整段配置因一条重名加载失败</summary>
+        private static ConcurrentDictionary<string, T> ToConcurrentDictionary<T>(IEnumerable<T> items, Func<T, string> keySelector, string kind)
+        {
+            var dict = new ConcurrentDictionary<string, T>();
+            foreach (var item in items)
+            {
+                var key = keySelector(item) ?? string.Empty;
+                if (!dict.TryAdd(key, item))
+                    SecsGemTrace.Warn($"SECS/GEM {kind} 名称重复「{key}」，已忽略后一条，请在 SECS 调试页检查配置");
+            }
+            return dict;
         }
         #endregion
     }

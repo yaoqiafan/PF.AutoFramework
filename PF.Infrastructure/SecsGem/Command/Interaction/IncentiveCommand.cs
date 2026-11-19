@@ -101,7 +101,14 @@ namespace PF.Infrastructure.SecsGem.Command.Interaction
                 return Task.FromResult(false);
             }
 
-            var key = command.Key;
+            // 字典统一以命令名称为键：数据库加载（ParamsManger）与 Excel 导入（NPOIHelper）都按 Name 建字典。
+            // 此前这里按 Key（SxFy）入字典，键空间混用，同一 SxFy 下界面只能新增一条命令
+            if (string.IsNullOrWhiteSpace(command.Name))
+            {
+                SecsGemTrace.Warn($"添加命令失败: {command.Key} 未填写命令名称");
+                return Task.FromResult(false);
+            }
+            var key = command.Name;
             if (_commandDictionary.ContainsKey(key))
             {
                 return Task.FromResult(false); // 已存在

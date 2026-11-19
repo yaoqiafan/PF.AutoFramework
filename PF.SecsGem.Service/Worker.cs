@@ -480,7 +480,9 @@ namespace PF.SecsGem.Service
 
                 byte[] header_resp = data.Skip(4).Take(10).ToArray();
 
-                if (header_resp[2] == 0 && header_resp[3] == 0)
+                // 控制报文按 SType（header[5]）识别：数据报文 SType 恒为 0。
+                // 此前只看 header[2]/[3] 是否为 0——Reject.req 在这两个字节里带被拒报文类型和原因码，被当成数据报文转给了主程序
+                if (header_resp[5] != 0 || (header_resp[2] == 0 && header_resp[3] == 0))
                 {
                     await ProcessS0F0(header_resp, token);
                 }
@@ -512,14 +514,29 @@ namespace PF.SecsGem.Service
                 RootNode = null
             };
 
-            byte linkTest = header[5];
-            if (linkTest == 1) message.LinkNumber = 2;
-            else if (linkTest == 5) message.LinkNumber = 6;
-            else if (linkTest == 9) message.LinkNumber = 10;
-            else
+            // HSMS 控制报文按 SType（头部第 6 字节）区分，见 SEMI E37：
+            //   1 Select.req → 2 Select.rsp；3 Deselect.req → 4 Deselect.rsp；5 Linktest.req → 6 Linktest.rsp；
+            //   7 Reject.req 只记录；9 Separate.req 不回复，接收方直接断开 TCP。
+            // 此前 Separate.req 回了一个规范里不存在的 SType=10、连接也不断开；Deselect.req 不应答，Host 只能等 T6 超时
+            byte sType = header[5];
+            switch (sType)
             {
-                _commLogger.Warn($"未知的LinkTest值: {linkTest}");
-                return;
+                case 1: message.LinkNumber = 2; break;
+                case 3: message.LinkNumber = 4; break;
+                case 5: message.LinkNumber = 6; break;
+                case 7:
+                    _commLogger.Warn($"收到 Host 的 Reject.req（原因码 {header[3]}），对方拒绝了我方发出的某条控制/数据报文");
+                    return;
+                case 9:
+                    _commLogger.Info("收到 Host 的 Separate.req，按 HSMS 规范不应答并断开连接");
+                    var hsmsServer = _hsms.Server;
+                    var clientId = this.SecsGemClientId;
+                    if (hsmsServer != null && !string.IsNullOrEmpty(clientId))
+                        await hsmsServer.DisconnectClientAsync(clientId);
+                    return;
+                default:
+                    _commLogger.Warn($"未知的 HSMS 控制报文 SType: {sType}");
+                    return;
             }
 
             byte[] sendData = SecsGemMessageTools.GenerateSecsBytes(message, _deviceId);

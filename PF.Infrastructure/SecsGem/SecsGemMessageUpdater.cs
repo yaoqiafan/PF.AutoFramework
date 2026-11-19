@@ -93,12 +93,34 @@ namespace PF.Core.Interfaces.SecsGem
         /// </summary>
         private void UpdateNodeWithVID(SecsGemNodeMessage node, VID vid)
         {
-            // 根据VID的DataType和Value创建新的节点值
+            // 根据VID的DataType和Value创建新的节点值。
+            // 每个成功写值的分支都必须同时把 node.DataType 改成 VID 的类型：此前只有 U2/ASCII 改了，
+            // I4/U4/F4/F8/Boolean/Binary 只改数据——模板节点类型与 VID 不同时（如 ASCII 占位、VID 为 I4），
+            // Host 收到"ASCII 类型、内容是 4 个二进制字节"的错误报文
+            string text = vid.Value?.ToString() ?? string.Empty;
             switch (vid.DataType)
             {
+                // 此前 I1/I2/I8/U1/U8 落到 default：只记一条警告，节点保留模板占位值，Host 收到的是假数据
+                case DataType.I1:
+                    if (sbyte.TryParse(text, out sbyte i1)) SetNode(node, DataType.I1, new[] { unchecked((byte)i1) }, i1);
+                    break;
+                case DataType.U1:
+                    if (byte.TryParse(text, out byte u1)) SetNode(node, DataType.U1, new[] { u1 }, u1);
+                    break;
+                case DataType.I2:
+                    if (short.TryParse(text, out short i2)) SetNode(node, DataType.I2, ToBigEndian(BitConverter.GetBytes(i2)), i2);
+                    break;
+                case DataType.I8:
+                    if (long.TryParse(text, out long i8)) SetNode(node, DataType.I8, ToBigEndian(BitConverter.GetBytes(i8)), i8);
+                    break;
+                case DataType.U8:
+                    if (ulong.TryParse(text, out ulong u8)) SetNode(node, DataType.U8, ToBigEndian(BitConverter.GetBytes(u8)), u8);
+                    break;
+
                 case DataType.I4:
                     if (vid.Value != null && int.TryParse(vid.Value.ToString(), out int intValue))
                     {
+                        node.DataType = DataType.I4;
                         node.Data = ToBigEndian(BitConverter.GetBytes(intValue));
                         node.TypedValue = intValue;
                         node.Length = 4;
@@ -118,6 +140,7 @@ namespace PF.Core.Interfaces.SecsGem
                 case DataType.U4:
                     if (vid.Value != null && uint.TryParse(vid.Value.ToString(), out uint uintValue))
                     {
+                        node.DataType = DataType.U4;
                         node.Data = ToBigEndian(BitConverter.GetBytes(uintValue));
                         node.TypedValue = uintValue;
                         node.Length = 4;
@@ -137,6 +160,7 @@ namespace PF.Core.Interfaces.SecsGem
                 case DataType.F4:
                     if (vid.Value != null && float.TryParse(vid.Value.ToString(), out float floatValue))
                     {
+                        node.DataType = DataType.F4;
                         node.Data = ToBigEndian(BitConverter.GetBytes(floatValue));
                         node.TypedValue = floatValue;
                         node.Length = 4;
@@ -146,6 +170,7 @@ namespace PF.Core.Interfaces.SecsGem
                 case DataType.F8:
                     if (vid.Value != null && double.TryParse(vid.Value.ToString(), out double doubleValue))
                     {
+                        node.DataType = DataType.F8;
                         node.Data = ToBigEndian(BitConverter.GetBytes(doubleValue));
                         node.TypedValue = doubleValue;
                         node.Length = 8;
@@ -156,6 +181,7 @@ namespace PF.Core.Interfaces.SecsGem
                     if (vid.Value != null)
                     {
                         bool boolVal = vid.Value is bool b ? b : Convert.ToBoolean(vid.Value);
+                        node.DataType = DataType.Boolean;
                         node.Data = new byte[] { (byte)(boolVal ? 0x01 : 0x00) };
                         node.TypedValue = boolVal;
                         node.Length = 1;
@@ -165,12 +191,14 @@ namespace PF.Core.Interfaces.SecsGem
                 case DataType.Binary:
                     if (vid.Value is byte[] binaryValue)
                     {
+                        node.DataType = DataType.Binary;
                         node.Data = binaryValue;
                         node.TypedValue = binaryValue;
                         node.Length = binaryValue.Length;
                     }
                     else if (vid.Value != null)
                     {
+                        node.DataType = DataType.Binary;
                         node.Data = new byte[] { 0X00 };
                         node.TypedValue = new byte[] { 0X00 };
                         node.Length = 1;
@@ -186,6 +214,14 @@ namespace PF.Core.Interfaces.SecsGem
                     }
                     break;
             }
+        }
+
+        private static void SetNode(SecsGemNodeMessage node, DataType type, byte[] bigEndianData, object typedValue)
+        {
+            node.DataType = type;
+            node.Data = bigEndianData;
+            node.TypedValue = typedValue;
+            node.Length = bigEndianData.Length;
         }
 
         /// <summary>

@@ -223,6 +223,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                     $"确定要删除命令 [{vm.Command.Name}] 吗？",
                     "警告", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (confirm != ButtonResult.Yes) return;
+                if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, $"删除命令 [{vm.Command.Name}]")) return;
 
                 var commandStore = tree == IncentiveCommandsTree
                     ? _manager.CommandManager.IncentiveCommands
@@ -317,12 +318,18 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 Filter = "Excel 文件 (*.xlsx;*.xls)|*.xlsx;*.xls"
             };
             if (dlg.ShowDialog() != true) return;
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "导入并替换命令配置")) return;
             try
             {
-                var formula = _manager.CommandManager.FormulaConfiguration;
-                await NPOIHelper.LoadIncentiveCommandFromExcel(dlg.FileName, formula.IncentiveCommandDictionary);
-                await NPOIHelper.LoadResponseCommandFromExcel(dlg.FileName, formula.ResponseCommandDictionary);
-                await _manager.CommandManager.UPDataCommondCollection(formula);
+                // 先读进新字典，两类都读取成功才换入；此前直接在正在使用的字典上加载（第一步即 Clear），读失败时命令已被清空
+                var staged = await SecsConfigSafety.LoadFormulaStagedAsync(dlg.FileName);
+                if (staged == null)
+                {
+                    MessageBox.Show("读取 Excel 失败（需包含 IncentiveCommands 与 ResponseCommands 两个工作表），现有命令未做任何修改。详见日志。",
+                        "导入失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                await SecsConfigSafety.ApplyFormulaAsync(_manager, staged.Value.Incentive, staged.Value.Response);
                 await LoadCommandTreesAsync();
                 _log.Append(null, $"命令导入完成: {dlg.FileName}", isSystem: true);
             }
@@ -355,6 +362,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         private async Task ExecuteReloadCommandsAsync()
         {
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "重新加载命令库")) return;
             try
             {
                 var formula = _manager.CommandManager.FormulaConfiguration;
@@ -442,6 +450,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
         private async Task ExecuteSaveMessageAsync()
         {
             if (_currentCommand == null) return;
+            if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, $"保存命令报文 [{_currentCommand.Name}]")) return;
             try
             {
                 var updatedMsg = BuildSecsGemMessage();
@@ -453,7 +462,10 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                     ? _manager.CommandManager.IncentiveCommands
                     : _manager.CommandManager.ResponseCommands;
 
-                await commandStore.UpdateCommandInfo(_currentCommand.Key, _currentCommand.Key, _currentCommand);
+                // 命令字典以名称为键。此前传 Key（SxFy），对库里加载的命令永远查不到、返回 false 被忽略——
+                // 只是因为 _currentCommand 与字典里是同一个对象引用，原地改 Message 才碰巧生效
+                if (!await commandStore.UpdateCommandInfo(_currentCommand.Name, _currentCommand.Name, _currentCommand))
+                    _log.Append(null, $"⚠ 内存命令集中未找到命令 [{_currentCommand.Name}]，仅写入数据库", isSystem: true);
 
                 using var scope = _db.BeginScope();
                 if (isIncentive)
@@ -509,17 +521,16 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
                 SubscribeVidEvents(child);
         }
 
-        private void OnNodeAddRequested(object sender, EventArgs e)
+        // 事件处理器可以直接写成 async void（EventHandler 签名不变），无需改事件定义；
+        // 此前用 GetAwaiter().GetResult() 在 UI 线程上同步阻塞读库
+        private async void OnNodeAddRequested(object sender, EventArgs e)
         {
             if (sender is not SecsNodeViewModel parentNode) return;
             List<VIDEntity> vids;
             try
             {
-                // TODO(sync-over-async): 此事件处理器是同步签名，DB 读取用 GetAwaiter().GetResult() 阻塞。
-                //                       后续应改为 async 事件处理器（需调整事件签名）。
                 using var scope = _db.BeginScope();
-                vids = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs)
-                          .GetAllAsync().GetAwaiter().GetResult().ToList();
+                vids = (await scope.GetRepository<VIDEntity>(SecsDbSet.VIDs).GetAllAsync()).ToList();
             }
             catch (Exception ex)
             {
@@ -551,16 +562,14 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             });
         }
 
-        private void OnVidSelectionRequested(object sender, EventArgs e)
+        private async void OnVidSelectionRequested(object sender, EventArgs e)
         {
             if (sender is not SecsNodeViewModel nodeVm) return;
             try
             {
-                // TODO(sync-over-async): 此事件处理器是同步签名，DB 读取用 GetAwaiter().GetResult() 阻塞。
-                //                       后续应改为 async 事件处理器（需调整事件签名）。
-                using var scope = _db.BeginScope();
-                var vids = scope.GetRepository<VIDEntity>(SecsDbSet.VIDs)
-                              .GetAllAsync().GetAwaiter().GetResult().ToList();
+                List<VIDEntity> vids;
+                using (var scope = _db.BeginScope())
+                    vids = (await scope.GetRepository<VIDEntity>(SecsDbSet.VIDs).GetAllAsync()).ToList();
 
                 if (!vids.Any())
                 {

@@ -57,14 +57,25 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             {
                 entry = CreateLogEntry(msg, message ?? "→");
             }
-            TransactionLogs.Insert(0,entry);
-
-
+            Insert(entry);
         }
 
         /// <summary>追加一条接收到的报文日志。</summary>
-        public void AppendReceived(SecsGemMessage msg) =>
-            TransactionLogs.Insert(0,CreateLogEntry(msg, "←"));
+        public void AppendReceived(SecsGemMessage msg) => Insert(CreateLogEntry(msg, "←"));
+
+        /// <summary>面板最多保留的条数（完整报文另有协议日志文件留存）</summary>
+        private const int MaxEntries = 1000;
+
+        /// <summary>
+        /// 插到最前并裁掉超出上限的旧条目。此前无上限：调试页开着时 Host 的每条报文都插进来、每条带整段 SML 文本，
+        /// 页面开一个班次就是成千上万条，内存与列表渲染持续变慢
+        /// </summary>
+        private void Insert(TransactionLogEntry entry)
+        {
+            TransactionLogs.Insert(0, entry);
+            while (TransactionLogs.Count > MaxEntries)
+                TransactionLogs.RemoveAt(TransactionLogs.Count - 1);
+        }
 
         // ── 私有辅助 ───────────────────────────────────────────────────────────
         private static TransactionLogEntry CreateLogEntry(SecsGemMessage msg, string direction)
